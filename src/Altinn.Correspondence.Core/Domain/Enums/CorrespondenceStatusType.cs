@@ -1,4 +1,4 @@
-﻿namespace Altinn.Correspondence.Core.Models.Enums
+﻿namespace Altinn.Correspondence.Core.Domain.Models.Enums
 {
     /// <summary>
     ///  Correspondence Status Type is used to specify the current status of the correspondence.

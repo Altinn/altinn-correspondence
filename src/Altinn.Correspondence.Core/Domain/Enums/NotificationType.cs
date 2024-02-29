@@ -1,4 +1,4 @@
-﻿namespace Altinn.Correspondence.Core.Models.Enums
+﻿namespace Altinn.Correspondence.Core.Domain.Models.Enums
 {
     /// <summary>
     /// This specifies what type of notification to be used

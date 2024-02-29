@@ -2,7 +2,7 @@
 using System.Runtime.Serialization;
 using System.Xml.Serialization;
 
-namespace Altinn.Correspondence.Core.Models
+namespace Altinn.Correspondence.Core.Domain.Models
 {
     /// <summary>
     /// Business entity representing details about a correspondence. The details included are

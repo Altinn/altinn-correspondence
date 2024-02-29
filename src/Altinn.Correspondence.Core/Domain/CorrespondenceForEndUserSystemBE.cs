@@ -1,4 +1,4 @@
-﻿namespace Altinn.Correspondence.Core.Models
+﻿namespace Altinn.Correspondence.Core.Domain.Models
 {
     /// <summary>
     /// This entity provides all the details pertaining to the requested Correspondence from the EUS.

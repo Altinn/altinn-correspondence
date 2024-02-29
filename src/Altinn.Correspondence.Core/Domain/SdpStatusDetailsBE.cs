@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace Altinn.Correspondence.Core.Models
+﻿namespace Altinn.Correspondence.Core.Domain.Models
 {
     /// <summary>
     /// Represents a secure digital post element with key values and status history.
     /// </summary>
-    public class SdpStatusDetailsExternalBE
+    public class SdpStatusDetailsBE
     {
         /// <summary>
         /// Gets or sets the unique id of a secure digital post element as it is stored in Altinn.
@@ -36,6 +32,11 @@ namespace Altinn.Correspondence.Core.Models
         public string Reportee { get; set; }
 
         /// <summary>
+        /// Gets or sets the party id of the reportee.
+        /// </summary>
+        public int ReporteeId { get; set; }
+
+        /// <summary>
         /// Gets or sets the reference value that was provided by the agency that created the secure digital post element. 
         /// ExternalShipmentReference or SendersReference.
         /// </summary>
@@ -44,27 +45,6 @@ namespace Altinn.Correspondence.Core.Models
         /// <summary>
         /// Gets or sets the status history for the secure digital post element.
         /// </summary>
-        public List<SdpStatusChangeExternalBE> StatusHistory { get; set; }
-
-        /// <summary>
-        /// Create a new instance of the SdpStatusDetailsExternalBE class with data from a SdpStatusDetailsBE object.
-        /// </summary>
-        /// <param name="internalSdpStatus">The SdpStatusDetailsBE object to get initialization data from.</param>
-        /// <returns>A new, populated SdpStatusDetailsExternalBE object.</returns>
-        public static SdpStatusDetailsExternalBE Create(SdpStatusDetailsBE internalSdpStatus)
-        {
-            SdpStatusDetailsExternalBE externalSdpStatus = new SdpStatusDetailsExternalBE
-            {
-                SdpId = internalSdpStatus.SdpId,
-                CorrespondenceId = internalSdpStatus.CorrespondenceId,
-                CreatedDateTime = internalSdpStatus.CreatedDateTime,
-                LastChangedDateTime = internalSdpStatus.LastChangedDateTime,
-                Reportee = internalSdpStatus.Reportee,
-                Reference = internalSdpStatus.Reference,
-                StatusHistory = internalSdpStatus.StatusHistory.Select(SdpStatusChangeExternalBE.Create).ToList()
-            };
-
-            return externalSdpStatus;
-        }
+        public List<SdpStatusChangeBE> StatusHistory { get; set; }
     }
 }

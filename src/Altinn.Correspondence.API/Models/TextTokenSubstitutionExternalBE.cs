@@ -1,5 +1,4 @@
-﻿
-namespace Altinn.Correspondence.Core.Models
+﻿namespace Altinn.Correspondence.API.Models
 {
     /// <summary>
     /// Represents a TextToken. TextTokens is used to create more dynamic notification texts. A Token can trigger text substitution

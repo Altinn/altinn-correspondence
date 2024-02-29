@@ -1,4 +1,4 @@
-﻿namespace Altinn.Correspondence.Core.Models.Enums
+﻿namespace Altinn.Correspondence.Core.Domain.Models.Enums
 {
     /// <summary>
     ///  This defines the possible types of replies, typically Form, Mail, Message and others

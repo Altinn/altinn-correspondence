@@ -6,7 +6,7 @@ using System.Runtime.Serialization;
 
 #endregion
 
-namespace Altinn.Correspondence.Core.Models
+namespace Altinn.Correspondence.Core.Domain.Models
 {
     /// <summary>
     /// The class holds counters for correspondences

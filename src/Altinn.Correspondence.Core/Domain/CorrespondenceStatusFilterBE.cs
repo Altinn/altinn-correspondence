@@ -1,6 +1,6 @@
-﻿using Altinn.Correspondence.Core.Models.Enums;
+﻿using Altinn.Correspondence.Core.Domain.Models.Enums;
 
-namespace Altinn.Correspondence.Core.Models
+namespace Altinn.Correspondence.Core.Domain.Models
 { 
     /// <summary>
     /// Represents the filtering choices an agency can use
@@ -64,69 +64,5 @@ namespace Altinn.Correspondence.Core.Models
         /// Gets or sets a data object with information on how to include SDP information in the status search results.
         /// </summary>
         public SdpStatusSearchOptionsBE SdpSearchOptions { get; set; }
-
-        /// <summary>
-        /// Create a new instance of the CorrespondenceStatusFilterBE class with data from a CorrespondenceStatusFilterExternalBE object.
-        /// </summary>
-        /// <param name="filterCriteria">The CorrespondenceStatusFilterExternalBE object to get initialization data from.</param>
-        /// <returns>A new, populated CorrespondenceStatusFilterBE object.</returns>
-        public static CorrespondenceStatusFilterBE Create(CorrespondenceStatusFilterExternalBE filterCriteria)
-        {
-            return new CorrespondenceStatusFilterBE
-            {
-                CreatedAfterDate = filterCriteria.CreatedAfterDate,
-                CreatedBeforeDate = filterCriteria.CreatedBeforeDate,
-                CurrentStatus = (CorrespondenceStatusType)((int)filterCriteria.CurrentStatus),
-                NotificationSent = filterCriteria.NotificationSent,
-                ReporteeId = filterCriteria.PartyId,
-                Reportee = filterCriteria.Reportee,
-                SendersReference = filterCriteria.SendersReference,
-                ServiceCode = filterCriteria.ServiceCode,
-                ServiceEditionCode = filterCriteria.ServiceEditionCode
-            };
-        }
-
-        /// <summary>
-        /// Create a new instance of the CorrespondenceStatusFilterBE class with data from a CorrespondenceStatusFilterExternalBEV2 object.
-        /// </summary>
-        /// <param name="filterCriteria">The CorrespondenceStatusFilterExternalBEV2 object to get initialization data from.</param>
-        /// <returns>A new, populated CorrespondenceStatusFilterBE object.</returns>
-        public static CorrespondenceStatusFilterBE Create(CorrespondenceStatusFilterExternalBEV2 filterCriteria)
-        {
-            return new CorrespondenceStatusFilterBE
-            {
-                CreatedAfterDate = filterCriteria.CreatedAfterDate,
-                CreatedBeforeDate = filterCriteria.CreatedBeforeDate,
-                CurrentStatus = (CorrespondenceStatusType)((int)filterCriteria.CurrentStatus),
-                NotificationSent = filterCriteria.NotificationSent,
-                ReporteeId = filterCriteria.PartyId,
-                Reportee = filterCriteria.Reportee,
-                SendersReference = filterCriteria.SendersReference,
-                ServiceCode = filterCriteria.ServiceCode,
-                ServiceEditionCode = filterCriteria.ServiceEditionCode
-            };
-        }
-
-        /// <summary>
-        /// Create a new instance of the CorrespondenceStatusFilterBE class with data from a CorrespondenceStatusFilterExternalBEV3 object.
-        /// </summary>
-        /// <param name="filterCriteria">The CorrespondenceStatusFilterExternalBEV3 object to get initialization data from.</param>
-        /// <returns>A new, populated CorrespondenceStatusFilterBE object.</returns>
-        public static CorrespondenceStatusFilterBE Create(CorrespondenceStatusFilterExternalBEV3 filterCriteria)
-        {
-            return new CorrespondenceStatusFilterBE
-            {
-                CreatedAfterDate = filterCriteria.CreatedAfterDate,
-                CreatedBeforeDate = filterCriteria.CreatedBeforeDate,
-                CurrentStatus = (CorrespondenceStatusType)((int)filterCriteria.CurrentStatus),
-                NotificationSent = filterCriteria.NotificationSent,
-                ReporteeId = filterCriteria.PartyId,
-                Reportee = filterCriteria.Reportee,
-                SendersReference = filterCriteria.SendersReference,
-                ServiceCode = filterCriteria.ServiceCode,
-                ServiceEditionCode = filterCriteria.ServiceEditionCode,
-                SdpSearchOptions = SdpStatusSearchOptionsBE.Create(filterCriteria.SdpSearchOptions)
-            };
-        }
     }
 }

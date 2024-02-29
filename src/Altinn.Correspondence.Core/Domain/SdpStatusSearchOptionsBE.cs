@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Altinn.Correspondence.Core.Models
+namespace Altinn.Correspondence.Core.Domain.Models
 {
     /// <summary>
     /// Represents the search options that can be set when performing a search for status details on digital letters.
@@ -12,23 +12,5 @@ namespace Altinn.Correspondence.Core.Models
         /// and only search for secure digital post elements.
         /// </summary>
         public bool IncludeCorrespondence { get; set; }
-
-        /// <summary>
-        /// Create a new instance of the SdpStatusSearchOptionsBE class with data from a SdpStatusSearchOptionsExternalBE object.
-        /// </summary>
-        /// <param name="external">The SdpStatusSearchOptionsExternalBE object to get initialization data from.</param>
-        /// <returns>A new, populated SdpStatusSearchOptionsBE object.</returns>
-        public static SdpStatusSearchOptionsBE Create(SdpStatusSearchOptionsExternalBE external)
-        {
-            if (external == null)
-            {
-                return null;
-            }
-
-            return new SdpStatusSearchOptionsBE
-            {
-                IncludeCorrespondence = external.IncludeCorrespondence
-            };
-        }
     }
 }

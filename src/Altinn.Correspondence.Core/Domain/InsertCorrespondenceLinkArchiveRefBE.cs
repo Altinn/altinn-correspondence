@@ -1,4 +1,4 @@
-﻿namespace Altinn.Correspondence.Core.Models
+﻿namespace Altinn.Correspondence.Core.Domain.Models
 {
     /// <summary>
     /// The CorrespondenceLinkBE provides Correspondence link information provided by a Service Owner

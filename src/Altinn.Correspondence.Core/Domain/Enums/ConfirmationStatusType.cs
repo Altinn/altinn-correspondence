@@ -1,4 +1,4 @@
-﻿namespace Altinn.Correspondence.Core.Models.Enums
+﻿namespace Altinn.Correspondence.Core.Domain.Models.Enums
 {   
     /// <summary>
     ///  Enum types for denoting the different types of Confirmation statuses on a Correspondence

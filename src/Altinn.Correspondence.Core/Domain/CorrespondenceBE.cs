@@ -1,6 +1,6 @@
-﻿using Altinn.Correspondence.Core.Models.Enums;
+﻿using Altinn.Correspondence.Core.Domain.Models.Enums;
 
-namespace Altinn.Correspondence.Core.Models
+namespace Altinn.Correspondence.Core.Domain.Models
 {
     /// <summary>
     /// The CorrespondenceBE provides Correspondence details.

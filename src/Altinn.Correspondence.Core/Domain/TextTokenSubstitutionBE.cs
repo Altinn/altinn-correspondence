@@ -7,7 +7,7 @@ using System.Runtime.Serialization;
 
 #endregion
 
-namespace Altinn.Correspondence.Core.Models
+namespace Altinn.Correspondence.Core.Domain.Models
 {
     /// <summary>
     /// Represents a text replacement rule in notifications. Text in a template is replaced with data in a token.
@@ -21,16 +21,6 @@ namespace Altinn.Correspondence.Core.Models
         /// </summary>
         public TextTokenSubstitutionBE()
         {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TextTokenSubstitutionBE" /> class.
-        /// </summary>
-        /// <param name="input">External entity to create the internal entity from.</param>
-        public TextTokenSubstitutionBE(TextTokenSubstitutionExternalBE input)
-        {
-            this.TokenValue = input.TokenValue;
-            this.TokenNum = input.TokenNum;
         }
 
         /// <summary>
@@ -67,15 +57,6 @@ namespace Altinn.Correspondence.Core.Models
         /// </summary>
         public TextTokenSubstitutionBEList()
         {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TextTokenSubstitutionBEList" /> class.
-        /// </summary>
-        /// <param name="list">List of external entities to convert to internal entities.</param>
-        public TextTokenSubstitutionBEList(TextTokenSubstitutionExternalBEList list)
-        {
-            this.AddRange(list.Select(token => new TextTokenSubstitutionBE(token)));
         }
 
         /// <summary>

@@ -3,11 +3,11 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Domain.Models.Enums;
 
 #endregion
 
-namespace Altinn.Correspondence.Core.Models
+namespace Altinn.Correspondence.Core.Domain.Models
 {
     /// <summary>
     /// Internal receiver end point details
