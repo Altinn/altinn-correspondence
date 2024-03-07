@@ -10,7 +10,7 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Gets or sets the language that the correspondence is written in.
         /// </summary>
-        public LanguageTypeExternal Language { get; set; }
+        public LanguageTypeExt Language { get; set; }
 
         /// <summary>
         /// Gets or sets the correspondence message title. Subject.
@@ -28,11 +28,10 @@ namespace Altinn.Correspondence.API.Models
         public string MessageBody { get; set; }
 
         /// <summary>
-        /// Gets or sets a container object for collection of binary and xml attachments.
+        /// Gets or sets a list of attachments.
         /// </summary>
-        public ExternalAttachmentExternalBEV2 Attachments { get; set; }
+        public List<CorrespondenceAttachmentExt> Attachments { get; set; }
 
-        /// <summary>
         /// Gets or sets custom xml content.
         /// </summary>]
         public string CustomMessageData { get; set; }

@@ -21,7 +21,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        public string InsertCorrespondence(InsertCorrespondenceExt insertCorrespondenceExt)
+        public string InsertCorrespondence(InitiateCorrespondenceExt insertCorrespondenceExt)
         {
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(insertCorrespondenceExt);
             _logger.LogInformation("Insert correspondence");

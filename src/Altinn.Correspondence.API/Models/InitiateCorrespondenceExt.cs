@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models
@@ -8,7 +7,7 @@ namespace Altinn.Correspondence.API.Models
     /// Represents a request object for the operation, InsertCorrespondence, that can create a correspondence in Altinn.
     /// Instances of this class can hold the complete set of information about a correspondence. 
     /// </summary>
-    public class InsertCorrespondenceExt
+    public class InitiateCorrespondenceExt
     {
         /// <summary>
         /// Gets or sets the Resource Id for the correspondence service.
@@ -23,6 +22,7 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         /// <remarks>
         /// Social Security number or Organization number.
+        /// TODO: How to validate?
         /// </remarks
         [JsonPropertyName("recipient")]
         [Required]
@@ -44,58 +44,48 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("sendersReference")]
         [StringLength(4096, MinimumLength = 1)]
-        public string SendersReference { get; set; } = string.Empty;
+        [Required]
+        public required string SendersReference { get; set; }
 
         /// <summary>
         /// Gets or sets the correspondence content. Contains information about the Correspondence body, subject etc.
         /// </summary>
+        [JsonPropertyName("content")]
         public required CorrespondenceContentExt Content { get; set; }
 
         /// <summary>
         /// Gets or sets when the correspondence should become visible to the recipient.
         /// </summary>
+        [JsonPropertyName("visibleDateTime")]
         public DateTime VisibleDateTime { get; set; }
 
         /// <summary>
         /// Gets or sets the date for when Altinn can remove the correspondence from its database.
         /// </summary>
+        [JsonPropertyName("allowSystemDeleteDateTime")]
         public DateTime? AllowSystemDeleteDateTime { get; set; }
 
         /// <summary>
         /// Gets or sets a date and time for when the recipient must reply.
         /// </summary>
+        [JsonPropertyName("dueDateTime")]
         public DateTime DueDateTime { get; set; }
 
         /// <summary>
         /// Gets or sets an list of references Senders can use this field to tell the recipient that the correspondence is related to the referenced item(s)
-        /// Examples include Altinn 2 FormTask submissions, Altinn 2 CaseId, Altinn App instances, Altinn Broker File Transfers
+        /// Examples include Altinn App instances, Altinn Broker File Transfers
         /// </summary>
-        public List<ReferenceExt>? ExternalReferences { get; set; }
+        [JsonPropertyName("externalReferences")]
+        public List<ExternalReferenceExt>? ExternalReferences { get; set; }
 
         /// <summary>
         /// Gets or sets options for how the recipient can reply to the correspondence
         /// </summary>
-        public CorrespondenceInsertLinkExternalBEList? ReplyOptions { get; set; }
-
-        /// <summary>
-        /// Gets or sets notification information. Notifications are used to inform the recipient that there is a new correspondence.
-        /// </summary>
-        public NotificationExternalBEV2List? Notifications { get; set; }
-
-        /// <summary>
-        /// Gets or sets a flag that indicate whether the user is allowed to forward the correspondence.
-        /// </summary>
-        public bool? AllowForwarding { get; set; }
+        public List<CorrespondenceReplyOptionExt>? ReplyOptions { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the service could be reserved or not
         /// </summary>
         public bool? IsReservable { get; set; }
-
-        /// <summary>
-        /// Gets or sets a data object containing details about how Altinn should work when making a submission
-        /// to the digital mailbox system.
-        /// </summary>
-        public SdpOptionsExternalBE SdpOptions { get; set; }
     }
 }

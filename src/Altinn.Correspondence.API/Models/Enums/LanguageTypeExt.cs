@@ -3,7 +3,7 @@
     /// <summary>
     /// Defines supported languages.
     /// </summary>
-    public enum LanguageTypeExternal : int
+    public enum LanguageTypeExt : int
     {
         /// <summary>
         /// Specifies default value.

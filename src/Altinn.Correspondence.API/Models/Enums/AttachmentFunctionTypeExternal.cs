@@ -3,6 +3,9 @@
     /// <summary>
     /// Defines functions for attachments.
     /// </summary>
+    /// <remarks>
+    /// TODO: Can be removed?
+    /// </remarks>
     public enum AttachmentFunctionTypeExternal : int
     {
         /// <summary>

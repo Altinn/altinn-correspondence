@@ -1,54 +1,51 @@
-﻿namespace Altinn.Correspondence.Core.Domain.Models.Enums
+namespace Altinn.Correspondence.API.Models.Enums
 {
-    /// <summary>
-    ///  Correspondence Status Type is used to specify the current status of the correspondence.
-    /// </summary>
-    public enum CorrespondenceStatusType : int
+    public enum CorrespondenceStatusExt : int
     {
         /// <summary>
-        /// Message has been created.
+        /// Message has been Initialized.
         /// </summary>
-        Default = 0, 
+        Initialized = 0,
 
         /// <summary>
-        /// Message has been created.
+        /// Message has been Published, and is available for recipients.
         /// </summary>
-        Created = 1, 
+        Published = 1,
 
         /// <summary>
         /// Message read by user.
         /// </summary>
-        Read = 2, 
+        Read = 2,
 
         /// <summary>
         /// User replied on message.
         /// </summary>
-        Replied = 3, 
+        Replied = 3,
 
         /// <summary>
         /// Message has been changed by government agency.
         /// </summary>
-        ChangedByGovAgency = 4, 
+        ChangedByGovAgency = 4,
 
         /// <summary>
         /// Message has been changed by user.
         /// </summary>
-        ChangedByUser = 5, 
+        ChangedByUser = 5,
 
         /// <summary>
         /// Message confirmed by user.
         /// </summary>
-        Confirmed = 6, 
+        Confirmed = 6,
 
         /// <summary>
         /// Message has been deleted by user.
         /// </summary>
-        DeletedByUser = 7, 
+        DeletedByUser = 7,
 
         /// <summary>
         /// Message has been deleted by Altinn.
         /// </summary>
-        DeletedByAltinn = 8, 
+        DeletedByAltinn = 8,
 
         /// <summary>
         /// Message has been Archived

@@ -2,37 +2,41 @@
 using Altinn.Correspondence.Helpers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
+using System.Reflection.Metadata.Ecma335;
 
 namespace Altinn.Correspondence.API.Controllers
 {
     [ApiController]
     [Route("correspondence/api/v1/attachment")]
-    public class SharedAttachmentController : Controller
+    public class AttachmentController : Controller
     {
         private readonly ILogger<FileController> _logger;
 
-        public SharedAttachmentController(ILogger<FileController> logger)
+        public AttachmentController(ILogger<FileController> logger)
         {
             _logger = logger;
         }
 
         /// <summary>
-        /// Insert a new Correspondence
+        /// Insert a new Attachment
         /// </summary>
+        /// <remarks>Only required if the attachment is to be shared</remarks>
         /// <returns></returns>
         [HttpPost]
-        public string InitiateAttachment(InitiateSharedAttachmentExt initiateSharedAttachmentExt)
+        public string InitiateAttachment(InitiateAttachmentExt initiateAttachmentExt)
         {
             //LogContextHelpers.EnrichLogsWithInsertCorrespondence(initiateAttachmentExt);
             _logger.LogInformation("Initiate attachment");
             //var commandRequest = InsertCorrespondenceMapper.MapToRequest(insertCorrespondenceExt);
             // var commandResult = await handler.Process(commandRequest);
             //return commandResult.Match(
-            //    fileId => Ok(fileId.ToString()),
+            //    attachmentId => Ok(attachmentId.ToString()),
             //    Problem
             //);
 
-            return "OK"; // StandAloneAttachmentOverviewExt
+            
+            string attachmentId = Guid.NewGuid().ToString();
+            return attachmentId; // StandAloneAttachmentOverviewExt
         }
 
         /// <summary>
@@ -50,17 +54,17 @@ namespace Altinn.Correspondence.API.Controllers
             //Request.EnableBuffering();
             //var commandResult = await handler.Process(new UploadFileCommandRequest()
             //{
-            //    FileId = fileId,
+            //    AttachmentId = attachmentId,
             //    Token = token,
             //    Filestream = Request.Body
             //});
             //return commandResult.Match(
-            //    fileId => Ok(fileId.ToString()),
+            //    attachmentId => Ok(fileId.ToString()),
             //    Problem
             //);
 
 
-            return "OK"; // StandAloneAttachmentOverviewExt with status awaitprocessing
+            return "OK"; // AttachmentOverviewExt with status awaitprocessing
         }
 
         /// <summary>
