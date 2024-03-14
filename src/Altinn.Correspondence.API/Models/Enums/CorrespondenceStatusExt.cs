@@ -23,24 +23,24 @@ namespace Altinn.Correspondence.API.Models.Enums
         Replied = 3,
 
         /// <summary>
-        /// Message has been changed by government agency.
+        /// Message has been changed by sender
         /// </summary>
-        ChangedByGovAgency = 4,
+        ChangedBySender = 4,
 
         /// <summary>
-        /// Message has been changed by user.
+        /// Message has been changed by recipient.
         /// </summary>
-        ChangedByUser = 5,
+        ChangedByRecipient = 5,
 
         /// <summary>
-        /// Message confirmed by user.
+        /// Message confirmed by recipient.
         /// </summary>
         Confirmed = 6,
 
         /// <summary>
-        /// Message has been deleted by user.
+        /// Message has been deleted by recipient.
         /// </summary>
-        DeletedByUser = 7,
+        DeletedByRecipient = 7,
 
         /// <summary>
         /// Message has been deleted by Altinn.

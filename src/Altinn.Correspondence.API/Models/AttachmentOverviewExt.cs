@@ -10,6 +10,12 @@ namespace Altinn.Correspondence.API.Models
     public class AttachmentOverviewExt
     {
         /// <summary>
+        /// Unique Id for this attachment
+        /// </summary>
+        [JsonPropertyName("attachmentId")]
+        public required Guid AttachmentId { get; set; }
+
+        /// <summary>
         /// A list over the Correspondence Service ResourceIds that are allowed to use this attachment data
         /// </summary>
         /// <remarks>
@@ -21,7 +27,7 @@ namespace Altinn.Correspondence.API.Models
         /// Gets or sets the name of the attachment file.
         /// </summary>
         [JsonPropertyName("fileName")]
-        [StringLength(255, MinimumLength = 0)]        
+        [StringLength(255, MinimumLength = 0)]
         public string? FileName { get; set; }
 
         /// <summary>
@@ -53,16 +59,33 @@ namespace Altinn.Correspondence.API.Models
         public required string SendersReference { get; set; }
 
         /// <summary>
-        /// Gets or sets Function Type
+        ///The attachment data type
         /// </summary>
-        /// <remarks>
-        /// TODO: Can be removed?
-        /// </remarks>
-        public AttachmentFunctionTypeExternal FunctionType { get; set; }
+        [JsonPropertyName("attachmentType")]
+        public AttachmentDataTypeExt AttachmentType { get; set; }
 
         /// <summary>
-        /// Gets or sets the attachment type
+        /// Specifies the location of the attachment data
         /// </summary>
-        public AttachmentTypeExt AttachmentType { get; set; }
+        [JsonPropertyName("attachmentDataLocation")]
+        public AttachmentDataLocationTypeExt AttachmentDataLocation { get; set; }
+
+        /// <summary>
+        /// Current attachment status
+        /// </summary>
+        [JsonPropertyName("attachmentStatus")]
+        public AttachmentStatusExt AttachmentStatus { get; set; }
+
+        /// <summary>
+        /// Current attachment status text description
+        /// </summary>
+        [JsonPropertyName("attachmentStatusText")]
+        public string AttachmentStatusText { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Timestamp for when the Current Attachment Status was changed
+        /// </summary>
+        [JsonPropertyName("attachmentStatusChanged")]
+        public DateTimeOffset AttachmentStatusChanged { get; set; }
     }
 }

@@ -31,9 +31,5 @@ namespace Altinn.Correspondence.API.Models
         /// Gets or sets a list of attachments.
         /// </summary>
         public List<CorrespondenceAttachmentExt> Attachments { get; set; }
-
-        /// Gets or sets custom xml content.
-        /// </summary>]
-        public string CustomMessageData { get; set; }
     }
 }

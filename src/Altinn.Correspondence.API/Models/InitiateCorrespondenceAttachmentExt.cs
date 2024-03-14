@@ -1,30 +1,37 @@
-﻿using Altinn.Correspondence.API.Models.Enums;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using Altinn.Correspondence.API.Models.Enums;
 
 namespace Altinn.Correspondence.API.Models
 {
     /// <summary>
-    /// Represents a binary attachment that may be used by the Correspondence
+    /// Represents a container object for intiating attachments as part of Initiate Correpondence Operation
     /// </summary>
-    public class CorrespondenceAttachmentExt
+    public class InitiateCorrespondenceAttachmentExt
     {
         /// <summary>
-        /// A unique id for the attachment.
+        /// A list over the Correspondence Service ResourceIds that are allowed to use this attachment data
         /// </summary>
-        [JsonPropertyName("attachmentId")]
-        public Guid? AttachmentId { get; set; }
+        /// <remarks>
+        /// TODO: Find a better/more generic restriction
+        /// </remarks>
+        [JsonPropertyName("availableForResourceIds")]
+        [Required]
+        public required List<string> AvailableForResourceIds { get; set; }
 
         /// <summary>
-        /// File name of the attachment file.
+        /// The name of the attachment file.
         /// </summary>
         [JsonPropertyName("fileName")]
+        [StringLength(255, MinimumLength = 0)]
         public string? FileName { get; set; }
 
         /// <summary>
         /// A logical name on the attachment.
         /// </summary>
         [JsonPropertyName("name")]
+        [StringLength(255, MinimumLength = 1)]
+        [Required]
         public required string Name { get; set; }
 
         /// <summary>
@@ -34,7 +41,7 @@ namespace Altinn.Correspondence.API.Models
         public bool IsEncrypted { get; set; }
 
         /// <summary>
-        /// MD5 checksum for binary data.
+        /// MD5 checksum for file data.
         /// </summary>
         [JsonPropertyName("checksum")]
         [MD5Checksum]
@@ -44,33 +51,27 @@ namespace Altinn.Correspondence.API.Models
         /// A reference value given to the attachment by the creator.
         /// </summary>
         [JsonPropertyName("sendersReference")]
+        [StringLength(4096, MinimumLength = 1)]
+        [Required]
         public required string SendersReference { get; set; }
 
         /// <summary>
-        /// The date on which this attachment is created
+        /// The attachment data type
         /// </summary>
-        [JsonPropertyName("createdDateTime")]
-        public DateTime CreatedDateTime { get; set; }
-
-        /// <summary>
-        /// The attachment data / file type
-        /// </summary>
-        /// <remarks>
-        /// TODO: Swapped out for a more generic type?
-        /// </remarks>
         [JsonPropertyName("attachmentType")]
         public AttachmentDataTypeExt AttachmentType { get; set; }
 
-        // <summary>
-        /// Specifies the location of the attachment data
+        /// <summary>
+        /// Specifies the location type of the attachment data
         /// </summary>
         [JsonPropertyName("attachmentDataLocationType")]
-        public AttachmentDataLocationTypeExt AttachmentDataLocationType { get; set; }
+        public InitiateCorrespondenceAttachmentDataLocationTypeExt AttachmentDataLocationType { get; set; }
 
         /// <summary>
         /// Specifies the location of the attachment data
         /// </summary>
+        /// <remarks>Only required if AttachmentDataLocationType is ExistingCorrespondenceAttachment or ExisitingExternalStorage</remarks>
         [JsonPropertyName("attachmentDataLocation")]
-        public required string AttachmentDataLocation { get; set; }
+        public string? AttachmentDataLocation { get; set; }
     }
 }

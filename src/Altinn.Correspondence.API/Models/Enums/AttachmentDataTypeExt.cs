@@ -3,7 +3,7 @@
     /// <summary>
     /// Defines the type of attachment.
     /// </summary>
-    public enum AttachmentTypeExt : int
+    public enum AttachmentDataTypeExt : int
     {
         /// <summary>
         /// Specifies no attachment.

@@ -20,14 +20,14 @@ namespace Altinn.Correspondence.API.Models
         public required List<string> AvailableForResourceIds { get; set; }
 
         /// <summary>
-        /// Gets or sets the name of the attachment file.
+        /// The name of the attachment file.
         /// </summary>
         [JsonPropertyName("fileName")]
         [StringLength(255, MinimumLength = 0)]
         public string? FileName { get; set; }
 
         /// <summary>
-        /// Gets or sets a logical name on the attachment.
+        /// A logical name on the attachment.
         /// </summary>
         [JsonPropertyName("name")]
         [StringLength(255, MinimumLength = 1)]
@@ -35,7 +35,7 @@ namespace Altinn.Correspondence.API.Models
         public required string Name { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the attachment is encrypted or not.
+        /// A value indicating whether the attachment is encrypted or not.
         /// </summary>
         [JsonPropertyName("isEncrypted")]
         public bool IsEncrypted { get; set; }
@@ -48,7 +48,7 @@ namespace Altinn.Correspondence.API.Models
         public string? Checksum { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets a reference value given to the attachment by the creator.
+        /// A reference value given to the attachment by the creator.
         /// </summary>
         [JsonPropertyName("sendersReference")]
         [StringLength(4096, MinimumLength = 1)]
@@ -56,16 +56,9 @@ namespace Altinn.Correspondence.API.Models
         public required string SendersReference { get; set; }
 
         /// <summary>
-        /// Gets or sets Function Type
+        /// The attachment data type
         /// </summary>
-        ///  <remarks>
-        /// TODO: Can be removed?
-        /// </remarks>
-        public AttachmentFunctionTypeExternal FunctionType { get; set; }
-
-        /// <summary>
-        /// Gets or sets the attachment type
-        /// </summary>
-        public AttachmentTypeExt AttachmentType { get; set; }
+        [JsonPropertyName("attachmentType")]
+        public AttachmentDataTypeExt AttachmentType { get; set; }
     }
 }

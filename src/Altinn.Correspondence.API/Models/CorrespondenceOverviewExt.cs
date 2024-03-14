@@ -3,13 +3,15 @@ using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models
 {
-    /// <summary>
-    /// Represents a request object for the operation, InsertCorrespondence, that can create a correspondence in Altinn.
-    /// Instances of this class can hold the complete set of information about a correspondence. 
-    /// </summary>
-    public class InitiateCorrespondenceExt
+    public class CorrespondenceOverviewExt
     {
         /// <summary>
+        /// Unique Id for this correspondence
+        /// </summary>
+         [JsonPropertyName("correspondenceId")]
+        public required Guid CorrespondenceId { get; set; }
+
+        // <summary>
         /// Gets or sets the Resource Id for the correspondence service.
         /// </summary>
         [JsonPropertyName("resourceId")]
@@ -89,13 +91,6 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("replyOptions")]
         public List<CorrespondenceReplyOptionExt>? ReplyOptions { get; set; }
-
-        /// <summary>
-        /// Notifications directly related to this Correspondence.
-        /// </summary>
-        [JsonPropertyName("notifications")]
-        [MaxLength(6, ErrorMessage = "Notifications can contain at most 6 notifcations")]
-        public List<InitateCorrespondenceNotificationExt>? Notifications { get; set; }
 
         /// <summary>
         /// Specifies whether the correspondence can override reservation against digital comminication in KRR

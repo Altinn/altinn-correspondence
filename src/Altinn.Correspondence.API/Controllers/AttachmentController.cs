@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
@@ -10,9 +11,9 @@ namespace Altinn.Correspondence.API.Controllers
     [Route("correspondence/api/v1/attachment")]
     public class AttachmentController : Controller
     {
-        private readonly ILogger<FileController> _logger;
+        private readonly ILogger<CorrespondenceController> _logger;
 
-        public AttachmentController(ILogger<FileController> logger)
+        public AttachmentController(ILogger<CorrespondenceController> logger)
         {
             _logger = logger;
         }
@@ -23,7 +24,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>Only required if the attachment is to be shared</remarks>
         /// <returns></returns>
         [HttpPost]
-        public string InitiateAttachment(InitiateAttachmentExt initiateAttachmentExt)
+        public AttachmentOverviewExt InitiateAttachment(InitiateAttachmentExt initiateAttachmentExt)
         {
             //LogContextHelpers.EnrichLogsWithInsertCorrespondence(initiateAttachmentExt);
             _logger.LogInformation("Initiate attachment");
@@ -33,10 +34,22 @@ namespace Altinn.Correspondence.API.Controllers
             //    attachmentId => Ok(attachmentId.ToString()),
             //    Problem
             //);
-
             
-            string attachmentId = Guid.NewGuid().ToString();
-            return attachmentId; // StandAloneAttachmentOverviewExt
+            // Hack for now
+            return new AttachmentOverviewExt
+            {
+                AttachmentId = Guid.NewGuid(),
+                AvailableForResourceIds = initiateAttachmentExt.AvailableForResourceIds,
+                Name = initiateAttachmentExt.Name,
+                FileName = initiateAttachmentExt.FileName,
+                SendersReference = initiateAttachmentExt.SendersReference,
+                AttachmentType = initiateAttachmentExt.AttachmentType,
+                Checksum = initiateAttachmentExt.Checksum,
+                IsEncrypted = initiateAttachmentExt.IsEncrypted,
+                AttachmentStatus = AttachmentStatusExt.Initialized,
+                AttachmentStatusText = "Initialized - awaiting upload",
+                AttachmentStatusChanged = DateTime.Now                
+            };
         }
 
         /// <summary>
@@ -46,7 +59,7 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpPost]
         [Route("{attachmentId}/upload")]
         [Consumes("application/octet-stream")]
-        public string UploadAttachmentData(
+        public AttachmentOverviewExt UploadAttachmentData(
             Guid attachmentId
         )
         {
@@ -63,8 +76,16 @@ namespace Altinn.Correspondence.API.Controllers
             //    Problem
             //);
 
-
-            return "OK"; // AttachmentOverviewExt with status awaitprocessing
+            // Hack for now AttachmentOverviewExt with status UploadProcessing
+            return new AttachmentOverviewExt{
+                AttachmentId = attachmentId,
+                AvailableForResourceIds = null,
+                Name = "TestName",
+                SendersReference = "1234",
+                AttachmentStatus = Models.Enums.AttachmentStatusExt.UploadProcessing,
+                AttachmentStatusText = "Uploaded - Awaitng procesing",
+                AttachmentStatusChanged = DateTime.Now
+            }; 
         }
 
         /// <summary>
@@ -73,8 +94,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{attachmentId}")]
-        public string GetAttachmentOverview(
-            Guid fileId)
+        public AttachmentOverviewExt GetAttachmentOverview(
+            Guid attachmentId)
         {
             //LogContextHelpers.EnrichLogsWithToken(legacyToken);
             //_logger.LogInformation("Legacy - Getting file overview for {fileId}", fileId.ToString());
@@ -89,7 +110,16 @@ namespace Altinn.Correspondence.API.Controllers
             //    Problem
             //);
 
-            return "BLAH"; // StandAloneAttachmentOverviewExt
+            return new AttachmentOverviewExt
+            {
+                AttachmentId = attachmentId,
+                AvailableForResourceIds = null,
+                Name = "TestName",
+                SendersReference = "1234",
+                AttachmentStatus = Models.Enums.AttachmentStatusExt.Published,
+                AttachmentStatusText = "Ready for use",
+                AttachmentStatusChanged = DateTime.Now
+            };
         }
 
         /// <summary>
@@ -114,6 +144,40 @@ namespace Altinn.Correspondence.API.Controllers
             //);
 
             return "OK";
+        }
+
+        /// <summary>
+        /// Deletes the attachment
+        /// </summary>
+        /// <returns></returns>
+        [HttpDelete]
+        [Route("{attachmentId}")]
+        public AttachmentOverviewExt DeleteAttachment(
+            Guid attachmentId)
+        {
+            //LogContextHelpers.EnrichLogsWithToken(token);
+            //_logger.LogInformation("Downloading file {fileId}", fileId.ToString());
+            //var queryResult = await handler.Process(new DownloadFileQueryRequest()
+            //{
+            //    FileId = fileId,
+            //    Token = token
+            //});
+            //return queryResult.Match<ActionResult>(
+            //    result => File(result.Stream, "application/octet-stream", result.Filename),
+            //    Problem
+            //);
+
+            // Should this just give back HTTP Status codes?
+            return new AttachmentOverviewExt
+            {
+                AttachmentId = attachmentId,
+                AvailableForResourceIds = null,
+                Name = "TestName",
+                SendersReference = "1234",
+                AttachmentStatus = Models.Enums.AttachmentStatusExt.Published,
+                AttachmentStatusText = "Ready for use",
+                AttachmentStatusChanged = DateTime.Now
+            };
         }
     }
 }

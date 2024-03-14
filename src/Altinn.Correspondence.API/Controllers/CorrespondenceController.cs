@@ -1,5 +1,6 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Helpers;
+using Microsoft.ApplicationInsights.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,11 +8,11 @@ namespace Altinn.Correspondence.API.Controllers
 {
     [ApiController]
     [Route("correspondence/api/v1/correspondence")]
-    public class FileController : Controller
+    public class CorrespondenceController : Controller
     {
-        private readonly ILogger<FileController> _logger;
+        private readonly ILogger<CorrespondenceController> _logger;
 
-        public FileController(ILogger<FileController> logger)
+        public CorrespondenceController(ILogger<CorrespondenceController> logger)
         {
             _logger = logger;
         }
@@ -21,7 +22,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        public string InsertCorrespondence(InitiateCorrespondenceExt insertCorrespondenceExt)
+        public CorrespondenceOverviewExt InsertCorrespondence(InitiateCorrespondenceExt insertCorrespondenceExt)
         {
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(insertCorrespondenceExt);
             _logger.LogInformation("Insert correspondence");
@@ -32,7 +33,17 @@ namespace Altinn.Correspondence.API.Controllers
             //    Problem
             //);
 
-            return "OK";
+            // Hack for now
+            return new CorrespondenceOverviewExt
+            {
+                    CorrespondenceId = Guid.NewGuid(),
+                    Recipient = insertCorrespondenceExt.Recipient,
+                    Content = insertCorrespondenceExt.Content,
+                    ResourceId = insertCorrespondenceExt.ResourceId,
+                    Sender = insertCorrespondenceExt.Sender,
+                    SendersReference = insertCorrespondenceExt.SendersReference,
+                    VisibleDateTime = insertCorrespondenceExt.VisibleDateTime
+            };
         }
 
         /// <summary>
@@ -41,7 +52,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{correspondenceId}")]
-        public string GetCorrespondenceOverview(
+        public CorrespondenceOverviewExt GetCorrespondenceOverview(
             Guid correspondenceId)
         {   
             _logger.LogInformation("Getting Correspondence overview for {correspondenceId}", correspondenceId.ToString());
@@ -56,7 +67,17 @@ namespace Altinn.Correspondence.API.Controllers
             //    Problem
             //);
 
-            return "OK";
+            // Hack for now
+            return new CorrespondenceOverviewExt
+            {
+                CorrespondenceId = correspondenceId,
+                Recipient = "0192:234567890",
+                Content = null,
+                ResourceId = "Altinn-Correspondence-1_0",
+                Sender = "0192:123456789",
+                SendersReference = Guid.NewGuid().ToString(),
+                VisibleDateTime = DateTime.Now.AddDays(-1)
+            };
         }
 
         /// <summary>
@@ -65,7 +86,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{correspondenceId}/details")]
-        public string GetCorrespondenceDetails(
+        public CorrespondenceDetailsExt GetCorrespondenceDetails(
             Guid correspondenceId)
         {
             _logger.LogInformation("Getting Correspondence overview for {correspondenceId}", correspondenceId.ToString());
@@ -80,7 +101,20 @@ namespace Altinn.Correspondence.API.Controllers
             //    Problem
             //);
 
-            return "OK";
+            // Hack for now
+            return new CorrespondenceDetailsExt
+            {
+                CorrespondenceId = correspondenceId,
+                Recipient = "0192:234567890",
+                Content = null,
+                ResourceId = "Altinn-Correspondence-1_0",
+                Sender = "0192:123456789",
+                SendersReference = Guid.NewGuid().ToString(),
+                VisibleDateTime = DateTime.Now.AddDays(-1),
+                Notifications = new List<CorrespondenceNotificationExt> { new CorrespondenceNotificationExt 
+                { NotificationTemplate = "DefaultNewMessage", Created= DateTime.Now.AddDays(-1), RequestedSendTime = DateTime.Now.AddDays(-1), NotificationChannel = Models.Enums.NotificationChannelExt.Email }, new CorrespondenceNotificationExt
+                { NotificationTemplate = "DefaultReminder", Created= DateTime.Now.AddDays(-1), RequestedSendTime = DateTime.Now.AddDays(13), NotificationChannel = Models.Enums.NotificationChannelExt.Sms } }
+            }; ;
         }
 
         /// <summary>
