@@ -5,7 +5,7 @@ using Altinn.Correspondence.API.Models.Enums;
 namespace Altinn.Correspondence.API.Models
 {
     /// <summary>
-    /// Represents a container object for intiating attachments as part of Initiate Correpondence Operation
+    /// Represents an attachment to a specific correspondence as part of Initiate Correpondence Operation
     /// </summary>
     public class InitiateCorrespondenceAttachmentExt
     {
@@ -65,12 +65,15 @@ namespace Altinn.Correspondence.API.Models
         /// Specifies the location type of the attachment data
         /// </summary>
         [JsonPropertyName("attachmentDataLocationType")]
-        public InitiateCorrespondenceAttachmentDataLocationTypeExt AttachmentDataLocationType { get; set; }
+        public required InitiateAttachmentDataLocationTypeExt AttachmentDataLocationType { get; set; }
 
         /// <summary>
         /// Specifies the location of the attachment data
         /// </summary>
-        /// <remarks>Only required if AttachmentDataLocationType is ExistingCorrespondenceAttachment or ExisitingExternalStorage</remarks>
+        /// <remarks>
+        /// Only required if AttachmentDataLocationType is ExistingCorrespondenceAttachment or ExisitingExternalStorage
+        /// If the type is NewCorrespondenceAttachmentBlob, this requires the attachmen data to be uploaded using the AttachmentId returned from the Initate operation
+        /// </remarks>
         [JsonPropertyName("attachmentDataLocation")]
         public string? AttachmentDataLocation { get; set; }
     }

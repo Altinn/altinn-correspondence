@@ -6,12 +6,12 @@
     public enum AttachmentDataLocationTypeExt : int
     {
         /// <summary>
-        /// Specifies that the attachment data will need to be uploaded to Altinn Correspondence via the Upload operation
+        /// Specifies that the attachment data is stored in the Altinn Correspondence Blob Storage
         /// </summary>
         AltinnCorrespondenceAttachmentBlob = 0,
 
         /// <summary>
-        /// Specifies that the attachment data already exist in an external storage
+        /// Specifies that the attachment data is stored in an external storage controlled by the sender
         /// </summary>
         ExternalStorage = 1
     }

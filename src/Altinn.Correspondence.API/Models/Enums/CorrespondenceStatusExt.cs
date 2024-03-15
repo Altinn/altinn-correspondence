@@ -1,5 +1,8 @@
 namespace Altinn.Correspondence.API.Models.Enums
 {
+    /// <summary>
+    /// Represents the important statuses for an Correspondence
+    /// </summary>
     public enum CorrespondenceStatusExt : int
     {
         /// <summary>

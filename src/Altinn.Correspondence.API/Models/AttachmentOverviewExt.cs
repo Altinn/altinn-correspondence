@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 namespace Altinn.Correspondence.API.Models
 {
     /// <summary>
-    /// Represents a container object for attachments.
+    /// Represents a shared attachment that can be used by multiple correspondences
     /// </summary>
     public class AttachmentOverviewExt
     {

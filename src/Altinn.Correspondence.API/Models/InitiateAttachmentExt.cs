@@ -5,7 +5,7 @@ using Altinn.Correspondence.API.Models.Enums;
 namespace Altinn.Correspondence.API.Models
 {
     /// <summary>
-    /// Represents a container object for attachments.
+    /// Represents a container object for attachments used when initiatating a shared attachment
     /// </summary>
     public class InitiateAttachmentExt
     {

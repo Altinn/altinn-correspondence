@@ -1,8 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Altinn.Correspondence.API.Models.Enums;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models
 {
+    /// <summary>
+    /// A more detailed object representing all the details for a correspondence, including status history and notificiations
+    /// </summary>
     public class CorrespondenceDetailsExt
     {
         /// <summary>
@@ -55,6 +59,12 @@ namespace Altinn.Correspondence.API.Models
         public required CorrespondenceContentExt Content { get; set; }
 
         /// <summary>
+        /// When the correspondence was created
+        /// </summary>
+        [JsonPropertyName("createdDateTime")]
+        public required DateTime CreatedDateTime { get; set; }
+
+        /// <summary>
         /// When the correspondence should become visible to the recipient.
         /// </summary>
         [JsonPropertyName("visibleDateTime")]
@@ -104,5 +114,25 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("isReservable")]
         public bool? IsReservable { get; set; }
+
+        /// <summary>
+        /// The current status for the Correspondence
+        /// </summary>
+        public CorrespondenceStatusExt Status { get; set; }
+
+        /// <summary>
+        /// The current status text for the Correspondence
+        /// </summary>
+        public string StatusText { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Timestamp for when the Current Correspondence Status was changed
+        /// </summary>
+        public DateTimeOffset StatusChanged { get; set; }
+
+        /// <summary>
+        /// The Status history for the Corrrespondence
+        /// </summary>
+        public List<CorrespondenceStatusEventExt> StatusHistory { get; set; }
     }
 }

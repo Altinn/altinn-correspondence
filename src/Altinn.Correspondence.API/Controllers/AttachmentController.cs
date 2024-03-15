@@ -19,21 +19,14 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Insert a new Attachment
+        /// Initiate a new Attachment
         /// </summary>
-        /// <remarks>Only required if the attachment is to be shared</remarks>
+        /// <remarks>Only required if the attachment is to be shared, otherwise this is done as part of the Initate Correspondence operation</remarks>
         /// <returns></returns>
         [HttpPost]
         public AttachmentOverviewExt InitiateAttachment(InitiateAttachmentExt initiateAttachmentExt)
         {
-            //LogContextHelpers.EnrichLogsWithInsertCorrespondence(initiateAttachmentExt);
             _logger.LogInformation("Initiate attachment");
-            //var commandRequest = InsertCorrespondenceMapper.MapToRequest(insertCorrespondenceExt);
-            // var commandResult = await handler.Process(commandRequest);
-            //return commandResult.Match(
-            //    attachmentId => Ok(attachmentId.ToString()),
-            //    Problem
-            //);
             
             // Hack for now
             return new AttachmentOverviewExt
@@ -53,7 +46,7 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Upload attachment data
+        /// Upload attachment data to Altinn Correspondence blob storage
         /// </summary>
         /// <returns></returns>
         [HttpPost]
@@ -64,19 +57,8 @@ namespace Altinn.Correspondence.API.Controllers
         )
         {
             _logger.LogInformation("Uploading attachment {attachmentId}", attachmentId.ToString());
-            //Request.EnableBuffering();
-            //var commandResult = await handler.Process(new UploadFileCommandRequest()
-            //{
-            //    AttachmentId = attachmentId,
-            //    Token = token,
-            //    Filestream = Request.Body
-            //});
-            //return commandResult.Match(
-            //    attachmentId => Ok(fileId.ToString()),
-            //    Problem
-            //);
 
-            // Hack for now AttachmentOverviewExt with status UploadProcessing
+            // Hack return for now
             return new AttachmentOverviewExt{
                 AttachmentId = attachmentId,
                 AvailableForResourceIds = null,
@@ -97,19 +79,7 @@ namespace Altinn.Correspondence.API.Controllers
         public AttachmentOverviewExt GetAttachmentOverview(
             Guid attachmentId)
         {
-            //LogContextHelpers.EnrichLogsWithToken(legacyToken);
-            //_logger.LogInformation("Legacy - Getting file overview for {fileId}", fileId.ToString());
-            //var queryResult = await handler.Process(new GetFileOverviewQueryRequest()
-            //{
-            //    FileId = fileId,
-            //    Token = legacyToken,
-            //    IsLegacy = true
-            //});
-            //return queryResult.Match(
-            //    result => Ok(LegacyFileStatusOverviewExtMapper.MapToExternalModel(result.File)),
-            //    Problem
-            //);
-
+            // Hack return for now
             return new AttachmentOverviewExt
             {
                 AttachmentId = attachmentId,
@@ -131,42 +101,22 @@ namespace Altinn.Correspondence.API.Controllers
         public string DownloadAttachmentData(
             Guid attachmentId)
         {
-            //LogContextHelpers.EnrichLogsWithToken(token);
-            //_logger.LogInformation("Downloading file {fileId}", fileId.ToString());
-            //var queryResult = await handler.Process(new DownloadFileQueryRequest()
-            //{
-            //    FileId = fileId,
-            //    Token = token
-            //});
-            //return queryResult.Match<ActionResult>(
-            //    result => File(result.Stream, "application/octet-stream", result.Filename),
-            //    Problem
-            //);
-
-            return "OK";
+            // Ugly Hack return for now
+            return "binarydatastream";
         }
 
         /// <summary>
         /// Deletes the attachment
         /// </summary>
+        /// <remarks>
+        /// TODO: Consider if this should not be a hard delete, but rather a soft delete and if it should then be a different HTTP operation
+        /// </remarks>
         /// <returns></returns>
         [HttpDelete]
         [Route("{attachmentId}")]
         public AttachmentOverviewExt DeleteAttachment(
             Guid attachmentId)
         {
-            //LogContextHelpers.EnrichLogsWithToken(token);
-            //_logger.LogInformation("Downloading file {fileId}", fileId.ToString());
-            //var queryResult = await handler.Process(new DownloadFileQueryRequest()
-            //{
-            //    FileId = fileId,
-            //    Token = token
-            //});
-            //return queryResult.Match<ActionResult>(
-            //    result => File(result.Stream, "application/octet-stream", result.Filename),
-            //    Problem
-            //);
-
             // Should this just give back HTTP Status codes?
             return new AttachmentOverviewExt
             {

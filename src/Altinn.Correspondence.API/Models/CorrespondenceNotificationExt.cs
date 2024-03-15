@@ -3,6 +3,9 @@ using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models
 {
+    /// <summary>
+    /// Represents a notification connected to a specific correspondence
+    /// </summary>
     public class CorrespondenceNotificationExt
     {
         /// <summary>

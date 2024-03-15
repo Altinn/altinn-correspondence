@@ -4,8 +4,7 @@ using System.Text.Json.Serialization;
 namespace Altinn.Correspondence.API.Models
 {
     /// <summary>
-    /// Represents a request object for the operation, InsertCorrespondence, that can create a correspondence in Altinn.
-    /// Instances of this class can hold the complete set of information about a correspondence. 
+    /// Represents a request object for the operation, InitiateCorrespondence, that can create a correspondence in Altinn.    
     /// </summary>
     public class InitiateCorrespondenceExt
     {

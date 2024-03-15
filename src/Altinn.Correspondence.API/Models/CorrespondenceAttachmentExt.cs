@@ -1,11 +1,10 @@
 ﻿using Altinn.Correspondence.API.Models.Enums;
-using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models
 {
     /// <summary>
-    /// Represents a binary attachment that may be used by the Correspondence
+    /// Represents a binary attachment to a Correspondence
     /// </summary>
     public class CorrespondenceAttachmentExt
     {
