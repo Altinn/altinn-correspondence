@@ -7,7 +7,7 @@ namespace Altinn.Correspondence.API.Models
     /// <summary>
     /// Represents a container object for attachments used when initiatating a shared attachment
     /// </summary>
-    public class InitiateAttachmentExt
+    public class InitializeAttachmentExt
     {
         /// <summary>
         /// A list over the Correspondence Service ResourceIds that are allowed to use this attachment data

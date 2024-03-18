@@ -19,7 +19,7 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Initiate a new Correspondence
+        /// Initialize a new Correspondence
         /// </summary>
         /// <remarks>
         /// Requires uploads of specified attachments if any before it can be Published
@@ -27,22 +27,22 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns></returns>
         [HttpPost]
-        public CorrespondenceOverviewExt InitiateCorrespondence(InitiateCorrespondenceExt initiateCorrespondence)
+        public CorrespondenceOverviewExt InitializeCorrespondence(InitializeCorrespondenceExt initializeCorrespondence)
         {
-            LogContextHelpers.EnrichLogsWithInsertCorrespondence(initiateCorrespondence);
-            _logger.LogInformation("Initiate correspondence");
+            LogContextHelpers.EnrichLogsWithInsertCorrespondence(initializeCorrespondence);
+            _logger.LogInformation("Initialize correspondence");
 
             // Hack return for now
             return new CorrespondenceOverviewExt
             {
                     CorrespondenceId = Guid.NewGuid(),
-                    Recipient = initiateCorrespondence.Recipient,
-                    Content = initiateCorrespondence.Content,
-                    ResourceId = initiateCorrespondence.ResourceId,
-                    Sender = initiateCorrespondence.Sender,
-                    SendersReference = initiateCorrespondence.SendersReference,
+                    Recipient = initializeCorrespondence.Recipient,
+                    Content = initializeCorrespondence.Content,
+                    ResourceId = initializeCorrespondence.ResourceId,
+                    Sender = initializeCorrespondence.Sender,
+                    SendersReference = initializeCorrespondence.SendersReference,
                     CreatedDateTime = DateTime.Now,
-                    VisibleDateTime = initiateCorrespondence.VisibleDateTime,
+                    VisibleDateTime = initializeCorrespondence.VisibleDateTime,
                     Status = CorrespondenceStatusExt.Initialized,
                     StatusText = "Initialized Successfully - waiting for attachment upload",
                     StatusChanged = DateTime.Now
@@ -50,29 +50,31 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Initiate a new Correspondence with attachment data as single operation
+        /// Initialize a new Correspondence with attachment data as single operation
         /// </summary>
         /// <remarks>        
         /// TODO: How to solve this for multiple attachment data blobs?
         /// </remarks>
         /// <returns></returns>
         [HttpPost]
-        public CorrespondenceOverviewExt InitiateCorrespondenceAndUploadData(InitiateCorrespondenceExt initiateCorrespondence)
+        [Route("upload")]
+        [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
+        public CorrespondenceOverviewExt InitializeCorrespondenceAndUploadData(InitializeCorrespondenceExt initializeCorrespondence)
         {
-            LogContextHelpers.EnrichLogsWithInsertCorrespondence(initiateCorrespondence);
+            LogContextHelpers.EnrichLogsWithInsertCorrespondence(initializeCorrespondence);
             _logger.LogInformation("Insert correspondence");
 
             // Hack return for now
             return new CorrespondenceOverviewExt
             {
                 CorrespondenceId = Guid.NewGuid(),
-                Recipient = initiateCorrespondence.Recipient,
-                Content = initiateCorrespondence.Content,
-                ResourceId = initiateCorrespondence.ResourceId,
-                Sender = initiateCorrespondence.Sender,
-                SendersReference = initiateCorrespondence.SendersReference,
+                Recipient = initializeCorrespondence.Recipient,
+                Content = initializeCorrespondence.Content,
+                ResourceId = initializeCorrespondence.ResourceId,
+                Sender = initializeCorrespondence.Sender,
+                SendersReference = initializeCorrespondence.SendersReference,
                 CreatedDateTime = DateTime.Now,
-                VisibleDateTime = initiateCorrespondence.VisibleDateTime,
+                VisibleDateTime = initializeCorrespondence.VisibleDateTime,
                 Status = CorrespondenceStatusExt.Published,
                 StatusText = "Initialized and Published successfully",
                 StatusChanged = DateTime.Now

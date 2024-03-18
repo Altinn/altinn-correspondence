@@ -4,9 +4,9 @@ using System.Text.Json.Serialization;
 namespace Altinn.Correspondence.API.Models
 {
     /// <summary>
-    /// Represents a request object for the operation, InitiateCorrespondence, that can create a correspondence in Altinn.    
+    /// Represents a request object for the operation, InitializeCorrespondence, that can create a correspondence in Altinn.    
     /// </summary>
-    public class InitiateCorrespondenceExt
+    public class InitializeCorrespondenceExt
     {
         /// <summary>
         /// Gets or sets the Resource Id for the correspondence service.
@@ -94,7 +94,7 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("notifications")]
         [MaxLength(6, ErrorMessage = "Notifications can contain at most 6 notifcations")]
-        public List<InitateCorrespondenceNotificationExt>? Notifications { get; set; }
+        public List<InitializeCorrespondenceNotificationExt>? Notifications { get; set; }
 
         /// <summary>
         /// Specifies whether the correspondence can override reservation against digital comminication in KRR

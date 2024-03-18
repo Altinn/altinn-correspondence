@@ -1,9 +1,9 @@
 ﻿namespace Altinn.Correspondence.API.Models.Enums
 {
     /// <summary>
-    /// Defines the location of the attachment data during the Initiate Correspondence Operation
+    /// Defines the location of the attachment data during the Initialize Correspondence Operation
     /// </summary>
-    public enum InitiateAttachmentDataLocationTypeExt : int
+    public enum InitializeAttachmentDataLocationTypeExt : int
     {
         /// <summary>
         /// Specifies that the attachment data will need to be uploaded to Altinn Correspondence via the Upload Attachment operation

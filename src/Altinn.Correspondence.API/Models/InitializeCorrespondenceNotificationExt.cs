@@ -4,9 +4,9 @@ using System.Text.Json.Serialization;
 namespace Altinn.Correspondence.API.Models
 {
     /// <summary>
-    /// Used to specify a single notifification connected to a specific Correspondence during the Initiate Correspondence operation
+    /// Used to specify a single notifification connected to a specific Correspondence during the Initialize Correspondence operation
     /// </summary>
-    public class InitateCorrespondenceNotificationExt
+    public class InitializeCorrespondenceNotificationExt
     {
         /// <summary>
         /// Which of the notifcation templates to use for this notification

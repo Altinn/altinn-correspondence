@@ -19,26 +19,26 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Initiate a new Attachment
+        /// Initialize a new Attachment
         /// </summary>
-        /// <remarks>Only required if the attachment is to be shared, otherwise this is done as part of the Initate Correspondence operation</remarks>
+        /// <remarks>Only required if the attachment is to be shared, otherwise this is done as part of the Initialize Correspondence operation</remarks>
         /// <returns></returns>
         [HttpPost]
-        public AttachmentOverviewExt InitiateAttachment(InitiateAttachmentExt initiateAttachmentExt)
+        public AttachmentOverviewExt InitializeAttachment(InitializeAttachmentExt InitializeAttachmentExt)
         {
-            _logger.LogInformation("Initiate attachment");
+            _logger.LogInformation("Initialize attachment");
             
             // Hack for now
             return new AttachmentOverviewExt
             {
                 AttachmentId = Guid.NewGuid(),
-                AvailableForResourceIds = initiateAttachmentExt.AvailableForResourceIds,
-                Name = initiateAttachmentExt.Name,
-                FileName = initiateAttachmentExt.FileName,
-                SendersReference = initiateAttachmentExt.SendersReference,
-                AttachmentType = initiateAttachmentExt.AttachmentType,
-                Checksum = initiateAttachmentExt.Checksum,
-                IsEncrypted = initiateAttachmentExt.IsEncrypted,
+                AvailableForResourceIds = InitializeAttachmentExt.AvailableForResourceIds,
+                Name = InitializeAttachmentExt.Name,
+                FileName = InitializeAttachmentExt.FileName,
+                SendersReference = InitializeAttachmentExt.SendersReference,
+                AttachmentType = InitializeAttachmentExt.AttachmentType,
+                Checksum = InitializeAttachmentExt.Checksum,
+                IsEncrypted = InitializeAttachmentExt.IsEncrypted,
                 AttachmentStatus = AttachmentStatusExt.Initialized,
                 AttachmentStatusText = "Initialized - awaiting upload",
                 AttachmentStatusChanged = DateTime.Now                

@@ -14,17 +14,17 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/InitiateAttachmentExt"
+                                "$ref": "#/components/schemas/InitializeAttachmentExt"
                             }
                         },
                         "text/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/InitiateAttachmentExt"
+                                "$ref": "#/components/schemas/InitializeAttachmentExt"
                             }
                         },
                         "application/*+json": {
                             "schema": {
-                                "$ref": "#/components/schemas/InitiateAttachmentExt"
+                                "$ref": "#/components/schemas/InitializeAttachmentExt"
                             }
                         }
                     }
@@ -224,17 +224,65 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/InitiateCorrespondenceExt"
+                                "$ref": "#/components/schemas/InitializeCorrespondenceExt"
                             }
                         },
                         "text/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/InitiateCorrespondenceExt"
+                                "$ref": "#/components/schemas/InitializeCorrespondenceExt"
                             }
                         },
                         "application/*+json": {
                             "schema": {
-                                "$ref": "#/components/schemas/InitiateCorrespondenceExt"
+                                "$ref": "#/components/schemas/InitializeCorrespondenceExt"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CorrespondenceOverviewExt"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CorrespondenceOverviewExt"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CorrespondenceOverviewExt"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/correspondence/api/v1/correspondence/upload": {
+            "post": {
+                "tags": [
+                    "Correspondence"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InitializeCorrespondenceExt"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InitializeCorrespondenceExt"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InitializeCorrespondenceExt"
                             }
                         }
                     }
@@ -612,6 +660,10 @@
                     "content": {
                         "$ref": "#/components/schemas/CorrespondenceContentExt"
                     },
+                    "createdDateTime": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
                     "visibleDateTime": {
                         "type": "string",
                         "format": "date-time"
@@ -657,6 +709,24 @@
                     },
                     "isReservable": {
                         "type": "boolean",
+                        "nullable": true
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/CorrespondenceStatusExt"
+                    },
+                    "statusText": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "statusChanged": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "statusHistory": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CorrespondenceStatusEventExt"
+                        },
                         "nullable": true
                     }
                 },
@@ -726,6 +796,10 @@
                     "content": {
                         "$ref": "#/components/schemas/CorrespondenceContentExt"
                     },
+                    "createdDateTime": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
                     "visibleDateTime": {
                         "type": "string",
                         "format": "date-time"
@@ -764,6 +838,17 @@
                     "isReservable": {
                         "type": "boolean",
                         "nullable": true
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/CorrespondenceStatusExt"
+                    },
+                    "statusText": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "statusChanged": {
+                        "type": "string",
+                        "format": "date-time"
                     }
                 },
                 "additionalProperties": false
@@ -782,6 +867,40 @@
                 },
                 "additionalProperties": false
             },
+            "CorrespondenceStatusEventExt": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "$ref": "#/components/schemas/CorrespondenceStatusExt"
+                    },
+                    "statusText": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "statusChanged": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "additionalProperties": false
+            },
+            "CorrespondenceStatusExt": {
+                "enum": [
+                    "Initialized",
+                    "Published",
+                    "Read",
+                    "Replied",
+                    "ChangedBySender",
+                    "ChangedByRecipient",
+                    "Confirmed",
+                    "DeletedByRecipient",
+                    "DeletedByAltinn",
+                    "Archived",
+                    "Reserved",
+                    "MarkedUnRead"
+                ],
+                "type": "string"
+            },
             "ExternalReferenceExt": {
                 "type": "object",
                 "properties": {
@@ -795,28 +914,7 @@
                 },
                 "additionalProperties": false
             },
-            "InitateCorrespondenceNotificationExt": {
-                "type": "object",
-                "properties": {
-                    "notificationTemplate": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "sendersReference": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "notificationChannel": {
-                        "$ref": "#/components/schemas/NotificationChannelExt"
-                    },
-                    "requestedSendTime": {
-                        "type": "string",
-                        "format": "date-time"
-                    }
-                },
-                "additionalProperties": false
-            },
-            "InitiateAttachmentExt": {
+            "InitializeAttachmentExt": {
                 "required": [
                     "availableForResourceIds",
                     "name",
@@ -859,7 +957,7 @@
                 },
                 "additionalProperties": false
             },
-            "InitiateCorrespondenceExt": {
+            "InitializeCorrespondenceExt": {
                 "required": [
                     "recipient",
                     "resourceId",
@@ -929,13 +1027,34 @@
                         "maxItems": 6,
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/InitateCorrespondenceNotificationExt"
+                            "$ref": "#/components/schemas/InitializeCorrespondenceNotificationExt"
                         },
                         "nullable": true
                     },
                     "isReservable": {
                         "type": "boolean",
                         "nullable": true
+                    }
+                },
+                "additionalProperties": false
+            },
+            "InitializeCorrespondenceNotificationExt": {
+                "type": "object",
+                "properties": {
+                    "notificationTemplate": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "sendersReference": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "notificationChannel": {
+                        "$ref": "#/components/schemas/NotificationChannelExt"
+                    },
+                    "requestedSendTime": {
+                        "type": "string",
+                        "format": "date-time"
                     }
                 },
                 "additionalProperties": false

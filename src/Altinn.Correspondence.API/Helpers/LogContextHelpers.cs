@@ -5,12 +5,12 @@ namespace Altinn.Correspondence.Helpers
 {
     public static class LogContextHelpers
     {
-        public static void EnrichLogsWithInsertCorrespondence(InitiateCorrespondenceExt insertCorrespondenceExt)
+        public static void EnrichLogsWithInsertCorrespondence(InitializeCorrespondenceExt initializeCorrespondenceExt)
         {
-            LogContext.PushProperty("sender", insertCorrespondenceExt.Sender);
-            LogContext.PushProperty("recipient", insertCorrespondenceExt.Recipient);
-            LogContext.PushProperty("resourceId", insertCorrespondenceExt.ResourceId);
-            LogContext.PushProperty("sendersReference", insertCorrespondenceExt.SendersReference);
+            LogContext.PushProperty("sender", initializeCorrespondenceExt.Sender);
+            LogContext.PushProperty("recipient", initializeCorrespondenceExt.Recipient);
+            LogContext.PushProperty("resourceId", initializeCorrespondenceExt.ResourceId);
+            LogContext.PushProperty("sendersReference", initializeCorrespondenceExt.SendersReference);
         }
     }
 }
