@@ -1,7 +1,7 @@
 ﻿namespace Altinn.Correspondence.API.Models.Enums
 {
     /// <summary>
-    /// Defines where an attachment should be available.
+    /// Defines what kind of reference
     /// </summary>
     public enum ReferenceTypeExt : int
     {

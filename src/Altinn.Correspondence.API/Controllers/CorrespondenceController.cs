@@ -37,7 +37,7 @@ namespace Altinn.Correspondence.API.Controllers
             {
                     CorrespondenceId = Guid.NewGuid(),
                     Recipient = initializeCorrespondence.Recipient,
-                    Content = initializeCorrespondence.Content,
+                    Content = (CorrespondenceContentExt)initializeCorrespondence.Content,
                     ResourceId = initializeCorrespondence.ResourceId,
                     Sender = initializeCorrespondence.Sender,
                     SendersReference = initializeCorrespondence.SendersReference,
@@ -69,7 +69,7 @@ namespace Altinn.Correspondence.API.Controllers
             {
                 CorrespondenceId = Guid.NewGuid(),
                 Recipient = initializeCorrespondence.Recipient,
-                Content = initializeCorrespondence.Content,
+                Content = (CorrespondenceContentExt)initializeCorrespondence.Content,
                 ResourceId = initializeCorrespondence.ResourceId,
                 Sender = initializeCorrespondence.Sender,
                 SendersReference = initializeCorrespondence.SendersReference,
@@ -137,18 +137,22 @@ namespace Altinn.Correspondence.API.Controllers
                 SendersReference = Guid.NewGuid().ToString(),
                 CreatedDateTime = DateTime.Now.AddDays(-2),
                 VisibleDateTime = DateTime.Now.AddDays(-1),
-                Notifications = new List<CorrespondenceNotificationExt> { 
-                    new CorrespondenceNotificationExt { NotificationTemplate = "DefaultNewMessage", Created= DateTime.Now.AddDays(-1), RequestedSendTime = DateTime.Now.AddDays(-1), NotificationChannel = Models.Enums.NotificationChannelExt.Email },
-                    new CorrespondenceNotificationExt { NotificationTemplate = "DefaultReminder", Created= DateTime.Now.AddDays(-1), RequestedSendTime = DateTime.Now.AddDays(13), NotificationChannel = Models.Enums.NotificationChannelExt.Sms }
+                Notifications = new List<CorrespondenceNotificationOverviewExt> {
+                    new CorrespondenceNotificationOverviewExt { NotificationId = Guid.NewGuid(), NotificationTemplate = "DefaultNewMessage", CreatedDateTime = DateTime.Now.AddDays(-1), RequestedSendTime = DateTime.Now.AddDays(-1), NotificationChannel = NotificationChannelExt.Email },
+                    new CorrespondenceNotificationOverviewExt { NotificationId = Guid.NewGuid(), NotificationTemplate = "DefaultReminder", CreatedDateTime = DateTime.Now.AddDays(-1), RequestedSendTime = DateTime.Now.AddDays(13), NotificationChannel = NotificationChannelExt.Sms }
+                },
+                StatusHistory = new List<CorrespondenceStatusEventExt>() {
+                    new CorrespondenceStatusEventExt { Status = CorrespondenceStatusExt.Initialized, StatusChanged = DateTime.Now.AddDays(-1), StatusText = "Initialized - awaiting upload" },                    
+                    new CorrespondenceStatusEventExt { Status = CorrespondenceStatusExt.Published, StatusChanged = DateTime.Now.AddDays(-1).AddMinutes(2), StatusText = "Published - Ready for use" }
                 }
-            }; ;
+            };
         }
 
         /// <summary>
         /// Upload attachment data
         /// </summary>
         /// <remarks>
-        /// TODO: Remove this operation and instead just use the attachment controller to avoid duplicate operations/code ??
+        /// TODO: Can this route be made more clean?
         /// </remarks>
         /// <returns></returns>
         [HttpPost]

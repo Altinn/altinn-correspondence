@@ -10,16 +10,6 @@ namespace Altinn.Correspondence.API.Models
     public class InitializeCorrespondenceAttachmentExt
     {
         /// <summary>
-        /// A list over the Correspondence Service ResourceIds that are allowed to use this attachment data
-        /// </summary>
-        /// <remarks>
-        /// TODO: Find a better/more generic restriction
-        /// </remarks>
-        [JsonPropertyName("availableForResourceIds")]
-        [Required]
-        public required List<string> AvailableForResourceIds { get; set; }
-
-        /// <summary>
         /// The name of the attachment file.
         /// </summary>
         [JsonPropertyName("fileName")]
@@ -56,25 +46,34 @@ namespace Altinn.Correspondence.API.Models
         public required string SendersReference { get; set; }
 
         /// <summary>
-        /// The attachment data type
+        /// The attachment data type in MIME format
         /// </summary>
-        [JsonPropertyName("attachmentType")]
-        public AttachmentDataTypeExt AttachmentType { get; set; }
+        [JsonPropertyName("dataType")]
+        [Required]
+        public required string DataType { get; set; }
+
+        /// <summary>
+        /// The intended consumer of this attachment
+        /// </summary>
+        [JsonPropertyName("consumerType")]
+        [Required]
+        public required ConsumerTypeExt ConsumerType { get; set; }
 
         /// <summary>
         /// Specifies the location type of the attachment data
         /// </summary>
-        [JsonPropertyName("attachmentDataLocationType")]
-        public required InitializeAttachmentDataLocationTypeExt AttachmentDataLocationType { get; set; }
+        [JsonPropertyName("dataLocationType")]
+        [Required]
+        public InitializeAttachmentDataLocationTypeExt DataLocationType { get; set; }
 
         /// <summary>
-        /// Specifies the location of the attachment data
+        /// Specifies the location url of the attachment data
         /// </summary>
         /// <remarks>
-        /// Only required if AttachmentDataLocationType is ExistingCorrespondenceAttachment or ExisitingExternalStorage
-        /// If the type is NewCorrespondenceAttachmentBlob, this requires the attachmen data to be uploaded using the AttachmentId returned from the Initialize operation
+        /// Required only if AttachmentDataLocationType is ExistingCorrespondenceAttachment or ExisitingExternalStorage
+        /// If the type is NewCorrespondenceAttachmentBlob, this requires the attachment data to be uploaded using the AttachmentId returned from the Initialize operation
         /// </remarks>
-        [JsonPropertyName("attachmentDataLocation")]
-        public string? AttachmentDataLocation { get; set; }
+        [JsonPropertyName("dataLocationUrl")]
+        public string? DataLocationUrl { get; set; }
     }
 }

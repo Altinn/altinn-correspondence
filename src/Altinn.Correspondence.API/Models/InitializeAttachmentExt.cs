@@ -56,9 +56,16 @@ namespace Altinn.Correspondence.API.Models
         public required string SendersReference { get; set; }
 
         /// <summary>
-        /// The attachment data type
+        /// The attachment data type in MIME format
         /// </summary>
-        [JsonPropertyName("attachmentType")]
-        public AttachmentDataTypeExt AttachmentType { get; set; }
+        [JsonPropertyName("dataType")]
+        public required string DataType { get; set; }
+
+        /// <summary>
+        /// The intended consumer of this attachment
+        /// </summary>
+        [JsonPropertyName("consumerType")]
+        [Required]
+        public required ConsumerTypeExt ConsumerType { get; set; }
     }
 }

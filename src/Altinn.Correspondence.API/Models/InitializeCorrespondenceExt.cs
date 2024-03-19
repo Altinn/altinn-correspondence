@@ -49,7 +49,7 @@ namespace Altinn.Correspondence.API.Models
         /// The correspondence content. Contains information about the Correspondence body, subject etc.
         /// </summary>
         [JsonPropertyName("content")]
-        public required CorrespondenceContentExt Content { get; set; }
+        public InitializeCorrespondenceContentExt Content { get; set; }
 
         /// <summary>
         /// When the correspondence should become visible to the recipient.
@@ -73,6 +73,9 @@ namespace Altinn.Correspondence.API.Models
         /// Gets or sets an list of references Senders can use this field to tell the recipient that the correspondence is related to the referenced item(s)
         /// Examples include Altinn App instances, Altinn Broker File Transfers
         /// </summary>
+        /// <remarks>
+        /// TODO: Do we need this on Attachments for DialogPorten etc?
+        /// </remarks>
         [JsonPropertyName("externalReferences")]
         public List<ExternalReferenceExt>? ExternalReferences { get; set; }
 

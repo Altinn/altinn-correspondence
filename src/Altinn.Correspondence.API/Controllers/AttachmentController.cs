@@ -36,12 +36,13 @@ namespace Altinn.Correspondence.API.Controllers
                 Name = InitializeAttachmentExt.Name,
                 FileName = InitializeAttachmentExt.FileName,
                 SendersReference = InitializeAttachmentExt.SendersReference,
-                AttachmentType = InitializeAttachmentExt.AttachmentType,
+                DataType = InitializeAttachmentExt.DataType,
+                ConsumerType = InitializeAttachmentExt.ConsumerType,
                 Checksum = InitializeAttachmentExt.Checksum,
                 IsEncrypted = InitializeAttachmentExt.IsEncrypted,
-                AttachmentStatus = AttachmentStatusExt.Initialized,
-                AttachmentStatusText = "Initialized - awaiting upload",
-                AttachmentStatusChanged = DateTime.Now                
+                Status = AttachmentStatusExt.Initialized,
+                StatusText = "Initialized - awaiting upload",
+                StatusChanged = DateTime.Now                
             };
         }
 
@@ -64,9 +65,11 @@ namespace Altinn.Correspondence.API.Controllers
                 AvailableForResourceIds = null,
                 Name = "TestName",
                 SendersReference = "1234",
-                AttachmentStatus = Models.Enums.AttachmentStatusExt.UploadProcessing,
-                AttachmentStatusText = "Uploaded - Awaitng procesing",
-                AttachmentStatusChanged = DateTime.Now
+                DataType = "application/pdf",
+                ConsumerType = ConsumerTypeExt.Gui,
+                Status = AttachmentStatusExt.UploadProcessing,
+                StatusText = "Uploaded - Awaitng procesing",
+                StatusChanged = DateTime.Now
             }; 
         }
 
@@ -86,9 +89,40 @@ namespace Altinn.Correspondence.API.Controllers
                 AvailableForResourceIds = null,
                 Name = "TestName",
                 SendersReference = "1234",
-                AttachmentStatus = Models.Enums.AttachmentStatusExt.Published,
-                AttachmentStatusText = "Ready for use",
-                AttachmentStatusChanged = DateTime.Now
+                DataType = "application/pdf",
+                ConsumerType = ConsumerTypeExt.Gui,
+                Status = AttachmentStatusExt.Published,
+                StatusText = "Published - Ready for use",
+                StatusChanged = DateTime.Now
+            };
+        }
+
+        /// <summary>
+        /// Get information about the file and its current status
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("{attachmentId}/details")]
+        public AttachmentDetailsExt GetAttachmentDetails(
+            Guid attachmentId)
+        {
+            // Hack return for now
+            return new AttachmentDetailsExt
+            {
+                AttachmentId = attachmentId,
+                AvailableForResourceIds = null,
+                Name = "TestName",
+                SendersReference = "1234",
+                DataType = "application/pdf",
+                ConsumerType = ConsumerTypeExt.Gui,
+                Status = AttachmentStatusExt.Published,
+                StatusText = "Ready for use",
+                StatusChanged = DateTime.Now,
+                StatusHistory = new List<AtachmentStatusEvent>() {
+                    new AtachmentStatusEvent { Status = AttachmentStatusExt.Initialized, StatusChanged = DateTime.Now.AddDays(-1), StatusText = "Initialized - awaiting upload" },
+                    new AtachmentStatusEvent { Status = AttachmentStatusExt.UploadProcessing, StatusChanged = DateTime.Now.AddDays(-1).AddMinutes(1), StatusText = "Uploaded - Awaitng procesing" },
+                    new AtachmentStatusEvent { Status = AttachmentStatusExt.Published, StatusChanged = DateTime.Now.AddDays(-1).AddMinutes(2), StatusText = "Published - Ready for use" },
+                }
             };
         }
 
@@ -124,9 +158,11 @@ namespace Altinn.Correspondence.API.Controllers
                 AvailableForResourceIds = null,
                 Name = "TestName",
                 SendersReference = "1234",
-                AttachmentStatus = Models.Enums.AttachmentStatusExt.Published,
-                AttachmentStatusText = "Ready for use",
-                AttachmentStatusChanged = DateTime.Now
+                DataType = "application/pdf",
+                ConsumerType = ConsumerTypeExt.Gui,
+                Status = AttachmentStatusExt.Published,
+                StatusText = "Ready for use",
+                StatusChanged = DateTime.Now
             };
         }
     }
