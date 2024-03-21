@@ -49,6 +49,7 @@ namespace Altinn.Correspondence.API.Models
         /// The attachment data type in MIME format
         /// </summary>
         [JsonPropertyName("dataType")]
+        [Required]
         public required string DataType { get; set; }
 
         /// <summary>
@@ -67,5 +68,12 @@ namespace Altinn.Correspondence.API.Models
         [JsonPropertyName("restrictionName")]
         [Required]
         public string RestrictionName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Date/Time in UTC for when the attachen will expire and may be cleaned up automatically
+        /// </summary>
+        [JsonPropertyName("expirationTime")]
+        [Required]
+        public DateTimeOffset ExpirationTime { get; set; }
     }
 }

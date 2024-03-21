@@ -447,6 +447,8 @@
             "AttachmentDetailsExt": {
                 "required": [
                     "dataLocationUrl",
+                    "dataType",
+                    "expirationTime",
                     "name",
                     "restrictionName",
                     "sendersReference",
@@ -478,8 +480,8 @@
                         "type": "string"
                     },
                     "dataType": {
-                        "type": "string",
-                        "nullable": true
+                        "minLength": 1,
+                        "type": "string"
                     },
                     "usageType": {
                         "$ref": "#/components/schemas/IntendedPresentationTypeExt"
@@ -487,6 +489,10 @@
                     "restrictionName": {
                         "minLength": 1,
                         "type": "string"
+                    },
+                    "expirationTime": {
+                        "type": "string",
+                        "format": "date-time"
                     },
                     "attachmentId": {
                         "type": "string",
@@ -519,6 +525,8 @@
             "AttachmentOverviewExt": {
                 "required": [
                     "dataLocationUrl",
+                    "dataType",
+                    "expirationTime",
                     "name",
                     "restrictionName",
                     "sendersReference",
@@ -550,8 +558,8 @@
                         "type": "string"
                     },
                     "dataType": {
-                        "type": "string",
-                        "nullable": true
+                        "minLength": 1,
+                        "type": "string"
                     },
                     "usageType": {
                         "$ref": "#/components/schemas/IntendedPresentationTypeExt"
@@ -559,6 +567,10 @@
                     "restrictionName": {
                         "minLength": 1,
                         "type": "string"
+                    },
+                    "expirationTime": {
+                        "type": "string",
+                        "format": "date-time"
                     },
                     "attachmentId": {
                         "type": "string",
@@ -1009,6 +1021,8 @@
             },
             "InitializeAttachmentExt": {
                 "required": [
+                    "dataType",
+                    "expirationTime",
                     "name",
                     "restrictionName",
                     "sendersReference",
@@ -1040,8 +1054,8 @@
                         "type": "string"
                     },
                     "dataType": {
-                        "type": "string",
-                        "nullable": true
+                        "minLength": 1,
+                        "type": "string"
                     },
                     "usageType": {
                         "$ref": "#/components/schemas/IntendedPresentationTypeExt"
@@ -1049,6 +1063,10 @@
                     "restrictionName": {
                         "minLength": 1,
                         "type": "string"
+                    },
+                    "expirationTime": {
+                        "type": "string",
+                        "format": "date-time"
                     }
                 },
                 "additionalProperties": false
