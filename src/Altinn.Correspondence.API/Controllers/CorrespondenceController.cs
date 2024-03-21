@@ -27,26 +27,28 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns></returns>
         [HttpPost]
-        public CorrespondenceOverviewExt InitializeCorrespondence(InitializeCorrespondenceExt initializeCorrespondence)
+        public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeCorrespondence(InitializeCorrespondenceExt initializeCorrespondence)
         {
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(initializeCorrespondence);
             _logger.LogInformation("Initialize correspondence");
 
             // Hack return for now
-            return new CorrespondenceOverviewExt
-            {
-                    CorrespondenceId = Guid.NewGuid(),
-                    Recipient = initializeCorrespondence.Recipient,
-                    Content = (CorrespondenceContentExt)initializeCorrespondence.Content,
-                    ResourceId = initializeCorrespondence.ResourceId,
-                    Sender = initializeCorrespondence.Sender,
-                    SendersReference = initializeCorrespondence.SendersReference,
-                    CreatedDateTime = DateTime.Now,
-                    VisibleDateTime = initializeCorrespondence.VisibleDateTime,
-                    Status = CorrespondenceStatusExt.Initialized,
-                    StatusText = "Initialized Successfully - waiting for attachment upload",
-                    StatusChanged = DateTime.Now
-            };
+            return Ok(
+                new CorrespondenceOverviewExt
+                {
+                        CorrespondenceId = Guid.NewGuid(),
+                        Recipient = initializeCorrespondence.Recipient,
+                        Content = (CorrespondenceContentExt)initializeCorrespondence.Content,
+                        ResourceId = initializeCorrespondence.ResourceId,
+                        Sender = initializeCorrespondence.Sender,
+                        SendersReference = initializeCorrespondence.SendersReference,
+                        CreatedDateTime = DateTime.Now,
+                        VisibleDateTime = initializeCorrespondence.VisibleDateTime,
+                        Status = CorrespondenceStatusExt.Initialized,
+                        StatusText = "Initialized Successfully - waiting for attachment upload",
+                        StatusChanged = DateTime.Now
+                }
+            );
         }
 
         /// <summary>
@@ -59,26 +61,28 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpPost]
         [Route("upload")]
         [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
-        public CorrespondenceOverviewExt InitializeCorrespondenceAndUploadData(InitializeCorrespondenceExt initializeCorrespondence)
+        public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeCorrespondenceAndUploadData(InitializeCorrespondenceExt initializeCorrespondence)
         {
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(initializeCorrespondence);
             _logger.LogInformation("Insert correspondence");
 
             // Hack return for now
-            return new CorrespondenceOverviewExt
-            {
-                CorrespondenceId = Guid.NewGuid(),
-                Recipient = initializeCorrespondence.Recipient,
-                Content = (CorrespondenceContentExt)initializeCorrespondence.Content,
-                ResourceId = initializeCorrespondence.ResourceId,
-                Sender = initializeCorrespondence.Sender,
-                SendersReference = initializeCorrespondence.SendersReference,
-                CreatedDateTime = DateTime.Now,
-                VisibleDateTime = initializeCorrespondence.VisibleDateTime,
-                Status = CorrespondenceStatusExt.Published,
-                StatusText = "Initialized and Published successfully",
-                StatusChanged = DateTime.Now
-            };
+            return Ok(
+                new CorrespondenceOverviewExt
+                {
+                    CorrespondenceId = Guid.NewGuid(),
+                    Recipient = initializeCorrespondence.Recipient,
+                    Content = (CorrespondenceContentExt)initializeCorrespondence.Content,
+                    ResourceId = initializeCorrespondence.ResourceId,
+                    Sender = initializeCorrespondence.Sender,
+                    SendersReference = initializeCorrespondence.SendersReference,
+                    CreatedDateTime = DateTime.Now,
+                    VisibleDateTime = initializeCorrespondence.VisibleDateTime,
+                    Status = CorrespondenceStatusExt.Published,
+                    StatusText = "Initialized and Published successfully",
+                    StatusChanged = DateTime.Now
+                }
+            );
         }
 
         /// <summary>
@@ -90,26 +94,28 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{correspondenceId}")]
-        public CorrespondenceOverviewExt GetCorrespondenceOverview(
+        public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
             Guid correspondenceId)
         {   
             _logger.LogInformation("Getting Correspondence overview for {correspondenceId}", correspondenceId.ToString());
 
             // Hack return for now
-            return new CorrespondenceOverviewExt
-            {
-                CorrespondenceId = correspondenceId,
-                Recipient = "0192:234567890",
-                Content = null,
-                ResourceId = "Altinn-Correspondence-1_0",
-                Sender = "0192:123456789",
-                SendersReference = Guid.NewGuid().ToString(),
-                CreatedDateTime = DateTime.Now.AddDays(-2),
-                VisibleDateTime = DateTime.Now.AddDays(-1),
-                Status = CorrespondenceStatusExt.Published,
-                StatusText = "Initialized and Published successfully",
-                StatusChanged = DateTime.Now.AddDays(-2)
-            };
+            return Ok(
+                new CorrespondenceOverviewExt
+                {
+                    CorrespondenceId = correspondenceId,
+                    Recipient = "0192:234567890",
+                    Content = null,
+                    ResourceId = "Altinn-Correspondence-1_0",
+                    Sender = "0192:123456789",
+                    SendersReference = Guid.NewGuid().ToString(),
+                    CreatedDateTime = DateTime.Now.AddDays(-2),
+                    VisibleDateTime = DateTime.Now.AddDays(-1),
+                    Status = CorrespondenceStatusExt.Published,
+                    StatusText = "Initialized and Published successfully",
+                    StatusChanged = DateTime.Now.AddDays(-2)
+                }
+            );
         }
 
         /// <summary>
@@ -121,52 +127,33 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns>Detailed information about the correspondence with current status and status history</returns>
         [HttpGet]
         [Route("{correspondenceId}/details")]
-        public CorrespondenceDetailsExt GetCorrespondenceDetails(
+        public async Task<ActionResult<CorrespondenceDetailsExt>> GetCorrespondenceDetails(
             Guid correspondenceId)
         {
             _logger.LogInformation("Getting Correspondence overview for {correspondenceId}", correspondenceId.ToString());
 
             // Hack return for now
-            return new CorrespondenceDetailsExt
-            {
-                CorrespondenceId = correspondenceId,
-                Recipient = "0192:234567890",
-                Content = null,
-                ResourceId = "Altinn-Correspondence-1_0",
-                Sender = "0192:123456789",
-                SendersReference = Guid.NewGuid().ToString(),
-                CreatedDateTime = DateTime.Now.AddDays(-2),
-                VisibleDateTime = DateTime.Now.AddDays(-1),
-                Notifications = new List<CorrespondenceNotificationOverviewExt> {
-                    new CorrespondenceNotificationOverviewExt { NotificationId = Guid.NewGuid(), NotificationTemplate = "DefaultNewMessage", CreatedDateTime = DateTime.Now.AddDays(-1), RequestedSendTime = DateTime.Now.AddDays(-1), NotificationChannel = NotificationChannelExt.Email },
-                    new CorrespondenceNotificationOverviewExt { NotificationId = Guid.NewGuid(), NotificationTemplate = "DefaultReminder", CreatedDateTime = DateTime.Now.AddDays(-1), RequestedSendTime = DateTime.Now.AddDays(13), NotificationChannel = NotificationChannelExt.Sms }
-                },
-                StatusHistory = new List<CorrespondenceStatusEventExt>() {
-                    new CorrespondenceStatusEventExt { Status = CorrespondenceStatusExt.Initialized, StatusChanged = DateTime.Now.AddDays(-1), StatusText = "Initialized - awaiting upload" },                    
-                    new CorrespondenceStatusEventExt { Status = CorrespondenceStatusExt.Published, StatusChanged = DateTime.Now.AddDays(-1).AddMinutes(2), StatusText = "Published - Ready for use" }
+            return Ok(
+                new CorrespondenceDetailsExt
+                {
+                    CorrespondenceId = correspondenceId,
+                    Recipient = "0192:234567890",
+                    Content = null,
+                    ResourceId = "Altinn-Correspondence-1_0",
+                    Sender = "0192:123456789",
+                    SendersReference = Guid.NewGuid().ToString(),
+                    CreatedDateTime = DateTime.Now.AddDays(-2),
+                    VisibleDateTime = DateTime.Now.AddDays(-1),
+                    Notifications = new List<CorrespondenceNotificationOverviewExt> {
+                        new CorrespondenceNotificationOverviewExt { NotificationId = Guid.NewGuid(), NotificationTemplate = "Email", CreatedDateTime = DateTime.Now.AddDays(-1), RequestedSendTime = DateTime.Now.AddDays(-1), NotificationChannel = NotificationChannelExt.Email },
+                        new CorrespondenceNotificationOverviewExt { NotificationId = Guid.NewGuid(), NotificationTemplate = "EmailReminder", CreatedDateTime = DateTime.Now.AddDays(-1), RequestedSendTime = DateTime.Now.AddDays(13), NotificationChannel = NotificationChannelExt.Sms }
+                    },
+                    StatusHistory = new List<CorrespondenceStatusEventExt>() {
+                        new CorrespondenceStatusEventExt { Status = CorrespondenceStatusExt.Initialized, StatusChanged = DateTime.Now.AddDays(-1), StatusText = "Initialized - awaiting upload" },                    
+                        new CorrespondenceStatusEventExt { Status = CorrespondenceStatusExt.Published, StatusChanged = DateTime.Now.AddDays(-1).AddMinutes(2), StatusText = "Published - Ready for use" }
+                    }
                 }
-            };
-        }
-
-        /// <summary>
-        /// Upload attachment data
-        /// </summary>
-        /// <remarks>
-        /// TODO: Can this route be made more clean?
-        /// </remarks>
-        /// <returns></returns>
-        [HttpPost]
-        [Route("{correspondenceId}/{attachmentId}/upload")]
-        [Consumes("application/octet-stream")]
-        public string UploadAttachmentData(
-            Guid correspondenceId,
-            Guid attachmentId
-        )
-        {
-            _logger.LogInformation("Uploading attachment {attachmentId} for correspondence {correspondenceId}", attachmentId.ToString(), correspondenceId.ToString());
-
-            // Hack return for now
-            return "OK";
+            );
         }
     }
 }

@@ -15,8 +15,14 @@ namespace Altinn.Correspondence.API.Models
         public Guid NotificationId { get; set; }
 
         /// <summary>
+        /// The channel this notification used
+        /// </summary>
+        [JsonPropertyName("notificationChannel")]
+        public NotificationChannelExt NotificationChannel { get; set; }
+
+        /// <summary>
         /// Gets or sets the date and time of when the notification order was created
         /// </summary>
-        public DateTime CreatedDateTime { get; set; }
+        public DateTimeOffset CreatedDateTime { get; set; }
     }
 }

@@ -56,16 +56,13 @@ namespace Altinn.Correspondence.API.Models.Enums
         Archived = 9,
 
         /// <summary>
-        /// User has opted out of digital communication
+        /// User has opted out of digital communication in KRR
         /// </summary>
         Reserved = 10,
 
         /// <summary>
         /// Message has been Marked unread
         /// </summary>
-        /// <remarks>
-        /// TODO: Not needed anymore?
-        /// </remarks>
         MarkedUnRead = 11
     }
 }

@@ -10,16 +10,6 @@ namespace Altinn.Correspondence.API.Models
     public class InitializeAttachmentExt
     {
         /// <summary>
-        /// A list over the Correspondence Service ResourceIds that are allowed to use this attachment data
-        /// </summary>
-        /// <remarks>
-        /// TODO: Find a better/more generic restriction
-        /// </remarks>
-        [JsonPropertyName("availableForResourceIds")]
-        [Required]
-        public required List<string> AvailableForResourceIds { get; set; }
-
-        /// <summary>
         /// The name of the attachment file.
         /// </summary>
         [JsonPropertyName("fileName")]
@@ -62,10 +52,20 @@ namespace Altinn.Correspondence.API.Models
         public required string DataType { get; set; }
 
         /// <summary>
-        /// The intended consumer of this attachment
+        /// The intended usage for this attachment
         /// </summary>
-        [JsonPropertyName("consumerType")]
+        [JsonPropertyName("usageType")]
         [Required]
-        public required ConsumerTypeExt ConsumerType { get; set; }
+        public required IntendedPresentationTypeExt IntendedPresentation { get; set; }
+
+        /// <summary>
+        /// The name of the Restriction Policy restricting access to this element
+        /// </summary>
+        /// <remarks>
+        /// An empty value indicates no restriction above the ones governing the correspondence referencing this attachment
+        /// </remarks>
+        [JsonPropertyName("restrictionName")]
+        [Required]
+        public string RestrictionName { get; set; } = string.Empty;
     }
 }

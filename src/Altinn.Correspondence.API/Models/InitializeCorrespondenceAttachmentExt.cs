@@ -53,11 +53,21 @@ namespace Altinn.Correspondence.API.Models
         public required string DataType { get; set; }
 
         /// <summary>
-        /// The intended consumer of this attachment
+        /// The intended presentation for this attachment
         /// </summary>
-        [JsonPropertyName("consumerType")]
+        [JsonPropertyName("intendedPresentation")]
         [Required]
-        public required ConsumerTypeExt ConsumerType { get; set; }
+        public required IntendedPresentationTypeExt IntendedPresentation { get; set; }
+
+        /// <summary>
+        /// The name of the Restriction Policy restricting access to this element
+        /// </summary>
+        /// <remarks>
+        /// An empty value indicates no restriction above the ones governing the correspondence referencing this attachment
+        /// </remarks>
+        [JsonPropertyName("restrictionName")]
+        [Required]
+        public string RestrictionName { get; set; } = string.Empty;
 
         /// <summary>
         /// Specifies the location type of the attachment data

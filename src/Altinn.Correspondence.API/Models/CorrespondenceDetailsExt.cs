@@ -15,6 +15,11 @@ namespace Altinn.Correspondence.API.Models
         [JsonPropertyName("statusHistory")]
         public List<CorrespondenceStatusEventExt> StatusHistory { get; set; }
 
+        /// <summary>
+        /// Notifications directly related to this Correspondence.
+        /// </summary>
+        [JsonPropertyName("notifications")]
+        public new List<CorrespondenceNotificationOverviewExt>? Notifications { get; set; }
 
         /// <summary>
         /// The Status history for the Notifications

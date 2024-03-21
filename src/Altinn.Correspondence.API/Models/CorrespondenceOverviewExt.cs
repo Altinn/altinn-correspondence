@@ -25,14 +25,7 @@ namespace Altinn.Correspondence.API.Models
         /// When the correspondence was created
         /// </summary>
         [JsonPropertyName("createdDateTime")]
-        public required DateTime CreatedDateTime { get; set; }
-
-        /// <summary>
-        /// Notifications directly related to this Correspondence.
-        /// </summary>
-        [JsonPropertyName("notifications")]
-        [MaxLength(6, ErrorMessage = "Notifications can contain at most 6 notifcations")]
-        public new List<CorrespondenceNotificationOverviewExt>? Notifications { get; set; }
+        public required DateTimeOffset CreatedDateTime { get; set; }
 
         /// <summary>
         /// The current status for the Correspondence

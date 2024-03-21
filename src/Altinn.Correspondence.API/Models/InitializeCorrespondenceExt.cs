@@ -55,19 +55,19 @@ namespace Altinn.Correspondence.API.Models
         /// When the correspondence should become visible to the recipient.
         /// </summary>
         [JsonPropertyName("visibleDateTime")]
-        public required DateTime VisibleDateTime { get; set; }
+        public required DateTimeOffset VisibleDateTime { get; set; }
 
         /// <summary>
         /// Gets or sets the date for when Altinn can remove the correspondence from its database.
         /// </summary>
         [JsonPropertyName("allowSystemDeleteDateTime")]
-        public DateTime? AllowSystemDeleteDateTime { get; set; }
+        public DateTimeOffset? AllowSystemDeleteDateTime { get; set; }
 
         /// <summary>
         /// Gets or sets a date and time for when the recipient must reply.
         /// </summary>
         [JsonPropertyName("dueDateTime")]
-        public DateTime DueDateTime { get; set; }
+        public DateTimeOffset DueDateTime { get; set; }
 
         /// <summary>
         /// Gets or sets an list of references Senders can use this field to tell the recipient that the correspondence is related to the referenced item(s)

@@ -33,17 +33,6 @@ namespace Altinn.Correspondence.API.Models
         public string MessageSummary { get; set; }
 
         /// <summary>
-        /// Gets or sets the main message body in a correspondence.
-        /// </summary>
-        /// <remarks>
-        /// TODO: Maybe the messagebody should simply be another "attachment"?
-        /// TODO: Length restriction?
-        /// DECISION: Clarfy external requirments
-        /// </remarks>
-        [JsonPropertyName("messageBody")]
-        public string MessageBody { get; set; }
-
-        /// <summary>
         /// Gets or sets a list of attachments.
         /// </summary>
         /// <remarks>
