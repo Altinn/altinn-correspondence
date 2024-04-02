@@ -9,22 +9,26 @@ namespace Altinn.Correspondence.API.Models
     {
         /// <summary>
         /// Current status for the notification
-        /// </summary>
+        /// </summary>        
+        [JsonPropertyName("status")]
         public string Status { get; set; }
 
         /// <summary>
         /// Current status text for the notification
         /// </summary>
+        [JsonPropertyName("statusText")]
         public string StatusText { get; set; } = string.Empty;
 
         /// <summary>
         /// When the current status changed
         /// </summary>
-        public DateTimeOffset StatusChangedDateTime { get; set; }
+        [JsonPropertyName("statusChanged")]
+        public DateTimeOffset StatusChanged { get; set; }
 
         /// <summary>
         /// Completed Status history for the Notification
         /// </summary>
+        [JsonPropertyName("statusHistory")]
         List<NotificationStatusEventExt> StatusHistory { get; set; }
     }
 }

@@ -63,6 +63,6 @@ namespace Altinn.Correspondence.API.Models.Enums
         /// <summary>
         /// Message has been Marked unread
         /// </summary>
-        MarkedUnRead = 11
+        MarkedUnread = 11
     }
 }

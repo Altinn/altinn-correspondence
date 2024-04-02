@@ -21,8 +21,9 @@ namespace Altinn.Correspondence.API.Models
         public NotificationChannelExt NotificationChannel { get; set; }
 
         /// <summary>
-        /// Gets or sets the date and time of when the notification order was created
+        /// The timestamp for when the notification order was created
         /// </summary>
-        public DateTimeOffset CreatedDateTime { get; set; }
+        [JsonPropertyName("created")]
+        public DateTimeOffset Created { get; set; }
     }
 }

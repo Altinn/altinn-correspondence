@@ -54,14 +54,14 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// When the correspondence should become visible to the recipient.
         /// </summary>
-        [JsonPropertyName("visibleDateTime")]
-        public required DateTimeOffset VisibleDateTime { get; set; }
+        [JsonPropertyName("visibleFrom")]
+        public required DateTimeOffset VisibleFrom { get; set; }
 
         /// <summary>
         /// Gets or sets the date for when Altinn can remove the correspondence from its database.
         /// </summary>
-        [JsonPropertyName("allowSystemDeleteDateTime")]
-        public DateTimeOffset? AllowSystemDeleteDateTime { get; set; }
+        [JsonPropertyName("allowSystemDeleteAfter")]
+        public DateTimeOffset? AllowSystemDeleteAfter { get; set; }
 
         /// <summary>
         /// Gets or sets a date and time for when the recipient must reply.

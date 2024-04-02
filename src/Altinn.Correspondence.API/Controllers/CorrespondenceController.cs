@@ -42,8 +42,8 @@ namespace Altinn.Correspondence.API.Controllers
                         ResourceId = initializeCorrespondence.ResourceId,
                         Sender = initializeCorrespondence.Sender,
                         SendersReference = initializeCorrespondence.SendersReference,
-                        CreatedDateTime = DateTime.Now,
-                        VisibleDateTime = initializeCorrespondence.VisibleDateTime,
+                        Created = DateTime.Now,
+                        VisibleFrom = initializeCorrespondence.VisibleFrom,
                         Status = CorrespondenceStatusExt.Initialized,
                         StatusText = "Initialized Successfully - waiting for attachment upload",
                         StatusChanged = DateTime.Now
@@ -76,8 +76,8 @@ namespace Altinn.Correspondence.API.Controllers
                     ResourceId = initializeCorrespondence.ResourceId,
                     Sender = initializeCorrespondence.Sender,
                     SendersReference = initializeCorrespondence.SendersReference,
-                    CreatedDateTime = DateTime.Now,
-                    VisibleDateTime = initializeCorrespondence.VisibleDateTime,
+                    Created = DateTime.Now,
+                    VisibleFrom = initializeCorrespondence.VisibleFrom,
                     Status = CorrespondenceStatusExt.Published,
                     StatusText = "Initialized and Published successfully",
                     StatusChanged = DateTime.Now
@@ -109,8 +109,8 @@ namespace Altinn.Correspondence.API.Controllers
                     ResourceId = "Altinn-Correspondence-1_0",
                     Sender = "0192:123456789",
                     SendersReference = Guid.NewGuid().ToString(),
-                    CreatedDateTime = DateTime.Now.AddDays(-2),
-                    VisibleDateTime = DateTime.Now.AddDays(-1),
+                    Created = DateTime.Now.AddDays(-2),
+                    VisibleFrom = DateTime.Now.AddDays(-1),
                     Status = CorrespondenceStatusExt.Published,
                     StatusText = "Initialized and Published successfully",
                     StatusChanged = DateTime.Now.AddDays(-2)
@@ -142,11 +142,11 @@ namespace Altinn.Correspondence.API.Controllers
                     ResourceId = "Altinn-Correspondence-1_0",
                     Sender = "0192:123456789",
                     SendersReference = Guid.NewGuid().ToString(),
-                    CreatedDateTime = DateTime.Now.AddDays(-2),
-                    VisibleDateTime = DateTime.Now.AddDays(-1),
+                    Created = DateTime.Now.AddDays(-2),
+                    VisibleFrom = DateTime.Now.AddDays(-1),
                     Notifications = new List<CorrespondenceNotificationOverviewExt> {
-                        new CorrespondenceNotificationOverviewExt { NotificationId = Guid.NewGuid(), NotificationTemplate = "Email", CreatedDateTime = DateTime.Now.AddDays(-1), RequestedSendTime = DateTime.Now.AddDays(-1), NotificationChannel = NotificationChannelExt.Email },
-                        new CorrespondenceNotificationOverviewExt { NotificationId = Guid.NewGuid(), NotificationTemplate = "EmailReminder", CreatedDateTime = DateTime.Now.AddDays(-1), RequestedSendTime = DateTime.Now.AddDays(13), NotificationChannel = NotificationChannelExt.Sms }
+                        new CorrespondenceNotificationOverviewExt { NotificationId = Guid.NewGuid(), NotificationTemplate = "Email", Created = DateTime.Now.AddDays(-1), RequestedSendTime = DateTime.Now.AddDays(-1), NotificationChannel = NotificationChannelExt.Email },
+                        new CorrespondenceNotificationOverviewExt { NotificationId = Guid.NewGuid(), NotificationTemplate = "EmailReminder", Created = DateTime.Now.AddDays(-1), RequestedSendTime = DateTime.Now.AddDays(13), NotificationChannel = NotificationChannelExt.Sms }
                     },
                     StatusHistory = new List<CorrespondenceStatusEventExt>() {
                         new CorrespondenceStatusEventExt { Status = CorrespondenceStatusExt.Initialized, StatusChanged = DateTime.Now.AddDays(-1), StatusText = "Initialized - awaiting upload" },                    

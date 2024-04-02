@@ -6,18 +6,13 @@
     public enum IntendedPresentationTypeExt : int
     {
         /// <summary>
-        /// Main Human-readable Message Body to be displayed in GUI
+        /// Human-readable content to be displayed in GUI, such as Message Body
         /// </summary>
-        MessageBody = 0,
+        HumanReadable = 0, 
 
         /// <summary>
-        /// Human-readable content to be displayed in GUI
+        /// Machine-readable content not to be displayed in GUI, but intended for system consumption or download to disk
         /// </summary>
-        HumanReadable = 1, 
-
-        /// <summary>
-        /// Machine-readable content not to be displayed in GUI, but intended for sy
-        /// </summary>
-        MachineReadable = 2
+        MachineReadable = 1
     }
 }

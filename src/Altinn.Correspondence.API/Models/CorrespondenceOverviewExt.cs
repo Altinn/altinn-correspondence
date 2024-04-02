@@ -1,5 +1,4 @@
 ﻿using Altinn.Correspondence.API.Models.Enums;
-using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models
@@ -12,7 +11,7 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Unique Id for this correspondence
         /// </summary>
-         [JsonPropertyName("correspondenceId")]
+        [JsonPropertyName("correspondenceId")]
         public required Guid CorrespondenceId { get; set; }
 
         /// <summary>
@@ -24,22 +23,25 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// When the correspondence was created
         /// </summary>
-        [JsonPropertyName("createdDateTime")]
-        public required DateTimeOffset CreatedDateTime { get; set; }
+        [JsonPropertyName("created")]
+        public required DateTimeOffset Created { get; set; }
 
         /// <summary>
         /// The current status for the Correspondence
         /// </summary>
+        [JsonPropertyName("status")]
         public CorrespondenceStatusExt Status { get; set; }
-        
+
         /// <summary>
         /// The current status text for the Correspondence
         /// </summary>
+        [JsonPropertyName("statusText")]
         public string StatusText { get; set; } = string.Empty;
 
         /// <summary>
         /// Timestamp for when the Current Correspondence Status was changed
         /// </summary>
+        [JsonPropertyName("statusChanged")]
         public DateTimeOffset StatusChanged { get; set; }
     }
 }

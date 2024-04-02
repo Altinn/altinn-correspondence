@@ -4,12 +4,7 @@
     /// Defines supported languages.
     /// </summary>
     public enum LanguageTypeExt : int
-    {
-        /// <summary>
-        /// Specifies default value.
-        /// </summary>
-        Default = 0, 
-
+    { 
         /// <summary>
         /// Specifies English language.
         /// </summary>

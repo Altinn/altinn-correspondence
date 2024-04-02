@@ -8,12 +8,12 @@
         /// <summary>
         /// Specifies that the attachment data will need to be uploaded to Altinn Correspondence via the Upload Attachment operation
         /// </summary>
-        NewCorrespondenceAttachmentBlob = 0,
+        NewCorrespondenceAttachment = 0,
         
         /// <summary>
-        /// Specifies that the attachment  already exist in Altinn Correponddence blob storage
+        /// Specifies that the attachment  already exist in Altinn Correpondence storage
         /// </summary>
-        ExistingCorrespondenceAttachmentBlob = 1,
+        ExistingCorrespondenceAttachment = 1,
 
         /// <summary>
         /// Specifies that the attachment data already exist in an external storage
