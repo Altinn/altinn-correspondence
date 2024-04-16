@@ -11,58 +11,48 @@ namespace Altinn.Correspondence.API.Models.Enums
         Initialized = 0,
 
         /// <summary>
-        /// Message has been Published, and is available for recipients.
+        /// Message has been Published, and is available for recipient.
         /// </summary>
         Published = 1,
 
         /// <summary>
-        /// Message read by user.
+        /// Message read by recipient.
         /// </summary>
         Read = 2,
 
         /// <summary>
-        /// User replied on message.
+        /// Recipient has replied on message.
         /// </summary>
         Replied = 3,
 
         /// <summary>
-        /// Message has been changed by sender
-        /// </summary>
-        ChangedBySender = 4,
-
-        /// <summary>
-        /// Message has been changed by recipient.
-        /// </summary>
-        ChangedByRecipient = 5,
-
-        /// <summary>
         /// Message confirmed by recipient.
         /// </summary>
-        Confirmed = 6,
+        Confirmed = 4,
 
         /// <summary>
         /// Message has been deleted by recipient.
         /// </summary>
-        DeletedByRecipient = 7,
+        DeletedByRecipient = 5,
 
         /// <summary>
         /// Message has been deleted by Altinn.
         /// </summary>
-        DeletedByAltinn = 8,
+        DeletedByAltinn = 6,
 
         /// <summary>
         /// Message has been Archived
         /// </summary>
-        Archived = 9,
+        Archived = 7,
 
         /// <summary>
-        /// User has opted out of digital communication in KRR
+        /// Recipient has opted out of digital communication in KRR
         /// </summary>
-        Reserved = 10,
+        Reserved = 8,
 
         /// <summary>
-        /// Message has been Marked unread
+        /// Message has Failed
         /// </summary>
-        MarkedUnread = 11
+        Failed = 9
     }
 }
