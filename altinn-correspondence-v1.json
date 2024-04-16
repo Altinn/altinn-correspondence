@@ -987,14 +987,12 @@
                     "Published",
                     "Read",
                     "Replied",
-                    "ChangedBySender",
-                    "ChangedByRecipient",
                     "Confirmed",
                     "DeletedByRecipient",
                     "DeletedByAltinn",
                     "Archived",
                     "Reserved",
-                    "MarkedUnread"
+                    "Failed"
                 ],
                 "type": "string"
             },
