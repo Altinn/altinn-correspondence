@@ -2,7 +2,9 @@ using System.Text.Json.Serialization;
 
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-
+using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 BuildAndRun(args);
 
@@ -26,6 +28,22 @@ static void BuildAndRun(string[] args)
 
     app.MapControllers();
 
+    if (app.Environment.IsDevelopment())
+    {
+        using (var scope = app.Services.CreateScope())
+        {
+            var _Db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            if (_Db != null)
+            {
+                if (_Db.Database.GetPendingMigrations().Any())
+                {
+                    _Db.Database.Migrate();
+                }
+            }
+        }
+    }
+
+
     app.Run();
 }
 
@@ -38,6 +56,9 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.AddEndpointsApiExplorer();
     services.AddSwaggerGen();
     services.AddApplicationInsightsTelemetry();
+
+    services.AddApplicationHandlers();
+    services.AddPersistence();
 
     services.AddHttpClient();
     services.AddProblemDetails();
@@ -52,6 +73,12 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         options.MultipartBodyLengthLimit = long.MaxValue;
         options.MultipartHeadersLengthLimit = int.MaxValue;
     });
+
+    var connectionString = config.GetSection("DatabaseOptions:ConnectionString");
+    services.AddDbContext<ApplicationDbContext>(opts => opts.UseNpgsql(connectionString.Value));
+
+
 }
+
 
 public partial class Program { } // For compatibility with WebApplicationFactory
