@@ -8,6 +8,7 @@ public class ApplicationDbContext : DbContext
     {
     }
     public DbSet<AttachmentEntity> Attachments { get; set; }
+    public DbSet<AttachmentStatusEntity> AttachmentStatuses { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
     }

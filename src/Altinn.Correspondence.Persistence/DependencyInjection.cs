@@ -1,5 +1,5 @@
 ﻿using Altinn.Correspondence.Core.Repositories;
-using Altinn.Correspondence.Persistence.Attachments;
+using Altinn.Correspondence.Persistence.Repositories;
 
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,5 +9,6 @@ public static class DependencyInjection
     public static void AddPersistence(this IServiceCollection services)
     {
         services.AddScoped<IAttachmentRepository, AttachmentRepository>();
+        services.AddScoped<IAttachmentStatusRepository, AttachmentStatusRepository>();
     }
 }

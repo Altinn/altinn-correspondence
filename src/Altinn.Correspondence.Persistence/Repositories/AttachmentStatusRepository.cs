@@ -5,17 +5,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
-    public class AttachmentRepository(ApplicationDbContext context) : IAttachmentRepository
+    public class AttachmentStatusRepository(ApplicationDbContext context) : IAttachmentStatusRepository
     {
         private readonly ApplicationDbContext _context = context;
 
-        public async Task<int> InitializeAttachment(AttachmentEntity attachment, CancellationToken cancellationToken)
+        public async Task<int> AddAttachmentStatus(AttachmentStatusEntity status, CancellationToken cancellationToken)
         {
 
 
-            await _context.Attachments.AddAsync(attachment, cancellationToken);
+            await _context.AttachmentStatuses.AddAsync(status, cancellationToken);
             await _context.SaveChangesAsync();
-            return attachment.Id;
+            return status.Id;
         }
     }
 }

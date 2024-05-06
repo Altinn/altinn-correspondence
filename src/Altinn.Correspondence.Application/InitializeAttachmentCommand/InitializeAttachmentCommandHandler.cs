@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
 
@@ -7,14 +8,23 @@ public class InitializeAttachmentCommandHandler : IHandler<InitializeAttachmentC
 {
 
     private readonly IAttachmentRepository _attachmentRepository;
-    public InitializeAttachmentCommandHandler(IAttachmentRepository attachmentRepository)
+    private readonly IAttachmentStatusRepository _attachmentStatusRepository;
+    public InitializeAttachmentCommandHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository)
     {
         _attachmentRepository = attachmentRepository;
+        _attachmentStatusRepository = attachmentStatusRepository;
     }
 
     public async Task<OneOf<int, Error>> Process(InitializeAttachmentCommandRequest request, CancellationToken cancellationToken)
     {
         var attachmentId = await _attachmentRepository.InitializeAttachment(request.Attachment, cancellationToken);
+        var status = new AttachmentStatusEntity
+        {
+            AttachmentId = attachmentId,
+            StatusChanged = DateTimeOffset.UtcNow,
+            Status = Core.Models.Enums.AttachmentStatus.Initialized
+        };
+        await _attachmentStatusRepository.AddAttachmentStatus(status, cancellationToken);
         return attachmentId;
     }
 }
