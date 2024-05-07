@@ -13,14 +13,11 @@ namespace Altinn.Correspondence.Core.Models
         [MaxLength(255)]
         public string? FileName { get; set; }
 
-
         [MaxLength(255)]
         [Required]
         public required string Name { get; set; }
 
-
         public bool IsEncrypted { get; set; }
-
 
         public string? Checksum { get; set; } = string.Empty;
 

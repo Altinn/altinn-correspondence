@@ -11,8 +11,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<int> InitializeAttachment(AttachmentEntity attachment, CancellationToken cancellationToken)
         {
-
-
             await _context.Attachments.AddAsync(attachment, cancellationToken);
             await _context.SaveChangesAsync();
             return attachment.Id;
