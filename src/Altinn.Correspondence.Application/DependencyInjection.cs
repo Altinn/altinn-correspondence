@@ -1,5 +1,4 @@
 ﻿using Altinn.Correspondence.Application.InitializeAttachmentCommand;
-
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Correspondence.Application;

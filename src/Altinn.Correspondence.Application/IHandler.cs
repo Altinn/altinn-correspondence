@@ -1,5 +1,4 @@
-﻿
-using OneOf;
+﻿using OneOf;
 
 namespace Altinn.Correspondence.Application;
 internal interface IHandler<TRequest, TResponse>
