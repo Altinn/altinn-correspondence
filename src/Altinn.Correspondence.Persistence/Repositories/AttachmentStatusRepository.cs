@@ -1,7 +1,5 @@
 using Altinn.Correspondence.Core.Models;
-using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
@@ -11,8 +9,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<int> AddAttachmentStatus(AttachmentStatusEntity status, CancellationToken cancellationToken)
         {
-
-
             await _context.AttachmentStatuses.AddAsync(status, cancellationToken);
             await _context.SaveChangesAsync();
             return status.Id;

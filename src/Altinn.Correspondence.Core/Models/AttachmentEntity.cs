@@ -1,7 +1,5 @@
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using Altinn.Correspondence.Core.Models.Enums;
-using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 namespace Altinn.Correspondence.Core.Models
 {

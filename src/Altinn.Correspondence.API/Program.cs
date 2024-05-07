@@ -1,10 +1,9 @@
-using System.Text.Json.Serialization;
-
-using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Persistence;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Serialization;
 
 BuildAndRun(args);
 

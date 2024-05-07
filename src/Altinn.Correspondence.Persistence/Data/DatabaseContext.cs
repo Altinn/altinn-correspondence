@@ -1,6 +1,5 @@
 using Altinn.Correspondence.Core.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 
 public class ApplicationDbContext : DbContext
 {
