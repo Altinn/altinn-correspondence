@@ -1,9 +1,9 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Helpers;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.InitializeAttachmentCommand;
+using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Mvc;
-using System.Reflection.Metadata.Ecma335;
 using System.Text;
 
 namespace Altinn.Correspondence.API.Controllers
@@ -25,26 +25,16 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>Only required if the attachment is to be shared, otherwise this is done as part of the Initialize Correspondence operation</remarks>
         /// <returns></returns>
         [HttpPost]
-        public async Task<ActionResult<AttachmentOverviewExt>> InitializeAttachment(InitializeAttachmentExt InitializeAttachmentExt)
+        public async Task<ActionResult<AttachmentOverviewExt>> InitializeAttachment(InitializeAttachmentExt InitializeAttachmentExt, [FromServices] InitializeAttachmentCommandHandler handler, CancellationToken cancellationToken)
         {
+
+            var commandRequest = InitializeAttachmentMapper.MapToRequest(InitializeAttachmentExt);
+            var commandResult = await handler.Process(commandRequest, cancellationToken);
             _logger.LogInformation("Initialize attachment");
-            
-            // Hack for now
-            return Ok(
-                new AttachmentOverviewExt
-                {
-                    AttachmentId = Guid.NewGuid(),
-                    Name = InitializeAttachmentExt.Name,
-                    FileName = InitializeAttachmentExt.FileName,
-                    SendersReference = InitializeAttachmentExt.SendersReference,
-                    DataType = InitializeAttachmentExt.DataType,
-                    IntendedPresentation = InitializeAttachmentExt.IntendedPresentation,
-                    Checksum = InitializeAttachmentExt.Checksum,
-                    IsEncrypted = InitializeAttachmentExt.IsEncrypted,
-                    Status = AttachmentStatusExt.Initialized,
-                    StatusText = "Initialized - awaiting upload",
-                    StatusChanged = DateTimeOffset.Now                
-                }
+
+            return commandResult.Match(
+                fileTransferId => Ok(fileTransferId.ToString()),
+                Problem
             );
         }
 
@@ -172,5 +162,6 @@ namespace Altinn.Correspondence.API.Controllers
                 StatusChanged = DateTimeOffset.Now
             };
         }
+        private ObjectResult Problem(Error error) => Problem(detail: error.Message, statusCode: (int)error.StatusCode);
     }
 }

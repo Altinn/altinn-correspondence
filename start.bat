@@ -1,0 +1,1 @@
+dotnet run --project ./src/Altinn.Correspondence.API
