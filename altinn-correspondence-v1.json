@@ -229,7 +229,6 @@
                                     "$ref": "#/components/schemas/CorrespondenceOverviewExt"
                                 }
                             }
-                            }
                         }
                     }
                 }
