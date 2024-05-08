@@ -1,8 +1,9 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.InitializeCorrespondenceCommand;
 using Altinn.Correspondence.Helpers;
-using Microsoft.ApplicationInsights.AspNetCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Correspondence.API.Controllers
@@ -27,27 +28,18 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns></returns>
         [HttpPost]
-        public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeCorrespondence(InitializeCorrespondenceExt initializeCorrespondence)
+        public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeCorrespondence(InitializeCorrespondenceExt initializeCorrespondence, [FromServices] InitializeCorrespondenceCommandHandler handler, CancellationToken cancellationToken)
         {
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(initializeCorrespondence);
             _logger.LogInformation("Initialize correspondence");
 
-            // Hack return for now
-            return Ok(
-                new CorrespondenceOverviewExt
-                {
-                        CorrespondenceId = Guid.NewGuid(),
-                        Recipient = initializeCorrespondence.Recipient,
-                        Content = (CorrespondenceContentExt)initializeCorrespondence.Content,
-                        ResourceId = initializeCorrespondence.ResourceId,
-                        Sender = initializeCorrespondence.Sender,
-                        SendersReference = initializeCorrespondence.SendersReference,
-                        Created = DateTime.Now,
-                        VisibleFrom = initializeCorrespondence.VisibleFrom,
-                        Status = CorrespondenceStatusExt.Initialized,
-                        StatusText = "Initialized Successfully - waiting for attachment upload",
-                        StatusChanged = DateTime.Now
-                }
+            var commandRequest = InitializeCorrespondenceMapper.MapToRequest(initializeCorrespondence);
+            var commandResult = await handler.Process(commandRequest, cancellationToken);
+            _logger.LogInformation("Initialize attachment");
+
+            return commandResult.Match(
+                id => Ok(id.ToString()),
+                Problem
             );
         }
 
@@ -96,7 +88,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("{correspondenceId}")]
         public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
             Guid correspondenceId)
-        {   
+        {
             _logger.LogInformation("Getting Correspondence overview for {correspondenceId}", correspondenceId.ToString());
 
             // Hack return for now
@@ -149,11 +141,13 @@ namespace Altinn.Correspondence.API.Controllers
                         new CorrespondenceNotificationOverviewExt { NotificationId = Guid.NewGuid(), NotificationTemplate = "EmailReminder", Created = DateTime.Now.AddDays(-1), RequestedSendTime = DateTime.Now.AddDays(13), NotificationChannel = NotificationChannelExt.Sms }
                     },
                     StatusHistory = new List<CorrespondenceStatusEventExt>() {
-                        new CorrespondenceStatusEventExt { Status = CorrespondenceStatusExt.Initialized, StatusChanged = DateTime.Now.AddDays(-1), StatusText = "Initialized - awaiting upload" },                    
+                        new CorrespondenceStatusEventExt { Status = CorrespondenceStatusExt.Initialized, StatusChanged = DateTime.Now.AddDays(-1), StatusText = "Initialized - awaiting upload" },
                         new CorrespondenceStatusEventExt { Status = CorrespondenceStatusExt.Published, StatusChanged = DateTime.Now.AddDays(-1).AddMinutes(2), StatusText = "Published - Ready for use" }
                     }
                 }
             );
         }
+        private ObjectResult Problem(Error error) => Problem(detail: error.Message, statusCode: (int)error.StatusCode);
     }
+
 }

@@ -6,7 +6,7 @@ namespace Altinn.Correspondence.Core.Models
     public class AttachmentEntity
     {
         [Key]
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         [MaxLength(255)]
         public string? FileName { get; set; }
@@ -35,5 +35,14 @@ namespace Altinn.Correspondence.Core.Models
 
         [Required]
         public DateTimeOffset ExpirationTime { get; set; }
+
+        public List<AttachmentStatusEntity> Statuses { get; set; }
+
+        public string? DataLocationUrl { get; set; }
+
+        public AttachmentDataLocationType DataLocationType { get; set; }
+
+        public List<CorrespondenceContentEntity> CorrespondenceContents { get; set; }
+
     }
 }

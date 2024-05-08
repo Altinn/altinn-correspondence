@@ -4,9 +4,8 @@ using OneOf;
 
 namespace Altinn.Correspondence.Application.InitializeAttachmentCommand;
 
-public class InitializeAttachmentCommandHandler : IHandler<InitializeAttachmentCommandRequest, int>
+public class InitializeAttachmentCommandHandler : IHandler<InitializeAttachmentCommandRequest, Guid>
 {
-
     private readonly IAttachmentRepository _attachmentRepository;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository;
     public InitializeAttachmentCommandHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository)
@@ -15,7 +14,7 @@ public class InitializeAttachmentCommandHandler : IHandler<InitializeAttachmentC
         _attachmentStatusRepository = attachmentStatusRepository;
     }
 
-    public async Task<OneOf<int, Error>> Process(InitializeAttachmentCommandRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentCommandRequest request, CancellationToken cancellationToken)
     {
         var attachmentId = await _attachmentRepository.InitializeAttachment(request.Attachment, cancellationToken);
         var status = new AttachmentStatusEntity
