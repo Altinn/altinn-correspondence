@@ -15,7 +15,7 @@ namespace Altinn.Correspondence.Core.Models
 
         public string MessageSummary { get; set; }
 
-        public List<AttachmentEntity> Attachments { get; set; }
+        public List<CorrespondenceAttachmentEntity> Attachments { get; set; }
 
         public Guid CorrespondenceId { get; set; }
         [ForeignKey("CorrespondenceId")]

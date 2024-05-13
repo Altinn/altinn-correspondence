@@ -27,19 +27,12 @@ internal static class InitializeCorrespondenceMapper
                 Language = (LanguageType)initializeCorrespondenceExt.Content.Language,
                 MessageTitle = initializeCorrespondenceExt.Content.MessageTitle,
                 MessageSummary = initializeCorrespondenceExt.Content.MessageSummary,
+                Attachments = InitializeCorrespondenceAttachmentMapper.MapListToEntities(initializeCorrespondenceExt.Content.Attachments)
             }
         };
-
-        var attachments = new List<AttachmentEntity>();
-        foreach (var attachment in initializeCorrespondenceExt.Content.Attachments)
-        {
-            attachments.Add(InitializeAttachmentMapper.MapToRequest(attachment).Attachment);
-        }
         return new InitializeCorrespondenceCommandRequest()
         {
             correspondence = correspondence,
-            newAttachments = attachments,
-            existingAttachments = initializeCorrespondenceExt.Content.AttachmentIds
         };
     }
 }

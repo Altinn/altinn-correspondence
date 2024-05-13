@@ -1,15 +1,17 @@
 using Altinn.Correspondence.Core.Models.Enums;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Altinn.Correspondence.Core.Models
 {
-    public class AttachmentEntity
+    public class CorrespondenceAttachmentEntity
     {
         [Key]
         public Guid Id { get; set; }
 
         [MaxLength(255)]
-        public string? FileName { get; set; }
+        [Required]
+        public required string Name { get; set; }
 
         public bool IsEncrypted { get; set; }
 
@@ -38,7 +40,9 @@ namespace Altinn.Correspondence.Core.Models
 
         public AttachmentDataLocationType DataLocationType { get; set; }
 
-        public List<CorrespondenceAttachmentEntity> CorrespondenceAttachments { get; set; }
+        public Guid AttachmentId { get; set; }
+        [ForeignKey("AttachmentId")]
+        public AttachmentEntity Attachment { get; set; }
 
     }
 }

@@ -21,7 +21,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     FileName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     IsEncrypted = table.Column<bool>(type: "boolean", nullable: false),
                     Checksum = table.Column<string>(type: "text", nullable: true),
                     SendersReference = table.Column<string>(type: "character varying(4096)", maxLength: 4096, nullable: false),
@@ -55,27 +54,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Correspondences", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "AttachmentStatuses",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    StatusText = table.Column<string>(type: "text", nullable: false),
-                    StatusChanged = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    AttachmentId = table.Column<Guid>(type: "uuid", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AttachmentStatuses", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_AttachmentStatuses_Attachments_AttachmentId",
-                        column: x => x.AttachmentId,
-                        principalTable: "Attachments",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -183,38 +161,85 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "AttachmentEntityCorrespondenceContentEntity",
+                name: "CorrespondenceAttachmentEntity",
                 columns: table => new
                 {
-                    AttachmentsId = table.Column<Guid>(type: "uuid", nullable: false),
-                    CorrespondenceContentsId = table.Column<Guid>(type: "uuid", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    IsEncrypted = table.Column<bool>(type: "boolean", nullable: false),
+                    Checksum = table.Column<string>(type: "text", nullable: true),
+                    SendersReference = table.Column<string>(type: "character varying(4096)", maxLength: 4096, nullable: false),
+                    DataType = table.Column<string>(type: "text", nullable: false),
+                    IntendedPresentation = table.Column<int>(type: "integer", nullable: false),
+                    RestrictionName = table.Column<string>(type: "text", nullable: false),
+                    ExpirationTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DataLocationUrl = table.Column<string>(type: "text", nullable: true),
+                    DataLocationType = table.Column<int>(type: "integer", nullable: false),
+                    AttachmentId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CorrespondenceContentEntityId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AttachmentEntityCorrespondenceContentEntity", x => new { x.AttachmentsId, x.CorrespondenceContentsId });
+                    table.PrimaryKey("PK_CorrespondenceAttachmentEntity", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_AttachmentEntityCorrespondenceContentEntity_Attachments_Att~",
-                        column: x => x.AttachmentsId,
+                        name: "FK_CorrespondenceAttachmentEntity_Attachments_AttachmentId",
+                        column: x => x.AttachmentId,
                         principalTable: "Attachments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_AttachmentEntityCorrespondenceContentEntity_CorrespondenceC~",
-                        column: x => x.CorrespondenceContentsId,
+                        name: "FK_CorrespondenceAttachmentEntity_CorrespondenceContents_Corre~",
+                        column: x => x.CorrespondenceContentEntityId,
                         principalTable: "CorrespondenceContents",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_AttachmentEntityCorrespondenceContentEntity_CorrespondenceC~",
-                table: "AttachmentEntityCorrespondenceContentEntity",
-                column: "CorrespondenceContentsId");
+            migrationBuilder.CreateTable(
+                name: "AttachmentStatuses",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    StatusText = table.Column<string>(type: "text", nullable: false),
+                    StatusChanged = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    AttachmentId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CorrespondenceAttachmentEntityId = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AttachmentStatuses", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AttachmentStatuses_Attachments_AttachmentId",
+                        column: x => x.AttachmentId,
+                        principalTable: "Attachments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AttachmentStatuses_CorrespondenceAttachmentEntity_Correspon~",
+                        column: x => x.CorrespondenceAttachmentEntityId,
+                        principalTable: "CorrespondenceAttachmentEntity",
+                        principalColumn: "Id");
+                });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AttachmentStatuses_AttachmentId",
                 table: "AttachmentStatuses",
                 column: "AttachmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AttachmentStatuses_CorrespondenceAttachmentEntityId",
+                table: "AttachmentStatuses",
+                column: "CorrespondenceAttachmentEntityId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CorrespondenceAttachmentEntity_AttachmentId",
+                table: "CorrespondenceAttachmentEntity",
+                column: "AttachmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CorrespondenceAttachmentEntity_CorrespondenceContentEntityId",
+                table: "CorrespondenceAttachmentEntity",
+                column: "CorrespondenceContentEntityId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CorrespondenceContents_CorrespondenceId",
@@ -247,9 +272,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "AttachmentEntityCorrespondenceContentEntity");
-
-            migrationBuilder.DropTable(
                 name: "AttachmentStatuses");
 
             migrationBuilder.DropTable(
@@ -265,10 +287,13 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 name: "ExternalReferences");
 
             migrationBuilder.DropTable(
-                name: "CorrespondenceContents");
+                name: "CorrespondenceAttachmentEntity");
 
             migrationBuilder.DropTable(
                 name: "Attachments");
+
+            migrationBuilder.DropTable(
+                name: "CorrespondenceContents");
 
             migrationBuilder.DropTable(
                 name: "Correspondences");

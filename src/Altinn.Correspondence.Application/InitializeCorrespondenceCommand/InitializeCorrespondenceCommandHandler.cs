@@ -17,24 +17,63 @@ public class InitializeCorrespondenceCommandHandler : IHandler<InitializeCorresp
 
     public async Task<OneOf<Guid, Error>> Process(InitializeCorrespondenceCommandRequest request, CancellationToken cancellationToken)
     {
+        var attachments = request.correspondence.Content.Attachments;
+        foreach (var attachment in attachments)
+        {
+            attachment.Attachment = await ProcessAttachment(attachment, cancellationToken);
+        }
         var statuses = new List<CorrespondenceStatusEntity>(){
             new CorrespondenceStatusEntity
             {
-                Status = CorrespondenceStatus.Initialized,
+                Status = GetInitializeCorrespondenceStatus(request.correspondence),
                 StatusChanged = DateTimeOffset.UtcNow
             }
         };
         request.correspondence.Statuses = statuses;
-
-        var attachments = request.existingAttachments;
-        if (request.newAttachments != null)
-        {
-            var attachmentIds = await _attachmentRepository.InitializeMultipleAttachments(request.newAttachments, cancellationToken);
-            attachments = attachmentIds.Concat(request.existingAttachments).ToList();
-        }
-        //request.correspondence.Content.Attachments = attachments;
-
         var correspondenceId = await _correspondenceRepository.InitializeCorrespondence(request.correspondence, cancellationToken);
         return correspondenceId;
+    }
+
+    public CorrespondenceStatus GetInitializeCorrespondenceStatus(CorrespondenceEntity correspondence)
+    {
+        var status = CorrespondenceStatus.Initialized;
+        if (correspondence.Content.Attachments.All(c => c.Statuses != null && c.Statuses.All(s => s.Status == AttachmentStatus.Published)))
+        {
+            status = CorrespondenceStatus.Published;
+        }
+        return status;
+    }
+    public async Task<AttachmentEntity> ProcessAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, CancellationToken cancellationToken)
+    {
+        AttachmentEntity? attachment = null;
+        if (correspondenceAttachment.DataLocationUrl != null)
+        {
+            var existingAttachment = await _attachmentRepository.GetAttachmentByUrl(correspondenceAttachment.DataLocationUrl, cancellationToken);
+            if (existingAttachment != null)
+            {
+                attachment = existingAttachment;
+            }
+        }
+        if (attachment == null)
+        {
+            var status = new List<AttachmentStatusEntity>(){
+                    new AttachmentStatusEntity
+                    {
+                        Status = AttachmentStatus.Initialized,
+                        StatusChanged = DateTimeOffset.UtcNow
+                    }
+                };
+            attachment = new AttachmentEntity
+            {
+                SendersReference = correspondenceAttachment.SendersReference,
+                RestrictionName = correspondenceAttachment.RestrictionName,
+                ExpirationTime = correspondenceAttachment.ExpirationTime,
+                IntendedPresentation = correspondenceAttachment.IntendedPresentation,
+                DataType = correspondenceAttachment.DataType,
+                DataLocationUrl = correspondenceAttachment.DataLocationUrl,
+                Statuses = status
+            };
+        }
+        return attachment;
     }
 }

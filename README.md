@@ -1,11 +1,20 @@
 # altinn-correspondence
 
+## Postman
+<a id="postman"></a>
+
+Example requests using postman can be found in [altinn-correspondence-v1.json](/altinn-correspondence-v1.json). 
 
 
-
-# Entity Framework 
+## Entity Framework 
 Correspondence uses Entity Framework. 
 When run locally, it applies migrations automaticly on startup 
+
+## Local Development
+
+The start.ps1 script runs all neccassary commands to run the project. 
+
+Installing Dotnet 8.0 is a pre-requisite.
 
 ## Adding migrations: 
 To add a new migration you can run the following command: 

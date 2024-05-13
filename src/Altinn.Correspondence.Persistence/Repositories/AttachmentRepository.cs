@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
@@ -18,6 +19,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
             await _context.Attachments.AddRangeAsync(attachments, cancellationToken);
             await _context.SaveChangesAsync();
             return attachments.Select(a => a.Id).ToList();
+        }
+        public async Task<AttachmentEntity?> GetAttachmentByUrl(string url, CancellationToken cancellationToken)
+        {
+            return await _context.Attachments.FirstOrDefaultAsync(a => a.DataLocationUrl == url, cancellationToken);
         }
     }
 }

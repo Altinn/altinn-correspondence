@@ -39,7 +39,7 @@ namespace Altinn.Correspondence.API.Models
         /// TODO: Number restriction?
         /// </remarks>
         [JsonPropertyName("attachments")]
-        public List<InitializeAttachmentExt> Attachments { get; set; }
+        public List<InitializeCorrespondenceAttachmentExt> Attachments { get; set; }
 
         /// <summary>
         /// Ids of the attachments that are to be included in the correspondence.
