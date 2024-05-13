@@ -1,11 +1,5 @@
 # altinn-correspondence
 
-## Postman
-<a id="postman"></a>
-
-Example requests using postman can be found in [altinn-correspondence-v1.json](/altinn-correspondence-v1.json). 
-
-
 ## Entity Framework 
 Correspondence uses Entity Framework. 
 When run locally, it applies migrations automaticly on startup 
