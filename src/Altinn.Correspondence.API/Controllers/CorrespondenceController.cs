@@ -35,7 +35,6 @@ namespace Altinn.Correspondence.API.Controllers
 
             var commandRequest = InitializeCorrespondenceMapper.MapToRequest(initializeCorrespondence);
             var commandResult = await handler.Process(commandRequest, cancellationToken);
-            _logger.LogInformation("Initialize attachment");
 
             return commandResult.Match(
                 id => Ok(id.ToString()),
@@ -149,5 +148,4 @@ namespace Altinn.Correspondence.API.Controllers
         }
         private ObjectResult Problem(Error error) => Problem(detail: error.Message, statusCode: (int)error.StatusCode);
     }
-
 }

@@ -61,7 +61,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Language = table.Column<int>(type: "integer", nullable: false),
+                    Language = table.Column<string>(type: "text", nullable: false),
                     MessageTitle = table.Column<string>(type: "text", nullable: false),
                     MessageSummary = table.Column<string>(type: "text", nullable: false),
                     CorrespondenceId = table.Column<Guid>(type: "uuid", nullable: false)

@@ -43,6 +43,7 @@ public class InitializeCorrespondenceCommandHandler : IHandler<InitializeCorresp
         }
         return status;
     }
+
     public async Task<AttachmentEntity> ProcessAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, CancellationToken cancellationToken)
     {
         AttachmentEntity? attachment = null;

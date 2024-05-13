@@ -9,7 +9,7 @@ namespace Altinn.Correspondence.Core.Models
         [Key]
         public Guid Id { get; set; }
 
-        public LanguageType Language { get; set; }
+        public string Language { get; set; }
 
         public string MessageTitle { get; set; }
 

@@ -166,8 +166,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<Guid>("CorrespondenceId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Language")
-                        .HasColumnType("integer");
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("MessageSummary")
                         .IsRequired()

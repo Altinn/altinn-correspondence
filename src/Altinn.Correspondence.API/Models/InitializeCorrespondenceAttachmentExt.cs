@@ -10,12 +10,6 @@ namespace Altinn.Correspondence.API.Models
     public class InitializeCorrespondenceAttachmentExt
     {
         /// <summary>
-        /// The id of the attachment. Only has value if the attachment exists in the system.
-        /// </summary>
-        [JsonPropertyName("attachmentId")]
-        public int AttachmentId { get; set; }
-
-        /// <summary>
         /// The name of the attachment file.
         /// </summary>
         [JsonPropertyName("fileName")]

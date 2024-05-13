@@ -24,7 +24,7 @@ internal static class InitializeCorrespondenceMapper
             Notifications = CorrespondenceNotificationMapper.MapListToEntities(initializeCorrespondenceExt.Notifications),
             Content = new CorrespondenceContentEntity
             {
-                Language = (LanguageType)initializeCorrespondenceExt.Content.Language,
+                Language = initializeCorrespondenceExt.Content.Language,
                 MessageTitle = initializeCorrespondenceExt.Content.MessageTitle,
                 MessageSummary = initializeCorrespondenceExt.Content.MessageSummary,
                 Attachments = InitializeCorrespondenceAttachmentMapper.MapListToEntities(initializeCorrespondenceExt.Content.Attachments)
