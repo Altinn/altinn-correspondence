@@ -8,7 +8,7 @@ on:
         description: Initial deploy
         default: false
   push:
-    branches: [main]
+    branches: [main, feat/infrastructure]
     paths-ignore:
       - "Test/**" # ignore changes to tests
 
