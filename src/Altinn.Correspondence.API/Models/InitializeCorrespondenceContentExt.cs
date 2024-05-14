@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.API.Models.Enums;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models
@@ -9,10 +10,11 @@ namespace Altinn.Correspondence.API.Models
     public class InitializeCorrespondenceContentExt
     {
         /// <summary>
-        /// Gets or sets the language that the correspondence is written in.
+        /// Gets or sets the language of the correspondence, specified according to ISO 639-1 
         /// </summary>
         [JsonPropertyName("language")]
-        public LanguageTypeExt Language { get; set; }
+        [ISO6391]        
+        public string Language { get; set; }
 
         /// <summary>
         /// Gets or sets the correspondence message title. Subject.
@@ -40,5 +42,33 @@ namespace Altinn.Correspondence.API.Models
         /// </remarks>
         [JsonPropertyName("attachments")]
         public List<InitializeCorrespondenceAttachmentExt> Attachments { get; set; }
+
+        /// <summary>
+        /// Ids of the attachments that are to be included in the correspondence.
+        /// </summary>
+        [JsonPropertyName("attachmentIds")]
+        public List<Guid>? AttachmentIds { get; set; }
+    }
+
+    [AttributeUsage(AttributeTargets.Property)]
+    internal class ISO6391Attribute : ValidationAttribute
+    {
+        public ISO6391Attribute()
+        {
+        }
+
+        protected override ValidationResult IsValid(object value, ValidationContext validationContext)
+        {
+            var stringValue = value as string;
+            if (string.IsNullOrWhiteSpace(stringValue))
+            {
+                return new ValidationResult("The ISO6391 field cannot be null or empty!");
+            }
+            if (stringValue.Length != 2)
+            {
+                return new ValidationResult("The ISO6391 field must be exactly 2 characters long!");
+            }
+            return ValidationResult.Success;
+        }
     }
 }
