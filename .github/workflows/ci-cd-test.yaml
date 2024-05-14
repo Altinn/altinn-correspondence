@@ -1,6 +1,9 @@
 name: Infra apply test
 
 on:
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       initialDeploy:
@@ -8,7 +11,7 @@ on:
         description: Initial deploy
         default: false
   push:
-    branches: [main, feat/infrastructure]
+    branches: [main]
     paths-ignore:
       - "Test/**" # ignore changes to tests
 
