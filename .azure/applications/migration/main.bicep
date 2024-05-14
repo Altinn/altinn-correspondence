@@ -39,6 +39,10 @@ var containerAppEnvVars = [
     name: 'APP_VERSION'
     value: appVersion
   }
+  {
+    name: 'CONNECTION_STRING'
+    secretRef: migrationConnectionStringName
+  }
 ]
 
 var volumes = [
@@ -53,7 +57,7 @@ var volumes = [
 var volumeMounts = [
   {
     volumeName: 'migrations'
-    mountPath: '/ef/sql'
+    mountPath: '/migrations'
     subPath: ''
   }
 ]
@@ -73,8 +77,8 @@ module containerAppJob '../../modules/containerAppJob/main.bicep' = {
     containerAppEnvId: containerAppEnv.id
     environmentVariables: containerAppEnvVars
     secrets: secrets
-    command: ['/bin/bash', '-c', 'dotnet ef database update;']
-    image: 'mcr.microsoft.com/dotnet/aspnet:8.0.4-alpine3.18'
+    command: ['/bin/bash', '-c', './bundle.exe --connection {$CONNECTION_STRING};']
+    image: 'ubuntu:latest'
     volumes: volumes
     volumeMounts: volumeMounts
     principalId: userAssignedIdentity.id

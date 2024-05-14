@@ -80,8 +80,9 @@ jobs:
           parameters: ./.azure/applications/migration/params.bicepparam
 
       - name: Create migration script
-        run:  | 
-            dotnet ef migrations script --idempotency --output ./src/Altinn.Correspondence.Persistence/Migrations/migration.sql
+        run: | 
+            dotnet ef migrations bundle --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API --self-contained -r linux-x64 -o ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe
+
       
       - name: Upload Migration Files to Azure File Share
         uses: azure/CLI@v2
@@ -89,7 +90,7 @@ jobs:
         with:
           azcliversion: ${{ env.AZ_CLI_VERSION }}
           inlineScript: |
-            az storage copy --source ./src/Altinn.Correspondence.Persistence/Migrations/migration.sql --destination https://${{ secrets.AZURE_MIGRATION_STORAGE_ACCOUNT_NAME }}.file.core.windows.net/migrations --recursive
+            az storage copy --source ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --destination https://${{ secrets.AZURE_MIGRATION_STORAGE_ACCOUNT_NAME }}.file.core.windows.net/migrations --recursive
 
       - name: Start migration job
         uses: azure/CLI@v2
