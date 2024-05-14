@@ -4,5 +4,5 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondenceCommand;
 
 public class InitializeCorrespondenceCommandRequest
 {
-    public CorrespondenceEntity correspondence { get; set; }
+    public CorrespondenceEntity Correspondence { get; set; }
 }

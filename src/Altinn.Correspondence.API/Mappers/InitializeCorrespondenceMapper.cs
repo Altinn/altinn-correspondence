@@ -32,7 +32,7 @@ internal static class InitializeCorrespondenceMapper
         };
         return new InitializeCorrespondenceCommandRequest()
         {
-            correspondence = correspondence,
+            Correspondence = correspondence,
         };
     }
 }

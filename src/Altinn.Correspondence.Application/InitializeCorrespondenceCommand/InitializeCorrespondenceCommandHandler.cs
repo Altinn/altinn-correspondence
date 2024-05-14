@@ -17,7 +17,7 @@ public class InitializeCorrespondenceCommandHandler : IHandler<InitializeCorresp
 
     public async Task<OneOf<Guid, Error>> Process(InitializeCorrespondenceCommandRequest request, CancellationToken cancellationToken)
     {
-        var attachments = request.correspondence.Content.Attachments;
+        var attachments = request.Correspondence.Content.Attachments;
         foreach (var attachment in attachments)
         {
             attachment.Attachment = await ProcessAttachment(attachment, cancellationToken);
@@ -25,12 +25,12 @@ public class InitializeCorrespondenceCommandHandler : IHandler<InitializeCorresp
         var statuses = new List<CorrespondenceStatusEntity>(){
             new CorrespondenceStatusEntity
             {
-                Status = GetInitializeCorrespondenceStatus(request.correspondence),
+                Status = GetInitializeCorrespondenceStatus(request.Correspondence),
                 StatusChanged = DateTimeOffset.UtcNow
             }
         };
-        request.correspondence.Statuses = statuses;
-        var correspondenceId = await _correspondenceRepository.InitializeCorrespondence(request.correspondence, cancellationToken);
+        request.Correspondence.Statuses = statuses;
+        var correspondenceId = await _correspondenceRepository.InitializeCorrespondence(request.Correspondence, cancellationToken);
         return correspondenceId;
     }
 
