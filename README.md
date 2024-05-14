@@ -1,11 +1,14 @@
 # altinn-correspondence
 
-
-
-
-# Entity Framework 
+## Entity Framework 
 Correspondence uses Entity Framework. 
 When run locally, it applies migrations automaticly on startup 
+
+## Local Development
+
+The start.ps1 script runs all neccassary commands to run the project. 
+
+Installing Dotnet 8.0 is a pre-requisite.
 
 ## Adding migrations: 
 To add a new migration you can run the following command: 

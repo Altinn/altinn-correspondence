@@ -33,7 +33,7 @@ namespace Altinn.Correspondence.API.Controllers
             _logger.LogInformation("Initialize attachment");
 
             return commandResult.Match(
-                fileTransferId => Ok(fileTransferId.ToString()),
+                id => Ok(id.ToString()),
                 Problem
             );
         }

@@ -122,21 +122,21 @@ namespace Altinn.Correspondence.API.Models
 
             if (!(value is Dictionary<string, string>))
             {
-                return new ValidationResult("PropertyList Object is not of proper type");
+                return new ValidationResult("propertyList Object is not of proper type");
             }
 
             var dictionary = (Dictionary<string, string>)value;
 
             if (dictionary.Count > 10)
-                return new ValidationResult("PropertyList can contain at most 10 properties");
+                return new ValidationResult("propertyList can contain at most 10 properties");
 
             foreach (var keyValuePair in dictionary)
             {
                 if (keyValuePair.Key.Length > 50)
-                    return new ValidationResult(String.Format("PropertyList Key can not be longer than 50. Length:{0}, KeyValue:{1}", keyValuePair.Key.Length.ToString(), keyValuePair.Key));
+                    return new ValidationResult(String.Format("propertyList Key can not be longer than 50. Length:{0}, KeyValue:{1}", keyValuePair.Key.Length.ToString(), keyValuePair.Key));
 
                 if (keyValuePair.Value.Length > 300)
-                    return new ValidationResult(String.Format("PropertyList Value can not be longer than 300. Length:{0}, Value:{1}", keyValuePair.Value.Length.ToString(), keyValuePair.Value));
+                    return new ValidationResult(String.Format("propertyList Value can not be longer than 300. Length:{0}, Value:{1}", keyValuePair.Value.Length.ToString(), keyValuePair.Value));
             }
 
             return ValidationResult.Success;

@@ -10,5 +10,6 @@ public static class DependencyInjection
     {
         services.AddScoped<IAttachmentRepository, AttachmentRepository>();
         services.AddScoped<IAttachmentStatusRepository, AttachmentStatusRepository>();
+        services.AddScoped<ICorrespondenceRepository, CorrespondenceRepository>();
     }
 }
