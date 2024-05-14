@@ -53,13 +53,13 @@ jobs:
     uses: ./.github/workflows/action-deploy-infra.yml
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_OIDC_TEST_CLIENT_ID }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_OIDC_TEST_TENANT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_OIDC_TEST_SUBSCRIPTION_ID }}
-      AZURE_OBJECT_ID: ${{ secrets.AZURE_TEST_PRINCIPAL_ID}}
+      AZURE_OBJECT_ID: ${{ secrets.AZURE_OIDC_TEST_OBJECT_ID}}
       AZURE_TEST_ACCESS_CLIENT_ID : ${{ secrets.AZURE_TEST_ACCESS_CLIENT_ID }}
       AZURE_NAME_PREFIX: ${{ secrets.AZURE_TEST_NAME_PREFIX }}
       AZURE_SOURCE_KEY_VAULT_NAME: ${{ secrets.AZURE_SOURCE_TEST_KEY_VAULT_NAME }}
-      AZURE_MIGRATION_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_TEST_MIGRATION_STORAGE_ACCOUNT_NAME }}
+      AZURE_MIGRATION_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_TEST_MIGRATIONS_STORAGE_ACCOUNT_NAME }}
     with:
       region: norwayeast
       environment: test
