@@ -80,12 +80,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         var connectionString = config.GetSection("DatabaseOptions:ConnectionString").Value ?? Environment.GetEnvironmentVariable("DatabaseOptions__ConnectionString");
         if (string.IsNullOrWhiteSpace(new NpgsqlConnectionStringBuilder(connectionString).Password))
         {
-            var clientId = Environment.GetEnvironmentVariable("AZURE_CLIENT_ID");
-            if (string.IsNullOrWhiteSpace(clientId))
-            {
-                throw new InvalidOperationException("Missing AZURE_CLIENT_ID environment variable");
-            }
-            var credential = new ManagedIdentityCredential(clientId);
+            var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions());
             var token = credential
                 .GetToken(
                     new Azure.Core.TokenRequestContext(new[] { "https://ossrdbms-aad.database.windows.net/.default" })
