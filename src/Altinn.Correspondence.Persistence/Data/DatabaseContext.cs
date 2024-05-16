@@ -14,8 +14,4 @@ public class ApplicationDbContext : DbContext
     public DbSet<CorrespondenceNotificationEntity> CorrespondenceNotifications { get; set; }
     public DbSet<CorrespondenceReplyOptionEntity> CorrespondenceReplyOptions { get; set; }
     public DbSet<ExternalReferenceEntity> ExternalReferences { get; set; }
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-    }
 }

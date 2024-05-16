@@ -1,8 +1,10 @@
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Persistence;
+using Azure.Identity;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using System.Text.Json.Serialization;
 
 BuildAndRun(args);
@@ -73,11 +75,20 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         options.MultipartHeadersLengthLimit = int.MaxValue;
     });
 
-    var connectionString = config.GetSection("DatabaseOptions:ConnectionString");
-    services.AddDbContext<ApplicationDbContext>(opts => opts.UseNpgsql(connectionString.Value));
-
-
+    services.AddDbContext<ApplicationDbContext>(opts =>
+    {
+        var connectionString = config.GetSection("DatabaseOptions:ConnectionString").Value ?? Environment.GetEnvironmentVariable("DatabaseOptions__ConnectionString");
+        if (string.IsNullOrWhiteSpace(new NpgsqlConnectionStringBuilder(connectionString).Password))
+        {
+            var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions());
+            var token = credential
+                .GetToken(
+                    new Azure.Core.TokenRequestContext(new[] { "https://ossrdbms-aad.database.windows.net/.default" })
+                );
+            connectionString += ";Password=" + token.Token + ";";
+        }
+        opts.UseNpgsql(connectionString);
+    });
 }
 
-
-public partial class Program { } // For compatibility with WebApplicationFactory
+public partial class Program { }
