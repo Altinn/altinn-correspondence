@@ -32,5 +32,8 @@ jobs:
         run: |
           timeout 5m bash -c 'while ! docker-compose ps | grep "Up (healthy)"; do sleep 1; done'
 
+      - name: Run migrations
+        run: dotnet ef database update --no-build --configuration Release
+        
       - name: Test
         run: dotnet test --no-build --configuration Release
