@@ -80,7 +80,7 @@ jobs:
         generate-git-short-sha,
         publish,
         deploy-infra,
-        test # we want deployment of app to be dependent on deployment of infrastructure, but if infrastructure is skipped, we still want to deploy the app
+        test
       ]
     if: ${{always() || ((inputs.initialDeploy ||  needs.check-for-changes.outputs.hasBackendChanges == 'true')  && always() && !failure() && !cancelled() )}}
     uses: ./.github/workflows/action-deploy-app.yml
