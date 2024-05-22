@@ -177,7 +177,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>
         /// Meant for Receivers
         /// </remarks>
-        /// <returns>OK with no data</returns>
+        /// <returns>Ok</returns>
         [HttpPost]
         [Route("{correspondenceId}/markasread")]
         public async Task<ActionResult> MarkAsRead(
@@ -194,7 +194,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>
         /// Meant for Receivers
         /// </remarks>
-        /// <returns>OK with no data</returns>
+        /// <returns>Ok</returns>
         [HttpPost]
         [Route("{correspondenceId}/confirm")]
         public async Task<ActionResult> Confirm(
@@ -211,7 +211,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>
         /// Meant for Receivers
         /// </remarks>
-        /// <returns>OK with no data</returns>
+        /// <returns>Ok</returns>
         [HttpPost]
         [Route("{correspondenceId}/archive")]
         public async Task<ActionResult> Archive(
@@ -228,7 +228,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>
         /// Meant for Receivers
         /// </remarks>
-        /// <returns>OK with no data</returns>
+        /// <returns>Ok</returns>
         [HttpDelete]
         [Route("{correspondenceId}/delete")]
         public async Task<ActionResult> Delete(
