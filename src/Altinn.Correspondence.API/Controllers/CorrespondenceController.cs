@@ -146,6 +146,98 @@ namespace Altinn.Correspondence.API.Controllers
                 }
             );
         }
+
+        /// <summary>
+        /// Gets a list of Correspondences for the authenticated user
+        /// </summary>
+        /// <remarks>
+        /// Meant for Receivers
+        /// </remarks>
+        /// <returns>A list of Correspondence ids and pagination metadata</returns>
+        [HttpGet]
+        public async Task<ActionResult<CorrespondencesExt>> GetCorrespondences(
+            [FromQuery] int offset,
+            [FromQuery] int limit,
+            [FromQuery] DateTimeOffset? from,
+            [FromQuery] DateTimeOffset? to,
+            [FromQuery] CorrespondenceStatusExt status = CorrespondenceStatusExt.Published)
+        {
+            _logger.LogInformation("Get correspondences for receiver");
+
+            return Ok(new CorrespondencesExt
+            {
+                Ids = new List<Guid> { Guid.NewGuid() },
+                Pagination = new PaginationMetaDataExt { TotalItems = 1, Page = 1, TotalPages = 1 }
+            });
+        }
+
+        /// <summary>
+        /// Mark Correspondence found by ID as read
+        /// </summary>
+        /// <remarks>
+        /// Meant for Receivers
+        /// </remarks>
+        /// <returns>Ok</returns>
+        [HttpPost]
+        [Route("{correspondenceId}/markasread")]
+        public async Task<ActionResult> MarkAsRead(
+            Guid correspondenceId)
+        {
+            _logger.LogInformation("Marking Correspondence as read for {correspondenceId}", correspondenceId.ToString());
+
+            return Ok();
+        }
+
+        /// <summary>
+        /// Mark Correspondence found by ID as confirmed
+        /// </summary>
+        /// <remarks>
+        /// Meant for Receivers
+        /// </remarks>
+        /// <returns>Ok</returns>
+        [HttpPost]
+        [Route("{correspondenceId}/confirm")]
+        public async Task<ActionResult> Confirm(
+            Guid correspondenceId)
+        {
+            _logger.LogInformation("Marking Correspondence as confirmed for {correspondenceId}", correspondenceId.ToString());
+
+            return Ok();
+        }
+
+        /// <summary>
+        /// Mark Correspondence found by ID as archived
+        /// </summary>
+        /// <remarks>
+        /// Meant for Receivers
+        /// </remarks>
+        /// <returns>Ok</returns>
+        [HttpPost]
+        [Route("{correspondenceId}/archive")]
+        public async Task<ActionResult> Archive(
+            Guid correspondenceId)
+        {
+            _logger.LogInformation("Archiving Correspondence with id: {correspondenceId}", correspondenceId.ToString());
+
+            return Ok();
+        }
+
+        /// <summary>
+        /// Delete Correspondence found by ID
+        /// </summary>
+        /// <remarks>
+        /// Meant for Receivers
+        /// </remarks>
+        /// <returns>Ok</returns>
+        [HttpDelete]
+        [Route("{correspondenceId}/delete")]
+        public async Task<ActionResult> Delete(
+            Guid correspondenceId)
+        {
+            _logger.LogInformation("Deleting Correspondence with id: {correspondenceId}", correspondenceId.ToString());
+
+            return Ok();
+        }
         private ObjectResult Problem(Error error) => Problem(detail: error.Message, statusCode: (int)error.StatusCode);
     }
 }

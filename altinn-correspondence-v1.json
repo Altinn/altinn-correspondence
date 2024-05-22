@@ -24,11 +24,6 @@
                                 "$ref": "#/components/schemas/InitializeAttachmentExt"
                             }
                         },
-                        "text/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/InitializeAttachmentExt"
-                            }
-                        },
                         "application/*+json": {
                             "schema": {
                                 "$ref": "#/components/schemas/InitializeAttachmentExt"
@@ -208,11 +203,6 @@
                                 "$ref": "#/components/schemas/InitializeCorrespondenceExt"
                             }
                         },
-                        "text/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/InitializeCorrespondenceExt"
-                            }
-                        },
                         "application/*+json": {
                             "schema": {
                                 "$ref": "#/components/schemas/InitializeCorrespondenceExt"
@@ -232,6 +222,69 @@
                         }
                     }
                 }
+            },
+            "get": {
+                "tags": [
+                    "Correspondence"
+                ],
+                "parameters": [
+                    {
+                        "name": "offset",
+                        "in": "query",
+                        "style": "form",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "style": "form",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "style": "form",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "to",
+                        "in": "query",
+                        "style": "form",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "style": "form",
+                        "schema": {
+                            "$ref": "#/components/schemas/CorrespondenceStatusExt"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CorrespondencesExt"
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/correspondence/api/v1/correspondence/upload": {
@@ -242,11 +295,6 @@
                 "requestBody": {
                     "content": {
                         "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/InitializeCorrespondenceExt"
-                            }
-                        },
-                        "text/json": {
                             "schema": {
                                 "$ref": "#/components/schemas/InitializeCorrespondenceExt"
                             }
@@ -330,6 +378,112 @@
                                 }
                             }
                         }
+                    }
+                }
+            }
+        },
+        "/correspondence/api/v1/correspondence/{correspondenceId}/markasread": {
+            "post": {
+                "tags": [
+                    "Correspondence"
+                ],
+                "parameters": [
+                    {
+                        "name": "correspondenceId",
+                        "in": "path",
+                        "required": true,
+                        "style": "simple",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            }
+        },
+        "/correspondence/api/v1/correspondence/{correspondenceId}/confirm": {
+            "post": {
+                "tags": [
+                    "Correspondence"
+                ],
+                "parameters": [
+                    {
+                        "name": "correspondenceId",
+                        "in": "path",
+                        "required": true,
+                        "style": "simple",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            }
+        },
+        "/correspondence/api/v1/correspondence/{correspondenceId}/archive": {
+            "post": {
+                "tags": [
+                    "Correspondence"
+                ],
+                "parameters": [
+                    {
+                        "name": "correspondenceId",
+                        "in": "path",
+                        "required": true,
+                        "style": "simple",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Correspondence"
+                ],
+                "parameters": [
+                    {
+                        "name": "correspondenceId",
+                        "in": "path",
+                        "required": true,
+                        "style": "simple",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "tags": [
+                    "Health"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
                     }
                 }
             }
@@ -599,7 +753,8 @@
                 "type": "object",
                 "properties": {
                     "language": {
-                        "$ref": "#/components/schemas/LanguageTypeExt"
+                        "type": "string",
+                        "nullable": true
                     },
                     "messageTitle": {
                         "type": "string",
@@ -613,6 +768,14 @@
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/CorrespondenceAttachmentOverviewExt"
+                        },
+                        "nullable": true
+                    },
+                    "attachmentIds": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
                         },
                         "nullable": true
                     }
@@ -910,6 +1073,7 @@
                 "enum": [
                     "Initialized",
                     "Published",
+                    "Fetched",
                     "Read",
                     "Replied",
                     "Confirmed",
@@ -920,6 +1084,23 @@
                     "Failed"
                 ],
                 "type": "string"
+            },
+            "CorrespondencesExt": {
+                "type": "object",
+                "properties": {
+                    "ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "nullable": true
+                    },
+                    "pagination": {
+                        "$ref": "#/components/schemas/PaginationMetaDataExt"
+                    }
+                },
+                "additionalProperties": false
             },
             "ExternalReferenceExt": {
                 "type": "object",
@@ -1053,7 +1234,8 @@
                 "type": "object",
                 "properties": {
                     "language": {
-                        "$ref": "#/components/schemas/LanguageTypeExt"
+                        "type": "string",
+                        "nullable": true
                     },
                     "messageTitle": {
                         "type": "string",
@@ -1067,6 +1249,14 @@
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/InitializeCorrespondenceAttachmentExt"
+                        },
+                        "nullable": true
+                    },
+                    "attachmentIds": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
                         },
                         "nullable": true
                     }
@@ -1189,15 +1379,6 @@
                 ],
                 "type": "string"
             },
-            "LanguageTypeExt": {
-                "enum": [
-                    "English",
-                    "NorwegianNO",
-                    "Sami",
-                    "NorwegianNN"
-                ],
-                "type": "string"
-            },
             "NotificationChannelExt": {
                 "enum": [
                     "Email",
@@ -1219,6 +1400,24 @@
                     "statusChanged": {
                         "type": "string",
                         "format": "date-time"
+                    }
+                },
+                "additionalProperties": false
+            },
+            "PaginationMetaDataExt": {
+                "type": "object",
+                "properties": {
+                    "TotalItems": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "Page": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "Pages": {
+                        "type": "integer",
+                        "format": "int32"
                     }
                 },
                 "additionalProperties": false
