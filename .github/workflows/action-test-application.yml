@@ -1,0 +1,43 @@
+name: Test application
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+jobs:
+  test-application:
+    name: Test application
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+
+      - name: Start dependencies for tests (docker-compose)
+        run: |
+          docker-compose up -d &   # Run in background and disown the process
+          disown
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Wait for docker-compose services to be ready
+        run: |
+          timeout 5m bash -c 'while ! docker-compose ps | grep "Up (healthy)"; do sleep 1; done'
+
+      - name: Install EF Core CLI
+        run: dotnet tool install dotnet-ef --global
+        shell: bash
+        
+      - name: Run migrations
+        run: dotnet ef database update --no-build --configuration Release --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release

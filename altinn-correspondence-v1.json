@@ -1,16 +1,16 @@
 {
-  "openapi": "3.1.0",
-  "info": {
-    "title": "Altinn.Correspondence.API",
-    "version": "1.0.0",
-    "description": "API for Altinn Correspondence functionality."
-  },
-  "servers": [
-    {
-      "url": "https://platform.tt02.altinn.no",
-      "description": "TT02"
-    }
-  ],
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Altinn.Correspondence.API",
+        "version": "1.0.0",
+        "description": "API for Altinn Correspondence functionality."
+    },
+    "servers": [
+        {
+            "url": "https://platform.tt02.altinn.no",
+            "description": "TT02"
+        }
+    ],
     "paths": {
         "/correspondence/api/v1/attachment": {
             "post": {
@@ -369,7 +369,7 @@
                     "name",
                     "restrictionName",
                     "sendersReference",
-                    "usageType"
+                    "intendedPresentation"
                 ],
                 "type": "object",
                 "properties": {
@@ -400,7 +400,7 @@
                         "minLength": 1,
                         "type": "string"
                     },
-                    "usageType": {
+                    "intendedPresentation": {
                         "$ref": "#/components/schemas/IntendedPresentationTypeExt"
                     },
                     "restrictionName": {
@@ -447,7 +447,7 @@
                     "name",
                     "restrictionName",
                     "sendersReference",
-                    "usageType"
+                    "intendedPresentation"
                 ],
                 "type": "object",
                 "properties": {
@@ -478,7 +478,7 @@
                         "minLength": 1,
                         "type": "string"
                     },
-                    "usageType": {
+                    "intendedPresentation": {
                         "$ref": "#/components/schemas/IntendedPresentationTypeExt"
                     },
                     "restrictionName": {
@@ -671,16 +671,16 @@
                         "nullable": true
                     },
                     "propertyList": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "maxProperties": 10,
-                      "nullable": true,
-                      "patternProperties": {
-                        "^.{1,50}$": {
-                          "maxLength": 300,
-                          "type": "string"
+                        "type": "object",
+                        "additionalProperties": false,
+                        "maxProperties": 10,
+                        "nullable": true,
+                        "patternProperties": {
+                            "^.{1,50}$": {
+                                "maxLength": 300,
+                                "type": "string"
+                            }
                         }
-                      }
                     },
                     "replyOptions": {
                         "type": "array",
@@ -823,16 +823,16 @@
                         "nullable": true
                     },
                     "propertyList": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "maxProperties": 10,
-                      "nullable": true,
-                      "patternProperties": {
-                        "^.{1,50}$": {
-                          "maxLength": 300,
-                          "type": "string"
+                        "type": "object",
+                        "additionalProperties": false,
+                        "maxProperties": 10,
+                        "nullable": true,
+                        "patternProperties": {
+                            "^.{1,50}$": {
+                                "maxLength": 300,
+                                "type": "string"
+                            }
                         }
-                      }
                     },
                     "replyOptions": {
                         "type": "array",
@@ -949,7 +949,7 @@
                     "name",
                     "restrictionName",
                     "sendersReference",
-                    "usageType"
+                    "intendedPresentation"
                 ],
                 "type": "object",
                 "properties": {
@@ -980,7 +980,7 @@
                         "minLength": 1,
                         "type": "string"
                     },
-                    "usageType": {
+                    "intendedPresentation": {
                         "$ref": "#/components/schemas/IntendedPresentationTypeExt"
                     },
                     "restrictionName": {
@@ -1125,16 +1125,16 @@
                         "nullable": true
                     },
                     "propertyList": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "maxProperties": 10,
-                      "nullable": true,
-                      "patternProperties": {
-                        "^.{1,50}$": {
-                          "maxLength": 300,
-                          "type": "string"
+                        "type": "object",
+                        "additionalProperties": false,
+                        "maxProperties": 10,
+                        "nullable": true,
+                        "patternProperties": {
+                            "^.{1,50}$": {
+                                "maxLength": 300,
+                                "type": "string"
+                            }
                         }
-                      }
                     },
                     "replyOptions": {
                         "type": "array",

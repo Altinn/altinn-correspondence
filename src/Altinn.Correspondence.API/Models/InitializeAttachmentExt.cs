@@ -55,7 +55,7 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// The intended usage for this attachment
         /// </summary>
-        [JsonPropertyName("usageType")]
+        [JsonPropertyName("IntendedPresentation")]
         [Required]
         public required IntendedPresentationTypeExt IntendedPresentation { get; set; }
 

@@ -1,16 +1,15 @@
 # altinn-correspondence
 
-## Entity Framework 
-Correspondence uses Entity Framework. 
-When run locally, it applies migrations automaticly on startup 
-
 ## Local Development
+The start.ps1 script runs all neccassary commands to run the project. If you want to run the commands seperate, you can follow the steps below: 
 
-The start.ps1 script runs all neccassary commands to run the project. 
+The services required to support local development are run using docker compose:
+```docker compose up -d```
 
-Installing Dotnet 8.0 is a pre-requisite.
+To support features like hot reload etc, the app itself is run directly. Either in IDE like Visual Studio or by running:
+```dotnet watch --project ./src/Altinn.Broker.API/Altinn.Broker.API.csproj```
 
-## Adding migrations: 
+### Adding migrations: 
 To add a new migration you can run the following command: 
 
 ```
@@ -20,3 +19,9 @@ Database migrations is applied automaticly on startup when doing local developme
 ```
 dotnet ef database update
 ``` 
+
+### Formatting
+Formatting of the code base is handled by Dotnet format. [See how to configure it to format-on-save in Visual Studio here.](https://learn.microsoft.com/en-us/community/content/how-to-enforce-dotnet-format-using-editorconfig-github-actions#3---formatting-your-code-locally)
+
+## Deploy
+The build and push workflow produces a docker image that is pushed to Github packages. This image is then used by the release action. Read more here: [Readme-infrastructure](/README-infrastructure.md)
