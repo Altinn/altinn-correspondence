@@ -13,7 +13,7 @@ namespace Altinn.Correspondence.API.Models
         /// Gets or sets the language of the correspondence, specified according to ISO 639-1 
         /// </summary>
         [JsonPropertyName("language")]
-        [ISO6391]        
+        [ISO6391]
         public string Language { get; set; }
 
         /// <summary>
