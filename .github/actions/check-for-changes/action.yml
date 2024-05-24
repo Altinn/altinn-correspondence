@@ -32,6 +32,7 @@ runs:
             - '.azure/modules/**/*'
           backend:
             - 'src/**/*'
+            - 'Test/**/*'
           migrations: 
             - 'src/Altinn.Correspondence.Persistence/Migrations/*'
     - name: List results

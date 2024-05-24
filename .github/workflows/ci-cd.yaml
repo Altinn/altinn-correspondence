@@ -69,9 +69,9 @@ jobs:
     secrets: inherit
     with:
       environment: test
-      hasAzureChanges: ${{ needs.check-for-changes.outputs.hasAzureChanges }}
-      hasBackendChanges: ${{ needs.check-for-changes.outputs.hasBackendChanges }}
-      hasMigrationChanges: ${{ needs.check-for-changes.outputs.hasMigrationChanges }}
+      hasAzureChanges: true
+      hasBackendChanges: true
+      hasMigrationChanges: true
 
 #    deploy-staging:
 #      name: Internal staging
