@@ -2,7 +2,7 @@ name: CI/CD
 
 on:
   push:
-    branches: [ main, feature/use-environment-in-iac ]
+    branches: [ main ]
     paths-ignore:
     - "Test/**" # ignore changes to tests
 
