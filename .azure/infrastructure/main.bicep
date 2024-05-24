@@ -8,8 +8,6 @@ param sourceKeyVaultName string
 @secure()
 param tenantId string
 @secure()
-param object_id string
-@secure()
 param test_client_id string
 param environment string
 @secure()
@@ -26,13 +24,6 @@ param postgresSku PostgresSku
 
 var resourceGroupName = '${namePrefix}-rg'
 
-var secrets = [
-  {
-    name: 'deploy-id'
-    value: object_id
-  }
-]
-
 // Create resource groups
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2023-07-01' = {
   name: '${namePrefix}-rg'
@@ -48,17 +39,7 @@ module environmentKeyVault '../modules/keyvault/create.bicep' = {
     sku: keyVaultSku
     tenant_id: tenantId
     environment: environment
-    object_id: object_id
     test_client_id: test_client_id
-  }
-}
-
-module keyvaultSecrets '../modules/keyvault/upsertSecrets.bicep' = {
-  scope: resourceGroup
-  name: 'secrets'
-  params: {
-    secrets: secrets
-    sourceKeyvaultName: environmentKeyVault.outputs.name
   }
 }
 
