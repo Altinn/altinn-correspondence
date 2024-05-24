@@ -43,15 +43,15 @@ runs:
       uses: azure/arm-deploy@v2
       id: migration-job
       env:
-        KEY_VAULT_NAME: ${{ secrets.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
-        KEY_VAULT_URL: https://${{ secrets.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}.vault.azure.net
-        NAME_PREFIX: ${{ secrets.AZURE_NAME_PREFIX }}
+        KEY_VAULT_NAME: ${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
+        KEY_VAULT_URL: https://${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}.vault.azure.net
+        NAME_PREFIX: ${{ inputs.AZURE_NAME_PREFIX }}
         APP_VERSION: ${{ inputs.version }}
         ENVIRONMENT: ${{ inputs.environment }}
       with:
         scope: resourcegroup
         template: ./.azure/applications/migration/main.bicep
-        resourceGroupName: ${{ secrets.AZURE_NAME_PREFIX }}-rg
+        resourceGroupName: ${{ inputs.AZURE_NAME_PREFIX }}-rg
         deploymentMode: Incremental
         deploymentName: migration-${{ inputs.version }}
         region: ${{ inputs.region }}
@@ -72,15 +72,15 @@ runs:
       with:
         azcliversion: 2.56.0
         inlineScript: |
-          az storage copy --source ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --destination https://${{ secrets.AZURE_MIGRATION_STORAGE_ACCOUNT_NAME }}.file.core.windows.net/migrations --recursive
-          az storage copy --source ./src/Altinn.Correspondence.API/appsettings.json --destination https://${{ secrets.AZURE_MIGRATION_STORAGE_ACCOUNT_NAME }}.file.core.windows.net/migrations --recursive
+          az storage copy --source ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --destination https://${{ inputs.AZURE_MIGRATION_STORAGE_ACCOUNT_NAME }}.file.core.windows.net/migrations --recursive
+          az storage copy --source ./src/Altinn.Correspondence.API/appsettings.json --destination https://${{ inputs.AZURE_MIGRATION_STORAGE_ACCOUNT_NAME }}.file.core.windows.net/migrations --recursive
 
     - name: Start migration job
       uses: azure/CLI@v2
       with:
         azcliversion: 2.56.0
         inlineScript: |
-          az containerapp job start -n ${{ steps.migration-job.outputs.name }} -g ${{ secrets.AZURE_NAME_PREFIX }}-rg
+          az containerapp job start -n ${{ steps.migration-job.outputs.name }} -g ${{ inputs.AZURE_NAME_PREFIX }}-rg
 
     - name: Verify migration
       uses: azure/CLI@v2
@@ -89,7 +89,7 @@ runs:
         azcliversion: 2.56.0
         inlineScript: |
           chmod +x ./.github/tools/containerAppJobVerifier.sh
-          ./.github/tools/containerAppJobVerifier.sh ${{ steps.migration-job.outputs.name }} '${{ secrets.AZURE_NAME_PREFIX }}-rg' ${{ inputs.version }}
+          ./.github/tools/containerAppJobVerifier.sh ${{ steps.migration-job.outputs.name }} '${{ inputs.AZURE_NAME_PREFIX }}-rg' ${{ inputs.version }}
 
     - name: Logout from azure
       shell: bash
