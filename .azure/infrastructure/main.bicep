@@ -95,5 +95,6 @@ module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
     migrationsStorageAccountName: migrationsStorageAccountName
   }
 }
+
 output resourceGroupName string = resourceGroup.name
 output environmentKeyVaultName string = environmentKeyVault.outputs.name
