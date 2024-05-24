@@ -17,7 +17,7 @@ param keyVaultUrl string
 @secure()
 param namePrefix string
 
-var image = 'ghcr.io/altinn/altinn-broker:${imageTag}'
+var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'
 
 var resourceGroupName = '${namePrefix}-rg'
