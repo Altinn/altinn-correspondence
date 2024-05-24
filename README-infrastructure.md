@@ -27,29 +27,13 @@ az login
 az ad sp create-for-rbac --name correspondence_sp --role Owner --scopes /subscriptions/<subscription_id>
 ```
 
-The following Github secrets should be set:
+The following Github secrets should be set for each environment:
 ``` 
-AZURE_OIDC_STAGING_CLIENT_ID = "<appId>"
-AZURE_OIDC_STAGING_SUBSCRIPTION_ID = "<subscription_id>"
-AZURE_OIDC_STAGING_OBJEC_ID = "<ObjectId/tenant>"
-AZURE_STAGING_NAME_PREFIX = "prefix of all azure resources"
-AZURE_SOURCE_STAGING_KEY_VAULT_NAME = "<key_vault_name>
-AZURE_STAGING_MIGRATIONS_STORAGE_ACCOUNT_NAME = "<storeageAccountName>"
-
-AZURE_OIDC_PROD_CLIENT_ID = "<appId>"
-AZURE_OIDC_PROD_SUBSCRIPTION_ID = "<subscription_id>"
-AZURE_OIDC_PROD_OBJEC_ID = "<ObjectId/tenant>"
-AZURE_PROD_NAME_PREFIX = "prefix of all azure resources"
-AZURE_SOURCE_PROD_KEY_VAULT_NAME = "<key_vault_name>
-AZURE_PROD_MIGRATIONS_STORAGE_ACCOUNT_NAME = "<storeageAccountName>"
-
-AZURE_OIDC_TEST_CLIENT_ID = "<appId>"
-AZURE_OIDC_TEST_SUBSCRIPTION_ID = "<subscription_id>"
-AZURE_OIDC_TEST_OBJECT_ID = "<ObjectId/tenant>"
-AZURE_TEST_NAME_PREFIX = "prefix of all azure resources"
-AZURE_SOURCE_TEST_KEY_VAULT_NAME = "<key_vault_name>
-AZURE_TEST_MIGRATIONS_STORAGE_ACCOUNT_NAME = "<storeageAccountName>"
-
+AZURE_CLIENT_ID = "<appId>"
+AZURE_SUBSCRIPTION_ID = "<subscription_id>"
+AZURE_NAME_PREFIX = "prefix of all azure resources"
+AZURE_ENVIRONMENT_STAGING_KEY_VAULT_NAME = "<key_vault_name>
+AZURE_MIGRATIONS_STORAGE_ACCOUNT_NAME = "<storeageAccountName>"
 
 AZURE_OIDC_TEST_ACCESS_CLIENT_ID = "<Client_id of dev SP>"  This is used for developer access to database, and is not required. It is only used in test environment. 
 ```
