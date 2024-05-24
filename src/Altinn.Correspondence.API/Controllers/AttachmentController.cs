@@ -67,7 +67,6 @@ namespace Altinn.Correspondence.API.Controllers
             );
         }
 
-
         /// <summary>
         /// Get information about the file and its current status
         /// </summary>
