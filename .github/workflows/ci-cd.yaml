@@ -69,7 +69,7 @@ jobs:
     secrets: inherit
     with:
       environment: test
-      hasAzureChanges: true
+      hasAzureChanges: ${{ needs.check-for-changes.outputs.hasAzureChanges }}
       hasBackendChanges: true
       hasMigrationChanges: true
 

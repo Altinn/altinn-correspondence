@@ -89,7 +89,7 @@ runs:
         azcliversion: 2.56.0
         inlineScript: |
           chmod +x ./.github/tools/containerAppJobVerifier.sh
-          ./.github/tools/containerAppJobVerifier.sh ${{ steps.migration-job.outputs.name }} '${{ inputs.AZURE_NAME_PREFIX }}-rg' ${{ inputs.version }}
+          ./.github/tools/containerAppJobVerifier.sh ${{ steps.migration-job.outputs.name }} '${{ inputs.AZURE_NAME_PREFIX }}-rg' ${{ steps.get-version.outputs.imageTag }}
 
     - name: Logout from azure
       shell: bash
