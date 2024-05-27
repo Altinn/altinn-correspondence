@@ -1,7 +1,9 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.GetCorrespondencesCommand;
 using Altinn.Correspondence.Application.InitializeCorrespondenceCommand;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Mvc;
@@ -160,15 +162,26 @@ namespace Altinn.Correspondence.API.Controllers
             [FromQuery] int limit,
             [FromQuery] DateTimeOffset? from,
             [FromQuery] DateTimeOffset? to,
-            [FromQuery] CorrespondenceStatusExt status = CorrespondenceStatusExt.Published)
+            [FromServices] GetCorrespondencesCommandHandler handler,
+            [FromQuery] CorrespondenceStatusExt status = CorrespondenceStatusExt.Published,
+            CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Get correspondences for receiver");
 
-            return Ok(new CorrespondencesExt
+            var commandResult = await handler.Process(new GetCorrespondencesCommandRequest
             {
-                Ids = new List<Guid> { Guid.NewGuid() },
-                Pagination = new PaginationMetaDataExt { TotalItems = 1, Page = 1, TotalPages = 1 }
-            });
+                from = from,
+                limit = limit,
+                offset = offset,
+                status = (CorrespondenceStatus)status,
+                to = to
+
+            }, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
+                Problem
+            );
         }
 
         /// <summary>
