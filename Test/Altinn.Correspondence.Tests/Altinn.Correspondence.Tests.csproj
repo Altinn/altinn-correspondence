@@ -20,6 +20,7 @@
 		<PrivateAssets>all</PrivateAssets>
 	</PackageReference>
   </ItemGroup>
+  
   <ItemGroup>
 	  <ProjectReference Include="..\..\src\Altinn.Correspondence.API\Altinn.Correspondence.API.csproj" />
     <ProjectReference Include="..\..\src\Altinn.Correspondence.Core\Altinn.Correspondence.Core.csproj" />
