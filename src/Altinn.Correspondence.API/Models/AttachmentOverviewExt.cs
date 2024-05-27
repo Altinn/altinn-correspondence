@@ -38,6 +38,6 @@ namespace Altinn.Correspondence.API.Models
         /// Timestamp for when the Current Attachment Status was changed
         /// </summary>
         [JsonPropertyName("statusChanged")]
-        public DateTimeOffset StatusChanged { get; set; }
+        public DateTimeOffset? StatusChanged { get; set; }
     }
 }

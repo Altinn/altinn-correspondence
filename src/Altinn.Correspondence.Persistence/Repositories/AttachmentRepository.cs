@@ -26,5 +26,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             return await _context.Attachments.FirstOrDefaultAsync(a => a.DataLocationUrl == url, cancellationToken);
         }
+
+        public async Task<AttachmentEntity?> GetAttachmentById(Guid guid, CancellationToken cancellationToken)
+        {
+            return await _context.Attachments.FirstOrDefaultAsync(a => a.Id == guid, cancellationToken);
+        }
     }
 }
