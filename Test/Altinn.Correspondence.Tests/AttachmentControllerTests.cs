@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using Altinn.Correspondece.Tests.Factories;
 
 namespace Altinn.Correspondence.Tests;
