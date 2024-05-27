@@ -28,12 +28,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => (status == null || (status != null && _context.CorrespondenceStatuses.Where(cs => cs.CorrespondenceId == c.Id).OrderBy(cs => cs.StatusChanged).LastOrDefault().Status == status)) &&
                     (from == null || (from != null && c.VisibleFrom > from))
                     && (to == null || (to != null && c.VisibleFrom < to)))
-                .Select(c => c.Id)
-                .Skip(offset)
-                .Take(limit);
+                .OrderByDescending(c => c.VisibleFrom)
+                .Select(c => c.Id);
 
             var totalItems = await correspondences.CountAsync(cancellationToken);
-            var result = await correspondences.ToListAsync(cancellationToken);
+            var result = await correspondences.Skip(offset).Take(limit).ToListAsync(cancellationToken);
             return (result, totalItems);
         }
     }
