@@ -31,7 +31,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeCorrespondenceResponse2 = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
         Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
 
-        var correspondenceList = await _client.GetFromJsonAsync<GetCorrespondencesCommandResponse>("correspondence/api/v1/correspondence?offset=0&limit=10");
+        var correspondenceList = await _client.GetFromJsonAsync<GetCorrespondencesCommandResponse>("correspondence/api/v1/correspondence?offset=0&limit=10&status=0");
         Assert.True(correspondenceList?.Pagination.TotalItems > 0);
     }
 }
