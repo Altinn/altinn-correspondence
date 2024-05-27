@@ -1,4 +1,4 @@
-using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.Application.GetCorrespondencesResponse;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
 
