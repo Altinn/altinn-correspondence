@@ -8,10 +8,6 @@ param platform_base_url string
 @secure()
 param subscription_id string
 @secure()
-param client_id string
-@secure()
-param tenant_id string
-@secure()
 param principal_id string
 @secure()
 param keyVaultUrl string
@@ -38,8 +34,6 @@ var containerAppEnvVars = [
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription_id }
   { name: 'AzureResourceManagerOptions__Location', value: 'norwayeast' }
   { name: 'AzureResourceManagerOptions__Environment', value: environment }
-  { name: 'AzureResourceManagerOptions__ClientId', value: client_id }
-  { name: 'AzureResourceManagerOptions__TenantId', value: tenant_id }
   { name: 'AzureResourceManagerOptions__ApplicationResourceGroupName', value: '${namePrefix}-rg' }
   { name: 'AZURE_CLIENT_ID', value: userIdentityClientId }
   {

@@ -103,14 +103,13 @@ module adoConnectionString '../keyvault/upsertSecret.bicep' = {
   }
 }
 
-resource databaseAccess 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2022-03-08-preview' =
-  if (environment == 'test') {
-    name: test_client_id
-    parent: postgres
-    dependsOn: [allowAzureAccess] // Needs to depend on allowAzureAccess to avoid updating at the same time
-    properties: {
-      principalType: 'Group'
-      tenantId: tenantId
-      principalName: 'Altinn-30-Correspondence-Test-Developers'
-    }
+resource databaseAccess 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2022-12-01' = if (environment == 'test') {
+  name: test_client_id
+  parent: postgres
+  dependsOn: [allowAzureAccess] // Needs to depend on allowAzureAccess to avoid updating at the same time
+  properties: {
+    principalType: 'Group'
+    tenantId: tenantId
+    principalName: 'Altinn-30-Correspondence-Test-Developers'
   }
+}

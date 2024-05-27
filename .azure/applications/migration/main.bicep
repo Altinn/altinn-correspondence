@@ -5,10 +5,6 @@ param appVersion string
 @secure()
 param keyVaultUrl string
 @secure()
-param client_id string
-@secure()
-param tenant_id string
-@secure()
 param keyVaultName string
 @minLength(3)
 param environment string
@@ -66,8 +62,6 @@ var containerAppEnvVars = [
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription().subscriptionId }
   { name: 'AzureResourceManagerOptions__Location', value: 'norwayeast' }
   { name: 'AzureResourceManagerOptions__Environment', value: environment }
-  { name: 'AzureResourceManagerOptions__ClientId', value: client_id }
-  { name: 'AzureResourceManagerOptions__TenantId', value: tenant_id }
   { name: 'AzureResourceManagerOptions__ApplicationResourceGroupName', value: '${namePrefix}-rg' }
   { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.properties.clientId }
 ]
@@ -93,7 +87,7 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2023-11-02-preview' 
   name: containerAppEnvName
 }
 
-module containerAppJob '../../modules/containerAppJob/main.bicep' = {
+module containerAppJob '../../modules/migrationJob/main.bicep' = {
   name: containerAppJobName
   dependsOn: [
     addKeyvaultRead
