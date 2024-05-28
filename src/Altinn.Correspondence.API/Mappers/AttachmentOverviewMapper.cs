@@ -20,8 +20,6 @@ internal static class AttachmentOverviewMapper
             DataType = attachmentOverview.DataType,
             IntendedPresentation = (IntendedPresentationTypeExt)attachmentOverview.IntendedPresentation,
             SendersReference = attachmentOverview.SendersReference
-
-
         };
         return attachment;
     }

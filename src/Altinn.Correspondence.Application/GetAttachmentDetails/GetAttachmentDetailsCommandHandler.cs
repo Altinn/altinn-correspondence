@@ -17,7 +17,6 @@ public class GetAttachmentDetailsCommandHandler : IHandler<Guid, GetAttachmentDe
 
     public async Task<OneOf<GetAttachmentDetailsCommandResponse, Error>> Process(Guid attachmentId, CancellationToken cancellationToken)
     {
-
         var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
         var attachmentStatus = attachment?.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault();
         if (attachment == null)
@@ -37,7 +36,6 @@ public class GetAttachmentDetailsCommandHandler : IHandler<Guid, GetAttachmentDe
             DataType = attachment.DataType,
             IntendedPresentation = attachment.IntendedPresentation,
             SendersReference = attachment.SendersReference
-
         };
         return response;
     }

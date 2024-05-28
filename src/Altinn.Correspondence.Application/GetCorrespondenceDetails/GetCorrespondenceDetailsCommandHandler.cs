@@ -14,7 +14,6 @@ public class GetCorrespondenceDetailsCommandHandler : IHandler<Guid, GetCorrespo
 
     public async Task<OneOf<GetCorrespondenceDetailsCommandResponse, Error>> Process(Guid CorrespondenceId, CancellationToken cancellationToken)
     {
-
         var correspondence = await _CorrespondenceRepository.GetCorrespondenceById(CorrespondenceId, true, cancellationToken);
         var latestStatus = correspondence?.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault();
         if (correspondence == null)

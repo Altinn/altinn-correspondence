@@ -7,6 +7,7 @@ public class GetAttachmentOverviewCommandResponse
     public required Guid AttachmentId { get; set; }
 
     public AttachmentDataLocationType DataLocationType { get; set; }
+
     public string? DataLocationUrl { get; set; }
 
     public AttachmentStatus? Status { get; set; }
