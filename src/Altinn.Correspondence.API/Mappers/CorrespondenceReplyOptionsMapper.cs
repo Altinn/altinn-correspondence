@@ -14,6 +14,15 @@ internal static class CorrespondenceReplyOptionsMapper
         };
         return ReplyOptions;
     }
+    internal static CorrespondenceReplyOptionExt MapToExternal(CorrespondenceReplyOptionEntity correspondenceReplyOption)
+    {
+        var ReplyOptions = new CorrespondenceReplyOptionExt
+        {
+            LinkText = correspondenceReplyOption.LinkText,
+            LinkURL = correspondenceReplyOption.LinkURL
+        };
+        return ReplyOptions;
+    }
 
     internal static List<CorrespondenceReplyOptionEntity> MapListToEntities(List<CorrespondenceReplyOptionExt> replyOptionsExt)
     {
@@ -23,5 +32,14 @@ internal static class CorrespondenceReplyOptionsMapper
             replyOptions.Add(MapToEntity(replyOption));
         }
         return replyOptions;
+    }
+    internal static List<CorrespondenceReplyOptionExt> MapListToExternal(List<CorrespondenceReplyOptionEntity> replyOptions)
+    {
+        var replyOptionsExt = new List<CorrespondenceReplyOptionExt>();
+        foreach (var replyOption in replyOptions)
+        {
+            replyOptionsExt.Add(MapToExternal(replyOption));
+        }
+        return replyOptionsExt;
     }
 }

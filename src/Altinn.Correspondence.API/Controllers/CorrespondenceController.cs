@@ -1,6 +1,7 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.GetCorrespondenceOverviewCommand;
 using Altinn.Correspondence.Application.GetCorrespondencesCommand;
 using Altinn.Correspondence.Application.InitializeCorrespondenceCommand;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -88,26 +89,17 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpGet]
         [Route("{correspondenceId}")]
         public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
-            Guid correspondenceId)
+            Guid correspondenceId,
+            [FromServices] GetCorrespondenceOverviewCommandHandler handler,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation("Getting Correspondence overview for {correspondenceId}", correspondenceId.ToString());
 
-            // Hack return for now
-            return Ok(
-                new CorrespondenceOverviewExt
-                {
-                    CorrespondenceId = correspondenceId,
-                    Recipient = "0192:234567890",
-                    Content = null,
-                    ResourceId = "Altinn-Correspondence-1_0",
-                    Sender = "0192:123456789",
-                    SendersReference = Guid.NewGuid().ToString(),
-                    Created = DateTime.Now.AddDays(-2),
-                    VisibleFrom = DateTime.Now.AddDays(-1),
-                    Status = CorrespondenceStatusExt.Published,
-                    StatusText = "Initialized and Published successfully",
-                    StatusChanged = DateTime.Now.AddDays(-2)
-                }
+            var commandResult = await handler.Process(correspondenceId, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(CorrespondenceOverviewMapper.MapToExternal(data)),
+                Problem
             );
         }
 
