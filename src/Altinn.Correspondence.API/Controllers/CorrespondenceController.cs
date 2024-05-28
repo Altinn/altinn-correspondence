@@ -1,6 +1,7 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.GetCorrespondenceDetailsCommand;
 using Altinn.Correspondence.Application.GetCorrespondenceOverviewCommand;
 using Altinn.Correspondence.Application.GetCorrespondencesCommand;
 using Altinn.Correspondence.Application.InitializeCorrespondenceCommand;
@@ -113,31 +114,17 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpGet]
         [Route("{correspondenceId}/details")]
         public async Task<ActionResult<CorrespondenceDetailsExt>> GetCorrespondenceDetails(
-            Guid correspondenceId)
+            Guid correspondenceId,
+            [FromServices] GetCorrespondenceDetailsCommandHandler handler,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation("Getting Correspondence overview for {correspondenceId}", correspondenceId.ToString());
 
-            // Hack return for now
-            return Ok(
-                new CorrespondenceDetailsExt
-                {
-                    CorrespondenceId = correspondenceId,
-                    Recipient = "0192:234567890",
-                    Content = null,
-                    ResourceId = "Altinn-Correspondence-1_0",
-                    Sender = "0192:123456789",
-                    SendersReference = Guid.NewGuid().ToString(),
-                    Created = DateTime.Now.AddDays(-2),
-                    VisibleFrom = DateTime.Now.AddDays(-1),
-                    Notifications = new List<CorrespondenceNotificationOverviewExt> {
-                        new CorrespondenceNotificationOverviewExt { NotificationId = Guid.NewGuid(), NotificationTemplate = "Email", Created = DateTime.Now.AddDays(-1), RequestedSendTime = DateTime.Now.AddDays(-1), NotificationChannel = NotificationChannelExt.Email },
-                        new CorrespondenceNotificationOverviewExt { NotificationId = Guid.NewGuid(), NotificationTemplate = "EmailReminder", Created = DateTime.Now.AddDays(-1), RequestedSendTime = DateTime.Now.AddDays(13), NotificationChannel = NotificationChannelExt.Sms }
-                    },
-                    StatusHistory = new List<CorrespondenceStatusEventExt>() {
-                        new CorrespondenceStatusEventExt { Status = CorrespondenceStatusExt.Initialized, StatusChanged = DateTime.Now.AddDays(-1), StatusText = "Initialized - awaiting upload" },
-                        new CorrespondenceStatusEventExt { Status = CorrespondenceStatusExt.Published, StatusChanged = DateTime.Now.AddDays(-1).AddMinutes(2), StatusText = "Published - Ready for use" }
-                    }
-                }
+            var commandResult = await handler.Process(correspondenceId, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(CorrespondenceDetailsMapper.MapToExternal(data)),
+                Problem
             );
         }
 

@@ -19,7 +19,7 @@ internal static class CorrespondenceOverviewMapper
             Created = correspondenceOverview.Created,
             Recipient = correspondenceOverview.Recipient,
             ReplyOptions = CorrespondenceReplyOptionsMapper.MapListToExternal(correspondenceOverview.ReplyOptions),
-            Notifications = CorrespondenceNotificationMapper.MapListToExternal(correspondenceOverview.Notifications),
+            Notifications = InitializeCorrespondenceNotificationMapper.MapListToExternal(correspondenceOverview.Notifications),
             ResourceId = correspondenceOverview.ResourceId.ToString(),
             VisibleFrom = correspondenceOverview.VisibleFrom,
         };

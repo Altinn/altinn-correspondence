@@ -5,43 +5,32 @@ namespace Altinn.Correspondence.Mappers;
 
 internal static class CorrespondenceNotificationMapper
 {
-    internal static CorrespondenceNotificationEntity MapToEntity(InitializeCorrespondenceNotificationExt correspondenceNotificationExt)
-    {
-        var notification = new CorrespondenceNotificationEntity
-        {
-            NotificationTemplate = correspondenceNotificationExt.NotificationTemplate,
-            RequestedSendTime = correspondenceNotificationExt.RequestedSendTime,
-            SendersReference = correspondenceNotificationExt.SendersReference,
-            CustomTextToken = correspondenceNotificationExt.CustomTextToken
-        };
-        return notification;
-    }
 
-    internal static InitializeCorrespondenceNotificationExt MapToExternal(CorrespondenceNotificationEntity correspondenceNotification)
+    internal static CorrespondenceNotificationDetailsExt MapToExternal(CorrespondenceNotificationEntity correspondenceNotification)
     {
-        var notification = new InitializeCorrespondenceNotificationExt
+        var latestStatus = correspondenceNotification?.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault();
+        var notification = new CorrespondenceNotificationDetailsExt
         {
             NotificationTemplate = correspondenceNotification.NotificationTemplate,
             RequestedSendTime = correspondenceNotification.RequestedSendTime,
             SendersReference = correspondenceNotification.SendersReference,
-            CustomTextToken = correspondenceNotification.CustomTextToken
+            CustomTextToken = correspondenceNotification.CustomTextToken,
+            Created = correspondenceNotification.Created,
+            NotificationId = correspondenceNotification.Id,
+            StatusHistory = correspondenceNotification.Statuses != null ? CorrespondenceNotificationStatusMapper.MapListToExternal(correspondenceNotification.Statuses) : new List<NotificationStatusEventExt>(),
         };
+        if (latestStatus != null)
+        {
+            notification.Status = latestStatus.Status;
+            notification.StatusText = latestStatus.StatusText;
+            notification.StatusChanged = latestStatus.StatusChanged;
+        }
         return notification;
     }
 
-    internal static List<CorrespondenceNotificationEntity> MapListToEntities(List<InitializeCorrespondenceNotificationExt> notificationsExt)
+    internal static List<CorrespondenceNotificationDetailsExt> MapListToExternal(List<CorrespondenceNotificationEntity> notifications)
     {
-        var notifications = new List<CorrespondenceNotificationEntity>();
-        foreach (var not in notificationsExt)
-        {
-            notifications.Add(MapToEntity(not));
-        }
-        return notifications;
-    }
-
-    internal static List<InitializeCorrespondenceNotificationExt> MapListToExternal(List<CorrespondenceNotificationEntity> notifications)
-    {
-        var notificationsExt = new List<InitializeCorrespondenceNotificationExt>();
+        var notificationsExt = new List<CorrespondenceNotificationDetailsExt>();
         foreach (var not in notifications)
         {
             notificationsExt.Add(MapToExternal(not));

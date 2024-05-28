@@ -17,7 +17,7 @@ namespace Altinn.Correspondence.API.Models
         /// Notifications directly related to this Correspondence.
         /// </summary>
         [JsonPropertyName("notifications")]
-        public new List<CorrespondenceNotificationOverviewExt>? Notifications { get; set; }
+        public new List<CorrespondenceNotificationDetailsExt>? Notifications { get; set; }
 
         /// <summary>
         /// The Status history for the Notifications
