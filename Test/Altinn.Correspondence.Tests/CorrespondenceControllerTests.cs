@@ -34,4 +34,22 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var correspondenceList = await _client.GetFromJsonAsync<GetCorrespondencesCommandResponse>("correspondence/api/v1/correspondence?offset=0&limit=10&status=0");
         Assert.True(correspondenceList?.Pagination.TotalItems > 0);
     }
+
+    [Fact]
+    public async Task GetCorrespondenceOverview()
+    {
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+        var correspondenceId = Guid.Parse(await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+        var getCorrespondenceOverviewResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+        Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode, await getCorrespondenceOverviewResponse.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task GetCorrespondenceDetails()
+    {
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+        var correspondenceId = Guid.Parse(await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+        var getCorrespondenceOverviewResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+        Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode, await getCorrespondenceOverviewResponse.Content.ReadAsStringAsync());
+    }
 }
