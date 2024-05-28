@@ -29,6 +29,6 @@ namespace Altinn.Correspondence.API.Models
         /// Completed Status history for the Notification
         /// </summary>
         [JsonPropertyName("statusHistory")]
-        List<NotificationStatusEventExt> StatusHistory { get; set; }
+        public List<NotificationStatusEventExt> StatusHistory { get; set; }
     }
 }

@@ -43,5 +43,7 @@ namespace Altinn.Correspondence.Core.Models
         public bool? IsReservable { get; set; }
 
         public List<CorrespondenceStatusEntity>? Statuses { get; set; }
+
+        public DateTimeOffset Created { get; set; }
     }
 }

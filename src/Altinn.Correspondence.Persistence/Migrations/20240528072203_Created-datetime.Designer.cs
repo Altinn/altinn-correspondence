@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240528072203_Created-datetime")]
+    partial class Createddatetime
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -247,9 +250,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<Guid>("CorrespondenceId")
                         .HasColumnType("uuid");
 
-                    b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("CustomTextToken")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
@@ -269,32 +269,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasIndex("CorrespondenceId");
 
                     b.ToTable("CorrespondenceNotifications");
-                });
-
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceNotificationStatusEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("NotificationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset>("StatusChanged")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("StatusText")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NotificationId");
-
-                    b.ToTable("CorrespondenceNotificationStatusEntity");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceReplyOptionEntity", b =>
@@ -422,17 +396,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Navigation("Correspondence");
                 });
 
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceNotificationStatusEntity", b =>
-                {
-                    b.HasOne("Altinn.Correspondence.Core.Models.CorrespondenceNotificationEntity", "Notification")
-                        .WithMany("Statuses")
-                        .HasForeignKey("NotificationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Notification");
-                });
-
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceReplyOptionEntity", b =>
                 {
                     b.HasOne("Altinn.Correspondence.Core.Models.CorrespondenceEntity", "Correspondence")
@@ -494,11 +457,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.Navigation("ReplyOptions");
 
-                    b.Navigation("Statuses");
-                });
-
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceNotificationEntity", b =>
-                {
                     b.Navigation("Statuses");
                 });
 #pragma warning restore 612, 618

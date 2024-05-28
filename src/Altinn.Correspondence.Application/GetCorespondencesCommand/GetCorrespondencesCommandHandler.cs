@@ -36,6 +36,4 @@ public class GetCorrespondencesCommandHandler : IHandler<GetCorrespondencesComma
         };
         return response;
     }
-
-
 }

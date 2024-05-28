@@ -1,6 +1,8 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.GetAttachmentDetailsCommand;
+using Altinn.Correspondence.Application.GetAttachmentOverviewCommand;
 using Altinn.Correspondence.Application.InitializeAttachmentCommand;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Mvc;
@@ -70,25 +72,22 @@ namespace Altinn.Correspondence.API.Controllers
         /// <summary>
         /// Get information about the file and its current status
         /// </summary>
-        /// <returns></returns>
+        /// <returns>AttachmentOverviewExt</returns>
         [HttpGet]
         [Route("{attachmentId}")]
         public async Task<ActionResult<AttachmentOverviewExt>> GetAttachmentOverview(
-            Guid attachmentId)
+            Guid attachmentId,
+            [FromServices] GetAttachmentOverviewCommandHandler handler,
+            CancellationToken cancellationToken)
         {
-            // Hack return for now
-            return Ok(
-                new AttachmentOverviewExt
-                {
-                    AttachmentId = attachmentId,
-                    Name = "TestName",
-                    SendersReference = "1234",
-                    DataType = "application/pdf",
-                    IntendedPresentation = IntendedPresentationTypeExt.HumanReadable,
-                    Status = AttachmentStatusExt.Published,
-                    StatusText = "Published - Ready for use",
-                    StatusChanged = DateTimeOffset.Now
-                }
+
+            _logger.LogInformation("Get attachment overview {attachmentId}", attachmentId.ToString());
+
+            var commandResult = await handler.Process(attachmentId, cancellationToken);
+
+            return commandResult.Match(
+                attachment => Ok(AttachmentOverviewMapper.MapToExternal(attachment)),
+                Problem
             );
         }
 
@@ -99,26 +98,18 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpGet]
         [Route("{attachmentId}/details")]
         public async Task<ActionResult<AttachmentDetailsExt>> GetAttachmentDetails(
-            Guid attachmentId)
+            Guid attachmentId,
+            [FromServices] GetAttachmentDetailsCommandHandler handler,
+            CancellationToken cancellationToken)
         {
-            // Hack return for now
-            return Ok(
-                new AttachmentDetailsExt
-                {
-                    AttachmentId = attachmentId,
-                    Name = "TestName",
-                    SendersReference = "1234",
-                    DataType = "application/pdf",
-                    IntendedPresentation = IntendedPresentationTypeExt.HumanReadable,
-                    Status = AttachmentStatusExt.Published,
-                    StatusText = "Ready for use",
-                    StatusChanged = DateTimeOffset.Now,
-                    StatusHistory = new List<AtachmentStatusEvent>() {
-                        new AtachmentStatusEvent { Status = AttachmentStatusExt.Initialized, StatusChanged = DateTimeOffset.Now.AddDays(-1), StatusText = "Initialized - awaiting upload" },
-                        new AtachmentStatusEvent { Status = AttachmentStatusExt.UploadProcessing, StatusChanged = DateTimeOffset.Now.AddDays(-1).AddMinutes(1), StatusText = "Uploaded - Awaitng procesing" },
-                        new AtachmentStatusEvent { Status = AttachmentStatusExt.Published, StatusChanged = DateTimeOffset.Now.AddDays(-1).AddMinutes(2), StatusText = "Published - Ready for use" },
-                    }
-                }
+
+            _logger.LogInformation("Get attachment details {attachmentId}", attachmentId.ToString());
+
+            var commandResult = await handler.Process(attachmentId, cancellationToken);
+
+            return commandResult.Match(
+                attachment => Ok(AttachmentDetailsMapper.MapToExternal(attachment)),
+                Problem
             );
         }
 

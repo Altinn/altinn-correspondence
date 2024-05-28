@@ -40,5 +40,7 @@ namespace Altinn.Correspondence.Core.Models
 
         public List<CorrespondenceAttachmentEntity> CorrespondenceAttachments { get; set; }
 
+        public DateTimeOffset Created { get; set; }
+
     }
 }

@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
@@ -12,6 +13,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
             await _context.AttachmentStatuses.AddAsync(status, cancellationToken);
             await _context.SaveChangesAsync();
             return status.Id;
+        }
+
+        public async Task<AttachmentStatusEntity?> GetLatestStatusByAttachmentId(Guid attachmentId, CancellationToken cancellationToken)
+        {
+            var status = await _context.AttachmentStatuses
+                .Where(s => s.AttachmentId == attachmentId)
+                .OrderByDescending(s => s.StatusChanged)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return status;
         }
     }
 }

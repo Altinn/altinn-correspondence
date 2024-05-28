@@ -35,5 +35,18 @@ namespace Altinn.Correspondence.Persistence.Repositories
             var result = await correspondences.Skip(offset).Take(limit).ToListAsync(cancellationToken);
             return (result, totalItems);
         }
+
+        public async Task<CorrespondenceEntity?> GetCorrespondenceById(
+            Guid guid,
+            bool includeStatus,
+            CancellationToken cancellationToken)
+        {
+            var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.Notifications).ThenInclude(n => n.Statuses).AsQueryable();
+            if (includeStatus)
+            {
+                correspondences = correspondences.Include(c => c.Statuses);
+            }
+            return await correspondences.FirstOrDefaultAsync(c => c.Id == guid, cancellationToken);
+        }
     }
 }
