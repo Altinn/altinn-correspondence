@@ -37,9 +37,9 @@ namespace Altinn.Correspondence.Persistence.Repositories
         }
 
         public async Task<CorrespondenceEntity?> GetCorrespondenceById(
-    Guid guid,
-    bool includeStatus,
-    CancellationToken cancellationToken)
+            Guid guid,
+            bool includeStatus,
+            CancellationToken cancellationToken)
         {
             var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.Notifications).ThenInclude(n => n.Statuses).AsQueryable();
             if (includeStatus)

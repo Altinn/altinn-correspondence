@@ -1,7 +1,8 @@
-﻿using Altinn.Correspondence.Application.GetAttachmentDetailsCommand;
+using Altinn.Correspondence.Application.GetAttachmentDetailsCommand;
 using Altinn.Correspondence.Application.GetAttachmentOverviewCommand;
 using Altinn.Correspondence.Application.GetCorrespondenceDetailsCommand;
 using Altinn.Correspondence.Application.GetCorrespondenceOverviewCommand;
+using Altinn.Correspondence.Application.GetCorrespondencesCommand;
 using Altinn.Correspondence.Application.GetCorrespondencesCommand;
 using Altinn.Correspondence.Application.InitializeAttachmentCommand;
 using Altinn.Correspondence.Application.InitializeCorrespondenceCommand;
