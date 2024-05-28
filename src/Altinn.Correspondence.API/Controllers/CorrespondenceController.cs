@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.GetCorrespondenceDetailsCommand;
