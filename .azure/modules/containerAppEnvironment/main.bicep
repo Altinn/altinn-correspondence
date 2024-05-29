@@ -3,7 +3,7 @@ param location string
 param namePrefix string
 @secure()
 param keyVaultName string
-param migrationsStorageAccountName string
+param storageAccountName string
 
 resource log_analytics_workspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: '${namePrefix}-log'
@@ -41,7 +41,7 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2023-11-02-p
 }
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
-  name: migrationsStorageAccountName
+  name: storageAccountName
 }
 
 resource containerAppEnvironmentStorage 'Microsoft.App/managedEnvironments/storages@2023-11-02-preview' = {
@@ -51,7 +51,7 @@ resource containerAppEnvironmentStorage 'Microsoft.App/managedEnvironments/stora
     azureFile: {
       accessMode: 'ReadOnly'
       accountKey: storageAccount.listKeys().keys[0].value
-      accountName: migrationsStorageAccountName
+      accountName: storageAccountName
       shareName: 'migrations'
     }
   }
@@ -74,6 +74,16 @@ module containerAppEnvIdSecret '../keyvault/upsertSecret.bicep' = {
     destKeyVaultName: keyVaultName
     secretName: containerAppEnvironmentIdSecretName
     secretValue: containerAppEnvironment.id
+  }
+}
+
+var storageAccountKeySecretName = 'storage-account-key'
+module storageAccountKeySecret '../keyvault/upsertSecret.bicep' = {
+  name: storageAccountKeySecretName
+  params: {
+    destKeyVaultName: keyVaultName
+    secretName: storageAccountKeySecretName
+    secretValue: storageAccount.listKeys().keys[0].value
   }
 }
 

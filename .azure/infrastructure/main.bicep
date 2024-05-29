@@ -74,11 +74,11 @@ module postgresql '../modules/postgreSql/create.bicep' = {
   }
 }
 
-module migrationsStorageAccount '../modules/storageAccount/create.bicep' = {
+module storageAccount '../modules/storageAccount/create.bicep' = {
   scope: resourceGroup
   name: migrationsStorageAccountName
   params: {
-    migrationsStorageAccountName: migrationsStorageAccountName
+    storageAccountName: migrationsStorageAccountName
     location: location
     fileshare: 'migrations'
   }
@@ -87,12 +87,12 @@ module migrationsStorageAccount '../modules/storageAccount/create.bicep' = {
 module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
   scope: resourceGroup
   name: 'container-app-environment'
-  dependsOn: [migrationsStorageAccount]
+  dependsOn: [storageAccount]
   params: {
     keyVaultName: sourceKeyVaultName
     location: location
     namePrefix: namePrefix
-    migrationsStorageAccountName: migrationsStorageAccountName
+    storageAccountName: migrationsStorageAccountName
   }
 }
 output resourceGroupName string = resourceGroup.name
