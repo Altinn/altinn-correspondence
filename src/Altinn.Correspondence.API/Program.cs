@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Persistence;
 using Azure.Identity;
 using Microsoft.AspNetCore.Http.Features;
@@ -31,15 +32,13 @@ static void BuildAndRun(string[] args)
 
     if (app.Environment.IsDevelopment())
     {
-        using (var scope = app.Services.CreateScope())
+        using var scope = app.Services.CreateScope();
+        var _Db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        if (_Db != null)
         {
-            var _Db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            if (_Db != null)
+            if (_Db.Database.GetPendingMigrations().Any())
             {
-                if (_Db.Database.GetPendingMigrations().Any())
-                {
-                    _Db.Database.Migrate();
-                }
+                _Db.Database.Migrate();
             }
         }
     }
@@ -50,6 +49,8 @@ static void BuildAndRun(string[] args)
 
 static void ConfigureServices(IServiceCollection services, IConfiguration config, IHostEnvironment hostEnvironment)
 {
+    services.Configure<AttachmentStorageOptions>(config.GetSection(key: nameof(AttachmentStorageOptions)));
+
     services.AddControllers().AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
