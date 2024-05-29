@@ -7,6 +7,7 @@ using Altinn.Correspondence.Application.GetAttachmentOverviewCommand;
 using Altinn.Correspondence.Application.InitializeAttachmentCommand;
 using Altinn.Correspondence.Application.UploadAttachmentCommand;
 using Altinn.Correspondence.Mappers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Correspondence.API.Controllers;
@@ -144,6 +145,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <returns></returns>
     [HttpDelete]
     [Route("{attachmentId}")]
+    [Authorize]
     public async Task<ActionResult<AttachmentOverviewExt>> DeleteAttachment(
         Guid attachmentId)
     {
