@@ -3,9 +3,11 @@ using Altinn.Correspondence.Application.GetAttachmentOverviewCommand;
 using Altinn.Correspondence.Application.GetCorrespondenceDetailsCommand;
 using Altinn.Correspondence.Application.GetCorrespondenceOverviewCommand;
 using Altinn.Correspondence.Application.GetCorrespondencesCommand;
+using Altinn.Correspondence.Application.DownloadAttachmentQuery;
 using Altinn.Correspondence.Application.GetCorrespondencesCommand;
 using Altinn.Correspondence.Application.InitializeAttachmentCommand;
 using Altinn.Correspondence.Application.InitializeCorrespondenceCommand;
+using Altinn.Correspondence.Application.UploadAttachmentCommand;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Correspondence.Application;
@@ -20,5 +22,7 @@ public static class DependencyInjection
         services.AddScoped<GetCorrespondenceOverviewCommandHandler>();
         services.AddScoped<GetAttachmentOverviewCommandHandler>();
         services.AddScoped<GetAttachmentDetailsCommandHandler>();
+        services.AddScoped<UploadAttachmentCommandHandler>();
+        services.AddScoped<DownloadAttachmentQueryHandler>();
     }
 }
