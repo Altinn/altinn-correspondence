@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.EntityFrameworkCore;
 
