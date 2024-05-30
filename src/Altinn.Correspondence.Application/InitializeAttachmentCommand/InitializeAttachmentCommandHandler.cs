@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
 
@@ -21,7 +22,8 @@ public class InitializeAttachmentCommandHandler : IHandler<InitializeAttachmentC
         {
             AttachmentId = attachmentId,
             StatusChanged = DateTimeOffset.UtcNow,
-            Status = Core.Models.Enums.AttachmentStatus.Initialized
+            Status = AttachmentStatus.Initialized,
+            StatusText = AttachmentStatus.Initialized.ToString()
         };
         await _attachmentStatusRepository.AddAttachmentStatus(status, cancellationToken);
         return attachmentId;
