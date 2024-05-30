@@ -8,6 +8,7 @@ using Altinn.Correspondence.Application.GetCorrespondencesCommand;
 using Altinn.Correspondence.Application.InitializeAttachmentCommand;
 using Altinn.Correspondence.Application.InitializeCorrespondenceCommand;
 using Altinn.Correspondence.Application.UploadAttachmentCommand;
+using Altinn.Correspondence.Application.UpdateCorrespondenceStatusCommand;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Correspondence.Application;
@@ -22,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<GetCorrespondenceOverviewCommandHandler>();
         services.AddScoped<GetAttachmentOverviewCommandHandler>();
         services.AddScoped<GetAttachmentDetailsCommandHandler>();
+        services.AddScoped<UpdateCorrespondenceStatusCommandHandler>();
         services.AddScoped<UploadAttachmentCommandHandler>();
         services.AddScoped<DownloadAttachmentQueryHandler>();
     }

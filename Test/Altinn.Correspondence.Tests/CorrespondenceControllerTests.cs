@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using Altinn.Correspondece.Tests.Factories;
 using Altinn.Correspondence.Application.GetCorrespondencesResponse;
@@ -52,4 +53,46 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var getCorrespondenceOverviewResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
         Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode, await getCorrespondenceOverviewResponse.Content.ReadAsStringAsync());
     }
+
+    [Fact]
+    public async Task MarkActions_CorrespondenceNotExists_ReturnNotFound()
+    {
+        var readResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/00000000-0100-0000-0000-000000000000/markasread", null);
+        Assert.Equal(HttpStatusCode.NotFound, readResponse.StatusCode);
+
+        var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/00000000-0100-0000-0000-000000000000/confirm", null);
+        Assert.Equal(HttpStatusCode.NotFound, confirmResponse.StatusCode);
+
+        var archiveResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/00000000-0100-0000-0000-000000000000/archive", null);
+        Assert.Equal(HttpStatusCode.NotFound, archiveResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task ReceiverMarkActions_CorrespondenceNotPublished_ReturnBadRequest()
+    {
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+        var correspondenceId = Guid.Parse(await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+
+        Console.WriteLine(correspondenceId);
+        var readResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
+        Assert.Equal(HttpStatusCode.BadRequest, readResponse.StatusCode);
+
+        var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
+        Assert.Equal(HttpStatusCode.BadRequest, confirmResponse.StatusCode);
+    }
+
+    /* [Fact]
+     public async Task ReceiverMarkActions_CorrespondencePublished_ReturnOk()
+     {
+         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+         var correspondenceId = Guid.Parse(await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+
+         //TODO: Add logic to publish correspondence
+
+         var readResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
+         Assert.True(readResponse.IsSuccessStatusCode, await readResponse.Content.ReadAsStringAsync());
+
+         var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
+         Assert.True(confirmResponse.IsSuccessStatusCode, await confirmResponse.Content.ReadAsStringAsync());
+     } */
 }

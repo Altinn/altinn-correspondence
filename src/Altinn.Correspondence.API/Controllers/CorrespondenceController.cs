@@ -5,6 +5,7 @@ using Altinn.Correspondence.Application.GetCorrespondenceDetailsCommand;
 using Altinn.Correspondence.Application.GetCorrespondenceOverviewCommand;
 using Altinn.Correspondence.Application.GetCorrespondencesCommand;
 using Altinn.Correspondence.Application.InitializeCorrespondenceCommand;
+using Altinn.Correspondence.Application.UpdateCorrespondenceStatusCommand;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
@@ -169,15 +170,26 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>
         /// Meant for Receivers
         /// </remarks>
-        /// <returns>Ok</returns>
+        /// <returns>StatusId</returns>
         [HttpPost]
         [Route("{correspondenceId}/markasread")]
         public async Task<ActionResult> MarkAsRead(
-            Guid correspondenceId)
+            Guid correspondenceId,
+            [FromServices] UpdateCorrespondenceStatusCommandHandler handler,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation("Marking Correspondence as read for {correspondenceId}", correspondenceId.ToString());
 
-            return Ok();
+            var commandResult = await handler.Process(new UpdateCorrespondenceStatusCommandRequest
+            {
+                CorrespondenceId = correspondenceId,
+                Status = CorrespondenceStatus.Read
+            }, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
+                Problem
+            );
         }
 
         /// <summary>
@@ -186,15 +198,26 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>
         /// Meant for Receivers
         /// </remarks>
-        /// <returns>Ok</returns>
+        /// <returns>StatusId</returns>
         [HttpPost]
         [Route("{correspondenceId}/confirm")]
         public async Task<ActionResult> Confirm(
-            Guid correspondenceId)
+            Guid correspondenceId,
+            [FromServices] UpdateCorrespondenceStatusCommandHandler handler,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation("Marking Correspondence as confirmed for {correspondenceId}", correspondenceId.ToString());
 
-            return Ok();
+            var commandResult = await handler.Process(new UpdateCorrespondenceStatusCommandRequest
+            {
+                CorrespondenceId = correspondenceId,
+                Status = CorrespondenceStatus.Confirmed
+            }, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
+                Problem
+            );
         }
 
         /// <summary>
@@ -203,15 +226,26 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>
         /// Meant for Receivers
         /// </remarks>
-        /// <returns>Ok</returns>
+        /// <returns>StatusId</returns>
         [HttpPost]
         [Route("{correspondenceId}/archive")]
         public async Task<ActionResult> Archive(
-            Guid correspondenceId)
+            Guid correspondenceId,
+            [FromServices] UpdateCorrespondenceStatusCommandHandler handler,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation("Archiving Correspondence with id: {correspondenceId}", correspondenceId.ToString());
 
-            return Ok();
+            var commandResult = await handler.Process(new UpdateCorrespondenceStatusCommandRequest
+            {
+                CorrespondenceId = correspondenceId,
+                Status = CorrespondenceStatus.Archived
+            }, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
+                Problem
+            );
         }
 
         /// <summary>
