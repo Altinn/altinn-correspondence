@@ -80,4 +80,19 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
         Assert.Equal(HttpStatusCode.BadRequest, confirmResponse.StatusCode);
     }
+
+    [Fact]
+    public async Task ReceiverMarkActions_CorrespondencePublished_ReturnOk()
+    {
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+        var correspondenceId = Guid.Parse(await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+
+        //TODO: Add logic to publish correspondence
+
+        var readResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
+        Assert.True(readResponse.IsSuccessStatusCode, await readResponse.Content.ReadAsStringAsync());
+
+        var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
+        Assert.True(confirmResponse.IsSuccessStatusCode, await confirmResponse.Content.ReadAsStringAsync());
+    }
 }
