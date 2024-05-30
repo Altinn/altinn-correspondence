@@ -8,9 +8,11 @@ namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatusCommand;
 public class UpdateCorrespondenceStatusCommandHandler : IHandler<UpdateCorrespondenceStatusCommandRequest, Guid>
 {
     private readonly ICorrespondenceRepository _correspondenceRepository;
-    public UpdateCorrespondenceStatusCommandHandler(ICorrespondenceRepository correspondenceRepository)
+    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
+    public UpdateCorrespondenceStatusCommandHandler(ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository)
     {
         _correspondenceRepository = correspondenceRepository;
+        _correspondenceStatusRepository = correspondenceStatusRepository;
     }
 
     public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusCommandRequest request, CancellationToken cancellationToken)
@@ -20,20 +22,24 @@ public class UpdateCorrespondenceStatusCommandHandler : IHandler<UpdateCorrespon
         {
             return Errors.CorrespondenceNotFound;
         }
-        var currentStatus = await _correspondenceRepository.GetLatestStatusByCorrespondenceId(request.CorrespondenceId, cancellationToken);
-        Console.WriteLine(currentStatus?.Status);
-        Console.WriteLine(request.Status);
+
+        var currentStatus = await _correspondenceStatusRepository.GetLatestStatusByCorrespondenceId(request.CorrespondenceId, cancellationToken);
         if ((request.Status == CorrespondenceStatus.Confirmed || request.Status == CorrespondenceStatus.Read) && currentStatus?.Status != CorrespondenceStatus.Published)
         {
             return Errors.CorrespondenceNotPublished;
         }
-
         if (currentStatus?.Status == request.Status)
         {
             return request.CorrespondenceId;
         }
 
-        await _correspondenceRepository.UpdateCorrespondenceStatus(request.CorrespondenceId, request.Status, cancellationToken);
+        await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+        {
+            CorrespondenceId = request.CorrespondenceId,
+            Status = request.Status,
+            StatusChanged = DateTime.UtcNow,
+            StatusText = request.Status.ToString(),
+        }, cancellationToken);
         return request.CorrespondenceId;
     }
 }
