@@ -48,5 +48,30 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
             return await correspondences.FirstOrDefaultAsync(c => c.Id == guid, cancellationToken);
         }
+
+        public async Task<CorrespondenceStatusEntity?> UpdateCorrespondenceStatus(Guid correspondenceId, CorrespondenceStatus status, CancellationToken cancellationToken)
+        {
+            var updateStatusResponse = await _context.CorrespondenceStatuses.AddAsync(new CorrespondenceStatusEntity
+            {
+                CorrespondenceId = correspondenceId,
+                Status = status,
+                StatusChanged = DateTime.UtcNow,
+                StatusText = status.ToString()
+            }, cancellationToken);
+            if (updateStatusResponse.State == EntityState.Added)
+            {
+                await _context.SaveChangesAsync();
+                return updateStatusResponse.Entity;
+            }
+            return null;
+        }
+
+        public async Task<CorrespondenceStatusEntity?> GetLatestStatusByCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken)
+        {
+            return await _context.CorrespondenceStatuses
+                .Where(s => s.CorrespondenceId == correspondenceId)
+                .OrderByDescending(s => s.StatusChanged)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
     }
 }

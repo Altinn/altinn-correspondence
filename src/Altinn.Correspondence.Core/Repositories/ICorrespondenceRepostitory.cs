@@ -17,5 +17,9 @@ namespace Altinn.Correspondence.Core.Repositories
             Guid guid,
             bool includeStatus,
             CancellationToken cancellationToken);
+
+        Task<CorrespondenceStatusEntity?> UpdateCorrespondenceStatus(Guid correspondenceId, CorrespondenceStatus status, CancellationToken cancellationToken);
+
+        Task<CorrespondenceStatusEntity?> GetLatestStatusByCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken);
     }
 }
