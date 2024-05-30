@@ -6,6 +6,7 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.IO;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
@@ -35,11 +36,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             BlobClient blobClient = InitializeBlobClient(attachmentId);
             try
             {
-                if (blobClient.Exists())
-                {
-                    _logger.LogError("File with id {attachmentId} already exists", attachmentId);
-                    return null;
-                }
                 BlobUploadOptions options = new BlobUploadOptions()
                 {
                     TransferValidation = new UploadTransferValidationOptions { ChecksumAlgorithm = StorageChecksumAlgorithm.MD5 }
@@ -52,6 +48,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             catch (RequestFailedException requestFailedException)
             {
                 _logger.LogError("Error occurred while uploading file: {errorCode}: {errorMessage} ", requestFailedException.ErrorCode, requestFailedException.Message);
+                await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
                 return null;
             }
         }

@@ -46,7 +46,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     [Consumes("application/octet-stream")]
     public async Task<ActionResult<AttachmentOverviewExt>> UploadAttachmentData(
         Guid attachmentId,
-        [FromServices] UploadAttachmentCommandHandler handler,
+        [FromServices] UploadAttachmentCommandHandler uploadAttachmentHandler,
         [FromServices] GetAttachmentOverviewCommandHandler attachmentOverviewHandler,
         CancellationToken cancellationToken = default
     )
@@ -54,18 +54,18 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
         _logger.LogInformation("Uploading attachment {attachmentId}", attachmentId.ToString());
 
         Request.EnableBuffering();
-        var commandResult = await handler.Process(new UploadAttachmentCommandRequest()
+        var uploadAttachmentResult = await uploadAttachmentHandler.Process(new UploadAttachmentCommandRequest()
         {
             AttachmentId = attachmentId,
             UploadStream = Request.Body,
             ContentLength = Request.ContentLength ?? Request.Body.Length
         }, cancellationToken);
-        var attachmentOverviewResult= await attachmentOverviewHandler.Process(attachmentId, cancellationToken);
+        var attachmentOverviewResult = await attachmentOverviewHandler.Process(attachmentId, cancellationToken);
         if (!attachmentOverviewResult.TryPickT0(out var attachmentOverview, out var error))
         {
             return Problem(error);
         }
-        return commandResult.Match(
+        return uploadAttachmentResult.Match(
             attachment => Ok(AttachmentOverviewMapper.MapToExternal(attachmentOverview)),
             Problem
         );

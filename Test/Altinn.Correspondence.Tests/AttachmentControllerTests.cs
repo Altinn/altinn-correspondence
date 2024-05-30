@@ -90,7 +90,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var secondUploadResponse = await _client.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", content);
 
         Assert.False(secondUploadResponse.IsSuccessStatusCode);
-        Assert.Equal(HttpStatusCode.BadGateway, secondUploadResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, secondUploadResponse.StatusCode);
     }
 
     [Fact]

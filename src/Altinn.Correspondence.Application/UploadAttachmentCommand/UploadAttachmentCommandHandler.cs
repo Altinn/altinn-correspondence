@@ -23,6 +23,10 @@ public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepo
         {
             return Errors.InvalidFileSize;
         }
+        if (attachment.Statuses.Any(status => status.Status == AttachmentStatus.UploadProcessing))
+        {
+            return Errors.InvalidAttachmentStatus;
+        }
 
         await _attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
         {
