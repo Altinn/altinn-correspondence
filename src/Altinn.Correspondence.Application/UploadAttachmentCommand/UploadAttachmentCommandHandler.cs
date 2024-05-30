@@ -1,12 +1,14 @@
-﻿using Altinn.Correspondence.Core.Models.Enums;
+﻿using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.UploadAttachmentCommand;
 
-public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepository, IStorageRepository storageRepository) : IHandler<UploadAttachmentCommandRequest, UploadAttachmentCommandResponse>
+public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository) : IHandler<UploadAttachmentCommandRequest, UploadAttachmentCommandResponse>
 {
     private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
+    private readonly IAttachmentStatusRepository _attachmentStatusRepository = attachmentStatusRepository;
     private readonly IStorageRepository _storageRepository = storageRepository;
 
     public async Task<OneOf<UploadAttachmentCommandResponse, Error>> Process(UploadAttachmentCommandRequest request, CancellationToken cancellationToken)
@@ -22,29 +24,41 @@ public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepo
             return Errors.InvalidFileSize;
         }
 
-        var statusUpdated = await _attachmentRepository.UpdateAttachmentStatus(request.AttachmentId, AttachmentStatus.UploadProcessing, cancellationToken); // TODO, with malware scan this should be set after upload
-        if (statusUpdated is null)
+        await _attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
         {
-            return Errors.UploadFailed;
-        }
+            AttachmentId = request.AttachmentId,
+            Status = AttachmentStatus.UploadProcessing,
+            StatusChanged = DateTime.UtcNow,
+            StatusText = AttachmentStatus.UploadProcessing.ToString()
+        }, cancellationToken); // TODO, with malware scan this should be set after upload
         var uploadedFileHash = await _storageRepository.UploadAttachment(request.AttachmentId, request.UploadStream, cancellationToken);
         if (uploadedFileHash is null)
         {
+            await _attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
+            {
+                AttachmentId = request.AttachmentId,
+                Status = AttachmentStatus.Failed,
+                StatusChanged = DateTime.UtcNow,
+                StatusText = AttachmentStatus.Failed.ToString()
+            }, cancellationToken);
             return Errors.UploadFailed;
         }
         // TODO: will be set by malware scan
-        var publishedState = await _attachmentRepository.UpdateAttachmentStatus(request.AttachmentId, AttachmentStatus.Published, cancellationToken);
-        if (publishedState is null)
+        var publishStatus = new AttachmentStatusEntity
         {
-            return Errors.UploadFailed;
-        }
+            AttachmentId = request.AttachmentId,
+            Status = AttachmentStatus.Published,
+            StatusChanged = DateTime.UtcNow,
+            StatusText = AttachmentStatus.Published.ToString()
+        };
+        await _attachmentStatusRepository.AddAttachmentStatus(publishStatus, cancellationToken);
 
         return new UploadAttachmentCommandResponse()
         {
             AttachmentId = attachment.Id,
-            Status = publishedState.Status,
-            StatusChanged = publishedState.StatusChanged,
-            StatusText = publishedState.StatusText
+            Status = publishStatus.Status,
+            StatusChanged = publishStatus.StatusChanged,
+            StatusText = publishStatus.StatusText
         };
     }
 }

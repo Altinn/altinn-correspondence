@@ -9,6 +9,5 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<List<Guid>> InitializeMultipleAttachments(List<AttachmentEntity> attachments, CancellationToken cancellationToken);
         Task<AttachmentEntity?> GetAttachmentByUrl(string url, CancellationToken cancellationToken);
         Task<AttachmentEntity?> GetAttachmentById(Guid attachmentId, bool includeStatus = false, CancellationToken cancellationToken = default);
-        Task<AttachmentStatusEntity?> UpdateAttachmentStatus(Guid attachmentId, AttachmentStatus status, CancellationToken cancellationToken);
     }
 }

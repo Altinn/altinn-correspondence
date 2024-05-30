@@ -37,21 +37,5 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
             return await attachments.FirstOrDefaultAsync(a => a.Id == guid, cancellationToken);
         }
-        public async Task<AttachmentStatusEntity?> UpdateAttachmentStatus(Guid attachmentId, AttachmentStatus status, CancellationToken cancellationToken)
-        {
-            var updateStatusResponse = await _context.AttachmentStatuses.AddAsync(new AttachmentStatusEntity
-            {
-                AttachmentId = attachmentId,
-                Status = status,
-                StatusChanged = DateTime.UtcNow,
-                StatusText = status.ToString()
-            }, cancellationToken);
-            if (updateStatusResponse.State == EntityState.Added)
-            {
-                await _context.SaveChangesAsync();
-                return updateStatusResponse.Entity;
-            }
-            return null;
-        }
     }
 }
