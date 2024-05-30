@@ -61,7 +61,8 @@ public class InitializeCorrespondenceCommandHandler : IHandler<InitializeCorresp
                     new AttachmentStatusEntity
                     {
                         Status = AttachmentStatus.Initialized,
-                        StatusChanged = DateTimeOffset.UtcNow
+                        StatusChanged = DateTimeOffset.UtcNow,
+                        StatusText = AttachmentStatus.Initialized.ToString()
                     }
                 };
             attachment = new AttachmentEntity
