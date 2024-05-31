@@ -48,5 +48,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
             return await correspondences.FirstOrDefaultAsync(c => c.Id == guid, cancellationToken);
         }
+        public async Task<List<CorrespondenceEntity>> GetNonPublishedCorrespondencesByAttachmentId(Guid attachmentId, AttachmentStatus? attachmentStatus = null, CancellationToken cancellationToken = default)
+        {
+            var correspondences = await _context.Correspondences.Where(c =>
+                !_context.CorrespondenceStatuses.Any(cs => cs.CorrespondenceId == c.Id && cs.Status == CorrespondenceStatus.Published) &&
+                _context.CorrespondenceContents.Any(cc => cc.CorrespondenceId == c.Id &&
+                    _context.CorrespondenceAttachments.Any(ca => ca.CorrespondenceContentId == cc.Id && ca.AttachmentId == attachmentId) &&
+                    (attachmentStatus == null || _context.CorrespondenceAttachments.All(ca => ca.CorrespondenceContentId == cc.Id && ca.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault().Status == attachmentStatus))
+                )
+            ).Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ToListAsync(cancellationToken);
+
+            return correspondences;
+        }
     }
 }

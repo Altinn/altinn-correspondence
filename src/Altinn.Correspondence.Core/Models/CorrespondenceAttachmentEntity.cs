@@ -40,6 +40,10 @@ namespace Altinn.Correspondence.Core.Models
 
         public AttachmentDataLocationType DataLocationType { get; set; }
 
+        public Guid CorrespondenceContentId { get; set; }
+        [ForeignKey("CorrespondenceContentId")]
+        public CorrespondenceContentEntity CorrespondenceContent { get; set; }
+
         public Guid AttachmentId { get; set; }
         [ForeignKey("AttachmentId")]
         public AttachmentEntity Attachment { get; set; }
