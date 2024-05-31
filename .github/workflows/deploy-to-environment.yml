@@ -11,6 +11,8 @@ on:
         type: string
       hasMigrationChanges:
         type: string
+      imageTag:
+        type: string
   workflow_dispatch:
     inputs:
       environment:
@@ -28,6 +30,9 @@ on:
       hasMigrationChanges:
         description: Migrate database
         type: boolean
+      imageTag:
+        description: Version image tag
+        type: string
 
 jobs:
   deploy:
@@ -82,6 +87,7 @@ jobs:
       with:
         region: norwayeast
         environment: ${{ inputs.environment }}
+        imageTag: ${{ inputs.imageTag }}
         AZURE_NAME_PREFIX: ${{ secrets.AZURE_NAME_PREFIX }}
         AZURE_ENVIRONMENT_KEY_VAULT_NAME: ${{ secrets.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
         AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
