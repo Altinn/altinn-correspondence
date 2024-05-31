@@ -33,7 +33,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
 
                     b.Property<int>("DataLocationType")
                         .HasColumnType("integer");
@@ -199,7 +201,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
 
                     b.Property<DateTimeOffset>("DueDateTime")
                         .HasColumnType("timestamp with time zone");

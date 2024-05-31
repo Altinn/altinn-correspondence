@@ -32,7 +32,7 @@ public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepo
         {
             AttachmentId = request.AttachmentId,
             Status = AttachmentStatus.UploadProcessing,
-            StatusChanged = DateTime.UtcNow,
+            StatusChanged = DateTimeOffset.UtcNow,
             StatusText = AttachmentStatus.UploadProcessing.ToString()
         }, cancellationToken); // TODO, with malware scan this should be set after upload
         var uploadedFileHash = await _storageRepository.UploadAttachment(request.AttachmentId, request.UploadStream, cancellationToken);
@@ -42,7 +42,7 @@ public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepo
             {
                 AttachmentId = request.AttachmentId,
                 Status = AttachmentStatus.Failed,
-                StatusChanged = DateTime.UtcNow,
+                StatusChanged = DateTimeOffset.UtcNow,
                 StatusText = AttachmentStatus.Failed.ToString()
             }, cancellationToken);
             return Errors.UploadFailed;
@@ -52,7 +52,7 @@ public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepo
         {
             AttachmentId = request.AttachmentId,
             Status = AttachmentStatus.Published,
-            StatusChanged = DateTime.UtcNow,
+            StatusChanged = DateTimeOffset.UtcNow,
             StatusText = AttachmentStatus.Published.ToString()
         };
         await _attachmentStatusRepository.AddAttachmentStatus(publishStatus, cancellationToken);

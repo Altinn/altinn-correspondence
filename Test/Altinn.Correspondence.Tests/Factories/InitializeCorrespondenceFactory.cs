@@ -28,9 +28,9 @@ internal static class InitializeCorrespondenceFactory
                 }
             },
         },
-        VisibleFrom = new DateTimeOffset(),
-        AllowSystemDeleteAfter = new DateTimeOffset().AddDays(1),
-        DueDateTime = new DateTimeOffset().AddDays(1),
+        VisibleFrom = DateTime.UtcNow,
+        AllowSystemDeleteAfter = DateTime.UtcNow.AddDays(1),
+        DueDateTime = DateTime.UtcNow.AddDays(1),
         ExternalReferences = new List<ExternalReferenceExt>(){
             new ExternalReferenceExt()
             {
@@ -65,7 +65,7 @@ internal static class InitializeCorrespondenceFactory
                 NotificationTemplate= "test",
                 CustomTextToken = "test",
                 SendersReference = "1",
-                RequestedSendTime =  new DateTimeOffset().AddDays(1),
+                RequestedSendTime =  DateTime.UtcNow.AddDays(1),
             }
         },
         IsReservable = true
