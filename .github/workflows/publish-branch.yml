@@ -1,0 +1,24 @@
+name: Publish branch
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions: 
+      id-token: write
+      contents: read
+    steps:        
+        - uses: actions/checkout@v4
+        - name: Get version
+          id: get-version
+          uses: ./.github/actions/get-current-version
+        - name: "Publish image"
+          uses: ./.github/actions/publish-image
+          with:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            dockerImageBaseName: ghcr.io/altinn/altinn-correspondence
+            imageTag: ${{ steps.get-version.outputs.imageTag }}
