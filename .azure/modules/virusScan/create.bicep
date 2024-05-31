@@ -29,7 +29,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-04-01' existing 
 }
 
 resource malwareScanSettings 'Microsoft.Security/defenderForStorageSettings@2022-12-01-preview' = {
-  name: 'default'
+  name: 'current'
   scope: storageAccount
   properties: {
     isEnabled: true
