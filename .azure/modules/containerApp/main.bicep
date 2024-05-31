@@ -4,7 +4,6 @@ param namePrefix string
 param image string
 param environment string
 param platform_base_url string
-
 @secure()
 param subscription_id string
 @secure()
@@ -13,7 +12,6 @@ param principal_id string
 param keyVaultUrl string
 @secure()
 param userIdentityClientId string
-
 @secure()
 param containerAppEnvId string
 
@@ -99,3 +97,4 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
 output name string = containerApp.name
 output revisionName string = containerApp.properties.latestRevisionName
 output app object = containerApp
+output containerAppIngress string = containerApp.properties.configuration.ingress.fqdn

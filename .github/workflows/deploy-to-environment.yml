@@ -88,4 +88,5 @@ jobs:
         PLATFORM_BASE_URL: ${{ secrets.PLATFORM_BASE_URL }}
         AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_MIGRATION_STORAGE_ACCOUNT_NAME }}
     

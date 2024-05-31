@@ -27,6 +27,9 @@ inputs:
   PLATFORM_BASE_URL:
     description: "Base url for Altinn platform"
     required: true
+  STORAGE_ACCOUNT_NAME:
+    description: "Name of the storage account used for attachments"
+    required: true
 
 runs:
   using: "composite"
