@@ -38,7 +38,7 @@ resource malwareScanSettings 'Microsoft.Security/defenderForStorageSettings@2022
         capGBPerMonth: -1
         isEnabled: true
       }
-      scanResultsEventGridTopicResourceId: eventgrid_topic
+      scanResultsEventGridTopicResourceId: eventgrid_topic.id
     }
     overrideSubscriptionLevelSettings: true
     sensitiveDataDiscovery: {
