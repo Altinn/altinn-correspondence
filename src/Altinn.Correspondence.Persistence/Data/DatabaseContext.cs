@@ -23,5 +23,21 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<CorrespondenceEntity>()
             .Property(b => b.Created)
             .HasDefaultValueSql("NOW()");
+
+        modelBuilder.Entity<CorrespondenceNotificationEntity>()
+            .Property(b => b.Created)
+            .HasDefaultValueSql("NOW()");
+
+        modelBuilder.Entity<AttachmentStatusEntity>()
+            .Property(b => b.StatusChanged)
+            .HasDefaultValueSql("NOW()");
+
+        modelBuilder.Entity<CorrespondenceStatusEntity>()
+            .Property(b => b.StatusChanged)
+            .HasDefaultValueSql("NOW()");
+
+        modelBuilder.Entity<CorrespondenceNotificationStatusEntity>()
+            .Property(b => b.StatusChanged)
+            .HasDefaultValueSql("NOW()");
     }
 }
