@@ -30,5 +30,11 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("statusHistory")]
         public List<NotificationStatusEventExt> StatusHistory { get; set; }
+
+        /// <summary>
+        /// Created timestamp for the notification
+        /// </summary>
+        [JsonPropertyName("created")]
+        public DateTimeOffset Created { get; set; }
     }
 }

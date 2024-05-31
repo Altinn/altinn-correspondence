@@ -8,7 +8,7 @@ namespace Altinn.Correspondence.Core.Models
         [Key]
         public Guid Id { get; set; }
 
-        public string NotificationTemplate { get; set; }
+        public required string NotificationTemplate { get; set; }
 
         [StringLength(128, MinimumLength = 0)]
         public string? CustomTextToken { get; set; }

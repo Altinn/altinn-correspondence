@@ -90,7 +90,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("StatusChanged")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
 
                     b.Property<string>("StatusText")
                         .IsRequired()
@@ -252,7 +254,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
 
                     b.Property<string>("CustomTextToken")
                         .HasMaxLength(128)
@@ -289,7 +293,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("StatusChanged")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
 
                     b.Property<string>("StatusText")
                         .HasColumnType("text");
@@ -338,7 +344,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("StatusChanged")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
 
                     b.Property<string>("StatusText")
                         .IsRequired()
