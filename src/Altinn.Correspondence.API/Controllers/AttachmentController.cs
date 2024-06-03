@@ -159,7 +159,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
             IntendedPresentation = IntendedPresentationTypeExt.HumanReadable,
             Status = AttachmentStatusExt.Deleted,
             StatusText = "Attachment is deleted",
-            StatusChanged = DateTimeOffset.Now
+            StatusChanged = DateTimeOffset.UtcNow
         };
     }
     private ActionResult Problem(Error error) => Problem(detail: error.Message, statusCode: (int)error.StatusCode);

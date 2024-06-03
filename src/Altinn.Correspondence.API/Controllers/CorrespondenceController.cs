@@ -1,4 +1,4 @@
-using Altinn.Correspondence.API.Models;
+﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.GetCorrespondenceDetailsCommand;
@@ -76,11 +76,11 @@ namespace Altinn.Correspondence.API.Controllers
                     ResourceId = initializeCorrespondence.ResourceId,
                     Sender = initializeCorrespondence.Sender,
                     SendersReference = initializeCorrespondence.SendersReference,
-                    Created = DateTime.Now,
+                    Created = DateTimeOffset.UtcNow,
                     VisibleFrom = initializeCorrespondence.VisibleFrom,
                     Status = CorrespondenceStatusExt.Published,
                     StatusText = "Initialized and Published successfully",
-                    StatusChanged = DateTime.Now
+                    StatusChanged = DateTimeOffset.UtcNow
                 }
             );
         }
