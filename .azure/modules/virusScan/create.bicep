@@ -18,7 +18,7 @@ resource eventgrid_event_subscription 'Microsoft.EventGrid/topics/eventSubscript
     destination: {
       endpointType: 'WebHook'
       properties: {
-        endpointUrl: 'https://${containerAppIngress}/broker/api/v1/webhooks/malwarescanresults'
+        endpointUrl: 'https://${containerAppIngress}/broker/api/v1/malwarescanresults'
       }
     }
   }
