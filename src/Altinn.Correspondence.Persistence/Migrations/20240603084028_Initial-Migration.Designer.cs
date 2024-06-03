@@ -12,11 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-<<<<<<<< HEAD:src/Altinn.Correspondence.Persistence/Migrations/20240531064432_Initial-Migration.Designer.cs
-    [Migration("20240531064432_Initial-Migration")]
-========
-    [Migration("20240603063127_Initial-Migration")]
->>>>>>>> origin/main:src/Altinn.Correspondence.Persistence/Migrations/20240603063127_Initial-Migration.Designer.cs
+    [Migration("20240603084028_Initial-Migration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -88,9 +84,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<Guid>("AttachmentId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("CorrespondenceAttachmentEntityId")
-                        .HasColumnType("uuid");
-
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -104,8 +97,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AttachmentId");
-
-                    b.HasIndex("CorrespondenceAttachmentEntityId");
 
                     b.ToTable("AttachmentStatuses");
                 });
@@ -385,10 +376,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Altinn.Correspondence.Core.Models.CorrespondenceAttachmentEntity", null)
-                        .WithMany("Statuses")
-                        .HasForeignKey("CorrespondenceAttachmentEntityId");
-
                     b.Navigation("Attachment");
                 });
 
@@ -481,11 +468,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 {
                     b.Navigation("CorrespondenceAttachments");
 
-                    b.Navigation("Statuses");
-                });
-
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceAttachmentEntity", b =>
-                {
                     b.Navigation("Statuses");
                 });
 

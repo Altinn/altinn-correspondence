@@ -21,6 +21,7 @@ namespace Altinn.Correspondence.Core.Models
         [ForeignKey("CorrespondenceId")]
         public CorrespondenceEntity Correspondence { get; set; }
 
+        [Required]
         public required DateTimeOffset Created { get; set; }
 
         public List<CorrespondenceNotificationStatusEntity> Statuses { get; set; }
