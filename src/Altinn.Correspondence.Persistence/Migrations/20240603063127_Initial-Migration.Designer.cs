@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240603062503_Initial-Migration")]
+    [Migration("20240603063127_Initial-Migration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
