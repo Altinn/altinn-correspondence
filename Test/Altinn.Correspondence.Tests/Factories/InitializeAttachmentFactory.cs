@@ -7,7 +7,7 @@ internal static class InitializeAttachmentFactory
     internal static InitializeAttachmentExt BasicAttachment() => new InitializeAttachmentExt()
     {
         DataType = "html",
-        ExpirationTime = new DateTimeOffset().AddDays(1),
+        ExpirationTime = DateTime.UtcNow.AddDays(1),
         Name = "testFile",
         RestrictionName = "testFile",
         SendersReference = "1234",

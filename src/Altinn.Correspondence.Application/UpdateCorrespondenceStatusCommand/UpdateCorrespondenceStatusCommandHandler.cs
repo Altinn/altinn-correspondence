@@ -37,7 +37,7 @@ public class UpdateCorrespondenceStatusCommandHandler : IHandler<UpdateCorrespon
         {
             CorrespondenceId = request.CorrespondenceId,
             Status = request.Status,
-            StatusChanged = DateTime.UtcNow,
+            StatusChanged = DateTimeOffset.UtcNow,
             StatusText = request.Status.ToString(),
         }, cancellationToken);
         return request.CorrespondenceId;

@@ -8,10 +8,12 @@ namespace Altinn.Correspondence.Core.Models
         [Key]
         public Guid Id { get; set; }
 
+        [Required]
         public string Status { get; set; }
 
         public string? StatusText { get; set; }
 
+        [Required]
         public DateTimeOffset StatusChanged { get; set; }
 
         public Guid NotificationId { get; set; }
