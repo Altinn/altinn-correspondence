@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Persistence;
+using Altinn.Correspondence.Integrations;
 using Azure.Identity;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -61,6 +62,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
 
     services.AddApplicationHandlers();
     services.AddPersistence();
+    services.AddIntegrations();
 
     services.AddHttpClient();
     services.AddProblemDetails();
