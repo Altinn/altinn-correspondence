@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240531141939_Initial-Migration")]
+    [Migration("20240603062503_Initial-Migration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -36,9 +36,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("Created")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("DataLocationType")
                         .HasColumnType("integer");
@@ -93,9 +91,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("StatusChanged")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("StatusText")
                         .IsRequired()
@@ -206,9 +202,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("Created")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("DueDateTime")
                         .HasColumnType("timestamp with time zone");
@@ -257,9 +251,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("Created")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CustomTextToken")
                         .HasMaxLength(128)
@@ -296,9 +288,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("StatusChanged")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("StatusText")
                         .HasColumnType("text");
@@ -347,9 +337,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("StatusChanged")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("StatusText")
                         .IsRequired()

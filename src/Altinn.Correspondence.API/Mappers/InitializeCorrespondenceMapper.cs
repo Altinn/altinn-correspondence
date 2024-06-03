@@ -22,6 +22,7 @@ internal static class InitializeCorrespondenceMapper
             ReplyOptions = CorrespondenceReplyOptionsMapper.MapListToEntities(initializeCorrespondenceExt.ReplyOptions),
             IsReservable = initializeCorrespondenceExt.IsReservable,
             Notifications = InitializeCorrespondenceNotificationMapper.MapListToEntities(initializeCorrespondenceExt.Notifications),
+            Created = DateTimeOffset.UtcNow,
             Content = new CorrespondenceContentEntity
             {
                 Language = initializeCorrespondenceExt.Content.Language,

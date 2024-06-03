@@ -14,31 +14,4 @@ public class ApplicationDbContext : DbContext
     public DbSet<CorrespondenceNotificationEntity> CorrespondenceNotifications { get; set; }
     public DbSet<CorrespondenceReplyOptionEntity> CorrespondenceReplyOptions { get; set; }
     public DbSet<ExternalReferenceEntity> ExternalReferences { get; set; }
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<AttachmentEntity>()
-            .Property(b => b.Created)
-            .HasDefaultValueSql("NOW()");
-
-        modelBuilder.Entity<CorrespondenceEntity>()
-            .Property(b => b.Created)
-            .HasDefaultValueSql("NOW()");
-
-        modelBuilder.Entity<CorrespondenceNotificationEntity>()
-            .Property(b => b.Created)
-            .HasDefaultValueSql("NOW()");
-
-        modelBuilder.Entity<AttachmentStatusEntity>()
-            .Property(b => b.StatusChanged)
-            .HasDefaultValueSql("NOW()");
-
-        modelBuilder.Entity<CorrespondenceStatusEntity>()
-            .Property(b => b.StatusChanged)
-            .HasDefaultValueSql("NOW()");
-
-        modelBuilder.Entity<CorrespondenceNotificationStatusEntity>()
-            .Property(b => b.StatusChanged)
-            .HasDefaultValueSql("NOW()");
-    }
 }

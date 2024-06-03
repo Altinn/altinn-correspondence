@@ -30,7 +30,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     ExpirationTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     DataLocationUrl = table.Column<string>(type: "text", nullable: true),
                     DataLocationType = table.Column<int>(type: "integer", nullable: false),
-                    Created = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
+                    Created = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -51,7 +51,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     DueDateTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     PropertyList = table.Column<Dictionary<string, string>>(type: "hstore", maxLength: 10, nullable: false),
                     IsReservable = table.Column<bool>(type: "boolean", nullable: true),
-                    Created = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
+                    Created = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -89,7 +89,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     SendersReference = table.Column<string>(type: "text", nullable: true),
                     RequestedSendTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     CorrespondenceId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Created = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
+                    Created = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -129,7 +129,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     StatusText = table.Column<string>(type: "text", nullable: false),
-                    StatusChanged = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
+                    StatusChanged = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     CorrespondenceId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
@@ -204,7 +204,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Status = table.Column<string>(type: "text", nullable: false),
                     StatusText = table.Column<string>(type: "text", nullable: true),
-                    StatusChanged = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
+                    StatusChanged = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     NotificationId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
@@ -225,7 +225,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     StatusText = table.Column<string>(type: "text", nullable: false),
-                    StatusChanged = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
+                    StatusChanged = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     AttachmentId = table.Column<Guid>(type: "uuid", nullable: false),
                     CorrespondenceAttachmentEntityId = table.Column<Guid>(type: "uuid", nullable: true)
                 },

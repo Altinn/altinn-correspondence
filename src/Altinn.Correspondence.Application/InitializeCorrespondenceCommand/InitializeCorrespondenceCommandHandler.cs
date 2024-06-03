@@ -73,7 +73,8 @@ public class InitializeCorrespondenceCommandHandler : IHandler<InitializeCorresp
                 IntendedPresentation = correspondenceAttachment.IntendedPresentation,
                 DataType = correspondenceAttachment.DataType,
                 DataLocationUrl = correspondenceAttachment.DataLocationUrl,
-                Statuses = status
+                Statuses = status,
+                Created = DateTimeOffset.UtcNow
             };
         }
         return attachment;

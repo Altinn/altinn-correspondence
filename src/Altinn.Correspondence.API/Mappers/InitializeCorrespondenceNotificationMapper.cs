@@ -12,7 +12,8 @@ internal static class InitializeCorrespondenceNotificationMapper
             NotificationTemplate = correspondenceNotificationExt.NotificationTemplate,
             RequestedSendTime = correspondenceNotificationExt.RequestedSendTime,
             SendersReference = correspondenceNotificationExt.SendersReference,
-            CustomTextToken = correspondenceNotificationExt.CustomTextToken
+            CustomTextToken = correspondenceNotificationExt.CustomTextToken,
+            Created = DateTimeOffset.UtcNow
         };
         return notification;
     }

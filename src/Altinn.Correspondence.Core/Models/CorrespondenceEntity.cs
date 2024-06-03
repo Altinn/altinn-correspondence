@@ -44,6 +44,6 @@ namespace Altinn.Correspondence.Core.Models
 
         public List<CorrespondenceStatusEntity>? Statuses { get; set; }
 
-        public DateTimeOffset Created { get; set; }
+        public required DateTimeOffset Created { get; set; }
     }
 }
