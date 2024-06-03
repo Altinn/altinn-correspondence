@@ -34,8 +34,6 @@ namespace Altinn.Correspondence.Core.Models
         [Required]
         public DateTimeOffset ExpirationTime { get; set; }
 
-        public List<AttachmentStatusEntity> Statuses { get; set; }
-
         public string? DataLocationUrl { get; set; }
 
         public AttachmentDataLocationType DataLocationType { get; set; }

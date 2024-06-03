@@ -1,6 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Altinn.Correspondece.Tests.Factories;
+using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondencesResponse;
 
 namespace Altinn.Correspondence.Tests;
@@ -9,11 +12,17 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
 {
     private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
+    private readonly JsonSerializerOptions _responseSerializerOptions;
 
     public CorrespondenceControllerTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClientInternal();
+        _responseSerializerOptions = new JsonSerializerOptions(new JsonSerializerOptions()
+        {
+            PropertyNameCaseInsensitive = true
+        });
+        _responseSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     }
 
     [Fact]
@@ -40,7 +49,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task GetCorrespondenceOverview()
     {
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
-        var correspondenceId = Guid.Parse(await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+        var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
+        var correspondenceId = correspondence?.CorrespondenceId;
         var getCorrespondenceOverviewResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
         Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode, await getCorrespondenceOverviewResponse.Content.ReadAsStringAsync());
     }
@@ -49,7 +59,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task GetCorrespondenceDetails()
     {
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
-        var correspondenceId = Guid.Parse(await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+        var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
+        var correspondenceId = correspondence?.CorrespondenceId;
         var getCorrespondenceOverviewResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
         Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode, await getCorrespondenceOverviewResponse.Content.ReadAsStringAsync());
     }
@@ -71,7 +82,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task ReceiverMarkActions_CorrespondenceNotPublished_ReturnBadRequest()
     {
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
-        var correspondenceId = Guid.Parse(await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+        var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
+        var correspondenceId = correspondence?.CorrespondenceId;
 
         Console.WriteLine(correspondenceId);
         var readResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
@@ -81,18 +93,36 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Equal(HttpStatusCode.BadRequest, confirmResponse.StatusCode);
     }
 
-    /* [Fact]
-     public async Task ReceiverMarkActions_CorrespondencePublished_ReturnOk()
-     {
-         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
-         var correspondenceId = Guid.Parse(await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+    [Fact]
+    public async Task ReceiverMarkActions_CorrespondencePublished_ReturnOk()
+    {
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+        var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
+        var correspondenceId = correspondence?.CorrespondenceId;
 
-         //TODO: Add logic to publish correspondence
+        await UploadAttachment(correspondence?.AttachmentIds.FirstOrDefault());
+        var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceId}", _responseSerializerOptions);
+        Assert.True(overview?.Status == CorrespondenceStatusExt.Published);
 
-         var readResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
-         Assert.True(readResponse.IsSuccessStatusCode, await readResponse.Content.ReadAsStringAsync());
 
-         var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
-         Assert.True(confirmResponse.IsSuccessStatusCode, await confirmResponse.Content.ReadAsStringAsync());
-     } */
+        var readResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
+        Assert.True(readResponse.IsSuccessStatusCode, await readResponse.Content.ReadAsStringAsync());
+
+        var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
+        Assert.True(confirmResponse.IsSuccessStatusCode, await confirmResponse.Content.ReadAsStringAsync());
+    }
+
+    private async Task UploadAttachment(Guid? attachmentId)
+    {
+        if (attachmentId == null)
+        {
+            Assert.Fail("AttachmentId is null");
+        }
+        var originalAttachmentData = new byte[] { 1, 2, 3, 4 };
+        var content = new ByteArrayContent(originalAttachmentData);
+
+        // Upload the attachment data
+        var uploadResponse = await _client.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", content);
+        uploadResponse.EnsureSuccessStatusCode();
+    }
 }

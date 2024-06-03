@@ -31,7 +31,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// Requires uploads of specified attachments if any before it can be Published
         /// If no attachments are specified, should go directly to Published
         /// </remarks>
-        /// <returns></returns>
+        /// <returns>CorrespondenceId and attachmentIds</returns>
         [HttpPost]
         public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeCorrespondence(InitializeCorrespondenceExt initializeCorrespondence, [FromServices] InitializeCorrespondenceCommandHandler handler, CancellationToken cancellationToken)
         {
@@ -42,7 +42,11 @@ namespace Altinn.Correspondence.API.Controllers
             var commandResult = await handler.Process(commandRequest, cancellationToken);
 
             return commandResult.Match(
-                id => Ok(id.ToString()),
+                data => Ok(new InitializeCorrespondenceResponseExt()
+                {
+                    CorrespondenceId = data.CorrespondenceId,
+                    AttachmentIds = data.AttachmentIds
+                }),
                 Problem
             );
         }
