@@ -7,10 +7,12 @@ using OneOf;
 
 namespace Altinn.Correspondence.Application.UploadAttachmentCommand;
 
-public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, IEventBus eventBus) : IHandler<UploadAttachmentCommandRequest, UploadAttachmentCommandResponse>
+public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IEventBus eventBus) : IHandler<UploadAttachmentCommandRequest, UploadAttachmentCommandResponse>
 {
     private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository = attachmentStatusRepository;
+    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
+    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
     private readonly IStorageRepository _storageRepository = storageRepository;
     private readonly IEventBus _eventBus = eventBus;
 
@@ -37,7 +39,7 @@ public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepo
             Status = AttachmentStatus.UploadProcessing,
             StatusChanged = DateTimeOffset.UtcNow,
             StatusText = AttachmentStatus.UploadProcessing.ToString()
-        }, cancellationToken); // TODO, with malware scan this should be set after upload
+        }, cancellationToken); // TODO, with malware scan this should be set after upload.
         var uploadedFileHash = await _storageRepository.UploadAttachment(request.AttachmentId, request.UploadStream, cancellationToken);
         if (uploadedFileHash is null)
         {
@@ -50,7 +52,7 @@ public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepo
             }, cancellationToken);
             return Errors.UploadFailed;
         }
-        // TODO: will be set by malware scan
+        // TODO: will be set by malware scan. Also move checkCorrespondenceStatusesAfterUploadAndPublish to malware scan
         var publishStatus = new AttachmentStatusEntity
         {
             AttachmentId = request.AttachmentId,
@@ -59,6 +61,7 @@ public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepo
             StatusText = AttachmentStatus.Published.ToString()
         };
         await _attachmentStatusRepository.AddAttachmentStatus(publishStatus, cancellationToken);
+        await CheckCorrespondenceStatusesAfterUploadAndPublish(attachment.Id, cancellationToken);
 
         await _eventBus.Publish(AltinnEventType.AttachmentPublished, null, request.AttachmentId.ToString(), "attachment", null, cancellationToken);
         return new UploadAttachmentCommandResponse()
@@ -68,5 +71,36 @@ public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepo
             StatusChanged = publishStatus.StatusChanged,
             StatusText = publishStatus.StatusText
         };
+    }
+
+    public async Task CheckCorrespondenceStatusesAfterUploadAndPublish(Guid attachmentId, CancellationToken cancellationToken)
+    {
+        var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
+        if (attachment == null)
+        {
+            return;
+        }
+
+        var correspondences = await _correspondenceRepository.GetNonPublishedCorrespondencesByAttachmentId(attachment.Id, AttachmentStatus.Published, cancellationToken);
+        if (correspondences.Count == 0)
+        {
+            return;
+        }
+
+        var list = new List<CorrespondenceStatusEntity>();
+        foreach (var correspondence in correspondences)
+        {
+            list.Add(
+                new CorrespondenceStatusEntity
+                {
+                    CorrespondenceId = correspondence.Id,
+                    Status = CorrespondenceStatus.Published,
+                    StatusChanged = DateTime.UtcNow,
+                    StatusText = CorrespondenceStatus.Published.ToString()
+                }
+            );
+        }
+        await _correspondenceStatusRepository.AddCorrespondenceStatuses(list, cancellationToken);
+        return;
     }
 }

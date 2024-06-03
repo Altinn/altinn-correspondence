@@ -5,7 +5,8 @@ namespace Altinn.Correspondence.Core.Repositories
 {
     public interface ICorrespondenceRepository
     {
-        Task<Guid> InitializeCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken);
+        Task<CorrespondenceEntity> InitializeCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken);
+
         Task<(List<Guid>, int)> GetCorrespondences(
             int offset,
             int limit,
@@ -13,9 +14,12 @@ namespace Altinn.Correspondence.Core.Repositories
             DateTimeOffset? to,
             CorrespondenceStatus? status,
             CancellationToken cancellationToken);
+
         Task<CorrespondenceEntity?> GetCorrespondenceById(
             Guid guid,
             bool includeStatus,
             CancellationToken cancellationToken);
+
+        Task<List<CorrespondenceEntity>> GetNonPublishedCorrespondencesByAttachmentId(Guid attachmentId, AttachmentStatus? attachmentStatus = null, CancellationToken cancellationToken = default);
     }
 }

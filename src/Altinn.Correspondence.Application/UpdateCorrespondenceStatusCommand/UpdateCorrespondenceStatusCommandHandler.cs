@@ -28,11 +28,11 @@ public class UpdateCorrespondenceStatusCommandHandler : IHandler<UpdateCorrespon
         }
 
         var currentStatus = await _correspondenceStatusRepository.GetLatestStatusByCorrespondenceId(request.CorrespondenceId, cancellationToken);
-        if ((request.Status == CorrespondenceStatus.Confirmed || request.Status == CorrespondenceStatus.Read) && currentStatus?.Status != CorrespondenceStatus.Published)
+        if ((request.Status == CorrespondenceStatus.Confirmed || request.Status == CorrespondenceStatus.Read) && currentStatus?.Status < CorrespondenceStatus.Published)
         {
             return Errors.CorrespondenceNotPublished;
         }
-        if (currentStatus?.Status == request.Status)
+        if (currentStatus?.Status >= request.Status)
         {
             return request.CorrespondenceId;
         }

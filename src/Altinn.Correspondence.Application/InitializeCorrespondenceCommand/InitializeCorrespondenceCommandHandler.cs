@@ -7,7 +7,7 @@ using OneOf;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondenceCommand;
 
-public class InitializeCorrespondenceCommandHandler : IHandler<InitializeCorrespondenceCommandRequest, Guid>
+public class InitializeCorrespondenceCommandHandler : IHandler<InitializeCorrespondenceCommandRequest, InitializeCorrespondenceCommandResponse>
 {
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly IAttachmentRepository _attachmentRepository;
@@ -19,7 +19,7 @@ public class InitializeCorrespondenceCommandHandler : IHandler<InitializeCorresp
         _eventBus = eventBus;
     }
 
-    public async Task<OneOf<Guid, Error>> Process(InitializeCorrespondenceCommandRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<InitializeCorrespondenceCommandResponse, Error>> Process(InitializeCorrespondenceCommandRequest request, CancellationToken cancellationToken)
     {
         var attachments = request.Correspondence.Content.Attachments;
         foreach (var attachment in attachments)
@@ -34,15 +34,19 @@ public class InitializeCorrespondenceCommandHandler : IHandler<InitializeCorresp
             }
         };
         request.Correspondence.Statuses = statuses;
-        var correspondenceId = await _correspondenceRepository.InitializeCorrespondence(request.Correspondence, cancellationToken);
-        await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, null, correspondenceId.ToString(), "correspondence", null, cancellationToken);
-        return correspondenceId;
+        var correspondence = await _correspondenceRepository.InitializeCorrespondence(request.Correspondence, cancellationToken);
+        await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, null, correspondence.Id.ToString(), "correspondence", null, cancellationToken);
+        return new InitializeCorrespondenceCommandResponse()
+        {
+            CorrespondenceId = correspondence.Id,
+            AttachmentIds = correspondence.Content.Attachments.Select(a => a.Attachment.Id).ToList()
+        };
     }
 
     public CorrespondenceStatus GetInitializeCorrespondenceStatus(CorrespondenceEntity correspondence)
     {
         var status = CorrespondenceStatus.Initialized;
-        if (correspondence.Content.Attachments.All(c => c.Statuses != null && c.Statuses.All(s => s.Status == AttachmentStatus.Published)))
+        if (correspondence.Content.Attachments.All(c => c.Attachment.Statuses != null && c.Attachment.Statuses.All(s => s.Status == AttachmentStatus.Published)))
         {
             status = CorrespondenceStatus.Published;
         }

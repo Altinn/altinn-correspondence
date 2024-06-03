@@ -1,3 +1,4 @@
+using System.Net.Mail;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -9,11 +10,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
     {
         private readonly ApplicationDbContext _context = context;
 
-        public async Task<Guid> InitializeCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
+        public async Task<CorrespondenceEntity> InitializeCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
         {
             await _context.Correspondences.AddAsync(correspondence, cancellationToken);
             await _context.SaveChangesAsync();
-            return correspondence.Id;
+            return correspondence;
         }
 
         public async Task<(List<Guid>, int)> GetCorrespondences(
@@ -47,6 +48,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 correspondences = correspondences.Include(c => c.Statuses);
             }
             return await correspondences.FirstOrDefaultAsync(c => c.Id == guid, cancellationToken);
+        }
+        public async Task<List<CorrespondenceEntity>> GetNonPublishedCorrespondencesByAttachmentId(Guid attachmentId, AttachmentStatus? attachmentStatus = null, CancellationToken cancellationToken = default)
+        {
+            var correspondence = await _context.Correspondences.Where(c =>
+                !_context.CorrespondenceStatuses.Any(cs => cs.CorrespondenceId == c.Id && cs.Status == CorrespondenceStatus.Published) &&
+                c.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId) &&
+                    (attachmentStatus == null || c.Content.Attachments.All(ca => ca.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault().Status == attachmentStatus))
+                ).Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ToListAsync(cancellationToken);
+
+            return correspondence;
         }
     }
 }
