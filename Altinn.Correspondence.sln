@@ -15,8 +15,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{DC791FEF-1
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Correspondence.Tests", "Test\Altinn.Correspondence.Tests\Altinn.Correspondence.Tests.csproj", "{D78A36B1-D457-4FF7-B01E-82A0C3C64EDC}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E0B8C06F-65D0-4FE7-A87E-5E108D179DE8}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Correspondence.Integrations", "src\Altinn.Correspondence.Integrations\Altinn.Correspondence.Integrations.csproj", "{5C88BAAD-CF82-4D7A-8FB6-879605EF4E03}"
 EndProject
 Global
@@ -58,6 +56,5 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{D78A36B1-D457-4FF7-B01E-82A0C3C64EDC} = {DC791FEF-108F-4773-8B84-56986CB90767}
-		{5C88BAAD-CF82-4D7A-8FB6-879605EF4E03} = {E0B8C06F-65D0-4FE7-A87E-5E108D179DE8}
 	EndGlobalSection
 EndGlobal

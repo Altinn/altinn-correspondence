@@ -1,7 +1,7 @@
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Core.Options;
-using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Integrations;
+using Altinn.Correspondence.Persistence;
 using Azure.Identity;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
