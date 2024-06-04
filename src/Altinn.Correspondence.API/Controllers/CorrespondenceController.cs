@@ -72,7 +72,7 @@ namespace Altinn.Correspondence.API.Controllers
                 {
                     CorrespondenceId = Guid.NewGuid(),
                     Recipient = initializeCorrespondence.Recipient,
-                    Content = (CorrespondenceContentExt)initializeCorrespondence.Content,
+                    Content = initializeCorrespondence.Content != null ? (CorrespondenceContentExt)initializeCorrespondence.Content : null,
                     ResourceId = initializeCorrespondence.ResourceId,
                     Sender = initializeCorrespondence.Sender,
                     SendersReference = initializeCorrespondence.SendersReference,

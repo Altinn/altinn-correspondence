@@ -11,11 +11,11 @@ public class GetAttachmentDetailsCommandResponse
 
     public string? DataLocationUrl { get; set; }
 
-    public AttachmentStatus? Status { get; set; }
+    public AttachmentStatus Status { get; set; }
 
-    public string? StatusText { get; set; } = string.Empty;
+    public string StatusText { get; set; } = string.Empty;
 
-    public DateTimeOffset? StatusChanged { get; set; }
+    public DateTimeOffset StatusChanged { get; set; }
 
     public string? Name { get; set; } = string.Empty;
 

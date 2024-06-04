@@ -26,18 +26,18 @@ namespace Altinn.Correspondence.API.Models
         /// Current attachment status
         /// </summary>
         [JsonPropertyName("status")]
-        public AttachmentStatusExt Status { get; set; }
+        public required AttachmentStatusExt Status { get; set; }
 
         /// <summary>
         /// Current attachment status text description
         /// </summary>
         [JsonPropertyName("statusText")]
-        public string StatusText { get; set; } = string.Empty;
+        public required string StatusText { get; set; }
 
         /// <summary>
         /// Timestamp for when the Current Attachment Status was changed
         /// </summary>
         [JsonPropertyName("statusChanged")]
-        public DateTimeOffset? StatusChanged { get; set; }
+        public required DateTimeOffset StatusChanged { get; set; }
     }
 }

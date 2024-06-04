@@ -7,11 +7,11 @@ public class GetCorrespondenceOverviewCommandResponse
 {
     public required Guid CorrespondenceId { get; set; }
 
-    public CorrespondenceStatus? Status { get; set; }
+    public required CorrespondenceStatus Status { get; set; }
 
-    public string? StatusText { get; set; } = string.Empty;
+    public required string StatusText { get; set; }
 
-    public DateTimeOffset? StatusChanged { get; set; }
+    public required DateTimeOffset StatusChanged { get; set; }
 
     public string? Name { get; set; } = string.Empty;
 

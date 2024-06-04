@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.GetCorrespondenceOverviewCommand;
+using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
 
@@ -15,23 +16,26 @@ public class GetCorrespondenceOverviewCommandHandler : IHandler<Guid, GetCorresp
     public async Task<OneOf<GetCorrespondenceOverviewCommandResponse, Error>> Process(Guid CorrespondenceId, CancellationToken cancellationToken)
     {
         var correspondence = await _CorrespondenceRepository.GetCorrespondenceById(CorrespondenceId, true, cancellationToken);
-        var latestStatus = correspondence?.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault();
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
         }
-
+        var latestStatus = correspondence.Statuses?.OrderByDescending(s => s.StatusChanged).FirstOrDefault();
+        if (latestStatus == null)
+        {
+            return Errors.CorrespondenceNotFound;
+        }
         var response = new GetCorrespondenceOverviewCommandResponse
         {
             CorrespondenceId = correspondence.Id,
-            Status = latestStatus?.Status,
-            StatusText = latestStatus?.StatusText,
-            StatusChanged = latestStatus?.StatusChanged,
+            Status = latestStatus.Status,
+            StatusText = latestStatus.StatusText,
+            StatusChanged = latestStatus.StatusChanged,
             SendersReference = correspondence.SendersReference,
             Created = correspondence.Created,
             Recipient = correspondence.Recipient,
-            ReplyOptions = correspondence.ReplyOptions,
-            Notifications = correspondence.Notifications,
+            ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
+            Notifications = correspondence.Notifications ?? new List<CorrespondenceNotificationEntity>(),
             VisibleFrom = correspondence.VisibleFrom,
             IsReservable = correspondence.IsReservable == null || correspondence.IsReservable.Value,
         };

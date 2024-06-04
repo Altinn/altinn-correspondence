@@ -12,7 +12,7 @@ namespace Altinn.Correspondence.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult> HealthCheckAsync()
+        public ActionResult HealthCheckAsync()
         {
             return Ok("Environment properly configured");
         }

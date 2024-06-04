@@ -15,6 +15,6 @@ namespace Altinn.Correspondence.Core.Models
 
         public Guid CorrespondenceId { get; set; }
         [ForeignKey("CorrespondenceId")]
-        public CorrespondenceEntity Correspondence { get; set; }
+        public CorrespondenceEntity? Correspondence { get; set; }
     }
 }

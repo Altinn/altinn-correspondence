@@ -22,14 +22,15 @@ internal static class InitializeCorrespondenceMapper
             ReplyOptions = CorrespondenceReplyOptionsMapper.MapListToEntities(initializeCorrespondenceExt.ReplyOptions),
             IsReservable = initializeCorrespondenceExt.IsReservable,
             Notifications = InitializeCorrespondenceNotificationMapper.MapListToEntities(initializeCorrespondenceExt.Notifications),
+            Statuses = new List<CorrespondenceStatusEntity>(),
             Created = DateTimeOffset.UtcNow,
-            Content = new CorrespondenceContentEntity
+            Content = initializeCorrespondenceExt.Content != null ? new CorrespondenceContentEntity
             {
                 Language = initializeCorrespondenceExt.Content.Language,
                 MessageTitle = initializeCorrespondenceExt.Content.MessageTitle,
                 MessageSummary = initializeCorrespondenceExt.Content.MessageSummary,
                 Attachments = InitializeCorrespondenceAttachmentMapper.MapListToEntities(initializeCorrespondenceExt.Content.Attachments)
-            }
+            } : null,
         };
         return new InitializeCorrespondenceCommandRequest()
         {
