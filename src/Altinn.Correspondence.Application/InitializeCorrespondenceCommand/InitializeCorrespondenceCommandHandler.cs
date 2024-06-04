@@ -1,6 +1,8 @@
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondenceCommand;
@@ -9,10 +11,12 @@ public class InitializeCorrespondenceCommandHandler : IHandler<InitializeCorresp
 {
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly IAttachmentRepository _attachmentRepository;
-    public InitializeCorrespondenceCommandHandler(ICorrespondenceRepository correspondenceRepository, IAttachmentRepository attachmentRepository)
+    private readonly IEventBus _eventBus;
+    public InitializeCorrespondenceCommandHandler(ICorrespondenceRepository correspondenceRepository, IAttachmentRepository attachmentRepository, IEventBus eventBus)
     {
         _correspondenceRepository = correspondenceRepository;
         _attachmentRepository = attachmentRepository;
+        _eventBus = eventBus;
     }
 
     public async Task<OneOf<InitializeCorrespondenceCommandResponse, Error>> Process(InitializeCorrespondenceCommandRequest request, CancellationToken cancellationToken)
@@ -31,6 +35,7 @@ public class InitializeCorrespondenceCommandHandler : IHandler<InitializeCorresp
         };
         request.Correspondence.Statuses = statuses;
         var correspondence = await _correspondenceRepository.InitializeCorrespondence(request.Correspondence, cancellationToken);
+        await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, null, correspondence.Id.ToString(), "correspondence", null, cancellationToken);
         return new InitializeCorrespondenceCommandResponse()
         {
             CorrespondenceId = correspondence.Id,

@@ -1,17 +1,20 @@
 ﻿using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.UploadAttachmentCommand;
 
-public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository) : IHandler<UploadAttachmentCommandRequest, UploadAttachmentCommandResponse>
+public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IEventBus eventBus) : IHandler<UploadAttachmentCommandRequest, UploadAttachmentCommandResponse>
 {
     private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository = attachmentStatusRepository;
     private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
     private readonly IStorageRepository _storageRepository = storageRepository;
+    private readonly IEventBus _eventBus = eventBus;
 
     public async Task<OneOf<UploadAttachmentCommandResponse, Error>> Process(UploadAttachmentCommandRequest request, CancellationToken cancellationToken)
     {
@@ -60,6 +63,7 @@ public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepo
         await _attachmentStatusRepository.AddAttachmentStatus(publishStatus, cancellationToken);
         await CheckCorrespondenceStatusesAfterUploadAndPublish(attachment.Id, cancellationToken);
 
+        await _eventBus.Publish(AltinnEventType.AttachmentPublished, null, request.AttachmentId.ToString(), "attachment", null, cancellationToken);
         return new UploadAttachmentCommandResponse()
         {
             AttachmentId = attachment.Id,
