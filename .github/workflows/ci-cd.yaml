@@ -57,6 +57,7 @@ jobs:
       - name: "Publish image"
         uses: ./.github/actions/publish-image
         with:
+          imageTag: ${{ needs.prepare-deployment.outputs.imageTag }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           dockerImageBaseName: ghcr.io/altinn/altinn-correspondence
 
