@@ -49,7 +49,7 @@ namespace Altinn.Correspondence.API.Models
         /// The correspondence content. Contains information about the Correspondence body, subject etc.
         /// </summary>
         [JsonPropertyName("content")]
-        public InitializeCorrespondenceContentExt Content { get; set; }
+        public InitializeCorrespondenceContentExt? Content { get; set; }
 
         /// <summary>
         /// When the correspondence should become visible to the recipient.
@@ -90,14 +90,14 @@ namespace Altinn.Correspondence.API.Models
         /// Options for how the recipient can reply to the correspondence
         /// </summary>
         [JsonPropertyName("replyOptions")]
-        public List<CorrespondenceReplyOptionExt>? ReplyOptions { get; set; }
+        public List<CorrespondenceReplyOptionExt> ReplyOptions { get; set; } = new List<CorrespondenceReplyOptionExt>();
 
         /// <summary>
         /// Notifications directly related to this Correspondence.
         /// </summary>
         [JsonPropertyName("notifications")]
         [MaxLength(6, ErrorMessage = "Notifications can contain at most 6 notifcations")]
-        public List<InitializeCorrespondenceNotificationExt>? Notifications { get; set; }
+        public List<InitializeCorrespondenceNotificationExt> Notifications { get; set; } = new List<InitializeCorrespondenceNotificationExt>();
 
         /// <summary>
         /// Specifies whether the correspondence can override reservation against digital comminication in KRR
@@ -113,7 +113,7 @@ namespace Altinn.Correspondence.API.Models
         {
         }
 
-        protected override ValidationResult IsValid(object value, ValidationContext validationContext)
+        protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
         {
             if (value == null)
             {

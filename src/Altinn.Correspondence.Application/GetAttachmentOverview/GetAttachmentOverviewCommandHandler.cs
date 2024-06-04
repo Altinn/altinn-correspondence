@@ -17,20 +17,20 @@ public class GetAttachmentOverviewCommandHandler : IHandler<Guid, GetAttachmentO
     public async Task<OneOf<GetAttachmentOverviewCommandResponse, Error>> Process(Guid attachmentId, CancellationToken cancellationToken)
     {
         var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, false, cancellationToken);
-        var attachmentStatus = await _attachmentStatusRepository.GetLatestStatusByAttachmentId(attachmentId, cancellationToken);
         if (attachment == null)
         {
             return Errors.AttachmentNotFound;
         }
+        var attachmentStatus = await _attachmentStatusRepository.GetLatestStatusByAttachmentId(attachmentId, cancellationToken);
 
         var response = new GetAttachmentOverviewCommandResponse
         {
             AttachmentId = attachment.Id,
             DataLocationUrl = attachment.DataLocationUrl,
             Name = attachment.FileName,
-            Status = attachmentStatus?.Status,
-            StatusText = attachmentStatus?.StatusText,
-            StatusChanged = attachmentStatus?.StatusChanged,
+            Status = attachmentStatus.Status,
+            StatusText = attachmentStatus.StatusText,
+            StatusChanged = attachmentStatus.StatusChanged,
             DataLocationType = attachment.DataLocationType,
             DataType = attachment.DataType,
             IntendedPresentation = attachment.IntendedPresentation,

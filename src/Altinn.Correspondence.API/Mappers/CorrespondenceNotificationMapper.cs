@@ -8,7 +8,7 @@ internal static class CorrespondenceNotificationMapper
 
     internal static CorrespondenceNotificationDetailsExt MapToExternal(CorrespondenceNotificationEntity correspondenceNotification)
     {
-        var latestStatus = correspondenceNotification?.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault();
+        var latestStatus = correspondenceNotification.Statuses.OrderByDescending(s => s.StatusChanged).First();
         var notification = new CorrespondenceNotificationDetailsExt
         {
             NotificationTemplate = correspondenceNotification.NotificationTemplate,
@@ -18,13 +18,10 @@ internal static class CorrespondenceNotificationMapper
             Created = correspondenceNotification.Created,
             NotificationId = correspondenceNotification.Id,
             StatusHistory = correspondenceNotification.Statuses != null ? CorrespondenceNotificationStatusMapper.MapListToExternal(correspondenceNotification.Statuses) : new List<NotificationStatusEventExt>(),
+            Status = latestStatus.Status,
+            StatusText = latestStatus.StatusText ?? string.Empty,
+            StatusChanged = latestStatus.StatusChanged
         };
-        if (latestStatus != null)
-        {
-            notification.Status = latestStatus.Status;
-            notification.StatusText = latestStatus.StatusText;
-            notification.StatusChanged = latestStatus.StatusChanged;
-        }
         return notification;
     }
 

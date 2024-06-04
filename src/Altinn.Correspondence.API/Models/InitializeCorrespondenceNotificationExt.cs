@@ -18,7 +18,7 @@ namespace Altinn.Correspondence.API.Models
         /// Reminders sent after 14 days if Correspondence not confirmed
         /// </remarks>
         [JsonPropertyName("notificationTemplate")]
-        public string NotificationTemplate { get; set; }
+        public required string NotificationTemplate { get; set; }
 
         /// <summary>
         /// Single custom text token that can be inserted into the notification template

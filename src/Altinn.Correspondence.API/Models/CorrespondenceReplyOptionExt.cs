@@ -9,11 +9,11 @@
         /// <summary>
         /// Gets or sets the URL to be used as a reply/response to a correspondence. 
         /// </summary>
-        public string LinkURL { get; set; }
+        public required string LinkURL { get; set; }
 
         /// <summary>
         /// Gets or sets the url text.
         /// </summary>
-        public string LinkText { get; set; }
+        public string? LinkText { get; set; }
     }
 }

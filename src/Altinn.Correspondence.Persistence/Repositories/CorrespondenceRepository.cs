@@ -26,7 +26,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             CancellationToken cancellationToken)
         {
             var correspondences = _context.Correspondences
-                .Where(c => (status == null || (status != null && _context.CorrespondenceStatuses.Where(cs => cs.CorrespondenceId == c.Id).OrderBy(cs => cs.StatusChanged).LastOrDefault().Status == status)) &&
+                .Where(c => (status == null || (status != null && _context.CorrespondenceStatuses.Where(cs => cs.CorrespondenceId == c.Id).OrderBy(cs => cs.StatusChanged).Last().Status == status)) &&
                     (from == null || (from != null && c.VisibleFrom > from))
                     && (to == null || (to != null && c.VisibleFrom < to)))
                 .OrderByDescending(c => c.VisibleFrom)
@@ -54,7 +54,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             var correspondence = await _context.Correspondences.Where(c =>
                 !_context.CorrespondenceStatuses.Any(cs => cs.CorrespondenceId == c.Id && cs.Status == CorrespondenceStatus.Published) &&
                 c.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId) &&
-                    (attachmentStatus == null || c.Content.Attachments.All(ca => ca.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault().Status == attachmentStatus))
+                    (attachmentStatus == null || c.Content.Attachments.All(ca => ca.Attachment != null && ca.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).First().Status == attachmentStatus))
                 ).Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ToListAsync(cancellationToken);
 
             return correspondence;

@@ -14,7 +14,7 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("language")]
         [ISO6391]
-        public string Language { get; set; }
+        public required string Language { get; set; }
 
         /// <summary>
         /// Gets or sets the correspondence message title. Subject.
@@ -23,7 +23,7 @@ namespace Altinn.Correspondence.API.Models
         /// TODO: Length restriction?
         /// </remarks>
         [JsonPropertyName("messageTitle")]
-        public string MessageTitle { get; set; }
+        public required string MessageTitle { get; set; }
 
         /// <summary>
         /// Gets or sets a summary text of the correspondence.
@@ -32,7 +32,7 @@ namespace Altinn.Correspondence.API.Models
         /// TODO: Length restriction?
         /// </remarks>
         [JsonPropertyName("messageSummary")]
-        public string MessageSummary { get; set; }
+        public required string MessageSummary { get; set; }
 
         /// <summary>
         /// Gets or sets a list of attachments.
@@ -41,7 +41,7 @@ namespace Altinn.Correspondence.API.Models
         /// TODO: Number restriction?
         /// </remarks>
         [JsonPropertyName("attachments")]
-        public List<InitializeCorrespondenceAttachmentExt> Attachments { get; set; }
+        public List<InitializeCorrespondenceAttachmentExt> Attachments { get; set; } = new List<InitializeCorrespondenceAttachmentExt>();
 
         /// <summary>
         /// Ids of the attachments that are to be included in the correspondence.
@@ -57,7 +57,7 @@ namespace Altinn.Correspondence.API.Models
         {
         }
 
-        protected override ValidationResult IsValid(object value, ValidationContext validationContext)
+        protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
         {
             var stringValue = value as string;
             if (string.IsNullOrWhiteSpace(stringValue))

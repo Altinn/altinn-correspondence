@@ -6,5 +6,5 @@ public class InitializeCorrespondenceCommandResponse
 {
     public Guid CorrespondenceId { get; set; }
 
-    public List<Guid> AttachmentIds { get; set; }
+    public List<Guid> AttachmentIds { get; set; } = new List<Guid>();
 }

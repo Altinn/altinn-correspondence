@@ -13,7 +13,7 @@ internal static class AttachmentOverviewMapper
         var attachment = new AttachmentOverviewExt
         {
             AttachmentId = attachmentOverview.AttachmentId,
-            Name = attachmentOverview.Name,
+            Name = attachmentOverview.Name ?? string.Empty,
             Status = (AttachmentStatusExt)attachmentOverview.Status,
             StatusText = attachmentOverview.StatusText,
             StatusChanged = attachmentOverview.StatusChanged,

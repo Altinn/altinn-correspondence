@@ -9,21 +9,21 @@ namespace Altinn.Correspondence.API.Models
     public class NotificationStatusEventExt
     {
         /// <summary>
-        /// Notificatipn Status code
+        /// Notification Status code
         /// </summary>
         [JsonPropertyName("status")]
-        public string Status { get; set; }
+        public required string Status { get; set; }
 
         /// <summary>
         /// Notification Status Text description
         /// </summary>
         [JsonPropertyName("statusText")]
-        public string StatusText { get; set; } = string.Empty;
+        public required string StatusText { get; set; }
 
         /// <summary>
         /// Timestamp for when this Correspondence Status Event occurred
         /// </summary>
         [JsonPropertyName("statusChanged")]
-        public DateTimeOffset StatusChanged { get; set; }
+        public required DateTimeOffset StatusChanged { get; set; }
     }
 }
