@@ -31,14 +31,14 @@ namespace Altinn.Correspondence.Core.Models.Enums
         Confirmed = 4,
 
         /// <summary>
-        /// Message has been deleted by recipient.
+        /// Message has been purged by recipient.
         /// </summary>
-        DeletedByRecipient = 5,
+        PurgedByRecipient = 5,
 
         /// <summary>
-        /// Message has been deleted by Altinn.
+        /// Message has been purged by Altinn.
         /// </summary>
-        DeletedByAltinn = 6,
+        PurgedByAltinn = 6,
 
         /// <summary>
         /// Message has been Archived

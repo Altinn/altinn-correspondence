@@ -6,6 +6,6 @@ namespace Altinn.Correspondence.Core.Repositories
     {
         Task<string?> UploadAttachment(Guid attachmentId, Stream attachment, CancellationToken cancellationToken);
         Task<Stream> DownloadAttachment(Guid attachmentId, CancellationToken cancellationToken);
-        Task DeleteAttachment(Guid attachmentId, CancellationToken cancellationToken);
+        Task PurgeAttachment(Guid attachmentId, CancellationToken cancellationToken);
     }
 }

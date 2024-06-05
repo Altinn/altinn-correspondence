@@ -1,6 +1,7 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.PurgeAttachmentCommand;
 using Altinn.Correspondence.Application.DownloadAttachmentQuery;
 using Altinn.Correspondence.Application.GetAttachmentDetailsCommand;
 using Altinn.Correspondence.Application.GetAttachmentOverviewCommand;
@@ -142,25 +143,22 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <remarks>
     /// TODO: Consider if this should not be a hard delete, but rather a soft delete and if it should then be a different HTTP operation
     /// </remarks>
-    /// <returns></returns>
+    /// <returns>Attachment Guid</returns>
     [HttpDelete]
     [Route("{attachmentId}")]
-    [Authorize]
     public async Task<ActionResult<AttachmentOverviewExt>> DeleteAttachment(
-        Guid attachmentId)
+        Guid attachmentId,
+        [FromServices] PurgeAttachmentCommandHandler handler,
+        CancellationToken cancellationToken)
     {
-        // Should this just give back HTTP Status codes?
-        return new AttachmentOverviewExt
-        {
-            AttachmentId = attachmentId,
-            Name = "TestName",
-            SendersReference = "1234",
-            DataType = "application/pdf",
-            IntendedPresentation = IntendedPresentationTypeExt.HumanReadable,
-            Status = AttachmentStatusExt.Deleted,
-            StatusText = "Attachment is deleted",
-            StatusChanged = DateTimeOffset.UtcNow
-        };
+        _logger.LogInformation("Delete attachment {attachmentId}", attachmentId.ToString());
+
+        var commandResult = await handler.Process(attachmentId, cancellationToken);
+
+        return commandResult.Match(
+            result => Ok(result),
+            Problem
+        );
     }
     private ActionResult Problem(Error error) => Problem(detail: error.Message, statusCode: (int)error.StatusCode);
 }
