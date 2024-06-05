@@ -78,6 +78,10 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
 
     environmentId: containerAppEnvId
     template: {
+      scale: {
+        minReplicas: 1
+        maxReplicas: 1
+      }
       containers: [
         {
           name: 'app'
