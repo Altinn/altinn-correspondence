@@ -35,8 +35,8 @@ public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepo
             StatusChanged = DateTime.UtcNow,
             StatusText = AttachmentStatus.UploadProcessing.ToString()
         }, cancellationToken); // TODO, with malware scan this should be set after upload
-        var uploadedFileHash = await _storageRepository.UploadAttachment(request.AttachmentId, request.UploadStream, cancellationToken);
-        if (uploadedFileHash is null)
+        var dataLocationUrl = await _storageRepository.UploadAttachment(request.AttachmentId, request.UploadStream, cancellationToken);
+        if (dataLocationUrl is null)
         {
             await _attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
             {
@@ -47,6 +47,7 @@ public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepo
             }, cancellationToken);
             return Errors.UploadFailed;
         }
+        await _attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
         // TODO: will be set by malware scan
         var publishStatus = new AttachmentStatusEntity
         {
