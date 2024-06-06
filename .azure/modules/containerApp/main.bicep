@@ -29,7 +29,7 @@ var containerAppEnvVars = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: environment }
   { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'application-insights-connection-string' }
   { name: 'DatabaseOptions__ConnectionString', secretRef: 'correspondence-ado-connection-string' }
-  { name: 'AttachmentStorageOptions__ConnectionString', secretRef: 'storage-account-key'}
+  { name: 'AttachmentStorageOptions__ConnectionString', secretRef: 'storage-connection-string'}
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription_id }
   { name: 'AzureResourceManagerOptions__Location', value: 'norwayeast' }
   { name: 'AzureResourceManagerOptions__Environment', value: environment }
@@ -70,8 +70,8 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
         }
         {
           identity: principal_id
-          keyVaultUrl: '${keyVaultUrl}/secrets/storage-account-key'
-          name: 'storage-account-key'
+          keyVaultUrl: '${keyVaultUrl}/secrets/storage-connection-string'
+          name: 'storage-connection-string'
         }
       ]
     }
