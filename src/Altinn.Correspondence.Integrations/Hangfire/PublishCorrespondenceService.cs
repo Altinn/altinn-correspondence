@@ -32,38 +32,58 @@ namespace Altinn.Correspondence.Integrations.Hangfire
         {
             _logger.LogInformation("Publish correspondence {correspondenceId}", correspondenceId);
             var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
-
+            var error = false;
+            var errorMessage = "";
             if (correspondence == null)
             {
-                _logger.LogWarning("Correspondence {correspondenceId} not found when publishing", correspondenceId);
-                throw new ArgumentException($"Correspondence {correspondenceId} not found");
+                errorMessage = "Correspondence " + correspondenceId + " not found when publishing";
+                error = true;
             }
-            if (correspondence.Statuses.OrderByDescending(s => s.StatusChanged).First().Status != CorrespondenceStatus.ReadyForPublish)
+            else if (correspondence.Statuses.OrderByDescending(s => s.StatusChanged).First().Status != CorrespondenceStatus.ReadyForPublish)
             {
-                _logger.LogWarning("Correspondence {correspondenceId} not ready for publish", correspondenceId);
-                throw new ArgumentException($"Correspondence {correspondenceId} not ready for publish"); ;
+                error = true;
+                errorMessage = $"Correspondence {correspondenceId} not ready for publish";
             }
-            if (correspondence.Content == null || correspondence.Content.Attachments.Any(a => a.Attachment?.Statuses.OrderByDescending(s => s.StatusChanged).First().Status != AttachmentStatus.Published))
+            else if (correspondence.Content == null || correspondence.Content.Attachments.Any(a => a.Attachment?.Statuses.OrderByDescending(s => s.StatusChanged).First().Status != AttachmentStatus.Published))
             {
-                _logger.LogWarning("Correspondence {correspondenceId} has attachments not published", correspondenceId);
-                throw new ArgumentException($"Correspondence {correspondenceId} has attachments not published");
+                error = true;
+                errorMessage = $"Correspondence {correspondenceId} has attachments not published";
             }
-            if (correspondence.VisibleFrom > DateTimeOffset.UtcNow)
+            else if (correspondence.VisibleFrom > DateTimeOffset.UtcNow)
             {
-                _logger.LogWarning("Correspondence {correspondenceId} not visible yet", correspondenceId);
-                throw new ArgumentException($"Correspondence {correspondenceId} not visible yet");
+                error = true;
+                errorMessage = $"Correspondence {correspondenceId} not visible yet";
             }
-            var status = new CorrespondenceStatusEntity
+            CorrespondenceStatusEntity status;
+            AltinnEventType eventType = AltinnEventType.CorrespondencePublished;
+            if (error)
             {
-                CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Published,
-                StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = CorrespondenceStatus.Published.ToString()
-            };
+                _logger.LogError(errorMessage);
+                status = new CorrespondenceStatusEntity
+                {
+                    CorrespondenceId = correspondenceId,
+                    Status = CorrespondenceStatus.Failed,
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusText = errorMessage
+                };
+                eventType = AltinnEventType.CorrespondencePublishFailed;
+            }
+            else
+            {
+                status = new CorrespondenceStatusEntity
+                {
+                    CorrespondenceId = correspondenceId,
+                    Status = CorrespondenceStatus.Published,
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusText = CorrespondenceStatus.Published.ToString()
+                };
+
+            }
             await _correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
-            await _eventBus.Publish(AltinnEventType.CorrespondencePublished, null, correspondenceId.ToString(), "correspondence", null, cancellationToken);
+            await _eventBus.Publish(eventType, null, correspondenceId.ToString(), "correspondence", null, cancellationToken);
         }
 
+        [AutomaticRetry(Attempts = 0)]
         public Task DeletePublishJob(Guid correspondenceId)
         {
             _logger.LogInformation("Delete publish job for correspondence {correspondenceId}", correspondenceId);

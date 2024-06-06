@@ -13,6 +13,7 @@ public enum AltinnEventType
     CorrespondencePublished,
     CorrespondenceArchived,
     CorrespondencePurged,
+    CorrespondencePublishFailed,
 
     CorrespondenceReceiverRead,
     CorrespondenceReceiverConfirmed,
