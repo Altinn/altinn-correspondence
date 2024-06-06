@@ -9,7 +9,7 @@ param correspondencePgAdminPassword = readEnvironmentVariable('CORRESPONDENCE_PG
 param tenantId = readEnvironmentVariable('TENANT_ID')
 param test_client_id = readEnvironmentVariable('TEST_CLIENT_ID')
 param sourceKeyVaultName = readEnvironmentVariable('KEY_VAULT_NAME')
-param migrationsStorageAccountName = readEnvironmentVariable('STORAGE_ACCOUNT_NAME')
+param storageAccountName = readEnvironmentVariable('STORAGE_ACCOUNT_NAME')
 // SKUs
 param keyVaultSku = {
   name: 'standard'
