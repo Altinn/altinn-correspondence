@@ -46,7 +46,7 @@ public class InitializeCorrespondenceCommandHandler : IHandler<InitializeCorresp
         request.Correspondence.Statuses = statuses;
         request.Correspondence.Notifications = ProcessNotifications(request.Correspondence.Notifications, cancellationToken);
         var correspondence = await _correspondenceRepository.InitializeCorrespondence(request.Correspondence, cancellationToken);
-        _backgroundJobClient.Schedule<PublishCorrespondenceService>((service) => service.Publish(correspondence.Id, cancellationToken), TimeSpan.FromMinutes(1));
+        _backgroundJobClient.Schedule<PublishCorrespondenceService>((service) => service.Publish(correspondence.Id, cancellationToken), request.Correspondence.VisibleFrom);
         await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, null, correspondence.Id.ToString(), "correspondence", null, cancellationToken);
         return new InitializeCorrespondenceCommandResponse()
         {

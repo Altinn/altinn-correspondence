@@ -61,10 +61,24 @@ namespace Altinn.Correspondence.Integrations.Hangfire
                 StatusText = CorrespondenceStatus.Published.ToString()
             };
             await _correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
-
             await _eventBus.Publish(AltinnEventType.CorrespondencePublished, null, correspondenceId.ToString(), "correspondence", null, cancellationToken);
+        }
 
-
+        public Task DeletePublishJob(Guid correspondenceId)
+        {
+            _logger.LogInformation("Delete publish job for correspondence {correspondenceId}", correspondenceId);
+            var monitor = JobStorage.Current.GetMonitoringApi();
+            var jobsScheduled = monitor.ScheduledJobs(0, int.MaxValue)
+                .Where(x => x.Value.Job.Method.Name == "Publish");
+            foreach (var j in jobsScheduled)
+            {
+                var t = (Guid)j.Value.Job.Args[0];
+                if (t == correspondenceId)
+                {
+                    BackgroundJob.Delete(j.Key);
+                }
+            }
+            return Task.CompletedTask;
         }
     }
 
