@@ -40,6 +40,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<CorrespondenceEntity?> GetCorrespondenceById(
             Guid guid,
             bool includeStatus,
+            bool includeContent,
             CancellationToken cancellationToken)
         {
             var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.Notifications).ThenInclude(n => n.Statuses).AsQueryable();
@@ -47,12 +48,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 correspondences = correspondences.Include(c => c.Statuses);
             }
+            if (includeContent)
+            {
+                correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a.Statuses);
+            }
             return await correspondences.FirstOrDefaultAsync(c => c.Id == guid, cancellationToken);
         }
         public async Task<List<CorrespondenceEntity>> GetNonPublishedCorrespondencesByAttachmentId(Guid attachmentId, AttachmentStatus? attachmentStatus = null, CancellationToken cancellationToken = default)
         {
             var correspondence = await _context.Correspondences.Where(c =>
-                !_context.CorrespondenceStatuses.Any(cs => cs.CorrespondenceId == c.Id && cs.Status == CorrespondenceStatus.Published) &&
+                !_context.CorrespondenceStatuses.Any(cs => cs.CorrespondenceId == c.Id && (cs.Status >= CorrespondenceStatus.ReadyForPublish)) &&
                 c.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId) &&
                     (attachmentStatus == null || c.Content.Attachments.All(ca => ca.Attachment != null && ca.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).First().Status == attachmentStatus))
                 ).Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ToListAsync(cancellationToken);

@@ -21,13 +21,13 @@ public class UpdateCorrespondenceStatusCommandHandler : IHandler<UpdateCorrespon
 
     public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusCommandRequest request, CancellationToken cancellationToken)
     {
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, false, cancellationToken);
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, cancellationToken);
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
         }
 
-        var currentStatus = await _correspondenceStatusRepository.GetLatestStatusByCorrespondenceId(request.CorrespondenceId, cancellationToken);
+        var currentStatus = correspondence.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault();
         if ((request.Status == CorrespondenceStatus.Confirmed || request.Status == CorrespondenceStatus.Read) && currentStatus?.Status < CorrespondenceStatus.Published)
         {
             return Errors.CorrespondenceNotPublished;

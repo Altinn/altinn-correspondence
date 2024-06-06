@@ -94,9 +94,9 @@ public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepo
                 new CorrespondenceStatusEntity
                 {
                     CorrespondenceId = correspondence.Id,
-                    Status = CorrespondenceStatus.Published,
+                    Status = CorrespondenceStatus.ReadyForPublish,
                     StatusChanged = DateTime.UtcNow,
-                    StatusText = CorrespondenceStatus.Published.ToString()
+                    StatusText = CorrespondenceStatus.ReadyForPublish.ToString()
                 }
             );
         }

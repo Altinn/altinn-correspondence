@@ -7,6 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.12" />
+    <PackageReference Include="Hangfire.Core" Version="1.8.12" />
+    <PackageReference Include="Hangfire.PostgreSql" Version="1.20.8" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
@@ -15,6 +18,7 @@
   
   <ItemGroup>
     <ProjectReference Include="..\Altinn.Correspondence.Core\Altinn.Correspondence.Core.csproj" />
+       <ProjectReference Include="..\Altinn.Correspondence.Persistence\Altinn.Correspondence.Persistence.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,8 +1,10 @@
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Integrations;
+using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Persistence;
 using Azure.Identity;
+using Hangfire;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
@@ -42,6 +44,7 @@ static void BuildAndRun(string[] args)
                 _Db.Database.Migrate();
             }
         }
+        app.UseHangfireDashboard();
     }
 
 
@@ -50,6 +53,8 @@ static void BuildAndRun(string[] args)
 
 static void ConfigureServices(IServiceCollection services, IConfiguration config, IHostEnvironment hostEnvironment)
 {
+    var connectionString = GetConnectionString(config);
+
     services.Configure<AttachmentStorageOptions>(config.GetSection(key: nameof(AttachmentStorageOptions)));
 
     services.AddControllers().AddJsonOptions(options =>
@@ -67,6 +72,8 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.AddHttpClient();
     services.AddProblemDetails();
 
+    services.ConfigureHangfire(connectionString);
+
     services.Configure<KestrelServerOptions>(options =>
     {
         options.Limits.MaxRequestBodySize = null;
@@ -80,18 +87,27 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
 
     services.AddDbContext<ApplicationDbContext>(opts =>
     {
-        var connectionString = config.GetSection("DatabaseOptions:ConnectionString").Value ?? Environment.GetEnvironmentVariable("DatabaseOptions__ConnectionString");
-        if (string.IsNullOrWhiteSpace(new NpgsqlConnectionStringBuilder(connectionString).Password))
-        {
-            var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions());
-            var token = credential
-                .GetToken(
-                    new Azure.Core.TokenRequestContext(new[] { "https://ossrdbms-aad.database.windows.net/.default" })
-                );
-            connectionString += ";Password=" + token.Token + ";";
-        }
         opts.UseNpgsql(connectionString);
     });
 }
 
+static string GetConnectionString(IConfiguration config)
+{
+    var connectionString = config.GetSection("DatabaseOptions:ConnectionString").Value ?? Environment.GetEnvironmentVariable("DatabaseOptions__ConnectionString");
+    if (connectionString == null)
+    {
+        throw new ArgumentNullException("DatabaseOptions__ConnectionString");
+    }
+    if (string.IsNullOrWhiteSpace(new NpgsqlConnectionStringBuilder(connectionString).Password))
+    {
+        var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions());
+        var token = credential
+            .GetToken(
+                new Azure.Core.TokenRequestContext(new[] { "https://ossrdbms-aad.database.windows.net/.default" })
+            );
+        connectionString += ";Password=" + token.Token + ";";
+
+    }
+    return connectionString;
+}
 public partial class Program { }

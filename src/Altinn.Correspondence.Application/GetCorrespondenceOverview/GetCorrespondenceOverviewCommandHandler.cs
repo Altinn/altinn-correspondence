@@ -15,7 +15,7 @@ public class GetCorrespondenceOverviewCommandHandler : IHandler<Guid, GetCorresp
 
     public async Task<OneOf<GetCorrespondenceOverviewCommandResponse, Error>> Process(Guid CorrespondenceId, CancellationToken cancellationToken)
     {
-        var correspondence = await _CorrespondenceRepository.GetCorrespondenceById(CorrespondenceId, true, cancellationToken);
+        var correspondence = await _CorrespondenceRepository.GetCorrespondenceById(CorrespondenceId, true, false, cancellationToken);
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;

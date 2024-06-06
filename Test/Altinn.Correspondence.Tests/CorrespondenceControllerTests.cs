@@ -92,9 +92,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task ReceiverMarkActions_CorrespondencePublished_ReturnOk()
     {
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceAlreadyVisibleWithNoContent());
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
-        await UploadAttachment(correspondence?.AttachmentIds.FirstOrDefault());
         var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}", _responseSerializerOptions);
         Assert.True(overview?.Status == CorrespondenceStatusExt.Published);
 
