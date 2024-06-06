@@ -143,7 +143,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <remarks>
     /// TODO: Consider if this should not be a hard delete, but rather a soft delete and if it should then be a different HTTP operation
     /// </remarks>
-    /// <returns>Attachment Guid</returns>
+    /// <returns></returns>
     [HttpDelete]
     [Route("{attachmentId}")]
     public async Task<ActionResult<AttachmentOverviewExt>> DeleteAttachment(
@@ -156,7 +156,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
         var commandResult = await handler.Process(attachmentId, cancellationToken);
 
         return commandResult.Match(
-            result => Ok(result),
+            _ => Ok(null),
             Problem
         );
     }
