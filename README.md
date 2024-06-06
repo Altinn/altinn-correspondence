@@ -25,9 +25,3 @@ Formatting of the code base is handled by Dotnet format. [See how to configure i
 
 ## Deploy
 The build and push workflow produces a docker image that is pushed to Github packages. This image is then used by the release action. Read more here: [Readme-infrastructure](/README-infrastructure.md)
-
-TODO:
-Figure out how etag works
-Verify that idempotency works as intended
-Fix bicep bug with identity id used instead of identity name when deploying/migrating new database
-Change secret name from MIRATION_ prefix to without

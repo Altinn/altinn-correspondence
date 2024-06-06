@@ -57,7 +57,8 @@ public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepo
             return Errors.UploadFailed;
         }
         await _attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
-        if (_hostEnvironment.IsDevelopment()) { // No malware scan when running locally
+        if (_hostEnvironment.IsDevelopment()) // No malware scan when running locally
+        {
             currentStatus = new AttachmentStatusEntity
             {
                 AttachmentId = request.AttachmentId,
