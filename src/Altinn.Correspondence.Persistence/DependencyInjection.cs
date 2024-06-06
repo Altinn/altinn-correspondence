@@ -14,6 +14,5 @@ public static class DependencyInjection
         services.AddScoped<ICorrespondenceStatusRepository, CorrespondenceStatusRepository>();
         services.AddScoped<ICorrespondenceAttachmentRepository, CorrespondenceAttachmentRepository>();
         services.AddScoped<IStorageRepository, StorageRepository>();
-
     }
 }
