@@ -18,8 +18,8 @@ inputs:
   AZURE_NAME_PREFIX:
     description: "Prefix for all resources"
     required: true
-  AZURE_MIGRATION_STORAGE_ACCOUNT_NAME:
-    description: "Name of the storage account for migration files"
+  AZURE_STORAGE_ACCOUNT_NAME:
+    description: "Name of the storage account used for attachments and migrations"
     required: true
 
 runs:
@@ -72,8 +72,8 @@ runs:
       with:
         azcliversion: 2.56.0
         inlineScript: |
-          az storage copy --source ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --destination https://${{ inputs.AZURE_MIGRATION_STORAGE_ACCOUNT_NAME }}.file.core.windows.net/migrations --recursive
-          az storage copy --source ./src/Altinn.Correspondence.API/appsettings.json --destination https://${{ inputs.AZURE_MIGRATION_STORAGE_ACCOUNT_NAME }}.file.core.windows.net/migrations --recursive
+          az storage copy --source ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --destination https://${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}.file.core.windows.net/migrations --recursive
+          az storage copy --source ./src/Altinn.Correspondence.API/appsettings.json --destination https://${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}.file.core.windows.net/migrations --recursive
 
     - name: Start migration job
       uses: azure/CLI@v2
