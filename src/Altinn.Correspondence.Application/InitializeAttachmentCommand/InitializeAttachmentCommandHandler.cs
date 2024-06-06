@@ -1,6 +1,8 @@
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.InitializeAttachmentCommand;
@@ -9,10 +11,12 @@ public class InitializeAttachmentCommandHandler : IHandler<InitializeAttachmentC
 {
     private readonly IAttachmentRepository _attachmentRepository;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository;
-    public InitializeAttachmentCommandHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository)
+    private readonly IEventBus _eventBus;
+    public InitializeAttachmentCommandHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus)
     {
         _attachmentRepository = attachmentRepository;
         _attachmentStatusRepository = attachmentStatusRepository;
+        _eventBus = eventBus;
     }
 
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentCommandRequest request, CancellationToken cancellationToken)
@@ -26,6 +30,7 @@ public class InitializeAttachmentCommandHandler : IHandler<InitializeAttachmentC
             StatusText = AttachmentStatus.Initialized.ToString()
         };
         await _attachmentStatusRepository.AddAttachmentStatus(status, cancellationToken);
+        await _eventBus.Publish(AltinnEventType.AttachmentInitialized, null, attachmentId.ToString(), "attachment", null, cancellationToken);
         return attachmentId;
     }
 }

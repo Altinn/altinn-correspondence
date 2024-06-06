@@ -8,12 +8,12 @@ namespace Altinn.Correspondence.Core.Models
         [Key]
         public Guid Id { get; set; }
 
-        public string LinkURL { get; set; }
+        public required string LinkURL { get; set; }
 
-        public string LinkText { get; set; }
+        public string? LinkText { get; set; }
 
         public Guid CorrespondenceId { get; set; }
         [ForeignKey("CorrespondenceId")]
-        public CorrespondenceEntity Correspondence { get; set; }
+        public CorrespondenceEntity? Correspondence { get; set; }
     }
 }

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240513100454_AddInitialize")]
-    partial class AddInitialize
+    [Migration("20240603084028_Initial-Migration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -34,6 +34,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.Property<string>("Checksum")
                         .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("Created")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("DataLocationType")
                         .HasColumnType("integer");
@@ -81,9 +84,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<Guid>("AttachmentId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("CorrespondenceAttachmentEntityId")
-                        .HasColumnType("uuid");
-
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -97,8 +97,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AttachmentId");
-
-                    b.HasIndex("CorrespondenceAttachmentEntityId");
 
                     b.ToTable("AttachmentStatuses");
                 });
@@ -115,7 +113,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<string>("Checksum")
                         .HasColumnType("text");
 
-                    b.Property<Guid?>("CorrespondenceContentEntityId")
+                    b.Property<Guid>("CorrespondenceContentId")
                         .HasColumnType("uuid");
 
                     b.Property<int>("DataLocationType")
@@ -155,9 +153,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("AttachmentId");
 
-                    b.HasIndex("CorrespondenceContentEntityId");
+                    b.HasIndex("CorrespondenceContentId");
 
-                    b.ToTable("CorrespondenceAttachmentEntity");
+                    b.ToTable("CorrespondenceAttachments");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceContentEntity", b =>
@@ -196,6 +194,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset?>("AllowSystemDeleteAfter")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("Created")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("DueDateTime")
@@ -244,6 +245,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<Guid>("CorrespondenceId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset>("Created")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("CustomTextToken")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
@@ -263,6 +267,32 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasIndex("CorrespondenceId");
 
                     b.ToTable("CorrespondenceNotifications");
+                });
+
+            modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceNotificationStatusEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("NotificationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("StatusChanged")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("StatusText")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NotificationId");
+
+                    b.ToTable("CorrespondenceNotificationStatuses");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceReplyOptionEntity", b =>
@@ -346,10 +376,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Altinn.Correspondence.Core.Models.CorrespondenceAttachmentEntity", null)
-                        .WithMany("Statuses")
-                        .HasForeignKey("CorrespondenceAttachmentEntityId");
-
                     b.Navigation("Attachment");
                 });
 
@@ -361,11 +387,15 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Altinn.Correspondence.Core.Models.CorrespondenceContentEntity", null)
+                    b.HasOne("Altinn.Correspondence.Core.Models.CorrespondenceContentEntity", "CorrespondenceContent")
                         .WithMany("Attachments")
-                        .HasForeignKey("CorrespondenceContentEntityId");
+                        .HasForeignKey("CorrespondenceContentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Attachment");
+
+                    b.Navigation("CorrespondenceContent");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceContentEntity", b =>
@@ -388,6 +418,17 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Correspondence");
+                });
+
+            modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceNotificationStatusEntity", b =>
+                {
+                    b.HasOne("Altinn.Correspondence.Core.Models.CorrespondenceNotificationEntity", "Notification")
+                        .WithMany("Statuses")
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Notification");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceReplyOptionEntity", b =>
@@ -430,11 +471,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Navigation("Statuses");
                 });
 
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceAttachmentEntity", b =>
-                {
-                    b.Navigation("Statuses");
-                });
-
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceContentEntity", b =>
                 {
                     b.Navigation("Attachments");
@@ -451,6 +487,11 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.Navigation("ReplyOptions");
 
+                    b.Navigation("Statuses");
+                });
+
+            modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceNotificationEntity", b =>
+                {
                     b.Navigation("Statuses");
                 });
 #pragma warning restore 612, 618

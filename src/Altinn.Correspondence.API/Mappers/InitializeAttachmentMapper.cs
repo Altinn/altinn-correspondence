@@ -16,7 +16,8 @@ internal static class InitializeAttachmentMapper
             DataType = initializeAttachmentExt.DataType,
             IntendedPresentation = (IntendedPresentationType)initializeAttachmentExt.IntendedPresentation,
             Checksum = initializeAttachmentExt.Checksum,
-            IsEncrypted = initializeAttachmentExt.IsEncrypted
+            IsEncrypted = initializeAttachmentExt.IsEncrypted,
+            Created = DateTimeOffset.UtcNow,
         };
         return new InitializeAttachmentCommandRequest()
         {

@@ -1,26 +1,34 @@
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondenceCommand;
 
-public class InitializeCorrespondenceCommandHandler : IHandler<InitializeCorrespondenceCommandRequest, Guid>
+public class InitializeCorrespondenceCommandHandler : IHandler<InitializeCorrespondenceCommandRequest, InitializeCorrespondenceCommandResponse>
 {
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly IAttachmentRepository _attachmentRepository;
-    public InitializeCorrespondenceCommandHandler(ICorrespondenceRepository correspondenceRepository, IAttachmentRepository attachmentRepository)
+    private readonly IEventBus _eventBus;
+    public InitializeCorrespondenceCommandHandler(ICorrespondenceRepository correspondenceRepository, IAttachmentRepository attachmentRepository, IEventBus eventBus)
     {
         _correspondenceRepository = correspondenceRepository;
         _attachmentRepository = attachmentRepository;
+        _eventBus = eventBus;
     }
 
-    public async Task<OneOf<Guid, Error>> Process(InitializeCorrespondenceCommandRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<InitializeCorrespondenceCommandResponse, Error>> Process(InitializeCorrespondenceCommandRequest request, CancellationToken cancellationToken)
     {
-        var attachments = request.Correspondence.Content.Attachments;
-        foreach (var attachment in attachments)
+        var attachments = request.Correspondence.Content?.Attachments;
+
+        if (attachments != null)
         {
-            attachment.Attachment = await ProcessAttachment(attachment, cancellationToken);
+            foreach (var attachment in attachments)
+            {
+                attachment.Attachment = await ProcessAttachment(attachment, cancellationToken);
+            }
         }
         var statuses = new List<CorrespondenceStatusEntity>(){
             new CorrespondenceStatusEntity
@@ -30,14 +38,20 @@ public class InitializeCorrespondenceCommandHandler : IHandler<InitializeCorresp
             }
         };
         request.Correspondence.Statuses = statuses;
-        var correspondenceId = await _correspondenceRepository.InitializeCorrespondence(request.Correspondence, cancellationToken);
-        return correspondenceId;
+        request.Correspondence.Notifications = ProcessNotifications(request.Correspondence.Notifications, cancellationToken);
+        var correspondence = await _correspondenceRepository.InitializeCorrespondence(request.Correspondence, cancellationToken);
+        await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, null, correspondence.Id.ToString(), "correspondence", null, cancellationToken);
+        return new InitializeCorrespondenceCommandResponse()
+        {
+            CorrespondenceId = correspondence.Id,
+            AttachmentIds = correspondence.Content?.Attachments.Select(a => a.AttachmentId).ToList() ?? new List<Guid>()
+        };
     }
 
     public CorrespondenceStatus GetInitializeCorrespondenceStatus(CorrespondenceEntity correspondence)
     {
         var status = CorrespondenceStatus.Initialized;
-        if (correspondence.Content.Attachments.All(c => c.Statuses != null && c.Statuses.All(s => s.Status == AttachmentStatus.Published)))
+        if (correspondence.Content != null && correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.Statuses.All(s => s.Status == AttachmentStatus.Published)))
         {
             status = CorrespondenceStatus.Published;
         }
@@ -73,9 +87,28 @@ public class InitializeCorrespondenceCommandHandler : IHandler<InitializeCorresp
                 IntendedPresentation = correspondenceAttachment.IntendedPresentation,
                 DataType = correspondenceAttachment.DataType,
                 DataLocationUrl = correspondenceAttachment.DataLocationUrl,
-                Statuses = status
+                Statuses = status,
+                Created = DateTimeOffset.UtcNow
             };
         }
         return attachment;
+    }
+
+    private List<CorrespondenceNotificationEntity> ProcessNotifications(List<CorrespondenceNotificationEntity>? notifications, CancellationToken cancellationToken)
+    {
+        if (notifications == null) return new List<CorrespondenceNotificationEntity>();
+
+        foreach (var notification in notifications)
+        {
+            notification.Statuses = new List<CorrespondenceNotificationStatusEntity>(){
+                new CorrespondenceNotificationStatusEntity
+                {
+                     Status = "Initialized", //TODO create enums for notications? 
+                     StatusChanged = DateTimeOffset.UtcNow,
+                     StatusText = "Initialized"
+                }
+              };
+        }
+        return notifications;
     }
 }

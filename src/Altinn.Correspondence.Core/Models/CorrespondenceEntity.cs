@@ -22,7 +22,7 @@ namespace Altinn.Correspondence.Core.Models
         [Required]
         public required string SendersReference { get; set; }
 
-        public CorrespondenceContentEntity Content { get; set; }
+        public CorrespondenceContentEntity? Content { get; set; }
 
         public required DateTimeOffset VisibleFrom { get; set; }
 
@@ -30,20 +30,21 @@ namespace Altinn.Correspondence.Core.Models
 
         public DateTimeOffset DueDateTime { get; set; }
 
-        public List<ExternalReferenceEntity>? ExternalReferences { get; set; }
+        public List<ExternalReferenceEntity> ExternalReferences { get; set; } = new List<ExternalReferenceEntity>();
 
         [MaxLength(10, ErrorMessage = "propertyList can contain at most 10 properties")]
         public Dictionary<string, string> PropertyList { get; set; } = new Dictionary<string, string>();
 
-        public List<CorrespondenceReplyOptionEntity>? ReplyOptions { get; set; }
+        public List<CorrespondenceReplyOptionEntity> ReplyOptions { get; set; } = new List<CorrespondenceReplyOptionEntity>();
 
         [MaxLength(6, ErrorMessage = "Notifications can contain at most 6 notifcations")]
-        public List<CorrespondenceNotificationEntity>? Notifications { get; set; }
+        public List<CorrespondenceNotificationEntity> Notifications { get; set; } = new List<CorrespondenceNotificationEntity>();
 
         public bool? IsReservable { get; set; }
 
-        public List<CorrespondenceStatusEntity>? Statuses { get; set; }
+        public required List<CorrespondenceStatusEntity> Statuses { get; set; }
 
-        public DateTimeOffset Created { get; set; }
+        [Required]
+        public required DateTimeOffset Created { get; set; }
     }
 }

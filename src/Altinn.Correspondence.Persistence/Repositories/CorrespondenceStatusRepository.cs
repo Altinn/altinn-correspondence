@@ -15,12 +15,19 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return status.Id;
         }
 
-        public async Task<CorrespondenceStatusEntity?> GetLatestStatusByCorrespondenceId(Guid CorrespondenceId, CancellationToken cancellationToken)
+        public async Task<List<Guid>> AddCorrespondenceStatuses(List<CorrespondenceStatusEntity> statuses, CancellationToken cancellationToken)
+        {
+            await _context.CorrespondenceStatuses.AddRangeAsync(statuses, cancellationToken);
+            await _context.SaveChangesAsync();
+            return statuses.Select(s => s.Id).ToList();
+        }
+
+        public async Task<CorrespondenceStatusEntity> GetLatestStatusByCorrespondenceId(Guid CorrespondenceId, CancellationToken cancellationToken)
         {
             var status = await _context.CorrespondenceStatuses
                 .Where(s => s.CorrespondenceId == CorrespondenceId)
                 .OrderByDescending(s => s.StatusChanged)
-                .FirstOrDefaultAsync(cancellationToken);
+                .FirstAsync(cancellationToken);
 
             return status;
         }

@@ -8,14 +8,16 @@ namespace Altinn.Correspondence.Core.Models
         [Key]
         public Guid Id { get; set; }
 
-        public string Status { get; set; }
+        [Required]
+        public required string Status { get; set; }
 
-        public string? StatusText { get; set; }
+        public required string StatusText { get; set; }
 
+        [Required]
         public DateTimeOffset StatusChanged { get; set; }
 
         public Guid NotificationId { get; set; }
         [ForeignKey("NotificationId")]
-        public CorrespondenceNotificationEntity Notification { get; set; }
+        public CorrespondenceNotificationEntity? Notification { get; set; }
     }
 }

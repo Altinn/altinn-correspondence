@@ -23,7 +23,7 @@ runs:
         fetch-depth: 0
 
     - uses: tj-actions/changed-files@v42
-      id: filter
+      id: check-for-changes
       with:
         files_yaml: |
           azure:

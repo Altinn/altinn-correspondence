@@ -8,7 +8,7 @@ namespace Altinn.Correspondence.API.Models
         {
         }
 
-        protected override ValidationResult IsValid(object value, ValidationContext validationContext)
+        protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
         {
             var stringValue = value as string;
             if (string.IsNullOrWhiteSpace(stringValue))

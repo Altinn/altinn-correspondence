@@ -32,15 +32,16 @@ namespace Altinn.Correspondence.Core.Models
         [Required]
         public DateTimeOffset ExpirationTime { get; set; }
 
-        public List<AttachmentStatusEntity> Statuses { get; set; }
+        public List<AttachmentStatusEntity> Statuses { get; set; } = new List<AttachmentStatusEntity>();
 
         public string? DataLocationUrl { get; set; }
 
         public AttachmentDataLocationType DataLocationType { get; set; }
 
-        public List<CorrespondenceAttachmentEntity> CorrespondenceAttachments { get; set; }
+        public List<CorrespondenceAttachmentEntity> CorrespondenceAttachments { get; set; } = new List<CorrespondenceAttachmentEntity>();
 
-        public DateTimeOffset Created { get; set; }
+        [Required]
+        public required DateTimeOffset Created { get; set; }
 
     }
 }

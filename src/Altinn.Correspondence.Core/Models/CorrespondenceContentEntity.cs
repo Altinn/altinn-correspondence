@@ -9,16 +9,16 @@ namespace Altinn.Correspondence.Core.Models
         [Key]
         public Guid Id { get; set; }
 
-        public string Language { get; set; }
+        public required string Language { get; set; }
 
-        public string MessageTitle { get; set; }
+        public required string MessageTitle { get; set; }
 
-        public string MessageSummary { get; set; }
+        public required string MessageSummary { get; set; }
 
-        public List<CorrespondenceAttachmentEntity> Attachments { get; set; }
+        public required List<CorrespondenceAttachmentEntity> Attachments { get; set; }
 
         public Guid CorrespondenceId { get; set; }
         [ForeignKey("CorrespondenceId")]
-        public CorrespondenceEntity Correspondence { get; set; }
+        public CorrespondenceEntity? Correspondence { get; set; }
     }
 }

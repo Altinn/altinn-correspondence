@@ -8,7 +8,7 @@ namespace Altinn.Correspondence.Core.Models
         [Key]
         public Guid Id { get; set; }
 
-        public string NotificationTemplate { get; set; }
+        public required string NotificationTemplate { get; set; }
 
         [StringLength(128, MinimumLength = 0)]
         public string? CustomTextToken { get; set; }
@@ -19,10 +19,11 @@ namespace Altinn.Correspondence.Core.Models
 
         public Guid CorrespondenceId { get; set; }
         [ForeignKey("CorrespondenceId")]
-        public CorrespondenceEntity Correspondence { get; set; }
+        public CorrespondenceEntity? Correspondence { get; set; }
 
-        public DateTimeOffset Created { get; set; }
+        [Required]
+        public required DateTimeOffset Created { get; set; }
 
-        public List<CorrespondenceNotificationStatusEntity> Statuses { get; set; }
+        public List<CorrespondenceNotificationStatusEntity> Statuses { get; set; } = new List<CorrespondenceNotificationStatusEntity>();
     }
 }

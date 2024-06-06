@@ -13,6 +13,6 @@ namespace Altinn.Correspondence.API.Models
         /// The Status history for the Attachment
         /// </summary>
         [JsonPropertyName("statusHistory")]
-        public List<AtachmentStatusEvent> StatusHistory { get; set; }
+        public List<AtachmentStatusEvent> StatusHistory { get; set; } = new List<AtachmentStatusEvent>();
     }
 }

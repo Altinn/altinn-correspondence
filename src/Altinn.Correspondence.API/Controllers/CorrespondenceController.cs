@@ -1,4 +1,4 @@
-using Altinn.Correspondence.API.Models;
+﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.GetCorrespondenceDetailsCommand;
@@ -31,7 +31,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// Requires uploads of specified attachments if any before it can be Published
         /// If no attachments are specified, should go directly to Published
         /// </remarks>
-        /// <returns></returns>
+        /// <returns>CorrespondenceId and attachmentIds</returns>
         [HttpPost]
         public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeCorrespondence(InitializeCorrespondenceExt initializeCorrespondence, [FromServices] InitializeCorrespondenceCommandHandler handler, CancellationToken cancellationToken)
         {
@@ -42,7 +42,11 @@ namespace Altinn.Correspondence.API.Controllers
             var commandResult = await handler.Process(commandRequest, cancellationToken);
 
             return commandResult.Match(
-                id => Ok(id.ToString()),
+                data => Ok(new InitializeCorrespondenceResponseExt()
+                {
+                    CorrespondenceId = data.CorrespondenceId,
+                    AttachmentIds = data.AttachmentIds
+                }),
                 Problem
             );
         }
@@ -68,15 +72,15 @@ namespace Altinn.Correspondence.API.Controllers
                 {
                     CorrespondenceId = Guid.NewGuid(),
                     Recipient = initializeCorrespondence.Recipient,
-                    Content = (CorrespondenceContentExt)initializeCorrespondence.Content,
+                    Content = initializeCorrespondence.Content != null ? (CorrespondenceContentExt)initializeCorrespondence.Content : null,
                     ResourceId = initializeCorrespondence.ResourceId,
                     Sender = initializeCorrespondence.Sender,
                     SendersReference = initializeCorrespondence.SendersReference,
-                    Created = DateTime.Now,
+                    Created = DateTimeOffset.UtcNow,
                     VisibleFrom = initializeCorrespondence.VisibleFrom,
                     Status = CorrespondenceStatusExt.Published,
                     StatusText = "Initialized and Published successfully",
-                    StatusChanged = DateTime.Now
+                    StatusChanged = DateTimeOffset.UtcNow
                 }
             );
         }

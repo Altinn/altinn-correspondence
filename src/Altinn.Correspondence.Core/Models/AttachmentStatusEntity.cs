@@ -14,11 +14,12 @@ namespace Altinn.Correspondence.Core.Models
 
         public string StatusText { get; set; } = string.Empty;
 
+        [Required]
         public DateTimeOffset StatusChanged { get; set; }
 
         public Guid AttachmentId { get; set; }
         [ForeignKey("AttachmentId")]
-        public AttachmentEntity Attachment { get; set; }
+        public AttachmentEntity? Attachment { get; set; }
 
     }
 }
