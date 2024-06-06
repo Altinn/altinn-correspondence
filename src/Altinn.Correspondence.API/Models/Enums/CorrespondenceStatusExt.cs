@@ -15,7 +15,6 @@ namespace Altinn.Correspondence.API.Models.Enums
         ///</summary>
         ReadyForPublish = 1,
 
-
         /// <summary>
         /// Message has been Published, and is available for recipient.
         /// </summary>
