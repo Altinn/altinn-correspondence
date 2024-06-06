@@ -38,7 +38,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return await attachments.FirstOrDefaultAsync(a => a.Id == guid, cancellationToken);
         }
 
-        // TODO, best practice to pass in ID or whole entity?
         public async Task<bool> SetDataLocationUrl(AttachmentEntity attachmentEntity, AttachmentDataLocationType attachmentDataLocationType, string dataLocationUrl, CancellationToken cancellationToken)
         {
             attachmentEntity.DataLocationType = attachmentDataLocationType;
