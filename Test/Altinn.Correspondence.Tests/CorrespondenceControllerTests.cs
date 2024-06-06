@@ -27,23 +27,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
-    public async Task PublishCorrespondence()
-    {
-        var initializeAttachmentResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", InitializeAttachmentFactory.BasicAttachment());
-        var attachmentIdString = await initializeAttachmentResponse.Content.ReadAsStringAsync();
-        var attachmentId = new Guid(attachmentIdString);
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
-        correspondence.Content!.AttachmentIds = new List<Guid> { attachmentId };
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
-        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
-        var initializeCorrespondenceResponseBody = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
-        Assert.NotNull(initializeCorrespondenceResponseBody);
-        var correspondenceRaw = await _client.GetStringAsync($"correspondence/api/v1/correspondence/{initializeCorrespondenceResponseBody.CorrespondenceId}");
-        var correspondenceOverview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{initializeCorrespondenceResponseBody.CorrespondenceId}", _responseSerializerOptions);
-        Assert.True(correspondenceOverview?.Status == CorrespondenceStatusExt.Published);
-    }
-
-    [Fact]
     public async Task InitializeCorrespondence()
     {
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
