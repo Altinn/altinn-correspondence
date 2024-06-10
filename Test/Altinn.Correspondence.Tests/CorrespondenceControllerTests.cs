@@ -92,29 +92,15 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task ReceiverMarkActions_CorrespondencePublished_ReturnOk()
     {
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceAlreadyVisibleWithNoContent());
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceAlreadyVisibleWithNoAttachment());
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
         var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}", _responseSerializerOptions);
         Assert.True(overview?.Status == CorrespondenceStatusExt.Published);
-
 
         var readResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/markasread", null);
         Assert.True(readResponse.IsSuccessStatusCode, await readResponse.Content.ReadAsStringAsync());
 
         var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/confirm", null);
         Assert.True(confirmResponse.IsSuccessStatusCode, await confirmResponse.Content.ReadAsStringAsync());
-    }
-
-    private async Task UploadAttachment(Guid? attachmentId)
-    {
-        if (attachmentId == null)
-        {
-            Assert.Fail("AttachmentId is null");
-        }
-        var originalAttachmentData = new byte[] { 1, 2, 3, 4 };
-        var content = new ByteArrayContent(originalAttachmentData);
-
-        var uploadResponse = await _client.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", content);
-        uploadResponse.EnsureSuccessStatusCode();
     }
 }

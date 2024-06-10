@@ -70,7 +70,7 @@ internal static class InitializeCorrespondenceFactory
         },
         IsReservable = true
     };
-    internal static InitializeCorrespondenceExt BasicCorrespondenceAlreadyVisibleWithNoContent() => new InitializeCorrespondenceExt()
+    internal static InitializeCorrespondenceExt BasicCorrespondenceAlreadyVisibleWithNoAttachment() => new InitializeCorrespondenceExt()
     {
         Recipient = "1",
         ResourceId = "1",
@@ -83,10 +83,10 @@ internal static class InitializeCorrespondenceFactory
             MessageSummary = "test",
             Attachments = new List<InitializeCorrespondenceAttachmentExt>()
             {
-
             },
         },
-        VisibleFrom = DateTime.UtcNow.AddDays(-1),
+
+        VisibleFrom = DateTime.UtcNow,
         AllowSystemDeleteAfter = DateTime.UtcNow.AddDays(1),
         DueDateTime = DateTime.UtcNow.AddDays(1),
         ExternalReferences = new List<ExternalReferenceExt>(){
