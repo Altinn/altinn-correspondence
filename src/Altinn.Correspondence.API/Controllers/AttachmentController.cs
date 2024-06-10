@@ -25,7 +25,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <remarks>Only required if the attachment is to be shared, otherwise this is done as part of the Initialize Correspondence operation</remarks>
     /// <returns></returns>
     [HttpPost]
-    public async Task<ActionResult<AttachmentOverviewExt>> InitializeAttachment(InitializeAttachmentExt InitializeAttachmentExt, [FromServices] InitializeAttachmentCommandHandler handler, CancellationToken cancellationToken)
+    public async Task<ActionResult<Guid>> InitializeAttachment(InitializeAttachmentExt InitializeAttachmentExt, [FromServices] InitializeAttachmentCommandHandler handler, CancellationToken cancellationToken)
     {
 
         var commandRequest = InitializeAttachmentMapper.MapToRequest(InitializeAttachmentExt);

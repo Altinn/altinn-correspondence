@@ -4,7 +4,6 @@ param namePrefix string
 param image string
 param environment string
 param platform_base_url string
-
 @secure()
 param subscription_id string
 @secure()
@@ -13,7 +12,6 @@ param principal_id string
 param keyVaultUrl string
 @secure()
 param userIdentityClientId string
-
 @secure()
 param containerAppEnvId string
 
@@ -31,7 +29,7 @@ var containerAppEnvVars = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: environment }
   { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'application-insights-connection-string' }
   { name: 'DatabaseOptions__ConnectionString', secretRef: 'correspondence-ado-connection-string' }
-  { name: 'AttachmentStorageOptions__ConnectionString', secretRef: 'storage-account-key'}
+  { name: 'AttachmentStorageOptions__ConnectionString', secretRef: 'storage-connection-string'}
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription_id }
   { name: 'AzureResourceManagerOptions__Location', value: 'norwayeast' }
   { name: 'AzureResourceManagerOptions__Environment', value: environment }
@@ -72,14 +70,18 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
         }
         {
           identity: principal_id
-          keyVaultUrl: '${keyVaultUrl}/secrets/storage-account-key'
-          name: 'storage-account-key'
+          keyVaultUrl: '${keyVaultUrl}/secrets/storage-connection-string'
+          name: 'storage-connection-string'
         }
       ]
     }
 
     environmentId: containerAppEnvId
     template: {
+      scale: {
+        minReplicas: 1
+        maxReplicas: 1
+      }
       containers: [
         {
           name: 'app'
@@ -99,3 +101,4 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
 output name string = containerApp.name
 output revisionName string = containerApp.properties.latestRevisionName
 output app object = containerApp
+output containerAppIngress string = containerApp.properties.configuration.ingress.fqdn

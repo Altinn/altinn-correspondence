@@ -14,7 +14,7 @@ param environment string
 param namePrefix string
 
 @secure()
-param migrationsStorageAccountName string
+param storageAccountName string
 
 import { Sku as KeyVaultSku } from '../modules/keyvault/create.bicep'
 param keyVaultSku KeyVaultSku
@@ -76,9 +76,9 @@ module postgresql '../modules/postgreSql/create.bicep' = {
 
 module storageAccount '../modules/storageAccount/create.bicep' = {
   scope: resourceGroup
-  name: migrationsStorageAccountName
+  name: storageAccountName
   params: {
-    storageAccountName: migrationsStorageAccountName
+    storageAccountName: storageAccountName
     location: location
     fileshare: 'migrations'
   }
@@ -92,7 +92,7 @@ module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
     keyVaultName: sourceKeyVaultName
     location: location
     namePrefix: namePrefix
-    storageAccountName: migrationsStorageAccountName
+    storageAccountName: storageAccountName
   }
 }
 output resourceGroupName string = resourceGroup.name

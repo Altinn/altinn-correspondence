@@ -27,5 +27,6 @@ public static class DependencyInjection
         services.AddScoped<UploadAttachmentCommandHandler>();
         services.AddScoped<DownloadAttachmentQueryHandler>();
         services.AddScoped<PurgeAttachmentCommandHandler>();
+        services.AddScoped<MalwareScanResultCommandHandler>();
     }
 }

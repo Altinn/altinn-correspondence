@@ -13,9 +13,10 @@ param platform_base_url string
 param sourceKeyVaultName string
 @secure()
 param keyVaultUrl string
-
 @secure()
 param namePrefix string
+@secure()
+param storageAccountName string
 
 var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'
@@ -86,6 +87,17 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     keyVaultUrl: keyVaultUrl
     userIdentityClientId: appIdentity.outputs.clientId
     containerAppEnvId: keyvault.getSecret('container-app-env-id')
+  }
+}
+
+module virusScan '../../modules/virusScan/create.bicep' = {
+  scope: resourceGroup
+  name: 'virusScan'
+  params: {
+    containerAppIngress: containerApp.outputs.containerAppIngress
+    location: location
+    namePrefix: namePrefix
+    storageAccountName: storageAccountName
   }
 }
 
