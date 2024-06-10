@@ -65,7 +65,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
-        public async Task DeleteAttachment(Guid attachmentId, CancellationToken cancellationToken)
+        public async Task PurgeAttachment(Guid attachmentId, CancellationToken cancellationToken)
         {
             BlobClient blobClient = InitializeBlobClient(attachmentId);
             try

@@ -20,6 +20,7 @@ namespace Altinn.Correspondence.Core.Repositories
             bool includeStatus,
             CancellationToken cancellationToken);
 
+        Task<List<CorrespondenceEntity>> GetCorrespondencesByAttachmentId(Guid attachmentId, bool includeStatus, CancellationToken cancellationToken = default);
         Task<List<CorrespondenceEntity>> GetNonPublishedCorrespondencesByAttachmentId(Guid attachmentId, AttachmentStatus? attachmentStatus = null, CancellationToken cancellationToken = default);
     }
 }

@@ -669,7 +669,7 @@
                     "Initialized",
                     "UploadProcessing",
                     "Published",
-                    "Deleted",
+                    "Purged",
                     "Failed"
                 ],
                 "type": "string"
@@ -1077,8 +1077,8 @@
                     "Read",
                     "Replied",
                     "Confirmed",
-                    "DeletedByRecipient",
-                    "DeletedByAltinn",
+                    "PurgedByRecipient",
+                    "PurgedByAltinn",
                     "Archived",
                     "Reserved",
                     "Failed"

@@ -1,7 +1,10 @@
 using Altinn.Correspondece.Tests.Factories;
+using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models.Enums;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Policy;
 using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests;
@@ -10,11 +13,17 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
 {
     private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
+    private readonly JsonSerializerOptions _responseSerializerOptions;
 
     public AttachmentControllerTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClientInternal();
+        _responseSerializerOptions = new JsonSerializerOptions(new JsonSerializerOptions()
+        {
+            PropertyNameCaseInsensitive = true
+        });
+        _responseSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     }
 
     [Fact]
@@ -46,11 +55,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     [Fact]
     public async Task UploadAttachmentData_WhenAttachmentDoesNotExist_ReturnsNotFound()
     {
-        var attachmentData = new byte[] { 1, 2, 3, 4 };
-        var content = new ByteArrayContent(attachmentData);
-
-        var uploadResponse = await _client.PostAsync("correspondence/api/v1/attachment/00000000-0100-0000-0000-000000000000/upload", content);
-
+        var uploadResponse = await UploadAttachment("00000000-0100-0000-0000-000000000000");
         Assert.Equal(HttpStatusCode.NotFound, uploadResponse.StatusCode);
     }
 
@@ -62,10 +67,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         initializeResponse.EnsureSuccessStatusCode();
 
         var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
-        var attachmentData = new byte[] { 1, 2, 3, 4 };
-        var content = new ByteArrayContent(attachmentData);
-
-        var uploadResponse = await _client.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", content);
+        var uploadResponse = await UploadAttachment(attachmentId);
 
         Assert.True(uploadResponse.IsSuccessStatusCode, await uploadResponse.Content.ReadAsStringAsync());
     }
@@ -80,14 +82,12 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
         var attachmentData = new byte[] { 1, 2, 3, 4 };
         var content = new ByteArrayContent(attachmentData);
-
         // First upload
-        var firstUploadResponse = await _client.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", content);
+        var firstUploadResponse = await UploadAttachment(attachmentId, content);
         Assert.True(firstUploadResponse.IsSuccessStatusCode, await firstUploadResponse.Content.ReadAsStringAsync());
 
         // Second upload
-        content = new ByteArrayContent(attachmentData);
-        var secondUploadResponse = await _client.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", content);
+        var secondUploadResponse = await UploadAttachment(attachmentId, content);
 
         Assert.False(secondUploadResponse.IsSuccessStatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, secondUploadResponse.StatusCode);
@@ -121,10 +121,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
         var originalAttachmentData = new byte[] { 1, 2, 3, 4 };
         var content = new ByteArrayContent(originalAttachmentData);
-
-        // Upload the attachment data
-        var uploadResponse = await _client.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", content);
-        uploadResponse.EnsureSuccessStatusCode();
+        await UploadAttachment(attachmentId, content);
 
         // Download the attachment data
         var downloadResponse = await _client.GetAsync($"correspondence/api/v1/attachment/{attachmentId}/download");
@@ -135,4 +132,78 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         // Assert that the uploaded and downloaded bytes are the same
         Assert.Equal(originalAttachmentData, downloadedAttachmentData);
     }
+
+    [Fact]
+    public async Task DeleteAttachment_WhenAttachmentDoesNotExist_ReturnsNotFound()
+    {
+        var deleteResponse = await _client.DeleteAsync("correspondence/api/v1/attachment/00000000-0100-0000-0000-000000000000");
+        Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteAttachment_WhenAttachmentIsIntiliazied_Succeeds()
+    {
+        var attachment = InitializeAttachmentFactory.BasicAttachment();
+        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+        initializeResponse.EnsureSuccessStatusCode();
+
+        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
+
+        var deleteResponse = await _client.DeleteAsync($"correspondence/api/v1/attachment/{attachmentId}");
+        Assert.True(deleteResponse.IsSuccessStatusCode, await deleteResponse.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task DeleteAttachment_Twice_Fails()
+    {
+        var attachment = InitializeAttachmentFactory.BasicAttachment();
+        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+        initializeResponse.EnsureSuccessStatusCode();
+
+        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
+
+        var deleteResponse = await _client.DeleteAsync($"correspondence/api/v1/attachment/{attachmentId}");
+        Assert.True(deleteResponse.IsSuccessStatusCode, await deleteResponse.Content.ReadAsStringAsync());
+
+        var deleteResponse2 = await _client.DeleteAsync($"correspondence/api/v1/attachment/{attachmentId}");
+        Assert.Equal(HttpStatusCode.BadRequest, deleteResponse2.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteAttachment_WhenAttachedCorrespondenceIsPublished_ReturnsBadRequest()
+    {
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+        var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
+        await UploadAttachment(correspondence?.AttachmentIds.First().ToString());
+        var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}", _responseSerializerOptions);
+        Assert.True(overview?.Status == CorrespondenceStatusExt.Published);
+
+        var deleteResponse = await _client.DeleteAsync($"correspondence/api/v1/attachment/{correspondence?.AttachmentIds.FirstOrDefault()}");
+        Assert.Equal(HttpStatusCode.BadRequest, deleteResponse.StatusCode);
+    }
+    [Fact]
+    public async Task DeleteAttachment_WhenAttachedCorrespondenceIsInitialized_Succeeds()
+    {
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithMultipleAttachments());
+        var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
+        await UploadAttachment(correspondence?.AttachmentIds.First().ToString());
+        var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}", _responseSerializerOptions);
+        Assert.True(overview?.Status == CorrespondenceStatusExt.Initialized);
+
+        var deleteResponse = await _client.DeleteAsync($"correspondence/api/v1/attachment/{correspondence?.AttachmentIds.FirstOrDefault()}");
+        deleteResponse.EnsureSuccessStatusCode();
+    }
+
+    private async Task<HttpResponseMessage> UploadAttachment(string? attachmentId, ByteArrayContent? originalAttachmentData = null)
+    {
+        if (attachmentId == null)
+        {
+            Assert.Fail("AttachmentId is null");
+        }
+        var data = originalAttachmentData ?? new ByteArrayContent(new byte[] { 1, 2, 3, 4 });
+
+        var uploadResponse = await _client.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", data);
+        return uploadResponse;
+    }
+
 }

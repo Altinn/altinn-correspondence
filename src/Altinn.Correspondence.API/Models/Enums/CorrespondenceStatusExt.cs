@@ -36,14 +36,14 @@ namespace Altinn.Correspondence.API.Models.Enums
         Confirmed = 5,
 
         /// <summary>
-        /// Message has been deleted by recipient.
+        /// Message has been purged by recipient.
         /// </summary>
-        DeletedByRecipient = 6,
+        PurgedByRecipient = 6,
 
         /// <summary>
-        /// Message has been deleted by Altinn.
+        /// Message has been purged by Altinn.
         /// </summary>
-        DeletedByAltinn = 7,
+        PurgedByAltinn = 7,
 
         /// <summary>
         /// Message has been Archived

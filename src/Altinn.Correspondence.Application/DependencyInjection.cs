@@ -9,7 +9,7 @@ using Altinn.Correspondence.Application.InitializeCorrespondenceCommand;
 using Altinn.Correspondence.Application.UploadAttachmentCommand;
 using Altinn.Correspondence.Application.UpdateCorrespondenceStatusCommand;
 using Microsoft.Extensions.DependencyInjection;
-using Altinn.Broker.Application;
+using Altinn.Correspondence.Application.PurgeAttachmentCommand;
 
 namespace Altinn.Correspondence.Application;
 public static class DependencyInjection
@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<UpdateCorrespondenceStatusCommandHandler>();
         services.AddScoped<UploadAttachmentCommandHandler>();
         services.AddScoped<DownloadAttachmentQueryHandler>();
+        services.AddScoped<PurgeAttachmentCommandHandler>();
         services.AddScoped<MalwareScanResultCommandHandler>();
     }
 }

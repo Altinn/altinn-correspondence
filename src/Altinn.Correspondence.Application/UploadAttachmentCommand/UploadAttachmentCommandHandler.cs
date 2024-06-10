@@ -32,7 +32,7 @@ public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepo
         }
         if (attachment.Statuses.Any(status => status.Status == AttachmentStatus.UploadProcessing))
         {
-            return Errors.InvalidAttachmentStatus;
+            return Errors.InvalidUploadAttachmentStatus;
         }
 
         var currentStatus = new AttachmentStatusEntity

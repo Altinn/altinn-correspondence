@@ -21,9 +21,9 @@
         Published = 2,
 
         /// <summary>
-        /// Deleted
+        /// Purged
         /// </summary>
-        Deleted = 3,
+        Purged = 3,
 
         /// <summary>
         /// Failed
