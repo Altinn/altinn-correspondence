@@ -27,7 +27,7 @@ inputs:
   AZURE_TEST_ACCESS_CLIENT_ID:
     description: "Client ID for the test access service principal"
     required: true
-  AZURE_MIGRATION_STORAGE_ACCOUNT_NAME:
+  AZURE_STORAGE_ACCOUNT_NAME:
     description: "Name of the storage account for migration files"
     required: true
 
@@ -69,7 +69,7 @@ runs:
         TEST_CLIENT_ID: ${{ inputs.AZURE_TEST_ACCESS_CLIENT_ID }}
         NAME_PREFIX: ${{ inputs.AZURE_NAME_PREFIX }}
         KEY_VAULT_NAME: ${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
-        MIGRATION_STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_MIGRATION_STORAGE_ACCOUNT_NAME }}
+        STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}
       with:
         scope: subscription
         template: ./.azure/infrastructure/main.bicep

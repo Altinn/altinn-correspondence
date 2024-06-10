@@ -29,6 +29,9 @@ inputs:
   PLATFORM_BASE_URL:
     description: "Base url for Altinn platform"
     required: true
+  STORAGE_ACCOUNT_NAME:
+    description: "Name of the storage account used for attachments"
+    required: true
 
 runs:
   using: "composite"
@@ -55,6 +58,7 @@ runs:
         CLIENT_ID: ${{ inputs.AZURE_CLIENT_ID }}
         TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
         PLATFORM_BASE_URL: ${{ inputs.PLATFORM_BASE_URL }}
+        STORAGE_ACCOUNT_NAME: ${{ inputs.STORAGE_ACCOUNT_NAME }}
       with:
         scope: subscription
         subscriptionId: ${{ inputs.AZURE_SUBSCRIPTION_ID }}

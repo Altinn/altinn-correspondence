@@ -3,17 +3,19 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Microsoft.Extensions.Hosting;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.UploadAttachmentCommand;
 
-public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IEventBus eventBus) : IHandler<UploadAttachmentCommandRequest, UploadAttachmentCommandResponse>
+public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IHostEnvironment hostEnvironment, IEventBus eventBus) : IHandler<UploadAttachmentCommandRequest, UploadAttachmentCommandResponse>
 {
     private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository = attachmentStatusRepository;
     private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
     private readonly IStorageRepository _storageRepository = storageRepository;
+    private readonly IHostEnvironment _hostEnvironment = hostEnvironment;
     private readonly IEventBus _eventBus = eventBus;
 
     public async Task<OneOf<UploadAttachmentCommandResponse, Error>> Process(UploadAttachmentCommandRequest request, CancellationToken cancellationToken)
@@ -30,46 +32,51 @@ public class UploadAttachmentCommandHandler(IAttachmentRepository attachmentRepo
         }
         if (attachment.Statuses.Any(status => status.Status == AttachmentStatus.UploadProcessing))
         {
-            return Errors.InvalidAttachmentStatus;
+            return Errors.InvalidUploadAttachmentStatus;
         }
 
-        await _attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
+        var currentStatus = new AttachmentStatusEntity
         {
             AttachmentId = request.AttachmentId,
             Status = AttachmentStatus.UploadProcessing,
             StatusChanged = DateTimeOffset.UtcNow,
             StatusText = AttachmentStatus.UploadProcessing.ToString()
-        }, cancellationToken); // TODO, with malware scan this should be set after upload.
-        var uploadedFileHash = await _storageRepository.UploadAttachment(request.AttachmentId, request.UploadStream, cancellationToken);
-        if (uploadedFileHash is null)
+        };
+        await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken); // TODO, with malware scan this should be set after upload
+        var dataLocationUrl = await _storageRepository.UploadAttachment(request.AttachmentId, request.UploadStream, cancellationToken);
+        if (dataLocationUrl is null)
         {
-            await _attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
+            currentStatus = new AttachmentStatusEntity
             {
                 AttachmentId = request.AttachmentId,
                 Status = AttachmentStatus.Failed,
                 StatusChanged = DateTimeOffset.UtcNow,
                 StatusText = AttachmentStatus.Failed.ToString()
-            }, cancellationToken);
+            };
+            await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
             return Errors.UploadFailed;
         }
-        // TODO: will be set by malware scan. Also move checkCorrespondenceStatusesAfterUploadAndPublish to malware scan
-        var publishStatus = new AttachmentStatusEntity
+        await _attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
+        if (_hostEnvironment.IsDevelopment()) // No malware scan when running locally
         {
-            AttachmentId = request.AttachmentId,
-            Status = AttachmentStatus.Published,
-            StatusChanged = DateTimeOffset.UtcNow,
-            StatusText = AttachmentStatus.Published.ToString()
-        };
-        await _attachmentStatusRepository.AddAttachmentStatus(publishStatus, cancellationToken);
+            currentStatus = new AttachmentStatusEntity
+            {
+                AttachmentId = request.AttachmentId,
+                Status = AttachmentStatus.Published,
+                StatusChanged = DateTimeOffset.UtcNow,
+                StatusText = AttachmentStatus.Published.ToString()
+            };
+            await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
+        }
         await CheckCorrespondenceStatusesAfterUploadAndPublish(attachment.Id, cancellationToken);
 
         await _eventBus.Publish(AltinnEventType.AttachmentPublished, null, request.AttachmentId.ToString(), "attachment", null, cancellationToken);
         return new UploadAttachmentCommandResponse()
         {
             AttachmentId = attachment.Id,
-            Status = publishStatus.Status,
-            StatusChanged = publishStatus.StatusChanged,
-            StatusText = publishStatus.StatusText
+            Status = currentStatus.Status,
+            StatusChanged = currentStatus.StatusChanged,
+            StatusText = currentStatus.StatusText
         };
     }
 

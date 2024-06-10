@@ -6,7 +6,6 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.IO;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
@@ -41,9 +40,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     TransferValidation = new UploadTransferValidationOptions { ChecksumAlgorithm = StorageChecksumAlgorithm.MD5 }
                 };
                 var blobMetadata = await blobClient.UploadAsync(attachment, options, cancellationToken);
-                var metadata = blobMetadata.Value;
-                var hash = Convert.ToHexString(metadata.ContentHash).ToLowerInvariant();
-                return hash;
+                return blobClient.Uri.ToString();
             }
             catch (RequestFailedException requestFailedException)
             {
@@ -68,7 +65,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
-        public async Task DeleteAttachment(Guid attachmentId, CancellationToken cancellationToken)
+        public async Task PurgeAttachment(Guid attachmentId, CancellationToken cancellationToken)
         {
             BlobClient blobClient = InitializeBlobClient(attachmentId);
             try
