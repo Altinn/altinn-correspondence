@@ -20,5 +20,47 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
             return attachmentId;
         }
+
+        public async Task<Guid> RemoveAttachmentFromCorrespondence(Guid correspondenceId, Guid attachmentId, CancellationToken cancellationToken = default)
+        {
+            var correspondenceAttachment = await _context.CorrespondenceAttachments
+                .Where(ca => ca.Id == correspondenceId && ca.AttachmentId == attachmentId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (correspondenceAttachment == null)
+            {
+                return Guid.Empty;
+            }
+
+            _context.Remove(correspondenceAttachment);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return attachmentId;
+        }   
+
+        public async Task<Guid> AddAttachmentToCorrespondence(Guid correspondenceId, Guid attachmentId, CancellationToken cancellationToken = default)
+        {
+            var attachment = await _context.Attachments.FindAsync(attachmentId);
+            if (attachment is null || attachment.FileName is null)
+            {
+                return Guid.Empty;
+            }
+
+            // TODO, need to revamp CorrespondenceAttachmentEntity to include less information
+            var correspondenceAttachment = new CorrespondenceAttachmentEntity
+            {
+                CorrespondenceContentId = correspondenceId,
+                AttachmentId = attachmentId,
+                DataType = attachment.DataType,
+                IntendedPresentation = IntendedPresentationType.MachineReadable,
+                Name = attachment.FileName,
+                SendersReference = attachment.SendersReference,
+            };
+
+            _context.Add(correspondenceAttachment);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return attachmentId;
+        }
     }
 }
