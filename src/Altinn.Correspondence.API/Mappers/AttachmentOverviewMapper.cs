@@ -1,6 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Application.GetAttachmentOverviewCommand;
+using Altinn.Correspondence.Application.GetAttachmentOverview;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 
@@ -8,7 +8,7 @@ namespace Altinn.Correspondence.Mappers;
 
 internal static class AttachmentOverviewMapper
 {
-    internal static AttachmentOverviewExt MapToExternal(GetAttachmentOverviewCommandResponse attachmentOverview)
+    internal static AttachmentOverviewExt MapToExternal(GetAttachmentOverviewResponse attachmentOverview)
     {
         var attachment = new AttachmentOverviewExt
         {

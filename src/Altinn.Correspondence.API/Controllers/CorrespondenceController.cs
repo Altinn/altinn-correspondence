@@ -1,11 +1,11 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
-using Altinn.Correspondence.Application.GetCorrespondenceDetailsCommand;
-using Altinn.Correspondence.Application.GetCorrespondenceOverviewCommand;
-using Altinn.Correspondence.Application.GetCorrespondencesCommand;
-using Altinn.Correspondence.Application.InitializeCorrespondenceCommand;
-using Altinn.Correspondence.Application.UpdateCorrespondenceStatusCommand;
+using Altinn.Correspondence.Application.GetCorrespondenceDetails;
+using Altinn.Correspondence.Application.GetCorrespondenceOverview;
+using Altinn.Correspondence.Application.GetCorrespondences;
+using Altinn.Correspondence.Application.InitializeCorrespondence;
+using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
@@ -33,7 +33,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>CorrespondenceId and attachmentIds</returns>
         [HttpPost]
-        public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeCorrespondence(InitializeCorrespondenceExt initializeCorrespondence, [FromServices] InitializeCorrespondenceCommandHandler handler, CancellationToken cancellationToken)
+        public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeCorrespondence(InitializeCorrespondenceExt initializeCorrespondence, [FromServices] InitializeCorrespondenceHandler handler, CancellationToken cancellationToken)
         {
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(initializeCorrespondence);
             _logger.LogInformation("Initialize correspondence");
@@ -96,7 +96,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("{correspondenceId}")]
         public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
             Guid correspondenceId,
-            [FromServices] GetCorrespondenceOverviewCommandHandler handler,
+            [FromServices] GetCorrespondenceOverviewHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Getting Correspondence overview for {correspondenceId}", correspondenceId.ToString());
@@ -120,7 +120,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("{correspondenceId}/details")]
         public async Task<ActionResult<CorrespondenceDetailsExt>> GetCorrespondenceDetails(
             Guid correspondenceId,
-            [FromServices] GetCorrespondenceDetailsCommandHandler handler,
+            [FromServices] GetCorrespondenceDetailsHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Getting Correspondence overview for {correspondenceId}", correspondenceId.ToString());
@@ -146,13 +146,13 @@ namespace Altinn.Correspondence.API.Controllers
             [FromQuery] int limit,
             [FromQuery] DateTimeOffset? from,
             [FromQuery] DateTimeOffset? to,
-            [FromServices] GetCorrespondencesCommandHandler handler,
+            [FromServices] GetCorrespondencesHandler handler,
             [FromQuery] CorrespondenceStatusExt status = CorrespondenceStatusExt.Published,
             CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Get correspondences for receiver");
 
-            var commandResult = await handler.Process(new GetCorrespondencesCommandRequest
+            var commandResult = await handler.Process(new GetCorrespondencesRequest
             {
                 from = from,
                 limit = limit,
@@ -179,12 +179,12 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("{correspondenceId}/markasread")]
         public async Task<ActionResult> MarkAsRead(
             Guid correspondenceId,
-            [FromServices] UpdateCorrespondenceStatusCommandHandler handler,
+            [FromServices] UpdateCorrespondenceStatusHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Marking Correspondence as read for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(new UpdateCorrespondenceStatusCommandRequest
+            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
             {
                 CorrespondenceId = correspondenceId,
                 Status = CorrespondenceStatus.Read
@@ -207,12 +207,12 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("{correspondenceId}/confirm")]
         public async Task<ActionResult> Confirm(
             Guid correspondenceId,
-            [FromServices] UpdateCorrespondenceStatusCommandHandler handler,
+            [FromServices] UpdateCorrespondenceStatusHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Marking Correspondence as confirmed for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(new UpdateCorrespondenceStatusCommandRequest
+            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
             {
                 CorrespondenceId = correspondenceId,
                 Status = CorrespondenceStatus.Confirmed
@@ -235,12 +235,12 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("{correspondenceId}/archive")]
         public async Task<ActionResult> Archive(
             Guid correspondenceId,
-            [FromServices] UpdateCorrespondenceStatusCommandHandler handler,
+            [FromServices] UpdateCorrespondenceStatusHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Archiving Correspondence with id: {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(new UpdateCorrespondenceStatusCommandRequest
+            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
             {
                 CorrespondenceId = correspondenceId,
                 Status = CorrespondenceStatus.Archived

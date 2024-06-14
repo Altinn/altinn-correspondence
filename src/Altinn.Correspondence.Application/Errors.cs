@@ -1,4 +1,4 @@
-using Altinn.Correspondence.Application.UploadAttachmentCommand;
+using Altinn.Correspondence.Application.UploadAttachment;
 using OneOf;
 using System.Net;
 

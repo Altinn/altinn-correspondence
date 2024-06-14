@@ -1,12 +1,12 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Application.GetCorrespondenceDetailsCommand;
+using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 
 namespace Altinn.Correspondence.Mappers;
 
 internal static class CorrespondenceDetailsMapper
 {
-    internal static CorrespondenceDetailsExt MapToExternal(GetCorrespondenceDetailsCommandResponse correspondenceDetails)
+    internal static CorrespondenceDetailsExt MapToExternal(GetCorrespondenceDetailsResponse correspondenceDetails)
     {
         var Correspondence = new CorrespondenceDetailsExt
         {

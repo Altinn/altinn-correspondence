@@ -1,5 +1,5 @@
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.Application.InitializeCorrespondenceCommand;
+using Altinn.Correspondence.Application.InitializeCorrespondence;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 
@@ -7,7 +7,7 @@ namespace Altinn.Correspondence.Mappers;
 
 internal static class InitializeCorrespondenceMapper
 {
-    internal static InitializeCorrespondenceCommandRequest MapToRequest(InitializeCorrespondenceExt initializeCorrespondenceExt)
+    internal static InitializeCorrespondenceRequest MapToRequest(InitializeCorrespondenceExt initializeCorrespondenceExt)
     {
         var correspondence = new CorrespondenceEntity
         {
@@ -32,7 +32,7 @@ internal static class InitializeCorrespondenceMapper
                 Attachments = InitializeCorrespondenceAttachmentMapper.MapListToEntities(initializeCorrespondenceExt.Content.Attachments)
             } : null,
         };
-        return new InitializeCorrespondenceCommandRequest()
+        return new InitializeCorrespondenceRequest()
         {
             Correspondence = correspondence,
         };
