@@ -38,7 +38,6 @@ public class PurgeAttachmentHandler(IAttachmentRepository attachmentRepository, 
         else if (attachment.Statuses.OrderByDescending(status => status.StatusChanged).First().Status != AttachmentStatus.Initialized &&
                 !correspondences.All(correspondence => correspondence.Statuses.OrderByDescending(status => status.StatusChanged).First().Status == CorrespondenceStatus.Initialized))
         {
-
             if (correspondences.Any(correspondence => !(correspondence.Statuses.OrderByDescending(status => status.StatusChanged).First().Status == CorrespondenceStatus.PurgedByRecipient) && !(correspondence.Statuses.OrderByDescending(status => status.StatusChanged).First().Status == CorrespondenceStatus.PurgedByAltinn)))
             {
                 return Errors.PurgeAttachmentWithExistingCorrespondence;

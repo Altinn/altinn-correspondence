@@ -1,17 +1,18 @@
+using Altinn.Correspondence.Application.DownloadAttachment;
 using Altinn.Correspondence.Application.GetAttachmentDetails;
 using Altinn.Correspondence.Application.GetAttachmentOverview;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
-using Altinn.Correspondence.Application.DownloadAttachment;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.InitializeCorrespondence;
-using Altinn.Correspondence.Application.UploadAttachment;
-using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
-using Microsoft.Extensions.DependencyInjection;
 using Altinn.Correspondence.Application.PurgeAttachment;
+using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
+using Altinn.Correspondence.Application.UploadAttachment;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Correspondence.Application;
+
 public static class DependencyInjection
 {
     public static void AddApplicationHandlers(this IServiceCollection services)

@@ -24,4 +24,3 @@ public class GetAttachmentOverviewResponse
 
     public IntendedPresentationType IntendedPresentation { get; set; }
 }
-

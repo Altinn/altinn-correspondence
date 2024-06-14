@@ -5,11 +5,10 @@ namespace Altinn.Correspondence.Application.GetAttachmentDetails;
 
 public class GetAttachmentDetailsHandler : IHandler<Guid, GetAttachmentDetailsResponse>
 {
-    private readonly IAttachmentStatusRepository _attachmentStatusRepository;
     private readonly IAttachmentRepository _attachmentRepository;
-    public GetAttachmentDetailsHandler(IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository)
+
+    public GetAttachmentDetailsHandler(IAttachmentRepository attachmentRepository)
     {
-        _attachmentStatusRepository = attachmentStatusRepository;
         _attachmentRepository = attachmentRepository;
     }
 
@@ -37,6 +36,4 @@ public class GetAttachmentDetailsHandler : IHandler<Guid, GetAttachmentDetailsRe
         };
         return response;
     }
-
-
 }

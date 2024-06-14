@@ -1,8 +1,6 @@
-﻿
-namespace Altinn.Correspondence.Application.DownloadAttachment
+﻿namespace Altinn.Correspondence.Application.DownloadAttachment;
+
+public class DownloadAttachmentRequest
 {
-    public class DownloadAttachmentRequest
-    {
-        public Guid AttachmentId { get; set; }
-    }
+    public Guid AttachmentId { get; set; }
 }

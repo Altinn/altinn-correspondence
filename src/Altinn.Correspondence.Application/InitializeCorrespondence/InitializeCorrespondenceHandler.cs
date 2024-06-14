@@ -12,6 +12,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly IAttachmentRepository _attachmentRepository;
     private readonly IEventBus _eventBus;
+
     public InitializeCorrespondenceHandler(ICorrespondenceRepository correspondenceRepository, IAttachmentRepository attachmentRepository, IEventBus eventBus)
     {
         _correspondenceRepository = correspondenceRepository;
@@ -103,7 +104,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
             notification.Statuses = new List<CorrespondenceNotificationStatusEntity>(){
                 new CorrespondenceNotificationStatusEntity
                 {
-                     Status = "Initialized", //TODO create enums for notications? 
+                     Status = "Initialized", //TODO create enums for notications?
                      StatusChanged = DateTimeOffset.UtcNow,
                      StatusText = "Initialized"
                 }

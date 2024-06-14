@@ -1,4 +1,3 @@
-using Altinn.Correspondence.Application.GetAttachmentOverview;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
 
@@ -8,6 +7,7 @@ public class GetAttachmentOverviewHandler : IHandler<Guid, GetAttachmentOverview
 {
     private readonly IAttachmentStatusRepository _attachmentStatusRepository;
     private readonly IAttachmentRepository _attachmentRepository;
+
     public GetAttachmentOverviewHandler(IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository)
     {
         _attachmentStatusRepository = attachmentStatusRepository;
@@ -38,6 +38,4 @@ public class GetAttachmentOverviewHandler : IHandler<Guid, GetAttachmentOverview
         };
         return response;
     }
-
-
 }

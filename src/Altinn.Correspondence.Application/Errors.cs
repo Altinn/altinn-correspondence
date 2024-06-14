@@ -1,5 +1,3 @@
-using Altinn.Correspondence.Application.UploadAttachment;
-using OneOf;
 using System.Net;
 
 namespace Altinn.Correspondence.Application;

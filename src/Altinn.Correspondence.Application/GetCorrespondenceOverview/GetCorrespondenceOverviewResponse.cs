@@ -32,7 +32,4 @@ public class GetCorrespondenceOverviewResponse
     public DateTimeOffset VisibleFrom { get; set; }
 
     public bool IsReservable { get; set; }
-
-
 }
-

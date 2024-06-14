@@ -12,6 +12,7 @@ public class InitializeAttachmentHandler : IHandler<InitializeAttachmentRequest,
     private readonly IAttachmentRepository _attachmentRepository;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository;
     private readonly IEventBus _eventBus;
+
     public InitializeAttachmentHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus)
     {
         _attachmentRepository = attachmentRepository;

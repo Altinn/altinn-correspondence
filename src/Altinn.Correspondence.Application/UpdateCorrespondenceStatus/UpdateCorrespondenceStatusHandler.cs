@@ -12,6 +12,7 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IEventBus _eventBus;
+
     public UpdateCorrespondenceStatusHandler(ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IEventBus eventBus)
     {
         _correspondenceRepository = correspondenceRepository;
@@ -36,7 +37,6 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             return request.CorrespondenceId;
         }
-
 
         await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
         {

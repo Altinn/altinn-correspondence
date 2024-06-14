@@ -1,17 +1,10 @@
 ﻿using Altinn.Correspondence.Core.Models.Enums;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace Altinn.Correspondence.Application.UploadAttachment
 {
     public class UploadAttachmentResponse
     {
-
         /// <summary>
         /// Unique Id for this attachment
         /// </summary>

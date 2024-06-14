@@ -6,6 +6,7 @@ namespace Altinn.Correspondence.Application.GetCorrespondences;
 public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, GetCorrespondencesResponse>
 {
     private readonly ICorrespondenceRepository _correspondenceRepository;
+
     public GetCorrespondencesHandler(ICorrespondenceRepository correspondenceRepository)
     {
         _correspondenceRepository = correspondenceRepository;

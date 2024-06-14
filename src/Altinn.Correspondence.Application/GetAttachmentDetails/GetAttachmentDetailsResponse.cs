@@ -27,4 +27,3 @@ public class GetAttachmentDetailsResponse
 
     public List<AttachmentStatusEntity> Statuses { get; set; } = new List<AttachmentStatusEntity>();
 }
-

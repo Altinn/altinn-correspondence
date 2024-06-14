@@ -1,4 +1,3 @@
-using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
@@ -8,6 +7,7 @@ namespace Altinn.Correspondence.Application.GetCorrespondenceDetails;
 public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceDetailsResponse>
 {
     private readonly ICorrespondenceRepository _CorrespondenceRepository;
+
     public GetCorrespondenceDetailsHandler(ICorrespondenceRepository CorrespondenceRepository)
     {
         _CorrespondenceRepository = CorrespondenceRepository;
@@ -38,6 +38,4 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
         };
         return response;
     }
-
-
 }
