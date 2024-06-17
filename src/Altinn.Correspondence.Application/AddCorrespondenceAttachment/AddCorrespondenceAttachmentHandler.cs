@@ -32,7 +32,7 @@ public class AddCorrespondenceAttachmentHandler : IHandler<AddCorrespondenceAtta
         {
             return Errors.AttachmentNotFound;
         }
-        if (attachment.Statuses.Last().Status != Core.Models.Enums.AttachmentStatus.Published)
+        if (!attachment.Statuses.Any(statusEntity => statusEntity.Status == Core.Models.Enums.AttachmentStatus.Published))
         {
             return Errors.AttachmentNotPublished;
         }

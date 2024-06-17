@@ -6,19 +6,24 @@ namespace Altinn.Correspondence.Application.GetCorrespondenceDetails;
 
 public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceDetailsResponse>
 {
-    private readonly ICorrespondenceRepository _CorrespondenceRepository;
+    private readonly ICorrespondenceRepository _correspondenceRepository;
 
-    public GetCorrespondenceDetailsHandler(ICorrespondenceRepository CorrespondenceRepository)
+    public GetCorrespondenceDetailsHandler(ICorrespondenceRepository correspondenceRepository)
     {
-        _CorrespondenceRepository = CorrespondenceRepository;
+        _correspondenceRepository = correspondenceRepository;
     }
 
-    public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(Guid CorrespondenceId, CancellationToken cancellationToken)
+    public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
     {
-        var correspondence = await _CorrespondenceRepository.GetCorrespondenceById(CorrespondenceId, true, cancellationToken);
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, cancellationToken);
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
+        }
+        var correspondenceContent = await _correspondenceRepository.GetCorrespondenceContent(correspondenceId, cancellationToken);
+        if (correspondenceContent is null)
+        {
+            throw new Exception("Invalid state");
         }
         var latestStatus = correspondence.Statuses.OrderByDescending(s => s.StatusChanged).First();
         var response = new GetCorrespondenceDetailsResponse
@@ -34,7 +39,8 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
             Notifications = correspondence.Notifications == null ? new List<CorrespondenceNotificationEntity>() : correspondence.Notifications,
             VisibleFrom = correspondence.VisibleFrom,
             IsReservable = correspondence.IsReservable == null || correspondence.IsReservable.Value,
-            StatusHistory = correspondence.Statuses
+            StatusHistory = correspondence.Statuses,
+            CorrespondenceContent = correspondenceContent
         };
         return response;
     }

@@ -45,11 +45,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
             if (includeStatus)
             {
                 correspondences = correspondences
-                    .Include(c => c.Statuses)
-                    .Include(c => c.Content).ThenInclude(content => content.Attachments);
+                    .Include(c => c.Statuses);
             }
             return await correspondences.FirstOrDefaultAsync(c => c.Id == guid, cancellationToken);
         }
+        public async Task<CorrespondenceContentEntity?> GetCorrespondenceContent(
+            Guid correspondenceId,
+            CancellationToken cancellationToken)
+        {
+            return await _context.CorrespondenceContents.Include(content => content.Attachments).FirstOrDefaultAsync(content => content.CorrespondenceId == correspondenceId, cancellationToken);
+        }
+
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesByAttachmentId(Guid attachmentId, bool includeStatus, CancellationToken cancellationToken = default)
         {
             var correspondence = _context.Correspondences.
