@@ -23,6 +23,7 @@ jobs:
     permissions: 
       contents: read
     steps:
+      - uses: actions/checkout@v4
       - name: "Get current version"
         uses: ./.github/actions/get-current-version
         id: get-version
