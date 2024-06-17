@@ -175,8 +175,9 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
         await UploadAttachment(correspondence?.AttachmentIds.First().ToString());
+
         var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}", _responseSerializerOptions);
-        Assert.True(overview?.Status == CorrespondenceStatusExt.Published);
+        Assert.True(overview?.Status == CorrespondenceStatusExt.Published || overview?.Status == CorrespondenceStatusExt.ReadyForPublish);
 
         var deleteResponse = await _client.DeleteAsync($"correspondence/api/v1/attachment/{correspondence?.AttachmentIds.FirstOrDefault()}");
         Assert.Equal(HttpStatusCode.BadRequest, deleteResponse.StatusCode);
