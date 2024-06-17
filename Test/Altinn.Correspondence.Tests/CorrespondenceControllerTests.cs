@@ -112,7 +112,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
-        await UploadAttachment(correspondence?.AttachmentIds.FirstOrDefault());
+        var attachmentId = correspondence?.AttachmentIds.FirstOrDefault();
+        await UploadAttachment(attachmentId);
         var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}", _responseSerializerOptions);
         Assert.True(overview?.Status == CorrespondenceStatusExt.Published);
 

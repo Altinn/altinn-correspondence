@@ -1,10 +1,12 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.AddCorrespondenceAttachment;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Application.InitializeCorrespondence;
+using Altinn.Correspondence.Application.RemoveCorrespondenceAttachment;
 using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
@@ -268,6 +270,51 @@ namespace Altinn.Correspondence.API.Controllers
 
             return Ok();
         }
+
+        [HttpPost]
+        [Route("{correspondenceId}/attachments")]
+        public async Task<ActionResult> AddAttachment(
+            Guid correspondenceId,
+            [FromBody] AddAttachmentRequest addAttachmentRequest,
+            [FromServices] AddCorrespondenceAttachmentHandler handler,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Add attachment for Correspondence with id: {correspondenceId}", correspondenceId.ToString());
+
+            var result = await handler.Process(new AddCorrespondenceAttachmentRequest
+            {
+                CorrespondenceId = correspondenceId,
+                AttachmentId = addAttachmentRequest.AttachmentId
+            }, cancellationToken); 
+
+            return result.Match(
+                attachmentId => Ok(attachmentId),
+                Problem
+            );  
+        }
+
+        [HttpDelete]
+        [Route("{correspondenceId}/attachments/{attachmentId}")]
+        public async Task<ActionResult> RemoveAttachment(
+            Guid correspondenceId,
+            Guid attachmentId,
+            [FromServices] RemoveCorrespondenceAttachmentHandler handler,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Remove attachment with id {attachmentId} for Correspondence with id {correspondenceId}", attachmentId.ToString(), correspondenceId.ToString());
+
+            var result = await handler.Process(new RemoveCorrespondenceAttachmentRequest
+            {
+                CorrespondenceId = correspondenceId,
+                AttachmentId = attachmentId
+            }, cancellationToken);
+
+            return result.Match(
+                attachmentId => Ok(attachmentId),
+                Problem
+            );
+        }
+
         private ObjectResult Problem(Error error) => Problem(detail: error.Message, statusCode: (int)error.StatusCode);
     }
 }
