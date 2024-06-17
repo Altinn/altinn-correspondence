@@ -6,6 +6,8 @@ inputs:
   region:
     description: "Azure region to deploy to"
     required: true
+  imageTag:
+    description: "Version image tag to release"
   environment:
     description: "Github environment to deploy from"
     required: true
@@ -44,15 +46,11 @@ runs:
         tenant-id: ${{ inputs.AZURE_TENANT_ID }}
         subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
 
-    - name: Get version
-      id: get-version
-      uses: ./.github/actions/get-current-version
-
     - name: Deploy app
       uses: azure/arm-deploy@v2
       id: deploy
       env:
-        IMAGE_TAG: ${{ steps.get-version.outputs.imageTag  }}
+        IMAGE_TAG: ${{ inputs.imageTag }}
         ENVIRONMENT: ${{ inputs.environment }}
         KEY_VAULT_NAME: ${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
         KEY_VAULT_URL: https://${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}.vault.azure.net
