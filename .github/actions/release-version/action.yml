@@ -52,7 +52,7 @@ runs:
       uses: azure/arm-deploy@v2
       id: deploy
       env:
-        IMAGE_TAG: ${{ inputs.imageTag }}
+        IMAGE_TAG: ${{ steps.get-version.outputs.imageTag  }}
         ENVIRONMENT: ${{ inputs.environment }}
         KEY_VAULT_NAME: ${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
         KEY_VAULT_URL: https://${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}.vault.azure.net
