@@ -32,31 +32,26 @@ namespace Altinn.Correspondence.Integrations.Hangfire
         {
             _logger.LogInformation("Publish correspondence {correspondenceId}", correspondenceId);
             var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
-            var error = false;
             var errorMessage = "";
             if (correspondence == null)
             {
                 errorMessage = "Correspondence " + correspondenceId + " not found when publishing";
-                error = true;
             }
             else if (correspondence.Statuses.OrderByDescending(s => s.StatusChanged).First().Status != CorrespondenceStatus.ReadyForPublish)
             {
-                error = true;
                 errorMessage = $"Correspondence {correspondenceId} not ready for publish";
             }
             else if (correspondence.Content == null || correspondence.Content.Attachments.Any(a => a.Attachment?.Statuses.OrderByDescending(s => s.StatusChanged).First().Status != AttachmentStatus.Published))
             {
-                error = true;
                 errorMessage = $"Correspondence {correspondenceId} has attachments not published";
             }
             else if (correspondence.VisibleFrom > DateTimeOffset.UtcNow)
             {
-                error = true;
                 errorMessage = $"Correspondence {correspondenceId} not visible yet";
             }
             CorrespondenceStatusEntity status;
             AltinnEventType eventType = AltinnEventType.CorrespondencePublished;
-            if (error)
+            if (errorMessage.Length > 0)
             {
                 _logger.LogError(errorMessage);
                 status = new CorrespondenceStatusEntity
