@@ -105,7 +105,9 @@ static string GetConnectionString(IConfiguration config)
             .GetToken(
                 new Azure.Core.TokenRequestContext(new[] { "https://ossrdbms-aad.database.windows.net/.default" })
             );
-        connectionString += ";Password=" + token.Token + ";";
+        var connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString);
+        connectionStringBuilder.Password = token.Token;
+        return connectionStringBuilder.ToString();
 
     }
     return connectionString;
