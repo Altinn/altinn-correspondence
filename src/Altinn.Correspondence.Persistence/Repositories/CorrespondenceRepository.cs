@@ -44,7 +44,9 @@ namespace Altinn.Correspondence.Persistence.Repositories
             var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.Notifications).ThenInclude(n => n.Statuses).AsQueryable();
             if (includeStatus)
             {
-                correspondences = correspondences.Include(c => c.Statuses);
+                correspondences = correspondences
+                    .Include(c => c.Statuses)
+                    .Include(c => c.Content).ThenInclude(content => content.Attachments);
             }
             return await correspondences.FirstOrDefaultAsync(c => c.Id == guid, cancellationToken);
         }
@@ -59,13 +61,21 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<List<CorrespondenceEntity>> GetNonPublishedCorrespondencesByAttachmentId(Guid attachmentId, AttachmentStatus? attachmentStatus = null, CancellationToken cancellationToken = default)
         {
-            var correspondence = await _context.Correspondences.Where(c =>
-                !c.Statuses.Any(cs => cs.CorrespondenceId == c.Id && cs.Status == CorrespondenceStatus.Published) &&
-                c.Content!.Attachments.Any(ca => ca.AttachmentId == attachmentId) &&
-                    (attachmentStatus == null || c.Content.Attachments.All(ca => ca.Attachment != null && ca.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).First().Status == attachmentStatus))
-                ).Include(c => c.Content).ThenInclude(content => content!.Attachments).ThenInclude(a => a.Attachment).ToListAsync(cancellationToken);
+            var correspondences = await _context.Correspondences
+                .Where(correspondence =>
+                    correspondence.Content!.Attachments.Any(attachment => attachment.AttachmentId == attachmentId)
+                 && !correspondence.Statuses.Any(status => status.Status == CorrespondenceStatus.Published)
+                 && correspondence.Content.Attachments.All(correspondenceAttachment => 
+                        correspondenceAttachment.Attachment.IntendedPresentation == IntendedPresentationType.HumanReadable 
+                     || correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Published)))
+                .Include(correspondence => correspondence.Statuses)
+                .Include(correspondence => correspondence.Content)
+                    .ThenInclude(content => content!.Attachments)
+                    .ThenInclude(correspondenceAttachment => correspondenceAttachment.Attachment)
+                    .ThenInclude(attachment => attachment!.Statuses)
+                .ToListAsync(cancellationToken);
 
-            return correspondence;
+            return correspondences;
         }
     }
 }

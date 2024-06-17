@@ -21,7 +21,7 @@ internal static class CorrespondenceOverviewMapper
             ReplyOptions = CorrespondenceReplyOptionsMapper.MapListToExternal(correspondenceOverview.ReplyOptions),
             Notifications = InitializeCorrespondenceNotificationMapper.MapListToExternal(correspondenceOverview.Notifications),
             ResourceId = correspondenceOverview.ResourceId.ToString(),
-            VisibleFrom = correspondenceOverview.VisibleFrom,
+            VisibleFrom = correspondenceOverview.VisibleFrom
         };
         return Correspondence;
     }

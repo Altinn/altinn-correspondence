@@ -16,6 +16,6 @@ public static class Errors
     public static Error CorrespondenceNotPublished = new Error(8, "A correspondence can only be confirmed or read when it is published. See correspondence status.", HttpStatusCode.BadRequest);
     public static Error PurgeAttachmentWithExistingCorrespondence = new Error(9, "Attachment cannot be purged as it is linked to atleast one existing correspondence", HttpStatusCode.BadRequest);
     public static Error AttachmentNotPublished = new Error(10, "Attachment has not been published yet", HttpStatusCode.BadRequest);
-    public static Error CorrespondenceNotOpenForAttachments = new Error(11, "Cannot attach to correspondence that has been published", HttpStatusCode.BadRequest);
-    public static Error CorrespondenceAttachmentNotFound = new Error(12, "Could not find an attachment with the given ID on the correspondence", HttpStatusCode.BadRequest);
+    public static Error CorrespondenceNotOpenForAttachments = new Error(11, "Attachments cannot be changed after a correspondence has been published", HttpStatusCode.BadRequest);
+    public static Error CorrespondenceAttachmentNotFound = new Error(12, "Could not find an attachment with the given ID on the correspondence", HttpStatusCode.NotFound);
 }

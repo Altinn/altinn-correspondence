@@ -71,7 +71,7 @@ internal static class InitializeCorrespondenceFactory
         IsReservable = true
     };
 
-    internal static InitializeCorrespondenceExt BasicCorrespondenceWithMultipleAttachments() => new InitializeCorrespondenceExt()
+    internal static InitializeCorrespondenceExt BasicCorrespondenceWithFileAttachment() => new InitializeCorrespondenceExt()
     {
         Recipient = "1",
         ResourceId = "1",
@@ -95,11 +95,11 @@ internal static class InitializeCorrespondenceFactory
                 },
                 new InitializeCorrespondenceAttachmentExt()
                 {
-                    DataType = "html",
+                    DataType = "pdf",
                     Name = "3",
                     RestrictionName = "testFile3",
                     SendersReference = "1234",
-                    IntendedPresentation = IntendedPresentationTypeExt.HumanReadable,
+                    IntendedPresentation = IntendedPresentationTypeExt.MachineReadable,
                     FileName = "test-fil3e",
                     IsEncrypted = false,
                 },
@@ -147,4 +147,92 @@ internal static class InitializeCorrespondenceFactory
         },
         IsReservable = true
     };
+
+    internal static InitializeCorrespondenceExt BasicCorrespondenceWithTwoFileAttachments() => new InitializeCorrespondenceExt()
+    {
+        Recipient = "1",
+        ResourceId = "1",
+        Sender = "8536:031145332",
+        SendersReference = "1",
+        Content = new InitializeCorrespondenceContentExt()
+        {
+            Language = "no",
+            MessageTitle = "test",
+            MessageSummary = "test",
+            Attachments = new List<InitializeCorrespondenceAttachmentExt>() {
+                new InitializeCorrespondenceAttachmentExt()
+                {
+                    DataType = "html",
+                    Name = "2",
+                    RestrictionName = "testFile2",
+                    SendersReference = "1234",
+                    IntendedPresentation = IntendedPresentationTypeExt.HumanReadable,
+                    FileName = "test-fil2e",
+                    IsEncrypted = false,
+                },
+                new InitializeCorrespondenceAttachmentExt()
+                {
+                    DataType = "pdf",
+                    Name = "3",
+                    RestrictionName = "testFile3",
+                    SendersReference = "1234",
+                    IntendedPresentation = IntendedPresentationTypeExt.MachineReadable,
+                    FileName = "test-fil3e",
+                    IsEncrypted = false,
+                },
+                new InitializeCorrespondenceAttachmentExt()
+                {
+                    DataType = "png",
+                    Name = "4",
+                    RestrictionName = "testFile4",
+                    SendersReference = "12345",
+                    IntendedPresentation = IntendedPresentationTypeExt.MachineReadable,
+                    FileName = "test-fil4e",
+                    IsEncrypted = false,
+                },
+            },
+        },
+        VisibleFrom = DateTime.UtcNow,
+        AllowSystemDeleteAfter = DateTime.UtcNow.AddDays(1),
+        DueDateTime = DateTime.UtcNow.AddDays(1),
+        ExternalReferences = new List<ExternalReferenceExt>(){
+            new ExternalReferenceExt()
+            {
+                ReferenceValue = "1",
+                ReferenceType = ReferenceTypeExt.AltinnBrokerFileTransfer
+            },
+            new ExternalReferenceExt()
+            {
+                ReferenceValue = "2",
+                ReferenceType = ReferenceTypeExt.DialogPortenDialogID
+            }
+        },
+        PropertyList = new Dictionary<string, string>(){
+            {"deserunt_12", "1"},
+            {"culpa_852", "2"},
+            {"anim5", "3"}
+        },
+        ReplyOptions = new List<CorrespondenceReplyOptionExt>(){
+            new CorrespondenceReplyOptionExt()
+            {
+                LinkURL = "www.test.no",
+                LinkText = "test"
+            },
+            new CorrespondenceReplyOptionExt()
+            {
+                LinkURL = "test.no",
+                LinkText = "test"
+            }
+        },
+        Notifications = new List<InitializeCorrespondenceNotificationExt>(){
+            new InitializeCorrespondenceNotificationExt(){
+                NotificationTemplate= "test",
+                CustomTextToken = "test",
+                SendersReference = "1",
+                RequestedSendTime =  DateTime.UtcNow.AddDays(1),
+            }
+        },
+        IsReservable = true
+    };
+
 }

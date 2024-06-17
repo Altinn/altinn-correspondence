@@ -23,7 +23,7 @@ public class AddCorrespondenceAttachmentHandler : IHandler<AddCorrespondenceAtta
         {
             return Errors.CorrespondenceNotFound;
         }
-        if (correspondence.Statuses.Last().Status != Core.Models.Enums.CorrespondenceStatus.Initialized)
+        if (correspondence.Statuses.Any(statusEntity => statusEntity.Status == Core.Models.Enums.CorrespondenceStatus.Published))
         {
             return Errors.CorrespondenceNotOpenForAttachments;
         }

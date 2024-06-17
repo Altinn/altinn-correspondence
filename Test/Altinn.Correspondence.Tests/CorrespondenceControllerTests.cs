@@ -110,9 +110,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task AttachExistingAttachment_CorrespondencePublished_Fails()
     {
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithFileAttachment());
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
-        var attachmentId = correspondence?.AttachmentIds.FirstOrDefault();
+        var attachmentId = correspondence?.AttachmentIds.LastOrDefault();
         await UploadAttachment(attachmentId);
         var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}", _responseSerializerOptions);
         Assert.True(overview?.Status == CorrespondenceStatusExt.Published);
@@ -124,9 +124,11 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task AttachExistingAttachment_CorrespondenceInitialized_Succeeds()
     {
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithFileAttachment());
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
-        var attachmentId = correspondence?.AttachmentIds.FirstOrDefault();
+        var initializeAttachmentResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", InitializeAttachmentFactory.BasicAttachment());
+        initializeAttachmentResponse.EnsureSuccessStatusCode();
+        var attachmentId = Guid.Parse(await initializeAttachmentResponse.Content.ReadAsStringAsync());
         await UploadAttachment(attachmentId);
         var attachResponse = await _client.PostAsJsonAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments", AddAttachmentFactory.CreateAddAttachmentRequest(attachmentId));
         Assert.True(attachResponse.IsSuccessStatusCode, await attachResponse.Content.ReadAsStringAsync());
@@ -135,10 +137,12 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task AttachExistingAttachment_RemoveIt_NoLongerAttached()
     {
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithTwoFileAttachments());
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
 
-        var attachmentId = correspondence?.AttachmentIds.FirstOrDefault();
+        var initializeAttachmentResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", InitializeAttachmentFactory.BasicAttachment());
+        initializeAttachmentResponse.EnsureSuccessStatusCode();
+        var attachmentId = Guid.Parse(await initializeAttachmentResponse.Content.ReadAsStringAsync());
         await UploadAttachment(attachmentId);
         var attachResponse = await _client.PostAsJsonAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments", AddAttachmentFactory.CreateAddAttachmentRequest(attachmentId));
         Assert.True(attachResponse.IsSuccessStatusCode, await attachResponse.Content.ReadAsStringAsync());
@@ -146,29 +150,33 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var removeResponse = await _client.DeleteAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments/{attachmentId}");
         Assert.True(removeResponse.IsSuccessStatusCode, await removeResponse.Content.ReadAsStringAsync());
 
-        var getAttachmentsResponse = await _client.GetFromJsonAsync<List<Guid>>($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments");
-        Assert.DoesNotContain(attachmentId, (IAsyncEnumerable<Guid?>)getAttachmentsResponse);
+        var updatedCorrespondenceResponse = await _client.GetFromJsonAsync<CorrespondenceDetailsExt>($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/details", _responseSerializerOptions);
+        Assert.DoesNotContain(attachmentId, updatedCorrespondenceResponse.Content.AttachmentIds);
     }
 
     [Fact]
     public async Task AttachExistingAttachment_RemoveNonExisting_FailsWithNotFound()
     {
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithTwoFileAttachments());
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
 
-        var attachmentId = correspondence?.AttachmentIds.FirstOrDefault();
+        var initializeAttachmentResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", InitializeAttachmentFactory.BasicAttachment());
+        initializeAttachmentResponse.EnsureSuccessStatusCode();
+        var attachmentId = Guid.Parse(await initializeAttachmentResponse.Content.ReadAsStringAsync());
         await UploadAttachment(attachmentId);
-        var removeResponse = await _client.DeleteAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments/{attachmentId}");
-        Assert.Equal(HttpStatusCode.NotFound, removeResponse.StatusCode);
+        var removeResponse = await _client.DeleteAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments/{Guid.NewGuid()}");
+        Assert.True(removeResponse.StatusCode == HttpStatusCode.NotFound, await removeResponse.Content.ReadAsStringAsync());
     }
 
     [Fact]
     public async Task AttachExistingAttachment_RemoveTwice_FailsWithNotFoundSecondTime()
     {
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithTwoFileAttachments());
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
 
-        var attachmentId = correspondence?.AttachmentIds.FirstOrDefault();
+        var initializeAttachmentResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", InitializeAttachmentFactory.BasicAttachment());
+        initializeAttachmentResponse.EnsureSuccessStatusCode();
+        var attachmentId = Guid.Parse(await initializeAttachmentResponse.Content.ReadAsStringAsync());
         await UploadAttachment(attachmentId);
         var attachResponse = await _client.PostAsJsonAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments", AddAttachmentFactory.CreateAddAttachmentRequest(attachmentId));
         Assert.True(attachResponse.IsSuccessStatusCode, await attachResponse.Content.ReadAsStringAsync());

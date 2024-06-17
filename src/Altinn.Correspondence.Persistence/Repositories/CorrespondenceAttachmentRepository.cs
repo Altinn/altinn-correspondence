@@ -23,9 +23,13 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<Guid> RemoveAttachmentFromCorrespondence(Guid correspondenceId, Guid attachmentId, CancellationToken cancellationToken = default)
         {
+            var existingCorrespondenceContent = await _context.CorrespondenceContents.Include(correspondenceContent => correspondenceContent.Attachments).FirstOrDefaultAsync(correspondenceContent => correspondenceContent.CorrespondenceId == correspondenceId);
+            if (existingCorrespondenceContent is null)
+            {
+                throw new Exception("Invalid state");
+            }
             var correspondenceAttachment = await _context.CorrespondenceAttachments
-                .Where(ca => ca.Id == correspondenceId && ca.AttachmentId == attachmentId)
-                .FirstOrDefaultAsync(cancellationToken);
+                .FirstOrDefaultAsync(ca => ca.CorrespondenceContentId == existingCorrespondenceContent.Id && ca.AttachmentId == attachmentId, cancellationToken);
 
             if (correspondenceAttachment == null)
             {
@@ -45,11 +49,21 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 return Guid.Empty;
             }
+            var existingCorrespondenceContent = await _context.CorrespondenceContents.Include(correspondenceContent => correspondenceContent.Attachments).FirstOrDefaultAsync(correspondenceContent => correspondenceContent.CorrespondenceId == correspondenceId);
+            if (existingCorrespondenceContent is null)
+            {
+                throw new Exception("Invalid state");
+            }
+            var existingCorrespondenceAttachment = existingCorrespondenceContent.Attachments.FirstOrDefault(correspondenceAttachment => correspondenceAttachment.AttachmentId == attachmentId);
+            if (existingCorrespondenceAttachment is not null)
+            {
+                return attachmentId;
+            }
 
             // TODO, need to revamp CorrespondenceAttachmentEntity to include less information
             var correspondenceAttachment = new CorrespondenceAttachmentEntity
             {
-                CorrespondenceContentId = correspondenceId,
+                CorrespondenceContentId = existingCorrespondenceContent.Id,
                 AttachmentId = attachmentId,
                 DataType = attachment.DataType,
                 IntendedPresentation = IntendedPresentationType.MachineReadable,
