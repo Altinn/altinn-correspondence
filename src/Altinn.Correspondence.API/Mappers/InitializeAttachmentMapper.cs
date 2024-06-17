@@ -1,5 +1,5 @@
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.Application.InitializeAttachmentCommand;
+using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 
@@ -7,7 +7,7 @@ namespace Altinn.Correspondence.Mappers;
 
 internal static class InitializeAttachmentMapper
 {
-    internal static InitializeAttachmentCommandRequest MapToRequest(InitializeAttachmentExt initializeAttachmentExt)
+    internal static InitializeAttachmentRequest MapToRequest(InitializeAttachmentExt initializeAttachmentExt)
     {
         var attachment = new AttachmentEntity
         {
@@ -19,7 +19,7 @@ internal static class InitializeAttachmentMapper
             IsEncrypted = initializeAttachmentExt.IsEncrypted,
             Created = DateTimeOffset.UtcNow,
         };
-        return new InitializeAttachmentCommandRequest()
+        return new InitializeAttachmentRequest()
         {
             Attachment = attachment
         };

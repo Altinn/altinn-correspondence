@@ -1,12 +1,12 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
-using Altinn.Correspondence.Application.PurgeAttachmentCommand;
-using Altinn.Correspondence.Application.DownloadAttachmentQuery;
-using Altinn.Correspondence.Application.GetAttachmentDetailsCommand;
-using Altinn.Correspondence.Application.GetAttachmentOverviewCommand;
-using Altinn.Correspondence.Application.InitializeAttachmentCommand;
-using Altinn.Correspondence.Application.UploadAttachmentCommand;
+using Altinn.Correspondence.Application.PurgeAttachment;
+using Altinn.Correspondence.Application.DownloadAttachment;
+using Altinn.Correspondence.Application.GetAttachmentDetails;
+using Altinn.Correspondence.Application.GetAttachmentOverview;
+using Altinn.Correspondence.Application.InitializeAttachment;
+using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,7 +25,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <remarks>Only required if the attachment is to be shared, otherwise this is done as part of the Initialize Correspondence operation</remarks>
     /// <returns></returns>
     [HttpPost]
-    public async Task<ActionResult<Guid>> InitializeAttachment(InitializeAttachmentExt InitializeAttachmentExt, [FromServices] InitializeAttachmentCommandHandler handler, CancellationToken cancellationToken)
+    public async Task<ActionResult<Guid>> InitializeAttachment(InitializeAttachmentExt InitializeAttachmentExt, [FromServices] InitializeAttachmentHandler handler, CancellationToken cancellationToken)
     {
 
         var commandRequest = InitializeAttachmentMapper.MapToRequest(InitializeAttachmentExt);
@@ -47,15 +47,15 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     [Consumes("application/octet-stream")]
     public async Task<ActionResult<AttachmentOverviewExt>> UploadAttachmentData(
         Guid attachmentId,
-        [FromServices] UploadAttachmentCommandHandler uploadAttachmentHandler,
-        [FromServices] GetAttachmentOverviewCommandHandler attachmentOverviewHandler,
+        [FromServices] UploadAttachmentHandler uploadAttachmentHandler,
+        [FromServices] GetAttachmentOverviewHandler attachmentOverviewHandler,
         CancellationToken cancellationToken = default
     )
     {
         _logger.LogInformation("Uploading attachment {attachmentId}", attachmentId.ToString());
 
         Request.EnableBuffering();
-        var uploadAttachmentResult = await uploadAttachmentHandler.Process(new UploadAttachmentCommandRequest()
+        var uploadAttachmentResult = await uploadAttachmentHandler.Process(new UploadAttachmentRequest()
         {
             AttachmentId = attachmentId,
             UploadStream = Request.Body,
@@ -80,7 +80,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     [Route("{attachmentId}")]
     public async Task<ActionResult<AttachmentOverviewExt>> GetAttachmentOverview(
         Guid attachmentId,
-        [FromServices] GetAttachmentOverviewCommandHandler handler,
+        [FromServices] GetAttachmentOverviewHandler handler,
         CancellationToken cancellationToken)
     {
 
@@ -102,7 +102,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     [Route("{attachmentId}/details")]
     public async Task<ActionResult<AttachmentDetailsExt>> GetAttachmentDetails(
         Guid attachmentId,
-        [FromServices] GetAttachmentDetailsCommandHandler handler,
+        [FromServices] GetAttachmentDetailsHandler handler,
         CancellationToken cancellationToken)
     {
 
@@ -124,10 +124,10 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     [Route("{attachmentId}/download")]
     public async Task<ActionResult> DownloadAttachmentData(
         Guid attachmentId,
-        [FromServices] DownloadAttachmentQueryHandler handler,
+        [FromServices] DownloadAttachmentHandler handler,
         CancellationToken cancellationToken)
     {
-        var commandResult = await handler.Process(new DownloadAttachmentQueryRequest()
+        var commandResult = await handler.Process(new DownloadAttachmentRequest()
         {
             AttachmentId = attachmentId
         }, cancellationToken);
@@ -148,7 +148,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     [Route("{attachmentId}")]
     public async Task<ActionResult<AttachmentOverviewExt>> DeleteAttachment(
         Guid attachmentId,
-        [FromServices] PurgeAttachmentCommandHandler handler,
+        [FromServices] PurgeAttachmentHandler handler,
         CancellationToken cancellationToken)
     {
         _logger.LogInformation("Delete attachment {attachmentId}", attachmentId.ToString());
