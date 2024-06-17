@@ -2,6 +2,7 @@ using Altinn.Correspondece.Tests.Factories;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondences;
+using Altinn.Correspondence.Tests.Factories;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -115,7 +116,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}", _responseSerializerOptions);
         Assert.True(overview?.Status == CorrespondenceStatusExt.Published);
 
-        var attachResponse = await _client.PostAsJsonAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments", new { AttachmentId = Guid.NewGuid() });
+        var attachResponse = await _client.PostAsJsonAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments", AddAttachmentFactory.CreateAddAttachmentRequest(attachmentId));
         Assert.Equal(HttpStatusCode.BadRequest, attachResponse.StatusCode);
     }
 
@@ -124,8 +125,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
-
-        var attachResponse = await _client.PostAsJsonAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments", new { AttachmentId = Guid.NewGuid() });
+        var attachmentId = correspondence?.AttachmentIds.FirstOrDefault();
+        await UploadAttachment(attachmentId);
+        var attachResponse = await _client.PostAsJsonAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments", AddAttachmentFactory.CreateAddAttachmentRequest(attachmentId));
         Assert.True(attachResponse.IsSuccessStatusCode, await attachResponse.Content.ReadAsStringAsync());
     }
 
@@ -135,16 +137,16 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
 
-        var attachmentId = Guid.NewGuid();
+        var attachmentId = correspondence?.AttachmentIds.FirstOrDefault();
         await UploadAttachment(attachmentId);
-        var attachResponse = await _client.PostAsJsonAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments", new { AttachmentId = attachmentId });
+        var attachResponse = await _client.PostAsJsonAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments", AddAttachmentFactory.CreateAddAttachmentRequest(attachmentId));
         Assert.True(attachResponse.IsSuccessStatusCode, await attachResponse.Content.ReadAsStringAsync());
 
         var removeResponse = await _client.DeleteAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments/{attachmentId}");
         Assert.True(removeResponse.IsSuccessStatusCode, await removeResponse.Content.ReadAsStringAsync());
 
         var getAttachmentsResponse = await _client.GetFromJsonAsync<List<Guid>>($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments");
-        Assert.DoesNotContain(attachmentId, getAttachmentsResponse);
+        Assert.DoesNotContain(attachmentId, (IAsyncEnumerable<Guid?>)getAttachmentsResponse);
     }
 
     [Fact]
@@ -153,7 +155,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
 
-        var attachmentId = Guid.NewGuid();
+        var attachmentId = correspondence?.AttachmentIds.FirstOrDefault();
+        await UploadAttachment(attachmentId);
         var removeResponse = await _client.DeleteAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments/{attachmentId}");
         Assert.Equal(HttpStatusCode.NotFound, removeResponse.StatusCode);
     }
@@ -164,9 +167,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
 
-        var attachmentId = Guid.NewGuid();
+        var attachmentId = correspondence?.AttachmentIds.FirstOrDefault();
         await UploadAttachment(attachmentId);
-        var attachResponse = await _client.PostAsJsonAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments", new { AttachmentId = attachmentId });
+        var attachResponse = await _client.PostAsJsonAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments", AddAttachmentFactory.CreateAddAttachmentRequest(attachmentId));
         Assert.True(attachResponse.IsSuccessStatusCode, await attachResponse.Content.ReadAsStringAsync());
 
         var removeResponse1 = await _client.DeleteAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/attachments/{attachmentId}");
