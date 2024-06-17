@@ -28,6 +28,10 @@ runs:
     - name: "Checkout repository"
       uses: actions/checkout@v4
 
+    - name: Get version
+      id: get-version
+      uses: ./.github/actions/get-current-version
+
     - name: OIDC Login to Azure Public Cloud
       uses: azure/login@v2
       with:
