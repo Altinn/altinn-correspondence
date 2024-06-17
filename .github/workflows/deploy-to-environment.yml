@@ -92,6 +92,6 @@ jobs:
         AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
         STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
-        IMAGE_TAG: ${{ needs.get-version.outputs.imageTag }}
+        imageTag: ${{ needs.get-version.outputs.imageTag }}
 
     
