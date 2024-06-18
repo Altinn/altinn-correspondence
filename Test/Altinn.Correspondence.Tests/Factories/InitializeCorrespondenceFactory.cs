@@ -95,11 +95,11 @@ internal static class InitializeCorrespondenceFactory
                 },
                 new InitializeCorrespondenceAttachmentExt()
                 {
-                    DataType = "html",
+                    DataType = "pdf",
                     Name = "3",
                     RestrictionName = "testFile3",
                     SendersReference = "1234",
-                    IntendedPresentation = IntendedPresentationTypeExt.HumanReadable,
+                    IntendedPresentation = IntendedPresentationTypeExt.MachineReadable,
                     FileName = "test-fil3e",
                     IsEncrypted = false,
                 },
