@@ -4,7 +4,6 @@ using Altinn.Correspondence.API.Models.Enums;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Net.Http.Json;
-using System.Security.Policy;
 using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests;
