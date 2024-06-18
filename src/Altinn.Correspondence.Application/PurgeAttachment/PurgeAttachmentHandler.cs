@@ -71,7 +71,7 @@ public class PurgeAttachmentHandler(IAttachmentRepository attachmentRepository, 
             return;
         }
 
-        var correspondences = await _correspondenceRepository.GetNonPublishedCorrespondencesByAttachmentId(attachment.Id, AttachmentStatus.Published, cancellationToken);
+        var correspondences = await _correspondenceRepository.GetNonPublishedCorrespondencesByAttachmentId(attachment.Id, cancellationToken);
         if (correspondences.Count == 0)
         {
             return;
