@@ -78,12 +78,12 @@ public class PurgeAttachmentHandler(IAttachmentRepository attachmentRepository, 
         }
 
         var list = new List<CorrespondenceStatusEntity>();
-        foreach (var correspondence in correspondences)
+        foreach (var correspondenceId in correspondences)
         {
             list.Add(
                 new CorrespondenceStatusEntity
                 {
-                    CorrespondenceId = correspondence.Id,
+                    CorrespondenceId = correspondenceId,
                     Status = CorrespondenceStatus.Published,
                     StatusChanged = DateTime.UtcNow,
                     StatusText = CorrespondenceStatus.Published.ToString()
