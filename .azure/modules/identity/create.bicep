@@ -10,3 +10,4 @@ output id string = userAssignedIdentity.id
 output clientId string = userAssignedIdentity.properties.clientId
 output principalId string = userAssignedIdentity.properties.principalId
 output tenantId string = userAssignedIdentity.properties.tenantId
+output name string = userAssignedIdentity.name
