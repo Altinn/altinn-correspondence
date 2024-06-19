@@ -64,7 +64,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                         correspondence.Content!.Attachments.Any(attachment => attachment.AttachmentId == attachmentId) // Correspondence has the given attachment
                      && !correspondence.Statuses.Any(status => status.Status == CorrespondenceStatus.Published) // Correspondence is not published
                      && correspondence.Content.Attachments.All(correspondenceAttachment => // All attachments of correspondence are published
-                            correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Published)))
+                            correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Published) // All attachments must be published
+                         && !correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Purged))) // No attachments can be purged
                 .Select(correspondence => correspondence.Id)
                 .ToListAsync(cancellationToken);
 
