@@ -19,6 +19,7 @@ jobs:
     permissions: 
       id-token: write
       contents: read
+      packages: write
     secrets: inherit
     with:
       environment: test
@@ -33,6 +34,7 @@ jobs:
 #      permissions: 
 #        id-token: write
 #        contents: read
+#        packages: write
 #      secrets: inherit
 #      with:
 #        environment: staging
@@ -47,6 +49,7 @@ jobs:
 #      permissions: 
 #        id-token: write
 #        contents: read
+#        packages: write
 #      secrets: inherit
 #      with:
 #        environment: production
