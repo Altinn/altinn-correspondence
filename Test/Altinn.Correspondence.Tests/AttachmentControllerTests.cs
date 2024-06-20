@@ -4,7 +4,6 @@ using Altinn.Correspondence.API.Models.Enums;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Net.Http.Json;
-using System.Security.Policy;
 using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests;
@@ -185,7 +184,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     [Fact]
     public async Task DeleteAttachment_WhenAttachedCorrespondenceIsInitialized_Succeeds()
     {
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithMultipleAttachments());
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithFileAttachment());
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
         await UploadAttachment(correspondence?.AttachmentIds.First().ToString());
         var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}", _responseSerializerOptions);

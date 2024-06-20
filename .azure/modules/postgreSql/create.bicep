@@ -9,7 +9,6 @@ type Sku = {
   tier: 'Burstable' | 'GeneralPurpose' | 'MemoryOptimized'
 }
 param sku Sku
-param environment string
 @secure()
 param srcKeyVault object
 
@@ -17,8 +16,6 @@ param srcKeyVault object
 param administratorLoginPassword string
 @secure()
 param tenantId string
-@secure()
-param test_client_id string
 
 var databaseName = 'correspondence'
 var databaseUser = 'adminuser'
@@ -100,16 +97,5 @@ module adoConnectionString '../keyvault/upsertSecret.bicep' = {
     destKeyVaultName: environmentKeyVaultName
     secretName: 'correspondence-ado-connection-string'
     secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${namePrefix}-app-identity;Ssl Mode=Require;Trust Server Certificate=True;Maximum Pool Size=${poolSize};'
-  }
-}
-
-resource databaseAccess 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2022-12-01' = if (environment == 'test') {
-  name: test_client_id
-  parent: postgres
-  dependsOn: [allowAzureAccess] // Needs to depend on allowAzureAccess to avoid updating at the same time
-  properties: {
-    principalType: 'Group'
-    tenantId: tenantId
-    principalName: 'Altinn-30-Correspondence-Test-Developers'
   }
 }
