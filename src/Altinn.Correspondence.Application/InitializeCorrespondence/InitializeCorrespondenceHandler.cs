@@ -3,6 +3,8 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Hangfire;
+using Hangfire;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondence;
@@ -12,12 +14,13 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly IAttachmentRepository _attachmentRepository;
     private readonly IEventBus _eventBus;
-
-    public InitializeCorrespondenceHandler(ICorrespondenceRepository correspondenceRepository, IAttachmentRepository attachmentRepository, IEventBus eventBus)
+    IBackgroundJobClient _backgroundJobClient;
+    public InitializeCorrespondenceHandler(ICorrespondenceRepository correspondenceRepository, IAttachmentRepository attachmentRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient)
     {
         _correspondenceRepository = correspondenceRepository;
         _attachmentRepository = attachmentRepository;
         _eventBus = eventBus;
+        _backgroundJobClient = backgroundJobClient;
     }
 
     public async Task<OneOf<InitializeCorrespondenceResponse, Error>> Process(InitializeCorrespondenceRequest request, CancellationToken cancellationToken)
@@ -31,16 +34,19 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
                 attachment.Attachment = await ProcessAttachment(attachment, cancellationToken);
             }
         }
+        var status = GetInitializeCorrespondenceStatus(request.Correspondence);
         var statuses = new List<CorrespondenceStatusEntity>(){
             new CorrespondenceStatusEntity
             {
-                Status = GetInitializeCorrespondenceStatus(request.Correspondence),
-                StatusChanged = DateTimeOffset.UtcNow
+                Status = status,
+                StatusChanged = DateTimeOffset.UtcNow,
+                StatusText = status.ToString()
             }
         };
         request.Correspondence.Statuses = statuses;
         request.Correspondence.Notifications = ProcessNotifications(request.Correspondence.Notifications, cancellationToken);
         var correspondence = await _correspondenceRepository.InitializeCorrespondence(request.Correspondence, cancellationToken);
+        _backgroundJobClient.Schedule<PublishCorrespondenceService>((service) => service.Publish(correspondence.Id, cancellationToken), request.Correspondence.VisibleFrom);
         await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, null, correspondence.Id.ToString(), "correspondence", null, cancellationToken);
         return new InitializeCorrespondenceResponse()
         {
@@ -54,7 +60,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         var status = CorrespondenceStatus.Initialized;
         if (correspondence.Content != null && correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.Statuses.All(s => s.Status == AttachmentStatus.Published)))
         {
-            status = CorrespondenceStatus.Published;
+            status = correspondence.VisibleFrom < DateTime.UtcNow ? CorrespondenceStatus.Published : CorrespondenceStatus.ReadyForPublish;
         }
         return status;
     }

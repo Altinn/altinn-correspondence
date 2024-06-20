@@ -18,6 +18,7 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<CorrespondenceEntity?> GetCorrespondenceById(
             Guid guid,
             bool includeStatus,
+            bool includeContent,
             CancellationToken cancellationToken);
 
         Task<List<CorrespondenceEntity>> GetCorrespondencesByAttachmentId(Guid attachmentId, bool includeStatus, CancellationToken cancellationToken = default);

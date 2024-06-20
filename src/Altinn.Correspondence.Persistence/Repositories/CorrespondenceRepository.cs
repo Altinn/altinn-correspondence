@@ -39,12 +39,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<CorrespondenceEntity?> GetCorrespondenceById(
             Guid guid,
             bool includeStatus,
+            bool includeContent,
             CancellationToken cancellationToken)
         {
             var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.Notifications).ThenInclude(n => n.Statuses).AsQueryable();
             if (includeStatus)
             {
                 correspondences = correspondences.Include(c => c.Statuses);
+            }
+            if (includeContent)
+            {
+                correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a.Statuses);
             }
             return await correspondences.FirstOrDefaultAsync(c => c.Id == guid, cancellationToken);
         }
@@ -62,7 +67,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             var correspondences = await _context.Correspondences
                 .Where(correspondence =>
                         correspondence.Content!.Attachments.Any(attachment => attachment.AttachmentId == attachmentId) // Correspondence has the given attachment
-                     && !correspondence.Statuses.Any(status => status.Status == CorrespondenceStatus.Published) // Correspondence is not published
+                     && !correspondence.Statuses.Any(status => status.Status == CorrespondenceStatus.Published || status.Status == CorrespondenceStatus.ReadyForPublish) // Correspondence is not published
                      && correspondence.Content.Attachments.All(correspondenceAttachment => // All attachments of correspondence are published
                             correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Published) // All attachments must be published
                          && !correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Purged))) // No attachments can be purged
