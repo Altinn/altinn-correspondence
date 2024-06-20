@@ -43,7 +43,7 @@ namespace Altinn.Correspondence.API.Models.Enums
         /// <summary>
         /// Message has been purged by recipient.
         /// </summary>
-       PurgedBByRecipient = 7,
+        PurgedBByRecipient = 7,
         /// <summary>
         /// Message has been purged by Altinn.
         /// </summary>
