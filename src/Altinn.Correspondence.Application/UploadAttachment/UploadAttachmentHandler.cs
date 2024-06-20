@@ -100,7 +100,7 @@ public class UploadAttachmentHandler(IAttachmentRepository attachmentRepository,
             list.Add(
                 new CorrespondenceStatusEntity
                 {
-                    CorrespondenceId = correspondence.Id,
+                    CorrespondenceId = correspondenceId,
                     Status = CorrespondenceStatus.ReadyForPublish,
                     StatusChanged = DateTime.UtcNow,
                     StatusText = CorrespondenceStatus.ReadyForPublish.ToString()
