@@ -14,7 +14,6 @@ public class GetAttachmentOverviewHandler : IHandler<Guid, GetAttachmentOverview
         _attachmentStatusRepository = attachmentStatusRepository;
         _attachmentRepository = attachmentRepository;
         _correspondenceRepository = correspondenceRepository;
-
     }
 
     public async Task<OneOf<GetAttachmentOverviewResponse, Error>> Process(Guid attachmentId, CancellationToken cancellationToken)

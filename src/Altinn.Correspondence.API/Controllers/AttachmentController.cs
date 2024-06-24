@@ -82,7 +82,6 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
         [FromServices] GetAttachmentOverviewHandler handler,
         CancellationToken cancellationToken)
     {
-
         _logger.LogInformation("Get attachment overview {attachmentId}", attachmentId.ToString());
 
         var commandResult = await handler.Process(attachmentId, cancellationToken);

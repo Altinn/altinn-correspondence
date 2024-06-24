@@ -9,7 +9,9 @@ namespace Altinn.Correspondence.API.Models
     /// </summary>
     public class InitializeCorrespondenceAttachmentExt
     {
-
+        /// <summary>
+        /// A unique id for the correspondence attachment.
+        /// 
         [JsonPropertyName("id")]
         public Guid Id { get; set; }
 
