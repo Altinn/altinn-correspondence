@@ -148,7 +148,7 @@ internal static class InitializeCorrespondenceFactory
     internal static InitializeCorrespondenceExt BasicCorrespondenceWithFileAttachment(string url)
     {
         var correspondence = BasicCorrespondence();
-        correspondence.Content!.Attachments.Add(
+        correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>(){
             new InitializeCorrespondenceAttachmentExt()
             {
                 DataType = "pdf",
@@ -159,7 +159,7 @@ internal static class InitializeCorrespondenceFactory
                 FileName = "test-fil3e",
                 IsEncrypted = false,
                 DataLocationUrl = url
-            });
+            }};
         return correspondence;
     }
 }
