@@ -31,23 +31,14 @@ public class PurgeAttachmentHandler(IAttachmentRepository attachmentRepository, 
 
         var correspondences = await _correspondenceRepository.GetCorrespondencesByAttachmentId(attachmentId, true, cancellationToken);
 
-        if (correspondences.Count == 0)
+        if (correspondences.Count == 0 ||
+            correspondences.All(correspondence => correspondence.Statuses.OrderByDescending(status => status.StatusChanged).First().Status == CorrespondenceStatus.PurgedByRecipient || correspondence.Statuses.OrderByDescending(status => status.StatusChanged).First().Status == CorrespondenceStatus.PurgedByAltinn))
         {
-            await _storageRepository.PurgeAttachment(attachmentId, cancellationToken);
-        }
-        else if (attachment.Statuses.OrderByDescending(status => status.StatusChanged).First().Status != AttachmentStatus.Initialized &&
-                !correspondences.All(correspondence => correspondence.Statuses.OrderByDescending(status => status.StatusChanged).First().Status == CorrespondenceStatus.Initialized))
-        {
-            if (correspondences.Any(correspondence => !(correspondence.Statuses.OrderByDescending(status => status.StatusChanged).First().Status == CorrespondenceStatus.PurgedByRecipient) && !(correspondence.Statuses.OrderByDescending(status => status.StatusChanged).First().Status == CorrespondenceStatus.PurgedByAltinn)))
-            {
-                return Errors.PurgeAttachmentWithExistingCorrespondence;
-            }
             await _storageRepository.PurgeAttachment(attachmentId, cancellationToken);
         }
         else
         {
-            await _correspondenceAttachmentRepository.PurgeCorrespondenceAttachmentsByAttachmentId(attachmentId, cancellationToken);
-            await _storageRepository.PurgeAttachment(attachmentId, cancellationToken);
+            return Errors.PurgeAttachmentWithExistingCorrespondence;
         }
 
         await _attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
