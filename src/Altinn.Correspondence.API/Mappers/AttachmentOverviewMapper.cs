@@ -1,8 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetAttachmentOverview;
-using Altinn.Correspondence.Core.Models;
-using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Mappers;
 
@@ -16,6 +14,7 @@ internal static class AttachmentOverviewMapper
             Name = attachmentOverview.Name ?? string.Empty,
             Status = (AttachmentStatusExt)attachmentOverview.Status,
             StatusText = attachmentOverview.StatusText,
+            DataLocationUrl = attachmentOverview.DataLocationUrl,
             StatusChanged = attachmentOverview.StatusChanged,
             DataType = attachmentOverview.DataType,
             IntendedPresentation = (IntendedPresentationTypeExt)attachmentOverview.IntendedPresentation,

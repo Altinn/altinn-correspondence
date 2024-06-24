@@ -145,4 +145,21 @@ internal static class InitializeCorrespondenceFactory
             });
         return correspondence;
     }
+    internal static InitializeCorrespondenceExt BasicCorrespondenceWithFileAttachment(string url)
+    {
+        var correspondence = BasicCorrespondence();
+        correspondence.Content!.Attachments.Add(
+            new InitializeCorrespondenceAttachmentExt()
+            {
+                DataType = "pdf",
+                Name = "3",
+                RestrictionName = "testFile3",
+                SendersReference = "1234",
+                IntendedPresentation = IntendedPresentationTypeExt.MachineReadable,
+                FileName = "test-fil3e",
+                IsEncrypted = false,
+                DataLocationUrl = url
+            });
+        return correspondence;
+    }
 }

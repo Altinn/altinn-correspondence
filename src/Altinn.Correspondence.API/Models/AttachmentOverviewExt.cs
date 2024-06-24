@@ -20,7 +20,7 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("dataLocationUrl")]
         [Required]
-        public AttachmentDataLocationTypeExt DataLocationUrl { get; set; }
+        public string DataLocationUrl { get; set; }
 
         /// <summary>
         /// Current attachment status

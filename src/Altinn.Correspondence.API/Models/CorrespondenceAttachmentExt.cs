@@ -6,7 +6,7 @@ namespace Altinn.Correspondence.API.Models
     /// <summary>
     /// Represents a binary attachment to a Correspondence
     /// </summary>
-    public class CorrespondenceAttachmentOverviewExt : InitializeCorrespondenceAttachmentExt
+    public class CorrespondenceAttachmentExt : InitializeCorrespondenceAttachmentExt
     {
         /// <summary>
         /// A unique id for the attachment.

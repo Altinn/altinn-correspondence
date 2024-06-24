@@ -70,14 +70,17 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         AttachmentEntity? attachment = null;
         if (correspondenceAttachment.DataLocationUrl != null)
         {
+            Console.WriteLine("Getting attachment by url:" + correspondenceAttachment.DataLocationUrl);
             var existingAttachment = await _attachmentRepository.GetAttachmentByUrl(correspondenceAttachment.DataLocationUrl, cancellationToken);
             if (existingAttachment != null)
             {
+                Console.WriteLine("Attachment found by url:" + correspondenceAttachment.DataLocationUrl);
                 attachment = existingAttachment;
             }
         }
         if (attachment == null)
         {
+            Console.WriteLine("Creating new attachment");
             var status = new List<AttachmentStatusEntity>(){
                     new AttachmentStatusEntity
                     {
