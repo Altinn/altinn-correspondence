@@ -5,6 +5,7 @@ WORKDIR /app
 COPY src/Altinn.Correspondence.API/*.csproj ./src/Altinn.Correspondence.API/
 COPY src/Altinn.Correspondence.Core/*.csproj ./src/Altinn.Correspondence.Core/
 COPY src/Altinn.Correspondence.Persistence/*.csproj ./src/Altinn.Correspondence.Persistence/
+COPY src/Altinn.Correspondence.Integrations/*.csproj ./src/Altinn.Correspondence.Integrations/
 RUN dotnet restore ./src/Altinn.Correspondence.API/Altinn.Correspondence.API.csproj
 
 # Copy everything else and build
