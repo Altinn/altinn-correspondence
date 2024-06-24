@@ -21,7 +21,8 @@ internal static class AttachmentDetailsMapper
             DataType = AttachmentDetails.DataType,
             IntendedPresentation = (IntendedPresentationTypeExt)AttachmentDetails.IntendedPresentation,
             SendersReference = AttachmentDetails.SendersReference,
-            StatusHistory = AttachmentStatusMapper.MapToExternal(AttachmentDetails.Statuses)
+            StatusHistory = AttachmentStatusMapper.MapToExternal(AttachmentDetails.Statuses),
+            CorrespondenceIds = AttachmentDetails.CorrespondenceIds
         };
         return attachment;
     }

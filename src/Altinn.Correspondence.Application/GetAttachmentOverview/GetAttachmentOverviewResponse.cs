@@ -23,4 +23,5 @@ public class GetAttachmentOverviewResponse
     public string DataType { get; set; } = string.Empty;
 
     public IntendedPresentationType IntendedPresentation { get; set; }
+    public List<Guid> CorrespondenceIds { get; set; } = new List<Guid>();
 }

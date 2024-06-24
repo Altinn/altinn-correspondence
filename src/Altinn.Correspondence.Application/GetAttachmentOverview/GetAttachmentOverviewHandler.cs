@@ -7,11 +7,14 @@ public class GetAttachmentOverviewHandler : IHandler<Guid, GetAttachmentOverview
 {
     private readonly IAttachmentStatusRepository _attachmentStatusRepository;
     private readonly IAttachmentRepository _attachmentRepository;
+    private readonly ICorrespondenceRepository _correspondenceRepository;
 
-    public GetAttachmentOverviewHandler(IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository)
+    public GetAttachmentOverviewHandler(IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository)
     {
         _attachmentStatusRepository = attachmentStatusRepository;
         _attachmentRepository = attachmentRepository;
+        _correspondenceRepository = correspondenceRepository;
+
     }
 
     public async Task<OneOf<GetAttachmentOverviewResponse, Error>> Process(Guid attachmentId, CancellationToken cancellationToken)
@@ -22,6 +25,7 @@ public class GetAttachmentOverviewHandler : IHandler<Guid, GetAttachmentOverview
             return Errors.AttachmentNotFound;
         }
         var attachmentStatus = await _attachmentStatusRepository.GetLatestStatusByAttachmentId(attachmentId, cancellationToken);
+        var correspondenceIds = await _correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);
 
         var response = new GetAttachmentOverviewResponse
         {
@@ -34,7 +38,8 @@ public class GetAttachmentOverviewHandler : IHandler<Guid, GetAttachmentOverview
             DataLocationType = attachment.DataLocationType,
             DataType = attachment.DataType,
             IntendedPresentation = attachment.IntendedPresentation,
-            SendersReference = attachment.SendersReference
+            SendersReference = attachment.SendersReference,
+            CorrespondenceIds = correspondenceIds
         };
         return response;
     }

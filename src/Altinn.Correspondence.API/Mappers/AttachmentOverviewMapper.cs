@@ -18,7 +18,8 @@ internal static class AttachmentOverviewMapper
             StatusChanged = attachmentOverview.StatusChanged,
             DataType = attachmentOverview.DataType,
             IntendedPresentation = (IntendedPresentationTypeExt)attachmentOverview.IntendedPresentation,
-            SendersReference = attachmentOverview.SendersReference
+            SendersReference = attachmentOverview.SendersReference,
+            CorrespondenceIds = attachmentOverview.CorrespondenceIds
         };
         return attachment;
     }

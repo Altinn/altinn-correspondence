@@ -6,10 +6,12 @@ namespace Altinn.Correspondence.Application.GetAttachmentDetails;
 public class GetAttachmentDetailsHandler : IHandler<Guid, GetAttachmentDetailsResponse>
 {
     private readonly IAttachmentRepository _attachmentRepository;
+    private readonly ICorrespondenceRepository _correspondenceRepository;
 
-    public GetAttachmentDetailsHandler(IAttachmentRepository attachmentRepository)
+    public GetAttachmentDetailsHandler(IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository)
     {
         _attachmentRepository = attachmentRepository;
+        _correspondenceRepository = correspondenceRepository;
     }
 
     public async Task<OneOf<GetAttachmentDetailsResponse, Error>> Process(Guid attachmentId, CancellationToken cancellationToken)
@@ -19,6 +21,7 @@ public class GetAttachmentDetailsHandler : IHandler<Guid, GetAttachmentDetailsRe
         {
             return Errors.AttachmentNotFound;
         }
+        var correspondenceIds = await _correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);
         var attachmentStatus = attachment.Statuses.OrderByDescending(s => s.StatusChanged).First();
 
         var response = new GetAttachmentDetailsResponse
@@ -32,7 +35,8 @@ public class GetAttachmentDetailsHandler : IHandler<Guid, GetAttachmentDetailsRe
             DataLocationType = attachment.DataLocationType,
             DataType = attachment.DataType,
             IntendedPresentation = attachment.IntendedPresentation,
-            SendersReference = attachment.SendersReference
+            SendersReference = attachment.SendersReference,
+            CorrespondenceIds = correspondenceIds
         };
         return response;
     }

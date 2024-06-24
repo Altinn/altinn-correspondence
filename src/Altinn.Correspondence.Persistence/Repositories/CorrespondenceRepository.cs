@@ -76,5 +76,13 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
             return correspondences;
         }
+
+        public async Task<List<Guid>> GetCorrespondenceIdsByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default)
+        {
+            var correspondenceIds = await _context.Correspondences
+            .Where(c => c.Content != null && c.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId))
+            .Select(c => c.Id).ToListAsync(cancellationToken);
+            return correspondenceIds;
+        }
     }
 }
