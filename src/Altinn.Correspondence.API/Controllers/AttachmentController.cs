@@ -2,7 +2,6 @@
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.PurgeAttachment;
-using Altinn.Correspondence.Application.DownloadAttachment;
 using Altinn.Correspondence.Application.GetAttachmentDetails;
 using Altinn.Correspondence.Application.GetAttachmentOverview;
 using Altinn.Correspondence.Application.InitializeAttachment;
@@ -83,7 +82,6 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
         [FromServices] GetAttachmentOverviewHandler handler,
         CancellationToken cancellationToken)
     {
-
         _logger.LogInformation("Get attachment overview {attachmentId}", attachmentId.ToString());
 
         var commandResult = await handler.Process(attachmentId, cancellationToken);
@@ -112,27 +110,6 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
 
         return commandResult.Match(
             attachment => Ok(AttachmentDetailsMapper.MapToExternal(attachment)),
-            Problem
-        );
-    }
-
-    /// <summary>
-    /// Downloads the attachment data
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet]
-    [Route("{attachmentId}/download")]
-    public async Task<ActionResult> DownloadAttachmentData(
-        Guid attachmentId,
-        [FromServices] DownloadAttachmentHandler handler,
-        CancellationToken cancellationToken)
-    {
-        var commandResult = await handler.Process(new DownloadAttachmentRequest()
-        {
-            AttachmentId = attachmentId
-        }, cancellationToken);
-        return commandResult.Match(
-            result => File(result, "application/octet-stream"),
             Problem
         );
     }

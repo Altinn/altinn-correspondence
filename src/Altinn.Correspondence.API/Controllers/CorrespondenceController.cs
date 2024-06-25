@@ -1,6 +1,7 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.DownloadAttachment;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
@@ -268,6 +269,29 @@ namespace Altinn.Correspondence.API.Controllers
 
             return Ok();
         }
-        private ObjectResult Problem(Error error) => Problem(detail: error.Message, statusCode: (int)error.StatusCode);
+
+
+        /// <summary>
+        /// Downloads the attachment data
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("attachment/{attachmentId}/download")]
+        public async Task<ActionResult> DownloadAttachmentData(
+            Guid attachmentId,
+            [FromServices] DownloadAttachmentHandler handler,
+            CancellationToken cancellationToken)
+        {
+            var commandResult = await handler.Process(new DownloadAttachmentRequest()
+            {
+                AttachmentId = attachmentId
+            }, cancellationToken);
+            return commandResult.Match(
+                result => File(result, "application/octet-stream"),
+                Problem
+            );
+        }
+
+        private ActionResult Problem(Error error) => Problem(detail: error.Message, statusCode: (int)error.StatusCode);
     }
 }

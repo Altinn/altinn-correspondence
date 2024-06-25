@@ -26,4 +26,5 @@ public class GetAttachmentDetailsResponse
     public IntendedPresentationType IntendedPresentation { get; set; }
 
     public List<AttachmentStatusEntity> Statuses { get; set; } = new List<AttachmentStatusEntity>();
+    public List<Guid> CorrespondenceIds { get; set; } = new List<Guid>();
 }

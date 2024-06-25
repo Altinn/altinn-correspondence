@@ -24,7 +24,9 @@ internal static class InitializeCorrespondenceAttachmentMapper
             DataType = initializeAttachmentExt.DataType,
             IntendedPresentation = (IntendedPresentationType)initializeAttachmentExt.IntendedPresentation,
             Checksum = initializeAttachmentExt.Checksum,
-            IsEncrypted = initializeAttachmentExt.IsEncrypted
+            IsEncrypted = initializeAttachmentExt.IsEncrypted,
+            DataLocationUrl = initializeAttachmentExt.DataLocationUrl,
+            DataLocationType = (AttachmentDataLocationType)initializeAttachmentExt.DataLocationType,
         };
     }
 }

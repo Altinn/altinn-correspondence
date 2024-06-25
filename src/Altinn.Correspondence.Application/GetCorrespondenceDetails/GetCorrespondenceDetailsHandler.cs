@@ -15,7 +15,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
 
     public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(Guid CorrespondenceId, CancellationToken cancellationToken)
     {
-        var correspondence = await _CorrespondenceRepository.GetCorrespondenceById(CorrespondenceId, true, false, cancellationToken);
+        var correspondence = await _CorrespondenceRepository.GetCorrespondenceById(CorrespondenceId, true, true, cancellationToken);
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
@@ -28,6 +28,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
             StatusText = latestStatus.StatusText,
             StatusChanged = latestStatus.StatusChanged,
             SendersReference = correspondence.SendersReference,
+            Content = correspondence.Content!,
             Created = correspondence.Created,
             Recipient = correspondence.Recipient,
             ReplyOptions = correspondence.ReplyOptions == null ? new List<CorrespondenceReplyOptionEntity>() : correspondence.ReplyOptions,

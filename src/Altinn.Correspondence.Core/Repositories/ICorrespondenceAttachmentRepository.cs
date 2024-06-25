@@ -5,6 +5,6 @@ namespace Altinn.Correspondence.Core.Repositories
 {
     public interface ICorrespondenceAttachmentRepository
     {
-        Task<Guid> PurgeCorrespondenceAttachmentsByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default);
+        Task<Guid?> GetAttachmentIdByCorrespondenceAttachmentId(Guid correspondenceAttachmentId, CancellationToken cancellationToken);
     }
 }

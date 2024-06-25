@@ -5,24 +5,24 @@ namespace Altinn.Correspondence.Application.DownloadAttachment;
 
 public class DownloadAttachmentHandler : IHandler<DownloadAttachmentRequest, Stream>
 {
-    private readonly IAttachmentRepository _attachmentRepository;
     private readonly IStorageRepository _storageRepository;
+    private readonly ICorrespondenceAttachmentRepository _correspondenceAttachmentRepository;
 
-    public DownloadAttachmentHandler(IAttachmentRepository attachmentRepository, IStorageRepository storageRepository)
+    public DownloadAttachmentHandler(IStorageRepository storageRepository, ICorrespondenceAttachmentRepository correspondenceAttachmentRepository)
     {
-        _attachmentRepository = attachmentRepository;
         _storageRepository = storageRepository;
+        _correspondenceAttachmentRepository = correspondenceAttachmentRepository;
     }
 
     public async Task<OneOf<Stream, Error>> Process(DownloadAttachmentRequest request, CancellationToken cancellationToken)
     {
-        var attachment = await _attachmentRepository.GetAttachmentById(request.AttachmentId, false, cancellationToken);
-        if (attachment is null)
+        var attachmentId = await _correspondenceAttachmentRepository.GetAttachmentIdByCorrespondenceAttachmentId(request.AttachmentId, cancellationToken);
+        if (attachmentId is null)
         {
             return Errors.AttachmentNotFound;
         }
 
-        var attachmentStream = await _storageRepository.DownloadAttachment(request.AttachmentId, cancellationToken);
+        var attachmentStream = await _storageRepository.DownloadAttachment((Guid)attachmentId, cancellationToken);
         return attachmentStream;
     }
 }

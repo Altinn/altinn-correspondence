@@ -15,12 +15,14 @@ internal static class AttachmentDetailsMapper
             AttachmentId = AttachmentDetails.AttachmentId,
             Name = AttachmentDetails.Name ?? string.Empty,
             Status = (AttachmentStatusExt)AttachmentDetails.Status,
+            DataLocationUrl = AttachmentDetails.DataLocationUrl,
             StatusText = AttachmentDetails.StatusText,
             StatusChanged = AttachmentDetails.StatusChanged,
             DataType = AttachmentDetails.DataType,
             IntendedPresentation = (IntendedPresentationTypeExt)AttachmentDetails.IntendedPresentation,
             SendersReference = AttachmentDetails.SendersReference,
-            StatusHistory = AttachmentStatusMapper.MapToExternal(AttachmentDetails.Statuses)
+            StatusHistory = AttachmentStatusMapper.MapToExternal(AttachmentDetails.Statuses),
+            CorrespondenceIds = AttachmentDetails.CorrespondenceIds
         };
         return attachment;
     }

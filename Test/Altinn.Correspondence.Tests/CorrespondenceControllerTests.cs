@@ -103,4 +103,30 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/confirm", null);
         Assert.True(confirmResponse.IsSuccessStatusCode, await confirmResponse.Content.ReadAsStringAsync());
     }
+
+    [Fact]
+    public async Task Correspondence_with_dataLocationUrl_Reuses_Attachment()
+    {
+        var attachment = InitializeAttachmentFactory.BasicAttachment();
+        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+        initializeResponse.EnsureSuccessStatusCode();
+        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
+        var uploadedAttachment = await (await UploadAttachment(attachmentId)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithFileAttachment(uploadedAttachment.DataLocationUrl), _responseSerializerOptions);
+        var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
+        initializeCorrespondenceResponse.EnsureSuccessStatusCode();
+        Assert.Equal(attachmentId, response?.AttachmentIds?.FirstOrDefault().ToString());
+    }
+
+    private async Task<HttpResponseMessage> UploadAttachment(string? attachmentId, ByteArrayContent? originalAttachmentData = null)
+    {
+        if (attachmentId == null)
+        {
+            Assert.Fail("AttachmentId is null");
+        }
+        var data = originalAttachmentData ?? new ByteArrayContent(new byte[] { 1, 2, 3, 4 });
+
+        var uploadResponse = await _client.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", data);
+        return uploadResponse;
+    }
 }

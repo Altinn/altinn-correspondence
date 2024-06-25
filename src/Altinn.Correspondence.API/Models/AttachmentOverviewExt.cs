@@ -20,7 +20,7 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("dataLocationUrl")]
         [Required]
-        public AttachmentDataLocationTypeExt DataLocationUrl { get; set; }
+        public string DataLocationUrl { get; set; }
 
         /// <summary>
         /// Current attachment status
@@ -39,5 +39,11 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("statusChanged")]
         public required DateTimeOffset StatusChanged { get; set; }
+
+        /// <summary>
+        /// List of correspondences that are using this attachment
+        /// </summary>
+        [JsonPropertyName("correspondenceIds")]
+        public required List<Guid> CorrespondenceIds { get; set; }
     }
 }

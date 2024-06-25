@@ -78,6 +78,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         }
         if (attachment == null)
         {
+
             var status = new List<AttachmentStatusEntity>(){
                     new AttachmentStatusEntity
                     {

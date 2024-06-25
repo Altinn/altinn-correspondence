@@ -9,16 +9,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
     {
         private readonly ApplicationDbContext _context = context;
 
-        public async Task<Guid> PurgeCorrespondenceAttachmentsByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default)
+        public async Task<Guid?> GetAttachmentIdByCorrespondenceAttachmentId(Guid correspondenceAttachmentId, CancellationToken cancellationToken = default)
         {
-            var correspondenceAttachments = await _context.CorrespondenceAttachments
-                .Where(ca => ca.AttachmentId == attachmentId)
-                .ToListAsync(cancellationToken);
-
-            _context.RemoveRange(correspondenceAttachments);
-            await _context.SaveChangesAsync(cancellationToken);
-
-            return attachmentId;
+            return await _context.CorrespondenceAttachments
+                .Where(ca => ca.Id == correspondenceAttachmentId).Select(ca => ca.AttachmentId).FirstOrDefaultAsync(cancellationToken);
         }
     }
 }
