@@ -70,64 +70,6 @@ internal static class InitializeCorrespondenceFactory
         },
         IsReservable = true
     };
-    internal static InitializeCorrespondenceExt BasicCorrespondenceAlreadyVisibleWithNoAttachment() => new InitializeCorrespondenceExt()
-    {
-        Recipient = "1",
-        ResourceId = "1",
-        Sender = "8536:031145332",
-        SendersReference = "1",
-        Content = new InitializeCorrespondenceContentExt()
-        {
-            Language = "no",
-            MessageTitle = "test",
-            MessageSummary = "test",
-            Attachments = new List<InitializeCorrespondenceAttachmentExt>()
-            {
-            },
-        },
-
-        VisibleFrom = DateTime.UtcNow,
-        AllowSystemDeleteAfter = DateTime.UtcNow.AddDays(1),
-        DueDateTime = DateTime.UtcNow.AddDays(1),
-        ExternalReferences = new List<ExternalReferenceExt>(){
-            new ExternalReferenceExt()
-            {
-                ReferenceValue = "1",
-                ReferenceType = ReferenceTypeExt.AltinnBrokerFileTransfer
-            },
-            new ExternalReferenceExt()
-            {
-                ReferenceValue = "2",
-                ReferenceType = ReferenceTypeExt.DialogPortenDialogID
-            }
-        },
-        PropertyList = new Dictionary<string, string>(){
-            {"deserunt_12", "1"},
-            {"culpa_852", "2"},
-            {"anim5", "3"}
-        },
-        ReplyOptions = new List<CorrespondenceReplyOptionExt>(){
-            new CorrespondenceReplyOptionExt()
-            {
-                LinkURL = "www.test.no",
-                LinkText = "test"
-            },
-            new CorrespondenceReplyOptionExt()
-            {
-                LinkURL = "test.no",
-                LinkText = "test"
-            }
-        },
-        Notifications = new List<InitializeCorrespondenceNotificationExt>(){
-            new InitializeCorrespondenceNotificationExt(){
-                NotificationTemplate= "test",
-                CustomTextToken = "test",
-                SendersReference = "1",
-                RequestedSendTime =  DateTime.UtcNow.AddDays(1),
-            }
-        },
-        IsReservable = true
-    };
 
     internal static InitializeCorrespondenceExt BasicCorrespondenceWithFileAttachment()
     {
@@ -204,6 +146,20 @@ internal static class InitializeCorrespondenceFactory
                 IsEncrypted = false,
             }
             };
+        return correspondence;
+    }
+    internal static InitializeCorrespondenceExt BasicCorrespondenceWithoutAttachments()
+    {
+        var correspondence = BasicCorrespondence();
+        correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>()
+        {
+        };
+        return correspondence;
+    }
+    internal static InitializeCorrespondenceExt BasicCorrespondenceAlreadyVisible()
+    {
+        var correspondence = BasicCorrespondence();
+        correspondence.VisibleFrom = DateTime.UtcNow.AddDays(-1);
         return correspondence;
     }
 }

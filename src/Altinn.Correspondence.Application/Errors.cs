@@ -18,4 +18,5 @@ public static class Errors
     public static Error TooManyMessageBodies = new Error(10, "Only one attachment can be marked as message body", HttpStatusCode.BadRequest);
     public static Error NoMessageBody = new Error(11, "Atleast one attachment must be marked as message body", HttpStatusCode.BadRequest);
     public static Error NoAttachments = new Error(12, "Need atleast one attachments, which must be marked as message body", HttpStatusCode.BadRequest);
+    public static Error CorrespondencePurged = new Error(13, "Correspondence has been purged", HttpStatusCode.BadRequest);
 }

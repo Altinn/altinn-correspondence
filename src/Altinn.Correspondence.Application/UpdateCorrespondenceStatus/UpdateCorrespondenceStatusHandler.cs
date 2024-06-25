@@ -33,6 +33,10 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             return Errors.CorrespondenceNotPublished;
         }
+        if (currentStatus?.Status == CorrespondenceStatus.PurgedByRecipient || currentStatus?.Status == CorrespondenceStatus.PurgedByAltinn)
+        {
+            return Errors.CorrespondencePurged;
+        }
         if (currentStatus?.Status >= request.Status)
         {
             return request.CorrespondenceId;
