@@ -22,7 +22,7 @@ internal static class InitializeCorrespondenceFactory
                     Name = "2",
                     RestrictionName = "testFile2",
                     SendersReference = "1234",
-                    IntendedPresentation = IntendedPresentationTypeExt.HumanReadable,
+                    IsMessageBody = true,
                     FileName = "test-fil2e",
                     IsEncrypted = false,
                 }
@@ -139,7 +139,7 @@ internal static class InitializeCorrespondenceFactory
                 Name = "3",
                 RestrictionName = "testFile3",
                 SendersReference = "1234",
-                IntendedPresentation = IntendedPresentationTypeExt.MachineReadable,
+                IsMessageBody = false,
                 FileName = "test-fil3e",
                 IsEncrypted = false,
             });
@@ -155,7 +155,7 @@ internal static class InitializeCorrespondenceFactory
                 Name = "3",
                 RestrictionName = "testFile3",
                 SendersReference = "1234",
-                IntendedPresentation = IntendedPresentationTypeExt.MachineReadable,
+                IsMessageBody = true,
                 FileName = "test-fil3e",
                 IsEncrypted = false,
                 DataLocationUrl = url

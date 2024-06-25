@@ -92,7 +92,6 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
                 SendersReference = correspondenceAttachment.SendersReference,
                 RestrictionName = correspondenceAttachment.RestrictionName,
                 ExpirationTime = correspondenceAttachment.ExpirationTime,
-                IntendedPresentation = correspondenceAttachment.IntendedPresentation,
                 DataType = correspondenceAttachment.DataType,
                 DataLocationUrl = correspondenceAttachment.DataLocationUrl,
                 Statuses = status,

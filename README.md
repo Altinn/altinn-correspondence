@@ -17,7 +17,7 @@ dotnet ef migrations add "MigrationName" --project ./src/Altinn.Correspondence.P
 ```
 Database migrations is applied automaticly on startup when doing local development, but to update the database manually, run: 
 ```
-dotnet ef database update
+dotnet ef database update --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API
 ``` 
 
 ### Formatting

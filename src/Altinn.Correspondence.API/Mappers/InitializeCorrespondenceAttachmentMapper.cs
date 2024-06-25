@@ -22,7 +22,7 @@ internal static class InitializeCorrespondenceAttachmentMapper
             Name = initializeAttachmentExt.Name,
             SendersReference = initializeAttachmentExt.SendersReference,
             DataType = initializeAttachmentExt.DataType,
-            IntendedPresentation = (IntendedPresentationType)initializeAttachmentExt.IntendedPresentation,
+            IsMessageBody = initializeAttachmentExt.IsMessageBody,
             Checksum = initializeAttachmentExt.Checksum,
             IsEncrypted = initializeAttachmentExt.IsEncrypted,
             DataLocationUrl = initializeAttachmentExt.DataLocationUrl,

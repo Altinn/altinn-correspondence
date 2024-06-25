@@ -528,7 +528,7 @@
                     "dataLocationUrl",
                     "dataType",
                     "expirationTime",
-                    "IntendedPresentation",
+                    "IsMessageBody",
                     "name",
                     "restrictionName",
                     "sendersReference",
@@ -565,8 +565,8 @@
                         "minLength": 1,
                         "type": "string"
                     },
-                    "IntendedPresentation": {
-                        "$ref": "#/components/schemas/IntendedPresentationTypeExt"
+                    "IsMessageBody": {
+                        "$ref": "#/components/schemas/IsMessageBodyTypeExt"
                     },
                     "restrictionName": {
                         "minLength": 1,
@@ -620,7 +620,7 @@
                     "dataLocationUrl",
                     "dataType",
                     "expirationTime",
-                    "IntendedPresentation",
+                    "IsMessageBody",
                     "name",
                     "restrictionName",
                     "sendersReference",
@@ -657,8 +657,8 @@
                         "minLength": 1,
                         "type": "string"
                     },
-                    "IntendedPresentation": {
-                        "$ref": "#/components/schemas/IntendedPresentationTypeExt"
+                    "IsMessageBody": {
+                        "$ref": "#/components/schemas/IsMessageBodyTypeExt"
                     },
                     "restrictionName": {
                         "minLength": 1,
@@ -712,7 +712,7 @@
                 "required": [
                     "dataLocationType",
                     "dataType",
-                    "intendedPresentation",
+                    "IsMessageBody",
                     "name",
                     "restrictionName",
                     "sendersReference"
@@ -750,8 +750,8 @@
                         "minLength": 1,
                         "type": "string"
                     },
-                    "intendedPresentation": {
-                        "$ref": "#/components/schemas/IntendedPresentationTypeExt"
+                    "IsMessageBody": {
+                        "$ref": "#/components/schemas/IsMessageBodyTypeExt"
                     },
                     "restrictionName": {
                         "minLength": 1,
@@ -1208,7 +1208,7 @@
                 "required": [
                     "dataType",
                     "expirationTime",
-                    "IntendedPresentation",
+                    "IsMessageBody",
                     "name",
                     "restrictionName",
                     "sendersReference"
@@ -1242,8 +1242,8 @@
                         "minLength": 1,
                         "type": "string"
                     },
-                    "IntendedPresentation": {
-                        "$ref": "#/components/schemas/IntendedPresentationTypeExt"
+                    "IsMessageBody": {
+                        "$ref": "#/components/schemas/IsMessageBodyTypeExt"
                     },
                     "restrictionName": {
                         "minLength": 1,
@@ -1260,7 +1260,7 @@
                 "required": [
                     "dataLocationType",
                     "dataType",
-                    "intendedPresentation",
+                    "IsMessageBody",
                     "name",
                     "restrictionName",
                     "sendersReference"
@@ -1298,8 +1298,8 @@
                         "minLength": 1,
                         "type": "string"
                     },
-                    "intendedPresentation": {
-                        "$ref": "#/components/schemas/IntendedPresentationTypeExt"
+                    "IsMessageBody": {
+                        "$ref": "#/components/schemas/IsMessageBodyTypeExt"
                     },
                     "restrictionName": {
                         "minLength": 1,
@@ -1461,7 +1461,7 @@
                 },
                 "additionalProperties": false
             },
-            "IntendedPresentationTypeExt": {
+            "IsMessageBodyTypeExt": {
                 "enum": [
                     "HumanReadable",
                     "MachineReadable"

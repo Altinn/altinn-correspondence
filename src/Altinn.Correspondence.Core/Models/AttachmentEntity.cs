@@ -24,9 +24,6 @@ namespace Altinn.Correspondence.Core.Models
         public required string DataType { get; set; }
 
         [Required]
-        public required IntendedPresentationType IntendedPresentation { get; set; }
-
-        [Required]
         public string RestrictionName { get; set; } = string.Empty;
 
         [Required]
