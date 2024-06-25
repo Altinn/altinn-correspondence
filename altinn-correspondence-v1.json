@@ -55,7 +55,6 @@
                         "name": "attachmentId",
                         "in": "path",
                         "required": true,
-                        "style": "simple",
                         "schema": {
                             "type": "string",
                             "format": "uuid"
@@ -528,7 +527,6 @@
                     "dataLocationUrl",
                     "dataType",
                     "expirationTime",
-                    "IsMessageBody",
                     "name",
                     "restrictionName",
                     "sendersReference",
@@ -564,9 +562,6 @@
                     "dataType": {
                         "minLength": 1,
                         "type": "string"
-                    },
-                    "IsMessageBody": {
-                        "$ref": "#/components/schemas/IsMessageBodyTypeExt"
                     },
                     "restrictionName": {
                         "minLength": 1,
@@ -620,7 +615,6 @@
                     "dataLocationUrl",
                     "dataType",
                     "expirationTime",
-                    "IsMessageBody",
                     "name",
                     "restrictionName",
                     "sendersReference",
@@ -656,9 +650,6 @@
                     "dataType": {
                         "minLength": 1,
                         "type": "string"
-                    },
-                    "IsMessageBody": {
-                        "$ref": "#/components/schemas/IsMessageBodyTypeExt"
                     },
                     "restrictionName": {
                         "minLength": 1,
@@ -751,7 +742,7 @@
                         "type": "string"
                     },
                     "IsMessageBody": {
-                        "$ref": "#/components/schemas/IsMessageBodyTypeExt"
+                        "type": "boolean"
                     },
                     "restrictionName": {
                         "minLength": 1,
@@ -1208,7 +1199,6 @@
                 "required": [
                     "dataType",
                     "expirationTime",
-                    "IsMessageBody",
                     "name",
                     "restrictionName",
                     "sendersReference"
@@ -1241,9 +1231,6 @@
                     "dataType": {
                         "minLength": 1,
                         "type": "string"
-                    },
-                    "IsMessageBody": {
-                        "$ref": "#/components/schemas/IsMessageBodyTypeExt"
                     },
                     "restrictionName": {
                         "minLength": 1,
@@ -1299,7 +1286,7 @@
                         "type": "string"
                     },
                     "IsMessageBody": {
-                        "$ref": "#/components/schemas/IsMessageBodyTypeExt"
+                        "type": "boolean"
                     },
                     "restrictionName": {
                         "minLength": 1,
@@ -1460,13 +1447,6 @@
                     }
                 },
                 "additionalProperties": false
-            },
-            "IsMessageBodyTypeExt": {
-                "enum": [
-                    "HumanReadable",
-                    "MachineReadable"
-                ],
-                "type": "string"
             },
             "NotificationChannelExt": {
                 "enum": [
