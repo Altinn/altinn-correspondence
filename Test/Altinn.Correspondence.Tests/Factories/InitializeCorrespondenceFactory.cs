@@ -162,4 +162,48 @@ internal static class InitializeCorrespondenceFactory
             }};
         return correspondence;
     }
+    internal static InitializeCorrespondenceExt BasicCorrespondenceWithMultipleMessageBodiesAttachment()
+    {
+        var correspondence = BasicCorrespondence();
+        correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>(){
+            new InitializeCorrespondenceAttachmentExt()
+            {
+                DataType = "pdf",
+                Name = "3",
+                RestrictionName = "testFile3",
+                SendersReference = "1234",
+                IsMessageBody = true,
+                FileName = "test-fil3e",
+                IsEncrypted = false,
+            },
+            new InitializeCorrespondenceAttachmentExt()
+            {
+                DataType = "pdf",
+                Name = "4",
+                RestrictionName = "testFile4",
+                SendersReference = "1234",
+                IsMessageBody = true,
+                FileName = "test-fil4e",
+                IsEncrypted = false,
+            }
+            };
+        return correspondence;
+    }
+    internal static InitializeCorrespondenceExt BasicCorrespondenceWithNoMessageBodiesAttachment()
+    {
+        var correspondence = BasicCorrespondence();
+        correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>(){
+            new InitializeCorrespondenceAttachmentExt()
+            {
+                DataType = "pdf",
+                Name = "3",
+                RestrictionName = "testFile3",
+                SendersReference = "1234",
+                IsMessageBody = false,
+                FileName = "test-fil3e",
+                IsEncrypted = false,
+            }
+            };
+        return correspondence;
+    }
 }
