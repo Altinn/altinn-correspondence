@@ -27,16 +27,15 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
     {
         var attachments = request.Correspondence.Content?.Attachments;
 
-        if (attachments != null)
-        {
-            if (attachments.Count(a => a.IsMessageBody) > 1) return Errors.TooManyMessageBodies;
-            if (!attachments.Any(a => a.IsMessageBody)) return Errors.NoMessageBody;
+        if (attachments == null || attachments.Count == 0) return Errors.NoAttachments;
+        if (attachments.Count(a => a.IsMessageBody) > 1) return Errors.TooManyMessageBodies;
+        if (!attachments.Any(a => a.IsMessageBody)) return Errors.NoMessageBody;
 
-            foreach (var attachment in attachments)
-            {
-                attachment.Attachment = await ProcessAttachment(attachment, cancellationToken);
-            }
+        foreach (var attachment in attachments)
+        {
+            attachment.Attachment = await ProcessAttachment(attachment, cancellationToken);
         }
+
         var status = GetInitializeCorrespondenceStatus(request.Correspondence);
         var statuses = new List<CorrespondenceStatusEntity>(){
             new CorrespondenceStatusEntity
