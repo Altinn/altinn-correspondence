@@ -29,6 +29,9 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
 
         if (attachments != null)
         {
+            if (attachments.Count(a => a.IsMessageBody) > 1) return Errors.TooManyMessageBodies;
+            if (!attachments.Any(a => a.IsMessageBody)) return Errors.NoMessageBody;
+
             foreach (var attachment in attachments)
             {
                 attachment.Attachment = await ProcessAttachment(attachment, cancellationToken);
