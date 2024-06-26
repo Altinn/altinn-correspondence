@@ -11,7 +11,6 @@ internal static class InitializeAttachmentFactory
         Name = "testFile",
         RestrictionName = "testFile",
         SendersReference = "1234",
-        IntendedPresentation = IntendedPresentationTypeExt.HumanReadable,
         FileName = "test-file",
         IsEncrypted = false
     };

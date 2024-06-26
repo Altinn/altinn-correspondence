@@ -14,7 +14,6 @@ internal static class InitializeAttachmentMapper
             FileName = initializeAttachmentExt.FileName,
             SendersReference = initializeAttachmentExt.SendersReference,
             DataType = initializeAttachmentExt.DataType,
-            IntendedPresentation = (IntendedPresentationType)initializeAttachmentExt.IntendedPresentation,
             Checksum = initializeAttachmentExt.Checksum,
             IsEncrypted = initializeAttachmentExt.IsEncrypted,
             Created = DateTimeOffset.UtcNow,

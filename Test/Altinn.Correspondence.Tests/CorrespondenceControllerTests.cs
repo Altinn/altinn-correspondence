@@ -33,6 +33,27 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
+    public async Task InitializeCorrespondence_Multiple_Message_Body_fails()
+    {
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithMultipleMessageBodiesAttachment());
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task InitializeCorrespondence_No_Message_Body_fails()
+    {
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithNoMessageBodiesAttachment());
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task InitializeCorrespondence_without_Attachments_fails()
+    {
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments());
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+
+    [Fact]
     public async Task GetCorrespondences()
     {
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
@@ -81,27 +102,39 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
-
-        var readResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/markasread", null);
+        Assert.NotNull(correspondence);
+        var readResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondence.CorrespondenceId}/markasread", null);
         Assert.Equal(HttpStatusCode.BadRequest, readResponse.StatusCode);
 
-        var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/confirm", null);
+        var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondence.CorrespondenceId}/confirm", null);
         Assert.Equal(HttpStatusCode.BadRequest, confirmResponse.StatusCode);
     }
 
     [Fact]
     public async Task ReceiverMarkActions_CorrespondencePublished_ReturnOk()
     {
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceAlreadyVisibleWithNoAttachment());
-        var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
-        var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}", _responseSerializerOptions);
+
+        var attachment = InitializeAttachmentFactory.BasicAttachment();
+        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+        initializeResponse.EnsureSuccessStatusCode();
+        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
+        var uploadedAttachment = await (await UploadAttachment(attachmentId)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
+        Assert.NotNull(uploadedAttachment);
+        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondenceWithFileAttachment(uploadedAttachment.DataLocationUrl);
+        correspondence.VisibleFrom = DateTime.UtcNow.AddMinutes(-1);
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence, _responseSerializerOptions);
+        var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
+        initializeCorrespondenceResponse.EnsureSuccessStatusCode();
+        Assert.NotNull(response);
+
+        var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{response.CorrespondenceId}", _responseSerializerOptions);
         Assert.True(overview?.Status == CorrespondenceStatusExt.Published);
+        Assert.NotNull(correspondence);
+        var readResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{response.CorrespondenceId}/markasread", null);
+        readResponse.EnsureSuccessStatusCode();
 
-        var readResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/markasread", null);
-        Assert.True(readResponse.IsSuccessStatusCode, await readResponse.Content.ReadAsStringAsync());
-
-        var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/confirm", null);
-        Assert.True(confirmResponse.IsSuccessStatusCode, await confirmResponse.Content.ReadAsStringAsync());
+        var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{response.CorrespondenceId}/confirm", null);
+        confirmResponse.EnsureSuccessStatusCode();
     }
 
     [Fact]

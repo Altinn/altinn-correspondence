@@ -61,9 +61,9 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// The intended presentation for this attachment
         /// </summary>
-        [JsonPropertyName("intendedPresentation")]
+        [JsonPropertyName("IsMessageBody")]
         [Required]
-        public required IntendedPresentationTypeExt IntendedPresentation { get; set; }
+        public required bool IsMessageBody { get; set; }
 
         /// <summary>
         /// The name of the Restriction Policy restricting access to this element

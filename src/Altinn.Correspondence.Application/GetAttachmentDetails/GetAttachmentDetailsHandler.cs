@@ -34,7 +34,6 @@ public class GetAttachmentDetailsHandler : IHandler<Guid, GetAttachmentDetailsRe
             StatusChanged = attachmentStatus.StatusChanged,
             DataLocationType = attachment.DataLocationType,
             DataType = attachment.DataType,
-            IntendedPresentation = attachment.IntendedPresentation,
             SendersReference = attachment.SendersReference,
             CorrespondenceIds = correspondenceIds
         };
