@@ -6,6 +6,7 @@ using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Application.InitializeCorrespondence;
+using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
@@ -261,13 +262,20 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>Ok</returns>
         [HttpDelete]
-        [Route("{correspondenceId}/delete")]
-        public async Task<ActionResult> Delete(
-            Guid correspondenceId)
+        [Route("{correspondenceId}/purge")]
+        public async Task<ActionResult> Purge(
+            Guid correspondenceId,
+            [FromServices] PurgeCorrespondenceHandler handler,
+            CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Deleting Correspondence with id: {correspondenceId}", correspondenceId.ToString());
+            _logger.LogInformation("Purging Correspondence with id: {correspondenceId}", correspondenceId.ToString());
 
-            return Ok();
+            var commandResult = await handler.Process(correspondenceId, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
+                Problem
+            );
         }
 
 
