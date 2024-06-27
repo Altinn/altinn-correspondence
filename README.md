@@ -1,4 +1,6 @@
-# altinn-correspondence
+# Altinn Correspondence - Meldingstjenesten
+
+[![CI/CD](https://github.com/Altinn/altinn-correspondence/actions/workflows/ci-cd.yaml/badge.svg)](https://github.com/Altinn/altinn-correspondence/actions/workflows/ci-cd.yaml)
 
 ## Local Development
 The start.ps1 script runs all neccassary commands to run the project. If you want to run the commands seperate, you can follow the steps below: 
