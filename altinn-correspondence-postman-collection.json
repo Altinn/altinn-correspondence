@@ -1,0 +1,1392 @@
+{
+	"info": {
+		"_postman_id": "d7f07341-b3c4-4f90-82d1-5e172b73584b",
+		"name": "Altinn.Correspondence.API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "1775784"
+	},
+	"item": [
+		{
+			"name": "correspondence",
+			"item": [
+				{
+					"name": "api",
+					"item": [
+						{
+							"name": "v1",
+							"item": [
+								{
+									"name": "attachment",
+									"item": [
+										{
+											"name": "{attachmentId}",
+											"item": [
+												{
+													"name": "upload",
+													"item": [
+														{
+															"name": "Upload",
+															"protocolProfileBehavior": {
+																"disabledSystemHeaders": {
+																	"content-type": true
+																}
+															},
+															"request": {
+																"method": "POST",
+																"header": [
+																	{
+																		"key": "Accept",
+																		"value": "application/octet-stream"
+																	}
+																],
+																"body": {
+																	"mode": "file",
+																	"file": {
+																		"src": "/C:/Users/$FJ8000-6GR0D2NJKGOS/Documents/altinn-correspondence/version.txt"
+																	}
+																},
+																"url": {
+																	"raw": "{{baseUrl}}/correspondence/api/v1/attachment/{{attachmentId}}/upload",
+																	"host": [
+																		"{{baseUrl}}"
+																	],
+																	"path": [
+																		"correspondence",
+																		"api",
+																		"v1",
+																		"attachment",
+																		"{{attachmentId}}",
+																		"upload"
+																	]
+																}
+															},
+															"response": [
+																{
+																	"name": "Success",
+																	"originalRequest": {
+																		"method": "POST",
+																		"header": [
+																			{
+																				"key": "Accept",
+																				"value": "text/plain"
+																			}
+																		],
+																		"url": {
+																			"raw": "{{baseUrl}}/correspondence/api/v1/attachment/:attachmentId/upload",
+																			"host": [
+																				"{{baseUrl}}"
+																			],
+																			"path": [
+																				"correspondence",
+																				"api",
+																				"v1",
+																				"attachment",
+																				":attachmentId",
+																				"upload"
+																			],
+																			"variable": [
+																				{
+																					"key": "attachmentId"
+																				}
+																			]
+																		}
+																	},
+																	"status": "OK",
+																	"code": 200,
+																	"_postman_previewlanguage": "json",
+																	"header": [
+																		{
+																			"key": "Content-Type",
+																			"value": "application/json"
+																		}
+																	],
+																	"cookie": [],
+																	"body": "{\n  \"dataLocationUrl\": \"ExternalStorage\",\n  \"dataType\": \"<string>\",\n  \"expirationTime\": \"<dateTime>\",\n  \"name\": \"<string>\",\n  \"restrictionName\": \"<string>\",\n  \"sendersReference\": \"<string>\",\n  \"usageType\": \"MachineReadable\",\n  \"fileName\": \"<string>\",\n  \"isEncrypted\": \"<boolean>\",\n  \"checksum\": \"<string>\",\n  \"attachmentId\": \"<uuid>\",\n  \"status\": \"UploadProcessing\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\"\n}"
+																}
+															]
+														}
+													]
+												},
+												{
+													"name": "details",
+													"item": [
+														{
+															"name": "Details",
+															"request": {
+																"method": "GET",
+																"header": [
+																	{
+																		"key": "Accept",
+																		"value": "text/plain"
+																	}
+																],
+																"url": {
+																	"raw": "{{baseUrl}}/correspondence/api/v1/attachment/{{attachmentId}}/details",
+																	"host": [
+																		"{{baseUrl}}"
+																	],
+																	"path": [
+																		"correspondence",
+																		"api",
+																		"v1",
+																		"attachment",
+																		"{{attachmentId}}",
+																		"details"
+																	]
+																}
+															},
+															"response": [
+																{
+																	"name": "Success",
+																	"originalRequest": {
+																		"method": "GET",
+																		"header": [
+																			{
+																				"key": "Accept",
+																				"value": "text/plain"
+																			}
+																		],
+																		"url": {
+																			"raw": "{{baseUrl}}/correspondence/api/v1/attachment/:attachmentId/details",
+																			"host": [
+																				"{{baseUrl}}"
+																			],
+																			"path": [
+																				"correspondence",
+																				"api",
+																				"v1",
+																				"attachment",
+																				":attachmentId",
+																				"details"
+																			],
+																			"variable": [
+																				{
+																					"key": "attachmentId"
+																				}
+																			]
+																		}
+																	},
+																	"status": "OK",
+																	"code": 200,
+																	"_postman_previewlanguage": "json",
+																	"header": [
+																		{
+																			"key": "Content-Type",
+																			"value": "application/json"
+																		}
+																	],
+																	"cookie": [],
+																	"body": "{\n  \"dataLocationUrl\": \"ExternalStorage\",\n  \"dataType\": \"<string>\",\n  \"expirationTime\": \"<dateTime>\",\n  \"name\": \"<string>\",\n  \"restrictionName\": \"<string>\",\n  \"sendersReference\": \"<string>\",\n  \"usageType\": \"MachineReadable\",\n  \"fileName\": \"<string>\",\n  \"isEncrypted\": \"<boolean>\",\n  \"checksum\": \"<string>\",\n  \"attachmentId\": \"<uuid>\",\n  \"status\": \"Deleted\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\",\n  \"statusHistory\": [\n    {\n      \"status\": \"Failed\",\n      \"statusText\": \"<string>\",\n      \"statusChanged\": \"<dateTime>\"\n    },\n    {\n      \"status\": \"Deleted\",\n      \"statusText\": \"<string>\",\n      \"statusChanged\": \"<dateTime>\"\n    }\n  ]\n}"
+																}
+															]
+														}
+													]
+												},
+												{
+													"name": "purge",
+													"item": [
+														{
+															"name": "Purge",
+															"request": {
+																"method": "DELETE",
+																"header": [
+																	{
+																		"key": "Accept",
+																		"value": "text/plain"
+																	}
+																],
+																"url": {
+																	"raw": "{{baseUrl}}/correspondence/api/v1/attachment/{{attachmentId}}",
+																	"host": [
+																		"{{baseUrl}}"
+																	],
+																	"path": [
+																		"correspondence",
+																		"api",
+																		"v1",
+																		"attachment",
+																		"{{attachmentId}}"
+																	]
+																}
+															},
+															"response": [
+																{
+																	"name": "Success",
+																	"originalRequest": {
+																		"method": "DELETE",
+																		"header": [
+																			{
+																				"key": "Accept",
+																				"value": "text/plain"
+																			}
+																		],
+																		"url": {
+																			"raw": "{{baseUrl}}/correspondence/api/v1/attachment/:attachmentId",
+																			"host": [
+																				"{{baseUrl}}"
+																			],
+																			"path": [
+																				"correspondence",
+																				"api",
+																				"v1",
+																				"attachment",
+																				":attachmentId"
+																			],
+																			"variable": [
+																				{
+																					"key": "attachmentId"
+																				}
+																			]
+																		}
+																	},
+																	"status": "OK",
+																	"code": 200,
+																	"_postman_previewlanguage": "json",
+																	"header": [
+																		{
+																			"key": "Content-Type",
+																			"value": "application/json"
+																		}
+																	],
+																	"cookie": [],
+																	"body": "{\n  \"dataLocationUrl\": \"ExternalStorage\",\n  \"dataType\": \"<string>\",\n  \"expirationTime\": \"<dateTime>\",\n  \"name\": \"<string>\",\n  \"restrictionName\": \"<string>\",\n  \"sendersReference\": \"<string>\",\n  \"usageType\": \"MachineReadable\",\n  \"fileName\": \"<string>\",\n  \"isEncrypted\": \"<boolean>\",\n  \"checksum\": \"<string>\",\n  \"attachmentId\": \"<uuid>\",\n  \"status\": \"UploadProcessing\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\"\n}"
+																}
+															]
+														}
+													]
+												},
+												{
+													"name": "Get Attachment",
+													"request": {
+														"method": "GET",
+														"header": [
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"url": {
+															"raw": "{{baseUrl}}/correspondence/api/v1/attachment/{{attachmentId}}",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"correspondence",
+																"api",
+																"v1",
+																"attachment",
+																"{{attachmentId}}"
+															]
+														}
+													},
+													"response": [
+														{
+															"name": "Success",
+															"originalRequest": {
+																"method": "GET",
+																"header": [
+																	{
+																		"key": "Accept",
+																		"value": "text/plain"
+																	}
+																],
+																"url": {
+																	"raw": "{{baseUrl}}/correspondence/api/v1/attachment/:attachmentId",
+																	"host": [
+																		"{{baseUrl}}"
+																	],
+																	"path": [
+																		"correspondence",
+																		"api",
+																		"v1",
+																		"attachment",
+																		":attachmentId"
+																	],
+																	"variable": [
+																		{
+																			"key": "attachmentId"
+																		}
+																	]
+																}
+															},
+															"status": "OK",
+															"code": 200,
+															"_postman_previewlanguage": "json",
+															"header": [
+																{
+																	"key": "Content-Type",
+																	"value": "application/json"
+																}
+															],
+															"cookie": [],
+															"body": "{\n  \"dataLocationUrl\": \"ExternalStorage\",\n  \"dataType\": \"<string>\",\n  \"expirationTime\": \"<dateTime>\",\n  \"name\": \"<string>\",\n  \"restrictionName\": \"<string>\",\n  \"sendersReference\": \"<string>\",\n  \"usageType\": \"MachineReadable\",\n  \"fileName\": \"<string>\",\n  \"isEncrypted\": \"<boolean>\",\n  \"checksum\": \"<string>\",\n  \"attachmentId\": \"<uuid>\",\n  \"status\": \"UploadProcessing\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\"\n}"
+														}
+													]
+												}
+											]
+										},
+										{
+											"name": "Initialize Attachment",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"var attachmentId = pm.response.text().replace(/\\\"/g, \"\")\r",
+															"pm.collectionVariables.set(\"attachmentId\", attachmentId);\r",
+															""
+														],
+														"type": "text/javascript",
+														"packages": {}
+													}
+												}
+											],
+											"request": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "text/plain"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"dataType\": \"html\",\n  \"expirationTime\": \"2024-12-12\",\n  \"name\": \"testFile\",\n  \"restrictionName\": \"testFile\",\n  \"sendersReference\": \"1234\",\n  \"usageType\": \"HumanReadable\",\n  \"fileName\": \"test-file\",\n  \"isEncrypted\": false,\n  \"intendedPresentation\": 0\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/correspondence/api/v1/attachment",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"correspondence",
+														"api",
+														"v1",
+														"attachment"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "Success",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"dataType\": \"<string>\",\n  \"expirationTime\": \"<dateTime>\",\n  \"name\": \"<string>\",\n  \"restrictionName\": \"<string>\",\n  \"sendersReference\": \"<string>\",\n  \"usageType\": \"HumanReadable\",\n  \"fileName\": \"<string>\",\n  \"isEncrypted\": \"<boolean>\",\n  \"checksum\": \"<string>\"\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/correspondence/api/v1/attachment",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"correspondence",
+																"api",
+																"v1",
+																"attachment"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"dataLocationUrl\": \"ExternalStorage\",\n  \"dataType\": \"<string>\",\n  \"expirationTime\": \"<dateTime>\",\n  \"name\": \"<string>\",\n  \"restrictionName\": \"<string>\",\n  \"sendersReference\": \"<string>\",\n  \"usageType\": \"MachineReadable\",\n  \"fileName\": \"<string>\",\n  \"isEncrypted\": \"<boolean>\",\n  \"checksum\": \"<string>\",\n  \"attachmentId\": \"<uuid>\",\n  \"status\": \"UploadProcessing\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\"\n}"
+												}
+											]
+										}
+									]
+								},
+								{
+									"name": "correspondence",
+									"item": [
+										{
+											"name": "upload",
+											"item": [
+												{
+													"name": "Upload Correspondece",
+													"request": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"recipient\": \"1234\",\n  \"resourceId\": \"1234\",\n  \"sender\": \"8536:031145332\",\n  \"sendersReference\": \"1234\",\n  \"content\": {\n    \"language\": \"en\",\n    \"messageTitle\": \"test asdf asdf>\",\n    \"messageSummary\": \"asdf asdfasdf\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"ExisitingExternalStorage\",\n        \"dataType\": \"1\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"file\",\n        \"restrictionName\": \"1234\",\n        \"sendersReference\": \"1234\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": true,\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"allowSystemDeleteAfter\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"<string>\",\n    \"culpa_852\": \"<string>\",\n    \"anim5\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n    }\n  ],\n  \"isReservable\": true\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/correspondence/api/v1/correspondence/upload",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"correspondence",
+																"api",
+																"v1",
+																"correspondence",
+																"upload"
+															]
+														}
+													},
+													"response": [
+														{
+															"name": "Success",
+															"originalRequest": {
+																"method": "POST",
+																"header": [
+																	{
+																		"key": "Content-Type",
+																		"value": "application/json"
+																	},
+																	{
+																		"key": "Accept",
+																		"value": "text/plain"
+																	}
+																],
+																"body": {
+																	"mode": "raw",
+																	"raw": "{\n  \"recipient\": \"<string>\",\n  \"resourceId\": \"<string>\",\n  \"sender\": \"8536:031145332\",\n  \"sendersReference\": \"<string>\",\n  \"content\": {\n    \"language\": \"English\",\n    \"messageTitle\": \"<string>\",\n    \"messageSummary\": \"<string>\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"ExisitingExternalStorage\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\"\n      },\n      {\n        \"dataLocationType\": \"ExistingCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"MachineReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"<dateTime>\",\n  \"allowSystemDeleteAfter\": \"<dateTime>\",\n  \"dueDateTime\": \"<dateTime>\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"<string>\",\n    \"culpa_852\": \"<string>\",\n    \"anim5\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    }\n  ],\n  \"isReservable\": \"<boolean>\"\n}",
+																	"options": {
+																		"raw": {
+																			"headerFamily": "json",
+																			"language": "json"
+																		}
+																	}
+																},
+																"url": {
+																	"raw": "{{baseUrl}}/correspondence/api/v1/correspondence/upload",
+																	"host": [
+																		"{{baseUrl}}"
+																	],
+																	"path": [
+																		"correspondence",
+																		"api",
+																		"v1",
+																		"correspondence",
+																		"upload"
+																	]
+																}
+															},
+															"status": "OK",
+															"code": 200,
+															"_postman_previewlanguage": "json",
+															"header": [
+																{
+																	"key": "Content-Type",
+																	"value": "application/json"
+																}
+															],
+															"cookie": [],
+															"body": "{\n  \"recipient\": \"<string>\",\n  \"resourceId\": \"<string>\",\n  \"sender\": \"0913:541697724\",\n  \"sendersReference\": \"<string>\",\n  \"content\": {\n    \"language\": \"English\",\n    \"messageTitle\": \"<string>\",\n    \"messageSummary\": \"<string>\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Initialized\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      },\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"MachineReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Initialized\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"<dateTime>\",\n  \"allowSystemDeleteAfter\": \"<dateTime>\",\n  \"dueDateTime\": \"<dateTime>\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogElementID\"\n    }\n  ],\n  \"propertyList\": {\n    \"euf\": \"<string>\",\n    \"eu_34\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    }\n  ],\n  \"isReservable\": \"<boolean>\",\n  \"correspondenceId\": \"<uuid>\",\n  \"created\": \"<dateTime>\",\n  \"status\": \"Published\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\"\n}"
+														}
+													]
+												}
+											]
+										},
+										{
+											"name": "{correspondenceId}",
+											"item": [
+												{
+													"name": "details",
+													"item": [
+														{
+															"name": "Details",
+															"request": {
+																"method": "GET",
+																"header": [
+																	{
+																		"key": "Accept",
+																		"value": "text/plain"
+																	}
+																],
+																"url": {
+																	"raw": "{{baseUrl}}/correspondence/api/v1/correspondence/{{correspondenceId}}/details",
+																	"host": [
+																		"{{baseUrl}}"
+																	],
+																	"path": [
+																		"correspondence",
+																		"api",
+																		"v1",
+																		"correspondence",
+																		"{{correspondenceId}}",
+																		"details"
+																	]
+																}
+															},
+															"response": [
+																{
+																	"name": "Success",
+																	"originalRequest": {
+																		"method": "GET",
+																		"header": [
+																			{
+																				"key": "Accept",
+																				"value": "text/plain"
+																			}
+																		],
+																		"url": {
+																			"raw": "{{baseUrl}}/correspondence/api/v1/correspondence/:correspondenceId/details",
+																			"host": [
+																				"{{baseUrl}}"
+																			],
+																			"path": [
+																				"correspondence",
+																				"api",
+																				"v1",
+																				"correspondence",
+																				":correspondenceId",
+																				"details"
+																			],
+																			"variable": [
+																				{
+																					"key": "correspondenceId"
+																				}
+																			]
+																		}
+																	},
+																	"status": "OK",
+																	"code": 200,
+																	"_postman_previewlanguage": "json",
+																	"header": [
+																		{
+																			"key": "Content-Type",
+																			"value": "application/json"
+																		}
+																	],
+																	"cookie": [],
+																	"body": "{\n  \"recipient\": \"<string>\",\n  \"resourceId\": \"<string>\",\n  \"sender\": \"9585:149785773\",\n  \"sendersReference\": \"<string>\",\n  \"content\": {\n    \"language\": \"NorwegianNO\",\n    \"messageTitle\": \"<string>\",\n    \"messageSummary\": \"<string>\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"ExternalStorage\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Published\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      },\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Published\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"<dateTime>\",\n  \"allowSystemDeleteAfter\": \"<dateTime>\",\n  \"dueDateTime\": \"<dateTime>\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnAppInstance\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    }\n  ],\n  \"propertyList\": {\n    \"Excepteur36a\": \"<string>\",\n    \"officiaaf1\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\",\n      \"notificationId\": \"<uuid>\",\n      \"notificationChannel\": \"Email\",\n      \"created\": \"<dateTime>\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\",\n      \"notificationId\": \"<uuid>\",\n      \"notificationChannel\": \"Sms\",\n      \"created\": \"<dateTime>\"\n    }\n  ],\n  \"isReservable\": \"<boolean>\",\n  \"correspondenceId\": \"<uuid>\",\n  \"created\": \"<dateTime>\",\n  \"status\": \"Archived\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\",\n  \"statusHistory\": [\n    {\n      \"status\": \"Confirmed\",\n      \"statusText\": \"<string>\",\n      \"statusChanged\": \"<dateTime>\"\n    },\n    {\n      \"status\": \"Archived\",\n      \"statusText\": \"<string>\",\n      \"statusChanged\": \"<dateTime>\"\n    }\n  ],\n  \"notificationStatusHistory\": [\n    {\n      \"status\": \"<string>\",\n      \"statusText\": \"<string>\",\n      \"statusChanged\": \"<dateTime>\"\n    },\n    {\n      \"status\": \"<string>\",\n      \"statusText\": \"<string>\",\n      \"statusChanged\": \"<dateTime>\"\n    }\n  ]\n}"
+																}
+															]
+														}
+													]
+												},
+												{
+													"name": "archive",
+													"item": [
+														{
+															"name": "Archive",
+															"request": {
+																"method": "POST",
+																"header": [
+																	{
+																		"key": "Content-Type",
+																		"value": "application/json"
+																	},
+																	{
+																		"key": "Accept",
+																		"value": "text/plain"
+																	}
+																],
+																"body": {
+																	"mode": "raw",
+																	"raw": "{\n  \"recipient\": \"1234\",\n  \"resourceId\": \"1234\",\n  \"sender\": \"8536:031145332\",\n  \"sendersReference\": \"1234\",\n  \"content\": {\n    \"language\": \"English\",\n    \"messageTitle\": \"test asdf asdf>\",\n    \"messageSummary\": \"asdf asdfasdf\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"ExisitingExternalStorage\",\n        \"dataType\": \"1\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"file\",\n        \"restrictionName\": \"1234\",\n        \"sendersReference\": \"1234\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": true,\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\"\n      },\n      {\n        \"dataLocationType\": \"ExistingCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"MachineReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": true,\n        \"checksum\": \"12345123412341234123412341234123\",\n        \"dataLocationUrl\": \"<string>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"allowSystemDeleteAfter\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"<string>\",\n    \"culpa_852\": \"<string>\",\n    \"anim5\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n    }\n  ],\n  \"isReservable\": true\n}",
+																	"options": {
+																		"raw": {
+																			"headerFamily": "json",
+																			"language": "json"
+																		}
+																	}
+																},
+																"url": {
+																	"raw": "{{baseUrl}}/correspondence/api/v1/correspondence/{{correspondenceId}}/archive",
+																	"host": [
+																		"{{baseUrl}}"
+																	],
+																	"path": [
+																		"correspondence",
+																		"api",
+																		"v1",
+																		"correspondence",
+																		"{{correspondenceId}}",
+																		"archive"
+																	]
+																}
+															},
+															"response": [
+																{
+																	"name": "Success",
+																	"originalRequest": {
+																		"method": "POST",
+																		"header": [
+																			{
+																				"key": "Content-Type",
+																				"value": "application/json"
+																			},
+																			{
+																				"key": "Accept",
+																				"value": "text/plain"
+																			}
+																		],
+																		"body": {
+																			"mode": "raw",
+																			"raw": "{\n  \"recipient\": \"<string>\",\n  \"resourceId\": \"<string>\",\n  \"sender\": \"8536:031145332\",\n  \"sendersReference\": \"<string>\",\n  \"content\": {\n    \"language\": \"English\",\n    \"messageTitle\": \"<string>\",\n    \"messageSummary\": \"<string>\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"ExisitingExternalStorage\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\"\n      },\n      {\n        \"dataLocationType\": \"ExistingCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"MachineReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"<dateTime>\",\n  \"allowSystemDeleteAfter\": \"<dateTime>\",\n  \"dueDateTime\": \"<dateTime>\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"<string>\",\n    \"culpa_852\": \"<string>\",\n    \"anim5\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    }\n  ],\n  \"isReservable\": \"<boolean>\"\n}",
+																			"options": {
+																				"raw": {
+																					"headerFamily": "json",
+																					"language": "json"
+																				}
+																			}
+																		},
+																		"url": {
+																			"raw": "{{baseUrl}}/correspondence/api/v1/correspondence/upload",
+																			"host": [
+																				"{{baseUrl}}"
+																			],
+																			"path": [
+																				"correspondence",
+																				"api",
+																				"v1",
+																				"correspondence",
+																				"upload"
+																			]
+																		}
+																	},
+																	"status": "OK",
+																	"code": 200,
+																	"_postman_previewlanguage": "json",
+																	"header": [
+																		{
+																			"key": "Content-Type",
+																			"value": "application/json"
+																		}
+																	],
+																	"cookie": [],
+																	"body": "{\n  \"recipient\": \"<string>\",\n  \"resourceId\": \"<string>\",\n  \"sender\": \"0913:541697724\",\n  \"sendersReference\": \"<string>\",\n  \"content\": {\n    \"language\": \"English\",\n    \"messageTitle\": \"<string>\",\n    \"messageSummary\": \"<string>\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Initialized\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      },\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"MachineReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Initialized\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"<dateTime>\",\n  \"allowSystemDeleteAfter\": \"<dateTime>\",\n  \"dueDateTime\": \"<dateTime>\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogElementID\"\n    }\n  ],\n  \"propertyList\": {\n    \"euf\": \"<string>\",\n    \"eu_34\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    }\n  ],\n  \"isReservable\": \"<boolean>\",\n  \"correspondenceId\": \"<uuid>\",\n  \"created\": \"<dateTime>\",\n  \"status\": \"Published\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\"\n}"
+																}
+															]
+														}
+													]
+												},
+												{
+													"name": "markasread",
+													"item": [
+														{
+															"name": "Mark As Read",
+															"request": {
+																"method": "POST",
+																"header": [
+																	{
+																		"key": "Content-Type",
+																		"value": "application/json"
+																	},
+																	{
+																		"key": "Accept",
+																		"value": "text/plain"
+																	}
+																],
+																"body": {
+																	"mode": "raw",
+																	"raw": "{\n  \"recipient\": \"1234\",\n  \"resourceId\": \"1234\",\n  \"sender\": \"8536:031145332\",\n  \"sendersReference\": \"1234\",\n  \"content\": {\n    \"language\": \"English\",\n    \"messageTitle\": \"test asdf asdf>\",\n    \"messageSummary\": \"asdf asdfasdf\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"ExisitingExternalStorage\",\n        \"dataType\": \"1\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"file\",\n        \"restrictionName\": \"1234\",\n        \"sendersReference\": \"1234\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": true,\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\"\n      },\n      {\n        \"dataLocationType\": \"ExistingCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"MachineReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": true,\n        \"checksum\": \"12345123412341234123412341234123\",\n        \"dataLocationUrl\": \"<string>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"allowSystemDeleteAfter\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"<string>\",\n    \"culpa_852\": \"<string>\",\n    \"anim5\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n    }\n  ],\n  \"isReservable\": true\n}",
+																	"options": {
+																		"raw": {
+																			"headerFamily": "json",
+																			"language": "json"
+																		}
+																	}
+																},
+																"url": {
+																	"raw": "{{baseUrl}}/correspondence/api/v1/correspondence/{{correspondenceId}}/markasread",
+																	"host": [
+																		"{{baseUrl}}"
+																	],
+																	"path": [
+																		"correspondence",
+																		"api",
+																		"v1",
+																		"correspondence",
+																		"{{correspondenceId}}",
+																		"markasread"
+																	]
+																}
+															},
+															"response": [
+																{
+																	"name": "Success",
+																	"originalRequest": {
+																		"method": "POST",
+																		"header": [
+																			{
+																				"key": "Content-Type",
+																				"value": "application/json"
+																			},
+																			{
+																				"key": "Accept",
+																				"value": "text/plain"
+																			}
+																		],
+																		"body": {
+																			"mode": "raw",
+																			"raw": "{\n  \"recipient\": \"<string>\",\n  \"resourceId\": \"<string>\",\n  \"sender\": \"8536:031145332\",\n  \"sendersReference\": \"<string>\",\n  \"content\": {\n    \"language\": \"English\",\n    \"messageTitle\": \"<string>\",\n    \"messageSummary\": \"<string>\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"ExisitingExternalStorage\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\"\n      },\n      {\n        \"dataLocationType\": \"ExistingCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"MachineReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"<dateTime>\",\n  \"allowSystemDeleteAfter\": \"<dateTime>\",\n  \"dueDateTime\": \"<dateTime>\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"<string>\",\n    \"culpa_852\": \"<string>\",\n    \"anim5\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    }\n  ],\n  \"isReservable\": \"<boolean>\"\n}",
+																			"options": {
+																				"raw": {
+																					"headerFamily": "json",
+																					"language": "json"
+																				}
+																			}
+																		},
+																		"url": {
+																			"raw": "{{baseUrl}}/correspondence/api/v1/correspondence/upload",
+																			"host": [
+																				"{{baseUrl}}"
+																			],
+																			"path": [
+																				"correspondence",
+																				"api",
+																				"v1",
+																				"correspondence",
+																				"upload"
+																			]
+																		}
+																	},
+																	"status": "OK",
+																	"code": 200,
+																	"_postman_previewlanguage": "json",
+																	"header": [
+																		{
+																			"key": "Content-Type",
+																			"value": "application/json"
+																		}
+																	],
+																	"cookie": [],
+																	"body": "{\n  \"recipient\": \"<string>\",\n  \"resourceId\": \"<string>\",\n  \"sender\": \"0913:541697724\",\n  \"sendersReference\": \"<string>\",\n  \"content\": {\n    \"language\": \"English\",\n    \"messageTitle\": \"<string>\",\n    \"messageSummary\": \"<string>\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Initialized\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      },\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"MachineReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Initialized\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"<dateTime>\",\n  \"allowSystemDeleteAfter\": \"<dateTime>\",\n  \"dueDateTime\": \"<dateTime>\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogElementID\"\n    }\n  ],\n  \"propertyList\": {\n    \"euf\": \"<string>\",\n    \"eu_34\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    }\n  ],\n  \"isReservable\": \"<boolean>\",\n  \"correspondenceId\": \"<uuid>\",\n  \"created\": \"<dateTime>\",\n  \"status\": \"Published\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\"\n}"
+																}
+															]
+														}
+													]
+												},
+												{
+													"name": "purge",
+													"item": [
+														{
+															"name": "Purge",
+															"request": {
+																"method": "DELETE",
+																"header": [
+																	{
+																		"key": "Accept",
+																		"value": "text/plain"
+																	}
+																],
+																"url": {
+																	"raw": "{{baseUrl}}/correspondence/api/v1/correspondence/{{correspondenceId}}/purge",
+																	"host": [
+																		"{{baseUrl}}"
+																	],
+																	"path": [
+																		"correspondence",
+																		"api",
+																		"v1",
+																		"correspondence",
+																		"{{correspondenceId}}",
+																		"purge"
+																	]
+																}
+															},
+															"response": [
+																{
+																	"name": "Success",
+																	"originalRequest": {
+																		"method": "GET",
+																		"header": [
+																			{
+																				"key": "Accept",
+																				"value": "text/plain"
+																			}
+																		],
+																		"url": {
+																			"raw": "{{baseUrl}}/correspondence/api/v1/correspondence/:correspondenceId/details",
+																			"host": [
+																				"{{baseUrl}}"
+																			],
+																			"path": [
+																				"correspondence",
+																				"api",
+																				"v1",
+																				"correspondence",
+																				":correspondenceId",
+																				"details"
+																			],
+																			"variable": [
+																				{
+																					"key": "correspondenceId"
+																				}
+																			]
+																		}
+																	},
+																	"status": "OK",
+																	"code": 200,
+																	"_postman_previewlanguage": "json",
+																	"header": [
+																		{
+																			"key": "Content-Type",
+																			"value": "application/json"
+																		}
+																	],
+																	"cookie": [],
+																	"body": "{\n  \"recipient\": \"<string>\",\n  \"resourceId\": \"<string>\",\n  \"sender\": \"9585:149785773\",\n  \"sendersReference\": \"<string>\",\n  \"content\": {\n    \"language\": \"NorwegianNO\",\n    \"messageTitle\": \"<string>\",\n    \"messageSummary\": \"<string>\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"ExternalStorage\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Published\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      },\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Published\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"<dateTime>\",\n  \"allowSystemDeleteAfter\": \"<dateTime>\",\n  \"dueDateTime\": \"<dateTime>\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnAppInstance\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    }\n  ],\n  \"propertyList\": {\n    \"Excepteur36a\": \"<string>\",\n    \"officiaaf1\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\",\n      \"notificationId\": \"<uuid>\",\n      \"notificationChannel\": \"Email\",\n      \"created\": \"<dateTime>\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\",\n      \"notificationId\": \"<uuid>\",\n      \"notificationChannel\": \"Sms\",\n      \"created\": \"<dateTime>\"\n    }\n  ],\n  \"isReservable\": \"<boolean>\",\n  \"correspondenceId\": \"<uuid>\",\n  \"created\": \"<dateTime>\",\n  \"status\": \"Archived\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\",\n  \"statusHistory\": [\n    {\n      \"status\": \"Confirmed\",\n      \"statusText\": \"<string>\",\n      \"statusChanged\": \"<dateTime>\"\n    },\n    {\n      \"status\": \"Archived\",\n      \"statusText\": \"<string>\",\n      \"statusChanged\": \"<dateTime>\"\n    }\n  ],\n  \"notificationStatusHistory\": [\n    {\n      \"status\": \"<string>\",\n      \"statusText\": \"<string>\",\n      \"statusChanged\": \"<dateTime>\"\n    },\n    {\n      \"status\": \"<string>\",\n      \"statusText\": \"<string>\",\n      \"statusChanged\": \"<dateTime>\"\n    }\n  ]\n}"
+																}
+															]
+														}
+													]
+												},
+												{
+													"name": "confirm",
+													"item": [
+														{
+															"name": "Confirm",
+															"request": {
+																"method": "POST",
+																"header": [
+																	{
+																		"key": "Content-Type",
+																		"value": "application/json"
+																	},
+																	{
+																		"key": "Accept",
+																		"value": "text/plain"
+																	}
+																],
+																"body": {
+																	"mode": "raw",
+																	"raw": "{\n  \"recipient\": \"1234\",\n  \"resourceId\": \"1234\",\n  \"sender\": \"8536:031145332\",\n  \"sendersReference\": \"1234\",\n  \"content\": {\n    \"language\": \"English\",\n    \"messageTitle\": \"test asdf asdf>\",\n    \"messageSummary\": \"asdf asdfasdf\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"ExisitingExternalStorage\",\n        \"dataType\": \"1\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"file\",\n        \"restrictionName\": \"1234\",\n        \"sendersReference\": \"1234\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": true,\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\"\n      },\n      {\n        \"dataLocationType\": \"ExistingCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"MachineReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": true,\n        \"checksum\": \"12345123412341234123412341234123\",\n        \"dataLocationUrl\": \"<string>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"allowSystemDeleteAfter\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"<string>\",\n    \"culpa_852\": \"<string>\",\n    \"anim5\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n    }\n  ],\n  \"isReservable\": true\n}",
+																	"options": {
+																		"raw": {
+																			"headerFamily": "json",
+																			"language": "json"
+																		}
+																	}
+																},
+																"url": {
+																	"raw": "{{baseUrl}}/correspondence/api/v1/correspondence/{{correspondenceId}}/confirm",
+																	"host": [
+																		"{{baseUrl}}"
+																	],
+																	"path": [
+																		"correspondence",
+																		"api",
+																		"v1",
+																		"correspondence",
+																		"{{correspondenceId}}",
+																		"confirm"
+																	]
+																}
+															},
+															"response": [
+																{
+																	"name": "Success",
+																	"originalRequest": {
+																		"method": "POST",
+																		"header": [
+																			{
+																				"key": "Content-Type",
+																				"value": "application/json"
+																			},
+																			{
+																				"key": "Accept",
+																				"value": "text/plain"
+																			}
+																		],
+																		"body": {
+																			"mode": "raw",
+																			"raw": "{\n  \"recipient\": \"<string>\",\n  \"resourceId\": \"<string>\",\n  \"sender\": \"8536:031145332\",\n  \"sendersReference\": \"<string>\",\n  \"content\": {\n    \"language\": \"English\",\n    \"messageTitle\": \"<string>\",\n    \"messageSummary\": \"<string>\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"ExisitingExternalStorage\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\"\n      },\n      {\n        \"dataLocationType\": \"ExistingCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"MachineReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"<dateTime>\",\n  \"allowSystemDeleteAfter\": \"<dateTime>\",\n  \"dueDateTime\": \"<dateTime>\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"<string>\",\n    \"culpa_852\": \"<string>\",\n    \"anim5\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    }\n  ],\n  \"isReservable\": \"<boolean>\"\n}",
+																			"options": {
+																				"raw": {
+																					"headerFamily": "json",
+																					"language": "json"
+																				}
+																			}
+																		},
+																		"url": {
+																			"raw": "{{baseUrl}}/correspondence/api/v1/correspondence/upload",
+																			"host": [
+																				"{{baseUrl}}"
+																			],
+																			"path": [
+																				"correspondence",
+																				"api",
+																				"v1",
+																				"correspondence",
+																				"upload"
+																			]
+																		}
+																	},
+																	"status": "OK",
+																	"code": 200,
+																	"_postman_previewlanguage": "json",
+																	"header": [
+																		{
+																			"key": "Content-Type",
+																			"value": "application/json"
+																		}
+																	],
+																	"cookie": [],
+																	"body": "{\n  \"recipient\": \"<string>\",\n  \"resourceId\": \"<string>\",\n  \"sender\": \"0913:541697724\",\n  \"sendersReference\": \"<string>\",\n  \"content\": {\n    \"language\": \"English\",\n    \"messageTitle\": \"<string>\",\n    \"messageSummary\": \"<string>\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Initialized\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      },\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"MachineReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Initialized\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"<dateTime>\",\n  \"allowSystemDeleteAfter\": \"<dateTime>\",\n  \"dueDateTime\": \"<dateTime>\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogElementID\"\n    }\n  ],\n  \"propertyList\": {\n    \"euf\": \"<string>\",\n    \"eu_34\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    }\n  ],\n  \"isReservable\": \"<boolean>\",\n  \"correspondenceId\": \"<uuid>\",\n  \"created\": \"<dateTime>\",\n  \"status\": \"Published\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\"\n}"
+																}
+															]
+														}
+													]
+												},
+												{
+													"name": "Get Correspondence",
+													"protocolProfileBehavior": {
+														"disableBodyPruning": true
+													},
+													"request": {
+														"method": "GET",
+														"header": [
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "",
+															"options": {
+																"raw": {
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/correspondence/api/v1/correspondence/{{correspondenceId}}",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"correspondence",
+																"api",
+																"v1",
+																"correspondence",
+																"{{correspondenceId}}"
+															]
+														}
+													},
+													"response": [
+														{
+															"name": "Success",
+															"originalRequest": {
+																"method": "GET",
+																"header": [
+																	{
+																		"key": "Accept",
+																		"value": "text/plain"
+																	}
+																],
+																"url": {
+																	"raw": "{{baseUrl}}/correspondence/api/v1/correspondence/:correspondenceId",
+																	"host": [
+																		"{{baseUrl}}"
+																	],
+																	"path": [
+																		"correspondence",
+																		"api",
+																		"v1",
+																		"correspondence",
+																		":correspondenceId"
+																	],
+																	"variable": [
+																		{
+																			"key": "correspondenceId"
+																		}
+																	]
+																}
+															},
+															"status": "OK",
+															"code": 200,
+															"_postman_previewlanguage": "json",
+															"header": [
+																{
+																	"key": "Content-Type",
+																	"value": "application/json"
+																}
+															],
+															"cookie": [],
+															"body": "{\n  \"recipient\": \"<string>\",\n  \"resourceId\": \"<string>\",\n  \"sender\": \"0913:541697724\",\n  \"sendersReference\": \"<string>\",\n  \"content\": {\n    \"language\": \"English\",\n    \"messageTitle\": \"<string>\",\n    \"messageSummary\": \"<string>\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Initialized\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      },\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"MachineReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Initialized\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"<dateTime>\",\n  \"allowSystemDeleteAfter\": \"<dateTime>\",\n  \"dueDateTime\": \"<dateTime>\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogElementID\"\n    }\n  ],\n  \"propertyList\": {\n    \"euf\": \"<string>\",\n    \"eu_34\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    }\n  ],\n  \"isReservable\": \"<boolean>\",\n  \"correspondenceId\": \"<uuid>\",\n  \"created\": \"<dateTime>\",\n  \"status\": \"Published\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\"\n}"
+														}
+													]
+												}
+											]
+										},
+										{
+											"name": "download",
+											"item": [
+												{
+													"name": "Download Attachment",
+													"request": {
+														"method": "GET",
+														"header": [],
+														"url": {
+															"raw": "{{baseUrl}}/correspondence/api/v1/correspondence/attachment/{{attachmentId}}/download",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"correspondence",
+																"api",
+																"v1",
+																"correspondence",
+																"attachment",
+																"{{attachmentId}}",
+																"download"
+															]
+														}
+													},
+													"response": [
+														{
+															"name": "Success",
+															"originalRequest": {
+																"method": "GET",
+																"header": [],
+																"url": {
+																	"raw": "{{baseUrl}}/correspondence/api/v1/attachment/:attachmentId/download",
+																	"host": [
+																		"{{baseUrl}}"
+																	],
+																	"path": [
+																		"correspondence",
+																		"api",
+																		"v1",
+																		"attachment",
+																		":attachmentId",
+																		"download"
+																	],
+																	"variable": [
+																		{
+																			"key": "attachmentId"
+																		}
+																	]
+																}
+															},
+															"status": "OK",
+															"code": 200,
+															"_postman_previewlanguage": "text",
+															"header": [],
+															"cookie": [],
+															"body": ""
+														}
+													]
+												}
+											]
+										},
+										{
+											"name": "Initialize Correspondence",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"var correspondence = pm.response.json()\r",
+															"pm.collectionVariables.set(\"correspondenceId\", correspondence.correspondenceId);\r",
+															"pm.collectionVariables.set(\"attachmentId\", correspondence.attachmentIds[0])\r",
+															""
+														],
+														"type": "text/javascript",
+														"packages": {}
+													}
+												}
+											],
+											"request": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "text/plain"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"recipient\": \"1\",\n  \"resourceId\": \"1\",\n  \"sender\": \"8536:031145332\",\n  \"sendersReference\": \"1\",\n  \"content\": {\n    \"language\": \"no\",\n    \"messageTitle\": \"test\",\n    \"messageSummary\": \"test\",\n    \"attachments\": [\n        {\n        \"dataType\": \"html\",\n        \"expirationTime\": \"2024-12-12\",\n        \"name\": \"3\",\n        \"restrictionName\": \"testFile23\",\n        \"sendersReference\": \"1234\",\n        \"usageType\": \"HumanReadable\",\n        \"fileName\": \"test-fil32e\",\n        \"isEncrypted\": false,\n        \"IsMessageBody\":true,\n        \"dataLocationUrl\": \"http://127.0.0.1:10000/devstoreaccount1/attachments/25fd8e8f-2702-4115-8b05-3825b5098379\"\n        }]\n  },\n  \"visibleFrom\": \"2024-06-29T13:31:28.290518+00:00\",\n  \"allowSystemDeleteAfter\": \"2025-08-29T13:31:28.290518+00:00\",\n  \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"1\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"2\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"1\",\n    \"culpa_852\": \"2\",\n    \"anim5\": \"3\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"www.test.no\",\n      \"linkText\": \"test\"\n    },\n    {\n      \"linkURL\": \"test.no\",\n      \"linkText\": \"test\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"test\",\n      \"customTextToken\": \"test\",\n      \"sendersReference\": \"1\",\n      \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n    }\n  ],\n  \"isReservable\": true\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/correspondence/api/v1/correspondence",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"correspondence",
+														"api",
+														"v1",
+														"correspondence"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "Success",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"recipient\": \"<string>\",\n  \"resourceId\": \"<string>\",\n  \"sender\": \"8536:031145332\",\n  \"sendersReference\": \"<string>\",\n  \"content\": {\n    \"language\": \"English\",\n    \"messageTitle\": \"<string>\",\n    \"messageSummary\": \"<string>\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"ExisitingExternalStorage\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\"\n      },\n      {\n        \"dataLocationType\": \"ExistingCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"MachineReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"<dateTime>\",\n  \"allowSystemDeleteAfter\": \"<dateTime>\",\n  \"dueDateTime\": \"<dateTime>\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"<string>\",\n    \"culpa_852\": \"<string>\",\n    \"anim5\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    }\n  ],\n  \"isReservable\": \"<boolean>\"\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/correspondence/api/v1/correspondence",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"correspondence",
+																"api",
+																"v1",
+																"correspondence"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"recipient\": \"<string>\",\n  \"resourceId\": \"<string>\",\n  \"sender\": \"0913:541697724\",\n  \"sendersReference\": \"<string>\",\n  \"content\": {\n    \"language\": \"English\",\n    \"messageTitle\": \"<string>\",\n    \"messageSummary\": \"<string>\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Initialized\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      },\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"MachineReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Initialized\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"<dateTime>\",\n  \"allowSystemDeleteAfter\": \"<dateTime>\",\n  \"dueDateTime\": \"<dateTime>\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogElementID\"\n    }\n  ],\n  \"propertyList\": {\n    \"euf\": \"<string>\",\n    \"eu_34\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    }\n  ],\n  \"isReservable\": \"<boolean>\",\n  \"correspondenceId\": \"<uuid>\",\n  \"created\": \"<dateTime>\",\n  \"status\": \"Published\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\"\n}"
+												}
+											]
+										},
+										{
+											"name": "Get Correspondences",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"exec": [
+															"var correspondenceId = pm.response.text().replace(/\\\"/g, \"\")\r",
+															"pm.collectionVariables.set(\"correspondenceId\", correspondenceId);\r",
+															""
+														],
+														"type": "text/javascript",
+														"packages": {}
+													}
+												}
+											],
+											"request": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "text/plain"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"recipient\": \"1\",\n  \"resourceId\": \"1\",\n  \"sender\": \"8536:031145332\",\n  \"sendersReference\": \"1\",\n  \"content\": {\n    \"language\": \"no\",\n    \"messageTitle\": \"test\",\n    \"messageSummary\": \"test\",\n    \"attachments\": [\n        {\n        \"dataType\": \"html\",\n        \"expirationTime\": \"2024-12-12\",\n        \"name\": \"3\",\n        \"restrictionName\": \"testFile23\",\n        \"sendersReference\": \"1234\",\n        \"usageType\": \"HumanReadable\",\n        \"fileName\": \"test-fil32e\",\n        \"isEncrypted\": false,\n        \"IsMessageBody\":true,\n        \"dataLocationUrl\": \"http://127.0.0.1:10000/devstoreaccount1/attachments/25fd8e8f-2702-4115-8b05-3825b5098379\"\n        }]\n  },\n  \"visibleFrom\": \"2024-06-29T13:31:28.290518+00:00\",\n  \"allowSystemDeleteAfter\": \"2025-08-29T13:31:28.290518+00:00\",\n  \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"1\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"2\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"1\",\n    \"culpa_852\": \"2\",\n    \"anim5\": \"3\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"www.test.no\",\n      \"linkText\": \"test\"\n    },\n    {\n      \"linkURL\": \"test.no\",\n      \"linkText\": \"test\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"test\",\n      \"customTextToken\": \"test\",\n      \"sendersReference\": \"1\",\n      \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n    }\n  ],\n  \"isReservable\": true\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/correspondence/api/v1/correspondence?from=2024-02-02&to=2024-09-02&offset=0&limit=30&status=1",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"correspondence",
+														"api",
+														"v1",
+														"correspondence"
+													],
+													"query": [
+														{
+															"key": "from",
+															"value": "2024-02-02"
+														},
+														{
+															"key": "to",
+															"value": "2024-09-02"
+														},
+														{
+															"key": "offset",
+															"value": "0"
+														},
+														{
+															"key": "limit",
+															"value": "30"
+														},
+														{
+															"key": "status",
+															"value": "1"
+														}
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "Success",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "text/plain"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"recipient\": \"<string>\",\n  \"resourceId\": \"<string>\",\n  \"sender\": \"8536:031145332\",\n  \"sendersReference\": \"<string>\",\n  \"content\": {\n    \"language\": \"English\",\n    \"messageTitle\": \"<string>\",\n    \"messageSummary\": \"<string>\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"ExisitingExternalStorage\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\"\n      },\n      {\n        \"dataLocationType\": \"ExistingCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"MachineReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"<dateTime>\",\n  \"allowSystemDeleteAfter\": \"<dateTime>\",\n  \"dueDateTime\": \"<dateTime>\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"<string>\",\n    \"culpa_852\": \"<string>\",\n    \"anim5\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    }\n  ],\n  \"isReservable\": \"<boolean>\"\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/correspondence/api/v1/correspondence",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"correspondence",
+																"api",
+																"v1",
+																"correspondence"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"recipient\": \"<string>\",\n  \"resourceId\": \"<string>\",\n  \"sender\": \"0913:541697724\",\n  \"sendersReference\": \"<string>\",\n  \"content\": {\n    \"language\": \"English\",\n    \"messageTitle\": \"<string>\",\n    \"messageSummary\": \"<string>\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Initialized\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      },\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"MachineReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Initialized\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"<dateTime>\",\n  \"allowSystemDeleteAfter\": \"<dateTime>\",\n  \"dueDateTime\": \"<dateTime>\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogElementID\"\n    }\n  ],\n  \"propertyList\": {\n    \"euf\": \"<string>\",\n    \"eu_34\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    }\n  ],\n  \"isReservable\": \"<boolean>\",\n  \"correspondenceId\": \"<uuid>\",\n  \"created\": \"<dateTime>\",\n  \"status\": \"Published\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\"\n}"
+												}
+											]
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "attachmentId",
+			"value": ""
+		},
+		{
+			"key": "baseUrl",
+			"value": "localhost:5096"
+		},
+		{
+			"key": "correspondenceId",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
