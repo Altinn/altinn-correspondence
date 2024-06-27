@@ -45,5 +45,15 @@ namespace Altinn.Correspondence.Persistence.Repositories
             var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
             return rowsUpdated > 0;
         }
+
+        public async Task<bool> CanAttachmentBeDeleted(Guid attachmentId, CancellationToken cancellationToken)
+        {
+            return !(await _context.Correspondences.AnyAsync(a => a.Content != null && a.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId) &&
+            !a.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByRecipient || s.Status == CorrespondenceStatus.PurgedByAltinn), cancellationToken));
+        }
+        public async Task<List<AttachmentEntity?>> GetAttachmentsByCorrespondence(Guid correspondenceId, CancellationToken cancellationToken)
+        {
+            return await _context.Correspondences.Where(c => c.Id == correspondenceId && c.Content != null).SelectMany(c => c.Content!.Attachments).Select(ca => ca.Attachment).ToListAsync(cancellationToken);
+        }
     }
 }

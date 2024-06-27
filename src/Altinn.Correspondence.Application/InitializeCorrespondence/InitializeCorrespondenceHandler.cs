@@ -70,7 +70,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
     public async Task<AttachmentEntity> ProcessAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, CancellationToken cancellationToken)
     {
         AttachmentEntity? attachment = null;
-        if (correspondenceAttachment.DataLocationUrl != null)
+        if (!String.IsNullOrEmpty(correspondenceAttachment.DataLocationUrl))
         {
             var existingAttachment = await _attachmentRepository.GetAttachmentByUrl(correspondenceAttachment.DataLocationUrl, cancellationToken);
             if (existingAttachment != null)

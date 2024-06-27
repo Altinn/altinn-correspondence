@@ -21,43 +21,48 @@ namespace Altinn.Correspondence.Core.Models.Enums
         Published = 2,
 
         /// <summary>
+        /// Message fetched by recipient.
+        /// </summary>
+        Fetched = 3,
+
+        /// <summary>
         /// Message read by recipient.
         /// </summary>
-        Read = 3,
+        Read = 4,
 
         /// <summary>
         /// Recipient has replied on message.
         /// </summary>
-        Replied = 4,
+        Replied = 5,
 
         /// <summary>
         /// Message confirmed by recipient.
         /// </summary>
-        Confirmed = 5,
+        Confirmed = 6,
 
         /// <summary>
         /// Message has been purged by recipient.
         /// </summary>
-        PurgedByRecipient = 6,
+        PurgedByRecipient = 7,
 
         /// <summary>
         /// Message has been purged by Altinn.
         /// </summary>
-        PurgedByAltinn = 7,
+        PurgedByAltinn = 8,
 
         /// <summary>
         /// Message has been Archived
         /// </summary>
-        Archived = 8,
+        Archived = 9,
 
         /// <summary>
         /// Recipient has opted out of digital communication in KRR
         /// </summary>
-        Reserved = 9,
+        Reserved = 10,
 
         /// <summary>
         /// Message has Failed
         /// </summary>
-        Failed = 10
+        Failed = 11
     }
 }
