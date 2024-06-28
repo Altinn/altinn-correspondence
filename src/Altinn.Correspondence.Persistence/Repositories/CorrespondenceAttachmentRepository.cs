@@ -17,7 +17,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 correspondencePublished = await _context.Correspondences
                     .AnyAsync(c => c.Content != null && c.Content.Attachments.Any(ca => ca.Id == correspondenceAttachmentId && c.Statuses.OrderByDescending(s => s.StatusChanged).First().Status == CorrespondenceStatus.Published));
-
             }
             if (!correspondencePublished) return null;
 
