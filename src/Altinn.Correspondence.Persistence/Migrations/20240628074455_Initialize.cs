@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMigration : Migration
+    public partial class Initialize : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -25,7 +25,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     Checksum = table.Column<string>(type: "text", nullable: true),
                     SendersReference = table.Column<string>(type: "character varying(4096)", maxLength: 4096, nullable: false),
                     DataType = table.Column<string>(type: "text", nullable: false),
-                    IntendedPresentation = table.Column<int>(type: "integer", nullable: false),
                     RestrictionName = table.Column<string>(type: "text", nullable: false),
                     ExpirationTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     DataLocationUrl = table.Column<string>(type: "text", nullable: true),
@@ -87,6 +86,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     Language = table.Column<string>(type: "text", nullable: false),
                     MessageTitle = table.Column<string>(type: "text", nullable: false),
                     MessageSummary = table.Column<string>(type: "text", nullable: false),
+                    MessageBody = table.Column<string>(type: "text", nullable: false),
                     CorrespondenceId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
@@ -129,7 +129,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     LinkURL = table.Column<string>(type: "text", nullable: false),
-                    LinkText = table.Column<string>(type: "text", nullable: false),
+                    LinkText = table.Column<string>(type: "text", nullable: true),
                     CorrespondenceId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
@@ -194,7 +194,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     Checksum = table.Column<string>(type: "text", nullable: true),
                     SendersReference = table.Column<string>(type: "character varying(4096)", maxLength: 4096, nullable: false),
                     DataType = table.Column<string>(type: "text", nullable: false),
-                    IntendedPresentation = table.Column<int>(type: "integer", nullable: false),
                     RestrictionName = table.Column<string>(type: "text", nullable: false),
                     ExpirationTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     DataLocationUrl = table.Column<string>(type: "text", nullable: true),
@@ -225,7 +224,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Status = table.Column<string>(type: "text", nullable: false),
-                    StatusText = table.Column<string>(type: "text", nullable: true),
+                    StatusText = table.Column<string>(type: "text", nullable: false),
                     StatusChanged = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     NotificationId = table.Column<Guid>(type: "uuid", nullable: false)
                 },

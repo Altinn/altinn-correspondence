@@ -13,6 +13,7 @@ internal static class CorrespondenceContentMapper
             Language = correspondenceContent.Language,
             MessageSummary = correspondenceContent.MessageSummary,
             MessageTitle = correspondenceContent.MessageTitle,
+            MessageBody = correspondenceContent.MessageBody,
             Attachments = CorrespondenceAttachmentMapper.MapListToExternal(correspondenceContent.Attachments),
         };
         return content;

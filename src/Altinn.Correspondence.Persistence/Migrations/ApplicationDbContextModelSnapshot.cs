@@ -126,9 +126,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<bool>("IsEncrypted")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("IsMessageBody")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -162,6 +159,10 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Language")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("MessageBody")
                         .IsRequired()
                         .HasColumnType("text");
 

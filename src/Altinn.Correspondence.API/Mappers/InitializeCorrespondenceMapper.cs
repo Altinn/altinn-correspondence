@@ -29,6 +29,7 @@ internal static class InitializeCorrespondenceMapper
                 Language = initializeCorrespondenceExt.Content.Language,
                 MessageTitle = initializeCorrespondenceExt.Content.MessageTitle,
                 MessageSummary = initializeCorrespondenceExt.Content.MessageSummary,
+                MessageBody = initializeCorrespondenceExt.Content.MessageBody,
                 Attachments = InitializeCorrespondenceAttachmentMapper.MapListToEntities(initializeCorrespondenceExt.Content.Attachments)
             } : null,
         };
