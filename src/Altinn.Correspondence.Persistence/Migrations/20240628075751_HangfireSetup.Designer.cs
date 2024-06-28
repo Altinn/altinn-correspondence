@@ -12,15 +12,15 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240603084028_Initial-Migration")]
-    partial class InitialMigration
+    [Migration("20240628075751_HangfireSetup")]
+    partial class HangfireSetup
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.4")
+                .HasAnnotation("ProductVersion", "8.0.6")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "hstore");
@@ -54,9 +54,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<string>("FileName")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
-
-                    b.Property<int>("IntendedPresentation")
-                        .HasColumnType("integer");
 
                     b.Property<bool>("IsEncrypted")
                         .HasColumnType("boolean");
@@ -129,9 +126,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<DateTimeOffset>("ExpirationTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("IntendedPresentation")
-                        .HasColumnType("integer");
-
                     b.Property<bool>("IsEncrypted")
                         .HasColumnType("boolean");
 
@@ -168,6 +162,10 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Language")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("MessageBody")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -286,6 +284,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("StatusText")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
@@ -305,7 +304,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("LinkText")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("LinkURL")
@@ -478,8 +476,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceEntity", b =>
                 {
-                    b.Navigation("Content")
-                        .IsRequired();
+                    b.Navigation("Content");
 
                     b.Navigation("ExternalReferences");
 

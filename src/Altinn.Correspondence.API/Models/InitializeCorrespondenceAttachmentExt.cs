@@ -59,13 +59,6 @@ namespace Altinn.Correspondence.API.Models
         public required string DataType { get; set; }
 
         /// <summary>
-        /// The intended presentation for this attachment
-        /// </summary>
-        [JsonPropertyName("IsMessageBody")]
-        [Required]
-        public required bool IsMessageBody { get; set; }
-
-        /// <summary>
         /// The name of the Restriction Policy restricting access to this element
         /// </summary>
         /// <remarks>

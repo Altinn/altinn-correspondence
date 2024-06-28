@@ -15,6 +15,8 @@ namespace Altinn.Correspondence.Core.Models
 
         public required string MessageSummary { get; set; }
 
+        public required string MessageBody { get; set; }
+
         public required List<CorrespondenceAttachmentEntity> Attachments { get; set; }
 
         public Guid CorrespondenceId { get; set; }

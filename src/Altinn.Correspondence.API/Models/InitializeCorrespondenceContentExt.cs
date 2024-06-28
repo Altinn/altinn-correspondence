@@ -35,6 +35,11 @@ namespace Altinn.Correspondence.API.Models
         public required string MessageSummary { get; set; }
 
         /// <summary>
+        /// Gets or sets the main body of the correspondence.
+        /// </summary>
+        public required string MessageBody { get; set; }
+
+        /// <summary>
         /// Gets or sets a list of attachments.
         /// </summary>
         /// <remarks>

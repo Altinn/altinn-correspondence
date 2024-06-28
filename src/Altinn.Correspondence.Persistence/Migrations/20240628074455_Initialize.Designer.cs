@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240625120957_IsMessageBody")]
-    partial class IsMessageBody
+    [Migration("20240628074455_Initialize")]
+    partial class Initialize
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -129,9 +129,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<bool>("IsEncrypted")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("IsMessageBody")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -165,6 +162,10 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Language")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("MessageBody")
                         .IsRequired()
                         .HasColumnType("text");
 
