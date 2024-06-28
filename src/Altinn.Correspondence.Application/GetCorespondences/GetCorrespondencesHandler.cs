@@ -20,7 +20,9 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
         }
 
         var limit = request.limit == 0 ? 50 : request.limit;
-        var correspondences = await _correspondenceRepository.GetCorrespondences(request.offset, limit, request.from, request.to, request.status, cancellationToken);
+        DateTimeOffset? to = request.to != null ? ((DateTimeOffset)request.to).ToUniversalTime() : null;
+        DateTimeOffset? from = request.from != null ? ((DateTimeOffset)request.from).ToUniversalTime() : null;
+        var correspondences = await _correspondenceRepository.GetCorrespondences(request.offset, limit, from, to, request.status, cancellationToken);
 
         var response = new GetCorrespondencesResponse
         {
