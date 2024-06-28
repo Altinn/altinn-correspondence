@@ -1147,7 +1147,7 @@
 												],
 												"body": {
 													"mode": "raw",
-													"raw": "{\n  \"recipient\": \"1\",\n  \"resourceId\": \"1\",\n  \"sender\": \"8536:031145332\",\n  \"sendersReference\": \"1\",\n  \"content\": {\n    \"language\": \"no\",\n    \"messageTitle\": \"test\",\n    \"messageSummary\": \"test\",\n    \"attachments\": [\n        {\n        \"dataType\": \"html\",\n        \"expirationTime\": \"2024-12-12\",\n        \"name\": \"3\",\n        \"restrictionName\": \"testFile23\",\n        \"sendersReference\": \"1234\",\n        \"usageType\": \"HumanReadable\",\n        \"fileName\": \"test-fil32e\",\n        \"isEncrypted\": false,\n        \"IsMessageBody\":true,\n        \"dataLocationUrl\": \"http://127.0.0.1:10000/devstoreaccount1/attachments/25fd8e8f-2702-4115-8b05-3825b5098379\"\n        }]\n  },\n  \"visibleFrom\": \"2024-06-29T13:31:28.290518+00:00\",\n  \"allowSystemDeleteAfter\": \"2025-08-29T13:31:28.290518+00:00\",\n  \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"1\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"2\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"1\",\n    \"culpa_852\": \"2\",\n    \"anim5\": \"3\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"www.test.no\",\n      \"linkText\": \"test\"\n    },\n    {\n      \"linkURL\": \"test.no\",\n      \"linkText\": \"test\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"test\",\n      \"customTextToken\": \"test\",\n      \"sendersReference\": \"1\",\n      \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n    }\n  ],\n  \"isReservable\": true\n}",
+													"raw": "{\n  \"recipient\": \"1\",\n  \"resourceId\": \"1\",\n  \"sender\": \"8536:031145332\",\n  \"sendersReference\": \"1\",\n  \"content\": {\n    \"language\": \"no\",\n    \"messageTitle\": \"test\",\n    \"messageSummary\": \"test\",\n    \"messageBody\": \"# header \",\n    \"attachments\": [\n        {\n        \"dataType\": \"html\",\n        \"expirationTime\": \"2024-12-12\",\n        \"name\": \"3\",\n        \"restrictionName\": \"testFile23\",\n        \"sendersReference\": \"1234\",\n        \"usageType\": \"HumanReadable\",\n        \"fileName\": \"test-fil32e\",\n        \"isEncrypted\": false,\n        \"dataLocationUrl\": \"\"\n        }]\n  },\n  \"visibleFrom\": \"2024-06-29T13:31:28.290518+00:00\",\n  \"allowSystemDeleteAfter\": \"2025-08-29T13:31:28.290518+00:00\",\n  \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"1\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"2\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"1\",\n    \"culpa_852\": \"2\",\n    \"anim5\": \"3\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"www.test.no\",\n      \"linkText\": \"test\"\n    },\n    {\n      \"linkURL\": \"test.no\",\n      \"linkText\": \"test\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"test\",\n      \"customTextToken\": \"test\",\n      \"sendersReference\": \"1\",\n      \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n    }\n  ],\n  \"isReservable\": true\n}",
 													"options": {
 														"raw": {
 															"headerFamily": "json",
@@ -1227,8 +1227,6 @@
 													"listen": "test",
 													"script": {
 														"exec": [
-															"var correspondenceId = pm.response.text().replace(/\\\"/g, \"\")\r",
-															"pm.collectionVariables.set(\"correspondenceId\", correspondenceId);\r",
 															""
 														],
 														"type": "text/javascript",
@@ -1236,8 +1234,11 @@
 													}
 												}
 											],
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
 											"request": {
-												"method": "POST",
+												"method": "GET",
 												"header": [
 													{
 														"key": "Content-Type",
@@ -1259,7 +1260,7 @@
 													}
 												},
 												"url": {
-													"raw": "{{baseUrl}}/correspondence/api/v1/correspondence?from=2024-02-02&to=2024-09-02&offset=0&limit=30&status=1",
+													"raw": "{{baseUrl}}/correspondence/api/v1/correspondence?from=2024-02-02T13:31:28.290518&to=2025-08-29T13:31:28.290518&offset=0&limit=30&status=1",
 													"host": [
 														"{{baseUrl}}"
 													],
@@ -1272,11 +1273,11 @@
 													"query": [
 														{
 															"key": "from",
-															"value": "2024-02-02"
+															"value": "2024-02-02T13:31:28.290518"
 														},
 														{
 															"key": "to",
-															"value": "2024-09-02"
+															"value": "2025-08-29T13:31:28.290518"
 														},
 														{
 															"key": "offset",
