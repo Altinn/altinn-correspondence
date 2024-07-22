@@ -89,7 +89,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             var correspondence = await _context.Correspondences.FirstOrDefaultAsync(c => c.Id == correspondenceId, cancellationToken);
             if (correspondence != null)
             {
-                correspondence.MarkedUnRead = status;
+                correspondence.MarkedUnread = status;
                 await _context.SaveChangesAsync(cancellationToken);
             }
         }

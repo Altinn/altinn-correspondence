@@ -42,7 +42,7 @@ namespace Altinn.Correspondence.Core.Models
 
         public bool? IsReservable { get; set; }
 
-        public bool? MarkedUnRead { get; set; }
+        public bool? MarkedUnread { get; set; }
 
         public required List<CorrespondenceStatusEntity> Statuses { get; set; }
 

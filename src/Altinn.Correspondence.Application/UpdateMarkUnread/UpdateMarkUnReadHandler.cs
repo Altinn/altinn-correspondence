@@ -5,15 +5,15 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using OneOf;
 
-namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
+namespace Altinn.Correspondence.Application.UpdateMarkUnread;
 
-public class UpdateMarkUnReadHandler : IHandler<Guid, Guid>
+public class UpdateMarkUnreadHandler : IHandler<Guid, Guid>
 {
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IEventBus _eventBus;
 
-    public UpdateMarkUnReadHandler(ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IEventBus eventBus)
+    public UpdateMarkUnreadHandler(ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IEventBus eventBus)
     {
         _correspondenceRepository = correspondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
