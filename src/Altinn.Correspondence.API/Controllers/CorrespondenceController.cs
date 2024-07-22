@@ -197,6 +197,26 @@ namespace Altinn.Correspondence.API.Controllers
                 Problem
             );
         }
+        [HttpPost]
+        [Route("{correspondenceId}/markasunread")]
+        public async Task<ActionResult> MarkAsUnRead(
+          Guid correspondenceId,
+          [FromServices] UpdateCorrespondenceStatusHandler handler,
+          CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Marking Correspondence as unread for {correspondenceId}", correspondenceId.ToString());
+
+            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
+            {
+                CorrespondenceId = correspondenceId,
+                Status = CorrespondenceStatus.Read
+            }, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
+                Problem
+            );
+        }
 
         /// <summary>
         /// Mark Correspondence found by ID as confirmed
