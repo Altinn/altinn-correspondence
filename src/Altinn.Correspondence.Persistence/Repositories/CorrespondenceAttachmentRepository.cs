@@ -12,13 +12,14 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<Guid?> GetAttachmentIdByCorrespondenceAttachmentId(Guid correspondenceAttachmentId, bool onlyPublished, CancellationToken cancellationToken = default)
         {
             if (onlyPublished && !(await _context.Correspondences
-                  .AnyAsync(c => c.Content != null && c.Content.Attachments.Any(ca => ca.Id == correspondenceAttachmentId && c.Statuses.OrderByDescending(s => s.StatusChanged).First().Status == CorrespondenceStatus.Published))))
+                  .AnyAsync(c => c.Content != null && c.Content.Attachments.Any(ca => ca.Id == correspondenceAttachmentId && c.Statuses.Any(s => s.Status == CorrespondenceStatus.Published)
+                  && !c.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByAltinn || s.Status == CorrespondenceStatus.PurgedByRecipient)
+                  ), cancellationToken)))
                 return null;
 
             return await _context.CorrespondenceAttachments
-                .Where(ca => ca.Id == correspondenceAttachmentId &&
-                ((onlyPublished && ca.Attachment!.Statuses.OrderByDescending(s => s.StatusChanged).First().Status == AttachmentStatus.Published) || (!onlyPublished))
-                ).Select(ca => ca.AttachmentId).FirstOrDefaultAsync(cancellationToken);
+                .Where(ca => ca.Id == correspondenceAttachmentId
+                && ((onlyPublished && !ca.Attachment!.Statuses.Any(s => s.Status == AttachmentStatus.Purged)) || !onlyPublished)).Select(ca => ca.AttachmentId).FirstOrDefaultAsync(cancellationToken);
         }
     }
 }
