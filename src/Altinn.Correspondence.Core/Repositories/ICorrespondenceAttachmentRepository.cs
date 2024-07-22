@@ -5,6 +5,6 @@ namespace Altinn.Correspondence.Core.Repositories
 {
     public interface ICorrespondenceAttachmentRepository
     {
-        Task<Guid?> GetAttachmentIdByCorrespondenceAttachmentId(Guid correspondenceAttachmentId, bool onlyPublished, CancellationToken cancellationToken);
+        Task<Guid?> GetAttachmentIdByCorrespondenceAttachmentId(Guid correspondenceAttachmentId, bool isPublished, CancellationToken cancellationToken);
     }
 }
