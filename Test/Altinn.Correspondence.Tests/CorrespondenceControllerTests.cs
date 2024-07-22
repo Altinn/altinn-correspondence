@@ -115,6 +115,11 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
 
         var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{response.CorrespondenceId}/confirm", null);
         confirmResponse.EnsureSuccessStatusCode();
+
+        var markAsUndreadResponde = await _client.PostAsync($"correspondence/api/v1/correspondence/{response.CorrespondenceId}/markasunread", null);
+        markAsUndreadResponde.EnsureSuccessStatusCode();
+        overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{response.CorrespondenceId}", _responseSerializerOptions);
+        Assert.True(overview?.MarkedUnread == true);
     }
 
     [Fact]

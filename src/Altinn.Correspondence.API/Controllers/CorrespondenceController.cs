@@ -218,7 +218,7 @@ namespace Altinn.Correspondence.API.Controllers
             var commandResult = await handler.Process(correspondenceId, cancellationToken);
 
             return commandResult.Match(
-                data => Ok,
+                data => Ok(null),
                 Problem
             );
         }
