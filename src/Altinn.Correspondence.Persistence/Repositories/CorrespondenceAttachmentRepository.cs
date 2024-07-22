@@ -9,10 +9,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
     {
         private readonly ApplicationDbContext _context = context;
 
-        public async Task<Guid?> GetAttachmentIdByCorrespondenceAttachmentId(Guid correspondenceAttachmentId, CancellationToken cancellationToken = default)
+        public async Task<Guid?> GetAttachmentIdByCorrespondenceAttachmentId(Guid correspondenceAttachmentId, bool isPublished, CancellationToken cancellationToken = default)
         {
+            if (isPublished && !(await _context.Correspondences
+                  .AnyAsync(c => c.Content != null && c.Content.Attachments.Any(ca => ca.Id == correspondenceAttachmentId && c.Statuses.Any(s => s.Status == CorrespondenceStatus.Published)
+                  && !c.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByAltinn || s.Status == CorrespondenceStatus.PurgedByRecipient)
+                  ), cancellationToken)))
+                return null;
+
             return await _context.CorrespondenceAttachments
-                .Where(ca => ca.Id == correspondenceAttachmentId).Select(ca => ca.AttachmentId).FirstOrDefaultAsync(cancellationToken);
+                .Where(ca => ca.Id == correspondenceAttachmentId
+                && ((isPublished && !ca.Attachment!.Statuses.Any(s => s.Status == AttachmentStatus.Purged)) || !isPublished)).Select(ca => ca.AttachmentId).FirstOrDefaultAsync(cancellationToken);
         }
     }
 }
