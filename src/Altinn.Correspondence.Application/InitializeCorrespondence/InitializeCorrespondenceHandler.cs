@@ -11,12 +11,15 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondence;
 
 public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondenceRequest, InitializeCorrespondenceResponse>
 {
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly IAttachmentRepository _attachmentRepository;
     private readonly IEventBus _eventBus;
     IBackgroundJobClient _backgroundJobClient;
-    public InitializeCorrespondenceHandler(ICorrespondenceRepository correspondenceRepository, IAttachmentRepository attachmentRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient)
+
+    public InitializeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, IAttachmentRepository attachmentRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient)
     {
+        _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
         _attachmentRepository = attachmentRepository;
         _eventBus = eventBus;
@@ -25,6 +28,11 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
 
     public async Task<OneOf<InitializeCorrespondenceResponse, Error>> Process(InitializeCorrespondenceRequest request, CancellationToken cancellationToken)
     {
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.Correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Send }, cancellationToken);
+        if (!hasAccess)
+        {
+            return Errors.NoAccessToResource;
+        }
         var attachments = request.Correspondence.Content?.Attachments;
 
         if (attachments != null)

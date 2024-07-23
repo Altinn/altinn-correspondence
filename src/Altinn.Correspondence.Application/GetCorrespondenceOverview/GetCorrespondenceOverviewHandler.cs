@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
 
@@ -6,10 +7,12 @@ namespace Altinn.Correspondence.Application.GetCorrespondenceOverview;
 
 public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondenceOverviewResponse>
 {
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _CorrespondenceRepository;
 
-    public GetCorrespondenceOverviewHandler(ICorrespondenceRepository CorrespondenceRepository)
+    public GetCorrespondenceOverviewHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository CorrespondenceRepository)
     {
+        _altinnAuthorizationService = altinnAuthorizationService;
         _CorrespondenceRepository = CorrespondenceRepository;
     }
 
@@ -19,6 +22,11 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
+        }
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.See }, cancellationToken);
+        if (hasAccess)
+        {
+            return Errors.NoAccessToResource;
         }
         var latestStatus = correspondence.Statuses?.OrderByDescending(s => s.StatusChanged).FirstOrDefault();
         if (latestStatus == null)
