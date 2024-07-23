@@ -24,6 +24,7 @@ internal static class CorrespondenceDetailsMapper
             StatusHistory = correspondenceDetails.StatusHistory != null ? CorrespondenceStatusMapper.MapListToExternal(correspondenceDetails.StatusHistory) : new List<CorrespondenceStatusEventExt>(),
             ResourceId = correspondenceDetails.ResourceId.ToString(),
             VisibleFrom = correspondenceDetails.VisibleFrom,
+            MarkedUnread = correspondenceDetails.MarkedUnread
         };
         return Correspondence;
     }

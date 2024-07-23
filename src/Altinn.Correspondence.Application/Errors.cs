@@ -20,6 +20,6 @@ public static class Errors
     public static Error NoAttachments = new Error(12, "Need atleast one attachments, which must be marked as message body", HttpStatusCode.BadRequest);
     public static Error CorrespondencePurged = new Error(13, "Correspondence has been purged", HttpStatusCode.BadRequest);
     public static Error CorrespondenceAlreadyPurged = new Error(14, "Correspondence has already been purged", HttpStatusCode.BadRequest);
-    public static Error NoAccessToResource = new Error(15, "You must use an Altinn token that represents a user with access to the resource", HttpStatusCode.Unauthorized);
-
+    public static Error CorrespondenceHasNotBeenRead = new Error(15, "Correspondence has not been read", HttpStatusCode.BadRequest);
+    public static Error NoAccessToResource = new Error(16, "You must use an Altinn token that represents a user with access to the resource", HttpStatusCode.Unauthorized);
 }
