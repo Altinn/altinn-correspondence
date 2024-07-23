@@ -47,8 +47,28 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeCorrespondenceResponse2 = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
         Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
 
-        var correspondenceList = await _client.GetFromJsonAsync<GetCorrespondencesResponse>("correspondence/api/v1/correspondence?offset=0&limit=10&status=0");
+        var correspondenceList = await _client.GetFromJsonAsync<GetCorrespondencesResponse>("correspondence/api/v1/correspondence?resourceId=1&offset=0&limit=10&status=0");
         Assert.True(correspondenceList?.Pagination.TotalItems > 0);
+    }
+
+    [Fact]
+    public async Task GetCorrespondencesOnlyFromSearchedResourceId()
+    {
+        var resourceA = Guid.NewGuid().ToString();
+        var resourceB = Guid.NewGuid().ToString();
+        var correspondenceForResourceA = InitializeCorrespondenceFactory.BasicCorrespondence();
+        correspondenceForResourceA.ResourceId = resourceA;
+        var correspondenceForResourceB = InitializeCorrespondenceFactory.BasicCorrespondence();
+        correspondenceForResourceB.ResourceId = resourceB;
+
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondenceForResourceA);
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+
+        var initializeCorrespondenceResponse2 = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondenceForResourceB);
+        Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
+
+        var correspondenceList = await _client.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceA}&offset=0&limit=10&status=0");
+        Assert.True(correspondenceList?.Pagination.TotalItems == 1);
     }
 
     [Fact]

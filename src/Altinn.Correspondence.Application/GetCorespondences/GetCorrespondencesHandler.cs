@@ -31,7 +31,7 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
         var limit = request.Limit == 0 ? 50 : request.Limit;
         DateTimeOffset? to = request.To != null ? ((DateTimeOffset)request.To).ToUniversalTime() : null;
         DateTimeOffset? from = request.From != null ? ((DateTimeOffset)request.From).ToUniversalTime() : null;
-        var correspondences = await _correspondenceRepository.GetCorrespondences(request.Offset, limit, from, to, request.Status, cancellationToken);
+        var correspondences = await _correspondenceRepository.GetCorrespondences(request.ResourceId, request.Offset, limit, from, to, request.Status, cancellationToken);
 
         var response = new GetCorrespondencesResponse
         {

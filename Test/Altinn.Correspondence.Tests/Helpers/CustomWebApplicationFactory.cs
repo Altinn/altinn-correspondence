@@ -1,3 +1,5 @@
+using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Repositories;
 using Hangfire;
 using Hangfire.MemoryStorage;
 
@@ -21,6 +23,9 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                        );
             HangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
             services.AddSingleton(HangfireBackgroundJobClient.Object);
+            var altinnAuthorizationService = new Mock<IAltinnAuthorizationService>();
+            altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            services.AddSingleton(altinnAuthorizationService.Object);
         });
 
     }
