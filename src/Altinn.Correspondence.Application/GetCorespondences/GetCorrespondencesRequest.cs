@@ -13,4 +13,6 @@ public class GetCorrespondencesRequest
     public DateTimeOffset? to;
 
     public CorrespondenceStatus status = CorrespondenceStatus.Published;
+
+    public string resourceId { get; set; }
 }

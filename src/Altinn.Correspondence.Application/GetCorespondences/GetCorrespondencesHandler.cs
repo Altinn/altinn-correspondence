@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
 
@@ -5,15 +6,23 @@ namespace Altinn.Correspondence.Application.GetCorrespondences;
 
 public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, GetCorrespondencesResponse>
 {
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
 
-    public GetCorrespondencesHandler(ICorrespondenceRepository correspondenceRepository)
+    public GetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository)
     {
+        _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
     }
 
     public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, CancellationToken cancellationToken)
     {
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.resourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.See }, cancellationToken);
+        if (!hasAccess)
+        {
+            return Errors.NoAccessToResource;
+        }
+
         if (request.limit < 0 || request.offset < 0)
         {
             return Errors.OffsetAndLimitIsNegative;
