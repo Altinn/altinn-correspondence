@@ -5,7 +5,9 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
+using Markdig;
 using OneOf;
+using ReverseMarkdown;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondence;
 
@@ -25,8 +27,19 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
 
     public async Task<OneOf<InitializeCorrespondenceResponse, Error>> Process(InitializeCorrespondenceRequest request, CancellationToken cancellationToken)
     {
+        if (!ValidatePlainText(request.Correspondence.Content?.MessageTitle))
+        {
+            return Errors.MessageTitleIsNotPlainText;
+        }
+        if (!ValidateMarkdown(request.Correspondence.Content?.MessageBody))
+        {
+            return Errors.MessageBodyIsNotMarkdown;
+        }
+        if (!ValidateMarkdown(request.Correspondence.Content?.MessageSummary))
+        {
+            return Errors.MessageSummaryIsNotMarkdown;
+        }
         var attachments = request.Correspondence.Content?.Attachments;
-
         if (attachments != null)
         {
             foreach (var attachment in attachments)
@@ -120,4 +133,28 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         }
         return notifications;
     }
+
+    private bool ValidatePlainText(string text)
+    {
+        var converter = new ReverseMarkdown.Converter();
+        var markdown = converter.Convert(text);
+        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+        var plaintext = Markdown.ToPlainText(markdown, pipeline);
+        return plaintext.Trim() == text.Trim();
+    }
+
+    private bool ValidateMarkdown(string markdown)
+    {
+        try
+        {
+            var converter = new ReverseMarkdown.Converter();
+            string result = converter.Convert(markdown);
+            return markdown.Trim().Replace("\\", "") == result.Trim().Replace("\\", "");
+        }
+        catch (Exception e)
+        {
+            return false;
+        }
+    }
+
 }
