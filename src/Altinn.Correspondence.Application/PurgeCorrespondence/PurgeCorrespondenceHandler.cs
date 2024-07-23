@@ -30,7 +30,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, cancellationToken);
         if (correspondence == null) return Errors.AttachmentNotFound;
         var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Open }, cancellationToken);
-        if (hasAccess)
+        if (!hasAccess)
         {
             return Errors.NoAccessToResource;
         }
