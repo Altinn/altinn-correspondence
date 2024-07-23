@@ -4,6 +4,8 @@ param namePrefix string
 param image string
 param environment string
 param platform_base_url string
+param maskinporten_environment string
+
 @secure()
 param subscription_id string
 @secure()
@@ -40,6 +42,14 @@ var containerAppEnvVars = [
     value: '${platform_base_url}/authentication/api/v1/openid/.well-known/openid-configuration'
   }
   { name: 'AltinnOptions__PlatformGatewayUrl', value: platform_base_url }
+  { name: 'AltinnOptions__PlatformSubscriptionKey', secretRef: 'platform-subscription-key' }
+  { name: 'MaskinportenSettings__Environment', value: maskinporten_environment }
+  { name: 'MaskinportenSettings__ClientId', secretRef: 'maskinporten-client-id' }
+  {
+    name: 'MaskinportenSettings__Scope'
+    value: 'altinn:events.publish altinn:events.publish.admin altinn:register/partylookup.admin altinn:authorization/authorize.admin'
+  }
+  { name: 'MaskinportenSettings__EncodedJwk', secretRef: 'maskinporten-jwk' }
 ]
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: '${namePrefix}-app'

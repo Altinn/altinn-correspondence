@@ -19,11 +19,11 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 {
     private readonly HttpClient _httpClient;
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly IResourceRegistryRepository _resourceRepository;
+    private readonly IResourceRightsService _resourceRepository;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly ILogger<AltinnAuthorizationService> _logger;
 
-    public AltinnAuthorizationService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, IHttpContextAccessor httpContextAccessor, IResourceRegistryRepository resourceRepository, IHostEnvironment hostEnvironment, ILogger<AltinnAuthorizationService> logger)
+    public AltinnAuthorizationService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, IHttpContextAccessor httpContextAccessor, IResourceRightsService resourceRepository, IHostEnvironment hostEnvironment, ILogger<AltinnAuthorizationService> logger)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.PlatformSubscriptionKey);
         _httpClient = httpClient;

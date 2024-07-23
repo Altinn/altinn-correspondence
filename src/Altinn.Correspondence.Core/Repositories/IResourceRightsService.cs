@@ -1,6 +1,6 @@
 ﻿namespace Altinn.Broker.Correspondence.Repositories;
 
-public interface IResourceRegistryRepository
+public interface IResourceRightsService
 {
     Task<bool> Exists(string resourceId, CancellationToken cancellationToken = default);
 }

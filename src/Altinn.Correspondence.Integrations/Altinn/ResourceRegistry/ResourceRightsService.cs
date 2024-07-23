@@ -7,12 +7,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
-public class ResourceRegistryRepository : IResourceRegistryRepository
+public class ResourceRightsService : IResourceRightsService
 {
     private readonly HttpClient _client;
-    private readonly ILogger<ResourceRegistryRepository> _logger;
+    private readonly ILogger<ResourceRightsService> _logger;
 
-    public ResourceRegistryRepository(HttpClient httpClient, IOptions<AltinnOptions> options, ILogger<ResourceRegistryRepository> logger)
+    public ResourceRightsService(HttpClient httpClient, IOptions<AltinnOptions> options, ILogger<ResourceRightsService> logger)
     {
         httpClient.BaseAddress = new Uri(options.Value.PlatformGatewayUrl);
         _client = httpClient;
