@@ -5,7 +5,7 @@
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class MarkUnread : Migration
+    public partial class MarkAsUnread : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

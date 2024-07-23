@@ -8,7 +8,7 @@ using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Application.InitializeCorrespondence;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
-using Altinn.Correspondence.Application.UpdateMarkUnread;
+using Altinn.Correspondence.Application.UpdateMarkAsUnread;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
@@ -210,7 +210,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("{correspondenceId}/markasunread")]
         public async Task<ActionResult> MarkAsUnread(
           Guid correspondenceId,
-          [FromServices] UpdateMarkUnreadHandler handler,
+          [FromServices] UpdateMarkAsUnreadHandler handler,
           CancellationToken cancellationToken)
         {
             _logger.LogInformation("Marking Correspondence as unread for {correspondenceId}", correspondenceId.ToString());
