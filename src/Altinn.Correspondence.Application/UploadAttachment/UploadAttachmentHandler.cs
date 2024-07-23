@@ -8,8 +8,9 @@ using OneOf;
 
 namespace Altinn.Correspondence.Application.UploadAttachment;
 
-public class UploadAttachmentHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IHostEnvironment hostEnvironment, IEventBus eventBus) : IHandler<UploadAttachmentRequest, UploadAttachmentResponse>
+public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IHostEnvironment hostEnvironment, IEventBus eventBus) : IHandler<UploadAttachmentRequest, UploadAttachmentResponse>
 {
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
     private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository = attachmentStatusRepository;
     private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
@@ -24,6 +25,11 @@ public class UploadAttachmentHandler(IAttachmentRepository attachmentRepository,
         if (attachment == null)
         {
             return Errors.AttachmentNotFound;
+        }
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Open }, cancellationToken);
+        if (!hasAccess)
+        {
+            return Errors.NoAccessToResource;
         }
         var maxUploadSize = long.Parse(int.MaxValue.ToString());
         if (request.ContentLength > maxUploadSize || request.ContentLength == 0)

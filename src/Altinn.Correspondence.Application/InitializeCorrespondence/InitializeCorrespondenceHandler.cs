@@ -39,7 +39,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         {
             foreach (var attachment in attachments)
             {
-                attachment.Attachment = await ProcessAttachment(attachment, cancellationToken);
+                attachment.Attachment = await ProcessAttachment(attachment, request.Correspondence, cancellationToken);
             }
 
         }
@@ -75,7 +75,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         return status;
     }
 
-    public async Task<AttachmentEntity> ProcessAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, CancellationToken cancellationToken)
+    public async Task<AttachmentEntity> ProcessAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, CorrespondenceEntity correspondence, CancellationToken cancellationToken)
     {
         AttachmentEntity? attachment = null;
         if (!String.IsNullOrEmpty(correspondenceAttachment.DataLocationUrl))
@@ -99,6 +99,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
                 };
             attachment = new AttachmentEntity
             {
+                ResourceId = correspondence.ResourceId,
                 SendersReference = correspondenceAttachment.SendersReference,
                 RestrictionName = correspondenceAttachment.RestrictionName,
                 ExpirationTime = correspondenceAttachment.ExpirationTime,

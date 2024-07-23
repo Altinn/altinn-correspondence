@@ -12,16 +12,24 @@ public class InitializeAttachmentHandler : IHandler<InitializeAttachmentRequest,
     private readonly IAttachmentRepository _attachmentRepository;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository;
     private readonly IEventBus _eventBus;
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
 
-    public InitializeAttachmentHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus)
+    public InitializeAttachmentHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus, IAltinnAuthorizationService altinnAuthorizationService)
     {
         _attachmentRepository = attachmentRepository;
         _attachmentStatusRepository = attachmentStatusRepository;
         _eventBus = eventBus;
+        _altinnAuthorizationService = altinnAuthorizationService;
     }
 
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, CancellationToken cancellationToken)
     {
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.Attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Open }, cancellationToken);
+        if (!hasAccess)
+        {
+            return Errors.NoAccessToResource;
+        }
+
         var attachmentId = await _attachmentRepository.InitializeAttachment(request.Attachment, cancellationToken);
         var status = new AttachmentStatusEntity
         {

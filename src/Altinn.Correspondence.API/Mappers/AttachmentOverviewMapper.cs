@@ -10,6 +10,7 @@ internal static class AttachmentOverviewMapper
     {
         var attachment = new AttachmentOverviewExt
         {
+            ResourceId = attachmentOverview.ResourceId,
             AttachmentId = attachmentOverview.AttachmentId,
             Name = attachmentOverview.Name ?? string.Empty,
             Status = (AttachmentStatusExt)attachmentOverview.Status,
