@@ -1,3 +1,4 @@
+using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Integrations;
@@ -5,9 +6,11 @@ using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Persistence;
 using Azure.Identity;
 using Hangfire;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using System.Text.Json.Serialization;
 
@@ -56,11 +59,38 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     var connectionString = GetConnectionString(config);
 
     services.Configure<AttachmentStorageOptions>(config.GetSection(key: nameof(AttachmentStorageOptions)));
+    services.Configure<AltinnOptions>(config.GetSection(key: nameof(AltinnOptions)));
 
     services.AddControllers().AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
+    services.AddAuthentication()
+        .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+        {
+            var altinnOptions = new AltinnOptions();
+            config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
+            options.SaveToken = true;
+            options.MetadataAddress = altinnOptions.OpenIdWellKnown;
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                ValidateIssuer = true,
+                ValidateAudience = false,
+                RequireExpirationTime = true,
+                ValidateLifetime = !hostEnvironment.IsDevelopment(), // Do not validate lifetime in tests
+                ClockSkew = TimeSpan.Zero
+            };
+            options.Events = new JwtBearerEvents()
+            {
+                OnAuthenticationFailed = context => JWTBearerEventsHelper.OnAuthenticationFailed(context),
+                OnChallenge = c =>
+                {
+                    c.HandleResponse();
+                    return Task.CompletedTask;
+                }
+            };
+        });
     services.AddEndpointsApiExplorer();
     services.AddSwaggerGen();
     services.AddApplicationInsightsTelemetry();
