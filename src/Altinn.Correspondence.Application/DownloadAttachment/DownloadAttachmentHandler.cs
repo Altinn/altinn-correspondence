@@ -21,8 +21,8 @@ public class DownloadAttachmentHandler : IHandler<DownloadAttachmentRequest, Str
 
     public async Task<OneOf<Stream, Error>> Process(DownloadAttachmentRequest request, CancellationToken cancellationToken)
     {
-        var attachmentId = await _correspondenceAttachmentRepository.GetAttachmentIdByCorrespondenceAttachmentId(request.AttachmentId, cancellationToken);
-        if (attachmentId is null)
+        var attachmentId = await _correspondenceAttachmentRepository.GetAttachmentIdByCorrespondenceAttachmentId(request.AttachmentId, true, cancellationToken);
+        if (attachmentId is null || attachmentId == Guid.Empty)
         {
             return Errors.AttachmentNotFound;
         }
