@@ -149,29 +149,39 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         try
         {
             var converter = new ReverseMarkdown.Converter();
-            var markdownWithCodeBlocks = Regex.Replace(markdown, @"([^```]*```[^```]*)```", "$1</code>"); // add code to keep code blocks in markdown
-            markdownWithCodeBlocks = markdownWithCodeBlocks.Replace("```", "<code>");
-            markdownWithCodeBlocks = Regex.Replace(markdownWithCodeBlocks, @"([^``]*``[^``]*)``", "$1</code>");
-            markdownWithCodeBlocks = markdownWithCodeBlocks.Replace("``", "<code>");
-            markdownWithCodeBlocks = Regex.Replace(markdownWithCodeBlocks, @"([^`]*`[^`]*)`", "$1</code>");
-            markdownWithCodeBlocks = markdownWithCodeBlocks.Replace("`", "<code>");
-            markdownWithCodeBlocks = EscapeHtmlBetweenScriptTags(markdownWithCodeBlocks);
-            Console.WriteLine(markdownWithCodeBlocks.ToLower().Trim().Replace("\\", "").Replace("```", "`").Replace("``", "`"));
+            var markdownWithCodeBlocks = ReplaceMarkdownCodeWithHtmlCode(markdown);
+            markdownWithCodeBlocks = EscapeHtmlBetweenCodeTags(markdownWithCodeBlocks);
             string result = converter.Convert(markdownWithCodeBlocks);
-            result = UnescapeHtmlInScriptTags(result);
-            return Regex.Replace(markdown.ToLower().Trim().Replace("\\", "").Replace("```", "`").Replace("``", "`"), @"\s+", "") == Regex.Replace(result.ToLower().Trim().Replace("\\", ""), @"\s+", "");
+            result = UnescapeHtmlInCodeBlock(result);
+            return ReplaceWhitespaceAndEscapeCharacters(markdown).Replace("```", "`").Replace("``", "`") == ReplaceWhitespaceAndEscapeCharacters(result);
         }
-        catch (Exception e)
+        catch
         {
             return false;
         }
     }
 
-    private string EscapeHtmlBetweenScriptTags(string text)
+    private string ReplaceWhitespaceAndEscapeCharacters(string text)
+    {
+        return Regex.Replace(text, @"\s+", "").Replace("\\", "").ToLower();
+    }
+
+    private string ReplaceMarkdownCodeWithHtmlCode(string text)
+    {
+        var markdownWithCodeBlocks = Regex.Replace(text, @"([^```]*```[^```]*)```", "$1</code>"); // add code to keep code blocks in markdown
+        markdownWithCodeBlocks = markdownWithCodeBlocks.Replace("```", "<code>");
+        markdownWithCodeBlocks = Regex.Replace(markdownWithCodeBlocks, @"([^``]*``[^``]*)``", "$1</code>");
+        markdownWithCodeBlocks = markdownWithCodeBlocks.Replace("``", "<code>");
+        markdownWithCodeBlocks = Regex.Replace(markdownWithCodeBlocks, @"([^`]*`[^`]*)`", "$1</code>");
+        markdownWithCodeBlocks = markdownWithCodeBlocks.Replace("`", "<code>");
+        return markdownWithCodeBlocks;
+    }
+
+    private string EscapeHtmlBetweenCodeTags(string text)
     {
         return Regex.Replace(text, @"(?s)(?<=<code>)(.*?)(?=</code>)", m => m.Value.Replace("<", "&lt;").Replace(">", "&gt;"));
     }
-    private string UnescapeHtmlInScriptTags(string text)
+    private string UnescapeHtmlInCodeBlock(string text)
     {
         return Regex.Replace(text, @"`*>[\s\S]*?`", m => m.Value.Replace("&lt;", "<").Replace("&gt;", ">"));
     }
