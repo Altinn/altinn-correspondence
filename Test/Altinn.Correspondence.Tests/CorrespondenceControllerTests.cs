@@ -2,6 +2,7 @@ using Altinn.Correspondece.Tests.Factories;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondences;
+using Markdig;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -54,6 +55,20 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithNoMessageBody());
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+    [Fact]
+    public async Task InitializeCorrespondence_With_Different_Markdown_In_Body()
+    {
+        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
+
+        var content = File.ReadAllText("../../../../../README.md");
+        correspondence.Content.MessageBody = content;
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        initializeCorrespondenceResponse.EnsureSuccessStatusCode();
+
+        correspondence.Content.MessageBody = File.ReadAllText("../../../../../README-infrastructure.md");
+        var initializeCorrespondenceResponse2 = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        initializeCorrespondenceResponse2.EnsureSuccessStatusCode();
     }
 
     [Fact]

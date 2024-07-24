@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -148,13 +149,31 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         try
         {
             var converter = new ReverseMarkdown.Converter();
-            string result = converter.Convert(markdown);
-            return markdown.Trim().Replace("\\", "") == result.Trim().Replace("\\", "");
+            var markdownWithCodeBlocks = Regex.Replace(markdown, @"([^```]*```[^```]*)```", "$1</code>"); // add code to keep code blocks in markdown
+            markdownWithCodeBlocks = markdownWithCodeBlocks.Replace("```", "<code>");
+            markdownWithCodeBlocks = Regex.Replace(markdownWithCodeBlocks, @"([^``]*``[^``]*)``", "$1</code>");
+            markdownWithCodeBlocks = markdownWithCodeBlocks.Replace("``", "<code>");
+            markdownWithCodeBlocks = Regex.Replace(markdownWithCodeBlocks, @"([^`]*`[^`]*)`", "$1</code>");
+            markdownWithCodeBlocks = markdownWithCodeBlocks.Replace("`", "<code>");
+            markdownWithCodeBlocks = EscapeHtmlBetweenScriptTags(markdownWithCodeBlocks);
+            Console.WriteLine(markdownWithCodeBlocks.ToLower().Trim().Replace("\\", "").Replace("```", "`").Replace("``", "`"));
+            string result = converter.Convert(markdownWithCodeBlocks);
+            result = UnescapeHtmlInScriptTags(result);
+            return Regex.Replace(markdown.ToLower().Trim().Replace("\\", "").Replace("```", "`").Replace("``", "`"), @"\s+", "") == Regex.Replace(result.ToLower().Trim().Replace("\\", ""), @"\s+", "");
         }
         catch (Exception e)
         {
             return false;
         }
+    }
+
+    private string EscapeHtmlBetweenScriptTags(string text)
+    {
+        return Regex.Replace(text, @"(?s)(?<=<code>)(.*?)(?=</code>)", m => m.Value.Replace("<", "&lt;").Replace(">", "&gt;"));
+    }
+    private string UnescapeHtmlInScriptTags(string text)
+    {
+        return Regex.Replace(text, @"`*>[\s\S]*?`", m => m.Value.Replace("&lt;", "<").Replace("&gt;", ">"));
     }
 
 }
