@@ -146,19 +146,20 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
 
     private bool ValidateMarkdown(string markdown)
     {
-        try
+        var text = File.ReadAllText("./readme.md");
+        var config = new ReverseMarkdown.Config
         {
-            var converter = new ReverseMarkdown.Converter();
-            var markdownWithCodeBlocks = ReplaceMarkdownCodeWithHtmlCode(markdown);
-            markdownWithCodeBlocks = EscapeHtmlBetweenCodeTags(markdownWithCodeBlocks);
-            string result = converter.Convert(markdownWithCodeBlocks);
-            result = UnescapeHtmlInCodeBlock(result);
-            return ReplaceWhitespaceAndEscapeCharacters(markdown).Replace("```", "`").Replace("``", "`") == ReplaceWhitespaceAndEscapeCharacters(result);
-        }
-        catch
-        {
-            return false;
-        }
+            CleanupUnnecessarySpaces = false
+        };
+        var converter = new ReverseMarkdown.Converter(config);
+
+        var markdownWithCodeBlocks = ReplaceMarkdownCodeWithHtmlCode(text);
+        markdownWithCodeBlocks = EscapeHtmlBetweenCodeTags(markdownWithCodeBlocks);
+        string result = converter.Convert(markdownWithCodeBlocks);
+        result = UnescapeHtmlInCodeBlock(result);
+        Console.WriteLine(ReplaceWhitespaceAndEscapeCharacters(text).Replace("```", "`").Replace("``", "`"));
+        Console.WriteLine(ReplaceWhitespaceAndEscapeCharacters(result));
+        return ReplaceWhitespaceAndEscapeCharacters(text.Replace("```", "`").Replace("``", "`")) == ReplaceWhitespaceAndEscapeCharacters(result);
     }
 
     private string ReplaceWhitespaceAndEscapeCharacters(string text)
