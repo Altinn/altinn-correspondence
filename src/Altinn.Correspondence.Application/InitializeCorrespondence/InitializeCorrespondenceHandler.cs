@@ -161,10 +161,11 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         string result = converter.Convert(markdownWithCodeBlocks);
         result = UnescapeHtmlInCodeBlock(result);
 
-        markdown = WebUtility.HtmlDecode(markdown);
+        var text = WebUtility.HtmlDecode(markdown);
         result = WebUtility.HtmlDecode(result);
+
         //As reversemarkdown makes all code blocks to ` we need to replace ``` with ` and `` with ` to compare the strings
-        return ReplaceWhitespaceAndEscapeCharacters(markdown.Replace("```", "`").Replace("``", "`")) == ReplaceWhitespaceAndEscapeCharacters(result);
+        return ReplaceWhitespaceAndEscapeCharacters(text.Replace("```", "`").Replace("``", "`")) == ReplaceWhitespaceAndEscapeCharacters(result.Replace("```", "`").Replace("``", "`"));
     }
 
     private string ReplaceWhitespaceAndEscapeCharacters(string text)
@@ -174,15 +175,60 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
 
     private string ReplaceMarkdownCodeWithHtmlCode(string text)
     {
-        var markdownWithCodeBlocks = Regex.Replace(text, @"([^```]*```[^```]*)```", "$1</code>"); // add code to keep code blocks in markdown
-        markdownWithCodeBlocks = markdownWithCodeBlocks.Replace("```", "<code>");
-        markdownWithCodeBlocks = Regex.Replace(markdownWithCodeBlocks, @"([^``]*``[^``]*)``", "$1</code>");
-        markdownWithCodeBlocks = markdownWithCodeBlocks.Replace("``", "<code>");
-        markdownWithCodeBlocks = Regex.Replace(markdownWithCodeBlocks, @"([^`]*`[^`]*)`", "$1</code>");
-        markdownWithCodeBlocks = markdownWithCodeBlocks.Replace("`", "<code>");
-        return markdownWithCodeBlocks;
-    }
+        var markdownWithCodeBlocks = text.Split("```");
+        var i = 0;
+        var counter = 0;
+        var codeTagsContent = new List<string>();
+        var newText = "";
+        foreach (var t in markdownWithCodeBlocks)
+        {
+            if (i % 2 == 1)
+            {
+                newText += "<---CODE1" + counter + "--->";
+                codeTagsContent.Add(t);
+                counter++;
+            }
+            else
+            {
+                newText += t;
+            }
+            i++;
+        }
+        var j = 0;
+        var counter2 = 0;
+        var codeTagsContent2 = new List<string>();
+        var newText2 = "";
+        foreach (var t in newText.Split("``"))
+        {
+            if (j % 2 == 1)
+            {
+                newText2 += "<---CODE2" + counter2 + "--->";
+                codeTagsContent2.Add(t);
+                counter2++;
+            }
+            else
+            {
+                newText2 += t;
+            }
+            j++;
+        }
 
+        newText = Regex.Replace(newText2, @"([^`]*`[^`]*)`", "$1</code>");
+        newText = Regex.Replace(newText, @"`", "<code>");
+        i = 0;
+        foreach (var t in codeTagsContent)
+        {
+            newText = newText.Replace("<---CODE1" + i + "--->", "<code>" + t + "</code>");
+            i++;
+        }
+        j = 0;
+        foreach (var t in codeTagsContent2)
+        {
+            newText = newText.Replace("<---CODE2" + j + "--->", "<code>" + t + "</code>");
+            j++;
+        }
+        return newText;
+    }
     private string EscapeHtmlBetweenCodeTags(string text)
     {
         return Regex.Replace(text, @"(?s)(?<=<code>)(.*?)(?=</code>)", m => m.Value.Replace("<", "&lt;").Replace(">", "&gt;"));
