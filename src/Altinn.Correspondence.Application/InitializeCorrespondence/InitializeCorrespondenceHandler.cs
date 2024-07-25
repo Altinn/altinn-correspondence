@@ -1,4 +1,7 @@
+using System.Net;
+using System.Text.Encodings.Web;
 using System.Text.RegularExpressions;
+using System.Web;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -146,20 +149,22 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
 
     private bool ValidateMarkdown(string markdown)
     {
-        var text = File.ReadAllText("./readme.md");
         var config = new ReverseMarkdown.Config
         {
-            CleanupUnnecessarySpaces = false
+            CleanupUnnecessarySpaces = false,
+            PassThroughTags = new String[] { "br" },
         };
         var converter = new ReverseMarkdown.Converter(config);
-
-        var markdownWithCodeBlocks = ReplaceMarkdownCodeWithHtmlCode(text);
+        // change all codeblocks to <code> to keep html content in codeblocks
+        var markdownWithCodeBlocks = ReplaceMarkdownCodeWithHtmlCode(markdown);
         markdownWithCodeBlocks = EscapeHtmlBetweenCodeTags(markdownWithCodeBlocks);
         string result = converter.Convert(markdownWithCodeBlocks);
         result = UnescapeHtmlInCodeBlock(result);
-        Console.WriteLine(ReplaceWhitespaceAndEscapeCharacters(text).Replace("```", "`").Replace("``", "`"));
-        Console.WriteLine(ReplaceWhitespaceAndEscapeCharacters(result));
-        return ReplaceWhitespaceAndEscapeCharacters(text.Replace("```", "`").Replace("``", "`")) == ReplaceWhitespaceAndEscapeCharacters(result);
+
+        markdown = WebUtility.HtmlDecode(markdown);
+        result = WebUtility.HtmlDecode(result);
+        //As reversemarkdown makes all code blocks to ` we need to replace ``` with ` and `` with ` to compare the strings
+        return ReplaceWhitespaceAndEscapeCharacters(markdown.Replace("```", "`").Replace("``", "`")) == ReplaceWhitespaceAndEscapeCharacters(result);
     }
 
     private string ReplaceWhitespaceAndEscapeCharacters(string text)
