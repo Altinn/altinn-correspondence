@@ -6,12 +6,14 @@ using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.PurgeAttachment;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Correspondence.Mappers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Correspondence.API.Controllers;
 
 [ApiController]
 [Route("correspondence/api/v1/attachment")]
+[Authorize]
 public class AttachmentController(ILogger<CorrespondenceController> logger) : Controller
 {
     private readonly ILogger<CorrespondenceController> _logger = logger;

@@ -12,12 +12,14 @@ using Altinn.Correspondence.Application.UpdateMarkAsUnread;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Correspondence.API.Controllers
 {
     [ApiController]
     [Route("correspondence/api/v1/correspondence")]
+    [Authorize]
     public class CorrespondenceController : Controller
     {
         private readonly ILogger<CorrespondenceController> _logger;

@@ -1,3 +1,4 @@
+using Altinn.Common.PEP.Authorization;
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Core.Options;
@@ -7,6 +8,7 @@ using Altinn.Correspondence.Persistence;
 using Azure.Identity;
 using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
@@ -91,6 +93,11 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
                 }
             };
         });
+    services.AddTransient<IAuthorizationHandler, ScopeAccessHandler>();
+    services.AddAuthorization(options =>
+    {
+        options.DefaultPolicy = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme).AddRequirements(new ScopeAccessRequirement("altinn:correspondence")).Build();
+    });
     services.AddEndpointsApiExplorer();
     services.AddSwaggerGen();
     services.AddApplicationInsightsTelemetry();
