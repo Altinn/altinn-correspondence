@@ -70,6 +70,21 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
       secrets: [
         {
           identity: principal_id
+          keyVaultUrl: '${keyVaultUrl}/secrets/platform-subscription-key'
+          name: 'platform-subscription-key'
+        }
+        {
+          identity: principal_id
+          keyVaultUrl: '${keyVaultUrl}/secrets/maskinporten-client-id'
+          name: 'maskinporten-client-id'
+        }
+        {
+          identity: principal_id
+          keyVaultUrl: '${keyVaultUrl}/secrets/maskinporten-jwk'
+          name: 'maskinporten-jwk'
+        }
+        {
+          identity: principal_id
           keyVaultUrl: '${keyVaultUrl}/secrets/application-insights-connection-string'
           name: 'application-insights-connection-string'
         }
