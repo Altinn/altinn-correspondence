@@ -1,3 +1,7 @@
+using System.Net;
+using System.Text.Encodings.Web;
+using System.Text.RegularExpressions;
+using System.Web;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -5,7 +9,9 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
+using Markdig;
 using OneOf;
+using ReverseMarkdown;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondence;
 
@@ -32,9 +38,19 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
+        if (!ValidatePlainText(request.Correspondence.Content?.MessageTitle))
+        {
+            return Errors.MessageTitleIsNotPlainText;
+        }
+        if (!ValidateMarkdown(request.Correspondence.Content?.MessageBody))
+        {
+            return Errors.MessageBodyIsNotMarkdown;
+        }
+        if (!ValidateMarkdown(request.Correspondence.Content?.MessageSummary))
+        {
+            return Errors.MessageSummaryIsNotMarkdown;
         }
         var attachments = request.Correspondence.Content?.Attachments;
-
         if (attachments != null)
         {
             foreach (var attachment in attachments)
@@ -128,5 +144,76 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
               };
         }
         return notifications;
+    }
+
+    private bool ValidatePlainText(string text)
+    {
+        var converter = new ReverseMarkdown.Converter();
+        var markdown = converter.Convert(text);
+        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+        var plaintext = Markdown.ToPlainText(markdown, pipeline);
+        return plaintext.Trim() == text.Trim();
+    }
+
+    private bool ValidateMarkdown(string markdown)
+    {
+        var config = new ReverseMarkdown.Config
+        {
+            CleanupUnnecessarySpaces = false,
+            PassThroughTags = new String[] { "br" },
+        };
+        var converter = new ReverseMarkdown.Converter(config);
+        // change all codeblocks to <code> to keep html content in codeblocks
+        var markdownWithCodeBlocks = ReplaceMarkdownCodeWithHtmlCode(markdown);
+        string result = converter.Convert(markdownWithCodeBlocks);
+
+        // needs to decode the text twice as some encoded characters contains encoded characters, such as emdash &#8212;
+        var text = WebUtility.HtmlDecode(WebUtility.HtmlDecode(markdown));
+        result = WebUtility.HtmlDecode(WebUtility.HtmlDecode(result));
+
+        //As reversemarkdown makes all code blocks to ` we need to replace ``` with ` and `` with ` to compare the strings
+        return ReplaceWhitespaceAndEscapeCharacters(text.Replace("```", "`").Replace("``", "`")) == ReplaceWhitespaceAndEscapeCharacters(result.Replace("```", "`").Replace("``", "`"));
+    }
+
+    private string ReplaceWhitespaceAndEscapeCharacters(string text)
+    {
+        return Regex.Replace(text, @"\s+", "").Replace("\\", "").ToLower();
+    }
+
+    private string ReplaceMarkdownCodeWithHtmlCode(string text)
+    {
+        var codeTagsContent = new List<List<string>>();
+        var validCodeTagDelimiters = new List<string> { "```", "``", "`" };
+        var newText = text;
+        var i = 0;
+        foreach (var delimiter in validCodeTagDelimiters)
+        {
+            var counter = 0;
+            var markdownWithCodeBlocks = newText.Split(delimiter);
+            var tagList = new List<string>();
+            newText = "";
+            for (var j = 0; j < markdownWithCodeBlocks.Length; j++)
+            {
+                if (j % 2 == 1)
+                {
+                    newText += "<---CODE" + i + counter + "--->";
+                    tagList.Add(markdownWithCodeBlocks[j].Replace("<", "&lt;").Replace(">", "&gt;"));
+                    counter++;
+                }
+                else newText += markdownWithCodeBlocks[j];
+            }
+            codeTagsContent.Add(tagList);
+            i++;
+        }
+        for (var j = 0; j < 3; j++)
+        {
+            var counter = 0;
+            foreach (var t in codeTagsContent[j])
+            {
+                newText = newText.Replace("<---CODE" + j + counter + "--->", "<code>" + t + "</code>");
+                counter++;
+            }
+        }
+        return newText;
     }
 }
