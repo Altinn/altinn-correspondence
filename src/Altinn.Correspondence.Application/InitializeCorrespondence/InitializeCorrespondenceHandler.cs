@@ -175,11 +175,13 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
     private string ReplaceMarkdownCodeWithHtmlCode(string text)
     {
         var codeTagsContent = new List<List<string>>();
+        var validCodeTagDelimiters = new List<string> { "```", "``", "`" };
         var newText = text;
-        for (var i = 0; i < 3; i++)
+        var i = 0;
+        foreach (var delimiter in validCodeTagDelimiters)
         {
             var counter = 0;
-            var markdownWithCodeBlocks = newText.Split("```".Substring(0, (3 - i)));
+            var markdownWithCodeBlocks = newText.Split(delimiter);
             var tagList = new List<string>();
             newText = "";
             for (var j = 0; j < markdownWithCodeBlocks.Length; j++)
@@ -193,13 +195,14 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
                 else newText += markdownWithCodeBlocks[j];
             }
             codeTagsContent.Add(tagList);
+            i++;
         }
-        for (var i = 0; i < 3; i++)
+        for (var j = 0; j < 3; j++)
         {
             var counter = 0;
-            foreach (var t in codeTagsContent[i])
+            foreach (var t in codeTagsContent[j])
             {
-                newText = newText.Replace("<---CODE" + i + counter + "--->", "<code>" + t + "</code>");
+                newText = newText.Replace("<---CODE" + j + counter + "--->", "<code>" + t + "</code>");
                 counter++;
             }
         }
