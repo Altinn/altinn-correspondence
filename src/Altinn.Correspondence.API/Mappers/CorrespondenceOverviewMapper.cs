@@ -23,6 +23,7 @@ internal static class CorrespondenceOverviewMapper
             Notifications = InitializeCorrespondenceNotificationMapper.MapListToExternal(correspondenceOverview.Notifications),
             ResourceId = correspondenceOverview.ResourceId.ToString(),
             VisibleFrom = correspondenceOverview.VisibleFrom,
+            MarkedUnread = correspondenceOverview.MarkedUnread
         };
         return Correspondence;
     }

@@ -9,6 +9,12 @@ namespace Altinn.Correspondence.API.Models
     public class CorrespondenceOverviewExt : InitializeCorrespondenceExt
     {
         /// <summary>
+        /// Indicates if the Correspondence has been set as unread by the recipient
+        /// </summary>
+        [JsonPropertyName("markedUnread")]
+        public bool? MarkedUnread { get; set; }
+
+        /// <summary>
         /// Unique Id for this correspondence
         /// </summary>
         [JsonPropertyName("correspondenceId")]
