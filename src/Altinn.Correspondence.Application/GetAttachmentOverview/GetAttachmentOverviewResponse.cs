@@ -5,6 +5,7 @@ namespace Altinn.Correspondence.Application.GetAttachmentOverview;
 public class GetAttachmentOverviewResponse
 {
     public required Guid AttachmentId { get; set; }
+    public required string ResourceId { get; set; }
 
     public AttachmentDataLocationType DataLocationType { get; set; }
 

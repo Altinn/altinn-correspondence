@@ -6,6 +6,7 @@ internal static class InitializeAttachmentFactory
 {
     internal static InitializeAttachmentExt BasicAttachment() => new InitializeAttachmentExt()
     {
+        ResourceId = "1",
         DataType = "html",
         ExpirationTime = DateTime.UtcNow.AddDays(1),
         Name = "testFile",

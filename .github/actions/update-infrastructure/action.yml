@@ -30,6 +30,15 @@ inputs:
   AZURE_STORAGE_ACCOUNT_NAME:
     description: "Name of the storage account for migration files"
     required: true
+  MASKINPORTEN_JWK:
+    description: "JWK for maskinporten"
+    required: true
+  MASKINPORTEN_CLIENT_ID:
+    description: "Client ID for maskinporten"
+    required: true
+  PLATFORM_SUBSCRIPTION_KEY:
+    description: "Subscription key for platform"
+    required: true
 
 runs:
   using: "composite"
@@ -70,6 +79,9 @@ runs:
         NAME_PREFIX: ${{ inputs.AZURE_NAME_PREFIX }}
         KEY_VAULT_NAME: ${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
         STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}
+        MASKINPORTEN_JWK: ${{ inputs.MASKINPORTEN_JWK }}
+        MASKINPORTEN_CLIENT_ID: ${{ inputs.MASKINPORTEN_CLIENT_ID }}
+        PLATFORM_SUBSCRIPTION_KEY: ${{ inputs.PLATFORM_SUBSCRIPTION_KEY }}
       with:
         scope: subscription
         template: ./.azure/infrastructure/main.bicep

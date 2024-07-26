@@ -12,6 +12,7 @@ internal static class AttachmentDetailsMapper
     {
         var attachment = new AttachmentDetailsExt
         {
+            ResourceId = "1",
             AttachmentId = AttachmentDetails.AttachmentId,
             Name = AttachmentDetails.Name ?? string.Empty,
             Status = (AttachmentStatusExt)AttachmentDetails.Status,

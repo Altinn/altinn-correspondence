@@ -7,14 +7,16 @@ namespace Altinn.Correspondence.Application.PurgeCorrespondence;
 
 public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
 {
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly IAttachmentRepository _attachmentRepository;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository;
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IStorageRepository _storageRepository;
 
-    public PurgeCorrespondenceHandler(IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository)
+    public PurgeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository)
     {
+        _altinnAuthorizationService = altinnAuthorizationService;
         _attachmentRepository = attachmentRepository;
         _correspondenceRepository = correspondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
@@ -26,6 +28,11 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
     {
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, cancellationToken);
         if (correspondence == null) return Errors.AttachmentNotFound;
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Open }, cancellationToken);
+        if (!hasAccess)
+        {
+            return Errors.NoAccessToResource;
+        }
 
         if (correspondence.Statuses.Any(status => status.Status == CorrespondenceStatus.PurgedByRecipient || status.Status == CorrespondenceStatus.PurgedByAltinn))
         {

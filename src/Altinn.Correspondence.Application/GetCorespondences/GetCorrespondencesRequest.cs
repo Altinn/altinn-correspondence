@@ -4,13 +4,14 @@ namespace Altinn.Correspondence.Application.GetCorrespondences;
 
 public class GetCorrespondencesRequest
 {
-    public int offset;
+    public required string ResourceId { get; set; }
+    public int Offset { get; set; }
+    public int Limit { get; set; }
 
-    public int limit;
+    public DateTimeOffset? From { get; set; }
 
-    public DateTimeOffset? from;
+    public DateTimeOffset? To { get; set; }
 
-    public DateTimeOffset? to;
+    public CorrespondenceStatus Status { get; set; } = CorrespondenceStatus.Published;
 
-    public CorrespondenceStatus status = CorrespondenceStatus.Published;
 }

@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
 
@@ -5,12 +6,14 @@ namespace Altinn.Correspondence.Application.GetAttachmentOverview;
 
 public class GetAttachmentOverviewHandler : IHandler<Guid, GetAttachmentOverviewResponse>
 {
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository;
     private readonly IAttachmentRepository _attachmentRepository;
     private readonly ICorrespondenceRepository _correspondenceRepository;
 
-    public GetAttachmentOverviewHandler(IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository)
+    public GetAttachmentOverviewHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository)
     {
+        _altinnAuthorizationService = altinnAuthorizationService;
         _attachmentStatusRepository = attachmentStatusRepository;
         _attachmentRepository = attachmentRepository;
         _correspondenceRepository = correspondenceRepository;
@@ -23,12 +26,18 @@ public class GetAttachmentOverviewHandler : IHandler<Guid, GetAttachmentOverview
         {
             return Errors.AttachmentNotFound;
         }
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Open }, cancellationToken);
+        if (!hasAccess)
+        {
+            return Errors.NoAccessToResource;
+        }
         var attachmentStatus = await _attachmentStatusRepository.GetLatestStatusByAttachmentId(attachmentId, cancellationToken);
         var correspondenceIds = await _correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);
 
         var response = new GetAttachmentOverviewResponse
         {
             AttachmentId = attachment.Id,
+            ResourceId = attachment.ResourceId,
             DataLocationUrl = attachment.DataLocationUrl,
             Name = attachment.FileName,
             Status = attachmentStatus.Status,

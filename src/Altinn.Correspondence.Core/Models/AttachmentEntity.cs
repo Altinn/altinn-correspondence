@@ -8,6 +8,10 @@ namespace Altinn.Correspondence.Core.Models
         [Key]
         public Guid Id { get; set; }
 
+        [StringLength(255, MinimumLength = 1)]
+        [Required]
+        public required string ResourceId { get; set; }
+
         [MaxLength(255)]
         public string? FileName { get; set; }
 

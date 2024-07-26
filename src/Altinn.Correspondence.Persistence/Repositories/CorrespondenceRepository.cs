@@ -17,6 +17,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         }
 
         public async Task<(List<Guid>, int)> GetCorrespondences(
+            string resourceId,
             int offset,
             int limit,
             DateTimeOffset? from,
@@ -25,6 +26,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             CancellationToken cancellationToken)
         {
             var correspondences = _context.Correspondences
+                .Where(correspondence => correspondence.ResourceId == resourceId)
                 .Where(c => (status == null || (status != null && _context.CorrespondenceStatuses.Where(cs => cs.CorrespondenceId == c.Id).OrderBy(cs => cs.StatusChanged).Last().Status == status)) &&
                     (from == null || (from != null && c.VisibleFrom > from))
                     && (to == null || (to != null && c.VisibleFrom < to)))

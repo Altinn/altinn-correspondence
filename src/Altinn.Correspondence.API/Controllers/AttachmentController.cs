@@ -1,10 +1,9 @@
 ﻿using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
-using Altinn.Correspondence.Application.PurgeAttachment;
 using Altinn.Correspondence.Application.GetAttachmentDetails;
 using Altinn.Correspondence.Application.GetAttachmentOverview;
 using Altinn.Correspondence.Application.InitializeAttachment;
+using Altinn.Correspondence.Application.PurgeAttachment;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
@@ -14,6 +13,7 @@ namespace Altinn.Correspondence.API.Controllers;
 
 [ApiController]
 [Route("correspondence/api/v1/attachment")]
+[Authorize]
 public class AttachmentController(ILogger<CorrespondenceController> logger) : Controller
 {
     private readonly ILogger<CorrespondenceController> _logger = logger;
@@ -26,7 +26,6 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     [HttpPost]
     public async Task<ActionResult<Guid>> InitializeAttachment(InitializeAttachmentExt InitializeAttachmentExt, [FromServices] InitializeAttachmentHandler handler, CancellationToken cancellationToken)
     {
-
         var commandRequest = InitializeAttachmentMapper.MapToRequest(InitializeAttachmentExt);
         var commandResult = await handler.Process(commandRequest, cancellationToken);
         _logger.LogInformation("Initialize attachment");
