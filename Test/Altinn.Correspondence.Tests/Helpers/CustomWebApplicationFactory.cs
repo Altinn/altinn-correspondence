@@ -1,6 +1,9 @@
+using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Hangfire.MemoryStorage;
-
+using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -21,6 +24,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                        );
             HangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
             services.AddSingleton(HangfireBackgroundJobClient.Object);
+            var altinnAuthorizationService = new Mock<IAltinnAuthorizationService>();
+            altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            services.AddSingleton(altinnAuthorizationService.Object);
+            services.AddSingleton<IPolicyEvaluator, MockPolicyEvaluator>();
+            
         });
 
     }

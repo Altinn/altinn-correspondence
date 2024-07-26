@@ -7,8 +7,9 @@ using OneOf;
 
 namespace Altinn.Correspondence.Application.PurgeAttachment;
 
-public class PurgeAttachmentHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, ICorrespondenceAttachmentRepository correspondenceAttachmentRepository, IEventBus eventBus) : IHandler<Guid, Guid>
+public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, ICorrespondenceAttachmentRepository correspondenceAttachmentRepository, IEventBus eventBus) : IHandler<Guid, Guid>
 {
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
     private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository = attachmentStatusRepository;
     private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
@@ -23,6 +24,11 @@ public class PurgeAttachmentHandler(IAttachmentRepository attachmentRepository, 
         if (attachment == null)
         {
             return Errors.AttachmentNotFound;
+        }
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Open }, cancellationToken);
+        if (!hasAccess)
+        {
+            return Errors.NoAccessToResource;
         }
         if (attachment.Statuses.Any(status => status.Status == AttachmentStatus.Purged))
         {

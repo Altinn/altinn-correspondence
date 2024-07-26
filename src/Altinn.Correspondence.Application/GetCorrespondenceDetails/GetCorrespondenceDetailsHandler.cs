@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
 
@@ -6,19 +7,26 @@ namespace Altinn.Correspondence.Application.GetCorrespondenceDetails;
 
 public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceDetailsResponse>
 {
-    private readonly ICorrespondenceRepository _CorrespondenceRepository;
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
+    private readonly ICorrespondenceRepository _correspondenceRepository;
 
-    public GetCorrespondenceDetailsHandler(ICorrespondenceRepository CorrespondenceRepository)
+    public GetCorrespondenceDetailsHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository)
     {
-        _CorrespondenceRepository = CorrespondenceRepository;
+        _altinnAuthorizationService = altinnAuthorizationService;
+        _correspondenceRepository = correspondenceRepository;
     }
 
-    public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(Guid CorrespondenceId, CancellationToken cancellationToken)
+    public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
     {
-        var correspondence = await _CorrespondenceRepository.GetCorrespondenceById(CorrespondenceId, true, true, cancellationToken);
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
+        }
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.See }, cancellationToken);
+        if (!hasAccess)
+        {
+            return Errors.NoAccessToResource;
         }
         var latestStatus = correspondence.Statuses.OrderByDescending(s => s.StatusChanged).First();
         var response = new GetCorrespondenceDetailsResponse

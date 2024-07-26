@@ -24,4 +24,5 @@ public static class Errors
     public static Error MessageBodyIsNotMarkdown = new Error(16, "Message body must be markdown", HttpStatusCode.BadRequest);
     public static Error MessageSummaryIsNotMarkdown = new Error(17, "Message summary must be markdown", HttpStatusCode.BadRequest);
     public static Error CorrespondenceHasNotBeenRead = new Error(18, "Correspondence has not been read", HttpStatusCode.BadRequest);
+    public static Error NoAccessToResource = new Error(19, "You must use an Altinn token that represents a user with access to the resource", HttpStatusCode.Unauthorized);
 }

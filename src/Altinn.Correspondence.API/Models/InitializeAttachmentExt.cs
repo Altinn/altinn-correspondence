@@ -10,6 +10,14 @@ namespace Altinn.Correspondence.API.Models
     public class InitializeAttachmentExt
     {
         /// <summary>
+        /// Gets or sets the Resource Id for the correspondence service.
+        /// </summary>
+        [JsonPropertyName("resourceId")]
+        [StringLength(255, MinimumLength = 1)]
+        [Required]
+        public required string ResourceId { get; set; }
+
+        /// <summary>
         /// The name of the attachment file.
         /// </summary>
         [JsonPropertyName("fileName")]

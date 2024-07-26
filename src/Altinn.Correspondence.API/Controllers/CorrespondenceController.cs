@@ -12,12 +12,14 @@ using Altinn.Correspondence.Application.UpdateMarkAsUnread;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Correspondence.API.Controllers
 {
     [ApiController]
     [Route("correspondence/api/v1/correspondence")]
+    [Authorize]
     public class CorrespondenceController : Controller
     {
         private readonly ILogger<CorrespondenceController> _logger;
@@ -145,6 +147,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns>A list of Correspondence ids and pagination metadata</returns>
         [HttpGet]
         public async Task<ActionResult<CorrespondencesExt>> GetCorrespondences(
+            [FromQuery] string resourceId,
             [FromQuery] int offset,
             [FromQuery] int limit,
             [FromQuery] DateTimeOffset? from,
@@ -157,11 +160,12 @@ namespace Altinn.Correspondence.API.Controllers
 
             var commandResult = await handler.Process(new GetCorrespondencesRequest
             {
-                from = from,
-                limit = limit,
-                offset = offset,
-                status = (CorrespondenceStatus)status,
-                to = to
+                ResourceId = resourceId,
+                From = from,
+                Limit = limit,
+                Offset = offset,
+                Status = (CorrespondenceStatus)status,
+                To = to
 
             }, cancellationToken);
 

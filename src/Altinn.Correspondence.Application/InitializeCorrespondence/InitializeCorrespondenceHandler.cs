@@ -17,12 +17,15 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondence;
 
 public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondenceRequest, InitializeCorrespondenceResponse>
 {
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly IAttachmentRepository _attachmentRepository;
     private readonly IEventBus _eventBus;
     IBackgroundJobClient _backgroundJobClient;
-    public InitializeCorrespondenceHandler(ICorrespondenceRepository correspondenceRepository, IAttachmentRepository attachmentRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient)
+
+    public InitializeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, IAttachmentRepository attachmentRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient)
     {
+        _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
         _attachmentRepository = attachmentRepository;
         _eventBus = eventBus;
@@ -31,6 +34,10 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
 
     public async Task<OneOf<InitializeCorrespondenceResponse, Error>> Process(InitializeCorrespondenceRequest request, CancellationToken cancellationToken)
     {
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.Correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Send }, cancellationToken);
+        if (!hasAccess)
+        {
+            return Errors.NoAccessToResource;
         if (!ValidatePlainText(request.Correspondence.Content?.MessageTitle))
         {
             return Errors.MessageTitleIsNotPlainText;
@@ -48,7 +55,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         {
             foreach (var attachment in attachments)
             {
-                attachment.Attachment = await ProcessAttachment(attachment, cancellationToken);
+                attachment.Attachment = await ProcessAttachment(attachment, request.Correspondence, cancellationToken);
             }
 
         }
@@ -84,7 +91,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         return status;
     }
 
-    public async Task<AttachmentEntity> ProcessAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, CancellationToken cancellationToken)
+    public async Task<AttachmentEntity> ProcessAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, CorrespondenceEntity correspondence, CancellationToken cancellationToken)
     {
         AttachmentEntity? attachment = null;
         if (!String.IsNullOrEmpty(correspondenceAttachment.DataLocationUrl))
@@ -108,6 +115,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
                 };
             attachment = new AttachmentEntity
             {
+                ResourceId = correspondence.ResourceId,
                 SendersReference = correspondenceAttachment.SendersReference,
                 RestrictionName = correspondenceAttachment.RestrictionName,
                 ExpirationTime = correspondenceAttachment.ExpirationTime,

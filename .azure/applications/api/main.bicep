@@ -17,6 +17,8 @@ param keyVaultUrl string
 param namePrefix string
 @secure()
 param storageAccountName string
+@minLength(3)
+param maskinporten_environment string
 
 var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'
@@ -87,6 +89,7 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     keyVaultUrl: keyVaultUrl
     userIdentityClientId: appIdentity.outputs.clientId
     containerAppEnvId: keyvault.getSecret('container-app-env-id')
+    maskinporten_environment: maskinporten_environment
   }
 }
 

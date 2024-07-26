@@ -8,6 +8,7 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<CorrespondenceEntity> InitializeCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken);
 
         Task<(List<Guid>, int)> GetCorrespondences(
+            string resourceId,
             int offset,
             int limit,
             DateTimeOffset? from,

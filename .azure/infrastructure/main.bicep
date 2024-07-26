@@ -12,6 +12,12 @@ param test_client_id string
 param environment string
 @secure()
 param namePrefix string
+@secure()
+param maskinportenJwk string
+@secure()
+param maskinportenClientId string
+@secure()
+param platformSubscriptionKey string
 
 @secure()
 param storageAccountName string
@@ -40,6 +46,30 @@ module environmentKeyVault '../modules/keyvault/create.bicep' = {
     tenant_id: tenantId
     environment: environment
     test_client_id: test_client_id
+  }
+}
+
+var secrets = [
+  {
+    name: 'maskinporten-client-id'
+    value: maskinportenClientId
+  }
+  {
+    name: 'maskinporten-jwk'
+    value: maskinportenJwk
+  }
+  {
+    name: 'platform-subscription-key'
+    value: platformSubscriptionKey
+  }
+]
+
+module keyvaultSecrets '../modules/keyvault/upsertSecrets.bicep' = {
+  scope: resourceGroup
+  name: 'secrets'
+  params: {
+    secrets: secrets
+    sourceKeyvaultName: environmentKeyVault.outputs.name
   }
 }
 

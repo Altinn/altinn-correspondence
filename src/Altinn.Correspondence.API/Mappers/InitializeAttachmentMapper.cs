@@ -11,6 +11,7 @@ internal static class InitializeAttachmentMapper
     {
         var attachment = new AttachmentEntity
         {
+            ResourceId = initializeAttachmentExt.ResourceId,
             FileName = initializeAttachmentExt.FileName,
             SendersReference = initializeAttachmentExt.SendersReference,
             DataType = initializeAttachmentExt.DataType,
