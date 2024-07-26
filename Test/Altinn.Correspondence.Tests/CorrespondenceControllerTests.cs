@@ -2,6 +2,7 @@ using Altinn.Correspondece.Tests.Factories;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondences;
+using Markdig;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -32,10 +33,36 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
     }
     [Fact]
+    public async Task InitializeCorrespondence_With_HTML_Or_Markdown_In_Title_fails()
+    {
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithHtmlInTitle());
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+
+        initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithMarkdownInTitle());
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+    [Fact]
+    public async Task InitializeCorrespondence_With_HTML_In_Summary_Or_Body_fails()
+    {
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithHtmlInSummary());
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+
+        initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithHtmlInBody());
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+    [Fact]
     public async Task InitializeCorrespondence_No_Message_Body_fails()
     {
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithNoMessageBody());
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+    [Fact]
+    public async Task InitializeCorrespondence_With_Different_Markdown_In_Body()
+    {
+        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
+        correspondence.Content.MessageBody = File.ReadAllText("Data/Markdown.text");
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        initializeCorrespondenceResponse.EnsureSuccessStatusCode();
     }
 
     [Fact]
@@ -64,6 +91,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task GetCorrespondenceDetails()
     {
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+        initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
         var getCorrespondenceOverviewResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/details");
         Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode, await getCorrespondenceOverviewResponse.Content.ReadAsStringAsync());

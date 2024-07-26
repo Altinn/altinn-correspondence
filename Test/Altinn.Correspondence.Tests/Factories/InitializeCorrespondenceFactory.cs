@@ -14,8 +14,8 @@ internal static class InitializeCorrespondenceFactory
         {
             Language = "no",
             MessageTitle = "test",
-            MessageSummary = "test",
-            MessageBody = "# test",
+            MessageSummary = "# test",
+            MessageBody = "# test body /n __test__ /n **test**/n [test](www.test.no) /n ![test](www.test.no) /n ```test``` /n > test /n - test /n 1. test /n 1. test /n [x] test /n [ ] test /n ## test /n ### test /n #### test /n ##### test /n ###### test /n + test list /n - test list /n * list element",
             Attachments = new List<InitializeCorrespondenceAttachmentExt>() {
                 new InitializeCorrespondenceAttachmentExt()
                 {
@@ -120,6 +120,32 @@ internal static class InitializeCorrespondenceFactory
     {
         var correspondence = BasicCorrespondence();
         correspondence.VisibleFrom = DateTime.UtcNow.AddDays(-1);
+        return correspondence;
+    }
+    internal static InitializeCorrespondenceExt BasicCorrespondenceWithHtmlInTitle()
+    {
+        var correspondence = BasicCorrespondence();
+        correspondence.Content!.MessageTitle = "<h1>test</h1>";
+        return correspondence;
+    }
+    internal static InitializeCorrespondenceExt BasicCorrespondenceWithMarkdownInTitle()
+    {
+        var correspondence = BasicCorrespondence();
+        correspondence.Content!.MessageTitle = "# test";
+        return correspondence;
+    }
+    internal static InitializeCorrespondenceExt BasicCorrespondenceWithHtmlInSummary()
+    {
+        var correspondence = BasicCorrespondence();
+        correspondence.Content!.MessageSummary = "<h1>test</h1>";
+
+        return correspondence;
+    }
+    internal static InitializeCorrespondenceExt BasicCorrespondenceWithHtmlInBody()
+    {
+        var correspondence = BasicCorrespondence();
+        correspondence.Content!.MessageBody = "<h1>test</h1>";
+
         return correspondence;
     }
 }
