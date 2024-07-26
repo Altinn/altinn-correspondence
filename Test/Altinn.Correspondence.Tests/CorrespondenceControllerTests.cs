@@ -60,15 +60,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task InitializeCorrespondence_With_Different_Markdown_In_Body()
     {
         var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
-
-        var content = File.ReadAllText("../../../../../README.md");
-        correspondence.Content.MessageBody = content;
+        correspondence.Content.MessageBody = File.ReadAllText("Data/Markdown.text");
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
-
-        correspondence.Content.MessageBody = File.ReadAllText("../../../../../README-infrastructure.md");
-        var initializeCorrespondenceResponse2 = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
-        initializeCorrespondenceResponse2.EnsureSuccessStatusCode();
     }
 
     [Fact]
@@ -97,6 +91,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task GetCorrespondenceDetails()
     {
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+        initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
         var getCorrespondenceOverviewResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}/details");
         Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode, await getCorrespondenceOverviewResponse.Content.ReadAsStringAsync());
