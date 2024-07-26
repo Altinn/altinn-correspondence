@@ -39,6 +39,7 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
             Notifications = correspondence.Notifications ?? new List<CorrespondenceNotificationEntity>(),
             VisibleFrom = correspondence.VisibleFrom,
             IsReservable = correspondence.IsReservable == null || correspondence.IsReservable.Value,
+            MarkedUnread = correspondence.MarkedUnread
         };
         return response;
     }
