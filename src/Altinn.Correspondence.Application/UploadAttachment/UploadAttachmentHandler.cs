@@ -76,7 +76,6 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
         }
         await CheckCorrespondenceStatusesAfterUploadAndPublish(attachment.Id, cancellationToken);
 
-        await _eventBus.Publish(AltinnEventType.AttachmentPublished, null, request.AttachmentId.ToString(), "attachment", null, cancellationToken);
         return new UploadAttachmentResponse()
         {
             AttachmentId = attachment.Id,

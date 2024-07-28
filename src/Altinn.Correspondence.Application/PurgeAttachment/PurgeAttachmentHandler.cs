@@ -55,7 +55,7 @@ public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizat
             StatusText = AttachmentStatus.Purged.ToString()
         }, cancellationToken);
 
-        await _eventBus.Publish(AltinnEventType.AttachmentPurged, null, attachmentId.ToString(), "attachment", null, cancellationToken);
+        await _eventBus.Publish(AltinnEventType.AttachmentPurged, attachment.ResourceId, attachmentId.ToString(), "attachment", attachment.SendersReference, cancellationToken);
 
         return attachmentId;
     }

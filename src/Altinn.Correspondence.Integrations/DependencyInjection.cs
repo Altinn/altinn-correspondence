@@ -1,12 +1,13 @@
 using Altinn.ApiClients.Maskinporten.Config;
 using Altinn.ApiClients.Maskinporten.Extensions;
 using Altinn.ApiClients.Maskinporten.Services;
-using Altinn.Broker.Correspondence.Repositories;
+using Altinn.Correspondence.Repositories;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Altinn.Correspondence.Integrations.Altinn.Events;
+using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,14 +18,15 @@ public static class DependencyInjection
 {
     public static void AddIntegrations(this IServiceCollection services, IConfiguration config, IHostEnvironment hostEnvironment)
     {
-        //services.AddScoped<IEventBus, AltinnEventBus>();
         services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationService>();
         services.AddScoped<IResourceRightsService, ResourceRightsService>();
+        services.AddScoped<IAltinnRegisterService, AltinnRegisterService>();
 
         if (hostEnvironment.IsDevelopment())
         {
-
-            services.AddScoped<IEventBus, ConsoleLogEventBus>();
+            var altinnOptions = new AltinnOptions();
+            services.AddHttpClient<IEventBus, AltinnEventBus>((client) => client.BaseAddress = new Uri(altinnOptions!.PlatformGatewayUrl))
+                .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IEventBus>(x => x.ClientSettings.ExhangeToAltinnToken = true);
         }
         else
         {

@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Altinn.Events.Helpers;
+using Altinn.Correspondence.Repositories;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,19 +17,25 @@ public class AltinnEventBus : IEventBus
     private readonly AltinnOptions _altinnOptions;
     private readonly HttpClient _httpClient;
     private readonly ILogger<AltinnEventBus> _logger;
+    private readonly IResourceRightsService _altinnResourceRightsService;
+    private readonly IAltinnRegisterService _altinnRegisterService;
 
-    public AltinnEventBus(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnEventBus> logger)
+    public AltinnEventBus(HttpClient httpClient, IAltinnRegisterService altinnRegisterService, IResourceRightsService altinnResourceRightsService, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnEventBus> logger)
     {
         _httpClient = httpClient;
         _altinnOptions = altinnOptions.Value;
+        _altinnResourceRightsService = altinnResourceRightsService;
+        _altinnRegisterService = altinnRegisterService;
         _logger = logger;
     }
 
-    public async Task Publish(AltinnEventType type, string resourceId, string itemId, string eventSource, string? organizationId = null, CancellationToken cancellationToken = default)
+    public async Task Publish(AltinnEventType type, string resourceId, string itemId, string eventSource, string? organizationId, CancellationToken cancellationToken = default)
     {
-        string? partyId = null;
-        // TODO: Get party id
-
+        string partyId = null;
+        if (organizationId != null)
+        {
+            partyId = await _altinnRegisterService.LookUpOrganizationId(organizationId, cancellationToken);
+        }
         var cloudEvent = CreateCloudEvent(type, resourceId, itemId, partyId, organizationId, eventSource);
         var serializerOptions = new JsonSerializerOptions
         {
@@ -44,6 +51,11 @@ public class AltinnEventBus : IEventBus
 
     private CloudEvent CreateCloudEvent(AltinnEventType type, string resourceId, string itemId, string? partyId, string? alternativeSubject, string eventSource)
     {
+
+        if (partyId == null && alternativeSubject == null)
+        {
+            throw new ArgumentException("Either partyId or alternativeSubject must be set");
+        }
         CloudEvent cloudEvent = new CloudEvent()
         {
             Id = Guid.NewGuid(),

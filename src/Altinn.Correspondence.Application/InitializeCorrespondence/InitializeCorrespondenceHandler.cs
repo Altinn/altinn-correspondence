@@ -38,6 +38,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
+        }
         if (!ValidatePlainText(request.Correspondence.Content?.MessageTitle))
         {
             return Errors.MessageTitleIsNotPlainText;
@@ -73,7 +74,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         request.Correspondence.Notifications = ProcessNotifications(request.Correspondence.Notifications, cancellationToken);
         var correspondence = await _correspondenceRepository.InitializeCorrespondence(request.Correspondence, cancellationToken);
         _backgroundJobClient.Schedule<PublishCorrespondenceService>((service) => service.Publish(correspondence.Id, cancellationToken), request.Correspondence.VisibleFrom);
-        await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, null, correspondence.Id.ToString(), "correspondence", null, cancellationToken);
+        await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, request.Correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", request.Correspondence.Sender, cancellationToken);
         return new InitializeCorrespondenceResponse()
         {
             CorrespondenceId = correspondence.Id,
