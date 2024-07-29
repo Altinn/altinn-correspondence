@@ -16,6 +16,7 @@ public class AltinnRegisterService : IAltinnRegisterService
 
     public AltinnRegisterService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnRegisterService> logger)
     {
+        httpClient.BaseAddress = new Uri(altinnOptions.Value.PlatformGatewayUrl);
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.PlatformSubscriptionKey);
         _httpClient = httpClient;
         _logger = logger;
