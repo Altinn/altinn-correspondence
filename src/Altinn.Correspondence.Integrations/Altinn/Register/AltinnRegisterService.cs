@@ -21,13 +21,25 @@ public class AltinnRegisterService : IAltinnRegisterService
         _logger = logger;
     }
 
-    public async Task<string?> LookUpOrganizationId(string organizationId, CancellationToken cancellationToken = default)
+    public async Task<string?> LookUpOrganizationId(string identificationId, CancellationToken cancellationToken = default)
     {
         var organizationWithPrefixFormat = new Regex(@"^\d{4}:\d{9}$");
-        if (organizationWithPrefixFormat.IsMatch(organizationId))
+        var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
+        if (organizationWithPrefixFormat.IsMatch(identificationId))
         {
-            organizationId = organizationId.Substring(5);
+            identificationId = identificationId.Substring(5); if (identificationId.Length != 9)
+            {
+                _logger.LogError("OrganizationId must be 9 digits long: {identificationId}", identificationId);
+                return null;
+            }
         }
+        var personFormat = new Regex(@"^\d{11}$");
+        else (!personFormat.IsMatch(identificationId) && !organizationWithoutPrefixFormat.IsMatch(identificationId))
+        {
+            _logger.LogError("identificationId is not a valid organization or person number: {identificationId}", identificationId);
+            return null;
+        }
+
         var partyLookup = new PartyLookup()
         {
             OrgNo = organizationId
