@@ -27,14 +27,14 @@ public class AltinnRegisterService : IAltinnRegisterService
         var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
         if (organizationWithPrefixFormat.IsMatch(identificationId))
         {
-            identificationId = identificationId.Substring(5); if (identificationId.Length != 9)
+            identificationId = identificationId.Substring(5);
             {
                 _logger.LogError("OrganizationId must be 9 digits long: {identificationId}", identificationId);
                 return null;
             }
         }
         var personFormat = new Regex(@"^\d{11}$");
-        else (!personFormat.IsMatch(identificationId) && !organizationWithoutPrefixFormat.IsMatch(identificationId))
+        if (!personFormat.IsMatch(identificationId) && !organizationWithoutPrefixFormat.IsMatch(identificationId))
         {
             _logger.LogError("identificationId is not a valid organization or person number: {identificationId}", identificationId);
             return null;
@@ -42,7 +42,7 @@ public class AltinnRegisterService : IAltinnRegisterService
 
         var partyLookup = new PartyLookup()
         {
-            OrgNo = organizationId
+            OrgNo = identificationId
         };
         var response = await _httpClient.PostAsJsonAsync("register/api/v1/parties/lookup", partyLookup, cancellationToken);
         if (!response.IsSuccessStatusCode)
