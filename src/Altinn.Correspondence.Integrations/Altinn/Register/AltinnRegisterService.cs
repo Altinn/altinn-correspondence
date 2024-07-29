@@ -29,20 +29,22 @@ public class AltinnRegisterService : IAltinnRegisterService
         {
             identificationId = identificationId.Substring(5);
             {
-                _logger.LogError("OrganizationId must be 9 digits long: {identificationId}", identificationId);
+                _logger.LogError("OrganizationId must be 9 digits long.");
                 return null;
             }
         }
         var personFormat = new Regex(@"^\d{11}$");
         if (!personFormat.IsMatch(identificationId) && !organizationWithoutPrefixFormat.IsMatch(identificationId))
         {
-            _logger.LogError("identificationId is not a valid organization or person number: {identificationId}", identificationId);
+            _logger.LogError("identificationId is not a valid organization or person number.");
             return null;
         }
 
         var partyLookup = new PartyLookup()
         {
-            OrgNo = identificationId
+            OrgNo = organizationWithoutPrefixFormat.IsMatch(identificationId) ? identificationId : null,
+            Ssn = personFormat.IsMatch(identificationId) ? identificationId : null
+
         };
         var response = await _httpClient.PostAsJsonAsync("register/api/v1/parties/lookup", partyLookup, cancellationToken);
         if (!response.IsSuccessStatusCode)
