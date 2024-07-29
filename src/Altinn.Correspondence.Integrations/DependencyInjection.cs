@@ -21,12 +21,9 @@ public static class DependencyInjection
         services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationService>();
         services.AddScoped<IResourceRightsService, ResourceRightsService>();
         services.AddScoped<IAltinnRegisterService, AltinnRegisterService>();
-
         if (hostEnvironment.IsDevelopment())
         {
-            var altinnOptions = new AltinnOptions();
-            services.AddHttpClient<IEventBus, AltinnEventBus>((client) => client.BaseAddress = new Uri(altinnOptions!.PlatformGatewayUrl))
-                .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IEventBus>(x => x.ClientSettings.ExhangeToAltinnToken = true);
+            services.AddScoped<IEventBus, ConsoleLogEventBus>();
         }
         else
         {

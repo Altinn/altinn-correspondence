@@ -35,8 +35,6 @@ public class ResourceRightsService : IResourceRightsService
         {
             _logger.LogError("Failed to get resource from Altinn Resource Registry. Status code: {StatusCode}", response.StatusCode);
             _logger.LogError("Body: {Response}", await response.Content.ReadAsStringAsync(cancellationToken));
-            throw new BadHttpRequestException("Failed to get resource from Altinn Resource Registry");
-        }
         var altinnResourceResponse = await response.Content.ReadFromJsonAsync<GetResourceResponse>(cancellationToken: cancellationToken);
         if (altinnResourceResponse is null)
         {
