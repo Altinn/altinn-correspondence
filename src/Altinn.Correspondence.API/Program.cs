@@ -86,6 +86,11 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
             options.Events = new JwtBearerEvents()
             {
                 OnAuthenticationFailed = context => JWTBearerEventsHelper.OnAuthenticationFailed(context)
+                OnChallenge = c =>
+                {
+                    c.HandleResponse();
+                    return Task.CompletedTask;
+                }
             };
         });
     services.AddTransient<IAuthorizationHandler, ScopeAccessHandler>();
