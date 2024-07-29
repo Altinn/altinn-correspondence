@@ -39,6 +39,10 @@ public static class DependencyInjection
             services.AddHttpClient<IResourceRightsService, ResourceRightsService>((client) => client.BaseAddress = new Uri(altinnOptions!.PlatformGatewayUrl))
                 .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IResourceRightsService>(x => x.ClientSettings.ExhangeToAltinnToken = true);
 
+            services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(IAltinnRegisterService).FullName, maskinportenSettings);
+            services.AddHttpClient<IAltinnRegisterService, AltinnRegisterService>((client) => client.BaseAddress = new Uri(altinnOptions!.PlatformGatewayUrl))
+                .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IAltinnRegisterService>(x => x.ClientSettings.ExhangeToAltinnToken = true);
+
             services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(IAltinnAuthorizationService).FullName, maskinportenSettings);
             services.AddHttpClient<IAltinnAuthorizationService, AltinnAuthorizationService>((client) => client.BaseAddress = new Uri(altinnOptions!.PlatformGatewayUrl))
                     .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IAltinnAuthorizationService>(x => x.ClientSettings.ExhangeToAltinnToken = false);
