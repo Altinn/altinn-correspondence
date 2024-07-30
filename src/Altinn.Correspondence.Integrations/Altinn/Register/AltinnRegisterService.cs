@@ -21,7 +21,7 @@ public class AltinnRegisterService : IAltinnRegisterService
         _logger = logger;
     }
 
-    public async Task<string?> LookUpOrganizationId(string identificationId, CancellationToken cancellationToken = default)
+    public async Task<string?> LookUpPartyId(string identificationId, CancellationToken cancellationToken = default)
     {
         var organizationWithPrefixFormat = new Regex(@"^\d{4}:\d{9}$");
         var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
