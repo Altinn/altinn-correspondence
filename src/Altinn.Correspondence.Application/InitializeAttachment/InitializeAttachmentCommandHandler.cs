@@ -39,7 +39,7 @@ public class InitializeAttachmentHandler : IHandler<InitializeAttachmentRequest,
             StatusText = AttachmentStatus.Initialized.ToString()
         };
         await _attachmentStatusRepository.AddAttachmentStatus(status, cancellationToken);
-        await _eventBus.Publish(AltinnEventType.AttachmentInitialized, request.Attachment.ResourceId, attachmentId.ToString(), "attachment", null, cancellationToken);
+        await _eventBus.Publish(AltinnEventType.AttachmentInitialized, request.Attachment.ResourceId, attachmentId.ToString(), "attachment", request.Attachment.Sender, cancellationToken);
         return attachmentId;
     }
 }

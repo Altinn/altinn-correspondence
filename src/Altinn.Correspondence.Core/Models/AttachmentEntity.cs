@@ -24,6 +24,10 @@ namespace Altinn.Correspondence.Core.Models
         [Required]
         public required string SendersReference { get; set; }
 
+        [RegularExpression(@"^\d{4}:\d{9}$", ErrorMessage = "Organization numbers should be on the form countrycode:organizationnumber, for instance 0192:910753614")]
+        [Required]
+        public required string Sender { get; set; }
+
         [Required]
         public required string DataType { get; set; }
 

@@ -13,6 +13,7 @@ internal static class InitializeAttachmentMapper
         {
             ResourceId = initializeAttachmentExt.ResourceId,
             FileName = initializeAttachmentExt.FileName,
+            Sender = initializeAttachmentExt.Sender,
             SendersReference = initializeAttachmentExt.SendersReference,
             DataType = initializeAttachmentExt.DataType,
             Checksum = initializeAttachmentExt.Checksum,

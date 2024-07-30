@@ -117,6 +117,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
             attachment = new AttachmentEntity
             {
                 ResourceId = correspondence.ResourceId,
+                Sender = correspondence.Sender,
                 SendersReference = correspondenceAttachment.SendersReference,
                 RestrictionName = correspondenceAttachment.RestrictionName,
                 ExpirationTime = correspondenceAttachment.ExpirationTime,

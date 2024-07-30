@@ -20,6 +20,8 @@ public class GetAttachmentDetailsResponse
 
     public string? Name { get; set; } = string.Empty;
 
+    public string Sender { get; set; } = string.Empty;
+
     public string SendersReference { get; set; } = string.Empty;
 
     public string DataType { get; set; } = string.Empty;

@@ -13,6 +13,7 @@ internal static class AttachmentOverviewMapper
             ResourceId = attachmentOverview.ResourceId,
             AttachmentId = attachmentOverview.AttachmentId,
             Name = attachmentOverview.Name ?? string.Empty,
+            Sender = attachmentOverview.Sender,
             Status = (AttachmentStatusExt)attachmentOverview.Status,
             StatusText = attachmentOverview.StatusText,
             DataLocationUrl = attachmentOverview.DataLocationUrl,
