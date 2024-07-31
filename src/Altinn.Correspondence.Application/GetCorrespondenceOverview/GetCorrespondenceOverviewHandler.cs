@@ -18,7 +18,6 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
 
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(Guid CorrespondenceId, CancellationToken cancellationToken)
     {
-
         var correspondence = await _CorrespondenceRepository.GetCorrespondenceById(CorrespondenceId, true, true, cancellationToken);
         if (correspondence == null)
         {

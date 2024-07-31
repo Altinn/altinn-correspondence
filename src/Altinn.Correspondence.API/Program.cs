@@ -89,11 +89,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
                 OnAuthenticationFailed = context => JWTBearerEventsHelper.OnAuthenticationFailed(context),
                 OnChallenge = c =>
                 {
-                    //Only skip default login when authentication fails
-                    if (c.AuthenticateFailure != null)
-                    {
-                        c.HandleResponse();
-                    }
+                    c.HandleResponse();
                     return Task.CompletedTask;
                 }
             };
