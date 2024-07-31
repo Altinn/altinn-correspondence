@@ -1,11 +1,12 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json;
-
+using System.Text.RegularExpressions;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Altinn.Events.Helpers;
+using Altinn.Correspondence.Repositories;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,20 +17,27 @@ public class AltinnEventBus : IEventBus
     private readonly AltinnOptions _altinnOptions;
     private readonly HttpClient _httpClient;
     private readonly ILogger<AltinnEventBus> _logger;
+    private readonly IResourceRightsService _altinnResourceRightsService;
+    private readonly IAltinnRegisterService _altinnRegisterService;
 
-    public AltinnEventBus(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnEventBus> logger)
+    public AltinnEventBus(HttpClient httpClient, IAltinnRegisterService altinnRegisterService, IResourceRightsService altinnResourceRightsService, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnEventBus> logger)
     {
         _httpClient = httpClient;
         _altinnOptions = altinnOptions.Value;
+        _altinnResourceRightsService = altinnResourceRightsService;
+        _altinnRegisterService = altinnRegisterService;
         _logger = logger;
     }
 
-    public async Task Publish(AltinnEventType type, string resourceId, string itemId, string eventSource, string? organizationId = null, CancellationToken cancellationToken = default)
+    public async Task Publish(AltinnEventType type, string resourceId, string itemId, string eventSource, string? recipientId, CancellationToken cancellationToken = default)
     {
         string? partyId = null;
-        // TODO: Get party id
+        if (recipientId != null)
+        {
+            partyId = await _altinnRegisterService.LookUpPartyId(recipientId, cancellationToken);
+        }
 
-        var cloudEvent = CreateCloudEvent(type, resourceId, itemId, partyId, organizationId, eventSource);
+        var cloudEvent = CreateCloudEvent(type, resourceId, itemId, partyId, recipientId, eventSource);
         var serializerOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = new LowerCaseNamingPolicy()
@@ -44,6 +52,12 @@ public class AltinnEventBus : IEventBus
 
     private CloudEvent CreateCloudEvent(AltinnEventType type, string resourceId, string itemId, string? partyId, string? alternativeSubject, string eventSource)
     {
+
+        if (partyId == null && alternativeSubject == null)
+        {
+            throw new ArgumentException("Either partyId or alternativeSubject must be set");
+        }
+        var alternativeSubjectFormated = handleAlternativeSubject(alternativeSubject);
         CloudEvent cloudEvent = new CloudEvent()
         {
             Id = Guid.NewGuid(),
@@ -54,10 +68,25 @@ public class AltinnEventBus : IEventBus
             Type = "no.altinn.correspondence." + type.ToString().ToLowerInvariant(),
             Source = _altinnOptions.PlatformGatewayUrl + "correspondence/api/v1/" + eventSource,
             Subject = !string.IsNullOrWhiteSpace(partyId) ? "/party/" + partyId : null,
-            AlternativeSubject = !string.IsNullOrWhiteSpace(alternativeSubject) ? "/organisation/" + alternativeSubject : null,
+            AlternativeSubject = alternativeSubjectFormated
         };
 
         return cloudEvent;
+    }
+    private string? handleAlternativeSubject(string? alternativeSubject)
+    {
+        if (alternativeSubject == null) return null;
+        var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
+        var personFormat = new Regex(@"^\d{11}$");
+        if (organizationWithoutPrefixFormat.IsMatch(alternativeSubject))
+        {
+            return "/organisation/" + alternativeSubject;
+        }
+        else if (personFormat.IsMatch(alternativeSubject))
+        {
+            return "/person/" + alternativeSubject;
+        }
+        return null;
     }
 }
 

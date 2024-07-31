@@ -46,6 +46,17 @@ namespace Altinn.Correspondence.API.Models
         public string? Checksum { get; set; } = string.Empty;
 
         /// <summary>
+        /// The Sending organisation of the correspondence. 
+        /// </summary>
+        /// <remarks>
+        /// Organization number in countrycode:organizationnumber format.
+        /// </remarks>
+        [JsonPropertyName("sender")]
+        [RegularExpression(@"^\d{4}:\d{9}$", ErrorMessage = "Organization numbers should be on the form countrycode:organizationnumber, for instance 0192:910753614")]
+        [Required]
+        public required string Sender { get; set; }
+
+        /// <summary>
         /// A reference value given to the attachment by the creator.
         /// </summary>
         [JsonPropertyName("sendersReference")]

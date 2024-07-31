@@ -6,9 +6,9 @@ internal static class InitializeCorrespondenceFactory
 {
     internal static InitializeCorrespondenceExt BasicCorrespondence() => new InitializeCorrespondenceExt()
     {
-        Recipient = "1",
+        Recipient = "0192:986252932",
         ResourceId = "1",
-        Sender = "8536:031145332",
+        Sender = "0192:986252932",
         SendersReference = "1",
         Content = new InitializeCorrespondenceContentExt()
         {
@@ -64,7 +64,7 @@ internal static class InitializeCorrespondenceFactory
             new InitializeCorrespondenceNotificationExt(){
                 NotificationTemplate= "test",
                 CustomTextToken = "test",
-                SendersReference = "1",
+                SendersReference = "0192:986252932",
                 RequestedSendTime =  DateTime.UtcNow.AddDays(1),
             }
         },

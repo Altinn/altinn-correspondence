@@ -37,6 +37,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<CorrespondenceReplyOptionEntity> CorrespondenceReplyOptions { get; set; }
     public DbSet<ExternalReferenceEntity> ExternalReferences { get; set; }
 
+
     private bool IsAccessTokenValid()
     {
         if (string.IsNullOrWhiteSpace(_accessToken))

@@ -3,7 +3,7 @@ using System.Security.Claims;
 
 using Altinn.Authorization.ABAC.Xacml;
 using Altinn.Authorization.ABAC.Xacml.JsonProfile;
-using Altinn.Broker.Correspondence.Repositories;
+using Altinn.Correspondence.Repositories;
 using Altinn.Common.PEP.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
