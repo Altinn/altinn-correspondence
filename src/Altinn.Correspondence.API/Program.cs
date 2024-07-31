@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
+using System.Net;
 using System.Text.Json.Serialization;
 
 BuildAndRun(args);
@@ -88,7 +89,11 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
                 OnAuthenticationFailed = context => JWTBearerEventsHelper.OnAuthenticationFailed(context),
                 OnChallenge = c =>
                 {
-                    c.HandleResponse();
+                    //Only skip default login when authentication fails
+                    if (c.AuthenticateFailure != null)
+                    {
+                        c.HandleResponse();
+                    }
                     return Task.CompletedTask;
                 }
             };

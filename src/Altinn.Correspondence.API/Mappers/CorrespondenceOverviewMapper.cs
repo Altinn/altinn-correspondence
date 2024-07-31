@@ -16,6 +16,7 @@ internal static class CorrespondenceOverviewMapper
             StatusChanged = (DateTimeOffset)correspondenceOverview.StatusChanged,
             SendersReference = correspondenceOverview.SendersReference,
             Sender = correspondenceOverview.Sender,
+            MessageSender = correspondenceOverview.MessageSender,
             Created = correspondenceOverview.Created,
             Recipient = correspondenceOverview.Recipient,
             Content = CorrespondenceContentMapper.MapToExternal(correspondenceOverview.Content),
