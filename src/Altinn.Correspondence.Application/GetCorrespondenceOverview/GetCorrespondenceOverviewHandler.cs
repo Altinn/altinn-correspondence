@@ -34,7 +34,6 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
         {
             return Errors.CorrespondenceNotFound;
         }
-        Console.WriteLine(correspondence.Id);
         var response = new GetCorrespondenceOverviewResponse
         {
             CorrespondenceId = correspondence.Id,
