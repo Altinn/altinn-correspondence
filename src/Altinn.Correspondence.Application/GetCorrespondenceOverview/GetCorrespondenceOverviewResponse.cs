@@ -19,6 +19,8 @@ public class GetCorrespondenceOverviewResponse
 
     public string Sender { get; set; } = string.Empty;
 
+    public string MessageSender { get; set; } = string.Empty;
+
     public DateTimeOffset Created { get; set; }
 
     public string Recipient { get; set; } = string.Empty;

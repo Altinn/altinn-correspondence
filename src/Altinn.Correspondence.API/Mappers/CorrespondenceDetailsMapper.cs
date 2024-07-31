@@ -17,6 +17,7 @@ internal static class CorrespondenceDetailsMapper
             SendersReference = correspondenceDetails.SendersReference,
             Content = CorrespondenceContentMapper.MapToExternal(correspondenceDetails.Content),
             Sender = correspondenceDetails.Sender,
+            MessageSender = correspondenceDetails.MessageSender,
             Created = correspondenceDetails.Created,
             Recipient = correspondenceDetails.Recipient,
             ReplyOptions = correspondenceDetails.ReplyOptions != null ? CorrespondenceReplyOptionsMapper.MapListToExternal(correspondenceDetails.ReplyOptions) : new List<CorrespondenceReplyOptionExt>(),
