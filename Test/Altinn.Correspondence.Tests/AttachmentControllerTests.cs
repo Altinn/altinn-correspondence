@@ -33,6 +33,19 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     }
 
     [Fact]
+    public async Task InitializeAttachment_WithWrongSender_ReturnsBadRequest()
+    {
+        var attachment = InitializeAttachmentFactory.BasicAttachment();
+        attachment.Sender = "invalid-sender";
+        var initializeAttachmentResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+        Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
+
+        attachment.Sender = "123456789";
+        initializeAttachmentResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+        Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
+    }
+
+    [Fact]
     public async Task GetAttachmentOverview()
     {
         var initializeAttachmentResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", InitializeAttachmentFactory.BasicAttachment());

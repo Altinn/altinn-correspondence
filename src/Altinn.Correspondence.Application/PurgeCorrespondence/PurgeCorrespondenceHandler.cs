@@ -1,6 +1,8 @@
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.PurgeCorrespondence;
@@ -13,8 +15,9 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IStorageRepository _storageRepository;
+    private readonly IEventBus _eventBus;
 
-    public PurgeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository)
+    public PurgeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _attachmentRepository = attachmentRepository;
@@ -22,6 +25,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
         _correspondenceStatusRepository = correspondenceStatusRepository;
         _storageRepository = storageRepository;
         _attachmentStatusRepository = attachmentStatusRepository;
+        _eventBus = eventBus;
     }
 
     public async Task<OneOf<Guid, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
@@ -49,6 +53,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
             StatusChanged = DateTimeOffset.UtcNow,
             StatusText = CorrespondenceStatus.PurgedByRecipient.ToString()
         };
+        await _eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         await _correspondenceStatusRepository.AddCorrespondenceStatus(newStatus, cancellationToken);
         await CheckAndPurgeAttachments(correspondenceId, cancellationToken);
         return correspondenceId;

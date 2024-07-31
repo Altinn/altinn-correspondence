@@ -66,6 +66,49 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
+    public async Task InitializeCorrespondence_Recipient_Can_Handle_Org_And_Ssn()
+    {
+        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
+        correspondence.Recipient = "1234:123456789";
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        initializeCorrespondenceResponse.EnsureSuccessStatusCode();
+
+        correspondence.Recipient = "12345678901";
+        initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        initializeCorrespondenceResponse.EnsureSuccessStatusCode();
+    }
+
+    [Fact]
+    public async Task InitializeCorrespondence_With_Invalid_Sender_Returns_BadRequest()
+    {
+        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
+        correspondence.Sender = "invalid-sender";
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+
+        correspondence.Sender = "123456789";
+        initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task InitializeCorrespondence_With_Invalid_Recipient_Returns_BadRequest()
+    {
+        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
+        correspondence.Recipient = "invalid-recipient";
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+
+        correspondence.Recipient = "123456789";
+        initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+
+        correspondence.Recipient = "1234567890123";
+        initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+
+    [Fact]
     public async Task GetCorrespondences()
     {
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());

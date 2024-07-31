@@ -1,4 +1,4 @@
-﻿namespace Altinn.Broker.Correspondence.Repositories;
+﻿namespace Altinn.Correspondence.Repositories;
 
 public interface IResourceRightsService
 {

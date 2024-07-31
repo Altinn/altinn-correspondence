@@ -1,6 +1,6 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
-using Altinn.Broker.Correspondence.Repositories;
+using Altinn.Correspondence.Repositories;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -21,14 +21,20 @@ public class ResourceRightsService : IResourceRightsService
 
     public async Task<bool> Exists(string resourceId, CancellationToken cancellationToken)
     {
+        var exist = await GetResource(resourceId, cancellationToken);
+        return exist != null;
+    }
+    public async Task<string?> GetResource(string resourceId, CancellationToken cancellationToken)
+    {
         var response = await _client.GetAsync($"resourceregistry/api/v1/resource/{resourceId}", cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.NoContent)
         {
-            return false;
+            return null;
         }
         if (response.StatusCode != HttpStatusCode.OK)
         {
-            _logger.LogError("Failed to get resource from Altinn Resource Registry. Status code: {StatusCode}\nBody: {Response}", response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken));
+            _logger.LogError("Failed to get resource from Altinn Resource Registry. Status code: {StatusCode}", response.StatusCode);
+            _logger.LogError("Body: {Response}", await response.Content.ReadAsStringAsync(cancellationToken));
             throw new BadHttpRequestException("Failed to get resource from Altinn Resource Registry");
         }
         var altinnResourceResponse = await response.Content.ReadFromJsonAsync<GetResourceResponse>(cancellationToken: cancellationToken);
@@ -37,6 +43,6 @@ public class ResourceRightsService : IResourceRightsService
             _logger.LogError("Failed to deserialize response from Altinn Resource Registry");
             throw new BadHttpRequestException("Failed to process response from Altinn Resource Registry");
         }
-        return true;
+        return altinnResourceResponse.HasCompetentAuthority.Organization;
     }
 }

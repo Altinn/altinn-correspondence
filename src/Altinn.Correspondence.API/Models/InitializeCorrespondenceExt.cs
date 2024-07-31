@@ -23,6 +23,7 @@ namespace Altinn.Correspondence.API.Models
         /// National identity number or Organization number.
         /// </remarks
         [JsonPropertyName("recipient")]
+        [RegularExpression(@"^\d{4}:\d{9}$|\d{11}$", ErrorMessage = "Recipient should be an organization number in the form countrycode:organizationnumber, for instance 0192:910753614 or a national identity number")]
         [Required]
         public required string Recipient { get; set; }
 

@@ -59,19 +59,19 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
             StatusChanged = DateTimeOffset.UtcNow,
             StatusText = request.Status.ToString(),
         }, cancellationToken);
-        await PublishEvent(request.CorrespondenceId, request.Status, cancellationToken);
+        await PublishEvent(correspondence, request.Status, cancellationToken);
         return request.CorrespondenceId;
     }
 
-    private async Task PublishEvent(Guid correspondenceId, CorrespondenceStatus status, CancellationToken cancellationToken)
+    private async Task PublishEvent(CorrespondenceEntity correspondence, CorrespondenceStatus status, CancellationToken cancellationToken)
     {
         if (status == CorrespondenceStatus.Confirmed)
         {
-            await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, null, correspondenceId.ToString(), "correspondence", null, cancellationToken);
+            await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         }
         else if (status == CorrespondenceStatus.Read)
         {
-            await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, null, correspondenceId.ToString(), "correspondence", null, cancellationToken);
+            await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         }
     }
 }

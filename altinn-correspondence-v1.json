@@ -202,6 +202,13 @@
                 ],
                 "parameters": [
                     {
+                        "name": "resourceId",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
                         "name": "offset",
                         "in": "query",
                         "schema": {
@@ -552,7 +559,9 @@
                     "dataType",
                     "expirationTime",
                     "name",
+                    "resourceId",
                     "restrictionName",
+                    "sender",
                     "sendersReference",
                     "status",
                     "statusChanged",
@@ -560,6 +569,11 @@
                 ],
                 "type": "object",
                 "properties": {
+                    "resourceId": {
+                        "maxLength": 255,
+                        "minLength": 1,
+                        "type": "string"
+                    },
                     "fileName": {
                         "maxLength": 255,
                         "minLength": 0,
@@ -577,6 +591,11 @@
                     "checksum": {
                         "type": "string",
                         "nullable": true
+                    },
+                    "sender": {
+                        "minLength": 1,
+                        "pattern": "^\\d{4}:\\d{9}$",
+                        "type": "string"
                     },
                     "sendersReference": {
                         "maxLength": 4096,
@@ -640,7 +659,9 @@
                     "dataType",
                     "expirationTime",
                     "name",
+                    "resourceId",
                     "restrictionName",
+                    "sender",
                     "sendersReference",
                     "status",
                     "statusChanged",
@@ -648,6 +669,11 @@
                 ],
                 "type": "object",
                 "properties": {
+                    "resourceId": {
+                        "maxLength": 255,
+                        "minLength": 1,
+                        "type": "string"
+                    },
                     "fileName": {
                         "maxLength": 255,
                         "minLength": 0,
@@ -665,6 +691,11 @@
                     "checksum": {
                         "type": "string",
                         "nullable": true
+                    },
+                    "sender": {
+                        "minLength": 1,
+                        "pattern": "^\\d{4}:\\d{9}$",
+                        "type": "string"
                     },
                     "sendersReference": {
                         "maxLength": 4096,
@@ -861,6 +892,7 @@
                     },
                     "recipient": {
                         "minLength": 1,
+                        "pattern": "^\\d{4}:\\d{9}$|\\d{11}$",
                         "type": "string"
                     },
                     "sender": {
@@ -1043,6 +1075,7 @@
                     },
                     "recipient": {
                         "minLength": 1,
+                        "pattern": "^\\d{4}:\\d{9}$|\\d{11}$",
                         "type": "string"
                     },
                     "sender": {
@@ -1233,11 +1266,18 @@
                     "dataType",
                     "expirationTime",
                     "name",
+                    "resourceId",
                     "restrictionName",
+                    "sender",
                     "sendersReference"
                 ],
                 "type": "object",
                 "properties": {
+                    "resourceId": {
+                        "maxLength": 255,
+                        "minLength": 1,
+                        "type": "string"
+                    },
                     "fileName": {
                         "maxLength": 255,
                         "minLength": 0,
@@ -1255,6 +1295,11 @@
                     "checksum": {
                         "type": "string",
                         "nullable": true
+                    },
+                    "sender": {
+                        "minLength": 1,
+                        "pattern": "^\\d{4}:\\d{9}$",
+                        "type": "string"
                     },
                     "sendersReference": {
                         "maxLength": 4096,
@@ -1391,6 +1436,7 @@
                     },
                     "recipient": {
                         "minLength": 1,
+                        "pattern": "^\\d{4}:\\d{9}$|\\d{11}$",
                         "type": "string"
                     },
                     "sender": {

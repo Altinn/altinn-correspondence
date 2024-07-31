@@ -75,7 +75,8 @@ namespace Altinn.Correspondence.Integrations.Hangfire
 
             }
             await _correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
-            await _eventBus.Publish(eventType, null, correspondenceId.ToString(), "correspondence", null, cancellationToken);
+            await _eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
+            await _eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
         }
 
         [AutomaticRetry(Attempts = 0)]
