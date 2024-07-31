@@ -14,7 +14,6 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
-using System.Net;
 using System.Text.Json.Serialization;
 
 BuildAndRun(args);
