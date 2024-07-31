@@ -46,6 +46,13 @@ namespace Altinn.Correspondence.API.Models
         public required string SendersReference { get; set; }
 
         /// <summary>
+        /// An alternative name for the sender of the correspondence. The name will be displayed instead of the organization name.
+        ///  </summary>
+        [JsonPropertyName("messageSender")]
+        [StringLength(256, MinimumLength = 0)]
+        public string? MessageSender { get; set; }
+
+        /// <summary>
         /// The correspondence content. Contains information about the Correspondence body, subject etc.
         /// </summary>
         [JsonPropertyName("content")]

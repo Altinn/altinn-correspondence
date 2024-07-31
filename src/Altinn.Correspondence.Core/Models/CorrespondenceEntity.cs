@@ -22,6 +22,9 @@ namespace Altinn.Correspondence.Core.Models
         [Required]
         public required string SendersReference { get; set; }
 
+        [StringLength(256, MinimumLength = 0)]
+        public string? MessageSender { get; set; }
+
         public CorrespondenceContentEntity? Content { get; set; }
 
         public required DateTimeOffset VisibleFrom { get; set; }
