@@ -32,20 +32,20 @@ public static class DependencyInjection
             var altinnOptions = new AltinnOptions();
             config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
             services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(IEventBus).FullName, maskinportenSettings);
-            services.AddHttpClient<IEventBus, AltinnEventBus>((client) => client.BaseAddress = new Uri(altinnOptions!.PlatformGatewayUrl))
-                .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IEventBus>(x => x.ClientSettings.ExhangeToAltinnToken = true);
+            services.AddHttpClient<IEventBus, AltinnEventBus>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
+                .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IEventBus>();
 
             services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(IResourceRightsService).FullName, maskinportenSettings);
-            services.AddHttpClient<IResourceRightsService, ResourceRightsService>((client) => client.BaseAddress = new Uri(altinnOptions!.PlatformGatewayUrl))
-                .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IResourceRightsService>(x => x.ClientSettings.ExhangeToAltinnToken = true);
+            services.AddHttpClient<IResourceRightsService, ResourceRightsService>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
+                .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IResourceRightsService>();
 
             services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(IAltinnRegisterService).FullName, maskinportenSettings);
-            services.AddHttpClient<IAltinnRegisterService, AltinnRegisterService>((client) => client.BaseAddress = new Uri(altinnOptions!.PlatformGatewayUrl))
-                .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IAltinnRegisterService>(x => x.ClientSettings.ExhangeToAltinnToken = true);
+            services.AddHttpClient<IAltinnRegisterService, AltinnRegisterService>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
+                .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IAltinnRegisterService>();
 
             services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(IAltinnAuthorizationService).FullName, maskinportenSettings);
-            services.AddHttpClient<IAltinnAuthorizationService, AltinnAuthorizationService>((client) => client.BaseAddress = new Uri(altinnOptions!.PlatformGatewayUrl))
-                    .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IAltinnAuthorizationService>(x => x.ClientSettings.ExhangeToAltinnToken = false);
+            services.AddHttpClient<IAltinnAuthorizationService, AltinnAuthorizationService>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
+                    .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IAltinnAuthorizationService>();
         }
     }
 }
