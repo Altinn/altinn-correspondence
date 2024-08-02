@@ -77,9 +77,7 @@ namespace Altinn.Correspondence.API.Controllers
 
             Request.EnableBuffering();
 
-
             var correspondence = InitializeCorrespondenceMapper.MapToRequest(initializeCorrespondence);
-
             var commandResult = await handler.Process(new InitializeCorrespondenceRequest()
             {
                 Correspondence = correspondence.Correspondence,
@@ -94,7 +92,6 @@ namespace Altinn.Correspondence.API.Controllers
                 }),
                 Problem
             );
-
         }
 
         /// <summary>
