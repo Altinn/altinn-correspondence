@@ -25,4 +25,5 @@ public static class Errors
     public static Error MessageSummaryIsNotMarkdown = new Error(17, "Message summary must be markdown", HttpStatusCode.BadRequest);
     public static Error CorrespondenceHasNotBeenRead = new Error(18, "Correspondence has not been read", HttpStatusCode.BadRequest);
     public static Error NoAccessToResource = new Error(19, "You must use an Altinn token that represents a user with access to the resource", HttpStatusCode.Unauthorized);
+    public static Error UploadedFilesDoesNotMatchAttachments = new Error(20, "Mismatch between uploaded files and attachment meta data", HttpStatusCode.BadRequest);
 }
