@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Http;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Xunit.Abstractions;
 
 namespace Altinn.Correspondence.Tests;
 
@@ -15,11 +14,10 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _responseSerializerOptions;
-    private readonly ITestOutputHelper _output;
 
 
 
-    public CorrespondenceControllerTests(CustomWebApplicationFactory factory, ITestOutputHelper output)
+    public CorrespondenceControllerTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClientInternal();
@@ -28,7 +26,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             PropertyNameCaseInsensitive = true
         });
         _responseSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
-        _output = output;
     }
 
     [Fact]
