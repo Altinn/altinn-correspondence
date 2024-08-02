@@ -16,6 +16,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
+    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IAttachmentRepository _attachmentRepository;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository;
     private readonly IEventBus _eventBus;
@@ -23,10 +24,11 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
     private readonly IHostEnvironment _hostEnvironment;
     IBackgroundJobClient _backgroundJobClient;
 
-    public InitializeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, IHostEnvironment hostEnvironment, IEventBus eventBus, IBackgroundJobClient backgroundJobClient)
+    public InitializeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, IHostEnvironment hostEnvironment, IEventBus eventBus, IBackgroundJobClient backgroundJobClient)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
+        _correspondenceStatusRepository = correspondenceStatusRepository;
         _attachmentRepository = attachmentRepository;
         _attachmentStatusRepository = attachmentStatusRepository;
         _eventBus = eventBus;
@@ -82,10 +84,10 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         var correspondence = await _correspondenceRepository.InitializeCorrespondence(request.Correspondence, cancellationToken);
         _backgroundJobClient.Schedule<PublishCorrespondenceService>((service) => service.Publish(correspondence.Id, cancellationToken), request.Correspondence.VisibleFrom);
         await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, request.Correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", request.Correspondence.Sender, cancellationToken);
-
+        UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
         if (request.Attachments.Count > 0)
         {
-            var uploadError = await UploadAttachments(request, cancellationToken);
+            var uploadError = await UploadAttachments(uploadHelper, request, cancellationToken);
             if (uploadError != null)
             {
                 return uploadError;
@@ -98,7 +100,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
             AttachmentIds = correspondence.Content?.Attachments.Select(a => a.AttachmentId).ToList() ?? new List<Guid>()
         };
     }
-    public async Task<Error?> UploadAttachments(InitializeCorrespondenceRequest request, CancellationToken cancellationToken)
+    public async Task<Error?> UploadAttachments(UploadHelper uploadHelper, InitializeCorrespondenceRequest request, CancellationToken cancellationToken)
     {
         foreach (var file in request.Attachments)
         {
@@ -107,7 +109,6 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
             {
                 return Errors.UploadedFilesDoesNotMatchAttachments;
             }
-            UploadHelper uploadHelper = new UploadHelper(_attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
             var uploadResponse = await uploadHelper.UploadAttachment(file.OpenReadStream(), attachment.AttachmentId, cancellationToken);
             var error = uploadResponse.Match(
                 _ => { return null; },

@@ -40,45 +40,14 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
         {
             return Errors.InvalidUploadAttachmentStatus;
         }
-        UploadHelper uploadHelper = new UploadHelper(_attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
+        UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
         var uploadResult = await uploadHelper.UploadAttachment(request.UploadStream, request.AttachmentId, cancellationToken);
 
-        await CheckCorrespondenceStatusesAfterUploadAndPublish(attachment.Id, cancellationToken);
+        await uploadHelper.CheckCorrespondenceStatusesAfterUploadAndPublish(attachment.Id, cancellationToken);
 
         return uploadResult.Match<OneOf<UploadAttachmentResponse, Error>>(
             data => { return data; },
             error => { return error; }
         );
-    }
-
-    public async Task CheckCorrespondenceStatusesAfterUploadAndPublish(Guid attachmentId, CancellationToken cancellationToken)
-    {
-        var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
-        if (attachment == null)
-        {
-            return;
-        }
-
-        var correspondences = await _correspondenceRepository.GetNonPublishedCorrespondencesByAttachmentId(attachment.Id, cancellationToken);
-        if (correspondences.Count == 0)
-        {
-            return;
-        }
-
-        var list = new List<CorrespondenceStatusEntity>();
-        foreach (var correspondenceId in correspondences)
-        {
-            list.Add(
-                new CorrespondenceStatusEntity
-                {
-                    CorrespondenceId = correspondenceId,
-                    Status = CorrespondenceStatus.ReadyForPublish,
-                    StatusChanged = DateTime.UtcNow,
-                    StatusText = CorrespondenceStatus.ReadyForPublish.ToString()
-                }
-            );
-        }
-        await _correspondenceStatusRepository.AddCorrespondenceStatuses(list, cancellationToken);
-        return;
     }
 }
