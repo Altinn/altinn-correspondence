@@ -44,6 +44,10 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         {
             return Errors.NoAccessToResource;
         }
+        if (request.isUploadRequest && request.Attachments.Count == 0)
+        {
+            return Errors.NoAttachments;
+        }
         if (!TextValidation.ValidatePlainText(request.Correspondence.Content?.MessageTitle))
         {
             return Errors.MessageTitleIsNotPlainText;
@@ -119,8 +123,6 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         return null;
     }
 
-
-
     public CorrespondenceStatus GetInitializeCorrespondenceStatus(CorrespondenceEntity correspondence)
     {
         var status = CorrespondenceStatus.Initialized;
@@ -155,6 +157,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
             attachment = new AttachmentEntity
             {
                 ResourceId = correspondence.ResourceId,
+                FileName = correspondenceAttachment.Name,
                 Sender = correspondence.Sender,
                 SendersReference = correspondenceAttachment.SendersReference,
                 RestrictionName = correspondenceAttachment.RestrictionName,

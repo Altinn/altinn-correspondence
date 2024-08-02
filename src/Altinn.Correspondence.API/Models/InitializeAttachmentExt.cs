@@ -78,7 +78,6 @@ namespace Altinn.Correspondence.API.Models
         /// An empty value indicates no restriction above the ones governing the correspondence referencing this attachment
         /// </remarks>
         [JsonPropertyName("restrictionName")]
-        [Required]
         public string RestrictionName { get; set; } = string.Empty;
 
         /// <summary>

@@ -8,4 +8,6 @@ public class InitializeCorrespondenceRequest
     public required CorrespondenceEntity Correspondence { get; set; }
 
     public List<IFormFile> Attachments { get; set; } = new List<IFormFile>();
+
+    public bool isUploadRequest { get; set; }
 }

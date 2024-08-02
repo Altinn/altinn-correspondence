@@ -26,6 +26,7 @@ public class GetAttachmentDetailsResponse
 
     public string DataType { get; set; } = string.Empty;
 
+    public string RestrictionName { get; set; } = string.Empty;
 
     public List<AttachmentStatusEntity> Statuses { get; set; } = new List<AttachmentStatusEntity>();
     public List<Guid> CorrespondenceIds { get; set; } = new List<Guid>();

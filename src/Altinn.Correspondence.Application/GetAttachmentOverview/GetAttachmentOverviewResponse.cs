@@ -25,5 +25,7 @@ public class GetAttachmentOverviewResponse
 
     public string DataType { get; set; } = string.Empty;
 
+    public string RestrictionName { get; set; } = string.Empty;
+
     public List<Guid> CorrespondenceIds { get; set; } = new List<Guid>();
 }

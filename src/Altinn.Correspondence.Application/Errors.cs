@@ -17,7 +17,7 @@ public static class Errors
     public static Error PurgeAttachmentWithExistingCorrespondence = new Error(9, "Attachment cannot be purged as it is linked to atleast one existing correspondence", HttpStatusCode.BadRequest);
     public static Error TooManyMessageBodies = new Error(10, "Only one attachment can be marked as message body", HttpStatusCode.BadRequest);
     public static Error NoMessageBody = new Error(11, "Atleast one attachment must be marked as message body", HttpStatusCode.BadRequest);
-    public static Error NoAttachments = new Error(12, "Need atleast one attachments, which must be marked as message body", HttpStatusCode.BadRequest);
+    public static Error NoAttachments = new Error(12, "Need atleast one attachments to upload", HttpStatusCode.BadRequest);
     public static Error CorrespondencePurged = new Error(13, "Correspondence has been purged", HttpStatusCode.BadRequest);
     public static Error CorrespondenceAlreadyPurged = new Error(14, "Correspondence has already been purged", HttpStatusCode.BadRequest);
     public static Error MessageTitleIsNotPlainText = new Error(15, "Message title must be plain text", HttpStatusCode.BadRequest);

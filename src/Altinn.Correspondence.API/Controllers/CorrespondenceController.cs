@@ -43,7 +43,7 @@ namespace Altinn.Correspondence.API.Controllers
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(initializeCorrespondence);
             _logger.LogInformation("Initialize correspondence");
 
-            var commandRequest = InitializeCorrespondenceMapper.MapToRequest(initializeCorrespondence);
+            var commandRequest = InitializeCorrespondenceMapper.MapToRequest(initializeCorrespondence, null, false);
             var commandResult = await handler.Process(commandRequest, cancellationToken);
 
             return commandResult.Match(
@@ -77,12 +77,8 @@ namespace Altinn.Correspondence.API.Controllers
 
             Request.EnableBuffering();
 
-            var correspondence = InitializeCorrespondenceMapper.MapToRequest(initializeCorrespondence);
-            var commandResult = await handler.Process(new InitializeCorrespondenceRequest()
-            {
-                Correspondence = correspondence.Correspondence,
-                Attachments = attachments,
-            }, cancellationToken);
+            var commandRequest = InitializeCorrespondenceMapper.MapToRequest(initializeCorrespondence, attachments, true);
+            var commandResult = await handler.Process(commandRequest, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(new InitializeCorrespondenceResponseExt()

@@ -2,10 +2,11 @@ using Altinn.Correspondece.Tests.Factories;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondences;
-using Markdig;
+using Microsoft.AspNetCore.Http;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Xunit.Abstractions;
 
 namespace Altinn.Correspondence.Tests;
 
@@ -14,8 +15,11 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _responseSerializerOptions;
+    private readonly ITestOutputHelper _output;
 
-    public CorrespondenceControllerTests(CustomWebApplicationFactory factory)
+
+
+    public CorrespondenceControllerTests(CustomWebApplicationFactory factory, ITestOutputHelper output)
     {
         _factory = factory;
         _client = _factory.CreateClientInternal();
@@ -24,6 +28,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             PropertyNameCaseInsensitive = true
         });
         _responseSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        _output = output;
     }
 
     [Fact]
@@ -106,6 +111,98 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         correspondence.Recipient = "1234567890123";
         initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task UploadCorrespondence_Gives_Ok()
+    {
+        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
+        using (var stream = System.IO.File.OpenRead("./Data/Markdown.text"))
+        {
+            var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+            var attachmentData = new InitializeCorrespondenceAttachmentExt()
+            {
+                DataType = "text",
+                Name = file.FileName,
+                RestrictionName = "testFile3",
+                SendersReference = "1234",
+                FileName = file.FileName,
+                IsEncrypted = false,
+            };
+            correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>() { attachmentData };
+            var formData = CorrespondenceToFormData(correspondence);
+            using var fileStream = file.OpenReadStream();
+            formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
+            var uploadCorrespondenceResponse = await _client.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+            uploadCorrespondenceResponse.EnsureSuccessStatusCode();
+
+            var response = await uploadCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>(_responseSerializerOptions);
+            var attachmentId = response?.AttachmentIds.FirstOrDefault();
+            var attachmentOverview = await _client.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
+            Assert.NotNull(attachmentOverview.DataLocationUrl);
+            correspondence.Content.Attachments.Add(new InitializeCorrespondenceAttachmentExt()
+            {
+                DataLocationUrl = attachmentOverview.DataLocationUrl,
+                DataType = attachmentOverview.DataType,
+                FileName = attachmentOverview.FileName,
+                Name = attachmentOverview.Name,
+                RestrictionName = attachmentOverview.RestrictionName,
+                SendersReference = attachmentOverview.SendersReference,
+                IsEncrypted = attachmentOverview.IsEncrypted,
+                Checksum = attachmentOverview.Checksum
+            });
+            formData = CorrespondenceToFormData(correspondence);
+            formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
+            var uploadCorrespondenceResponse2 = await _client.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+            uploadCorrespondenceResponse2.EnsureSuccessStatusCode();
+        }
+    }
+    [Fact]
+    public async Task UploadCorrespondence_With_Multiple_Files()
+    {
+        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
+
+        using var stream = System.IO.File.OpenRead("./Data/Markdown.text");
+        var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+        using var fileStream = file.OpenReadStream();
+        using var stream2 = System.IO.File.OpenRead("./Data/test.txt");
+        var file2 = new FormFile(stream2, 0, stream2.Length, null, Path.GetFileName(stream2.Name));
+        using var fileStream2 = file2.OpenReadStream();
+
+        correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>(){
+            new InitializeCorrespondenceAttachmentExt(){
+                DataType = "text",
+                Name = file.FileName,
+                RestrictionName = "testFile3",
+                SendersReference = "1234",
+                FileName = file.FileName,
+                IsEncrypted = false,
+            },
+             new InitializeCorrespondenceAttachmentExt(){
+                DataType = "text",
+                Name = file2.FileName,
+                RestrictionName = "testFile3",
+                SendersReference = "1234",
+                FileName = file2.FileName,
+                IsEncrypted = false,
+            }};
+        var formData = CorrespondenceToFormData(correspondence);
+        formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
+        formData.Add(new StreamContent(fileStream2), "attachments", file2.FileName);
+
+
+        var uploadCorrespondenceResponse = await _client.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+        uploadCorrespondenceResponse.EnsureSuccessStatusCode();
+    }
+
+    [Fact]
+    public async Task UploadCorrespondence_No_Files_Gives_Bad_request()
+    {
+        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
+        correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>() { };
+        var formData = CorrespondenceToFormData(correspondence);
+        var uploadCorrespondenceResponse = await _client.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+        Assert.Equal(HttpStatusCode.BadRequest, uploadCorrespondenceResponse.StatusCode);
     }
 
     [Fact]
@@ -311,5 +408,59 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
         var overview = await (await UploadAttachment(attachmentId)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
         return overview;
+    }
+    private MultipartFormDataContent CorrespondenceToFormData(InitializeCorrespondenceExt correspondence)
+    {
+        var formData = new MultipartFormDataContent();
+        formData.Add(new StringContent(correspondence.ResourceId), "resourceId");
+        formData.Add(new StringContent(correspondence.Sender), "sender");
+        formData.Add(new StringContent(correspondence.SendersReference), "sendersReference");
+        formData.Add(new StringContent(correspondence.Recipient), "recipient");
+        formData.Add(new StringContent(correspondence.VisibleFrom.ToString()), "visibleFrom");
+        formData.Add(new StringContent(correspondence.AllowSystemDeleteAfter.ToString()), "AllowSystemDeleteAfter");
+        formData.Add(new StringContent(correspondence.Content.MessageTitle), "content.MessageTitle");
+        formData.Add(new StringContent(correspondence.Content.MessageSummary), "content.MessageSummary");
+        formData.Add(new StringContent(correspondence.Content.MessageBody), "content.MessageBody");
+        formData.Add(new StringContent(correspondence.Content.Language), "content.Language");
+        formData.Add(new StringContent(correspondence.IsReservable.ToString()), "isReservable");
+        var i = 0;
+        foreach (var attachment in correspondence.Content.Attachments)
+        {
+            formData.Add(new StringContent(attachment.DataLocationType.ToString()), "content.Attachments[" + i + "].DataLocationType");
+            formData.Add(new StringContent(attachment.DataType), "content.Attachments[" + i + "].DataType");
+            formData.Add(new StringContent(attachment.Name), "content.Attachments[" + i + "].Name");
+            formData.Add(new StringContent(attachment.RestrictionName), "content.Attachments[" + i + "].RestrictionName");
+            formData.Add(new StringContent(attachment.SendersReference), "content.Attachments[" + i + "].SendersReference");
+            formData.Add(new StringContent(attachment.IsEncrypted.ToString()), "content.Attachments[" + i + "].IsEncrypted");
+            i++;
+        }
+        i = 0;
+        foreach (var externalReference in correspondence.ExternalReferences)
+        {
+            formData.Add(new StringContent(externalReference.ReferenceType.ToString()), "externalReferences[" + i + "].referenceType");
+            formData.Add(new StringContent(externalReference.ReferenceValue), "externalReferences[" + i + "].referenceValue");
+            i++;
+        }
+        i = 0;
+        foreach (var replyOption in correspondence.ReplyOptions)
+        {
+            formData.Add(new StringContent(replyOption.LinkURL), "replyOptions[" + i + "].linkURL");
+            formData.Add(new StringContent(replyOption.LinkText), "replyOptions[" + i + "].linkText");
+            i++;
+        }
+        i = 0;
+        foreach (var notification in correspondence.Notifications)
+        {
+            formData.Add(new StringContent(notification.NotificationTemplate), "notifications[" + i + "].notificationTemplate");
+            formData.Add(new StringContent(notification.CustomTextToken), "notifications[" + i + "].customTextToken");
+            formData.Add(new StringContent(notification.SendersReference), "notifications[" + i + "].sendersReference");
+            formData.Add(new StringContent(notification.RequestedSendTime.ToString()), "notifications[" + i + "].requestedSendTime");
+            i++;
+        }
+        foreach (var propertyList in correspondence.PropertyList)
+        {
+            formData.Add(new StringContent(propertyList.Value), "propertyLists." + propertyList.Key);
+        }
+        return formData;
     }
 }
