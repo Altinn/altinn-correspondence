@@ -191,9 +191,10 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
             var maxUploadSize = long.Parse(int.MaxValue.ToString());
             foreach (var attachment in attachments)
             {
+                if (attachment.DataLocationUrl != null) continue;
                 var file = files.FirstOrDefault(a => a.FileName == attachment.Name);
                 if (file == null) return Errors.UploadedFilesDoesNotMatchAttachments;
-                if (file.Length > maxUploadSize || file.Length == 0) return Errors.InvalidFileSize;
+                if (file?.Length > maxUploadSize || file?.Length == 0) return Errors.InvalidFileSize;
             }
         }
         return null;
