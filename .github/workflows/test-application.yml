@@ -22,8 +22,7 @@ jobs:
 
       - name: Start dependencies for tests (docker compose)
         run: |
-          docker compose up -d &   # Run in background and disown the process
-          disown
+          docker compose up   # Run in background and disown the process
 
       - name: Restore
         run: dotnet restore
