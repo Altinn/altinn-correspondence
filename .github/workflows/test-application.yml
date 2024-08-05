@@ -31,6 +31,15 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
+      - name: wait 1 minute for services to start
+        run: sleep 60
+
+      - name : Check if services are running
+        run: docker compose ps
+
+      - name: Check if services are running2 
+        run: docker  ps
+
       - name: Wait for docker compose services to be ready
         run: |
           timeout 5m bash -c 'while ! docker compose ps | grep "Up (healthy)"; do sleep 1; done'
