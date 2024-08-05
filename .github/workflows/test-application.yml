@@ -17,9 +17,6 @@ jobs:
           dotnet-version: |
             8.0.x
 
-      - name: check docker Compose
-        run : docker compose version
-
       - name: Start dependencies for tests (docker compose)
         run: |
           docker compose up -d &   # Run in background and disown the process
