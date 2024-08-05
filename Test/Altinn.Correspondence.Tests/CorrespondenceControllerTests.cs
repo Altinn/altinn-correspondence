@@ -15,8 +15,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _responseSerializerOptions;
 
-
-
     public CorrespondenceControllerTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
@@ -186,7 +184,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var formData = CorrespondenceToFormData(correspondence);
         formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
         formData.Add(new StreamContent(fileStream2), "attachments", file2.FileName);
-
 
         var uploadCorrespondenceResponse = await _client.PostAsync("correspondence/api/v1/correspondence/upload", formData);
         uploadCorrespondenceResponse.EnsureSuccessStatusCode();

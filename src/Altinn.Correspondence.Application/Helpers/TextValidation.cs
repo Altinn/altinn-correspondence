@@ -7,7 +7,6 @@ namespace Altinn.Correspondence.Application.Helpers;
 
 public class TextValidation
 {
-
     public static bool ValidatePlainText(string text)
     {
         var converter = new ReverseMarkdown.Converter();
