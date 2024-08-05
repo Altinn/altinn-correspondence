@@ -17,7 +17,10 @@ jobs:
           dotnet-version: |
             8.0.x
 
-      - name: Start dependencies for tests (docker-compose)
+      - name: check docker Compose
+        run : docker compose --version
+
+      - name: Start dependencies for tests (docker compose)
         run: |
           docker compose up -d &   # Run in background and disown the process
           disown
@@ -28,7 +31,7 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
-      - name: Wait for docker-compose services to be ready
+      - name: Wait for docker compose services to be ready
         run: |
           timeout 5m bash -c 'while ! docker compose ps | grep "Up (healthy)"; do sleep 1; done'
 
