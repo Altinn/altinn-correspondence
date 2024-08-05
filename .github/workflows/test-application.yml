@@ -42,7 +42,7 @@ jobs:
 
       - name: Wait for docker compose services to be ready
         run: |
-          timeout 5m bash -c 'while ! docker compose ps | grep "Up (healthy)"; do sleep 1; done'
+          timeout 5m bash -c 'while ! docker ps | grep "Up (healthy)"; do sleep 1; done'
 
       - name: Install EF Core CLI
         run: dotnet tool install dotnet-ef --global
