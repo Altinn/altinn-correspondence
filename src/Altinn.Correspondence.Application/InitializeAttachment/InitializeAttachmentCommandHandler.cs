@@ -30,16 +30,16 @@ public class InitializeAttachmentHandler : IHandler<InitializeAttachmentRequest,
             return Errors.NoAccessToResource;
         }
 
-        var attachmentId = await _attachmentRepository.InitializeAttachment(request.Attachment, cancellationToken);
+        var attachment = await _attachmentRepository.InitializeAttachment(request.Attachment, cancellationToken);
         var status = new AttachmentStatusEntity
         {
-            AttachmentId = attachmentId,
+            AttachmentId = attachment.Id,
             StatusChanged = DateTimeOffset.UtcNow,
             Status = AttachmentStatus.Initialized,
             StatusText = AttachmentStatus.Initialized.ToString()
         };
         await _attachmentStatusRepository.AddAttachmentStatus(status, cancellationToken);
-        await _eventBus.Publish(AltinnEventType.AttachmentInitialized, request.Attachment.ResourceId, attachmentId.ToString(), "attachment", request.Attachment.Sender, cancellationToken);
-        return attachmentId;
+        await _eventBus.Publish(AltinnEventType.AttachmentInitialized, request.Attachment.ResourceId, attachment.Id.ToString(), "attachment", request.Attachment.Sender, cancellationToken);
+        return attachment.Id;
     }
 }

@@ -86,8 +86,8 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         request.Correspondence.Statuses = statuses;
         request.Correspondence.Notifications = ProcessNotifications(request.Correspondence.Notifications, cancellationToken);
         var correspondence = await _correspondenceRepository.InitializeCorrespondence(request.Correspondence, cancellationToken);
-        _backgroundJobClient.Schedule<PublishCorrespondenceService>((service) => service.Publish(correspondence.Id, cancellationToken), request.Correspondence.VisibleFrom);
-        await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, request.Correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", request.Correspondence.Sender, cancellationToken);
+        _backgroundJobClient.Schedule<PublishCorrespondenceService>((service) => service.Publish(correspondence.Id, cancellationToken), correspondence.VisibleFrom);
+        await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
         if (request.Attachments.Count > 0)
         {
@@ -97,7 +97,6 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
                 return uploadError;
             }
         }
-
         return new InitializeCorrespondenceResponse()
         {
             CorrespondenceId = correspondence.Id,
