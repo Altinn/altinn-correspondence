@@ -9,11 +9,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
     {
         private readonly ApplicationDbContext _context = context;
 
-        public async Task<Guid> InitializeAttachment(AttachmentEntity attachment, CancellationToken cancellationToken)
+        public async Task<AttachmentEntity> InitializeAttachment(AttachmentEntity attachment, CancellationToken cancellationToken)
         {
             await _context.Attachments.AddAsync(attachment, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
-            return attachment.Id;
+            return attachment;
         }
 
         public async Task<List<Guid>> InitializeMultipleAttachments(List<AttachmentEntity> attachments, CancellationToken cancellationToken)
