@@ -1,7 +1,4 @@
-using System.Net;
-using System.Text.Encodings.Web;
-using System.Text.RegularExpressions;
-using System.Web;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -9,9 +6,9 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
-using Markdig;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 using OneOf;
-using ReverseMarkdown;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondence;
 
@@ -19,17 +16,25 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
+    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IAttachmentRepository _attachmentRepository;
+    private readonly IAttachmentStatusRepository _attachmentStatusRepository;
     private readonly IEventBus _eventBus;
+    private readonly IStorageRepository _storageRepository;
+    private readonly IHostEnvironment _hostEnvironment;
     IBackgroundJobClient _backgroundJobClient;
 
-    public InitializeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, IAttachmentRepository attachmentRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient)
+    public InitializeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, IHostEnvironment hostEnvironment, IEventBus eventBus, IBackgroundJobClient backgroundJobClient)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
+        _correspondenceStatusRepository = correspondenceStatusRepository;
         _attachmentRepository = attachmentRepository;
+        _attachmentStatusRepository = attachmentStatusRepository;
         _eventBus = eventBus;
         _backgroundJobClient = backgroundJobClient;
+        _storageRepository = storageRepository;
+        _hostEnvironment = hostEnvironment;
     }
 
     public async Task<OneOf<InitializeCorrespondenceResponse, Error>> Process(InitializeCorrespondenceRequest request, CancellationToken cancellationToken)
@@ -39,17 +44,26 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         {
             return Errors.NoAccessToResource;
         }
-        if (!ValidatePlainText(request.Correspondence.Content?.MessageTitle))
+        if (request.isUploadRequest && request.Attachments.Count == 0)
+        {
+            return Errors.NoAttachments;
+        }
+        if (!TextValidation.ValidatePlainText(request.Correspondence.Content?.MessageTitle))
         {
             return Errors.MessageTitleIsNotPlainText;
         }
-        if (!ValidateMarkdown(request.Correspondence.Content?.MessageBody))
+        if (!TextValidation.ValidateMarkdown(request.Correspondence.Content?.MessageBody))
         {
             return Errors.MessageBodyIsNotMarkdown;
         }
-        if (!ValidateMarkdown(request.Correspondence.Content?.MessageSummary))
+        if (!TextValidation.ValidateMarkdown(request.Correspondence.Content?.MessageSummary))
         {
             return Errors.MessageSummaryIsNotMarkdown;
+        }
+        var attachmentError = ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content?.Attachments);
+        if (attachmentError != null)
+        {
+            return attachmentError;
         }
         var attachments = request.Correspondence.Content?.Attachments;
         if (attachments != null)
@@ -58,7 +72,6 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
             {
                 attachment.Attachment = await ProcessAttachment(attachment, request.Correspondence, cancellationToken);
             }
-
         }
 
         var status = GetInitializeCorrespondenceStatus(request.Correspondence);
@@ -75,11 +88,38 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         var correspondence = await _correspondenceRepository.InitializeCorrespondence(request.Correspondence, cancellationToken);
         _backgroundJobClient.Schedule<PublishCorrespondenceService>((service) => service.Publish(correspondence.Id, cancellationToken), correspondence.VisibleFrom);
         await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
+        UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
+        if (request.Attachments.Count > 0)
+        {
+            var uploadError = await UploadAttachments(uploadHelper, request, cancellationToken);
+            if (uploadError != null)
+            {
+                return uploadError;
+            }
+        }
         return new InitializeCorrespondenceResponse()
         {
             CorrespondenceId = correspondence.Id,
             AttachmentIds = correspondence.Content?.Attachments.Select(a => a.AttachmentId).ToList() ?? new List<Guid>()
         };
+    }
+    public async Task<Error?> UploadAttachments(UploadHelper uploadHelper, InitializeCorrespondenceRequest request, CancellationToken cancellationToken)
+    {
+        foreach (var file in request.Attachments)
+        {
+            var attachment = request.Correspondence.Content?.Attachments.FirstOrDefault(a => a.Name == file.FileName);
+            if (attachment == null || attachment.Attachment == null)
+            {
+                return Errors.UploadedFilesDoesNotMatchAttachments;
+            }
+            var uploadResponse = await uploadHelper.UploadAttachment(file.OpenReadStream(), attachment.AttachmentId, cancellationToken);
+            var error = uploadResponse.Match(
+                _ => { return null; },
+                error => { return error; }
+            );
+            if (error != null) return error;
+        }
+        return null;
     }
 
     public CorrespondenceStatus GetInitializeCorrespondenceStatus(CorrespondenceEntity correspondence)
@@ -105,7 +145,6 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         }
         if (attachment == null)
         {
-
             var status = new List<AttachmentStatusEntity>(){
                     new AttachmentStatusEntity
                     {
@@ -117,6 +156,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
             attachment = new AttachmentEntity
             {
                 ResourceId = correspondence.ResourceId,
+                FileName = correspondenceAttachment.Name,
                 Sender = correspondence.Sender,
                 SendersReference = correspondenceAttachment.SendersReference,
                 RestrictionName = correspondenceAttachment.RestrictionName,
@@ -133,7 +173,6 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
     private List<CorrespondenceNotificationEntity> ProcessNotifications(List<CorrespondenceNotificationEntity>? notifications, CancellationToken cancellationToken)
     {
         if (notifications == null) return new List<CorrespondenceNotificationEntity>();
-
         foreach (var notification in notifications)
         {
             notification.Statuses = new List<CorrespondenceNotificationStatusEntity>(){
@@ -143,79 +182,24 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
                      StatusChanged = DateTimeOffset.UtcNow,
                      StatusText = "Initialized"
                 }
-              };
+            };
         }
         return notifications;
     }
 
-    private bool ValidatePlainText(string text)
+    public Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments)
     {
-        var converter = new ReverseMarkdown.Converter();
-        var markdown = converter.Convert(text);
-        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
-        var plaintext = Markdown.ToPlainText(markdown, pipeline);
-        return plaintext.Trim() == text.Trim();
-    }
-
-    private bool ValidateMarkdown(string markdown)
-    {
-        var config = new ReverseMarkdown.Config
+        if (files.Count > 0)
         {
-            CleanupUnnecessarySpaces = false,
-            PassThroughTags = new String[] { "br" },
-        };
-        var converter = new ReverseMarkdown.Converter(config);
-        // change all codeblocks to <code> to keep html content in codeblocks
-        var markdownWithCodeBlocks = ReplaceMarkdownCodeWithHtmlCode(markdown);
-        string result = converter.Convert(markdownWithCodeBlocks);
-
-        // needs to decode the text twice as some encoded characters contains encoded characters, such as emdash &#8212;
-        var text = WebUtility.HtmlDecode(WebUtility.HtmlDecode(markdown));
-        result = WebUtility.HtmlDecode(WebUtility.HtmlDecode(result));
-
-        //As reversemarkdown makes all code blocks to ` we need to replace ``` with ` and `` with ` to compare the strings
-        return ReplaceWhitespaceAndEscapeCharacters(text.Replace("```", "`").Replace("``", "`")) == ReplaceWhitespaceAndEscapeCharacters(result.Replace("```", "`").Replace("``", "`"));
-    }
-
-    private string ReplaceWhitespaceAndEscapeCharacters(string text)
-    {
-        return Regex.Replace(text, @"\s+", "").Replace("\\", "").ToLower();
-    }
-
-    private string ReplaceMarkdownCodeWithHtmlCode(string text)
-    {
-        var codeTagsContent = new List<List<string>>();
-        var validCodeTagDelimiters = new List<string> { "```", "``", "`" };
-        var newText = text;
-        var i = 0;
-        foreach (var delimiter in validCodeTagDelimiters)
-        {
-            var counter = 0;
-            var markdownWithCodeBlocks = newText.Split(delimiter);
-            var tagList = new List<string>();
-            newText = "";
-            for (var j = 0; j < markdownWithCodeBlocks.Length; j++)
+            var maxUploadSize = long.Parse(int.MaxValue.ToString());
+            foreach (var attachment in attachments)
             {
-                if (j % 2 == 1)
-                {
-                    newText += "<---CODE" + i + counter + "--->";
-                    tagList.Add(markdownWithCodeBlocks[j].Replace("<", "&lt;").Replace(">", "&gt;"));
-                    counter++;
-                }
-                else newText += markdownWithCodeBlocks[j];
-            }
-            codeTagsContent.Add(tagList);
-            i++;
-        }
-        for (var j = 0; j < 3; j++)
-        {
-            var counter = 0;
-            foreach (var t in codeTagsContent[j])
-            {
-                newText = newText.Replace("<---CODE" + j + counter + "--->", "<code>" + t + "</code>");
-                counter++;
+                if (attachment.DataLocationUrl != null) continue;
+                var file = files.FirstOrDefault(a => a.FileName == attachment.Name);
+                if (file == null) return Errors.UploadedFilesDoesNotMatchAttachments;
+                if (file?.Length > maxUploadSize || file?.Length == 0) return Errors.InvalidFileSize;
             }
         }
-        return newText;
+        return null;
     }
 }

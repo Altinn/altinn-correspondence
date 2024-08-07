@@ -45,5 +45,14 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("correspondenceIds")]
         public required List<Guid> CorrespondenceIds { get; set; }
+
+        /// <summary>
+        /// The name of the Restriction Policy restricting access to this element
+        /// </summary>
+        /// <remarks>
+        /// An empty value indicates no restriction above the ones governing the correspondence referencing this attachment
+        /// </remarks>
+        [JsonPropertyName("restrictionName")]
+        public string RestrictionName { get; set; }
     }
 }

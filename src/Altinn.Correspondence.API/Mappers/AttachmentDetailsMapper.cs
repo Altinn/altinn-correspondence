@@ -18,6 +18,7 @@ internal static class AttachmentDetailsMapper
             Status = (AttachmentStatusExt)AttachmentDetails.Status,
             DataLocationUrl = AttachmentDetails.DataLocationUrl,
             Sender = AttachmentDetails.Sender,
+            RestrictionName = AttachmentDetails.RestrictionName,
             StatusText = AttachmentDetails.StatusText,
             StatusChanged = AttachmentDetails.StatusChanged,
             DataType = AttachmentDetails.DataType,

@@ -43,7 +43,7 @@ namespace Altinn.Correspondence.API.Controllers
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(initializeCorrespondence);
             _logger.LogInformation("Initialize correspondence");
 
-            var commandRequest = InitializeCorrespondenceMapper.MapToRequest(initializeCorrespondence);
+            var commandRequest = InitializeCorrespondenceMapper.MapToRequest(initializeCorrespondence, null, false);
             var commandResult = await handler.Process(commandRequest, cancellationToken);
 
             return commandResult.Match(
@@ -66,27 +66,27 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpPost]
         [Route("upload")]
         [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
-        public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeCorrespondenceAndUploadData(InitializeCorrespondenceExt initializeCorrespondence)
+        public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeCorrespondenceAndUploadData(
+            [FromForm] InitializeCorrespondenceExt initializeCorrespondence,
+            [FromForm] List<IFormFile> attachments,
+            [FromServices] InitializeCorrespondenceHandler handler,
+            CancellationToken cancellationToken)
         {
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(initializeCorrespondence);
-            _logger.LogInformation("Insert correspondence");
+            _logger.LogInformation("Insert correspondence with attachment data");
 
-            // Hack return for now
-            return Ok(
-                new CorrespondenceOverviewExt
+            Request.EnableBuffering();
+
+            var commandRequest = InitializeCorrespondenceMapper.MapToRequest(initializeCorrespondence, attachments, true);
+            var commandResult = await handler.Process(commandRequest, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(new InitializeCorrespondenceResponseExt()
                 {
-                    CorrespondenceId = Guid.NewGuid(),
-                    Recipient = initializeCorrespondence.Recipient,
-                    Content = initializeCorrespondence.Content != null ? (CorrespondenceContentExt)initializeCorrespondence.Content : null,
-                    ResourceId = initializeCorrespondence.ResourceId,
-                    Sender = initializeCorrespondence.Sender,
-                    SendersReference = initializeCorrespondence.SendersReference,
-                    Created = DateTimeOffset.UtcNow,
-                    VisibleFrom = initializeCorrespondence.VisibleFrom,
-                    Status = CorrespondenceStatusExt.Published,
-                    StatusText = "Initialized and Published successfully",
-                    StatusChanged = DateTimeOffset.UtcNow
-                }
+                    CorrespondenceId = data.CorrespondenceId,
+                    AttachmentIds = data.AttachmentIds
+                }),
+                Problem
             );
         }
 

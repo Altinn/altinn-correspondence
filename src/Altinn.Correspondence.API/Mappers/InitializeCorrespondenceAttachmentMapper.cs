@@ -21,6 +21,7 @@ internal static class InitializeCorrespondenceAttachmentMapper
         {
             Name = initializeAttachmentExt.Name,
             SendersReference = initializeAttachmentExt.SendersReference,
+            RestrictionName = initializeAttachmentExt.RestrictionName,
             DataType = initializeAttachmentExt.DataType,
             Checksum = initializeAttachmentExt.Checksum,
             IsEncrypted = initializeAttachmentExt.IsEncrypted,
