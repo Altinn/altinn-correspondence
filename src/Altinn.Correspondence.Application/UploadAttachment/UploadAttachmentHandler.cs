@@ -56,24 +56,24 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
 
             if (!isValidUpdate)
             {
-                await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, "Invalid update of rows");
+                await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.InvalidRowUpdate);
                 await _storageRepository.PurgeAttachment(attachment.Id, cancellationToken);
                 return Errors.UploadFailed;
             }
         }
         catch (DataLocationUrlException)
         {
-            await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, "Could not get data location url");
+            await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.InvalidLocationUrl);
             return Errors.UploadFailed;
         }
         catch (HashMismatchException)
         {
-            await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, "Checksum mismatch");
+            await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.ChecksumMismatch);
             return Errors.UploadFailed;
         }
         catch (RequestFailedException)
         {
-            await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, "Upload failed");
+            await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.UploadFailed);
             return Errors.UploadFailed;
         }
 
