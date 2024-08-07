@@ -59,29 +59,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
-        public string GetBlobUri(Guid attachmentId)
-        {
-            BlobClient blobClient = InitializeBlobClient(attachmentId);
-            return blobClient.Uri.ToString();
-        }
-
-        public async Task<string?> GetBlobhash(Guid attachmentId, CancellationToken cancellationToken)
-        {
-            BlobClient blobClient = InitializeBlobClient(attachmentId);
-            try
-            {
-                var blobMetadata = await blobClient.GetPropertiesAsync(cancellationToken: cancellationToken);
-                var metadata = blobMetadata.Value;
-                var hash = Convert.ToHexString(metadata.ContentHash).ToLowerInvariant();
-                return hash;
-            }
-            catch (RequestFailedException requestFailedException)
-            {
-                _logger.LogError("Error occurred while getting blob hash: {errorCode}: {errorMessage} ", requestFailedException.ErrorCode, requestFailedException.Message);
-                throw;
-            }
-        }
-
         public async Task<Stream> DownloadAttachment(Guid attachmentId, CancellationToken cancellationToken)
         {
             BlobClient blobClient = InitializeBlobClient(attachmentId);
