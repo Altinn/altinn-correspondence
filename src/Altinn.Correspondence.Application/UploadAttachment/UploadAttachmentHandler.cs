@@ -3,6 +3,7 @@ using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Azure;
 using Microsoft.Extensions.Hosting;
 using OneOf;
 
@@ -44,7 +45,21 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
         var currentStatus = await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.UploadProcessing, cancellationToken);
         try
         {
-            await UploadAttachmentAndSetMetadata(attachment, request.UploadStream, cancellationToken);
+            var (dataLocationUrl, checksum) = await _storageRepository.UploadAttachment(attachment, request.UploadStream, cancellationToken);
+
+            var isValidUpdate = await _attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(attachment.Checksum))
+            {
+                isValidUpdate |= await _attachmentRepository.SetChecksum(attachment, checksum, cancellationToken);
+            }
+
+            if (!isValidUpdate)
+            {
+                await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, "Invalid update of rows");
+                await _storageRepository.PurgeAttachment(attachment.Id, cancellationToken);
+                return Errors.UploadFailed;
+            }
         }
         catch (DataLocationUrlException)
         {
@@ -56,7 +71,7 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
             await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, "Checksum mismatch");
             return Errors.UploadFailed;
         }
-        catch (Exception)
+        catch (RequestFailedException)
         {
             await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, "Upload failed");
             return Errors.UploadFailed;
@@ -89,18 +104,6 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
         await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
         return currentStatus;
     }
-    private async Task UploadAttachmentAndSetMetadata(AttachmentEntity attachment, Stream uploadStream, CancellationToken cancellationToken)
-    {
-        var (dataLocationUrl, checksum) = await _storageRepository.UploadAttachment(attachment, uploadStream, cancellationToken);
-
-        await _attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
-
-        if (string.IsNullOrWhiteSpace(attachment.Checksum))
-        {
-            await _attachmentRepository.SetChecksum(attachment, checksum, cancellationToken);
-        }
-    }
-
     public async Task CheckCorrespondenceStatusesAfterUploadAndPublish(Guid attachmentId, CancellationToken cancellationToken)
     {
         var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
