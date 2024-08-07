@@ -90,16 +90,16 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
         return currentStatus;
     }
     private async Task UploadAttachmentAndSetMetadata(AttachmentEntity attachment, Stream uploadStream, CancellationToken cancellationToken)
-{
-    var (dataLocationUrl, checksum) = await _storageRepository.UploadAttachment(attachment, uploadStream, cancellationToken);
-
-    await _attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
-
-    if (string.IsNullOrWhiteSpace(attachment.Checksum))
     {
-        await _attachmentRepository.SetChecksum(attachment, checksum, cancellationToken);
+        var (dataLocationUrl, checksum) = await _storageRepository.UploadAttachment(attachment, uploadStream, cancellationToken);
+
+        await _attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(attachment.Checksum))
+        {
+            await _attachmentRepository.SetChecksum(attachment, checksum, cancellationToken);
+        }
     }
-}
 
     public async Task CheckCorrespondenceStatusesAfterUploadAndPublish(Guid attachmentId, CancellationToken cancellationToken)
     {
