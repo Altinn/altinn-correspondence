@@ -1,4 +1,4 @@
-using Altinn.Correspondence.Core.Options;
+﻿using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Azure;
 using Azure.Storage;
@@ -30,7 +30,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return blobClient;
         }
 
-        public async Task<string?> UploadAttachment(Guid attachmentId, Stream attachment, CancellationToken cancellationToken)
+        public async Task UploadAttachment(Guid attachmentId, Stream attachment, CancellationToken cancellationToken)
         {
             BlobClient blobClient = InitializeBlobClient(attachmentId);
             try
@@ -39,13 +39,22 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 {
                     TransferValidation = new UploadTransferValidationOptions { ChecksumAlgorithm = StorageChecksumAlgorithm.MD5 }
                 };
-                var blobMetadata = await blobClient.UploadAsync(attachment, options, cancellationToken);
-                return blobClient.Uri.ToString();
+                await blobClient.UploadAsync(attachment, options, cancellationToken);
             }
             catch (RequestFailedException requestFailedException)
             {
                 _logger.LogError("Error occurred while uploading file: {errorCode}: {errorMessage} ", requestFailedException.ErrorCode, requestFailedException.Message);
                 await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
+                throw;
+            }
+        }
+
+        public string GetBlobUri(Guid attachmentId)
+        {
+            BlobClient blobClient = InitializeBlobClient(attachmentId);
+            return blobClient.Uri.ToString();
+        }
+
         public async Task<string?> GetBlobhash(Guid attachmentId, CancellationToken cancellationToken)
         {
             BlobClient blobClient = InitializeBlobClient(attachmentId);

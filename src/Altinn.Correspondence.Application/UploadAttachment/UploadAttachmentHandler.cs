@@ -1,4 +1,4 @@
-using Altinn.Correspondence.Core.Models;
+﻿using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -49,7 +49,25 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
             StatusText = AttachmentStatus.UploadProcessing.ToString()
         };
         await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken); // TODO, with malware scan this should be set after upload
-        var dataLocationUrl = await _storageRepository.UploadAttachment(request.AttachmentId, request.UploadStream, cancellationToken);
+
+        try 
+        {
+            await _storageRepository.UploadAttachment(request.AttachmentId, request.UploadStream, cancellationToken);
+        }
+        catch (Exception)
+        {
+            currentStatus = new AttachmentStatusEntity
+            {
+                AttachmentId = request.AttachmentId,
+                Status = AttachmentStatus.Failed,
+                StatusChanged = DateTimeOffset.UtcNow,
+                StatusText = "Upload failed"
+            };
+            await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
+            return Errors.UploadFailed;
+        }
+
+        var dataLocationUrl = _storageRepository.GetBlobUri(request.AttachmentId);
         if (dataLocationUrl is null)
         {
             currentStatus = new AttachmentStatusEntity
@@ -57,7 +75,7 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
                 AttachmentId = request.AttachmentId,
                 Status = AttachmentStatus.Failed,
                 StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = AttachmentStatus.Failed.ToString()
+                StatusText = "Could not get data location url"
             };
             await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
             return Errors.UploadFailed;
