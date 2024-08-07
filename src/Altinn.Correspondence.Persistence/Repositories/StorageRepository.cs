@@ -1,4 +1,6 @@
-﻿using Altinn.Correspondence.Core.Options;
+﻿using Altinn.Correspondence.Core.Exceptions;
+using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Azure;
 using Azure.Storage;
@@ -30,16 +32,24 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return blobClient;
         }
 
-        public async Task UploadAttachment(Guid attachmentId, Stream attachment, CancellationToken cancellationToken)
+        public async Task<(string locationUrl, string hash)> UploadAttachment(AttachmentEntity attachment, Stream stream, CancellationToken cancellationToken)
         {
-            BlobClient blobClient = InitializeBlobClient(attachmentId);
+            BlobClient blobClient = InitializeBlobClient(attachment.Id);
+            var locationUrl = blobClient.Uri.ToString() ?? throw new DataLocationUrlException("Could not get data location url");
             try
             {
                 BlobUploadOptions options = new BlobUploadOptions()
                 {
                     TransferValidation = new UploadTransferValidationOptions { ChecksumAlgorithm = StorageChecksumAlgorithm.MD5 }
                 };
-                await blobClient.UploadAsync(attachment, options, cancellationToken);
+                var blobMetadata = await blobClient.UploadAsync(stream, options, cancellationToken);
+                var metadata = blobMetadata.Value;
+                var hash = Convert.ToHexString(metadata.ContentHash).ToLowerInvariant();
+                if (!string.Equals(hash, attachment.Checksum, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    throw new HashMismatchException("Hash mismatch");
+                }
+                return (locationUrl, hash);
             }
             catch (RequestFailedException requestFailedException)
             {

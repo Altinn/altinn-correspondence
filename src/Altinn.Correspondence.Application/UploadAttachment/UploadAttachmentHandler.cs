@@ -1,8 +1,8 @@
-﻿using Altinn.Correspondence.Core.Models;
+﻿using Altinn.Correspondence.Core.Exceptions;
+using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Core.Services.Enums;
 using Microsoft.Extensions.Hosting;
 using OneOf;
 
@@ -41,90 +41,30 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
             return Errors.InvalidUploadAttachmentStatus;
         }
 
-        var currentStatus = new AttachmentStatusEntity
-        {
-            AttachmentId = request.AttachmentId,
-            Status = AttachmentStatus.UploadProcessing,
-            StatusChanged = DateTimeOffset.UtcNow,
-            StatusText = AttachmentStatus.UploadProcessing.ToString()
-        };
-        await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken); // TODO, with malware scan this should be set after upload
-
-        try 
-        {
-            await _storageRepository.UploadAttachment(request.AttachmentId, request.UploadStream, cancellationToken);
-        }
-        catch (Exception)
-        {
-            currentStatus = new AttachmentStatusEntity
-            {
-                AttachmentId = request.AttachmentId,
-                Status = AttachmentStatus.Failed,
-                StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = "Upload failed"
-            };
-            await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
-            return Errors.UploadFailed;
-        }
-
-        var dataLocationUrl = _storageRepository.GetBlobUri(request.AttachmentId);
-        if (dataLocationUrl is null)
-        {
-            currentStatus = new AttachmentStatusEntity
-            {
-                AttachmentId = request.AttachmentId,
-                Status = AttachmentStatus.Failed,
-                StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = "Could not get data location url"
-            };
-            await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
-            return Errors.UploadFailed;
-        }
-        await _attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
-
+        var currentStatus = await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.UploadProcessing, cancellationToken);
         try
         {
-            var checksum = await _storageRepository.GetBlobhash(request.AttachmentId, cancellationToken);
-            if (string.IsNullOrWhiteSpace(attachment.Checksum))
-            {
-                await _attachmentRepository.SetChecksum(attachment, checksum, cancellationToken);
-            }
-            else if (!string.Equals(checksum, attachment.Checksum, StringComparison.InvariantCultureIgnoreCase))
-            {
-                currentStatus = new AttachmentStatusEntity
-                {
-                    AttachmentId = request.AttachmentId,
-                    Status = AttachmentStatus.Failed,
-                    StatusChanged = DateTimeOffset.UtcNow,
-                    StatusText = "Checksum mismatch"
-                };
-                await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
-                return Errors.UploadFailed;
-            }
+            await UploadAttachmentAndSetMetadata(attachment, request.UploadStream, cancellationToken);
+        }
+        catch (DataLocationUrlException)
+        {
+            await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, "Could not get data location url");
+            return Errors.UploadFailed;
+        }
+        catch (HashMismatchException)
+        {
+            await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, "Checksum mismatch");
+            return Errors.UploadFailed;
         }
         catch (Exception)
         {
-            currentStatus = new AttachmentStatusEntity
-            {
-                AttachmentId = request.AttachmentId,
-                Status = AttachmentStatus.Failed,
-                StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = "Retrieving checksum failed"
-            };
-            await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
+            await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, "Upload failed");
             return Errors.UploadFailed;
         }
 
         if (_hostEnvironment.IsDevelopment()) // No malware scan when running locally
         {
-            currentStatus = new AttachmentStatusEntity
-            {
-                AttachmentId = request.AttachmentId,
-                Status = AttachmentStatus.Published,
-                StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = AttachmentStatus.Published.ToString()
-            };
-            await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
+            currentStatus = await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Published, cancellationToken);
         }
         await CheckCorrespondenceStatusesAfterUploadAndPublish(attachment.Id, cancellationToken);
 
@@ -136,6 +76,30 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
             StatusText = currentStatus.StatusText
         };
     }
+
+    private async Task<AttachmentStatusEntity> SetAttachmentStatus(Guid attachmentId, AttachmentStatus status, CancellationToken cancellationToken, string statusText = null)
+    {
+        var currentStatus = new AttachmentStatusEntity
+        {
+            AttachmentId = attachmentId,
+            Status = status,
+            StatusChanged = DateTimeOffset.UtcNow,
+            StatusText = statusText ?? status.ToString()
+        };
+        await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
+        return currentStatus;
+    }
+    private async Task UploadAttachmentAndSetMetadata(AttachmentEntity attachment, Stream uploadStream, CancellationToken cancellationToken)
+{
+    var (dataLocationUrl, checksum) = await _storageRepository.UploadAttachment(attachment, uploadStream, cancellationToken);
+
+    await _attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
+
+    if (string.IsNullOrWhiteSpace(attachment.Checksum))
+    {
+        await _attachmentRepository.SetChecksum(attachment, checksum, cancellationToken);
+    }
+}
 
     public async Task CheckCorrespondenceStatusesAfterUploadAndPublish(Guid attachmentId, CancellationToken cancellationToken)
     {
