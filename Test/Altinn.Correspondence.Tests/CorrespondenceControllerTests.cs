@@ -405,56 +405,56 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
     private MultipartFormDataContent CorrespondenceToFormData(InitializeCorrespondenceExt correspondence)
     {
-        var formData = new MultipartFormDataContent();
-        formData.Add(new StringContent(correspondence.ResourceId), "resourceId");
-        formData.Add(new StringContent(correspondence.Sender), "sender");
-        formData.Add(new StringContent(correspondence.SendersReference), "sendersReference");
-        formData.Add(new StringContent(correspondence.Recipient), "recipient");
-        formData.Add(new StringContent(correspondence.VisibleFrom.ToString()), "visibleFrom");
-        formData.Add(new StringContent(correspondence.AllowSystemDeleteAfter.ToString()), "AllowSystemDeleteAfter");
-        formData.Add(new StringContent(correspondence.Content.MessageTitle), "content.MessageTitle");
-        formData.Add(new StringContent(correspondence.Content.MessageSummary), "content.MessageSummary");
-        formData.Add(new StringContent(correspondence.Content.MessageBody), "content.MessageBody");
-        formData.Add(new StringContent(correspondence.Content.Language), "content.Language");
-        formData.Add(new StringContent(correspondence.IsReservable.ToString()), "isReservable");
-        var i = 0;
-        foreach (var attachment in correspondence.Content.Attachments)
+        var formData = new MultipartFormDataContent(){
+            { new StringContent(correspondence.ResourceId), "resourceId" },
+            { new StringContent(correspondence.Sender), "sender" },
+            { new StringContent(correspondence.SendersReference), "sendersReference" },
+            { new StringContent(correspondence.Recipient), "recipient" },
+            { new StringContent(correspondence.VisibleFrom.ToString()), "visibleFrom" },
+            { new StringContent(correspondence.AllowSystemDeleteAfter.ToString()), "AllowSystemDeleteAfter" },
+            { new StringContent(correspondence.Content.MessageTitle), "content.MessageTitle" },
+            { new StringContent(correspondence.Content.MessageSummary), "content.MessageSummary" },
+            { new StringContent(correspondence.Content.MessageBody), "content.MessageBody" },
+            { new StringContent(correspondence.Content.Language), "content.Language" },
+            { new StringContent((correspondence.IsReservable ?? false).ToString()), "isReservable" }
+        };
+
+        correspondence.Content.Attachments.Select((attachment, index) => new[]
         {
-            formData.Add(new StringContent(attachment.DataLocationType.ToString()), "content.Attachments[" + i + "].DataLocationType");
-            formData.Add(new StringContent(attachment.DataType), "content.Attachments[" + i + "].DataType");
-            formData.Add(new StringContent(attachment.Name), "content.Attachments[" + i + "].Name");
-            formData.Add(new StringContent(attachment.RestrictionName), "content.Attachments[" + i + "].RestrictionName");
-            formData.Add(new StringContent(attachment.SendersReference), "content.Attachments[" + i + "].SendersReference");
-            formData.Add(new StringContent(attachment.IsEncrypted.ToString()), "content.Attachments[" + i + "].IsEncrypted");
-            i++;
-        }
-        i = 0;
-        foreach (var externalReference in correspondence.ExternalReferences)
+            new { Key = $"content.Attachments[{index}].DataLocationType", Value = attachment.DataLocationType.ToString() },
+            new { Key = $"content.Attachments[{index}].DataType", Value = attachment.DataType },
+            new { Key = $"content.Attachments[{index}].Name", Value = attachment.Name },
+            new { Key = $"content.Attachments[{index}].RestrictionName", Value = attachment.RestrictionName },
+            new { Key = $"content.Attachments[{index}].SendersReference", Value = attachment.SendersReference },
+            new { Key = $"content.Attachments[{index}].IsEncrypted", Value = attachment.IsEncrypted.ToString() }
+        }).SelectMany(x => x).ToList()
+        .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
+
+        correspondence.ExternalReferences?.Select((externalReference, index) => new[]
         {
-            formData.Add(new StringContent(externalReference.ReferenceType.ToString()), "externalReferences[" + i + "].referenceType");
-            formData.Add(new StringContent(externalReference.ReferenceValue), "externalReferences[" + i + "].referenceValue");
-            i++;
-        }
-        i = 0;
-        foreach (var replyOption in correspondence.ReplyOptions)
+            new { Key = $"content.ExternalReference[{index}].ReferenceType", Value = externalReference.ReferenceType.ToString() },
+            new { Key = $"content.ExternalReference[{index}].ReferenceValue", Value = externalReference.ReferenceValue },
+        }).SelectMany(x => x).ToList()
+        .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
+
+        correspondence.ReplyOptions.Select((replyOption, index) => new[]
         {
-            formData.Add(new StringContent(replyOption.LinkURL), "replyOptions[" + i + "].linkURL");
-            formData.Add(new StringContent(replyOption.LinkText), "replyOptions[" + i + "].linkText");
-            i++;
-        }
-        i = 0;
-        foreach (var notification in correspondence.Notifications)
+            new { Key = $"content.ReplyOptions[{index}].LinkURL", Value = replyOption.LinkURL },
+            new { Key = $"content.ReplyOptions[{index}].LinkText", Value = replyOption.LinkText ?? "" }
+        }).SelectMany(x => x).ToList()
+        .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
+
+        correspondence.Notifications.Select((notification, index) => new[]
         {
-            formData.Add(new StringContent(notification.NotificationTemplate), "notifications[" + i + "].notificationTemplate");
-            formData.Add(new StringContent(notification.CustomTextToken), "notifications[" + i + "].customTextToken");
-            formData.Add(new StringContent(notification.SendersReference), "notifications[" + i + "].sendersReference");
-            formData.Add(new StringContent(notification.RequestedSendTime.ToString()), "notifications[" + i + "].requestedSendTime");
-            i++;
-        }
-        foreach (var propertyList in correspondence.PropertyList)
-        {
-            formData.Add(new StringContent(propertyList.Value), "propertyLists." + propertyList.Key);
-        }
+            new { Key = $"content.Notifications[{index}].NotificationTemplate", Value = notification.NotificationTemplate },
+            new { Key = $"content.Notifications[{index}].CustomTextToken", Value = notification.CustomTextToken ?? ""},
+            new { Key = $"content.Notifications[{index}].SendersReference", Value = notification.SendersReference ?? "" },
+            new { Key = $"content.Notifications[{index}].RequestedSendTime", Value = notification.RequestedSendTime.ToString() }
+        }).SelectMany(x => x).ToList()
+        .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
+
+        correspondence.PropertyList.ToList()
+        .ForEach((item) => formData.Add(new StringContent(item.Value), "propertyLists." + item.Key));
         return formData;
     }
 }
