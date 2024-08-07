@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -63,6 +63,40 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
             return Errors.UploadFailed;
         }
         await _attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
+
+        try
+        {
+            var checksum = await _storageRepository.GetBlobhash(request.AttachmentId, cancellationToken);
+            if (string.IsNullOrWhiteSpace(attachment.Checksum))
+            {
+                await _attachmentRepository.SetChecksum(attachment, checksum, cancellationToken);
+            }
+            else if (!string.Equals(checksum, attachment.Checksum, StringComparison.InvariantCultureIgnoreCase))
+            {
+                currentStatus = new AttachmentStatusEntity
+                {
+                    AttachmentId = request.AttachmentId,
+                    Status = AttachmentStatus.Failed,
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusText = "Checksum mismatch"
+                };
+                await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
+                return Errors.UploadFailed;
+            }
+        }
+        catch (Exception)
+        {
+            currentStatus = new AttachmentStatusEntity
+            {
+                AttachmentId = request.AttachmentId,
+                Status = AttachmentStatus.Failed,
+                StatusChanged = DateTimeOffset.UtcNow,
+                StatusText = "Retrieving checksum failed"
+            };
+            await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
+            return Errors.UploadFailed;
+        }
+
         if (_hostEnvironment.IsDevelopment()) // No malware scan when running locally
         {
             currentStatus = new AttachmentStatusEntity

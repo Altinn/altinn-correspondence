@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Core.Options;
+using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Azure;
 using Azure.Storage;
@@ -46,7 +46,20 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 _logger.LogError("Error occurred while uploading file: {errorCode}: {errorMessage} ", requestFailedException.ErrorCode, requestFailedException.Message);
                 await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
-                return null;
+        public async Task<string?> GetBlobhash(Guid attachmentId, CancellationToken cancellationToken)
+        {
+            BlobClient blobClient = InitializeBlobClient(attachmentId);
+            try
+            {
+                var blobMetadata = await blobClient.GetPropertiesAsync(cancellationToken: cancellationToken);
+                var metadata = blobMetadata.Value;
+                var hash = Convert.ToHexString(metadata.ContentHash).ToLowerInvariant();
+                return hash;
+            }
+            catch (RequestFailedException requestFailedException)
+            {
+                _logger.LogError("Error occurred while getting blob hash: {errorCode}: {errorMessage} ", requestFailedException.ErrorCode, requestFailedException.Message);
+                throw;
             }
         }
 

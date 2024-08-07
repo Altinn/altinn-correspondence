@@ -46,6 +46,13 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return rowsUpdated > 0;
         }
 
+        public async Task<bool> SetChecksum(AttachmentEntity attachmentEntity, string? checkSum, CancellationToken cancellationToken)
+        {
+            attachmentEntity.Checksum = checkSum;
+            var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
+            return rowsUpdated > 0;
+        }
+
         public async Task<bool> CanAttachmentBeDeleted(Guid attachmentId, CancellationToken cancellationToken)
         {
             return !(await _context.Correspondences.AnyAsync(a => a.Content != null && a.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId) &&
