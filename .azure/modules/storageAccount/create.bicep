@@ -25,7 +25,7 @@ resource storageAccountFileShare 'Microsoft.Storage/storageAccounts/fileServices
   parent: storageAccountFileServices
 }
 
-resource storageAccountBlobServices 'Microsoft.Storage/storageAccounts/blobServices@2023-04-01' = {
+resource storageAccountBlobServices 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = {
   name: 'default'
   parent: storageAccount
 }
