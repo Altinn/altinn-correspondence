@@ -1,5 +1,6 @@
+using System.Text;
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Tests.Helpers;
 
 namespace Altinn.Correspondece.Tests.Factories;
 internal static class InitializeAttachmentFactory
@@ -14,6 +15,7 @@ internal static class InitializeAttachmentFactory
         Sender = "0192:986252932",
         SendersReference = "1234",
         FileName = "test-file",
-        IsEncrypted = false
+        IsEncrypted = false,
+        Checksum = Utils.CalculateChecksum(new byte[] { 1, 2, 3, 4 })
     };
 }
