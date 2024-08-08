@@ -30,7 +30,7 @@ resource storageAccountBlobServices 'Microsoft.Storage/storageAccounts/blobServi
   parent: storageAccount
 }
 
-resource storageAccountAttachmentContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-04-01' = {
+resource storageAccountAttachmentContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
   name: 'attachments'
   parent: storageAccountBlobServices
 }
