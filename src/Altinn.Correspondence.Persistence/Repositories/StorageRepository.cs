@@ -45,6 +45,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 var blobMetadata = await blobClient.UploadAsync(stream, options, cancellationToken);
                 var metadata = blobMetadata.Value;
                 var hash = Convert.ToHexString(metadata.ContentHash).ToLowerInvariant();
+                if (string.IsNullOrWhiteSpace(attachment.Checksum))
+                {
+                    return (locationUrl, hash);
+                }
                 if (!string.Equals(hash, attachment.Checksum, StringComparison.InvariantCultureIgnoreCase))
                 {
                     throw new HashMismatchException("Hash mismatch");

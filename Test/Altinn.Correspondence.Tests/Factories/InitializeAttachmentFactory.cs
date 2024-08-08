@@ -15,7 +15,6 @@ internal static class InitializeAttachmentFactory
         Sender = "0192:986252932",
         SendersReference = "1234",
         FileName = "test-file",
-        IsEncrypted = false,
-        Checksum = Utils.CalculateChecksum(new byte[] { 1, 2, 3, 4 })
+        IsEncrypted = false
     };
 }

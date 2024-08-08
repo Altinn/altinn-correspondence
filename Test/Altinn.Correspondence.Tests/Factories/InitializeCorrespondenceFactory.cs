@@ -25,8 +25,7 @@ internal static class InitializeCorrespondenceFactory
                     RestrictionName = "testFile2",
                     SendersReference = "1234",
                     FileName = "test-fil2e",
-                    IsEncrypted = false,
-                    Checksum = Utils.CalculateChecksum(new byte[] { 1, 2, 3, 4 })
+                    IsEncrypted = false
                 }
             },
         },
