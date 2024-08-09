@@ -58,38 +58,8 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Initialize a new Correspondence
-        /// </summary>
-        /// <remarks>
-        /// Requires uploads of specified attachments if any before it can be Published
-        /// If no attachments are specified, should go directly to Published
-        /// </remarks>
-        /// <returns>CorrespondenceId and attachmentIds</returns>
-        [HttpPost("multiple")]
-        public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeMultipleCorrespondence(InitializeMultipleCorrespondencesExt request, [FromServices] InitializeMultipleCorrespondencesHandler handler, CancellationToken cancellationToken)
-        {
-            LogContextHelpers.EnrichLogsWithInsertBaseCorrespondence(request.Correspondence);
-            _logger.LogInformation("Initialize correspondence");
-
-            var commandRequest = InitializeMultipleCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, null, false);
-            var commandResult = await handler.Process(commandRequest, cancellationToken);
-
-            return commandResult.Match(
-                data => Ok(new InitializeMultipleCorrespondencesResponseExt()
-                {
-                    CorrespondenceIds = data.CorrespondenceIds
-                }),
-                Problem
-            );
-        }
-
-
-        /// <summary>
         /// Initialize a new Correspondence with attachment data as single operation
         /// </summary>
-        /// <remarks>        
-        /// TODO: How to solve this for multiple attachment data blobs?
-        /// </remarks>
         /// <returns></returns>
         [HttpPost]
         [Route("upload")]
@@ -113,6 +83,60 @@ namespace Altinn.Correspondence.API.Controllers
                 {
                     CorrespondenceId = data.CorrespondenceId,
                     AttachmentIds = data.AttachmentIds
+                }),
+                Problem
+            );
+        }
+
+        /// <summary>
+        /// Initialize a new Correspondence
+        /// </summary>
+        /// <remarks>
+        /// Requires uploads of specified attachments if any before it can be Published
+        /// If no attachments are specified, should go directly to Published
+        /// </remarks>
+        /// <returns>CorrespondenceIds</returns>
+        [HttpPost("multiple")]
+        public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeMultipleCorrespondence(InitializeMultipleCorrespondencesExt request, [FromServices] InitializeMultipleCorrespondencesHandler handler, CancellationToken cancellationToken)
+        {
+            LogContextHelpers.EnrichLogsWithInsertBaseCorrespondence(request.Correspondence);
+            _logger.LogInformation("Initialize correspondence");
+
+            var commandRequest = InitializeMultipleCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, null, false);
+            var commandResult = await handler.Process(commandRequest, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(new InitializeMultipleCorrespondencesResponseExt()
+                {
+                    CorrespondenceIds = data.CorrespondenceIds
+                }),
+                Problem
+            );
+        }
+        /// <summary>
+        /// Initialize multiple Correspondence with attachment data as single operation
+        /// </summary>
+        /// <returns>CorrespondenceIds/returns>
+        [HttpPost("multiple/upload")]
+        [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
+        public async Task<ActionResult<CorrespondenceOverviewExt>> UploadMultipleCorrespondence(
+            [FromForm] InitializeMultipleCorrespondencesExt request,
+            [FromForm] List<IFormFile> attachments,
+           [FromServices] InitializeMultipleCorrespondencesHandler handler,
+            CancellationToken cancellationToken)
+        {
+            LogContextHelpers.EnrichLogsWithInsertBaseCorrespondence(request.Correspondence);
+            _logger.LogInformation("Insert correspondence with attachment data");
+
+            Request.EnableBuffering();
+
+            var commandRequest = InitializeMultipleCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, attachments, true);
+            var commandResult = await handler.Process(commandRequest, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(new InitializeMultipleCorrespondencesResponseExt()
+                {
+                    CorrespondenceIds = data.CorrespondenceIds,
                 }),
                 Problem
             );
