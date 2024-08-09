@@ -6,6 +6,7 @@ using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Application.InitializeCorrespondence;
+using Altinn.Correspondence.Application.InitializeMultipleCorrespondences;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 using Altinn.Correspondence.Application.UpdateMarkAsUnread;
@@ -55,6 +56,33 @@ namespace Altinn.Correspondence.API.Controllers
                 Problem
             );
         }
+
+        /// <summary>
+        /// Initialize a new Correspondence
+        /// </summary>
+        /// <remarks>
+        /// Requires uploads of specified attachments if any before it can be Published
+        /// If no attachments are specified, should go directly to Published
+        /// </remarks>
+        /// <returns>CorrespondenceId and attachmentIds</returns>
+        [HttpPost("multiple")]
+        public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeMultipleCorrespondence(InitializeMultipleCorrespondencesExt request, [FromServices] InitializeMultipleCorrespondencesHandler handler, CancellationToken cancellationToken)
+        {
+            LogContextHelpers.EnrichLogsWithInsertBaseCorrespondence(request.Correspondence);
+            _logger.LogInformation("Initialize correspondence");
+
+            var commandRequest = InitializeMultipleCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, null, false);
+            var commandResult = await handler.Process(commandRequest, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(new InitializeMultipleCorrespondencesResponseExt()
+                {
+                    CorrespondenceIds = data.CorrespondenceIds
+                }),
+                Problem
+            );
+        }
+
 
         /// <summary>
         /// Initialize a new Correspondence with attachment data as single operation

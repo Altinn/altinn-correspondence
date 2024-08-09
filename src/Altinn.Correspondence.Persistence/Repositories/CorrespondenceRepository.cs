@@ -2,6 +2,7 @@ using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
@@ -9,11 +10,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
     {
         private readonly ApplicationDbContext _context = context;
 
-        public async Task<CorrespondenceEntity> InitializeCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
+        public async Task<CorrespondenceEntity> CreateCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
         {
             await _context.Correspondences.AddAsync(correspondence, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
             return correspondence;
+        }
+        public async Task<List<CorrespondenceEntity>> CreateMultipleCorrespondences(List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken)
+        {
+            await _context.Correspondences.AddRangeAsync(correspondences, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            return correspondences;
         }
 
         public async Task<(List<Guid>, int)> GetCorrespondences(
