@@ -43,5 +43,11 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("StatusChanged")]
         public DateTimeOffset StatusChanged { get; set; }
+
+        /// <summary>
+        /// When the attachment expires
+        /// </summary>
+        [JsonPropertyName("expirationTime")]
+        public DateTimeOffset ExpirationTime { get; set; }
     }
 }

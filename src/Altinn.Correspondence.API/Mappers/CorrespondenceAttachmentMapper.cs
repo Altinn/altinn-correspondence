@@ -25,6 +25,7 @@ internal static class CorrespondenceAttachmentMapper
             StatusText = attachment.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault()!.StatusText,
             StatusChanged = attachment.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault()!.StatusChanged,
             Created = attachment.Created,
+            ExpirationTime = attachment.ExpirationTime
 
         };
         return content;
