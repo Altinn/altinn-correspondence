@@ -13,7 +13,7 @@ internal static class CorrespondenceAttachmentMapper
             Id = attachment.Id,
             DataType = attachment.DataType,
             FileName = attachment.Attachment.FileName,
-            AttachmentId = attachment.Id,
+            AttachmentId = attachment.AttachmentId,
             IsEncrypted = attachment.IsEncrypted,
             Name = attachment.Name,
             SendersReference = attachment.SendersReference,
