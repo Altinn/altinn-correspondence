@@ -43,5 +43,7 @@ namespace Altinn.Correspondence.Core.Models
         [ForeignKey("AttachmentId")]
         public AttachmentEntity? Attachment { get; set; }
 
+        public DateTimeOffset Created { get; set; }
+
     }
 }

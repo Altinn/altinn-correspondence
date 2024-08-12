@@ -10,6 +10,7 @@ internal static class CorrespondenceAttachmentMapper
     {
         var content = new CorrespondenceAttachmentExt
         {
+            Id = attachment.Id,
             DataType = attachment.DataType,
             FileName = attachment.Attachment.FileName,
             AttachmentId = attachment.Id,
@@ -20,7 +21,10 @@ internal static class CorrespondenceAttachmentMapper
             DataLocationType = (AttachmentDataLocationTypeExt)attachment.DataLocationType,
             DataLocationUrl = attachment.DataLocationUrl,
             RestrictionName = attachment.RestrictionName,
-            Status = (AttachmentStatusExt)attachment.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault().Status,
+            Status = (AttachmentStatusExt)attachment.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault()!.Status,
+            StatusText = attachment.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault()!.StatusText,
+            StatusChanged = attachment.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault()!.StatusChanged,
+            Created = attachment.Created,
 
         };
         return content;

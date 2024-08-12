@@ -17,8 +17,8 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// The date on which this attachment is created
         /// </summary>
-        [JsonPropertyName("createdDateTime")]
-        public DateTimeOffset CreatedDateTime { get; set; }
+        [JsonPropertyName("created")]
+        public DateTimeOffset Created { get; set; }
 
         /// <summary>
         /// Specifies the location of the attachment data
@@ -41,7 +41,7 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Timestamp for when the Current Attachment Status was changed
         /// </summary>
-        [JsonPropertyName("StatusChangedDateTime")]
-        public DateTimeOffset StatusChangedDateTime { get; set; }
+        [JsonPropertyName("StatusChanged")]
+        public DateTimeOffset StatusChanged { get; set; }
     }
 }
