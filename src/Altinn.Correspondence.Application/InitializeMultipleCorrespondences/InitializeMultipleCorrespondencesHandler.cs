@@ -58,7 +58,7 @@ public class InitializeMultipleCorrespondencesHandler : IHandler<InitializeMulti
             return contentError;
         }
 
-        var attachmentError = initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content?.Attachments, true);
+        var attachmentError = initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content!.Attachments, true);
         if (attachmentError != null) return attachmentError;
 
         var attachments = request.Correspondence.Content?.Attachments;
@@ -69,7 +69,6 @@ public class InitializeMultipleCorrespondencesHandler : IHandler<InitializeMulti
                 attachment.Attachment = await initializeCorrespondenceHelper.ProcessAttachment(attachment, request.Correspondence, cancellationToken);
             }
         }
-
         var status = initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);
         var statuses = new List<CorrespondenceStatusEntity>(){
             new CorrespondenceStatusEntity

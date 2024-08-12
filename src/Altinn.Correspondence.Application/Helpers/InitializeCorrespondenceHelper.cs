@@ -50,12 +50,14 @@ namespace Altinn.Correspondence.Application.Helpers
             if (files.Count > 0 || isMultiUpload)
             {
                 var maxUploadSize = long.Parse(int.MaxValue.ToString());
+                var data = "filenames " + files.Select(a => a.FileName + " ; ").ToString();
+                if (isMultiUpload && attachments.Count == 0) return Errors.MultipleCorrespondenceNoAttachments;
                 foreach (var attachment in attachments)
                 {
-                    if (attachment.DataLocationUrl != null) continue;
+                    if (attachment.Attachment?.DataLocationUrl != null) continue;
                     if (files.Count == 0 && isMultiUpload) return Errors.MultipleCorrespondenceNoAttachments;
-                    var file = files.FirstOrDefault(a => a.FileName == attachment.Name);
-                    if (file == null) return Errors.UploadedFilesDoesNotMatchAttachments;
+                    var file = files.FirstOrDefault(a => a.FileName == attachment.Attachment?.FileName);
+                    if (file == null) return Errors.UploadedFilesDoesNotMatchAttachments(data + " " + attachment.Attachment?.FileName);
                     if (file?.Length > maxUploadSize || file?.Length == 0) return Errors.InvalidFileSize;
                 }
             }
@@ -95,10 +97,12 @@ namespace Altinn.Correspondence.Application.Helpers
             UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
             foreach (var file in attachments)
             {
-                var attachment = correspondence.Content?.Attachments.FirstOrDefault(a => a.Name == file.FileName);
+                var data = "filenames (" + correspondence.Content?.Attachments.Count + ") ";
+                correspondence.Content?.Attachments.ForEach(a => data += a.Attachment.FileName + " ; ");
+                var attachment = correspondence.Content?.Attachments.FirstOrDefault(a => a.Attachment.FileName.ToLower() == file.FileName.ToLower());
                 if (attachment == null || attachment.Attachment == null)
                 {
-                    return Errors.UploadedFilesDoesNotMatchAttachments;
+                    return Errors.UploadedFilesDoesNotMatchAttachments(data + " || " + file.FileName);
                 }
                 var uploadResponse = await uploadHelper.UploadAttachment(file.OpenReadStream(), attachment.AttachmentId, cancellationToken);
                 var error = uploadResponse.Match(
@@ -112,39 +116,24 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public async Task<AttachmentEntity> ProcessAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, CorrespondenceEntity correspondence, CancellationToken cancellationToken)
         {
-            AttachmentEntity? attachment = null;
-            if (!String.IsNullOrEmpty(correspondenceAttachment.DataLocationUrl))
+            if (!String.IsNullOrEmpty(correspondenceAttachment.Attachment?.DataLocationUrl))
             {
-                var existingAttachment = await _attachmentRepository.GetAttachmentByUrl(correspondenceAttachment.DataLocationUrl, cancellationToken);
+                var existingAttachment = await _attachmentRepository.GetAttachmentByUrl(correspondenceAttachment.Attachment.DataLocationUrl, cancellationToken);
                 if (existingAttachment != null)
                 {
-                    attachment = existingAttachment;
+                    return existingAttachment;
                 }
             }
-            if (attachment == null)
-            {
-                var status = new List<AttachmentStatusEntity>(){
-                    new AttachmentStatusEntity
-                    {
-                        Status = AttachmentStatus.Initialized,
-                        StatusChanged = DateTimeOffset.UtcNow,
-                        StatusText = AttachmentStatus.Initialized.ToString()
-                    }
-                };
-                attachment = new AttachmentEntity
+            var status = new List<AttachmentStatusEntity>(){
+                new AttachmentStatusEntity
                 {
-                    ResourceId = correspondence.ResourceId,
-                    FileName = correspondenceAttachment.Name,
-                    Sender = correspondence.Sender,
-                    SendersReference = correspondenceAttachment.SendersReference,
-                    RestrictionName = correspondenceAttachment.RestrictionName,
-                    ExpirationTime = correspondenceAttachment.ExpirationTime,
-                    DataType = correspondenceAttachment.DataType,
-                    DataLocationUrl = correspondenceAttachment.DataLocationUrl,
-                    Statuses = status,
-                    Created = DateTimeOffset.UtcNow
-                };
-            }
+                    Status = AttachmentStatus.Initialized,
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusText = AttachmentStatus.Initialized.ToString()
+                }
+            };
+            var attachment = correspondenceAttachment.Attachment!;
+            attachment.Statuses = status;
             return attachment;
         }
     }

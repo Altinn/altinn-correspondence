@@ -54,12 +54,12 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         {
             return contentError;
         }
-        var attachmentError = initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content?.Attachments, false);
+        var attachmentError = initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content!.Attachments, false);
         if (attachmentError != null)
         {
             return attachmentError;
         }
-        var attachments = request.Correspondence.Content?.Attachments;
+        var attachments = request.Correspondence.Content!.Attachments;
         if (attachments != null)
         {
             foreach (var attachment in attachments)
@@ -67,7 +67,6 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
                 attachment.Attachment = await initializeCorrespondenceHelper.ProcessAttachment(attachment, request.Correspondence, cancellationToken);
             }
         }
-
         var status = initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);
         var statuses = new List<CorrespondenceStatusEntity>(){
             new CorrespondenceStatusEntity

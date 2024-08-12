@@ -29,7 +29,7 @@ internal static class InitializeMultipleCorrespondencesMapper
                 MessageTitle = initializeCorrespondenceExt.Content.MessageTitle,
                 MessageSummary = initializeCorrespondenceExt.Content.MessageSummary,
                 MessageBody = initializeCorrespondenceExt.Content.MessageBody,
-                Attachments = InitializeCorrespondenceAttachmentMapper.MapListToEntities(initializeCorrespondenceExt.Content.Attachments)
+                Attachments = InitializeCorrespondenceAttachmentMapper.MapListToEntities(initializeCorrespondenceExt.Content.Attachments, initializeCorrespondenceExt.ResourceId)
             } : null,
         };
         return new InitializeMultipleCorrespondencesRequest()

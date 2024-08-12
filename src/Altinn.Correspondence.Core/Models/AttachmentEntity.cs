@@ -31,12 +31,6 @@ namespace Altinn.Correspondence.Core.Models
         [Required]
         public required string DataType { get; set; }
 
-        [Required]
-        public string RestrictionName { get; set; } = string.Empty;
-
-        [Required]
-        public DateTimeOffset ExpirationTime { get; set; }
-
         public List<AttachmentStatusEntity> Statuses { get; set; } = new List<AttachmentStatusEntity>();
 
         public string? DataLocationUrl { get; set; }

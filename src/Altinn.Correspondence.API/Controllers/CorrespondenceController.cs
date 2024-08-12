@@ -96,7 +96,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// If no attachments are specified, should go directly to Published
         /// </remarks>
         /// <returns>CorrespondenceIds</returns>
-        [HttpPost("multiple")]
+        [HttpPost]
+        [Route("multiple")]
         public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeMultipleCorrespondence(InitializeMultipleCorrespondencesExt request, [FromServices] InitializeMultipleCorrespondencesHandler handler, CancellationToken cancellationToken)
         {
             LogContextHelpers.EnrichLogsWithInsertBaseCorrespondence(request.Correspondence);
@@ -117,12 +118,13 @@ namespace Altinn.Correspondence.API.Controllers
         /// Initialize multiple Correspondence with attachment data as single operation
         /// </summary>
         /// <returns>CorrespondenceIds/returns>
-        [HttpPost("multiple/upload")]
+        [HttpPost]
+        [Route("multiple/upload")]
         [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
         public async Task<ActionResult<CorrespondenceOverviewExt>> UploadMultipleCorrespondence(
             [FromForm] InitializeMultipleCorrespondencesExt request,
             [FromForm] List<IFormFile> attachments,
-           [FromServices] InitializeMultipleCorrespondencesHandler handler,
+            [FromServices] InitializeMultipleCorrespondencesHandler handler,
             CancellationToken cancellationToken)
         {
             LogContextHelpers.EnrichLogsWithInsertBaseCorrespondence(request.Correspondence);

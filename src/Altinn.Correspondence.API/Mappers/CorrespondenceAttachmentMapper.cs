@@ -10,15 +10,16 @@ internal static class CorrespondenceAttachmentMapper
     {
         var content = new CorrespondenceAttachmentExt
         {
-            DataType = attachment.DataType,
+            DataType = attachment.Attachment.DataType,
             FileName = attachment.Attachment.FileName,
             AttachmentId = attachment.Id,
-            IsEncrypted = attachment.IsEncrypted,
+            IsEncrypted = attachment.Attachment.IsEncrypted,
             Name = attachment.Name,
-            SendersReference = attachment.SendersReference,
-            Checksum = attachment.Checksum,
-            DataLocationType = (AttachmentDataLocationTypeExt)attachment.DataLocationType,
-            DataLocationUrl = attachment.DataLocationUrl,
+            Sender = attachment.Attachment.Sender,
+            SendersReference = attachment.Attachment.SendersReference,
+            Checksum = attachment.Attachment.Checksum,
+            DataLocationType = (AttachmentDataLocationTypeExt)attachment.Attachment.DataLocationType,
+            DataLocationUrl = attachment.Attachment.DataLocationUrl,
             RestrictionName = attachment.RestrictionName,
             Status = (AttachmentStatusExt)attachment.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault().Status,
 

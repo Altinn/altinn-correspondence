@@ -72,16 +72,7 @@ namespace Altinn.Correspondence.API.Models
         public required string DataType { get; set; }
 
         /// <summary>
-        /// The name of the Restriction Policy restricting access to this element
-        /// </summary>
-        /// <remarks>
-        /// An empty value indicates no restriction above the ones governing the correspondence referencing this attachment
-        /// </remarks>
-        [JsonPropertyName("restrictionName")]
-        public string RestrictionName { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Date/Time in UTC for when the attachen will expire and may be cleaned up automatically
+        /// Date/Time in UTC for when the attachment will expire and may be cleaned up automatically
         /// </summary>
         [JsonPropertyName("expirationTime")]
         [Required]

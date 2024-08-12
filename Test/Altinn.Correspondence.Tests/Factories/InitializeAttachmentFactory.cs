@@ -10,7 +10,6 @@ internal static class InitializeAttachmentFactory
         DataType = "html",
         ExpirationTime = DateTime.UtcNow.AddDays(1),
         Name = "testFile",
-        RestrictionName = "testFile",
         Sender = "0192:986252932",
         SendersReference = "1234",
         FileName = "test-file",

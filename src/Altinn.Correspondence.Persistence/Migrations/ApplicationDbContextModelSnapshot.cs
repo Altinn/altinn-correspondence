@@ -45,9 +45,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<DateTimeOffset>("ExpirationTime")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("FileName")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -59,10 +56,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
-
-                    b.Property<string>("RestrictionName")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<string>("Sender")
                         .IsRequired()
@@ -113,27 +106,11 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<Guid>("AttachmentId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Checksum")
-                        .HasColumnType("text");
-
                     b.Property<Guid>("CorrespondenceContentId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("DataLocationType")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("DataLocationUrl")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DataType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<DateTimeOffset>("ExpirationTime")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsEncrypted")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -143,11 +120,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<string>("RestrictionName")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<string>("SendersReference")
-                        .IsRequired()
-                        .HasMaxLength(4096)
-                        .HasColumnType("character varying(4096)");
 
                     b.HasKey("Id");
 
