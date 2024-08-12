@@ -14,7 +14,6 @@ internal static class AttachmentDetailsMapper
         {
             ResourceId = "1",
             AttachmentId = AttachmentDetails.AttachmentId,
-            Name = AttachmentDetails.Name ?? string.Empty,
             Status = (AttachmentStatusExt)AttachmentDetails.Status,
             DataLocationUrl = AttachmentDetails.DataLocationUrl,
             Sender = AttachmentDetails.Sender,

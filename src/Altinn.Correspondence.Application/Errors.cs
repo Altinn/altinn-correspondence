@@ -28,4 +28,3 @@ public static class Errors
     public static Error UploadedFilesDoesNotMatchAttachments = new Error(20, "Mismatch between uploaded files and attachment metadata", HttpStatusCode.BadRequest);
     public static Error DuplicateRecipients = new Error(21, "Recipients must be unique", HttpStatusCode.BadRequest);
     public static Error MultipleCorrespondenceNoAttachments = new Error(22, "When uploading multiple correspondences, either upload or use existing attachments", HttpStatusCode.BadRequest);
-}

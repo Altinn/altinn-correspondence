@@ -12,7 +12,6 @@ internal static class AttachmentOverviewMapper
         {
             ResourceId = attachmentOverview.ResourceId,
             AttachmentId = attachmentOverview.AttachmentId,
-            Name = attachmentOverview.Name ?? string.Empty,
             Sender = attachmentOverview.Sender,
             RestrictionName = attachmentOverview.RestrictionName,
             Status = (AttachmentStatusExt)attachmentOverview.Status,

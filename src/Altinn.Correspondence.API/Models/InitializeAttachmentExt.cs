@@ -25,14 +25,6 @@ namespace Altinn.Correspondence.API.Models
         public string? FileName { get; set; }
 
         /// <summary>
-        /// A logical name on the attachment.
-        /// </summary>
-        [JsonPropertyName("name")]
-        [StringLength(255, MinimumLength = 1)]
-        [Required]
-        public required string Name { get; set; }
-
-        /// <summary>
         /// A value indicating whether the attachment is encrypted or not.
         /// </summary>
         [JsonPropertyName("isEncrypted")]

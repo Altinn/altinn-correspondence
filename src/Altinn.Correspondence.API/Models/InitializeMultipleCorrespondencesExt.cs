@@ -17,5 +17,6 @@ public class InitializeMultipleCorrespondencesExt
     [JsonPropertyName("recipients")]
     [Required]
     [MinLength(1, ErrorMessage = "At least one recipient is required")]
+    [MaxLength(500, ErrorMessage = "Maximum 500 recipients are allowed")]
     public required List<string> Recipients { get; set; }
 }
