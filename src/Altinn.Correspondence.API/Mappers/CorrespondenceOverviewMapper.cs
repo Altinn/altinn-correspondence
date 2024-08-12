@@ -24,11 +24,7 @@ internal static class CorrespondenceOverviewMapper
             Notifications = InitializeCorrespondenceNotificationMapper.MapListToExternal(correspondenceOverview.Notifications),
             ResourceId = correspondenceOverview.ResourceId.ToString(),
             VisibleFrom = correspondenceOverview.VisibleFrom,
-            MarkedUnread = correspondenceOverview.MarkedUnread,
-            AllowSystemDeleteAfter = correspondenceOverview.AllowSystemDeleteAfter,
-            DueDateTime = correspondenceOverview.DueDateTime,
-            PropertyList = correspondenceOverview.PropertyList,
-            IsReservable = correspondenceOverview.IsReservable
+            MarkedUnread = correspondenceOverview.MarkedUnread
         };
         return Correspondence;
     }

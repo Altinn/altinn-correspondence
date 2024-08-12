@@ -23,14 +23,9 @@ internal static class CorrespondenceDetailsMapper
             ReplyOptions = correspondenceDetails.ReplyOptions != null ? CorrespondenceReplyOptionsMapper.MapListToExternal(correspondenceDetails.ReplyOptions) : new List<CorrespondenceReplyOptionExt>(),
             Notifications = correspondenceDetails.Notifications != null ? CorrespondenceNotificationMapper.MapListToExternal(correspondenceDetails.Notifications) : new List<CorrespondenceNotificationDetailsExt>(),
             StatusHistory = correspondenceDetails.StatusHistory != null ? CorrespondenceStatusMapper.MapListToExternal(correspondenceDetails.StatusHistory) : new List<CorrespondenceStatusEventExt>(),
-            ExternalReferences = correspondenceDetails.ExternalReferences != null ? ExternalReferenceMapper.MapListToExternal(correspondenceDetails.ExternalReferences) : new List<ExternalReferenceExt>(),
             ResourceId = correspondenceDetails.ResourceId.ToString(),
             VisibleFrom = correspondenceDetails.VisibleFrom,
-            MarkedUnread = correspondenceDetails.MarkedUnread,
-            AllowSystemDeleteAfter = correspondenceDetails.AllowSystemDeleteAfter,
-            DueDateTime = correspondenceDetails.DueDateTime,
-            PropertyList = correspondenceDetails.PropertyList,
-            IsReservable = correspondenceDetails.IsReservable,
+            MarkedUnread = correspondenceDetails.MarkedUnread
         };
         return Correspondence;
     }
