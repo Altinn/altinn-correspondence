@@ -89,7 +89,7 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Initialize a new Correspondence
+        /// Initialize multiple Correspondences
         /// </summary>
         /// <remarks>
         /// Requires uploads of specified attachments if any before it can be Published
@@ -114,6 +114,7 @@ namespace Altinn.Correspondence.API.Controllers
                 Problem
             );
         }
+
         /// <summary>
         /// Initialize multiple Correspondence with attachment data as single operation
         /// </summary>
