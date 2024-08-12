@@ -52,10 +52,18 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<bool>("IsEncrypted")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<string>("ResourceId")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
+
+                    b.Property<string>("RestrictionName")
+                        .HasColumnType("text");
 
                     b.Property<string>("Sender")
                         .IsRequired()
@@ -109,17 +117,11 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<Guid>("CorrespondenceContentId")
                         .HasColumnType("uuid");
 
-                    b.Property<DateTimeOffset>("ExpirationTime")
+                    b.Property<DateTimeOffset>("Created")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("RestrictionName")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<DateTimeOffset>("ExpirationTime")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 

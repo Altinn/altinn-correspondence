@@ -9,12 +9,7 @@ namespace Altinn.Correspondence.Core.Models
         [Key]
         public Guid Id { get; set; }
 
-        [MaxLength(255)]
-        [Required]
-        public required string Name { get; set; }
-
-        [Required]
-        public string RestrictionName { get; set; } = string.Empty;
+        public DateTimeOffset Created { get; set; }
 
         [Required]
         public DateTimeOffset ExpirationTime { get; set; }

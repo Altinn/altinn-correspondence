@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class Initialize : Migration
+    public partial class Initial_DB_Setup : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -22,6 +22,8 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     ResourceId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     FileName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    RestrictionName = table.Column<string>(type: "text", nullable: true),
                     IsEncrypted = table.Column<bool>(type: "boolean", nullable: false),
                     Checksum = table.Column<string>(type: "text", nullable: true),
                     SendersReference = table.Column<string>(type: "character varying(4096)", maxLength: 4096, nullable: false),
@@ -191,8 +193,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    RestrictionName = table.Column<string>(type: "text", nullable: false),
+                    Created = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     ExpirationTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     CorrespondenceContentId = table.Column<Guid>(type: "uuid", nullable: false),
                     AttachmentId = table.Column<Guid>(type: "uuid", nullable: false)

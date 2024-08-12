@@ -15,6 +15,11 @@ namespace Altinn.Correspondence.Core.Models
         [MaxLength(255)]
         public string? FileName { get; set; }
 
+        [MaxLength(255)]
+        public string Name { get; set; }
+
+        public string? RestrictionName { get; set; }
+
         public bool IsEncrypted { get; set; }
 
         public string? Checksum { get; set; } = string.Empty;

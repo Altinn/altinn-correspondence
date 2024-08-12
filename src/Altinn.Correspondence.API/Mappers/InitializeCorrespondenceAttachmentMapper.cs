@@ -19,13 +19,14 @@ internal static class InitializeCorrespondenceAttachmentMapper
     {
         return new CorrespondenceAttachmentEntity
         {
-            Name = initializeAttachmentExt.Name,
-            RestrictionName = initializeAttachmentExt.RestrictionName,
+            Created = DateTimeOffset.UtcNow,
             ExpirationTime = initializeAttachmentExt.ExpirationTime,
             Attachment = new AttachmentEntity
             {
                 Created = DateTimeOffset.UtcNow,
                 FileName = initializeAttachmentExt.FileName,
+                Name = initializeAttachmentExt.Name,
+                RestrictionName = initializeAttachmentExt.RestrictionName,
                 ResourceId = resourceId,
                 Sender = initializeAttachmentExt.Sender,
                 SendersReference = initializeAttachmentExt.SendersReference,

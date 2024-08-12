@@ -13,6 +13,8 @@ internal static class AttachmentOverviewMapper
             ResourceId = attachmentOverview.ResourceId,
             AttachmentId = attachmentOverview.AttachmentId,
             Sender = attachmentOverview.Sender,
+            Name = attachmentOverview.Name,
+            FileName = attachmentOverview.FileName,
             RestrictionName = attachmentOverview.RestrictionName,
             Status = (AttachmentStatusExt)attachmentOverview.Status,
             StatusText = attachmentOverview.StatusText,

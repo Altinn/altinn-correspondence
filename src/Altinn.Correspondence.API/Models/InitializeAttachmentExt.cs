@@ -25,6 +25,24 @@ namespace Altinn.Correspondence.API.Models
         public string? FileName { get; set; }
 
         /// <summary>
+        /// A logical name on the attachment.
+        /// </summary>
+        [JsonPropertyName("name")]
+        [StringLength(255, MinimumLength = 1)]
+        [Required]
+        public required string Name { get; set; }
+
+        /// <summary>
+        /// The name of the Restriction Policy restricting access to this element
+        /// </summary>
+        /// <remarks>
+        /// An empty value indicates no restriction above the ones governing the correspondence referencing this attachment
+        /// </remarks>
+        [JsonPropertyName("restrictionName")]
+        [Required]
+        public string RestrictionName { get; set; } = string.Empty;
+
+        /// <summary>
         /// A value indicating whether the attachment is encrypted or not.
         /// </summary>
         [JsonPropertyName("isEncrypted")]

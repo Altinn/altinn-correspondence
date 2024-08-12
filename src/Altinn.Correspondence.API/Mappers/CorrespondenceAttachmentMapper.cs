@@ -14,13 +14,13 @@ internal static class CorrespondenceAttachmentMapper
             FileName = attachment.Attachment.FileName,
             AttachmentId = attachment.Id,
             IsEncrypted = attachment.Attachment.IsEncrypted,
-            Name = attachment.Name,
+            Name = attachment.Attachment.Name,
             Sender = attachment.Attachment.Sender,
             SendersReference = attachment.Attachment.SendersReference,
             Checksum = attachment.Attachment.Checksum,
             DataLocationType = (AttachmentDataLocationTypeExt)attachment.Attachment.DataLocationType,
             DataLocationUrl = attachment.Attachment.DataLocationUrl,
-            RestrictionName = attachment.RestrictionName,
+            RestrictionName = attachment.Attachment.RestrictionName,
             Status = (AttachmentStatusExt)attachment.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault().Status,
 
         };
