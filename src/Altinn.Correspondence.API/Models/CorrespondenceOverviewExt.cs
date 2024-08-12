@@ -49,5 +49,22 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("statusChanged")]
         public DateTimeOffset StatusChanged { get; set; }
+
+        /// <summary>
+        /// When the Correspondence can be deleted by the system
+        /// </summary>
+        [JsonPropertyName("allowSystemDeleteAfter")]
+        public DateTimeOffset? AllowSystemDeleteAfter { get; set; }
+
+        /// <summary>
+        /// When the Correspondence is due
+        /// </summary>
+        public DateTimeOffset DueDateTime { get; set; }
+
+        /// <summary>
+        /// User-defined properties related to the Correspondence
+        /// </summary>
+        public Dictionary<string, string> PropertyList { get; set; } = new Dictionary<string, string>();
     }
 }
+

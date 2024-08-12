@@ -1,4 +1,5 @@
 using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 
@@ -23,5 +24,24 @@ internal static class ExternalReferenceMapper
             externalReferences.Add(MapToEntity(extRef));
         }
         return externalReferences;
+    }
+
+    internal static ExternalReferenceExt MapToExternal(ExternalReferenceEntity externalReference)
+    {
+        var externalReferenceExt = new ExternalReferenceExt
+        {
+            ReferenceValue = externalReference.ReferenceValue,
+            ReferenceType = (ReferenceTypeExt)externalReference.ReferenceType
+        };
+        return externalReferenceExt;
+    }
+    internal static List<ExternalReferenceExt> MapListToExternal(List<ExternalReferenceEntity> externalReferences)
+    {
+        var externalReferencesExt = new List<ExternalReferenceExt>();
+        foreach (var extRef in externalReferences)
+        {
+            externalReferencesExt.Add(MapToExternal(extRef));
+        }
+        return externalReferencesExt;
     }
 }

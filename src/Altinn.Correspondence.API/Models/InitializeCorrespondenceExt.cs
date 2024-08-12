@@ -6,7 +6,7 @@ namespace Altinn.Correspondence.API.Models
     /// <summary>
     /// Represents a request object for the operation, InitializeCorrespondence, that can create a correspondence in Altinn.    
     /// </summary>
-    public class InitializeCorrespondenceExt : BaseCorrespondenceObject
+    public class InitializeCorrespondenceExt : BaseCorrespondenceExt
     {
 
         /// <summary>

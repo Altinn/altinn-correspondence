@@ -73,7 +73,7 @@ internal static class InitializeCorrespondenceFactory
     };
     internal static InitializeMultipleCorrespondencesExt BasicMultipleCorrespondence(string url) => new InitializeMultipleCorrespondencesExt()
     {
-        Correspondence = new BaseCorrespondenceObject()
+        Correspondence = new BaseCorrespondenceExt()
         {
             ResourceId = "1",
             Sender = "0192:986252932",

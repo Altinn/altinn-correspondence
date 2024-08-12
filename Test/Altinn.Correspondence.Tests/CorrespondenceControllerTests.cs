@@ -456,60 +456,60 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var overview = await (await UploadAttachment(attachmentId)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
         return overview;
     }
-    private MultipartFormDataContent CorrespondenceToFormData(InitializeCorrespondenceExt correspondence, string preText = "")
+    private MultipartFormDataContent CorrespondenceToFormData(InitializeCorrespondenceExt correspondence, string prefix = "")
     {
         var formData = new MultipartFormDataContent(){
-            { new StringContent(correspondence.ResourceId), preText+"resourceId" },
-            { new StringContent(correspondence.Sender), preText+"sender" },
-            { new StringContent(correspondence.SendersReference), preText+"sendersReference" },
-            { new StringContent(correspondence.Recipient), preText+"recipient" },
-            { new StringContent(correspondence.VisibleFrom.ToString()), preText+"visibleFrom" },
-            { new StringContent(correspondence.AllowSystemDeleteAfter.ToString()), preText+"AllowSystemDeleteAfter" },
-            { new StringContent(correspondence.Content.MessageTitle), preText+"content.MessageTitle" },
-            { new StringContent(correspondence.Content.MessageSummary), preText+"content.MessageSummary" },
-            { new StringContent(correspondence.Content.MessageBody), preText+"content.MessageBody" },
-            { new StringContent(correspondence.Content.Language), preText+"content.Language" },
-            { new StringContent((correspondence.IsReservable ?? false).ToString()), preText+"isReservable" }
+            { new StringContent(correspondence.ResourceId), prefix+"resourceId" },
+            { new StringContent(correspondence.Sender), prefix+"sender" },
+            { new StringContent(correspondence.SendersReference), prefix+"sendersReference" },
+            { new StringContent(correspondence.Recipient), prefix+"recipient" },
+            { new StringContent(correspondence.VisibleFrom.ToString()), prefix+"visibleFrom" },
+            { new StringContent(correspondence.AllowSystemDeleteAfter.ToString()), prefix+"AllowSystemDeleteAfter" },
+            { new StringContent(correspondence.Content.MessageTitle), prefix+"content.MessageTitle" },
+            { new StringContent(correspondence.Content.MessageSummary), prefix+"content.MessageSummary" },
+            { new StringContent(correspondence.Content.MessageBody), prefix+"content.MessageBody" },
+            { new StringContent(correspondence.Content.Language), prefix+"content.Language" },
+            { new StringContent((correspondence.IsReservable ?? false).ToString()), prefix+"isReservable" }
         };
 
         correspondence.Content.Attachments.Select((attachment, index) => new[]
         {
-            new { Key = $"{preText}content.Attachments[{index}].DataLocationType", Value = attachment.DataLocationType.ToString() },
-            new { Key = $"{preText}content.Attachments[{index}].DataType", Value = attachment.DataType },
-            new { Key = $"{preText}content.Attachments[{index}].Name", Value = attachment.Name },
-            new { Key = $"{preText}content.Attachments[{index}].FileName", Value = attachment.FileName ?? "" },
-            new { Key = $"{preText}content.Attachments[{index}].RestrictionName", Value = attachment.RestrictionName },
-            new { Key = $"{preText}content.Attachments[{index}].Sender", Value = attachment.Sender },
-            new { Key = $"{preText}content.Attachments[{index}].SendersReference", Value = attachment.SendersReference },
-            new { Key = $"{preText}content.Attachments[{index}].IsEncrypted", Value = attachment.IsEncrypted.ToString() }
+            new { Key = $"{prefix}content.Attachments[{index}].DataLocationType", Value = attachment.DataLocationType.ToString() },
+            new { Key = $"{prefix}content.Attachments[{index}].DataType", Value = attachment.DataType },
+            new { Key = $"{prefix}content.Attachments[{index}].Name", Value = attachment.Name },
+            new { Key = $"{prefix}content.Attachments[{index}].FileName", Value = attachment.FileName ?? "" },
+            new { Key = $"{prefix}content.Attachments[{index}].RestrictionName", Value = attachment.RestrictionName },
+            new { Key = $"{prefix}content.Attachments[{index}].Sender", Value = attachment.Sender },
+            new { Key = $"{prefix}content.Attachments[{index}].SendersReference", Value = attachment.SendersReference },
+            new { Key = $"{prefix}content.Attachments[{index}].IsEncrypted", Value = attachment.IsEncrypted.ToString() }
         }).SelectMany(x => x).ToList()
         .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
 
         correspondence.ExternalReferences?.Select((externalReference, index) => new[]
         {
-            new { Key = $"{preText}ExternalReference[{index}].ReferenceType", Value = externalReference.ReferenceType.ToString() },
-            new { Key = $"{preText}ExternalReference[{index}].ReferenceValue", Value = externalReference.ReferenceValue },
+            new { Key = $"{prefix}ExternalReference[{index}].ReferenceType", Value = externalReference.ReferenceType.ToString() },
+            new { Key = $"{prefix}ExternalReference[{index}].ReferenceValue", Value = externalReference.ReferenceValue },
         }).SelectMany(x => x).ToList()
         .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
 
         correspondence.ReplyOptions.Select((replyOption, index) => new[]
         {
-            new { Key = $"{preText}ReplyOptions[{index}].LinkURL", Value = replyOption.LinkURL },
-            new { Key = $"{preText}ReplyOptions[{index}].LinkText", Value = replyOption.LinkText ?? "" }
+            new { Key = $"{prefix}ReplyOptions[{index}].LinkURL", Value = replyOption.LinkURL },
+            new { Key = $"{prefix}ReplyOptions[{index}].LinkText", Value = replyOption.LinkText ?? "" }
         }).SelectMany(x => x).ToList()
         .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
 
         correspondence.Notifications.Select((notification, index) => new[]
         {
-            new { Key = $"{preText}Notifications[{index}].NotificationTemplate", Value = notification.NotificationTemplate },
-            new { Key = $"{preText}Notifications[{index}].CustomTextToken", Value = notification.CustomTextToken ?? ""},
-            new { Key = $"{preText}Notifications[{index}].SendersReference", Value = notification.SendersReference ?? "" },
-            new { Key = $"{preText}Notifications[{index}].RequestedSendTime", Value = notification.RequestedSendTime.ToString() }
+            new { Key = $"{prefix}Notifications[{index}].NotificationTemplate", Value = notification.NotificationTemplate },
+            new { Key = $"{prefix}Notifications[{index}].CustomTextToken", Value = notification.CustomTextToken ?? ""},
+            new { Key = $"{prefix}Notifications[{index}].SendersReference", Value = notification.SendersReference ?? "" },
+            new { Key = $"{prefix}Notifications[{index}].RequestedSendTime", Value = notification.RequestedSendTime.ToString() }
         }).SelectMany(x => x).ToList()
         .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
 
         correspondence.PropertyList.ToList()
-        .ForEach((item) => formData.Add(new StringContent(item.Value), preText + "propertyLists." + item.Key));
+        .ForEach((item) => formData.Add(new StringContent(item.Value), prefix + "propertyLists." + item.Key));
         return formData;
     }
 }

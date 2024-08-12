@@ -9,7 +9,7 @@ public class InitializeMultipleCorrespondencesExt
     /// The correspondence object that should be created
     /// </summary>
     [JsonPropertyName("correspondence")]
-    public required BaseCorrespondenceObject Correspondence { get; set; }
+    public required BaseCorrespondenceExt Correspondence { get; set; }
 
     /// <summary>
     /// The recipients of the correspondence, either an organisation or an person
