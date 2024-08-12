@@ -1,6 +1,4 @@
-﻿using System.Net.Mail;
-
-namespace Altinn.Correspondence.Core.Repositories
+﻿namespace Altinn.Correspondence.Core.Repositories
 {
     public interface IStorageRepository
     {

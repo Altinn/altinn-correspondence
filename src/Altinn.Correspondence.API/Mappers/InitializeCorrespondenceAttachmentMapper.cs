@@ -1,4 +1,3 @@
-using System.Net.Mail;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;

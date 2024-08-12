@@ -50,14 +50,13 @@ namespace Altinn.Correspondence.Application.Helpers
             if (files.Count > 0 || isMultiUpload)
             {
                 var maxUploadSize = long.Parse(int.MaxValue.ToString());
-                var data = "filenames " + files.Select(a => a.FileName + " ; ").ToString();
                 if (isMultiUpload && attachments.Count == 0) return Errors.MultipleCorrespondenceNoAttachments;
                 foreach (var attachment in attachments)
                 {
                     if (attachment.Attachment?.DataLocationUrl != null) continue;
                     if (files.Count == 0 && isMultiUpload) return Errors.MultipleCorrespondenceNoAttachments;
                     var file = files.FirstOrDefault(a => a.FileName == attachment.Attachment?.FileName);
-                    if (file == null) return Errors.UploadedFilesDoesNotMatchAttachments(data + " " + attachment.Attachment?.FileName);
+                    if (file == null) return Errors.UploadedFilesDoesNotMatchAttachments;
                     if (file?.Length > maxUploadSize || file?.Length == 0) return Errors.InvalidFileSize;
                 }
             }
@@ -97,12 +96,10 @@ namespace Altinn.Correspondence.Application.Helpers
             UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
             foreach (var file in attachments)
             {
-                var data = "filenames (" + correspondence.Content?.Attachments.Count + ") ";
-                correspondence.Content?.Attachments.ForEach(a => data += a.Attachment.FileName + " ; ");
                 var attachment = correspondence.Content?.Attachments.FirstOrDefault(a => a.Attachment.FileName.ToLower() == file.FileName.ToLower());
                 if (attachment == null || attachment.Attachment == null)
                 {
-                    return Errors.UploadedFilesDoesNotMatchAttachments(data + " || " + file.FileName);
+                    return Errors.UploadedFilesDoesNotMatchAttachments;
                 }
                 var uploadResponse = await uploadHelper.UploadAttachment(file.OpenReadStream(), attachment.AttachmentId, cancellationToken);
                 var error = uploadResponse.Match(

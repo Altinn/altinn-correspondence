@@ -3,13 +3,9 @@ using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Microsoft.AspNetCore.Http;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Net;
 using System.Net.Http.Json;
-using System.Net.Mail;
 using System.Text.Json;
-using Xunit.Abstractions;
-
 namespace Altinn.Correspondence.Tests;
 
 public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationFactory>
@@ -17,9 +13,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _responseSerializerOptions;
-    readonly ITestOutputHelper _output;
 
-    public CorrespondenceControllerTests(CustomWebApplicationFactory factory, ITestOutputHelper output)
+    public CorrespondenceControllerTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClientInternal();
@@ -28,7 +23,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             PropertyNameCaseInsensitive = true
         });
         _responseSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
-        _output = output;
     }
 
     [Fact]

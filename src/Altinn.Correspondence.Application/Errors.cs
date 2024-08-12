@@ -25,7 +25,7 @@ public static class Errors
     public static Error MessageSummaryIsNotMarkdown = new Error(17, "Message summary must be markdown", HttpStatusCode.BadRequest);
     public static Error CorrespondenceHasNotBeenRead = new Error(18, "Correspondence has not been read", HttpStatusCode.BadRequest);
     public static Error NoAccessToResource = new Error(19, "You must use an Altinn token that represents a user with access to the resource", HttpStatusCode.Unauthorized);
-    public static Error UploadedFilesDoesNotMatchAttachments(string extraData) => new Error(20, "Mismatch between uploaded files and attachment metadata: " + extraData, HttpStatusCode.BadRequest);
+    public static Error UploadedFilesDoesNotMatchAttachments = new Error(20, "Mismatch between uploaded files and attachment metadata", HttpStatusCode.BadRequest);
     public static Error DuplicateRecipients = new Error(21, "Recipients must be unique", HttpStatusCode.BadRequest);
     public static Error MultipleCorrespondenceNoAttachments = new Error(22, "When uploading multiple correspondences, either upload or use existing attachments", HttpStatusCode.BadRequest);
 }
