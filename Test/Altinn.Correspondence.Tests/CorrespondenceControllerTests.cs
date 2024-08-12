@@ -140,7 +140,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
                 DataLocationUrl = attachmentOverview.DataLocationUrl,
                 DataType = attachmentOverview.DataType,
                 FileName = attachmentOverview.FileName,
-                Name = attachmentOverview.Name,
+                Name = "Logical file name",
                 RestrictionName = attachmentOverview.RestrictionName,
                 Sender = attachmentOverview.Sender,
                 SendersReference = attachmentOverview.SendersReference,
