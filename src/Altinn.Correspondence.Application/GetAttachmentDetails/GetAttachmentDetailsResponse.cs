@@ -18,6 +18,8 @@ public class GetAttachmentDetailsResponse
 
     public DateTimeOffset StatusChanged { get; set; }
 
+    public string FileName { get; set; } = string.Empty;
+
     public string? Name { get; set; } = string.Empty;
 
     public string Sender { get; set; } = string.Empty;
