@@ -5,7 +5,7 @@
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class HangfireSetup : Migration
+    public partial class Hangfire_Setup : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

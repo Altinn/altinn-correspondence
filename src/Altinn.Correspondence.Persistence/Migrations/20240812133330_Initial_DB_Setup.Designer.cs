@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240722121926_MarkAsUnread")]
-    partial class MarkAsUnread
+    [Migration("20240812133330_Initial_DB_Setup")]
+    partial class Initial_DB_Setup
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -48,9 +48,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<DateTimeOffset>("ExpirationTime")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("FileName")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -58,7 +55,20 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<bool>("IsEncrypted")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("ResourceId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<string>("RestrictionName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Sender")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -107,41 +117,14 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<Guid>("AttachmentId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Checksum")
-                        .HasColumnType("text");
-
                     b.Property<Guid>("CorrespondenceContentId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("DataLocationType")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("DataLocationUrl")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DataType")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<DateTimeOffset>("Created")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("ExpirationTime")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsEncrypted")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("RestrictionName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("SendersReference")
-                        .IsRequired()
-                        .HasMaxLength(4096)
-                        .HasColumnType("character varying(4096)");
 
                     b.HasKey("Id");
 
@@ -205,6 +188,10 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.Property<bool?>("MarkedUnread")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("MessageSender")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
                     b.Property<Dictionary<string, string>>("PropertyList")
                         .IsRequired()

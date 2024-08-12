@@ -6,27 +6,36 @@ namespace Altinn.Correspondence.Mappers;
 
 internal static class InitializeCorrespondenceAttachmentMapper
 {
-    internal static List<CorrespondenceAttachmentEntity> MapListToEntities(List<InitializeCorrespondenceAttachmentExt> initializeAttachmentExt)
+    internal static List<CorrespondenceAttachmentEntity> MapListToEntities(List<InitializeCorrespondenceAttachmentExt> initializeAttachmentExt, string resourceId)
     {
         var attachments = new List<CorrespondenceAttachmentEntity>();
         foreach (var attachment in initializeAttachmentExt)
         {
-            attachments.Add(MapToEntity(attachment));
+            attachments.Add(MapToEntity(attachment, resourceId));
         }
         return attachments;
     }
-    internal static CorrespondenceAttachmentEntity MapToEntity(InitializeCorrespondenceAttachmentExt initializeAttachmentExt)
+    internal static CorrespondenceAttachmentEntity MapToEntity(InitializeCorrespondenceAttachmentExt initializeAttachmentExt, string resourceId)
     {
         return new CorrespondenceAttachmentEntity
         {
-            Name = initializeAttachmentExt.Name,
-            SendersReference = initializeAttachmentExt.SendersReference,
-            RestrictionName = initializeAttachmentExt.RestrictionName,
-            DataType = initializeAttachmentExt.DataType,
-            Checksum = initializeAttachmentExt.Checksum,
-            IsEncrypted = initializeAttachmentExt.IsEncrypted,
-            DataLocationUrl = initializeAttachmentExt.DataLocationUrl,
-            DataLocationType = (AttachmentDataLocationType)initializeAttachmentExt.DataLocationType,
+            Created = DateTimeOffset.UtcNow,
+            ExpirationTime = initializeAttachmentExt.ExpirationTime,
+            Attachment = new AttachmentEntity
+            {
+                Created = DateTimeOffset.UtcNow,
+                FileName = initializeAttachmentExt.FileName,
+                Name = initializeAttachmentExt.Name,
+                RestrictionName = initializeAttachmentExt.RestrictionName,
+                ResourceId = resourceId,
+                Sender = initializeAttachmentExt.Sender,
+                SendersReference = initializeAttachmentExt.SendersReference,
+                DataType = initializeAttachmentExt.DataType,
+                Checksum = initializeAttachmentExt.Checksum,
+                IsEncrypted = initializeAttachmentExt.IsEncrypted,
+                DataLocationUrl = initializeAttachmentExt.DataLocationUrl,
+                DataLocationType = (AttachmentDataLocationType)initializeAttachmentExt.DataLocationType,
+            }
         };
     }
 }
