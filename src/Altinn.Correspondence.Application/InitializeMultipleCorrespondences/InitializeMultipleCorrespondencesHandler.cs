@@ -3,6 +3,7 @@ using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
 using Microsoft.AspNetCore.Http;
@@ -109,8 +110,8 @@ public class InitializeMultipleCorrespondencesHandler : IHandler<InitializeMulti
         foreach (var correspondence in correspondences)
         {
             _backgroundJobClient.Schedule<PublishCorrespondenceService>((service) => service.Publish(correspondence.Id, cancellationToken), correspondence.VisibleFrom);
+            await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         }
-        //await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         if (request.Attachments.Count > 0)
         {
             var uploadError = await initializeCorrespondenceHelper.UploadAttachments(request.Correspondence, request.Attachments, cancellationToken);
