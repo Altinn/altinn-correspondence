@@ -13,9 +13,10 @@ internal static class InitializeAttachmentMapper
         {
             ResourceId = initializeAttachmentExt.ResourceId,
             FileName = initializeAttachmentExt.FileName,
+            Name = initializeAttachmentExt.Name,
+            RestrictionName = initializeAttachmentExt.RestrictionName,
             Sender = initializeAttachmentExt.Sender,
             SendersReference = initializeAttachmentExt.SendersReference,
-            RestrictionName = initializeAttachmentExt.RestrictionName,
             DataType = initializeAttachmentExt.DataType,
             Checksum = initializeAttachmentExt.Checksum,
             IsEncrypted = initializeAttachmentExt.IsEncrypted,

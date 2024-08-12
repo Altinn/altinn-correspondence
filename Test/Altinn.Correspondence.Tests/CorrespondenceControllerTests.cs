@@ -123,6 +123,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
                 SendersReference = "1234",
                 FileName = file.FileName,
                 IsEncrypted = false,
+                Sender = correspondence.Sender
             };
             correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>() { attachmentData };
             var formData = CorrespondenceToFormData(correspondence);
@@ -140,8 +141,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
                 DataLocationUrl = attachmentOverview.DataLocationUrl,
                 DataType = attachmentOverview.DataType,
                 FileName = attachmentOverview.FileName,
-                Name = attachmentOverview.Name,
+                Name = "Logical file name",
                 RestrictionName = attachmentOverview.RestrictionName,
+                Sender = attachmentOverview.Sender,
                 SendersReference = attachmentOverview.SendersReference,
                 IsEncrypted = attachmentOverview.IsEncrypted,
                 Checksum = attachmentOverview.Checksum
@@ -149,7 +151,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             formData = CorrespondenceToFormData(correspondence);
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
             var uploadCorrespondenceResponse2 = await _client.PostAsync("correspondence/api/v1/correspondence/upload", formData);
-            uploadCorrespondenceResponse2.EnsureSuccessStatusCode();
+            Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
         }
     }
     [Fact]
@@ -167,16 +169,18 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>(){
             new InitializeCorrespondenceAttachmentExt(){
                 DataType = "text",
-                Name = file.FileName,
+                Name = "markdown example",
                 RestrictionName = "testFile3",
+                Sender = correspondence.Sender,
                 SendersReference = "1234",
                 FileName = file.FileName,
                 IsEncrypted = false,
             },
              new InitializeCorrespondenceAttachmentExt(){
                 DataType = "text",
-                Name = file2.FileName,
+                Name = "test file",
                 RestrictionName = "testFile3",
+                Sender = correspondence.Sender,
                 SendersReference = "1234",
                 FileName = file2.FileName,
                 IsEncrypted = false,
@@ -186,7 +190,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         formData.Add(new StreamContent(fileStream2), "attachments", file2.FileName);
 
         var uploadCorrespondenceResponse = await _client.PostAsync("correspondence/api/v1/correspondence/upload", formData);
-        uploadCorrespondenceResponse.EnsureSuccessStatusCode();
+        Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
     }
 
     [Fact]
@@ -197,6 +201,55 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var formData = CorrespondenceToFormData(correspondence);
         var uploadCorrespondenceResponse = await _client.PostAsync("correspondence/api/v1/correspondence/upload", formData);
         Assert.Equal(HttpStatusCode.BadRequest, uploadCorrespondenceResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task InitializeMultipleCorrespondence()
+    {
+        var uploadedAttachment = await InitializeAttachment();
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence/multiple", InitializeCorrespondenceFactory.BasicMultipleCorrespondence(uploadedAttachment.DataLocationUrl));
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task UploadMultipleCorrespondence_With_Multiple_Files()
+    {
+
+        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
+        using var stream = System.IO.File.OpenRead("./Data/Markdown.text");
+        var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+        using var fileStream = file.OpenReadStream();
+        using var stream2 = System.IO.File.OpenRead("./Data/test.txt");
+        var file2 = new FormFile(stream2, 0, stream2.Length, null, Path.GetFileName(stream2.Name));
+        using var fileStream2 = file2.OpenReadStream();
+        correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>(){
+            new InitializeCorrespondenceAttachmentExt(){
+                DataType = "text",
+                Name = "MARKDOWN EXAMPLE",
+                RestrictionName = "testFile3",
+                Sender = correspondence.Sender,
+                SendersReference = "1234",
+                FileName = file.FileName,
+                IsEncrypted = false,
+            },
+             new InitializeCorrespondenceAttachmentExt(){
+                DataType = "text",
+                Name = "test file",
+                RestrictionName = "testFile3",
+                Sender = correspondence.Sender,
+                SendersReference = "1234",
+                FileName = file2.FileName,
+                IsEncrypted = false,
+            }};
+        var formData = CorrespondenceToFormData(correspondence, "Correspondence.");
+
+        formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
+        formData.Add(new StreamContent(fileStream2), "attachments", file2.FileName);
+        formData.Add(new StringContent("0192:986252932"), "recipients[0]");
+        formData.Add(new StringContent("0198:991234649"), "recipients[1]");
+
+        var uploadCorrespondenceResponse = await _client.PostAsync("correspondence/api/v1/correspondence/multiple/upload", formData);
+        Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
     }
 
     [Fact]
@@ -403,58 +456,60 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var overview = await (await UploadAttachment(attachmentId)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
         return overview;
     }
-    private MultipartFormDataContent CorrespondenceToFormData(InitializeCorrespondenceExt correspondence)
+    private MultipartFormDataContent CorrespondenceToFormData(InitializeCorrespondenceExt correspondence, string prefix = "")
     {
         var formData = new MultipartFormDataContent(){
-            { new StringContent(correspondence.ResourceId), "resourceId" },
-            { new StringContent(correspondence.Sender), "sender" },
-            { new StringContent(correspondence.SendersReference), "sendersReference" },
-            { new StringContent(correspondence.Recipient), "recipient" },
-            { new StringContent(correspondence.VisibleFrom.ToString()), "visibleFrom" },
-            { new StringContent(correspondence.AllowSystemDeleteAfter.ToString()), "AllowSystemDeleteAfter" },
-            { new StringContent(correspondence.Content.MessageTitle), "content.MessageTitle" },
-            { new StringContent(correspondence.Content.MessageSummary), "content.MessageSummary" },
-            { new StringContent(correspondence.Content.MessageBody), "content.MessageBody" },
-            { new StringContent(correspondence.Content.Language), "content.Language" },
-            { new StringContent((correspondence.IsReservable ?? false).ToString()), "isReservable" }
+            { new StringContent(correspondence.ResourceId), prefix+"resourceId" },
+            { new StringContent(correspondence.Sender), prefix+"sender" },
+            { new StringContent(correspondence.SendersReference), prefix+"sendersReference" },
+            { new StringContent(correspondence.Recipient), prefix+"recipient" },
+            { new StringContent(correspondence.VisibleFrom.ToString()), prefix+"visibleFrom" },
+            { new StringContent(correspondence.AllowSystemDeleteAfter.ToString()), prefix+"AllowSystemDeleteAfter" },
+            { new StringContent(correspondence.Content.MessageTitle), prefix+"content.MessageTitle" },
+            { new StringContent(correspondence.Content.MessageSummary), prefix+"content.MessageSummary" },
+            { new StringContent(correspondence.Content.MessageBody), prefix+"content.MessageBody" },
+            { new StringContent(correspondence.Content.Language), prefix+"content.Language" },
+            { new StringContent((correspondence.IsReservable ?? false).ToString()), prefix+"isReservable" }
         };
 
         correspondence.Content.Attachments.Select((attachment, index) => new[]
         {
-            new { Key = $"content.Attachments[{index}].DataLocationType", Value = attachment.DataLocationType.ToString() },
-            new { Key = $"content.Attachments[{index}].DataType", Value = attachment.DataType },
-            new { Key = $"content.Attachments[{index}].Name", Value = attachment.Name },
-            new { Key = $"content.Attachments[{index}].RestrictionName", Value = attachment.RestrictionName },
-            new { Key = $"content.Attachments[{index}].SendersReference", Value = attachment.SendersReference },
-            new { Key = $"content.Attachments[{index}].IsEncrypted", Value = attachment.IsEncrypted.ToString() }
+            new { Key = $"{prefix}content.Attachments[{index}].DataLocationType", Value = attachment.DataLocationType.ToString() },
+            new { Key = $"{prefix}content.Attachments[{index}].DataType", Value = attachment.DataType },
+            new { Key = $"{prefix}content.Attachments[{index}].Name", Value = attachment.Name },
+            new { Key = $"{prefix}content.Attachments[{index}].FileName", Value = attachment.FileName ?? "" },
+            new { Key = $"{prefix}content.Attachments[{index}].RestrictionName", Value = attachment.RestrictionName },
+            new { Key = $"{prefix}content.Attachments[{index}].Sender", Value = attachment.Sender },
+            new { Key = $"{prefix}content.Attachments[{index}].SendersReference", Value = attachment.SendersReference },
+            new { Key = $"{prefix}content.Attachments[{index}].IsEncrypted", Value = attachment.IsEncrypted.ToString() }
         }).SelectMany(x => x).ToList()
         .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
 
         correspondence.ExternalReferences?.Select((externalReference, index) => new[]
         {
-            new { Key = $"content.ExternalReference[{index}].ReferenceType", Value = externalReference.ReferenceType.ToString() },
-            new { Key = $"content.ExternalReference[{index}].ReferenceValue", Value = externalReference.ReferenceValue },
+            new { Key = $"{prefix}ExternalReference[{index}].ReferenceType", Value = externalReference.ReferenceType.ToString() },
+            new { Key = $"{prefix}ExternalReference[{index}].ReferenceValue", Value = externalReference.ReferenceValue },
         }).SelectMany(x => x).ToList()
         .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
 
         correspondence.ReplyOptions.Select((replyOption, index) => new[]
         {
-            new { Key = $"content.ReplyOptions[{index}].LinkURL", Value = replyOption.LinkURL },
-            new { Key = $"content.ReplyOptions[{index}].LinkText", Value = replyOption.LinkText ?? "" }
+            new { Key = $"{prefix}ReplyOptions[{index}].LinkURL", Value = replyOption.LinkURL },
+            new { Key = $"{prefix}ReplyOptions[{index}].LinkText", Value = replyOption.LinkText ?? "" }
         }).SelectMany(x => x).ToList()
         .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
 
         correspondence.Notifications.Select((notification, index) => new[]
         {
-            new { Key = $"content.Notifications[{index}].NotificationTemplate", Value = notification.NotificationTemplate },
-            new { Key = $"content.Notifications[{index}].CustomTextToken", Value = notification.CustomTextToken ?? ""},
-            new { Key = $"content.Notifications[{index}].SendersReference", Value = notification.SendersReference ?? "" },
-            new { Key = $"content.Notifications[{index}].RequestedSendTime", Value = notification.RequestedSendTime.ToString() }
+            new { Key = $"{prefix}Notifications[{index}].NotificationTemplate", Value = notification.NotificationTemplate },
+            new { Key = $"{prefix}Notifications[{index}].CustomTextToken", Value = notification.CustomTextToken ?? ""},
+            new { Key = $"{prefix}Notifications[{index}].SendersReference", Value = notification.SendersReference ?? "" },
+            new { Key = $"{prefix}Notifications[{index}].RequestedSendTime", Value = notification.RequestedSendTime.ToString() }
         }).SelectMany(x => x).ToList()
         .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
 
         correspondence.PropertyList.ToList()
-        .ForEach((item) => formData.Add(new StringContent(item.Value), "propertyLists." + item.Key));
+        .ForEach((item) => formData.Add(new StringContent(item.Value), prefix + "propertyLists." + item.Key));
         return formData;
     }
 }

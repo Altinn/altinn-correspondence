@@ -45,7 +45,6 @@ public class GetAttachmentDetailsHandler : IHandler<Guid, GetAttachmentDetailsRe
             DataType = attachment.DataType,
             SendersReference = attachment.SendersReference,
             CorrespondenceIds = correspondenceIds,
-            RestrictionName = attachment.RestrictionName,
         };
         return response;
     }

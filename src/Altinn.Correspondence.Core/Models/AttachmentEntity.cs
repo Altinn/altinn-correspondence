@@ -15,6 +15,11 @@ namespace Altinn.Correspondence.Core.Models
         [MaxLength(255)]
         public string? FileName { get; set; }
 
+        [MaxLength(255)]
+        public string Name { get; set; }
+
+        public string? RestrictionName { get; set; }
+
         public bool IsEncrypted { get; set; }
 
         public string? Checksum { get; set; } = string.Empty;
@@ -30,12 +35,6 @@ namespace Altinn.Correspondence.Core.Models
 
         [Required]
         public required string DataType { get; set; }
-
-        [Required]
-        public string RestrictionName { get; set; } = string.Empty;
-
-        [Required]
-        public DateTimeOffset ExpirationTime { get; set; }
 
         public List<AttachmentStatusEntity> Statuses { get; set; } = new List<AttachmentStatusEntity>();
 

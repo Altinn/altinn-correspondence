@@ -1,18 +1,17 @@
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.Application.InitializeCorrespondence;
+using Altinn.Correspondence.Application.InitializeMultipleCorrespondences;
 using Altinn.Correspondence.Core.Models;
-using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Mappers;
 
-internal static class InitializeCorrespondenceMapper
+internal static class InitializeMultipleCorrespondencesMapper
 {
-    internal static InitializeCorrespondenceRequest MapToRequest(InitializeCorrespondenceExt initializeCorrespondenceExt, List<IFormFile>? attachments, bool isUploadRequest)
+    internal static InitializeMultipleCorrespondencesRequest MapToRequest(BaseCorrespondenceExt initializeCorrespondenceExt, List<string> Recipients, List<IFormFile>? attachments, bool isUploadRequest)
     {
         var correspondence = new CorrespondenceEntity
         {
             SendersReference = initializeCorrespondenceExt.SendersReference,
-            Recipient = initializeCorrespondenceExt.Recipient,
+            Recipient = null,
             ResourceId = initializeCorrespondenceExt.ResourceId,
             Sender = initializeCorrespondenceExt.Sender,
             VisibleFrom = initializeCorrespondenceExt.VisibleFrom,
@@ -33,11 +32,12 @@ internal static class InitializeCorrespondenceMapper
                 Attachments = InitializeCorrespondenceAttachmentMapper.MapListToEntities(initializeCorrespondenceExt.Content.Attachments, initializeCorrespondenceExt.ResourceId)
             } : null,
         };
-        return new InitializeCorrespondenceRequest()
+        return new InitializeMultipleCorrespondencesRequest()
         {
             Correspondence = correspondence,
             Attachments = attachments ?? new List<IFormFile>(),
-            isUploadRequest = isUploadRequest
+            isUploadRequest = isUploadRequest,
+            Recipients = Recipients
         };
     }
 }
