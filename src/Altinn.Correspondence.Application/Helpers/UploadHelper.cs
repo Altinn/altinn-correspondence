@@ -29,10 +29,15 @@ namespace Altinn.Correspondence.Application.Helpers
             _storageRepository = storageRepository;
 
         }
-        public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, AttachmentEntity attachment, CancellationToken cancellationToken)
+        public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, CancellationToken cancellationToken)
         {
+            var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
+            if (attachment == null)
+            {
+                return Errors.AttachmentNotFound;
+            }
 
-            var currentStatus = await SetAttachmentStatus(attachment.Id, AttachmentStatus.UploadProcessing, cancellationToken);
+            var currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.UploadProcessing, cancellationToken);
             try
             {
                 var (dataLocationUrl, checksum) = await _storageRepository.UploadAttachment(attachment, file, cancellationToken);
@@ -46,30 +51,30 @@ namespace Altinn.Correspondence.Application.Helpers
 
                 if (!isValidUpdate)
                 {
-                    await SetAttachmentStatus(attachment.Id, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.InvalidRowUpdate);
+                    await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.InvalidRowUpdate);
                     await _storageRepository.PurgeAttachment(attachment.Id, cancellationToken);
                     return Errors.UploadFailed;
                 }
             }
             catch (DataLocationUrlException)
             {
-                await SetAttachmentStatus(attachment.Id, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.InvalidLocationUrl);
+                await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.InvalidLocationUrl);
                 return Errors.UploadFailed;
             }
             catch (HashMismatchException)
             {
-                await SetAttachmentStatus(attachment.Id, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.ChecksumMismatch);
+                await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.ChecksumMismatch);
                 return Errors.UploadFailed;
             }
             catch (RequestFailedException)
             {
-                await SetAttachmentStatus(attachment.Id, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.UploadFailed);
+                await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.UploadFailed);
                 return Errors.UploadFailed;
             }
 
             if (_hostEnvironment.IsDevelopment()) // No malware scan when running locally
             {
-                currentStatus = await SetAttachmentStatus(attachment.Id, AttachmentStatus.Published, cancellationToken);
+                currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.Published, cancellationToken);
             }
             
             return new UploadAttachmentResponse()
