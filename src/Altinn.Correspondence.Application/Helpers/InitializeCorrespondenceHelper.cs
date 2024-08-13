@@ -101,7 +101,12 @@ namespace Altinn.Correspondence.Application.Helpers
                 {
                     return Errors.UploadedFilesDoesNotMatchAttachments;
                 }
-                var uploadResponse = await uploadHelper.UploadAttachment(file.OpenReadStream(), attachment.AttachmentId, cancellationToken);
+                OneOf<UploadAttachmentResponse, Error> uploadResponse;
+                await using (var f = file.OpenReadStream())
+                {
+                    uploadResponse = await uploadHelper.UploadAttachment(f, attachment.AttachmentId, cancellationToken);
+                }
+
                 var error = uploadResponse.Match(
                     _ => { return null; },
                     error => { return error; }
