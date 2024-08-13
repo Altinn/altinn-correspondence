@@ -33,6 +33,8 @@ public class GetCorrespondenceDetailsResponse
 
     public List<CorrespondenceStatusEntity> StatusHistory { get; set; } = new List<CorrespondenceStatusEntity>();
 
+    public List<ExternalReferenceEntity> ExternalReferences { get; set; } = new List<ExternalReferenceEntity>();
+
     public Guid ResourceId { get; set; }
 
     public DateTimeOffset VisibleFrom { get; set; }
@@ -40,4 +42,10 @@ public class GetCorrespondenceDetailsResponse
     public bool IsReservable { get; set; }
 
     public bool? MarkedUnread { get; set; }
+
+    public DateTimeOffset? AllowSystemDeleteAfter { get; set; }
+
+    public DateTimeOffset DueDateTime { get; set; }
+
+    public Dictionary<string, string> PropertyList { get; set; } = new Dictionary<string, string>();
 }

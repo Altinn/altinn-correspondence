@@ -50,7 +50,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool includeContent,
             CancellationToken cancellationToken)
         {
-            var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.Notifications).ThenInclude(n => n.Statuses).AsQueryable();
+            var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).ThenInclude(n => n.Statuses).AsQueryable();
             if (includeStatus)
             {
                 correspondences = correspondences.Include(c => c.Statuses);

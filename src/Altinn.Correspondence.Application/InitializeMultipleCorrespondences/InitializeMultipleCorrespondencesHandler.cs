@@ -101,6 +101,7 @@ public class InitializeMultipleCorrespondencesHandler : IHandler<InitializeMulti
                 Notifications = request.Correspondence.Notifications,
                 Statuses = request.Correspondence.Statuses,
                 Created = request.Correspondence.Created,
+                ExternalReferences = request.Correspondence.ExternalReferences,
 
             };
             correspondence.Recipient = recipient;
