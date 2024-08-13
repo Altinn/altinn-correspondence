@@ -16,6 +16,7 @@ internal static class AttachmentOverviewMapper
             Sender = attachmentOverview.Sender,
             Status = (AttachmentStatusExt)attachmentOverview.Status,
             StatusText = attachmentOverview.StatusText,
+            Checksum = attachmentOverview.Checksum,
             DataLocationUrl = attachmentOverview.DataLocationUrl,
             StatusChanged = attachmentOverview.StatusChanged,
             DataType = attachmentOverview.DataType,
