@@ -53,18 +53,18 @@ namespace Altinn.Correspondence.Application.Helpers
                 {
                     await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.InvalidRowUpdate);
                     await _storageRepository.PurgeAttachment(attachment.Id, cancellationToken);
-                    return Errors.UploadFailed;
+                    return Errors.InvalidRowUpdate;
                 }
             }
             catch (DataLocationUrlException)
             {
                 await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.InvalidLocationUrl);
-                return Errors.UploadFailed;
+                return Errors.DataLocationNotFound;
             }
             catch (HashMismatchException)
             {
                 await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.ChecksumMismatch);
-                return Errors.UploadFailed;
+                return Errors.HashError;
             }
             catch (RequestFailedException)
             {

@@ -192,7 +192,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
 
         // Assert
         Assert.False(uploadResponse.IsSuccessStatusCode);
-        Assert.Equal(HttpStatusCode.BadGateway, uploadResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, uploadResponse.StatusCode);
     }
     [Fact]
     public async Task UploadAttachment_NoChecksumSetWhenInitialized_ChecksumSetAfterUpload()
