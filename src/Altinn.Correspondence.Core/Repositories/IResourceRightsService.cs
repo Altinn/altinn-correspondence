@@ -2,5 +2,5 @@
 
 public interface IResourceRightsService
 {
-    Task<bool> Exists(string resourceId, CancellationToken cancellationToken = default);
+    Task<string?> GetServiceOwnerOfResource(string resourceId, CancellationToken cancellationToken = default);
 }

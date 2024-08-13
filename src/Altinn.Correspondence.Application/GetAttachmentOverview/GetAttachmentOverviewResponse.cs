@@ -17,6 +17,8 @@ public class GetAttachmentOverviewResponse
 
     public DateTimeOffset StatusChanged { get; set; }
 
+    public string FileName { get; set; } = string.Empty;
+
     public string? Name { get; set; } = string.Empty;
     
     public string? Checksum { get; set; } = string.Empty;
@@ -26,6 +28,8 @@ public class GetAttachmentOverviewResponse
     public string SendersReference { get; set; } = string.Empty;
 
     public string DataType { get; set; } = string.Empty;
+
+    public string RestrictionName { get; set; } = string.Empty;
 
     public List<Guid> CorrespondenceIds { get; set; } = new List<Guid>();
 }

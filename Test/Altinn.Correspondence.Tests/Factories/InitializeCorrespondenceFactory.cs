@@ -23,6 +23,7 @@ internal static class InitializeCorrespondenceFactory
                     DataType = "html",
                     Name = "2",
                     RestrictionName = "testFile2",
+                    Sender = "0192:986252932",
                     SendersReference = "1234",
                     FileName = "test-fil2e",
                     IsEncrypted = false
@@ -71,6 +72,81 @@ internal static class InitializeCorrespondenceFactory
         },
         IsReservable = true
     };
+    internal static InitializeMultipleCorrespondencesExt BasicMultipleCorrespondence(string url) => new InitializeMultipleCorrespondencesExt()
+    {
+        Correspondence = new BaseCorrespondenceExt()
+        {
+            ResourceId = "1",
+            Sender = "0192:986252932",
+            SendersReference = "1",
+            Content = new InitializeCorrespondenceContentExt()
+            {
+                Language = "no",
+                MessageTitle = "test",
+                MessageSummary = "# test",
+                MessageBody = "# test body /n __test__ /n **test**/n [test](www.test.no) /n ![test](www.test.no) /n ```test``` /n > test /n - test /n 1. test /n 1. test /n [x] test /n [ ] test /n ## test /n ### test /n #### test /n ##### test /n ###### test /n + test list /n - test list /n * list element",
+                Attachments = new List<InitializeCorrespondenceAttachmentExt>() {
+                    new InitializeCorrespondenceAttachmentExt()
+                    {
+                        DataType = "html",
+                        Name = "2",
+                        RestrictionName = "testFile2",
+                        SendersReference = "1234",
+                        FileName = "test-fil2e",
+                        IsEncrypted = false,
+                        Sender = "0192:986252932",
+                        DataLocationUrl = url
+                    }
+                },
+            },
+            VisibleFrom = DateTime.UtcNow,
+            AllowSystemDeleteAfter = DateTime.UtcNow.AddDays(3),
+            DueDateTime = DateTime.UtcNow.AddDays(2),
+            ExternalReferences = new List<ExternalReferenceExt>(){
+                new ExternalReferenceExt()
+                {
+                    ReferenceValue = "1",
+                    ReferenceType = ReferenceTypeExt.AltinnBrokerFileTransfer
+                },
+                new ExternalReferenceExt()
+                {
+                    ReferenceValue = "2",
+                    ReferenceType = ReferenceTypeExt.DialogPortenDialogID
+                }
+            },
+            PropertyList = new Dictionary<string, string>(){
+                {"deserunt_12", "1"},
+                {"culpa_852", "2"},
+                {"anim5", "3"}
+            },
+            ReplyOptions = new List<CorrespondenceReplyOptionExt>(){
+                new CorrespondenceReplyOptionExt()
+                {
+                    LinkURL = "www.test.no",
+                    LinkText = "test"
+                },
+                new CorrespondenceReplyOptionExt()
+                {
+                    LinkURL = "test.no",
+                    LinkText = "test"
+                }
+            },
+            Notifications = new List<InitializeCorrespondenceNotificationExt>(){
+                new InitializeCorrespondenceNotificationExt(){
+                    NotificationTemplate= "test",
+                    CustomTextToken = "test",
+                    SendersReference = "0192:986252932",
+                    RequestedSendTime =  DateTime.UtcNow.AddDays(1),
+                }
+            },
+            IsReservable = true
+        },
+        Recipients = new List<string>(){
+        "0192:986252931",
+        "0192:986252932",
+        "0192:986252933"
+    }
+    };
 
     internal static InitializeCorrespondenceExt BasicCorrespondenceWithFileAttachment()
     {
@@ -84,7 +160,14 @@ internal static class InitializeCorrespondenceFactory
                 SendersReference = "1234",
                 FileName = "test-fil3e",
                 IsEncrypted = false,
+                Sender = correspondence.Sender
             });
+        return correspondence;
+    }
+    internal static InitializeCorrespondenceExt BasicCorrespondenceWithAttachment(List<InitializeCorrespondenceAttachmentExt> attachments)
+    {
+        var correspondence = BasicCorrespondence();
+        correspondence.Content!.Attachments = attachments;
         return correspondence;
     }
     internal static InitializeCorrespondenceExt BasicCorrespondenceWithFileAttachment(string url)
@@ -96,6 +179,7 @@ internal static class InitializeCorrespondenceFactory
                 DataType = "pdf",
                 Name = "3",
                 RestrictionName = "testFile3",
+                Sender = "0192:986252932",
                 SendersReference = "1234",
                 FileName = "test-fil3e",
                 IsEncrypted = false,

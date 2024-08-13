@@ -1,4 +1,3 @@
-﻿using System.Net.Mail;
 using Altinn.Correspondence.Core.Models;
 
 namespace Altinn.Correspondence.Core.Repositories

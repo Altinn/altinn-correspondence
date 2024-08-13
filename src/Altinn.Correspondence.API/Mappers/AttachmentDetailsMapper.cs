@@ -14,10 +14,12 @@ internal static class AttachmentDetailsMapper
         {
             ResourceId = "1",
             AttachmentId = AttachmentDetails.AttachmentId,
-            Name = AttachmentDetails.Name ?? string.Empty,
             Status = (AttachmentStatusExt)AttachmentDetails.Status,
             DataLocationUrl = AttachmentDetails.DataLocationUrl,
+            FileName = AttachmentDetails.FileName,
+            Name = AttachmentDetails.Name,
             Sender = AttachmentDetails.Sender,
+            RestrictionName = AttachmentDetails.RestrictionName,
             StatusText = AttachmentDetails.StatusText,
             StatusChanged = AttachmentDetails.StatusChanged,
             DataType = AttachmentDetails.DataType,

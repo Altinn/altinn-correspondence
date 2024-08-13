@@ -18,6 +18,8 @@ public class GetAttachmentDetailsResponse
 
     public DateTimeOffset StatusChanged { get; set; }
 
+    public string FileName { get; set; } = string.Empty;
+
     public string? Name { get; set; } = string.Empty;
 
     public string Sender { get; set; } = string.Empty;
@@ -26,6 +28,7 @@ public class GetAttachmentDetailsResponse
 
     public string DataType { get; set; } = string.Empty;
 
+    public string RestrictionName { get; set; } = string.Empty;
 
     public List<AttachmentStatusEntity> Statuses { get; set; } = new List<AttachmentStatusEntity>();
     public List<Guid> CorrespondenceIds { get; set; } = new List<Guid>();

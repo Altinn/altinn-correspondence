@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Exceptions;
+using Altinn.Correspondence.Core.Exceptions;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -41,97 +42,14 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
         {
             return Errors.InvalidUploadAttachmentStatus;
         }
+        UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
+        var uploadResult = await uploadHelper.UploadAttachment(request.UploadStream, request.AttachmentId, cancellationToken);
 
-        var currentStatus = await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.UploadProcessing, cancellationToken);
-        try
-        {
-            var (dataLocationUrl, checksum) = await _storageRepository.UploadAttachment(attachment, request.UploadStream, cancellationToken);
+        await uploadHelper.CheckCorrespondenceStatusesAfterUploadAndPublish(attachment.Id, cancellationToken);
 
-            var isValidUpdate = await _attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
-
-            if (string.IsNullOrWhiteSpace(attachment.Checksum))
-            {
-                isValidUpdate |= await _attachmentRepository.SetChecksum(attachment, checksum, cancellationToken);
-            }
-
-            if (!isValidUpdate)
-            {
-                await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.InvalidRowUpdate);
-                await _storageRepository.PurgeAttachment(attachment.Id, cancellationToken);
-                return Errors.UploadFailed;
-            }
-        }
-        catch (DataLocationUrlException)
-        {
-            await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.InvalidLocationUrl);
-            return Errors.UploadFailed;
-        }
-        catch (HashMismatchException)
-        {
-            await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.ChecksumMismatch);
-            return Errors.UploadFailed;
-        }
-        catch (RequestFailedException)
-        {
-            await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.UploadFailed);
-            return Errors.UploadFailed;
-        }
-
-        if (_hostEnvironment.IsDevelopment()) // No malware scan when running locally
-        {
-            currentStatus = await SetAttachmentStatus(request.AttachmentId, AttachmentStatus.Published, cancellationToken);
-        }
-        await CheckCorrespondenceStatusesAfterUploadAndPublish(attachment.Id, cancellationToken);
-
-        return new UploadAttachmentResponse()
-        {
-            AttachmentId = attachment.Id,
-            Status = currentStatus.Status,
-            StatusChanged = currentStatus.StatusChanged,
-            StatusText = currentStatus.StatusText
-        };
-    }
-
-    private async Task<AttachmentStatusEntity> SetAttachmentStatus(Guid attachmentId, AttachmentStatus status, CancellationToken cancellationToken, string statusText = null)
-    {
-        var currentStatus = new AttachmentStatusEntity
-        {
-            AttachmentId = attachmentId,
-            Status = status,
-            StatusChanged = DateTimeOffset.UtcNow,
-            StatusText = statusText ?? status.ToString()
-        };
-        await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
-        return currentStatus;
-    }
-    public async Task CheckCorrespondenceStatusesAfterUploadAndPublish(Guid attachmentId, CancellationToken cancellationToken)
-    {
-        var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
-        if (attachment == null)
-        {
-            return;
-        }
-
-        var correspondences = await _correspondenceRepository.GetNonPublishedCorrespondencesByAttachmentId(attachment.Id, cancellationToken);
-        if (correspondences.Count == 0)
-        {
-            return;
-        }
-
-        var list = new List<CorrespondenceStatusEntity>();
-        foreach (var correspondenceId in correspondences)
-        {
-            list.Add(
-                new CorrespondenceStatusEntity
-                {
-                    CorrespondenceId = correspondenceId,
-                    Status = CorrespondenceStatus.ReadyForPublish,
-                    StatusChanged = DateTime.UtcNow,
-                    StatusText = CorrespondenceStatus.ReadyForPublish.ToString()
-                }
-            );
-        }
-        await _correspondenceStatusRepository.AddCorrespondenceStatuses(list, cancellationToken);
-        return;
+        return uploadResult.Match<OneOf<UploadAttachmentResponse, Error>>(
+            data => { return data; },
+            error => { return error; }
+        );
     }
 }

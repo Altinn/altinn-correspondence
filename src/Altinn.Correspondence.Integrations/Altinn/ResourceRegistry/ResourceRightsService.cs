@@ -19,12 +19,7 @@ public class ResourceRightsService : IResourceRightsService
         _logger = logger;
     }
 
-    public async Task<bool> Exists(string resourceId, CancellationToken cancellationToken)
-    {
-        var exist = await GetResource(resourceId, cancellationToken);
-        return exist != null;
-    }
-    public async Task<string?> GetResource(string resourceId, CancellationToken cancellationToken)
+    public async Task<string?> GetServiceOwnerOfResource(string resourceId, CancellationToken cancellationToken)
     {
         var response = await _client.GetAsync($"resourceregistry/api/v1/resource/{resourceId}", cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.NoContent)
