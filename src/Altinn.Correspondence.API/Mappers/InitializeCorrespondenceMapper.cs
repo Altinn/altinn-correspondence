@@ -22,6 +22,7 @@ internal static class InitializeCorrespondenceMapper
             ReplyOptions = CorrespondenceReplyOptionsMapper.MapListToEntities(initializeCorrespondenceExt.ReplyOptions),
             IsReservable = initializeCorrespondenceExt.IsReservable,
             Notifications = InitializeCorrespondenceNotificationMapper.MapListToEntities(initializeCorrespondenceExt.Notifications),
+            ExternalReferences = ExternalReferenceMapper.MapListToEntities(initializeCorrespondenceExt.ExternalReferences),
             Statuses = new List<CorrespondenceStatusEntity>(),
             Created = DateTimeOffset.UtcNow,
             Content = initializeCorrespondenceExt.Content != null ? new CorrespondenceContentEntity

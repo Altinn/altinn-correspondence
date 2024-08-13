@@ -31,7 +31,9 @@ public class GetCorrespondenceOverviewResponse
 
     public List<CorrespondenceNotificationEntity> Notifications { get; set; } = new List<CorrespondenceNotificationEntity>();
 
-    public Guid ResourceId { get; set; }
+    public List<ExternalReferenceEntity> ExternalReferences { get; set; } = new List<ExternalReferenceEntity>();
+
+    public string ResourceId { get; set; }
 
     public DateTimeOffset VisibleFrom { get; set; }
 

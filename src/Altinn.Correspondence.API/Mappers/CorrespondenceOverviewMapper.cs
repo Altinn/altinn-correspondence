@@ -22,6 +22,7 @@ internal static class CorrespondenceOverviewMapper
             Content = CorrespondenceContentMapper.MapToExternal(correspondenceOverview.Content),
             ReplyOptions = CorrespondenceReplyOptionsMapper.MapListToExternal(correspondenceOverview.ReplyOptions),
             Notifications = InitializeCorrespondenceNotificationMapper.MapListToExternal(correspondenceOverview.Notifications),
+            ExternalReferences = ExternalReferenceMapper.MapListToExternal(correspondenceOverview.ExternalReferences),
             ResourceId = correspondenceOverview.ResourceId.ToString(),
             VisibleFrom = correspondenceOverview.VisibleFrom,
             MarkedUnread = correspondenceOverview.MarkedUnread,
