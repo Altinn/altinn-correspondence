@@ -38,7 +38,7 @@ module saveMigrationConnectionString '../keyvault/upsertSecret.bicep' = {
   params: {
     destKeyVaultName: srcKeyVault.name
     secretName: migrationConnectionStringName
-    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${databaseUser};Password=${administratorLoginPassword};options=-c role=azure_pg_admin;'
+    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${databaseUser};Password=${administratorLoginPassword};'
   }
 }
 
