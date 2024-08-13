@@ -139,7 +139,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
 
         var overviewResponse = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{response?.CorrespondenceId.ToString()}", _responseSerializerOptions);
-        var correspondenceAttachmentId = overviewResponse.Content.Attachments.First().AttachmentId.ToString();
+        var correspondenceAttachmentId = overviewResponse.Content.Attachments.First().Id.ToString();
         // Download the attachment data
         var downloadResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/attachment/{correspondenceAttachmentId}/download");
         downloadResponse.EnsureSuccessStatusCode();

@@ -10,10 +10,9 @@ internal static class CorrespondenceAttachmentMapper
     {
         var content = new CorrespondenceAttachmentExt
         {
-            Id = attachment.Id,
             DataType = attachment.Attachment.DataType,
             FileName = attachment.Attachment.FileName,
-            AttachmentId = attachment.AttachmentId,
+            Id = attachment.Id,
             IsEncrypted = attachment.Attachment.IsEncrypted,
             Name = attachment.Attachment.Name,
             Sender = attachment.Attachment.Sender,

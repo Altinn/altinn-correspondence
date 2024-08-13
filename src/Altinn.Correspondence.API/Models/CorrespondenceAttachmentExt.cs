@@ -9,12 +9,6 @@ namespace Altinn.Correspondence.API.Models
     public class CorrespondenceAttachmentExt : InitializeCorrespondenceAttachmentExt
     {
         /// <summary>
-        /// A unique id for the attachment.
-        /// </summary>
-        [JsonPropertyName("attachmentId")]
-        public Guid? AttachmentId { get; set; }
-
-        /// <summary>
         /// The date on which this attachment is created
         /// </summary>
         [JsonPropertyName("created")]
