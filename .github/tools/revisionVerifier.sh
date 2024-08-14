@@ -53,5 +53,6 @@ while true; do
     if [[ $attempt -gt 25 ]]; then
       echo "Revision $revision_name did not start in time. Exiting script."
       exit 1
+    fi
   fi
 done
