@@ -38,7 +38,7 @@ module saveMigrationConnectionString '../keyvault/upsertSecret.bicep' = {
   params: {
     destKeyVaultName: srcKeyVault.name
     secretName: migrationConnectionStringName
-    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${databaseUser};Password=${administratorLoginPassword};'
+    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${databaseUser};Password=${administratorLoginPassword};options=-c role=azure_pg_admin;'
   }
 }
 
@@ -96,6 +96,6 @@ module adoConnectionString '../keyvault/upsertSecret.bicep' = {
   params: {
     destKeyVaultName: environmentKeyVaultName
     secretName: 'correspondence-ado-connection-string'
-    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${namePrefix}-app-identity;Ssl Mode=Require;Trust Server Certificate=True;Maximum Pool Size=${poolSize};'
+    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${namePrefix}-app-identity;Ssl Mode=Require;Trust Server Certificate=True;Maximum Pool Size=${poolSize};options=-c search_path=correspondence -c role=azure_pg_admin;'
   }
 }
