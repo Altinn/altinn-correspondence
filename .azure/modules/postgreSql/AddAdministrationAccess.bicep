@@ -4,7 +4,7 @@ param appName string
 param namePrefix string
 
 resource database 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' existing = {
-  name: '${namePrefix}-pgflex'
+  name: '${namePrefix}-dbserver'
 }
 resource databaseAccess 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2022-12-01' = {
   name: principalId
