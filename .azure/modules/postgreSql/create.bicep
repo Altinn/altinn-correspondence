@@ -43,7 +43,7 @@ module saveMigrationConnectionString '../keyvault/upsertSecret.bicep' = {
 }
 
 resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' = {
-  name: '${namePrefix}-pgflex'
+  name: '${namePrefix}-dbserver'
   location: location
   properties: {
     version: '14'
