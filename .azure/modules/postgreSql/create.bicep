@@ -38,12 +38,12 @@ module saveMigrationConnectionString '../keyvault/upsertSecret.bicep' = {
   params: {
     destKeyVaultName: srcKeyVault.name
     secretName: migrationConnectionStringName
-    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${databaseUser};Password=${administratorLoginPassword};'
+    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${databaseUser};Password=${administratorLoginPassword};options=-c role=azure_pg_admin;'
   }
 }
 
 resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' = {
-  name: '${namePrefix}-pgflex'
+  name: '${namePrefix}-dbserver'
   location: location
   properties: {
     version: '14'

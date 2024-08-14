@@ -12,11 +12,15 @@ namespace Altinn.Correspondence.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.EnsureSchema(
+                name: "correspondence");
+
             migrationBuilder.AlterDatabase()
                 .Annotation("Npgsql:PostgresExtension:hstore", ",,");
 
             migrationBuilder.CreateTable(
                 name: "Attachments",
+                schema: "correspondence",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -40,6 +44,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Correspondences",
+                schema: "correspondence",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -63,6 +68,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AttachmentStatuses",
+                schema: "correspondence",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -77,6 +83,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_AttachmentStatuses_Attachments_AttachmentId",
                         column: x => x.AttachmentId,
+                        principalSchema: "correspondence",
                         principalTable: "Attachments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -84,6 +91,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "CorrespondenceContents",
+                schema: "correspondence",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -99,6 +107,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_CorrespondenceContents_Correspondences_CorrespondenceId",
                         column: x => x.CorrespondenceId,
+                        principalSchema: "correspondence",
                         principalTable: "Correspondences",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -106,6 +115,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "CorrespondenceNotifications",
+                schema: "correspondence",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -122,6 +132,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_CorrespondenceNotifications_Correspondences_CorrespondenceId",
                         column: x => x.CorrespondenceId,
+                        principalSchema: "correspondence",
                         principalTable: "Correspondences",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -129,6 +140,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "CorrespondenceReplyOptions",
+                schema: "correspondence",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -142,6 +154,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_CorrespondenceReplyOptions_Correspondences_CorrespondenceId",
                         column: x => x.CorrespondenceId,
+                        principalSchema: "correspondence",
                         principalTable: "Correspondences",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -149,6 +162,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "CorrespondenceStatuses",
+                schema: "correspondence",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -163,6 +177,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_CorrespondenceStatuses_Correspondences_CorrespondenceId",
                         column: x => x.CorrespondenceId,
+                        principalSchema: "correspondence",
                         principalTable: "Correspondences",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -170,6 +185,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ExternalReferences",
+                schema: "correspondence",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -183,6 +199,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_ExternalReferences_Correspondences_CorrespondenceId",
                         column: x => x.CorrespondenceId,
+                        principalSchema: "correspondence",
                         principalTable: "Correspondences",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -190,6 +207,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "CorrespondenceAttachments",
+                schema: "correspondence",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -204,12 +222,14 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_CorrespondenceAttachments_Attachments_AttachmentId",
                         column: x => x.AttachmentId,
+                        principalSchema: "correspondence",
                         principalTable: "Attachments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_CorrespondenceAttachments_CorrespondenceContents_Correspond~",
                         column: x => x.CorrespondenceContentId,
+                        principalSchema: "correspondence",
                         principalTable: "CorrespondenceContents",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -217,6 +237,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "CorrespondenceNotificationStatuses",
+                schema: "correspondence",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -231,6 +252,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_CorrespondenceNotificationStatuses_CorrespondenceNotificati~",
                         column: x => x.NotificationId,
+                        principalSchema: "correspondence",
                         principalTable: "CorrespondenceNotifications",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -238,47 +260,56 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_AttachmentStatuses_AttachmentId",
+                schema: "correspondence",
                 table: "AttachmentStatuses",
                 column: "AttachmentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CorrespondenceAttachments_AttachmentId",
+                schema: "correspondence",
                 table: "CorrespondenceAttachments",
                 column: "AttachmentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CorrespondenceAttachments_CorrespondenceContentId",
+                schema: "correspondence",
                 table: "CorrespondenceAttachments",
                 column: "CorrespondenceContentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CorrespondenceContents_CorrespondenceId",
+                schema: "correspondence",
                 table: "CorrespondenceContents",
                 column: "CorrespondenceId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_CorrespondenceNotifications_CorrespondenceId",
+                schema: "correspondence",
                 table: "CorrespondenceNotifications",
                 column: "CorrespondenceId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CorrespondenceNotificationStatuses_NotificationId",
+                schema: "correspondence",
                 table: "CorrespondenceNotificationStatuses",
                 column: "NotificationId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CorrespondenceReplyOptions_CorrespondenceId",
+                schema: "correspondence",
                 table: "CorrespondenceReplyOptions",
                 column: "CorrespondenceId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CorrespondenceStatuses_CorrespondenceId",
+                schema: "correspondence",
                 table: "CorrespondenceStatuses",
                 column: "CorrespondenceId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ExternalReferences_CorrespondenceId",
+                schema: "correspondence",
                 table: "ExternalReferences",
                 column: "CorrespondenceId");
         }
@@ -287,34 +318,44 @@ namespace Altinn.Correspondence.Persistence.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "AttachmentStatuses");
+                name: "AttachmentStatuses",
+                schema: "correspondence");
 
             migrationBuilder.DropTable(
-                name: "CorrespondenceAttachments");
+                name: "CorrespondenceAttachments",
+                schema: "correspondence");
 
             migrationBuilder.DropTable(
-                name: "CorrespondenceNotificationStatuses");
+                name: "CorrespondenceNotificationStatuses",
+                schema: "correspondence");
 
             migrationBuilder.DropTable(
-                name: "CorrespondenceReplyOptions");
+                name: "CorrespondenceReplyOptions",
+                schema: "correspondence");
 
             migrationBuilder.DropTable(
-                name: "CorrespondenceStatuses");
+                name: "CorrespondenceStatuses",
+                schema: "correspondence");
 
             migrationBuilder.DropTable(
-                name: "ExternalReferences");
+                name: "ExternalReferences",
+                schema: "correspondence");
 
             migrationBuilder.DropTable(
-                name: "Attachments");
+                name: "Attachments",
+                schema: "correspondence");
 
             migrationBuilder.DropTable(
-                name: "CorrespondenceContents");
+                name: "CorrespondenceContents",
+                schema: "correspondence");
 
             migrationBuilder.DropTable(
-                name: "CorrespondenceNotifications");
+                name: "CorrespondenceNotifications",
+                schema: "correspondence");
 
             migrationBuilder.DropTable(
-                name: "Correspondences");
+                name: "Correspondences",
+                schema: "correspondence");
         }
     }
 }
