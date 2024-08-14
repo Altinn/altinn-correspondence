@@ -18,7 +18,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<List<CorrespondenceEntity>> CreateMultipleCorrespondences(List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken)
         {
             await _context.Correspondences.AddRangeAsync(correspondences, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
+            var rowsUpdated = await _context.SaveChangesAsync(cancellationToken); // 13
+            int expectedChanges = context.ChangeTracker.Entries()
+                .Count(e => e.State == EntityState.Added || 
+                            e.State == EntityState.Modified || 
+                            e.State == EntityState.Deleted);
+
+            if (expectedChanges != rowsUpdated)
+            {
+                throw new DbUpdateException($"Warning: Expected {expectedChanges} changes in CreateMultipleCorrespondences but {rowsUpdated} changes were made.");
+            }
             return correspondences;
         }
 
@@ -98,7 +107,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
             if (correspondence != null)
             {
                 correspondence.MarkedUnread = status;
-                await _context.SaveChangesAsync(cancellationToken);
+                var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
+                if (rowsUpdated != 1)
+                {
+                    throw new DbUpdateException("Could not save correspondence to database UpdateMarkedUnread");
+                }
             }
         }
     }

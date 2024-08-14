@@ -11,7 +11,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<Guid> AddAttachmentStatus(AttachmentStatusEntity status, CancellationToken cancellationToken)
         {
             await _context.AttachmentStatuses.AddAsync(status, cancellationToken);
-            await _context.SaveChangesAsync();
+            var rowsUpdated = await _context.SaveChangesAsync();
+            int expectedChanges = context.ChangeTracker.Entries()
+                .Count(e => e.State == EntityState.Added || 
+                            e.State == EntityState.Modified || 
+                            e.State == EntityState.Deleted);
+
+            if (expectedChanges != rowsUpdated)
+            {
+                throw new DbUpdateException($"Warning: Expected {expectedChanges} changes in AddAttachmentStatus but {rowsUpdated} changes were made.");
+            }
             return status.Id;
         }
 
