@@ -33,6 +33,12 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
         {
             return Errors.CorrespondenceNotFound;
         }
+        if (latestStatus.Status == CorrespondenceStatus.Published)
+        {
+            latestStatus.Status = CorrespondenceStatus.Fetched;
+            latestStatus.StatusText = CorrespondenceStatus.Fetched.ToString();
+            latestStatus.StatusChanged = DateTimeOffset.UtcNow;
+        }
         var response = new GetCorrespondenceOverviewResponse
         {
             CorrespondenceId = correspondence.Id,

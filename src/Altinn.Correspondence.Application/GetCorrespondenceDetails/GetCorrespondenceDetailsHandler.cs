@@ -28,7 +28,18 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
         {
             return Errors.NoAccessToResource;
         }
-        var latestStatus = correspondence.Statuses.OrderByDescending(s => s.StatusChanged).First();
+        var latestStatus = correspondence.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault();
+        if (latestStatus == null)
+        {
+            return Errors.CorrespondenceNotFound;
+        }
+        if (latestStatus.Status == CorrespondenceStatus.Published)
+        {
+            latestStatus.Status = CorrespondenceStatus.Fetched;
+            latestStatus.StatusText = CorrespondenceStatus.Fetched.ToString();
+            latestStatus.StatusChanged = DateTimeOffset.UtcNow;
+        }
+        
         var response = new GetCorrespondenceDetailsResponse
         {
             CorrespondenceId = correspondence.Id,
