@@ -9,11 +9,13 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
+    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
 
-    public GetCorrespondenceDetailsHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository)
+    public GetCorrespondenceDetailsHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
+        _correspondenceStatusRepository = correspondenceStatusRepository;
     }
 
     public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
@@ -38,8 +40,16 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
             latestStatus.Status = CorrespondenceStatus.Fetched;
             latestStatus.StatusText = CorrespondenceStatus.Fetched.ToString();
             latestStatus.StatusChanged = DateTimeOffset.UtcNow;
+
+            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+            {
+                CorrespondenceId = correspondence.Id,
+                Status = latestStatus.Status,
+                StatusText = latestStatus.StatusText,
+                StatusChanged = latestStatus.StatusChanged
+            }, cancellationToken);
         }
-        
+
         var response = new GetCorrespondenceDetailsResponse
         {
             CorrespondenceId = correspondence.Id,
