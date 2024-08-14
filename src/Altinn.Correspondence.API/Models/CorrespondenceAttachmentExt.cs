@@ -9,16 +9,10 @@ namespace Altinn.Correspondence.API.Models
     public class CorrespondenceAttachmentExt : InitializeCorrespondenceAttachmentExt
     {
         /// <summary>
-        /// A unique id for the attachment.
-        /// </summary>
-        [JsonPropertyName("attachmentId")]
-        public Guid? AttachmentId { get; set; }
-
-        /// <summary>
         /// The date on which this attachment is created
         /// </summary>
-        [JsonPropertyName("createdDateTime")]
-        public DateTimeOffset CreatedDateTime { get; set; }
+        [JsonPropertyName("created")]
+        public DateTimeOffset Created { get; set; }
 
         /// <summary>
         /// Specifies the location of the attachment data
@@ -41,7 +35,13 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Timestamp for when the Current Attachment Status was changed
         /// </summary>
-        [JsonPropertyName("StatusChangedDateTime")]
-        public DateTimeOffset StatusChangedDateTime { get; set; }
+        [JsonPropertyName("StatusChanged")]
+        public DateTimeOffset StatusChanged { get; set; }
+
+        /// <summary>
+        /// When the attachment expires
+        /// </summary>
+        [JsonPropertyName("expirationTime")]
+        public DateTimeOffset ExpirationTime { get; set; }
     }
 }

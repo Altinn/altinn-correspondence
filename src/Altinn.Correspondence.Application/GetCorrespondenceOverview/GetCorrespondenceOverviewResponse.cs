@@ -31,11 +31,19 @@ public class GetCorrespondenceOverviewResponse
 
     public List<CorrespondenceNotificationEntity> Notifications { get; set; } = new List<CorrespondenceNotificationEntity>();
 
-    public Guid ResourceId { get; set; }
+    public List<ExternalReferenceEntity> ExternalReferences { get; set; } = new List<ExternalReferenceEntity>();
+
+    public string ResourceId { get; set; }
 
     public DateTimeOffset VisibleFrom { get; set; }
 
     public bool IsReservable { get; set; }
 
     public bool? MarkedUnread { get; set; }
+
+    public DateTimeOffset? AllowSystemDeleteAfter { get; set; }
+
+    public DateTimeOffset DueDateTime { get; set; }
+
+    public Dictionary<string, string> PropertyList { get; set; } = new Dictionary<string, string>();
 }

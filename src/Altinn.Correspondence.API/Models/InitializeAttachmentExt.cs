@@ -80,12 +80,5 @@ namespace Altinn.Correspondence.API.Models
         [JsonPropertyName("dataType")]
         [Required]
         public required string DataType { get; set; }
-
-        /// <summary>
-        /// Date/Time in UTC for when the attachment will expire and may be cleaned up automatically
-        /// </summary>
-        [JsonPropertyName("expirationTime")]
-        [Required]
-        public DateTimeOffset ExpirationTime { get; set; }
     }
 }
