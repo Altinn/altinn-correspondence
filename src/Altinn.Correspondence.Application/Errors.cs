@@ -29,6 +29,6 @@ public static class Errors
     public static Error DuplicateRecipients = new Error(21, "Recipients must be unique", HttpStatusCode.BadRequest);
     public static Error MultipleCorrespondenceNoAttachments = new Error(22, "When uploading multiple correspondences, either upload or use existing attachments", HttpStatusCode.BadRequest);
     public static Error HashError = new Error(23, "Checksum mismatch", HttpStatusCode.BadRequest);
-    public static Error InvalidRowUpdate = new Error(24, "Invalid update of rows", HttpStatusCode.BadRequest);
+    public static Error InvalidRowUpdate(string data) => new Error(24, "Invalid update of rows: " + data, HttpStatusCode.BadRequest);
     public static Error DataLocationNotFound = new Error(25, "Could not get data location url", HttpStatusCode.BadRequest);
 }

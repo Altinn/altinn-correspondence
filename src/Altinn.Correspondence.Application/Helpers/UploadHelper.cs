@@ -42,18 +42,18 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 var (dataLocationUrl, checksum) = await _storageRepository.UploadAttachment(attachment, file, cancellationToken);
 
-                var isValidUpdate = await _attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
+                var data = await _attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
 
                 if (string.IsNullOrWhiteSpace(attachment.Checksum))
                 {
-                    isValidUpdate |= await _attachmentRepository.SetChecksum(attachment, checksum, cancellationToken);
+                    data = await _attachmentRepository.SetChecksum(attachment, checksum, cancellationToken);
                 }
 
-                if (!isValidUpdate)
+                if (!String.IsNullOrEmpty(data))
                 {
                     await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.InvalidRowUpdate);
                     await _storageRepository.PurgeAttachment(attachment.Id, cancellationToken);
-                    return Errors.InvalidRowUpdate;
+                    return Errors.InvalidRowUpdate(data);
                 }
             }
             catch (DataLocationUrlException)
@@ -76,7 +76,7 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.Published, cancellationToken);
             }
-            
+
             return new UploadAttachmentResponse()
             {
                 AttachmentId = attachment.Id,
@@ -86,17 +86,17 @@ namespace Altinn.Correspondence.Application.Helpers
             };
         }
         private async Task<AttachmentStatusEntity> SetAttachmentStatus(Guid attachmentId, AttachmentStatus status, CancellationToken cancellationToken, string statusText = null)
-    {
-        var currentStatus = new AttachmentStatusEntity
         {
-            AttachmentId = attachmentId,
-            Status = status,
-            StatusChanged = DateTimeOffset.UtcNow,
-            StatusText = statusText ?? status.ToString()
-        };
-        await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
-        return currentStatus;
-    }
+            var currentStatus = new AttachmentStatusEntity
+            {
+                AttachmentId = attachmentId,
+                Status = status,
+                StatusChanged = DateTimeOffset.UtcNow,
+                StatusText = statusText ?? status.ToString()
+            };
+            await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
+            return currentStatus;
+        }
         public async Task CheckCorrespondenceStatusesAfterUploadAndPublish(Guid attachmentId, CancellationToken cancellationToken)
         {
             var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
