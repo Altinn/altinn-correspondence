@@ -40,11 +40,16 @@ public class GetAttachmentDetailsHandler : IHandler<Guid, GetAttachmentDetailsRe
             Name = attachment.FileName,
             Status = attachmentStatus.Status,
             Statuses = attachment.Statuses,
+            StatusText = attachmentStatus.StatusText,
             StatusChanged = attachmentStatus.StatusChanged,
             DataLocationType = attachment.DataLocationType,
             DataType = attachment.DataType,
             SendersReference = attachment.SendersReference,
             CorrespondenceIds = correspondenceIds,
+            FileName = attachment.FileName,
+            Sender = attachment.Sender,
+            RestrictionName = attachment.RestrictionName,
+            IsEncrypted = attachment.IsEncrypted,
         };
         return response;
     }

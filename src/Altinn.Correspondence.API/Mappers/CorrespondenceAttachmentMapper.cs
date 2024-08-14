@@ -12,7 +12,7 @@ internal static class CorrespondenceAttachmentMapper
         {
             DataType = attachment.Attachment.DataType,
             FileName = attachment.Attachment.FileName,
-            AttachmentId = attachment.Id,
+            Id = attachment.Id,
             IsEncrypted = attachment.Attachment.IsEncrypted,
             Name = attachment.Attachment.Name,
             Sender = attachment.Attachment.Sender,
@@ -21,8 +21,11 @@ internal static class CorrespondenceAttachmentMapper
             DataLocationType = (AttachmentDataLocationTypeExt)attachment.Attachment.DataLocationType,
             DataLocationUrl = attachment.Attachment.DataLocationUrl,
             RestrictionName = attachment.Attachment.RestrictionName,
-            Status = (AttachmentStatusExt)attachment.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault().Status,
-
+            Status = (AttachmentStatusExt)attachment.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault()!.Status,
+            StatusText = attachment.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault()!.StatusText,
+            StatusChanged = attachment.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault()!.StatusChanged,
+            Created = attachment.Created,
+            ExpirationTime = attachment.ExpirationTime
         };
         return content;
     }

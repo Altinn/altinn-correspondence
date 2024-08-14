@@ -18,9 +18,10 @@ internal static class InitializeMultipleCorrespondencesMapper
             AllowSystemDeleteAfter = initializeCorrespondenceExt.AllowSystemDeleteAfter,
             DueDateTime = initializeCorrespondenceExt.DueDateTime,
             PropertyList = initializeCorrespondenceExt.PropertyList,
-            ReplyOptions = CorrespondenceReplyOptionsMapper.MapListToEntities(initializeCorrespondenceExt.ReplyOptions),
+            ReplyOptions = initializeCorrespondenceExt.ReplyOptions != null ? CorrespondenceReplyOptionsMapper.MapListToEntities(initializeCorrespondenceExt.ReplyOptions) : new List<CorrespondenceReplyOptionEntity>(),
             IsReservable = initializeCorrespondenceExt.IsReservable,
-            Notifications = InitializeCorrespondenceNotificationMapper.MapListToEntities(initializeCorrespondenceExt.Notifications),
+            Notifications = initializeCorrespondenceExt.Notifications != null ? InitializeCorrespondenceNotificationMapper.MapListToEntities(initializeCorrespondenceExt.Notifications) : new List<CorrespondenceNotificationEntity>(),
+            ExternalReferences = initializeCorrespondenceExt.ExternalReferences != null ? ExternalReferenceMapper.MapListToEntities(initializeCorrespondenceExt.ExternalReferences) : new List<ExternalReferenceEntity>(),
             Statuses = new List<CorrespondenceStatusEntity>(),
             Created = DateTimeOffset.UtcNow,
             Content = initializeCorrespondenceExt.Content != null ? new CorrespondenceContentEntity
