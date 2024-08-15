@@ -61,25 +61,15 @@ public class InitializeMultipleCorrespondencesHandler : IHandler<InitializeMulti
 
         var attachmentError = initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content!.Attachments, true);
         if (attachmentError != null) return attachmentError;
-        await _correspondenceRepository.DetachCorrespondence(request.Correspondence);
-        var correspondenceAttachments = new List<CorrespondenceAttachmentEntity>();
         if (request.Correspondence.Content.Attachments != null)
         {
             foreach (var attachment in request.Correspondence.Content.Attachments)
             {
                 var att = await initializeCorrespondenceHelper.ProcessAttachment(attachment, true, cancellationToken);
-                correspondenceAttachments.Add(new CorrespondenceAttachmentEntity
-                {
-                    Attachment = att,
-                    Created = DateTimeOffset.UtcNow
-                });
+                attachment.Attachment = att;
             }
         }
-
-        foreach (var attachment in correspondenceAttachments)
-        {
-            await initializeCorrespondenceHelper.UploadAttachments(correspondenceAttachments.Select(a => a.Attachment).ToList(), request.Attachments, cancellationToken);
-        }
+        await initializeCorrespondenceHelper.UploadAttachments(request.Correspondence.Content.Attachments.Select(a => a.Attachment).ToList(), request.Attachments, cancellationToken);
         var status = initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);
         var correspondences = new List<CorrespondenceEntity>();
         foreach (var recipient in request.Recipients)
@@ -91,32 +81,24 @@ public class InitializeMultipleCorrespondencesHandler : IHandler<InitializeMulti
                 Sender = request.Correspondence.Sender,
                 SendersReference = request.Correspondence.SendersReference,
                 MessageSender = request.Correspondence.MessageSender,
-                Content = new CorrespondenceContentEntity
-                {
-                    MessageTitle = request.Correspondence.Content.MessageTitle,
-                    MessageBody = request.Correspondence.Content.MessageBody,
-                    MessageSummary = request.Correspondence.Content.MessageSummary,
-                    Attachments = correspondenceAttachments,
-                    Language = request.Correspondence.Content.Language,
-                },
+                Content = request.Correspondence.Content,
                 VisibleFrom = request.Correspondence.VisibleFrom,
                 AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,
                 DueDateTime = request.Correspondence.DueDateTime,
                 PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
-                ReplyOptions = new List<CorrespondenceReplyOptionEntity>(),
+                ReplyOptions = request.Correspondence.ReplyOptions,
                 IsReservable = request.Correspondence.IsReservable,
                 Notifications = initializeCorrespondenceHelper.ProcessNotifications(request.Correspondence.Notifications, cancellationToken),
                 Statuses = new List<CorrespondenceStatusEntity>(){
-            new CorrespondenceStatusEntity
-            {
-                Status = status,
-                StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = status.ToString()
-            }
-        },
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = status,
+                        StatusChanged = DateTimeOffset.UtcNow,
+                        StatusText = status.ToString()
+                    }
+                },
                 Created = request.Correspondence.Created,
-                ExternalReferences = new List<ExternalReferenceEntity>(),
-
+                ExternalReferences = request.Correspondence.ExternalReferences,
             };
             correspondences.Add(correspondence);
         }

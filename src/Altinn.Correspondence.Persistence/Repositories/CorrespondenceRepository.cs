@@ -107,10 +107,5 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 }
             }
         }
-        public async Task DetachCorrespondence(CorrespondenceEntity correspondence)
-        {
-            _context.Entry(correspondence).State = EntityState.Detached;
-            await _context.SaveChangesAsync();
-        }
     }
 }
