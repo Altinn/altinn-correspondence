@@ -41,14 +41,14 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 var (dataLocationUrl, checksum) = await _storageRepository.UploadAttachment(attachment, file, cancellationToken);
 
-                var data = await _attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
+                var isValidUpdate = await _attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
 
                 if (string.IsNullOrWhiteSpace(attachment.Checksum))
                 {
-                    data = await _attachmentRepository.SetChecksum(attachment, checksum, cancellationToken);
+                    isValidUpdate |= await _attachmentRepository.SetChecksum(attachment, checksum, cancellationToken);
                 }
 
-                if (!String.IsNullOrEmpty(data))
+                if (!isValidUpdate)
                 {
                     await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.UploadFailed);
                     await _storageRepository.PurgeAttachment(attachment.Id, cancellationToken);

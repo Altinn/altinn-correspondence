@@ -23,7 +23,7 @@ internal static class AttachmentOverviewMapper
             StatusChanged = attachmentOverview.StatusChanged,
             DataType = attachmentOverview.DataType,
             SendersReference = attachmentOverview.SendersReference,
-            CorrespondenceIds = attachmentOverview.CorrespondenceIds
+            CorrespondenceIds = attachmentOverview.CorrespondenceIds ?? new List<Guid>(),
         };
         return attachment;
     }

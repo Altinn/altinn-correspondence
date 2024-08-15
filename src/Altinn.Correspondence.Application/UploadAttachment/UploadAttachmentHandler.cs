@@ -1,10 +1,7 @@
-using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
-using Azure;
 using Microsoft.Extensions.Hosting;
 using OneOf;
 

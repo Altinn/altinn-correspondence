@@ -38,29 +38,20 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return await attachments.SingleOrDefaultAsync(a => a.Id == guid, cancellationToken);
         }
 
-        public async Task<string> SetDataLocationUrl(AttachmentEntity attachmentEntity, AttachmentDataLocationType attachmentDataLocationType, string dataLocationUrl, CancellationToken cancellationToken)
+        public async Task<bool> SetDataLocationUrl(AttachmentEntity attachmentEntity, AttachmentDataLocationType attachmentDataLocationType, string dataLocationUrl, CancellationToken cancellationToken)
         {
             attachmentEntity.DataLocationType = attachmentDataLocationType;
             attachmentEntity.DataLocationUrl = dataLocationUrl;
-            string changes = _context.ChangeTracker.DebugView.LongView;
             var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
-            if (rowsUpdated != 1)
-            {
-                return changes;
-            }
-            return string.Empty;
+            return rowsUpdated != 1;
+
         }
 
-        public async Task<string> SetChecksum(AttachmentEntity attachmentEntity, string? checkSum, CancellationToken cancellationToken)
+        public async Task<bool> SetChecksum(AttachmentEntity attachmentEntity, string? checkSum, CancellationToken cancellationToken)
         {
             attachmentEntity.Checksum = checkSum;
-            string changes = _context.ChangeTracker.DebugView.LongView;
             var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
-            if (rowsUpdated != 1)
-            {
-                return changes;
-            }
-            return string.Empty;
+            return rowsUpdated != 1;
         }
 
         public async Task<bool> CanAttachmentBeDeleted(Guid attachmentId, CancellationToken cancellationToken)

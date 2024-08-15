@@ -10,13 +10,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<Guid> AddAttachmentStatus(AttachmentStatusEntity status, CancellationToken cancellationToken)
         {
-            var changes = _context.ChangeTracker.DebugView.LongView;
             await _context.AttachmentStatuses.AddAsync(status, cancellationToken);
-            var rowsUpdated = await _context.SaveChangesAsync();
-            if (rowsUpdated != 1)
-            {
-                throw new DbUpdateException("Failed to add attachment status: " + changes);
-            }
+            await _context.SaveChangesAsync();
             return status.Id;
         }
 

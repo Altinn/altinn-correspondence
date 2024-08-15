@@ -241,9 +241,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
                 FileName = file2.FileName,
                 IsEncrypted = false,
             }};
-        correspondence.MessageSender = "UPLOAD MULTIPLE CORRESPONDENCE";
-        correspondence.Content.MessageBody = "UPLOAD MULTIPLE CORRESPONDENCE";
-        correspondence.Content.MessageTitle = "UPLOAD MULTIPLE CORRESPONDENCE";
 
         var formData = CorrespondenceToFormData(correspondence, "Correspondence.");
 
@@ -457,7 +454,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
         initializeResponse.EnsureSuccessStatusCode();
         var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
-        var overview = await (await UploadAttachment(attachmentId)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
+        var overview = await (await UploadAttachment(attachmentId)).Content.ReadFromJsonAsync<UploadAttachmentResponseExt>(_responseSerializerOptions);
         return overview;
     }
     private MultipartFormDataContent CorrespondenceToFormData(InitializeCorrespondenceExt correspondence, string prefix = "")
