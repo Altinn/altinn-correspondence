@@ -1,20 +1,36 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Controllers
 {
     [ApiController]
     [Route("health")]
-    public class HealthController : ControllerBase
+    public class HealthController(DbContext dbContext, ILogger<HealthController> logger) : ControllerBase
     {
-
-        public HealthController()
-        {
-        }
+        private readonly DbContext _dbContext = dbContext;
+        private readonly ILogger<HealthController> _logger;
 
         [HttpGet]
-        public ActionResult HealthCheckAsync()
+        public async Task<ActionResult> HealthCheckAsync()
         {
-            return Ok("Environment properly configured");
+            try
+            {
+                await _dbContext.Database.CanConnectAsync();
+                return Ok(new
+                {
+                    Status = "Healthy",
+                    Message = "Environment properly configured and database is accessible"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Health check failed!)", ex);
+                return StatusCode(500, new
+                {
+                    Status = "Unhealthy",
+                    Message = $"Health check failed: {ex.Message}"
+                });
+            }
         }
     }
 }
