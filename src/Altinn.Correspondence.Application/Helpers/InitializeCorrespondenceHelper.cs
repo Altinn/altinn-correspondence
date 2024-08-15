@@ -146,7 +146,6 @@ namespace Altinn.Correspondence.Application.Helpers
             if (shouldSave)
             {
                 await _attachmentRepository.InitializeAttachment(attachment, cancellationToken);
-
             }
             return attachment;
         }

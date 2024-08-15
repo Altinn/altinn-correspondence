@@ -126,14 +126,6 @@ public class InitializeMultipleCorrespondencesHandler : IHandler<InitializeMulti
             _backgroundJobClient.Schedule<PublishCorrespondenceService>((service) => service.Publish(correspondence.Id, cancellationToken), correspondence.VisibleFrom);
             await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         }
-        if (request.Attachments.Count > 0)
-        {
-            var uploadError = await initializeCorrespondenceHelper.UploadAttachments(correspondenceAttachments.Select(ca => ca.Attachment).ToList(), request.Attachments, cancellationToken);
-            if (uploadError != null)
-            {
-                return uploadError;
-            }
-        }
         return new InitializeMultipleCorrespondencesResponse()
         {
             CorrespondenceIds = correspondences.Select(c => c.Id).ToList(),
