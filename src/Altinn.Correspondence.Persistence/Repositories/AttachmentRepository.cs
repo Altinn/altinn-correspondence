@@ -43,15 +43,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
             attachmentEntity.DataLocationType = attachmentDataLocationType;
             attachmentEntity.DataLocationUrl = dataLocationUrl;
             var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
-            return rowsUpdated != 1;
+            return rowsUpdated == 1;
 
         }
 
         public async Task<bool> SetChecksum(AttachmentEntity attachmentEntity, string? checkSum, CancellationToken cancellationToken)
         {
+            Console.WriteLine("Setting checksum: " + checkSum);
             attachmentEntity.Checksum = checkSum;
             var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
-            return rowsUpdated != 1;
+            return rowsUpdated == 1;
         }
 
         public async Task<bool> CanAttachmentBeDeleted(Guid attachmentId, CancellationToken cancellationToken)

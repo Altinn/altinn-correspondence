@@ -454,7 +454,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
         initializeResponse.EnsureSuccessStatusCode();
         var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
-        var overview = await (await UploadAttachment(attachmentId)).Content.ReadFromJsonAsync<UploadAttachmentResponseExt>(_responseSerializerOptions);
+        var overview = await (await UploadAttachment(attachmentId)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
         return overview;
     }
     private MultipartFormDataContent CorrespondenceToFormData(InitializeCorrespondenceExt correspondence, string prefix = "")

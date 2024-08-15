@@ -65,7 +65,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
             return Problem(error);
         }
         return uploadAttachmentResult.Match(
-            attachment => Ok(attachmentOverview),
+            attachment => Ok(AttachmentOverviewMapper.MapToExternal(attachmentOverview)),
             Problem
         );
     }
