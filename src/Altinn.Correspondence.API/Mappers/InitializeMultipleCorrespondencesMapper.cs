@@ -30,7 +30,9 @@ internal static class InitializeMultipleCorrespondencesMapper
                 MessageTitle = initializeCorrespondenceExt.Content.MessageTitle,
                 MessageSummary = initializeCorrespondenceExt.Content.MessageSummary,
                 MessageBody = initializeCorrespondenceExt.Content.MessageBody,
-                Attachments = InitializeCorrespondenceAttachmentMapper.MapListToEntities(initializeCorrespondenceExt.Content.Attachments, initializeCorrespondenceExt.ResourceId)
+                Attachments = initializeCorrespondenceExt.Content.Attachments.Select(
+                    attachment => InitializeCorrespondenceAttachmentMapper.MapToEntity(attachment, initializeCorrespondenceExt.ResourceId, initializeCorrespondenceExt.Sender)
+                ).ToList()
             } : null,
         };
         return new InitializeMultipleCorrespondencesRequest()

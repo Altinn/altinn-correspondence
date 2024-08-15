@@ -122,8 +122,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
                 RestrictionName = "testFile3",
                 SendersReference = "1234",
                 FileName = file.FileName,
-                IsEncrypted = false,
-                Sender = correspondence.Sender
+                IsEncrypted = false
             };
             correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>() { attachmentData };
             var formData = CorrespondenceToFormData(correspondence);
@@ -143,7 +142,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
                 FileName = attachmentOverview.FileName,
                 Name = "Logical file name",
                 RestrictionName = attachmentOverview.RestrictionName,
-                Sender = attachmentOverview.Sender,
                 SendersReference = attachmentOverview.SendersReference,
                 IsEncrypted = attachmentOverview.IsEncrypted,
                 Checksum = attachmentOverview.Checksum
@@ -171,7 +169,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
                 DataType = "text",
                 Name = "markdown example",
                 RestrictionName = "testFile3",
-                Sender = correspondence.Sender,
                 SendersReference = "1234",
                 FileName = file.FileName,
                 IsEncrypted = false,
@@ -180,7 +177,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
                 DataType = "text",
                 Name = "test file",
                 RestrictionName = "testFile3",
-                Sender = correspondence.Sender,
                 SendersReference = "1234",
                 FileName = file2.FileName,
                 IsEncrypted = false,
@@ -227,7 +223,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
                 DataType = "text",
                 Name = "MARKDOWN EXAMPLE",
                 RestrictionName = "testFile3",
-                Sender = correspondence.Sender,
                 SendersReference = "1234",
                 FileName = file.FileName,
                 IsEncrypted = false,
@@ -236,7 +231,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
                 DataType = "text",
                 Name = "test file",
                 RestrictionName = "testFile3",
-                Sender = correspondence.Sender,
                 SendersReference = "1234",
                 FileName = file2.FileName,
                 IsEncrypted = false,
@@ -479,7 +473,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             new { Key = $"{prefix}content.Attachments[{index}].Name", Value = attachment.Name },
             new { Key = $"{prefix}content.Attachments[{index}].FileName", Value = attachment.FileName ?? "" },
             new { Key = $"{prefix}content.Attachments[{index}].RestrictionName", Value = attachment.RestrictionName },
-            new { Key = $"{prefix}content.Attachments[{index}].Sender", Value = attachment.Sender },
             new { Key = $"{prefix}content.Attachments[{index}].SendersReference", Value = attachment.SendersReference },
             new { Key = $"{prefix}content.Attachments[{index}].IsEncrypted", Value = attachment.IsEncrypted.ToString() }
         }).SelectMany(x => x).ToList()

@@ -15,7 +15,6 @@ internal static class CorrespondenceAttachmentMapper
             Id = attachment.Id,
             IsEncrypted = attachment.Attachment.IsEncrypted,
             Name = attachment.Attachment.Name,
-            Sender = attachment.Attachment.Sender,
             SendersReference = attachment.Attachment.SendersReference,
             Checksum = attachment.Attachment.Checksum,
             DataLocationType = (AttachmentDataLocationTypeExt)attachment.Attachment.DataLocationType,

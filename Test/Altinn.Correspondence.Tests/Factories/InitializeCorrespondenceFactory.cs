@@ -22,7 +22,6 @@ internal static class InitializeCorrespondenceFactory
                     DataType = "html",
                     Name = "2",
                     RestrictionName = "testFile2",
-                    Sender = "0192:986252932",
                     SendersReference = "1234",
                     FileName = "test-fil2e",
                     IsEncrypted = false,
@@ -93,7 +92,6 @@ internal static class InitializeCorrespondenceFactory
                         SendersReference = "1234",
                         FileName = "test-fil2e",
                         IsEncrypted = false,
-                        Sender = "0192:986252932",
                         DataLocationUrl = url
                     }
                 },
@@ -158,8 +156,7 @@ internal static class InitializeCorrespondenceFactory
                 RestrictionName = "testFile3",
                 SendersReference = "1234",
                 FileName = "test-fil3e",
-                IsEncrypted = false,
-                Sender = correspondence.Sender
+                IsEncrypted = false
             });
         return correspondence;
     }
@@ -178,7 +175,6 @@ internal static class InitializeCorrespondenceFactory
                 DataType = "pdf",
                 Name = "3",
                 RestrictionName = "testFile3",
-                Sender = "0192:986252932",
                 SendersReference = "1234",
                 FileName = "test-fil3e",
                 IsEncrypted = false,
