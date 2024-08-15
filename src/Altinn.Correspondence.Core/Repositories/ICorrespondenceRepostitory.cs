@@ -28,5 +28,6 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<List<Guid>> GetNonPublishedCorrespondencesByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default);
         Task<List<Guid>> GetCorrespondenceIdsByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default);
         Task UpdateMarkedUnread(Guid correspondenceId, bool status, CancellationToken cancellationToken);
+        Task DetachCorrespondence(CorrespondenceEntity correspondence);
     }
 }

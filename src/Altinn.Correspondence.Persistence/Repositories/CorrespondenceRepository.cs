@@ -17,17 +17,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
         }
         public async Task<List<CorrespondenceEntity>> CreateMultipleCorrespondences(List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken)
         {
-            await _context.Correspondences.AddRangeAsync(correspondences, cancellationToken);
-            var rowsUpdated = await _context.SaveChangesAsync(cancellationToken); // 13
-            int expectedChanges = context.ChangeTracker.Entries()
-                .Count(e => e.State == EntityState.Added || 
-                            e.State == EntityState.Modified || 
-                            e.State == EntityState.Deleted);
 
-            if (expectedChanges != rowsUpdated)
-            {
-                throw new DbUpdateException($"Warning: Expected {expectedChanges} changes in CreateMultipleCorrespondences but {rowsUpdated} changes were made.");
-            }
+            await _context.Correspondences.AddRangeAsync(correspondences, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+
             return correspondences;
         }
 
@@ -68,7 +61,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a.Statuses);
             }
-            return await correspondences.FirstOrDefaultAsync(c => c.Id == guid, cancellationToken);
+            return await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
         }
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesByAttachmentId(Guid attachmentId, bool includeStatus, CancellationToken cancellationToken = default)
         {
@@ -103,7 +96,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         }
         public async Task UpdateMarkedUnread(Guid correspondenceId, bool status, CancellationToken cancellationToken)
         {
-            var correspondence = await _context.Correspondences.FirstOrDefaultAsync(c => c.Id == correspondenceId, cancellationToken);
+            var correspondence = await _context.Correspondences.SingleOrDefaultAsync(c => c.Id == correspondenceId, cancellationToken);
             if (correspondence != null)
             {
                 correspondence.MarkedUnread = status;
@@ -113,6 +106,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     throw new DbUpdateException("Could not save correspondence to database UpdateMarkedUnread");
                 }
             }
+        }
+        public async Task DetachCorrespondence(CorrespondenceEntity correspondence)
+        {
+            _context.Entry(correspondence).State = EntityState.Detached;
+            await _context.SaveChangesAsync();
         }
     }
 }

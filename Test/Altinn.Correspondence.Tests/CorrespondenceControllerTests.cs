@@ -241,6 +241,10 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
                 FileName = file2.FileName,
                 IsEncrypted = false,
             }};
+        correspondence.MessageSender = "UPLOAD MULTIPLE CORRESPONDENCE";
+        correspondence.Content.MessageBody = "UPLOAD MULTIPLE CORRESPONDENCE";
+        correspondence.Content.MessageTitle = "UPLOAD MULTIPLE CORRESPONDENCE";
+
         var formData = CorrespondenceToFormData(correspondence, "Correspondence.");
 
         formData.Add(new StreamContent(fileStream), "attachments", file.FileName);

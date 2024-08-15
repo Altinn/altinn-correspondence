@@ -91,22 +91,28 @@ namespace Altinn.Correspondence.Application.Helpers
             return status;
         }
 
-        public async Task<Error?> UploadAttachments(CorrespondenceEntity correspondence, List<IFormFile> attachments, CancellationToken cancellationToken)
+        public async Task<Error?> UploadAttachmentsFromCorrespondence(CorrespondenceEntity correspondence, List<IFormFile> files, CancellationToken cancellationToken)
         {
             UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
-            foreach (var file in attachments)
+            var attachments = correspondence.Content?.Attachments.Select(a => a.Attachment).ToList();
+            return await UploadAttachments(attachments, files, cancellationToken);
+        }
+        public async Task<Error?> UploadAttachments(List<AttachmentEntity> attachments, List<IFormFile> files, CancellationToken cancellationToken)
+        {
+            UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
+            foreach (var file in files)
             {
-                var attachment = correspondence.Content?.Attachments.FirstOrDefault(a => a.Attachment.FileName.ToLower() == file.FileName.ToLower());
-                if (attachment == null || attachment.Attachment == null)
+                var attachment = attachments.FirstOrDefault(a => a.FileName.ToLower() == file.FileName.ToLower());
+
+                if (attachment == null)
                 {
                     return Errors.UploadedFilesDoesNotMatchAttachments;
                 }
                 OneOf<UploadAttachmentResponse, Error> uploadResponse;
                 await using (var f = file.OpenReadStream())
                 {
-                    uploadResponse = await uploadHelper.UploadAttachment(f, attachment.AttachmentId, cancellationToken);
+                    uploadResponse = await uploadHelper.UploadAttachment(f, attachment.Id, cancellationToken);
                 }
-
                 var error = uploadResponse.Match(
                     _ => { return null; },
                     error => { return error; }
@@ -116,7 +122,7 @@ namespace Altinn.Correspondence.Application.Helpers
             return null;
         }
 
-        public async Task<AttachmentEntity> ProcessAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, CorrespondenceEntity correspondence, CancellationToken cancellationToken)
+        public async Task<AttachmentEntity> ProcessAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, bool shouldSave, CancellationToken cancellationToken)
         {
             if (!String.IsNullOrEmpty(correspondenceAttachment.Attachment?.DataLocationUrl))
             {
@@ -136,6 +142,12 @@ namespace Altinn.Correspondence.Application.Helpers
             };
             var attachment = correspondenceAttachment.Attachment!;
             attachment.Statuses = status;
+            attachment.Created = DateTimeOffset.UtcNow;
+            if (shouldSave)
+            {
+                await _attachmentRepository.InitializeAttachment(attachment, cancellationToken);
+
+            }
             return attachment;
         }
     }

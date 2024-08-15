@@ -64,7 +64,15 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         {
             foreach (var attachment in attachments)
             {
-                attachment.Attachment = await initializeCorrespondenceHelper.ProcessAttachment(attachment, request.Correspondence, cancellationToken);
+                attachment.Attachment = await initializeCorrespondenceHelper.ProcessAttachment(attachment, true, cancellationToken);
+            }
+        }
+        if (request.Attachments.Count > 0)
+        {
+            var uploadError = await initializeCorrespondenceHelper.UploadAttachmentsFromCorrespondence(request.Correspondence, request.Attachments, cancellationToken);
+            if (uploadError != null)
+            {
+                return uploadError;
             }
         }
         var status = initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);
@@ -81,14 +89,7 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
         var correspondence = await _correspondenceRepository.CreateCorrespondence(request.Correspondence, cancellationToken);
         _backgroundJobClient.Schedule<PublishCorrespondenceService>((service) => service.Publish(correspondence.Id, cancellationToken), correspondence.VisibleFrom);
         await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
-        if (request.Attachments.Count > 0)
-        {
-            var uploadError = await initializeCorrespondenceHelper.UploadAttachments(request.Correspondence, request.Attachments, cancellationToken);
-            if (uploadError != null)
-            {
-                return uploadError;
-            }
-        }
+
         return new InitializeCorrespondenceResponse()
         {
             CorrespondenceId = correspondence.Id,

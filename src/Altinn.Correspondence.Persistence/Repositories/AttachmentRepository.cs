@@ -11,7 +11,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<AttachmentEntity> InitializeAttachment(AttachmentEntity attachment, CancellationToken cancellationToken)
         {
-
             await _context.Attachments.AddAsync(attachment, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
             return attachment;
@@ -26,7 +25,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<AttachmentEntity?> GetAttachmentByUrl(string url, CancellationToken cancellationToken)
         {
-            return await _context.Attachments.FirstOrDefaultAsync(a => a.DataLocationUrl == url, cancellationToken);
+            return await _context.Attachments.SingleOrDefaultAsync(a => a.DataLocationUrl == url, cancellationToken);
         }
 
         public async Task<AttachmentEntity?> GetAttachmentById(Guid guid, bool includeStatus, CancellationToken cancellationToken)
@@ -36,7 +35,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 attachments = attachments.Include(a => a.Statuses);
             }
-            return await attachments.FirstOrDefaultAsync(a => a.Id == guid, cancellationToken);
+            return await attachments.SingleOrDefaultAsync(a => a.Id == guid, cancellationToken);
         }
 
         public async Task<string> SetDataLocationUrl(AttachmentEntity attachmentEntity, AttachmentDataLocationType attachmentDataLocationType, string dataLocationUrl, CancellationToken cancellationToken)
