@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Core.Models;
 using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using System.IdentityModel.Tokens.Jwt;
@@ -47,5 +48,10 @@ public class ApplicationDbContext : DbContext
         JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
         SecurityToken token = tokenHandler.ReadToken(_accessToken);
         return DateTime.UtcNow.AddSeconds(60) < token.ValidTo;
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.HasDefaultSchema("correspondence");
     }
 }
