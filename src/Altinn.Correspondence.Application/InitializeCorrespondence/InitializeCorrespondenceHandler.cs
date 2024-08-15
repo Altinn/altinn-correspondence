@@ -55,21 +55,19 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
             return contentError;
         }
         var attachmentError = initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content!.Attachments, false);
-        if (attachmentError != null)
+        if (attachmentError != null) return attachmentError;
+        var attachments = new List<AttachmentEntity>();
+        if (request.Correspondence.Content!.Attachments.Count > 0)
         {
-            return attachmentError;
-        }
-        var attachments = request.Correspondence.Content!.Attachments;
-        if (attachments != null)
-        {
-            foreach (var attachment in attachments)
+            foreach (var attachment in request.Correspondence.Content!.Attachments)
             {
-                attachment.Attachment = await initializeCorrespondenceHelper.ProcessAttachment(attachment, true, cancellationToken);
+                var a = await initializeCorrespondenceHelper.ProcessAttachment(attachment, true, cancellationToken);
+                attachments.Add(a);
             }
         }
         if (request.Attachments.Count > 0)
         {
-            var uploadError = await initializeCorrespondenceHelper.UploadAttachmentsFromCorrespondence(request.Correspondence, request.Attachments, cancellationToken);
+            var uploadError = await initializeCorrespondenceHelper.UploadAttachments(attachments, request.Attachments, cancellationToken);
             if (uploadError != null)
             {
                 return uploadError;
@@ -84,6 +82,16 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
                 StatusText = status.ToString()
             }
         };
+        if (attachments != null)
+        {
+            request.Correspondence.Content!.Attachments = attachments.Select(a => new CorrespondenceAttachmentEntity
+            {
+                Attachment = a,
+                Created = DateTimeOffset.UtcNow,
+
+            }).ToList();
+        }
+
         request.Correspondence.Statuses = statuses;
         request.Correspondence.Notifications = initializeCorrespondenceHelper.ProcessNotifications(request.Correspondence.Notifications, cancellationToken);
         var correspondence = await _correspondenceRepository.CreateCorrespondence(request.Correspondence, cancellationToken);

@@ -61,15 +61,23 @@ public class InitializeMultipleCorrespondencesHandler : IHandler<InitializeMulti
 
         var attachmentError = initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content!.Attachments, true);
         if (attachmentError != null) return attachmentError;
-        if (request.Correspondence.Content.Attachments != null)
+        var attachments = new List<AttachmentEntity>();
+        if (request.Correspondence.Content!.Attachments.Count() > 0)
         {
-            foreach (var attachment in request.Correspondence.Content.Attachments)
+            foreach (var attachment in request.Correspondence.Content!.Attachments)
             {
-                var att = await initializeCorrespondenceHelper.ProcessAttachment(attachment, true, cancellationToken);
-                attachment.Attachment = att;
+                var a = await initializeCorrespondenceHelper.ProcessAttachment(attachment, true, cancellationToken);
+                attachments.Add(a);
             }
         }
-        await initializeCorrespondenceHelper.UploadAttachments(request.Correspondence.Content.Attachments.Select(a => a.Attachment).ToList(), request.Attachments, cancellationToken);
+        if (request.Attachments.Count > 0)
+        {
+            var uploadError = await initializeCorrespondenceHelper.UploadAttachments(attachments, request.Attachments, cancellationToken);
+            if (uploadError != null)
+            {
+                return uploadError;
+            }
+        }
         var status = initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);
         var correspondences = new List<CorrespondenceEntity>();
         foreach (var recipient in request.Recipients)
@@ -81,7 +89,19 @@ public class InitializeMultipleCorrespondencesHandler : IHandler<InitializeMulti
                 Sender = request.Correspondence.Sender,
                 SendersReference = request.Correspondence.SendersReference,
                 MessageSender = request.Correspondence.MessageSender,
-                Content = request.Correspondence.Content,
+                Content = new CorrespondenceContentEntity
+                {
+                    Attachments = attachments.Select(a => new CorrespondenceAttachmentEntity
+                    {
+                        Attachment = a,
+                        Created = DateTimeOffset.UtcNow,
+
+                    }).ToList(),
+                    Language = request.Correspondence.Content.Language,
+                    MessageBody = request.Correspondence.Content.MessageBody,
+                    MessageSummary = request.Correspondence.Content.MessageSummary,
+                    MessageTitle = request.Correspondence.Content.MessageTitle,
+                },
                 VisibleFrom = request.Correspondence.VisibleFrom,
                 AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,
                 DueDateTime = request.Correspondence.DueDateTime,

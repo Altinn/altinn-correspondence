@@ -34,7 +34,6 @@ namespace Altinn.Correspondence.Application.Helpers
             var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
             if (attachment == null)
             {
-                return Errors.AttachmentNotFound;
             }
 
             var currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.UploadProcessing, cancellationToken);

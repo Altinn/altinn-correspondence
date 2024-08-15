@@ -91,18 +91,12 @@ namespace Altinn.Correspondence.Application.Helpers
             return status;
         }
 
-        public async Task<Error?> UploadAttachmentsFromCorrespondence(CorrespondenceEntity correspondence, List<IFormFile> files, CancellationToken cancellationToken)
-        {
-            UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
-            var attachments = correspondence.Content?.Attachments.Select(a => a.Attachment).ToList();
-            return await UploadAttachments(attachments, files, cancellationToken);
-        }
-        public async Task<Error?> UploadAttachments(List<AttachmentEntity> attachments, List<IFormFile> files, CancellationToken cancellationToken)
+        public async Task<Error?> UploadAttachments(List<AttachmentEntity> correspondenceAttachments, List<IFormFile> files, CancellationToken cancellationToken)
         {
             UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
             foreach (var file in files)
             {
-                var attachment = attachments.FirstOrDefault(a => a.FileName.ToLower() == file.FileName.ToLower());
+                var attachment = correspondenceAttachments.FirstOrDefault(a => a.FileName.ToLower() == file.FileName.ToLower());
 
                 if (attachment == null)
                 {
@@ -142,12 +136,7 @@ namespace Altinn.Correspondence.Application.Helpers
             };
             var attachment = correspondenceAttachment.Attachment!;
             attachment.Statuses = status;
-            attachment.Created = DateTimeOffset.UtcNow;
-            if (shouldSave)
-            {
-                await _attachmentRepository.InitializeAttachment(attachment, cancellationToken);
-            }
-            return attachment;
+            return await _attachmentRepository.InitializeAttachment(attachment, cancellationToken);
         }
     }
 }
