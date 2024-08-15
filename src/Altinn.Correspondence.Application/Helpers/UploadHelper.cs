@@ -50,9 +50,9 @@ namespace Altinn.Correspondence.Application.Helpers
 
                 if (!String.IsNullOrEmpty(data))
                 {
-                    await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.InvalidRowUpdate);
+                    await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, cancellationToken, AttachmentStatusText.UploadFailed);
                     await _storageRepository.PurgeAttachment(attachment.Id, cancellationToken);
-                    return Errors.InvalidRowUpdate(data);
+                    return Errors.UploadFailed;
                 }
             }
             catch (DataLocationUrlException)
