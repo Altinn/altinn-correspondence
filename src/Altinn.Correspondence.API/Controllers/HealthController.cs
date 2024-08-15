@@ -5,9 +5,10 @@ namespace Altinn.Correspondence.Controllers
 {
     [ApiController]
     [Route("health")]
-    public class HealthController(DbContext dbContext) : ControllerBase
+    public class HealthController(DbContext dbContext, ILogger<HealthController> logger) : ControllerBase
     {
         private readonly DbContext _dbContext = dbContext;
+        private readonly ILogger<HealthController> _logger;
 
         [HttpGet]
         public async Task<ActionResult> HealthCheckAsync()
@@ -23,6 +24,7 @@ namespace Altinn.Correspondence.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("Health check failed!)", ex);
                 return StatusCode(500, new
                 {
                     Status = "Unhealthy",
