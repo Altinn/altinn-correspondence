@@ -61,26 +61,24 @@ public class InitializeMultipleCorrespondencesHandler : IHandler<InitializeMulti
 
         var attachmentError = initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content!.Attachments, true);
         if (attachmentError != null) return attachmentError;
-
-        var attachments = request.Correspondence.Content?.Attachments;
-        if (attachments != null)
+        var attachments = new List<AttachmentEntity>();
+        if (request.Correspondence.Content!.Attachments.Count() > 0)
         {
-            foreach (var attachment in attachments)
+            foreach (var attachment in request.Correspondence.Content!.Attachments)
             {
-                attachment.Attachment = await initializeCorrespondenceHelper.ProcessAttachment(attachment, request.Correspondence, cancellationToken);
+                var a = await initializeCorrespondenceHelper.ProcessAttachment(attachment, true, cancellationToken);
+                attachments.Add(a);
+            }
+        }
+        if (request.Attachments.Count > 0)
+        {
+            var uploadError = await initializeCorrespondenceHelper.UploadAttachments(attachments, request.Attachments, cancellationToken);
+            if (uploadError != null)
+            {
+                return uploadError;
             }
         }
         var status = initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);
-        var statuses = new List<CorrespondenceStatusEntity>(){
-            new CorrespondenceStatusEntity
-            {
-                Status = status,
-                StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = status.ToString()
-            }
-        };
-        request.Correspondence.Statuses = statuses;
-        request.Correspondence.Notifications = initializeCorrespondenceHelper.ProcessNotifications(request.Correspondence.Notifications, cancellationToken);
         var correspondences = new List<CorrespondenceEntity>();
         foreach (var recipient in request.Recipients)
         {
@@ -91,20 +89,37 @@ public class InitializeMultipleCorrespondencesHandler : IHandler<InitializeMulti
                 Sender = request.Correspondence.Sender,
                 SendersReference = request.Correspondence.SendersReference,
                 MessageSender = request.Correspondence.MessageSender,
-                Content = request.Correspondence.Content,
+                Content = new CorrespondenceContentEntity
+                {
+                    Attachments = attachments.Select(a => new CorrespondenceAttachmentEntity
+                    {
+                        Attachment = a,
+                        Created = DateTimeOffset.UtcNow,
+
+                    }).ToList(),
+                    Language = request.Correspondence.Content.Language,
+                    MessageBody = request.Correspondence.Content.MessageBody,
+                    MessageSummary = request.Correspondence.Content.MessageSummary,
+                    MessageTitle = request.Correspondence.Content.MessageTitle,
+                },
                 VisibleFrom = request.Correspondence.VisibleFrom,
                 AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,
                 DueDateTime = request.Correspondence.DueDateTime,
-                PropertyList = request.Correspondence.PropertyList,
+                PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
                 ReplyOptions = request.Correspondence.ReplyOptions,
                 IsReservable = request.Correspondence.IsReservable,
-                Notifications = request.Correspondence.Notifications,
-                Statuses = request.Correspondence.Statuses,
+                Notifications = initializeCorrespondenceHelper.ProcessNotifications(request.Correspondence.Notifications, cancellationToken),
+                Statuses = new List<CorrespondenceStatusEntity>(){
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = status,
+                        StatusChanged = DateTimeOffset.UtcNow,
+                        StatusText = status.ToString()
+                    }
+                },
                 Created = request.Correspondence.Created,
                 ExternalReferences = request.Correspondence.ExternalReferences,
-
             };
-            correspondence.Recipient = recipient;
             correspondences.Add(correspondence);
         }
         correspondences = await _correspondenceRepository.CreateMultipleCorrespondences(correspondences, cancellationToken);
@@ -112,14 +127,6 @@ public class InitializeMultipleCorrespondencesHandler : IHandler<InitializeMulti
         {
             _backgroundJobClient.Schedule<PublishCorrespondenceService>((service) => service.Publish(correspondence.Id, cancellationToken), correspondence.VisibleFrom);
             await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
-        }
-        if (request.Attachments.Count > 0)
-        {
-            var uploadError = await initializeCorrespondenceHelper.UploadAttachments(request.Correspondence, request.Attachments, cancellationToken);
-            if (uploadError != null)
-            {
-                return uploadError;
-            }
         }
         return new InitializeMultipleCorrespondencesResponse()
         {

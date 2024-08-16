@@ -1,9 +1,11 @@
 using Altinn.Correspondece.Tests.Factories;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Tests.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests;
@@ -148,6 +150,99 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
 
         // Assert that the uploaded and downloaded bytes are the same
         Assert.Equal(originalAttachmentData, downloadedAttachmentData);
+    }
+    [Fact]
+    public async Task UploadAtttachmentData_ChecksumCorrect_Succeeds()
+    {
+        // Arrange
+        var attachment = InitializeAttachmentFactory.BasicAttachment();
+        var data = "This is the contents of the uploaded file";
+        var byteData = Encoding.UTF8.GetBytes(data);
+        var checksum = Utils.CalculateChecksum(byteData);
+        attachment.Checksum = checksum;
+
+        // Act
+        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+        initializeResponse.EnsureSuccessStatusCode();
+        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
+        var content = new ByteArrayContent(byteData);
+        var uploadResponse = await UploadAttachment(attachmentId, content);
+
+        // Assert
+        Assert.True(uploadResponse.IsSuccessStatusCode, await uploadResponse.Content.ReadAsStringAsync());
+    }
+    [Fact]
+    public async Task UploadAttachment_MismatchChecksum_Fails()
+    {
+        // Arrange
+        var attachment = InitializeAttachmentFactory.BasicAttachment();
+        var data = "This is the contents of the uploaded file";
+        var byteData = Encoding.UTF8.GetBytes(data);
+        var checksum = Utils.CalculateChecksum(byteData);
+        attachment.Checksum = checksum;
+
+        var modifiedByteData = Encoding.UTF8.GetBytes("This is NOT the contents of the uploaded file");
+        var modifiedContent = new ByteArrayContent(modifiedByteData);
+
+        // Act
+        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+        initializeResponse.EnsureSuccessStatusCode();
+        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
+        var uploadResponse = await UploadAttachment(attachmentId, modifiedContent);
+
+        // Assert
+        Assert.False(uploadResponse.IsSuccessStatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, uploadResponse.StatusCode);
+    }
+    [Fact]
+    public async Task UploadAttachment_NoChecksumSetWhenInitialized_ChecksumSetAfterUpload()
+    {
+        // Arrange
+        var attachment = InitializeAttachmentFactory.BasicAttachment();
+        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+        initializeResponse.EnsureSuccessStatusCode();
+        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
+        var prevOverview = await _client.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
+
+        var data = "This is the contents of the uploaded file";
+        var byteData = Encoding.UTF8.GetBytes(data);
+        var checksum = Utils.CalculateChecksum(byteData);
+
+        var content = new ByteArrayContent(byteData);
+
+        // Act
+        await UploadAttachment(attachmentId, content);
+        var attachmentOverview = await _client.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
+
+        // Assert
+        Assert.Empty(prevOverview.Checksum);
+        Assert.NotEmpty(attachmentOverview.Checksum);
+        Assert.Equal(checksum, attachmentOverview.Checksum);
+    }
+    [Fact]
+    public async Task UploadAttachment_ChecksumSetWhenInitialized_SameChecksumSetAfterUpload()
+    {
+        // Arrange
+        var attachment = InitializeAttachmentFactory.BasicAttachment();
+        var data = "This is the contents of the uploaded file";
+        var byteData = Encoding.UTF8.GetBytes(data);
+        var checksum = Utils.CalculateChecksum(byteData);
+        attachment.Checksum = checksum;
+
+        var content = new ByteArrayContent(byteData);
+
+        // Act
+        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+        initializeResponse.EnsureSuccessStatusCode();
+        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
+        var prevOverview = await _client.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
+        await UploadAttachment(attachmentId, content);
+        var attachmentOverview = await _client.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
+
+        // Assert
+        Assert.NotEmpty(prevOverview.Checksum);
+        Assert.NotEmpty(attachmentOverview.Checksum);
+        Assert.Equal(prevOverview.Checksum, attachmentOverview.Checksum);
     }
 
     [Fact]

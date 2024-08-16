@@ -1,5 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Tests.Helpers;
 
 namespace Altinn.Correspondece.Tests.Factories;
 internal static class InitializeCorrespondenceFactory
@@ -24,7 +25,7 @@ internal static class InitializeCorrespondenceFactory
                     RestrictionName = "testFile2",
                     SendersReference = "1234",
                     FileName = "test-fil2e",
-                    IsEncrypted = false,
+                    IsEncrypted = false
                 }
             },
         },

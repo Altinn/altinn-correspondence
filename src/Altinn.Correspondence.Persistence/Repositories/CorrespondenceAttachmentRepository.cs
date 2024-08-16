@@ -19,7 +19,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
             return await _context.CorrespondenceAttachments
                 .Where(ca => ca.Id == correspondenceAttachmentId
-                && ((isPublished && !ca.Attachment!.Statuses.Any(s => s.Status == AttachmentStatus.Purged)) || !isPublished)).Select(ca => ca.AttachmentId).FirstOrDefaultAsync(cancellationToken);
+                && ((isPublished && !ca.Attachment!.Statuses.Any(s => s.Status == AttachmentStatus.Purged)) || !isPublished)).Select(ca => ca.AttachmentId).SingleOrDefaultAsync(cancellationToken);
         }
     }
 }

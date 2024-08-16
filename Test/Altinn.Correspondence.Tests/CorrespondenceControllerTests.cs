@@ -235,6 +235,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
                 FileName = file2.FileName,
                 IsEncrypted = false,
             }};
+
         var formData = CorrespondenceToFormData(correspondence, "Correspondence.");
 
         formData.Add(new StreamContent(fileStream), "attachments", file.FileName);

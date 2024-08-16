@@ -1,5 +1,6 @@
+using System.Text;
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Tests.Helpers;
 
 namespace Altinn.Correspondece.Tests.Factories;
 internal static class InitializeAttachmentFactory
