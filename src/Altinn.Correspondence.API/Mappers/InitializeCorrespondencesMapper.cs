@@ -1,12 +1,12 @@
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.Application.InitializeMultipleCorrespondences;
+using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Core.Models;
 
 namespace Altinn.Correspondence.Mappers;
 
-internal static class InitializeMultipleCorrespondencesMapper
+internal static class InitializeCorrespondencesMapper
 {
-    internal static InitializeMultipleCorrespondencesRequest MapToRequest(BaseCorrespondenceExt initializeCorrespondenceExt, List<string> Recipients, List<IFormFile>? attachments, bool isUploadRequest)
+    internal static InitializeCorrespondencesRequest MapToRequest(BaseCorrespondenceExt initializeCorrespondenceExt, List<string> Recipients, List<IFormFile>? attachments, bool isUploadRequest)
     {
         var correspondence = new CorrespondenceEntity
         {
@@ -35,7 +35,7 @@ internal static class InitializeMultipleCorrespondencesMapper
                 ).ToList()
             } : null,
         };
-        return new InitializeMultipleCorrespondencesRequest()
+        return new InitializeCorrespondencesRequest()
         {
             Correspondence = correspondence,
             Attachments = attachments ?? new List<IFormFile>(),

@@ -7,7 +7,7 @@ namespace Altinn.Correspondence.Core.Repositories
     {
         Task<CorrespondenceEntity> CreateCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken);
 
-        Task<List<CorrespondenceEntity>> CreateMultipleCorrespondences(List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken);
+        Task<List<CorrespondenceEntity>> CreateCorrespondences(List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken);
 
         Task<(List<Guid>, int)> GetCorrespondences(
             string resourceId,

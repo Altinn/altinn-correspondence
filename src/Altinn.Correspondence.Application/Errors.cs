@@ -27,7 +27,7 @@ public static class Errors
     public static Error NoAccessToResource = new Error(19, "You must use an Altinn token that represents a user with access to the resource in Altinn Authorization", HttpStatusCode.Unauthorized);
     public static Error UploadedFilesDoesNotMatchAttachments = new Error(20, "Mismatch between uploaded files and attachment metadata", HttpStatusCode.BadRequest);
     public static Error DuplicateRecipients = new Error(21, "Recipients must be unique", HttpStatusCode.BadRequest);
-    public static Error MultipleCorrespondenceNoAttachments = new Error(22, "When uploading multiple correspondences, either upload or use existing attachments", HttpStatusCode.BadRequest);
+    public static Error UploadCorrespondenceNoAttachments = new Error(22, "When uploading correspondences, either upload or use existing attachments", HttpStatusCode.BadRequest);
     public static Error HashError = new Error(23, "Checksum mismatch", HttpStatusCode.BadRequest);
     public static Error DataLocationNotFound = new Error(24, "Could not get data location url", HttpStatusCode.BadRequest);
 }
