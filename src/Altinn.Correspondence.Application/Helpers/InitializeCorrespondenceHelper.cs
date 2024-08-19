@@ -12,21 +12,15 @@ namespace Altinn.Correspondence.Application.Helpers
 {
     public class InitializeCorrespondenceHelper
     {
-        private readonly ICorrespondenceRepository _correspondenceRepository;
-        private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
-        private readonly IAttachmentStatusRepository _attachmentStatusRepository;
         private readonly IAttachmentRepository _attachmentRepository;
-        private readonly IStorageRepository _storageRepository;
         private readonly IHostEnvironment _hostEnvironment;
+        private readonly UploadHelper _uploadHelper;
 
-        public InitializeCorrespondenceHelper(ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepositor, IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository, IStorageRepository storageRepository, IHostEnvironment hostEnvironment)
+        public InitializeCorrespondenceHelper(IAttachmentRepository attachmentRepository, IHostEnvironment hostEnvironment, UploadHelper uploadHelper)
         {
-            _correspondenceRepository = correspondenceRepository;
-            _correspondenceStatusRepository = correspondenceStatusRepositor;
-            _attachmentStatusRepository = attachmentStatusRepository;
             _attachmentRepository = attachmentRepository;
             _hostEnvironment = hostEnvironment;
-            _storageRepository = storageRepository;
+            _uploadHelper = uploadHelper;
 
         }
         public Error? ValidateCorrespondenceContent(CorrespondenceContentEntity content)
@@ -93,7 +87,6 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public async Task<Error?> UploadAttachments(List<AttachmentEntity> correspondenceAttachments, List<IFormFile> files, CancellationToken cancellationToken)
         {
-            UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
             foreach (var file in files)
             {
                 var attachment = correspondenceAttachments.FirstOrDefault(a => a.FileName.ToLower() == file.FileName.ToLower());
@@ -105,7 +98,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 OneOf<UploadAttachmentResponse, Error> uploadResponse;
                 await using (var f = file.OpenReadStream())
                 {
-                    uploadResponse = await uploadHelper.UploadAttachment(f, attachment.Id, cancellationToken);
+                    uploadResponse = await _uploadHelper.UploadAttachment(f, attachment.Id, cancellationToken);
                 }
                 var error = uploadResponse.Match(
                     _ => { return null; },
@@ -116,9 +109,9 @@ namespace Altinn.Correspondence.Application.Helpers
             return null;
         }
 
-        public async Task<AttachmentEntity> ProcessAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, bool shouldSave, CancellationToken cancellationToken)
+        public async Task<AttachmentEntity> ProcessAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, CancellationToken cancellationToken)
         {
-            if (!String.IsNullOrEmpty(correspondenceAttachment.Attachment?.DataLocationUrl))
+            if (!string.IsNullOrEmpty(correspondenceAttachment.Attachment?.DataLocationUrl))
             {
                 var existingAttachment = await _attachmentRepository.GetAttachmentByUrl(correspondenceAttachment.Attachment.DataLocationUrl, cancellationToken);
                 if (existingAttachment != null)
