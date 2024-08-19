@@ -4,6 +4,7 @@ using Altinn.Correspondence.Application.GetAttachmentOverview;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.InitializeCorrespondence;
 using Altinn.Correspondence.Application.InitializeMultipleCorrespondences;
@@ -35,5 +36,8 @@ public static class DependencyInjection
         services.AddScoped<MalwareScanResultHandler>();
         services.AddScoped<PurgeCorrespondenceHandler>();
         services.AddScoped<UpdateMarkAsUnreadHandler>();
+
+        services.AddScoped<InitializeCorrespondenceHelper>();
+        services.AddScoped<UploadHelper>();
     }
 }
