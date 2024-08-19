@@ -42,7 +42,10 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
         UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
         var uploadResult = await uploadHelper.UploadAttachment(request.UploadStream, request.AttachmentId, cancellationToken);
 
-        await uploadHelper.CheckCorrespondenceStatusesAfterUploadAndPublish(attachment.Id, cancellationToken);
+        if (_hostEnvironment.IsDevelopment())
+        {
+            await uploadHelper.CheckCorrespondenceStatusesAfterUploadAndPublish(attachment.Id, cancellationToken);
+        }
 
         return uploadResult.Match<OneOf<UploadAttachmentResponse, Error>>(
             data => { return data; },
