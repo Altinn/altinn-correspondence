@@ -2,7 +2,6 @@ using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Persistence.Helpers;
 using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using System.IdentityModel.Tokens.Jwt;

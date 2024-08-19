@@ -104,6 +104,10 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.AddEndpointsApiExplorer();
     services.AddSwaggerGen();
     services.AddApplicationInsightsTelemetry();
+    services.AddDbContext<ApplicationDbContext>(opts =>
+    {
+        opts.UseNpgsql(connectionString);
+    });
 
     services.AddApplicationHandlers();
     services.AddPersistence();
@@ -123,11 +127,6 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         options.ValueLengthLimit = int.MaxValue;
         options.MultipartBodyLengthLimit = long.MaxValue;
         options.MultipartHeadersLengthLimit = int.MaxValue;
-    });
-
-    services.AddDbContext<ApplicationDbContext>(opts =>
-    {
-        opts.UseNpgsql(connectionString);
     });
 }
 

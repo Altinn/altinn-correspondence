@@ -16,25 +16,17 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
-    private readonly IAttachmentRepository _attachmentRepository;
-    private readonly IAttachmentStatusRepository _attachmentStatusRepository;
     private readonly IEventBus _eventBus;
-    private readonly IStorageRepository _storageRepository;
-    private readonly IHostEnvironment _hostEnvironment;
-    IBackgroundJobClient _backgroundJobClient;
+    private readonly InitializeCorrespondenceHelper _initializeCorrespondenceHelper;
+    private readonly IBackgroundJobClient _backgroundJobClient;
 
-    public InitializeCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, IHostEnvironment hostEnvironment, IEventBus eventBus, IBackgroundJobClient backgroundJobClient)
+    public InitializeCorrespondencesHandler(InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient)
     {
+        _initializeCorrespondenceHelper = initializeCorrespondenceHelper;
         _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
-        _correspondenceStatusRepository = correspondenceStatusRepository;
-        _attachmentRepository = attachmentRepository;
-        _attachmentStatusRepository = attachmentStatusRepository;
         _eventBus = eventBus;
         _backgroundJobClient = backgroundJobClient;
-        _storageRepository = storageRepository;
-        _hostEnvironment = hostEnvironment;
     }
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
@@ -52,33 +44,32 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             return Errors.DuplicateRecipients;
         }
-        InitializeCorrespondenceHelper initializeCorrespondenceHelper = new InitializeCorrespondenceHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
-        var contentError = initializeCorrespondenceHelper.ValidateCorrespondenceContent(request.Correspondence.Content);
+        var contentError = _initializeCorrespondenceHelper.ValidateCorrespondenceContent(request.Correspondence.Content);
         if (contentError != null)
         {
             return contentError;
         }
 
-        var attachmentError = initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content!.Attachments, request.isUploadRequest);
+        var attachmentError = _initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content!.Attachments, request.isUploadRequest);
         if (attachmentError != null) return attachmentError;
         var attachments = new List<AttachmentEntity>();
         if (request.Correspondence.Content!.Attachments.Count() > 0)
         {
             foreach (var attachment in request.Correspondence.Content!.Attachments)
             {
-                var a = await initializeCorrespondenceHelper.ProcessAttachment(attachment, request.isUploadRequest, cancellationToken);
+                var a = await _initializeCorrespondenceHelper.ProcessAttachment(attachment, cancellationToken);
                 attachments.Add(a);
             }
         }
         if (request.Attachments.Count > 0)
         {
-            var uploadError = await initializeCorrespondenceHelper.UploadAttachments(attachments, request.Attachments, cancellationToken);
+            var uploadError = await _initializeCorrespondenceHelper.UploadAttachments(attachments, request.Attachments, cancellationToken);
             if (uploadError != null)
             {
                 return uploadError;
             }
         }
-        var status = initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);
+        var status = _initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);
         var correspondences = new List<CorrespondenceEntity>();
         foreach (var recipient in request.Recipients)
         {
@@ -108,7 +99,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
                 ReplyOptions = request.Correspondence.ReplyOptions,
                 IsReservable = request.Correspondence.IsReservable,
-                Notifications = initializeCorrespondenceHelper.ProcessNotifications(request.Correspondence.Notifications, cancellationToken),
+                Notifications = _initializeCorrespondenceHelper.ProcessNotifications(request.Correspondence.Notifications, cancellationToken),
                 Statuses = new List<CorrespondenceStatusEntity>(){
                     new CorrespondenceStatusEntity
                     {

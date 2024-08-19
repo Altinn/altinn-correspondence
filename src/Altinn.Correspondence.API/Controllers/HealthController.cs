@@ -1,13 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Controllers
 {
     [ApiController]
     [Route("health")]
-    public class HealthController(DbContext dbContext, ILogger<HealthController> logger) : ControllerBase
+    public class HealthController(ApplicationDbContext dbContext, ILogger<HealthController> logger) : ControllerBase
     {
-        private readonly DbContext _dbContext = dbContext;
+        private readonly ApplicationDbContext _dbContext = dbContext;
         private readonly ILogger<HealthController> _logger;
 
         [HttpGet]
