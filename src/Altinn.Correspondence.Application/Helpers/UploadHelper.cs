@@ -97,7 +97,7 @@ namespace Altinn.Correspondence.Application.Helpers
             await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
             return currentStatus;
         }
-        public async Task CheckCorrespondenceStatusesAfterUploadAndPublish(Guid attachmentId, CancellationToken cancellationToken)
+        public async Task CheckCorrespondenceStatusesAfterUploadAndPublish(Guid attachmentId, bool uploadSuccessful, CancellationToken cancellationToken)
         {
             var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
             if (attachment == null)
@@ -114,15 +114,29 @@ namespace Altinn.Correspondence.Application.Helpers
             var list = new List<CorrespondenceStatusEntity>();
             foreach (var correspondenceId in correspondences)
             {
-                list.Add(
-                    new CorrespondenceStatusEntity
-                    {
-                        CorrespondenceId = correspondenceId,
-                        Status = CorrespondenceStatus.ReadyForPublish,
-                        StatusChanged = DateTime.UtcNow,
-                        StatusText = CorrespondenceStatus.ReadyForPublish.ToString()
-                    }
-                );
+                if (uploadSuccessful) 
+                { 
+                    list.Add(
+                        new CorrespondenceStatusEntity
+                        {
+                            CorrespondenceId = correspondenceId,
+                            Status = CorrespondenceStatus.ReadyForPublish,
+                            StatusChanged = DateTime.UtcNow,
+                            StatusText = CorrespondenceStatus.ReadyForPublish.ToString()
+                        }
+                    );
+                } else
+                {
+                    list.Add(
+                        new CorrespondenceStatusEntity
+                        {
+                            CorrespondenceId = correspondenceId,
+                            Status = CorrespondenceStatus.Failed,
+                            StatusChanged = DateTime.UtcNow,
+                            StatusText = "Malware scan failed"
+                        }
+                    );
+                }
             }
             await _correspondenceStatusRepository.AddCorrespondenceStatuses(list, cancellationToken);
             return;

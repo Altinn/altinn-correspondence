@@ -44,7 +44,7 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
 
         if (_hostEnvironment.IsDevelopment())
         {
-            await uploadHelper.CheckCorrespondenceStatusesAfterUploadAndPublish(attachment.Id, cancellationToken);
+            await uploadHelper.CheckCorrespondenceStatusesAfterUploadAndPublish(attachment.Id, true, cancellationToken);
         }
 
         return uploadResult.Match<OneOf<UploadAttachmentResponse, Error>>(
