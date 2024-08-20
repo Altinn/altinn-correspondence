@@ -137,7 +137,12 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var content = new ByteArrayContent(originalAttachmentData);
         var uploadedAttachment = await (await UploadAttachment(attachmentId, content)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
         Assert.NotNull(uploadedAttachment);
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithFileAttachment(uploadedAttachment.DataLocationUrl), _responseSerializerOptions);
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
+        payload.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
+
+
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
 
         var overviewResponse = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{response?.CorrespondenceIds.FirstOrDefault().ToString()}", _responseSerializerOptions);

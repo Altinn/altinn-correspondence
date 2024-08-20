@@ -74,10 +74,11 @@ internal static class InitializeCorrespondenceFactory
             IsReservable = true
         },
         Recipients = new List<string>(){
-        "0192:986252931",
-        "0192:986252932",
-        "0192:986252933"
-    }
+            "0192:986252931",
+            "0192:986252932",
+            "0192:986252933"
+        },
+        ExistingAttachments = new List<Guid>(),
     };
 
     internal static InitializeCorrespondencesExt BasicCorrespondenceWithFileAttachment()
@@ -99,22 +100,6 @@ internal static class InitializeCorrespondenceFactory
     {
         var data = BasicCorrespondences();
         data.Correspondence.Content!.Attachments = attachments;
-        return data;
-    }
-    internal static InitializeCorrespondencesExt BasicCorrespondenceWithFileAttachment(string url)
-    {
-        var data = BasicCorrespondences();
-        data.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>(){
-            new InitializeCorrespondenceAttachmentExt()
-            {
-                DataType = "pdf",
-                Name = "3",
-                RestrictionName = "testFile3",
-                SendersReference = "1234",
-                FileName = "test-fil3e",
-                IsEncrypted = false,
-                DataLocationUrl = url
-            }};
         return data;
     }
     internal static InitializeCorrespondencesExt BasicCorrespondenceWithNoMessageBody()
