@@ -1,5 +1,4 @@
 using System;
-using Altinn.Correspondence.Application.InitializeCorrespondence;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -39,16 +38,16 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             return null;
         }
-        public Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments, bool isMultiUpload)
+        public Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments, bool isUpload)
         {
-            if (files.Count > 0 || isMultiUpload)
+            if (files.Count > 0 || isUpload)
             {
                 var maxUploadSize = long.Parse(int.MaxValue.ToString());
-                if (isMultiUpload && attachments.Count == 0) return Errors.MultipleCorrespondenceNoAttachments;
+                if (isUpload && attachments.Count == 0) return Errors.UploadCorrespondenceNoAttachments;
                 foreach (var attachment in attachments)
                 {
                     if (attachment.Attachment?.DataLocationUrl != null) continue;
-                    if (files.Count == 0 && isMultiUpload) return Errors.MultipleCorrespondenceNoAttachments;
+                    if (files.Count == 0 && isUpload) return Errors.UploadCorrespondenceNoAttachments;
                     var file = files.FirstOrDefault(a => a.FileName == attachment.Attachment?.FileName);
                     if (file == null) return Errors.UploadedFilesDoesNotMatchAttachments;
                     if (file?.Length > maxUploadSize || file?.Length == 0) return Errors.InvalidFileSize;

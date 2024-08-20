@@ -138,9 +138,9 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var uploadedAttachment = await (await UploadAttachment(attachmentId, content)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
         Assert.NotNull(uploadedAttachment);
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithFileAttachment(uploadedAttachment.DataLocationUrl), _responseSerializerOptions);
-        var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
+        var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
 
-        var overviewResponse = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{response?.CorrespondenceId.ToString()}", _responseSerializerOptions);
+        var overviewResponse = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{response?.CorrespondenceIds.FirstOrDefault().ToString()}", _responseSerializerOptions);
         var correspondenceAttachmentId = overviewResponse.Content.Attachments.First().Id.ToString();
         // Download the attachment data
         var downloadResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/attachment/{correspondenceAttachmentId}/download");
@@ -284,26 +284,26 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     [Fact]
     public async Task DeleteAttachment_WhenAttachedCorrespondenceIsPublished_ReturnsBadRequest()
     {
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
-        var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
-        await UploadAttachment(correspondence?.AttachmentIds.First().ToString());
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
+        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        await UploadAttachment(correspondenceResponse?.AttachmentIds.First().ToString());
 
-        var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}", _responseSerializerOptions);
+        var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse?.CorrespondenceIds.FirstOrDefault()}", _responseSerializerOptions);
         Assert.True(overview?.Status == CorrespondenceStatusExt.Published || overview?.Status == CorrespondenceStatusExt.ReadyForPublish);
 
-        var deleteResponse = await _client.DeleteAsync($"correspondence/api/v1/attachment/{correspondence?.AttachmentIds.FirstOrDefault()}");
+        var deleteResponse = await _client.DeleteAsync($"correspondence/api/v1/attachment/{correspondenceResponse?.AttachmentIds.FirstOrDefault()}");
         Assert.Equal(HttpStatusCode.BadRequest, deleteResponse.StatusCode);
     }
     [Fact]
     public async Task DeleteAttachment_WhenAttachedCorrespondenceIsInitialized_Fails()
     {
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithFileAttachment());
-        var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
-        await UploadAttachment(correspondence?.AttachmentIds.First().ToString());
-        var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceId}", _responseSerializerOptions);
+        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        await UploadAttachment(correspondenceResponse?.AttachmentIds.First().ToString());
+        var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse?.CorrespondenceIds.FirstOrDefault()}", _responseSerializerOptions);
         Assert.True(overview?.Status == CorrespondenceStatusExt.Initialized);
 
-        var deleteResponse = await _client.DeleteAsync($"correspondence/api/v1/attachment/{correspondence?.AttachmentIds.FirstOrDefault()}");
+        var deleteResponse = await _client.DeleteAsync($"correspondence/api/v1/attachment/{correspondenceResponse?.AttachmentIds.FirstOrDefault()}");
         Assert.Equal(HttpStatusCode.BadRequest, deleteResponse.StatusCode);
     }
 

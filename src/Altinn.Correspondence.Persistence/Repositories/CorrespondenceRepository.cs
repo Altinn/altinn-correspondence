@@ -15,7 +15,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             await _context.SaveChangesAsync(cancellationToken);
             return correspondence;
         }
-        public async Task<List<CorrespondenceEntity>> CreateMultipleCorrespondences(List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken)
+        public async Task<List<CorrespondenceEntity>> CreateCorrespondences(List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken)
         {
             await _context.Correspondences.AddRangeAsync(correspondences, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);

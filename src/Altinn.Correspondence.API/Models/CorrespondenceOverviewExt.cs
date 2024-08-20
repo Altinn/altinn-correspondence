@@ -6,8 +6,14 @@ namespace Altinn.Correspondence.API.Models
     /// <summary>
     /// An object representing an overview of a correspondence with enough details to drive the business process    
     /// </summary>
-    public class CorrespondenceOverviewExt : InitializeCorrespondenceExt
+    public class CorrespondenceOverviewExt : BaseCorrespondenceExt
     {
+        /// <summary>
+        /// The recipient of the correspondence.
+        /// </summary>
+        [JsonPropertyName("recipient")]
+        public required string Recipient { get; set; }
+
         /// <summary>
         /// Indicates if the Correspondence has been set as unread by the recipient
         /// </summary>

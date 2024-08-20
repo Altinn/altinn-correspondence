@@ -10,9 +10,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using OneOf;
 
-namespace Altinn.Correspondence.Application.InitializeMultipleCorrespondences;
+namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
-public class InitializeMultipleCorrespondencesHandler : IHandler<InitializeMultipleCorrespondencesRequest, InitializeMultipleCorrespondencesResponse>
+public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
@@ -20,7 +20,7 @@ public class InitializeMultipleCorrespondencesHandler : IHandler<InitializeMulti
     private readonly InitializeCorrespondenceHelper _initializeCorrespondenceHelper;
     private readonly IBackgroundJobClient _backgroundJobClient;
 
-    public InitializeMultipleCorrespondencesHandler(InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient)
+    public InitializeCorrespondencesHandler(InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient)
     {
         _initializeCorrespondenceHelper = initializeCorrespondenceHelper;
         _altinnAuthorizationService = altinnAuthorizationService;
@@ -29,7 +29,7 @@ public class InitializeMultipleCorrespondencesHandler : IHandler<InitializeMulti
         _backgroundJobClient = backgroundJobClient;
     }
 
-    public async Task<OneOf<InitializeMultipleCorrespondencesResponse, Error>> Process(InitializeMultipleCorrespondencesRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
     {
         var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.Correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Send }, cancellationToken);
         if (!hasAccess)
@@ -50,7 +50,7 @@ public class InitializeMultipleCorrespondencesHandler : IHandler<InitializeMulti
             return contentError;
         }
 
-        var attachmentError = _initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content!.Attachments, true);
+        var attachmentError = _initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content!.Attachments, request.isUploadRequest);
         if (attachmentError != null) return attachmentError;
         var attachments = new List<AttachmentEntity>();
         if (request.Correspondence.Content!.Attachments.Count() > 0)
@@ -113,15 +113,16 @@ public class InitializeMultipleCorrespondencesHandler : IHandler<InitializeMulti
             };
             correspondences.Add(correspondence);
         }
-        correspondences = await _correspondenceRepository.CreateMultipleCorrespondences(correspondences, cancellationToken);
+        correspondences = await _correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
         foreach (var correspondence in correspondences)
         {
             _backgroundJobClient.Schedule<PublishCorrespondenceService>((service) => service.Publish(correspondence.Id, cancellationToken), correspondence.VisibleFrom);
             await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         }
-        return new InitializeMultipleCorrespondencesResponse()
+        return new InitializeCorrespondencesResponse()
         {
             CorrespondenceIds = correspondences.Select(c => c.Id).ToList(),
+            AttachmentIds = correspondences.SelectMany(c => c.Content?.Attachments.Select(a => a.AttachmentId)).ToList()
         };
     }
 }
