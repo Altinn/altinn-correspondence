@@ -6,7 +6,7 @@ namespace Altinn.Correspondence.Mappers;
 
 internal static class InitializeCorrespondencesMapper
 {
-    internal static InitializeCorrespondencesRequest MapToRequest(BaseCorrespondenceExt initializeCorrespondenceExt, List<string> Recipients, List<IFormFile>? attachments, bool isUploadRequest)
+    internal static InitializeCorrespondencesRequest MapToRequest(BaseCorrespondenceExt initializeCorrespondenceExt, List<string> Recipients, List<IFormFile>? attachments, List<Guid>? existingAttachments, bool isUploadRequest)
     {
         var correspondence = new CorrespondenceEntity
         {
@@ -39,7 +39,8 @@ internal static class InitializeCorrespondencesMapper
         {
             Correspondence = correspondence,
             Attachments = attachments ?? new List<IFormFile>(),
-            isUploadRequest = isUploadRequest,
+            IsUploadRequest = isUploadRequest,
+            ExistingAttachments = existingAttachments ?? new List<Guid>(),
             Recipients = Recipients
         };
     }

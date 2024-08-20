@@ -20,6 +20,12 @@ public class InitializeCorrespondencesExt
     [RecipientList]
     public required List<string> Recipients { get; set; }
 
+    /// <summary>
+    /// Existing attachments that should be added to the correspondence
+    /// </summary>
+    [JsonPropertyName("existingAttachments")]
+    public List<Guid> ExistingAttachments { get; set; } = new List<Guid>();
+
 
     [AttributeUsage(AttributeTargets.Property)]
     internal class RecipientListAttribute : ValidationAttribute

@@ -108,16 +108,20 @@ namespace Altinn.Correspondence.Application.Helpers
             return null;
         }
 
-        public async Task<AttachmentEntity> ProcessAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, CancellationToken cancellationToken)
+        public async Task<List<AttachmentEntity>?> GetExistingAttachments(List<Guid> attachmentIds, CancellationToken cancellationToken)
         {
-            if (!string.IsNullOrEmpty(correspondenceAttachment.Attachment?.DataLocationUrl))
+            var attachments = new List<AttachmentEntity>();
+            foreach (var attachmentId in attachmentIds)
             {
-                var existingAttachment = await _attachmentRepository.GetAttachmentByUrl(correspondenceAttachment.Attachment.DataLocationUrl, cancellationToken);
-                if (existingAttachment != null)
-                {
-                    return existingAttachment;
-                }
+                var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, false, cancellationToken);
+                if (attachment == null) return null;
+                attachments.Add(attachment);
             }
+            return attachments;
+        }
+
+        public async Task<AttachmentEntity> ProcessNewAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, CancellationToken cancellationToken)
+        {
             var status = new List<AttachmentStatusEntity>(){
                 new AttachmentStatusEntity
                 {
