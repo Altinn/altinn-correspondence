@@ -140,8 +140,6 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
         payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
         payload.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
-
-
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
 
