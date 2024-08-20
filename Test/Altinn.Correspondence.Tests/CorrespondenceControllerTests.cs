@@ -332,7 +332,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         var uploadedAttachment = await InitializeAttachment();
         Assert.NotNull(uploadedAttachment);
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithFileAttachment(uploadedAttachment.DataLocationUrl);
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
+        payload.Correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
         payload.Correspondence.VisibleFrom = DateTime.UtcNow.AddMinutes(-1);
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
@@ -358,7 +360,10 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task Correspondence_with_dataLocationUrl_Reuses_Attachment()
     {
         var uploadedAttachment = await InitializeAttachment();
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithFileAttachment(uploadedAttachment.DataLocationUrl), _responseSerializerOptions);
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
+        payload.Correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         Assert.Equal(uploadedAttachment.AttachmentId.ToString(), response?.AttachmentIds?.FirstOrDefault().ToString());
@@ -396,8 +401,10 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         var attachment = await InitializeAttachment();
         Assert.NotNull(attachment);
-        var correspondence1 = InitializeCorrespondenceFactory.BasicCorrespondenceWithFileAttachment(attachment.DataLocationUrl);
-        var correspondence2 = InitializeCorrespondenceFactory.BasicCorrespondenceWithFileAttachment(attachment.DataLocationUrl);
+        var correspondence1 = InitializeCorrespondenceFactory.BasicCorrespondences();
+        correspondence1.ExistingAttachments = new List<Guid> { attachment.AttachmentId };
+        var correspondence2 = InitializeCorrespondenceFactory.BasicCorrespondences();
+        correspondence2.ExistingAttachments = new List<Guid> { attachment.AttachmentId };
 
         var initializeCorrespondenceResponse1 = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence1, _responseSerializerOptions);
         var response1 = await initializeCorrespondenceResponse1.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();

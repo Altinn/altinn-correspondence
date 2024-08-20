@@ -30,4 +30,5 @@ public static class Errors
     public static Error UploadCorrespondenceNoAttachments = new Error(22, "When uploading correspondences, either upload or use existing attachments", HttpStatusCode.BadRequest);
     public static Error HashError = new Error(23, "Checksum mismatch", HttpStatusCode.BadRequest);
     public static Error DataLocationNotFound = new Error(24, "Could not get data location url", HttpStatusCode.BadRequest);
+    public static Error ExistingAttachmentNotFound = new Error(25, "Existing attachment not found", HttpStatusCode.BadRequest);
 }

@@ -31,7 +31,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
     public async Task<OneOf<Guid, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
     {
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, cancellationToken);
-        if (correspondence == null) return Errors.AttachmentNotFound;
+        if (correspondence == null) return Errors.CorrespondenceNotFound;
         var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Open }, cancellationToken);
         if (!hasAccess)
         {

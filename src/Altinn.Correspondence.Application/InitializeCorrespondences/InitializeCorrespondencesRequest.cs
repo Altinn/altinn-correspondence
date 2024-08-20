@@ -9,6 +9,9 @@ public class InitializeCorrespondencesRequest
 
     public List<IFormFile> Attachments { get; set; } = new List<IFormFile>();
 
-    public bool isUploadRequest { get; set; }
+    public bool IsUploadRequest { get; set; }
+
+    public List<Guid> ExistingAttachments { get; set; }
+
     public List<string> Recipients { get; set; }
 }

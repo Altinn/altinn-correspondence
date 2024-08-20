@@ -36,7 +36,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             return Errors.NoAccessToResource;
         }
-        if (request.isUploadRequest && request.Attachments.Count == 0)
+        if (request.IsUploadRequest && request.Attachments.Count == 0)
         {
             return Errors.NoAttachments;
         }
@@ -50,16 +50,25 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             return contentError;
         }
 
-        var attachmentError = _initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content!.Attachments, request.isUploadRequest);
+        var attachmentError = _initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content!.Attachments, request.IsUploadRequest);
         if (attachmentError != null) return attachmentError;
         var attachments = new List<AttachmentEntity>();
         if (request.Correspondence.Content!.Attachments.Count() > 0)
         {
             foreach (var attachment in request.Correspondence.Content!.Attachments)
             {
-                var a = await _initializeCorrespondenceHelper.ProcessAttachment(attachment, cancellationToken);
+                var a = await _initializeCorrespondenceHelper.ProcessNewAttachment(attachment, cancellationToken);
                 attachments.Add(a);
             }
+        }
+        if (request.ExistingAttachments.Count > 0)
+        {
+            var existingAttachments = await _initializeCorrespondenceHelper.GetExistingAttachments(request.ExistingAttachments, cancellationToken);
+            if (existingAttachments == null)
+            {
+                return Errors.ExistingAttachmentNotFound;
+            }
+            attachments.AddRange(existingAttachments);
         }
         if (request.Attachments.Count > 0)
         {
