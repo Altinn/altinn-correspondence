@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "62975183-d739-439b-9480-38d57eba8151",
+		"_postman_id": "c4269116-0793-4c00-9f83-3c5834aee791",
 		"name": "Altinn.Correspondence.API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "1775784"
@@ -52,7 +52,7 @@
 																"body": {
 																	"mode": "file",
 																	"file": {
-																		"src": "/C:/Users/$FJ8000-6GR0D2NJKGOS/Documents/altinn-correspondence/version.txt"
+																		"src": ""
 																	}
 																},
 																"url": {
@@ -128,7 +128,7 @@
 																	"bearer": [
 																		{
 																			"key": "token",
-																			"value": "{{sender_token}}",
+																			"value": "{{recipient_token}}",
 																			"type": "string"
 																		}
 																	]
@@ -405,7 +405,7 @@
 												],
 												"body": {
 													"mode": "raw",
-													"raw": "{\n  \"dataType\": \"html\",\n  \"expirationTime\": \"2024-12-12\",\n  \"name\": \"testFile\",\n  \"restrictionName\": \"testFile\",\n  \"sender\": \"0192:991825827\",\n  \"sendersReference\": \"1234\",\n  \"fileName\": \"test-file\",\n  \"isEncrypted\": false\n}",
+													"raw": "{\n  \"dataType\": \"html\",\n  \"expirationTime\": \"2024-12-12\",\n  \"resourceId\": \"{{resource_id}}\",\n  \"name\": \"testFile\",\n  \"restrictionName\": \"testFile\",\n  \"sender\": \"0192:991825827\",\n  \"sendersReference\": \"1234\",\n  \"fileName\": \"test-file\",\n  \"isEncrypted\": false\n}",
 													"options": {
 														"raw": {
 															"headerFamily": "json",
@@ -514,244 +514,258 @@
 															"mode": "formdata",
 															"formdata": [
 																{
-																	"key": "Recipient",
+																	"key": "Recipients[0]",
 																	"value": "0192:991825827",
 																	"type": "text"
 																},
 																{
-																	"key": "ResourceId",
+																	"key": "Correspondence.ResourceId",
 																	"value": "1",
 																	"type": "text"
 																},
 																{
-																	"key": "Sender",
+																	"key": "Correspondence.Sender",
 																	"value": "0192:991825827",
 																	"type": "text"
 																},
 																{
-																	"key": "sendersReference",
+																	"key": "Correspondence.sendersReference",
 																	"value": "1234",
 																	"type": "text"
 																},
 																{
-																	"key": "content.language",
+																	"key": "Correspondence.content.language",
 																	"value": "en",
 																	"type": "text"
 																},
 																{
-																	"key": "content.messageTitle",
+																	"key": "Correspondence.content.messageTitle",
 																	"value": "test asdf asdf",
 																	"type": "text"
 																},
 																{
-																	"key": "content.messageSummary",
+																	"key": "Correspondence.content.messageSummary",
 																	"value": "asdf asdfasdf",
 																	"type": "text"
 																},
 																{
-																	"key": "content.messageBody",
+																	"key": "Correspondence.content.messageBody",
 																	"value": "test",
 																	"type": "text"
 																},
 																{
-																	"key": "content.attachments[0].DataLocationType",
+																	"key": "Correspondence.content.attachments[0].DataLocationType",
 																	"value": "ExisitingExternalStorage",
 																	"type": "text"
 																},
 																{
-																	"key": "content.attachments[0].DataType",
+																	"key": "Correspondence.content.attachments[0].DataType",
 																	"value": "1",
 																	"type": "text"
 																},
 																{
-																	"key": "content.attachments[0].Name",
+																	"key": "Correspondence.content.attachments[0].Name",
 																	"value": "testfile.txt",
 																	"type": "text"
 																},
 																{
-																	"key": "content.attachments[0].RestrictionName",
+																	"key": "Correspondence.content.attachments[0].RestrictionName",
 																	"value": "1234",
 																	"type": "text"
 																},
 																{
-																	"key": "content.attachments[0].Sender",
+																	"key": "Correspondence.content.attachments[0].Sender",
 																	"value": "0192:991825827",
 																	"type": "text"
 																},
 																{
-																	"key": "content.attachments[0].SendersReference",
+																	"key": "Correspondence.content.attachments[0].SendersReference",
 																	"value": "1234",
 																	"type": "text"
 																},
 																{
-																	"key": "content.attachments[0].FileName",
-																	"value": "testfile.txt",
+																	"key": "Correspondence.content.attachments[0].FileName",
+																	"value": "README.md",
 																	"type": "text"
 																},
 																{
-																	"key": "content.attachments[0].IsEncrypted",
+																	"key": "Correspondence.content.attachments[0].IsEncrypted",
 																	"value": "true",
 																	"type": "text"
 																},
 																{
-																	"key": "content.attachments[1].DataLocationType",
+																	"key": "Correspondence.content.attachments[1].DataLocationType",
 																	"value": "ExisitingExternalStorage",
-																	"type": "text"
+																	"type": "text",
+																	"disabled": true
 																},
 																{
-																	"key": "content.attachments[1].DataType",
+																	"key": "Correspondence.content.attachments[1].DataType",
 																	"value": "1",
-																	"type": "text"
+																	"type": "text",
+																	"disabled": true
 																},
 																{
-																	"key": "content.attachments[1].Name",
+																	"key": "Correspondence.content.attachments[1].Name",
 																	"value": "testfile2.txt",
-																	"type": "text"
+																	"type": "text",
+																	"disabled": true
 																},
 																{
-																	"key": "content.attachments[1].RestrictionName",
+																	"key": "Correspondence.content.attachments[1].RestrictionName",
 																	"value": "1234",
-																	"type": "text"
+																	"type": "text",
+																	"disabled": true
 																},
 																{
-																	"key": "content.attachments[1].Sender",
+																	"key": "Correspondence.content.attachments[1].Sender",
 																	"value": "0192:991825827",
-																	"type": "text"
+																	"type": "text",
+																	"disabled": true
 																},
 																{
-																	"key": "content.attachments[1].SendersReference",
+																	"key": "Correspondence.content.attachments[1].SendersReference",
 																	"value": "1234",
-																	"type": "text"
+																	"type": "text",
+																	"disabled": true
 																},
 																{
-																	"key": "content.attachments[1].FileName",
+																	"key": "Correspondence.content.attachments[1].FileName",
 																	"value": "testfile2.txt",
-																	"type": "text"
+																	"type": "text",
+																	"disabled": true
 																},
 																{
-																	"key": "content.attachments[1].IsEncrypted",
+																	"key": "Correspondence.content.attachments[1].IsEncrypted",
 																	"value": "true",
-																	"type": "text"
+																	"type": "text",
+																	"disabled": true
 																},
 																{
-																	"key": "visibleFrom",
+																	"key": "Correspondence.visibleFrom",
 																	"value": "2025-05-29T13:31:28.290518+00:00",
 																	"type": "text"
 																},
 																{
-																	"key": "allowSystemDeleteAfter",
+																	"key": "Correspondence.allowSystemDeleteAfter",
 																	"value": "2025-05-29T13:31:28.290518+00:00",
 																	"type": "text"
 																},
 																{
-																	"key": "dueDateTime",
+																	"key": "Correspondence.dueDateTime",
 																	"value": "2025-05-29T13:31:28.290518+00:00",
 																	"type": "text"
 																},
 																{
-																	"key": "externalReferences[0].referenceValue",
+																	"key": "Correspondence.externalReferences[0].referenceValue",
 																	"value": "test",
 																	"type": "text"
 																},
 																{
-																	"key": "externalReferences[0].referenceType",
+																	"key": "Correspondence.externalReferences[0].referenceType",
 																	"value": "AltinnBrokerFileTransfer",
 																	"type": "text"
 																},
 																{
-																	"key": "externalReferences[1].referenceValue",
+																	"key": "Correspondence.externalReferences[1].referenceValue",
 																	"value": "test",
 																	"type": "text"
 																},
 																{
-																	"key": "externalReferences[1].referenceType",
+																	"key": "Correspondence.externalReferences[1].referenceType",
 																	"value": "DialogPortenDialogID",
 																	"type": "text"
 																},
 																{
-																	"key": "propertyList.deserunt_12",
+																	"key": "Correspondence.propertyList.deserunt_12",
 																	"value": "string",
 																	"type": "text"
 																},
 																{
-																	"key": "propertyList.culpa_852",
+																	"key": "Correspondence.propertyList.culpa_852",
 																	"value": "string",
 																	"type": "text"
 																},
 																{
-																	"key": "propertyList.anim5",
+																	"key": "Correspondence.propertyList.anim5",
 																	"value": "string",
 																	"type": "text"
 																},
 																{
-																	"key": "replyOptions[0].linkURL",
+																	"key": "Correspondence.replyOptions[0].linkURL",
 																	"value": "www.dgidir.no",
 																	"type": "text"
 																},
 																{
-																	"key": "replyOptions[0].linkText",
+																	"key": "Correspondence.replyOptions[0].linkText",
 																	"value": "dgidir",
 																	"type": "text"
 																},
 																{
-																	"key": "replyOptions[1].linkURL",
+																	"key": "Correspondence.replyOptions[1].linkURL",
 																	"value": "www.dgidir.no",
 																	"type": "text"
 																},
 																{
-																	"key": "replyOptions[1].linkText",
+																	"key": "Correspondence.replyOptions[1].linkText",
 																	"value": "dgidir",
 																	"type": "text"
 																},
 																{
-																	"key": "notifications[0].notificationTemplate",
+																	"key": "Correspondence.notifications[0].notificationTemplate",
 																	"value": "string",
 																	"type": "text"
 																},
 																{
-																	"key": "notifications[0].customTextToken",
+																	"key": "Correspondence.notifications[0].customTextToken",
 																	"value": "string",
 																	"type": "text"
 																},
 																{
-																	"key": "notifications[0].sendersReference",
+																	"key": "Correspondence.notifications[0].sendersReference",
 																	"value": "string",
 																	"type": "text"
 																},
 																{
-																	"key": "notifications[0].requestedSendTime",
+																	"key": "Correspondence.notifications[0].requestedSendTime",
 																	"value": "2025-05-29T13:31:28.290518+00:00",
 																	"type": "text"
 																},
 																{
-																	"key": "notifications[1].notificationTemplate",
+																	"key": "Correspondence.notifications[1].notificationTemplate",
 																	"value": "string",
 																	"type": "text"
 																},
 																{
-																	"key": "notifications[1].customTextToken",
+																	"key": "Correspondence.notifications[1].customTextToken",
 																	"value": "string",
 																	"type": "text"
 																},
 																{
-																	"key": "notifications[1].sendersReference",
+																	"key": "Correspondence.notifications[1].sendersReference",
 																	"value": "string",
 																	"type": "text"
 																},
 																{
-																	"key": "notifications[1].requestedSendTime",
+																	"key": "Correspondence.notifications[1].requestedSendTime",
 																	"value": "2025-05-29T13:31:28.290518+00:00",
 																	"type": "text"
 																},
 																{
-																	"key": "isReservable",
+																	"key": "Correspondence.isReservable",
 																	"value": "true",
 																	"type": "text"
 																},
 																{
 																	"key": "Attachments",
 																	"type": "file",
-																	"src": []
+																	"src": ""
+																},
+																{
+																	"key": "existingAttachments[0]",
+																	"value": "",
+																	"type": "text",
+																	"disabled": true
 																}
 															]
 														},
@@ -833,6 +847,16 @@
 														{
 															"name": "Details",
 															"request": {
+																"auth": {
+																	"type": "bearer",
+																	"bearer": [
+																		{
+																			"key": "token",
+																			"value": "{{recipient_token}}",
+																			"type": "string"
+																		}
+																	]
+																},
 																"method": "GET",
 																"header": [
 																	{
@@ -908,6 +932,16 @@
 														{
 															"name": "Archive",
 															"request": {
+																"auth": {
+																	"type": "bearer",
+																	"bearer": [
+																		{
+																			"key": "token",
+																			"value": "{{recipient_token}}",
+																			"type": "string"
+																		}
+																	]
+																},
 																"method": "POST",
 																"header": [
 																	{
@@ -1005,6 +1039,16 @@
 														{
 															"name": "Mark As Read",
 															"request": {
+																"auth": {
+																	"type": "bearer",
+																	"bearer": [
+																		{
+																			"key": "token",
+																			"value": "{{recipient_token}}",
+																			"type": "string"
+																		}
+																	]
+																},
 																"method": "POST",
 																"header": [
 																	{
@@ -1102,6 +1146,16 @@
 														{
 															"name": "Purge",
 															"request": {
+																"auth": {
+																	"type": "bearer",
+																	"bearer": [
+																		{
+																			"key": "token",
+																			"value": "{{recipient_token}}",
+																			"type": "string"
+																		}
+																	]
+																},
 																"method": "DELETE",
 																"header": [
 																	{
@@ -1177,6 +1231,16 @@
 														{
 															"name": "Confirm",
 															"request": {
+																"auth": {
+																	"type": "bearer",
+																	"bearer": [
+																		{
+																			"key": "token",
+																			"value": "{{recipient_token}}",
+																			"type": "string"
+																		}
+																	]
+																},
 																"method": "POST",
 																"header": [
 																	{
@@ -1274,6 +1338,16 @@
 														{
 															"name": "Mark As Unread",
 															"request": {
+																"auth": {
+																	"type": "bearer",
+																	"bearer": [
+																		{
+																			"key": "token",
+																			"value": "{{recipient_token}}",
+																			"type": "string"
+																		}
+																	]
+																},
 																"method": "POST",
 																"header": [
 																	{
@@ -1376,7 +1450,7 @@
 															"bearer": [
 																{
 																	"key": "token",
-																	"value": "{{sender_jwt}}",
+																	"value": "{{recipient_token}}",
 																	"type": "string"
 																}
 															]
@@ -1463,6 +1537,16 @@
 												{
 													"name": "Download Attachment",
 													"request": {
+														"auth": {
+															"type": "bearer",
+															"bearer": [
+																{
+																	"key": "token",
+																	"value": "{{recipient_token}}",
+																	"type": "string"
+																}
+															]
+														},
 														"method": "GET",
 														"header": [],
 														"url": {
@@ -1526,7 +1610,7 @@
 													"script": {
 														"exec": [
 															"var correspondence = pm.response.json()\r",
-															"pm.collectionVariables.set(\"correspondenceId\", correspondence.correspondenceId);\r",
+															"pm.collectionVariables.set(\"correspondenceId\", correspondence.correspondenceIds[0]);\r",
 															"pm.collectionVariables.set(\"attachmentId\", correspondence.attachmentIds[0])\r",
 															""
 														],
@@ -1559,7 +1643,7 @@
 												],
 												"body": {
 													"mode": "raw",
-													"raw": "{\n  \"recipient\": \"0192:991825827\",\n  \"resourceId\": \"{{resource_id}}\",\n  \"sender\": \"0192:991825827\",\n  \"sendersReference\": \"1\",\n  \"content\": {\n    \"language\": \"no\",\n    \"messageTitle\": \"test\",\n    \"messageSummary\": \"test\",\n    \"messageBody\": \"test\",\n    \"attachments\": [\n        {\n        \"dataType\": \"html\",\n        \"expirationTime\": \"2024-12-12\",\n        \"name\": \"testfile\",\n        \"restrictionName\": \"testFile23\",\n        \"sendersReference\": \"1234\",\n        \"fileName\": \"test-fil32e\",\n        \"isEncrypted\": false,\n        \"dataLocationUrl\": \"\"\n        }\n    ]\n  },\n  \"visibleFrom\": \"2024-09-29T13:31:28.290518+00:00\",\n  \"allowSystemDeleteAfter\": \"2025-08-29T13:31:28.290518+00:00\",\n  \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"1\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"2\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"1\",\n    \"culpa_852\": \"2\",\n    \"anim5\": \"3\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"www.test.no\",\n      \"linkText\": \"test\"\n    },\n    {\n      \"linkURL\": \"test.no\",\n      \"linkText\": \"test\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"test\",\n      \"customTextToken\": \"test\",\n      \"sendersReference\": \"1\",\n      \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n    }\n  ],\n  \"isReservable\": true\n}",
+													"raw": "{ \"Correspondence\": {\n\n  \"resourceId\": \"{{resource_id}}\",\n  \"sender\": \"0192:991825827\",\n  \"sendersReference\": \"1\",\n  \"content\": {\n    \"language\": \"no\",\n    \"messageTitle\": \"test\",\n    \"messageSummary\": \"test\",\n    \"messageBody\": \"test\",\n    \"attachments\": [\n        {\n        \"dataType\": \"html\",\n        \"expirationTime\": \"2024-12-12\",\n        \"name\": \"testfile\",\n        \"restrictionName\": \"testFile23\",\n        \"sendersReference\": \"1234\",\n        \"fileName\": \"test-fil32e\",\n        \"isEncrypted\": false,\n        \"dataLocationUrl\": \"\"\n        }\n    ]\n  },\n  \"visibleFrom\": \"2024-08-20T13:31:28.290518+00:00\",\n  \"allowSystemDeleteAfter\": \"2025-08-29T13:31:28.290518+00:00\",\n  \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"1\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"2\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"1\",\n    \"culpa_852\": \"2\",\n    \"anim5\": \"3\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"www.test.no\",\n      \"linkText\": \"test\"\n    },\n    {\n      \"linkURL\": \"test.no\",\n      \"linkText\": \"test\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"test\",\n      \"customTextToken\": \"test\",\n      \"sendersReference\": \"1\",\n      \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n    }\n  ],\n  \"isReservable\": true\n},\n\"Recipients\": [\n       \"0192:991825827\"\n],\n\"existingAttachments\": [\n]\n}",
 													"options": {
 														"raw": {
 															"headerFamily": "json",
@@ -1639,17 +1723,25 @@
 													"listen": "test",
 													"script": {
 														"exec": [
-															""
+															"var correspondence = pm.response.json()\r",
+															"pm.collectionVariables.set(\"correspondenceId\", correspondence.items[0]);"
 														],
 														"type": "text/javascript",
 														"packages": {}
 													}
 												}
 											],
-											"protocolProfileBehavior": {
-												"disableBodyPruning": true
-											},
 											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{recipient_token}}",
+															"type": "string"
+														}
+													]
+												},
 												"method": "GET",
 												"header": [
 													{
@@ -1661,18 +1753,8 @@
 														"value": "text/plain"
 													}
 												],
-												"body": {
-													"mode": "raw",
-													"raw": "{\n  \"recipient\": \"1\",\n  \"resourceId\": \"1\",\n  \"sender\": \"8536:031145332\",\n  \"sendersReference\": \"1\",\n  \"content\": {\n    \"language\": \"no\",\n    \"messageTitle\": \"test\",\n    \"messageSummary\": \"test\",\n    \"attachments\": [\n        {\n        \"dataType\": \"html\",\n        \"expirationTime\": \"2024-12-12\",\n        \"name\": \"3\",\n        \"restrictionName\": \"testFile23\",\n        \"sendersReference\": \"1234\",\n        \"usageType\": \"HumanReadable\",\n        \"fileName\": \"test-fil32e\",\n        \"isEncrypted\": false,\n        \"IsMessageBody\":true,\n        \"dataLocationUrl\": \"http://127.0.0.1:10000/devstoreaccount1/attachments/25fd8e8f-2702-4115-8b05-3825b5098379\"\n        }]\n  },\n  \"visibleFrom\": \"2024-06-29T13:31:28.290518+00:00\",\n  \"allowSystemDeleteAfter\": \"2025-08-29T13:31:28.290518+00:00\",\n  \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"1\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"2\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"1\",\n    \"culpa_852\": \"2\",\n    \"anim5\": \"3\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"www.test.no\",\n      \"linkText\": \"test\"\n    },\n    {\n      \"linkURL\": \"test.no\",\n      \"linkText\": \"test\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"test\",\n      \"customTextToken\": \"test\",\n      \"sendersReference\": \"1\",\n      \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n    }\n  ],\n  \"isReservable\": true\n}",
-													"options": {
-														"raw": {
-															"headerFamily": "json",
-															"language": "json"
-														}
-													}
-												},
 												"url": {
-													"raw": "{{baseUrl}}/correspondence/api/v1/correspondence?from=2024-02-02T13:31:28.290518&to=2025-08-29T13:31:28.290518&offset=0&limit=30&status=1&resourceId={{resource_id}}",
+													"raw": "{{baseUrl}}/correspondence/api/v1/correspondence?from=2024-02-02T13:31:28.290518&to=2025-08-29T13:31:28.290518&offset=0&limit=30&status=2&resourceId={{resource_id}}",
 													"host": [
 														"{{baseUrl}}"
 													],
@@ -1701,7 +1783,7 @@
 														},
 														{
 															"key": "status",
-															"value": "1"
+															"value": "2"
 														},
 														{
 															"key": "resourceId",

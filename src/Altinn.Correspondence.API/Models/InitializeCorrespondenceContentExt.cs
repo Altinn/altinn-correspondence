@@ -47,12 +47,6 @@ namespace Altinn.Correspondence.API.Models
         /// </remarks>
         [JsonPropertyName("attachments")]
         public List<InitializeCorrespondenceAttachmentExt> Attachments { get; set; } = new List<InitializeCorrespondenceAttachmentExt>();
-
-        /// <summary>
-        /// Ids of the attachments that are to be included in the correspondence.
-        /// </summary>
-        [JsonPropertyName("attachmentIds")]
-        public List<Guid>? AttachmentIds { get; set; }
     }
 
     [AttributeUsage(AttributeTargets.Property)]
