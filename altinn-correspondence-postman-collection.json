@@ -2398,7 +2398,7 @@
 		},
 		{
 			"key": "baseUrl",
-			"value": "localhost:5096"
+			"value": "https://platform.altinn.no"
 		},
 		{
 			"key": "correspondenceId",
