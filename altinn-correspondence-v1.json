@@ -173,12 +173,12 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/InitializeCorrespondenceExt"
+                                "$ref": "#/components/schemas/InitializeCorrespondencesExt"
                             }
                         },
                         "application/*+json": {
                             "schema": {
-                                "$ref": "#/components/schemas/InitializeCorrespondenceExt"
+                                "$ref": "#/components/schemas/InitializeCorrespondencesExt"
                             }
                         }
                     }
@@ -272,105 +272,107 @@
                         "multipart/form-data": {
                             "schema": {
                                 "required": [
-                                    "Content.Language",
-                                    "Content.MessageBody",
-                                    "Content.MessageSummary",
-                                    "Content.MessageTitle",
-                                    "Recipient",
-                                    "ResourceId",
-                                    "Sender",
-                                    "SendersReference",
-                                    "VisibleFrom"
+                                    "Correspondence.Content.Language",
+                                    "Correspondence.Content.MessageBody",
+                                    "Correspondence.Content.MessageSummary",
+                                    "Correspondence.Content.MessageTitle",
+                                    "Correspondence.ResourceId",
+                                    "Correspondence.Sender",
+                                    "Correspondence.SendersReference",
+                                    "Correspondence.VisibleFrom",
+                                    "Recipients"
                                 ],
                                 "type": "object",
                                 "properties": {
-                                    "ResourceId": {
+                                    "Correspondence.ResourceId": {
                                         "maxLength": 255,
                                         "minLength": 1,
                                         "type": "string"
                                     },
-                                    "Recipient": {
-                                        "pattern": "^\\d{4}:\\d{9}$|\\d{11}$",
-                                        "type": "string"
-                                    },
-                                    "Sender": {
+                                    "Correspondence.Sender": {
                                         "pattern": "^\\d{4}:\\d{9}$",
                                         "type": "string"
                                     },
-                                    "SendersReference": {
+                                    "Correspondence.SendersReference": {
                                         "maxLength": 4096,
                                         "minLength": 1,
                                         "type": "string"
                                     },
-                                    "MessageSender": {
+                                    "Correspondence.MessageSender": {
                                         "maxLength": 256,
                                         "minLength": 0,
                                         "type": "string"
                                     },
-                                    "Content.Language": {
+                                    "Correspondence.Content.Language": {
                                         "type": "string"
                                     },
-                                    "Content.MessageTitle": {
+                                    "Correspondence.Content.MessageTitle": {
                                         "type": "string"
                                     },
-                                    "Content.MessageSummary": {
+                                    "Correspondence.Content.MessageSummary": {
                                         "type": "string"
                                     },
-                                    "Content.MessageBody": {
+                                    "Correspondence.Content.MessageBody": {
                                         "type": "string"
                                     },
-                                    "Content.Attachments": {
+                                    "Correspondence.Content.Attachments": {
                                         "type": "array",
                                         "items": {
                                             "$ref": "#/components/schemas/InitializeCorrespondenceAttachmentExt"
                                         }
                                     },
-                                    "Content.AttachmentIds": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string",
-                                            "format": "uuid"
-                                        }
-                                    },
-                                    "VisibleFrom": {
+                                    "Correspondence.VisibleFrom": {
                                         "type": "string",
                                         "format": "date-time"
                                     },
-                                    "AllowSystemDeleteAfter": {
+                                    "Correspondence.AllowSystemDeleteAfter": {
                                         "type": "string",
                                         "format": "date-time"
                                     },
-                                    "DueDateTime": {
+                                    "Correspondence.DueDateTime": {
                                         "type": "string",
                                         "format": "date-time"
                                     },
-                                    "ExternalReferences": {
+                                    "Correspondence.ExternalReferences": {
                                         "type": "array",
                                         "items": {
                                             "$ref": "#/components/schemas/ExternalReferenceExt"
                                         }
                                     },
-                                    "PropertyList": {
+                                    "Correspondence.PropertyList": {
                                         "type": "object",
                                         "additionalProperties": {
                                             "type": "string"
                                         }
                                     },
-                                    "ReplyOptions": {
+                                    "Correspondence.ReplyOptions": {
                                         "type": "array",
                                         "items": {
                                             "$ref": "#/components/schemas/CorrespondenceReplyOptionExt"
                                         }
                                     },
-                                    "Notifications": {
+                                    "Correspondence.Notifications": {
                                         "maxItems": 6,
                                         "type": "array",
                                         "items": {
                                             "$ref": "#/components/schemas/InitializeCorrespondenceNotificationExt"
                                         }
                                     },
-                                    "IsReservable": {
+                                    "Correspondence.IsReservable": {
                                         "type": "boolean"
+                                    },
+                                    "Recipients": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "ExistingAttachments": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "format": "uuid"
+                                        }
                                     },
                                     "attachments": {
                                         "type": "array",
@@ -382,61 +384,61 @@
                                 }
                             },
                             "encoding": {
-                                "ResourceId": {
+                                "Correspondence.ResourceId": {
                                     "style": "form"
                                 },
-                                "Recipient": {
+                                "Correspondence.Sender": {
                                     "style": "form"
                                 },
-                                "Sender": {
+                                "Correspondence.SendersReference": {
                                     "style": "form"
                                 },
-                                "SendersReference": {
+                                "Correspondence.MessageSender": {
                                     "style": "form"
                                 },
-                                "MessageSender": {
+                                "Correspondence.Content.Language": {
                                     "style": "form"
                                 },
-                                "Content.Language": {
+                                "Correspondence.Content.MessageTitle": {
                                     "style": "form"
                                 },
-                                "Content.MessageTitle": {
+                                "Correspondence.Content.MessageSummary": {
                                     "style": "form"
                                 },
-                                "Content.MessageSummary": {
+                                "Correspondence.Content.MessageBody": {
                                     "style": "form"
                                 },
-                                "Content.MessageBody": {
+                                "Correspondence.Content.Attachments": {
                                     "style": "form"
                                 },
-                                "Content.Attachments": {
+                                "Correspondence.VisibleFrom": {
                                     "style": "form"
                                 },
-                                "Content.AttachmentIds": {
+                                "Correspondence.AllowSystemDeleteAfter": {
                                     "style": "form"
                                 },
-                                "VisibleFrom": {
+                                "Correspondence.DueDateTime": {
                                     "style": "form"
                                 },
-                                "AllowSystemDeleteAfter": {
+                                "Correspondence.ExternalReferences": {
                                     "style": "form"
                                 },
-                                "DueDateTime": {
+                                "Correspondence.PropertyList": {
                                     "style": "form"
                                 },
-                                "ExternalReferences": {
+                                "Correspondence.ReplyOptions": {
                                     "style": "form"
                                 },
-                                "PropertyList": {
+                                "Correspondence.Notifications": {
                                     "style": "form"
                                 },
-                                "ReplyOptions": {
+                                "Correspondence.IsReservable": {
                                     "style": "form"
                                 },
-                                "Notifications": {
+                                "Recipients": {
                                     "style": "form"
                                 },
-                                "IsReservable": {
+                                "ExistingAttachments": {
                                     "style": "form"
                                 },
                                 "attachments": {
@@ -722,7 +724,6 @@
                     "correspondenceIds",
                     "dataLocationUrl",
                     "dataType",
-                    "expirationTime",
                     "name",
                     "resourceId",
                     "sender",
@@ -769,10 +770,6 @@
                     "dataType": {
                         "minLength": 1,
                         "type": "string"
-                    },
-                    "expirationTime": {
-                        "type": "string",
-                        "format": "date-time"
                     },
                     "attachmentId": {
                         "type": "string",
@@ -821,7 +818,6 @@
                     "correspondenceIds",
                     "dataLocationUrl",
                     "dataType",
-                    "expirationTime",
                     "name",
                     "resourceId",
                     "sender",
@@ -869,10 +865,6 @@
                         "minLength": 1,
                         "type": "string"
                     },
-                    "expirationTime": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
                     "attachmentId": {
                         "type": "string",
                         "format": "uuid"
@@ -916,6 +908,93 @@
                     "Failed"
                 ],
                 "type": "string"
+            },
+            "BaseCorrespondenceExt": {
+                "required": [
+                    "resourceId",
+                    "sender",
+                    "sendersReference",
+                    "visibleFrom"
+                ],
+                "type": "object",
+                "properties": {
+                    "resourceId": {
+                        "maxLength": 255,
+                        "minLength": 1,
+                        "type": "string"
+                    },
+                    "sender": {
+                        "minLength": 1,
+                        "pattern": "^\\d{4}:\\d{9}$",
+                        "type": "string"
+                    },
+                    "sendersReference": {
+                        "maxLength": 4096,
+                        "minLength": 1,
+                        "type": "string"
+                    },
+                    "messageSender": {
+                        "maxLength": 256,
+                        "minLength": 0,
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "content": {
+                        "$ref": "#/components/schemas/InitializeCorrespondenceContentExt"
+                    },
+                    "visibleFrom": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "allowSystemDeleteAfter": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "dueDateTime": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "externalReferences": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ExternalReferenceExt"
+                        },
+                        "nullable": true
+                    },
+                    "propertyList": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "maxProperties": 10,
+                        "nullable": true,
+                        "patternProperties": {
+                            "^.{1,50}$": {
+                                "maxLength": 300,
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "replyOptions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CorrespondenceReplyOptionExt"
+                        },
+                        "nullable": true
+                    },
+                    "notifications": {
+                        "maxItems": 6,
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/InitializeCorrespondenceNotificationExt"
+                        },
+                        "nullable": true
+                    },
+                    "isReservable": {
+                        "type": "boolean",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false
             },
             "CorrespondenceAttachmentExt": {
                 "required": [
@@ -969,12 +1048,7 @@
                         "type": "string",
                         "nullable": true
                     },
-                    "attachmentId": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
-                    },
-                    "createdDateTime": {
+                    "created": {
                         "type": "string",
                         "format": "date-time"
                     },
@@ -985,7 +1059,11 @@
                         "type": "string",
                         "nullable": true
                     },
-                    "StatusChangedDateTime": {
+                    "StatusChanged": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "expirationTime": {
                         "type": "string",
                         "format": "date-time"
                     }
@@ -1024,14 +1102,6 @@
                             "$ref": "#/components/schemas/CorrespondenceAttachmentExt"
                         },
                         "nullable": true
-                    },
-                    "attachmentIds": {
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "nullable": true
                     }
                 },
                 "additionalProperties": false
@@ -1051,11 +1121,6 @@
                     "resourceId": {
                         "maxLength": 255,
                         "minLength": 1,
-                        "type": "string"
-                    },
-                    "recipient": {
-                        "minLength": 1,
-                        "pattern": "^\\d{4}:\\d{9}$|\\d{11}$",
                         "type": "string"
                     },
                     "sender": {
@@ -1127,6 +1192,14 @@
                         "type": "boolean",
                         "nullable": true
                     },
+                    "recipient": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "markedUnread": {
+                        "type": "boolean",
+                        "nullable": true
+                    },
                     "correspondenceId": {
                         "type": "string",
                         "format": "uuid"
@@ -1145,10 +1218,6 @@
                     "statusChanged": {
                         "type": "string",
                         "format": "date-time"
-                    },
-                    "markedUnread": {
-                        "type": "boolean",
-                        "nullable": true
                     },
                     "statusHistory": {
                         "type": "array",
@@ -1242,11 +1311,6 @@
                         "minLength": 1,
                         "type": "string"
                     },
-                    "recipient": {
-                        "minLength": 1,
-                        "pattern": "^\\d{4}:\\d{9}$|\\d{11}$",
-                        "type": "string"
-                    },
                     "sender": {
                         "minLength": 1,
                         "pattern": "^\\d{4}:\\d{9}$",
@@ -1315,6 +1379,10 @@
                     },
                     "isReservable": {
                         "type": "boolean",
+                        "nullable": true
+                    },
+                    "recipient": {
+                        "type": "string",
                         "nullable": true
                     },
                     "markedUnread": {
@@ -1439,9 +1507,9 @@
             "InitializeAttachmentExt": {
                 "required": [
                     "dataType",
-                    "expirationTime",
                     "name",
                     "resourceId",
+                    "restrictionName",
                     "sender",
                     "sendersReference"
                 ],
@@ -1460,6 +1528,10 @@
                     },
                     "name": {
                         "maxLength": 255,
+                        "minLength": 1,
+                        "type": "string"
+                    },
+                    "restrictionName": {
                         "minLength": 1,
                         "type": "string"
                     },
@@ -1483,14 +1555,6 @@
                     "dataType": {
                         "minLength": 1,
                         "type": "string"
-                    },
-                    "restrictionName": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "expirationTime": {
-                        "type": "string",
-                        "format": "date-time"
                     }
                 },
                 "additionalProperties": false
@@ -1546,6 +1610,10 @@
                     "dataLocationUrl": {
                         "type": "string",
                         "nullable": true
+                    },
+                    "expirationTime": {
+                        "type": "string",
+                        "format": "date-time"
                     }
                 },
                 "additionalProperties": false
@@ -1581,102 +1649,6 @@
                             "$ref": "#/components/schemas/InitializeCorrespondenceAttachmentExt"
                         },
                         "nullable": true
-                    },
-                    "attachmentIds": {
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "nullable": true
-                    }
-                },
-                "additionalProperties": false
-            },
-            "InitializeCorrespondenceExt": {
-                "required": [
-                    "recipient",
-                    "resourceId",
-                    "sender",
-                    "sendersReference",
-                    "visibleFrom"
-                ],
-                "type": "object",
-                "properties": {
-                    "resourceId": {
-                        "maxLength": 255,
-                        "minLength": 1,
-                        "type": "string"
-                    },
-                    "recipient": {
-                        "minLength": 1,
-                        "pattern": "^\\d{4}:\\d{9}$|\\d{11}$",
-                        "type": "string"
-                    },
-                    "sender": {
-                        "minLength": 1,
-                        "pattern": "^\\d{4}:\\d{9}$",
-                        "type": "string"
-                    },
-                    "sendersReference": {
-                        "maxLength": 4096,
-                        "minLength": 1,
-                        "type": "string"
-                    },
-                    "messageSender": {
-                        "maxLength": 256,
-                        "minLength": 0,
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "content": {
-                        "$ref": "#/components/schemas/InitializeCorrespondenceContentExt"
-                    },
-                    "visibleFrom": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "allowSystemDeleteAfter": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
-                    },
-                    "dueDateTime": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "externalReferences": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ExternalReferenceExt"
-                        },
-                        "nullable": true
-                    },
-                    "propertyList": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        },
-                        "nullable": true
-                    },
-                    "replyOptions": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/CorrespondenceReplyOptionExt"
-                        },
-                        "nullable": true
-                    },
-                    "notifications": {
-                        "maxItems": 6,
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/InitializeCorrespondenceNotificationExt"
-                        },
-                        "nullable": true
-                    },
-                    "isReservable": {
-                        "type": "boolean",
-                        "nullable": true
                     }
                 },
                 "additionalProperties": false
@@ -1704,6 +1676,33 @@
                     "requestedSendTime": {
                         "type": "string",
                         "format": "date-time"
+                    }
+                },
+                "additionalProperties": false
+            },
+            "InitializeCorrespondencesExt": {
+                "required": [
+                    "correspondence",
+                    "recipients"
+                ],
+                "type": "object",
+                "properties": {
+                    "correspondence": {
+                        "$ref": "#/components/schemas/BaseCorrespondenceExt"
+                    },
+                    "recipients": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "existingAttachments": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "nullable": true
                     }
                 },
                 "additionalProperties": false
