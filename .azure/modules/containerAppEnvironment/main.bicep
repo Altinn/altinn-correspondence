@@ -89,6 +89,22 @@ module storageAccountConnectionStringSecret '../keyvault/upsertSecret.bicep' = {
   }
 }
 
+resource application_insights_action 'Microsoft.Insights/actionGroups@2023-01-01' = if (emailReceiver != null && emailReceiver != '') {
+  name: '${namePrefix}-action'
+  location: 'global' // action group locations is limited, change to use location variable when new locations is added
+  dependsOn: [application_insights, containerAppEnvironment]
+  properties: {
+    groupShortName: 'corr-alert'
+    enabled: true
+    emailReceivers: [
+      {
+        name: 'emailReceiverForAlert'
+        emailAddress: emailReceiver
+      }
+    ]
+  }
+}
+
 resource exceptionOccuredAlertRule 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = if (emailReceiver != null && emailReceiver != '') {
   name: '${namePrefix}-500-exception-occured'
   location: location
@@ -119,7 +135,7 @@ resource exceptionOccuredAlertRule 'Microsoft.Insights/scheduledQueryRules@2023-
     }
     actions: {
       actionGroups: [
-        application_insights.id
+        application_insights_action.id
       ]
     }
   }
