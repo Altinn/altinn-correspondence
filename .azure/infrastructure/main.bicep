@@ -18,6 +18,8 @@ param maskinportenJwk string
 param maskinportenClientId string
 @secure()
 param platformSubscriptionKey string
+@secure()
+param notificationEmail string
 
 @secure()
 param storageAccountName string
@@ -121,6 +123,7 @@ module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
     location: location
     namePrefix: namePrefix
     storageAccountName: storageAccountName
+    emailReceiver: notificationEmail
   }
 }
 output resourceGroupName string = resourceGroup.name
