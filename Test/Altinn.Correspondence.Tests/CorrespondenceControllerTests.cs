@@ -29,7 +29,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task InitializeCorrespondence()
     {
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
     }
     [Fact]
@@ -59,59 +59,59 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task InitializeCorrespondence_With_Different_Markdown_In_Body()
     {
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
-        correspondence.Content.MessageBody = File.ReadAllText("Data/Markdown.text");
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.Correspondence.Content.MessageBody = File.ReadAllText("Data/Markdown.text");
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
     }
 
     [Fact]
     public async Task InitializeCorrespondence_Recipient_Can_Handle_Org_And_Ssn()
     {
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
-        correspondence.Recipient = "1234:123456789";
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.Recipients = new List<string> { "1234:123456789" };
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
 
-        correspondence.Recipient = "12345678901";
-        initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        payload.Recipients = new List<string> { "12345678901" };
+        initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
     }
 
     [Fact]
     public async Task InitializeCorrespondence_With_Invalid_Sender_Returns_BadRequest()
     {
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
-        correspondence.Sender = "invalid-sender";
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.Correspondence.Sender = "invalid-sender";
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
 
-        correspondence.Sender = "123456789";
-        initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        payload.Correspondence.Sender = "123456789";
+        initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
 
     [Fact]
     public async Task InitializeCorrespondence_With_Invalid_Recipient_Returns_BadRequest()
     {
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
-        correspondence.Recipient = "invalid-recipient";
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.Recipients = new List<string> { "invalid-recipient" };
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
 
-        correspondence.Recipient = "123456789";
-        initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        payload.Recipients = new List<string> { "123456789" };
+        initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
 
-        correspondence.Recipient = "1234567890123";
-        initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        payload.Recipients = new List<string> { "1234567812390123" };
+        initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
 
     [Fact]
     public async Task UploadCorrespondence_Gives_Ok()
     {
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
         using (var stream = System.IO.File.OpenRead("./Data/Markdown.text"))
         {
             var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
@@ -122,33 +122,32 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
                 RestrictionName = "testFile3",
                 SendersReference = "1234",
                 FileName = file.FileName,
-                IsEncrypted = false,
-                Sender = correspondence.Sender
+                IsEncrypted = false
             };
-            correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>() { attachmentData };
-            var formData = CorrespondenceToFormData(correspondence);
+            payload.Correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>() { attachmentData };
+            var formData = CorrespondenceToFormData(payload.Correspondence);
+            formData.Add(new StringContent("0192:986252932"), "recipients[0]");
             using var fileStream = file.OpenReadStream();
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
             var uploadCorrespondenceResponse = await _client.PostAsync("correspondence/api/v1/correspondence/upload", formData);
             uploadCorrespondenceResponse.EnsureSuccessStatusCode();
 
-            var response = await uploadCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>(_responseSerializerOptions);
+            var response = await uploadCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
             var attachmentId = response?.AttachmentIds.FirstOrDefault();
             var attachmentOverview = await _client.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
             Assert.NotNull(attachmentOverview.DataLocationUrl);
-            correspondence.Content.Attachments.Add(new InitializeCorrespondenceAttachmentExt()
+            payload.Correspondence.Content.Attachments.Add(new InitializeCorrespondenceAttachmentExt()
             {
                 DataLocationUrl = attachmentOverview.DataLocationUrl,
                 DataType = attachmentOverview.DataType,
                 FileName = attachmentOverview.FileName,
                 Name = "Logical file name",
                 RestrictionName = attachmentOverview.RestrictionName,
-                Sender = attachmentOverview.Sender,
                 SendersReference = attachmentOverview.SendersReference,
                 IsEncrypted = attachmentOverview.IsEncrypted,
                 Checksum = attachmentOverview.Checksum
             });
-            formData = CorrespondenceToFormData(correspondence);
+            formData = CorrespondenceToFormData(payload.Correspondence);
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
             var uploadCorrespondenceResponse2 = await _client.PostAsync("correspondence/api/v1/correspondence/upload", formData);
             Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
@@ -157,7 +156,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task UploadCorrespondence_With_Multiple_Files()
     {
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
 
         using var stream = System.IO.File.OpenRead("./Data/Markdown.text");
         var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
@@ -166,12 +165,11 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var file2 = new FormFile(stream2, 0, stream2.Length, null, Path.GetFileName(stream2.Name));
         using var fileStream2 = file2.OpenReadStream();
 
-        correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>(){
+        payload.Correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>(){
             new InitializeCorrespondenceAttachmentExt(){
                 DataType = "text",
                 Name = "markdown example",
                 RestrictionName = "testFile3",
-                Sender = correspondence.Sender,
                 SendersReference = "1234",
                 FileName = file.FileName,
                 IsEncrypted = false,
@@ -180,12 +178,12 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
                 DataType = "text",
                 Name = "test file",
                 RestrictionName = "testFile3",
-                Sender = correspondence.Sender,
                 SendersReference = "1234",
                 FileName = file2.FileName,
                 IsEncrypted = false,
             }};
-        var formData = CorrespondenceToFormData(correspondence);
+        var formData = CorrespondenceToFormData(payload.Correspondence);
+        formData.Add(new StringContent("0192:986252932"), "recipients[0]");
         formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
         formData.Add(new StreamContent(fileStream2), "attachments", file2.FileName);
 
@@ -196,38 +194,37 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task UploadCorrespondence_No_Files_Gives_Bad_request()
     {
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
-        correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>() { };
-        var formData = CorrespondenceToFormData(correspondence);
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.Correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>() { };
+        var formData = CorrespondenceToFormData(payload.Correspondence);
         var uploadCorrespondenceResponse = await _client.PostAsync("correspondence/api/v1/correspondence/upload", formData);
         Assert.Equal(HttpStatusCode.BadRequest, uploadCorrespondenceResponse.StatusCode);
     }
 
     [Fact]
-    public async Task InitializeMultipleCorrespondence()
+    public async Task InitializeCorrespondences()
     {
         var uploadedAttachment = await InitializeAttachment();
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence/multiple", InitializeCorrespondenceFactory.BasicMultipleCorrespondence(uploadedAttachment.DataLocationUrl));
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences(uploadedAttachment.DataLocationUrl));
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
     }
 
     [Fact]
-    public async Task UploadMultipleCorrespondence_With_Multiple_Files()
+    public async Task UploadCorrespondences_With_Multiple_Files()
     {
 
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondence();
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
         using var stream = System.IO.File.OpenRead("./Data/Markdown.text");
         var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
         using var fileStream = file.OpenReadStream();
         using var stream2 = System.IO.File.OpenRead("./Data/test.txt");
         var file2 = new FormFile(stream2, 0, stream2.Length, null, Path.GetFileName(stream2.Name));
         using var fileStream2 = file2.OpenReadStream();
-        correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>(){
+        payload.Correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>(){
             new InitializeCorrespondenceAttachmentExt(){
                 DataType = "text",
                 Name = "MARKDOWN EXAMPLE",
                 RestrictionName = "testFile3",
-                Sender = correspondence.Sender,
                 SendersReference = "1234",
                 FileName = file.FileName,
                 IsEncrypted = false,
@@ -236,29 +233,29 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
                 DataType = "text",
                 Name = "test file",
                 RestrictionName = "testFile3",
-                Sender = correspondence.Sender,
                 SendersReference = "1234",
                 FileName = file2.FileName,
                 IsEncrypted = false,
             }};
-        var formData = CorrespondenceToFormData(correspondence, "Correspondence.");
+
+        var formData = CorrespondenceToFormData(payload.Correspondence);
 
         formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
         formData.Add(new StreamContent(fileStream2), "attachments", file2.FileName);
         formData.Add(new StringContent("0192:986252932"), "recipients[0]");
         formData.Add(new StringContent("0198:991234649"), "recipients[1]");
 
-        var uploadCorrespondenceResponse = await _client.PostAsync("correspondence/api/v1/correspondence/multiple/upload", formData);
+        var uploadCorrespondenceResponse = await _client.PostAsync("correspondence/api/v1/correspondence/upload", formData);
         Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
     }
 
     [Fact]
     public async Task GetCorrespondences()
     {
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
-        var initializeCorrespondenceResponse2 = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
+        var initializeCorrespondenceResponse2 = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
         Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
 
         var correspondenceList = await _client.GetFromJsonAsync<GetCorrespondencesResponse>("correspondence/api/v1/correspondence?resourceId=1&offset=0&limit=10&status=0");
@@ -270,19 +267,19 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         var resourceA = Guid.NewGuid().ToString();
         var resourceB = Guid.NewGuid().ToString();
-        var correspondenceForResourceA = InitializeCorrespondenceFactory.BasicCorrespondence();
-        correspondenceForResourceA.ResourceId = resourceA;
-        var correspondenceForResourceB = InitializeCorrespondenceFactory.BasicCorrespondence();
-        correspondenceForResourceB.ResourceId = resourceB;
+        var payloadForResourceA = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payloadForResourceA.Correspondence.ResourceId = resourceA;
+        var payloadForResourceB = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payloadForResourceB.Correspondence.ResourceId = resourceB;
 
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondenceForResourceA);
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadForResourceA);
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
-        var initializeCorrespondenceResponse2 = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondenceForResourceB);
+        var initializeCorrespondenceResponse2 = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadForResourceB);
         Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
 
         var correspondenceList = await _client.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceA}&offset=0&limit=10&status=0");
-        Assert.True(correspondenceList?.Pagination.TotalItems == 1);
+        Assert.Equal(correspondenceList?.Pagination.TotalItems, payloadForResourceA.Recipients.Count);
     }
 
     [Fact]
@@ -324,13 +321,13 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task ReceiverMarkActions_CorrespondenceNotPublished_ReturnBadRequest()
     {
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
-        var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
-        Assert.NotNull(correspondence);
-        var readResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondence.CorrespondenceId}/markasread", null);
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
+        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        Assert.NotNull(correspondenceResponse);
+        var readResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondenceResponse?.CorrespondenceIds.FirstOrDefault()}/markasread", null);
         Assert.Equal(HttpStatusCode.BadRequest, readResponse.StatusCode);
 
-        var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondence.CorrespondenceId}/confirm", null);
+        var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{correspondenceResponse?.CorrespondenceIds.FirstOrDefault()}/confirm", null);
         Assert.Equal(HttpStatusCode.BadRequest, confirmResponse.StatusCode);
     }
 
@@ -339,25 +336,27 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         var uploadedAttachment = await InitializeAttachment();
         Assert.NotNull(uploadedAttachment);
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondenceWithFileAttachment(uploadedAttachment.DataLocationUrl);
-        correspondence.VisibleFrom = DateTime.UtcNow.AddMinutes(-1);
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence, _responseSerializerOptions);
-        var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
+        payload.Correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
+        payload.Correspondence.VisibleFrom = DateTime.UtcNow.AddMinutes(-1);
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         Assert.NotNull(response);
 
-        var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{response.CorrespondenceId}", _responseSerializerOptions);
+        var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{response.CorrespondenceIds.FirstOrDefault()}", _responseSerializerOptions);
         Assert.True(overview?.Status == CorrespondenceStatusExt.Fetched);
-        Assert.NotNull(correspondence);
-        var readResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{response.CorrespondenceId}/markasread", null);
+        Assert.NotNull(payload);
+        var readResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{response.CorrespondenceIds.FirstOrDefault()}/markasread", null);
         readResponse.EnsureSuccessStatusCode();
 
-        var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{response.CorrespondenceId}/confirm", null);
+        var confirmResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{response.CorrespondenceIds.FirstOrDefault()}/confirm", null);
         confirmResponse.EnsureSuccessStatusCode();
 
-        var markAsUnreadResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{response.CorrespondenceId}/markasunread", null);
+        var markAsUnreadResponse = await _client.PostAsync($"correspondence/api/v1/correspondence/{response.CorrespondenceIds.FirstOrDefault()}/markasunread", null);
         markAsUnreadResponse.EnsureSuccessStatusCode();
-        overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{response.CorrespondenceId}", _responseSerializerOptions);
+        overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{response.CorrespondenceIds.FirstOrDefault()}", _responseSerializerOptions);
         Assert.True(overview?.MarkedUnread == true);
     }
 
@@ -365,8 +364,11 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task Correspondence_with_dataLocationUrl_Reuses_Attachment()
     {
         var uploadedAttachment = await InitializeAttachment();
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithFileAttachment(uploadedAttachment.DataLocationUrl), _responseSerializerOptions);
-        var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
+        payload.Correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         Assert.Equal(uploadedAttachment.AttachmentId.ToString(), response?.AttachmentIds?.FirstOrDefault().ToString());
     }
@@ -374,24 +376,27 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task Delete_Initialized_Correspondence_Gives_OK()
     {
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
-        var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
-        Assert.NotNull(correspondence);
-        var response = await _client.DeleteAsync($"correspondence/api/v1/correspondence/{correspondence.CorrespondenceId}/purge");
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
+        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        Assert.NotNull(correspondenceResponse);
+        var response = await _client.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.CorrespondenceIds.FirstOrDefault()}/purge");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondence.CorrespondenceId}", _responseSerializerOptions);
+        var overview = await _client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse.CorrespondenceIds.FirstOrDefault()}", _responseSerializerOptions);
         Assert.Equal(overview?.Status, CorrespondenceStatusExt.PurgedByRecipient);
     }
 
     [Fact]
     public async Task Delete_Correspondence_Also_deletes_attachment()
     {
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondence());
-        var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
-        Assert.NotNull(correspondence);
-        var response = await _client.DeleteAsync($"correspondence/api/v1/correspondence/{correspondence.CorrespondenceId}/purge");
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var attachment = await _client.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{correspondence.AttachmentIds.FirstOrDefault()}", _responseSerializerOptions);
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
+        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        Assert.NotNull(correspondenceResponse);
+        foreach (var correspondenceId in correspondenceResponse.CorrespondenceIds)
+        {
+            var response = await _client.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+        var attachment = await _client.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{correspondenceResponse.AttachmentIds.FirstOrDefault()}", _responseSerializerOptions);
         Assert.Equal(attachment?.Status, AttachmentStatusExt.Purged);
     }
 
@@ -400,20 +405,22 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         var attachment = await InitializeAttachment();
         Assert.NotNull(attachment);
-        var correspondence1 = InitializeCorrespondenceFactory.BasicCorrespondenceWithFileAttachment(attachment.DataLocationUrl);
-        var correspondence2 = InitializeCorrespondenceFactory.BasicCorrespondenceWithFileAttachment(attachment.DataLocationUrl);
+        var correspondence1 = InitializeCorrespondenceFactory.BasicCorrespondences();
+        correspondence1.ExistingAttachments = new List<Guid> { attachment.AttachmentId };
+        var correspondence2 = InitializeCorrespondenceFactory.BasicCorrespondences();
+        correspondence2.ExistingAttachments = new List<Guid> { attachment.AttachmentId };
 
         var initializeCorrespondenceResponse1 = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence1, _responseSerializerOptions);
-        var response1 = await initializeCorrespondenceResponse1.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
+        var response1 = await initializeCorrespondenceResponse1.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
         initializeCorrespondenceResponse1.EnsureSuccessStatusCode();
         Assert.NotNull(response1);
 
         var initializeCorrespondenceResponse2 = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence2, _responseSerializerOptions);
-        var response2 = await initializeCorrespondenceResponse2.Content.ReadFromJsonAsync<InitializeCorrespondenceResponseExt>();
+        var response2 = await initializeCorrespondenceResponse2.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
         initializeCorrespondenceResponse2.EnsureSuccessStatusCode();
         Assert.NotNull(response2);
 
-        var deleteResponse = await _client.DeleteAsync($"correspondence/api/v1/correspondence/{response1.CorrespondenceId}/purge");
+        var deleteResponse = await _client.DeleteAsync($"correspondence/api/v1/correspondence/{response1.CorrespondenceIds.FirstOrDefault()}/purge");
         Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
 
         var attachmentOverview = await _client.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{response1.AttachmentIds.FirstOrDefault()}", _responseSerializerOptions);
@@ -460,60 +467,58 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var overview = await (await UploadAttachment(attachmentId)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
         return overview;
     }
-    private MultipartFormDataContent CorrespondenceToFormData(InitializeCorrespondenceExt correspondence, string prefix = "")
+    private MultipartFormDataContent CorrespondenceToFormData(BaseCorrespondenceExt correspondence)
     {
         var formData = new MultipartFormDataContent(){
-            { new StringContent(correspondence.ResourceId), prefix+"resourceId" },
-            { new StringContent(correspondence.Sender), prefix+"sender" },
-            { new StringContent(correspondence.SendersReference), prefix+"sendersReference" },
-            { new StringContent(correspondence.Recipient), prefix+"recipient" },
-            { new StringContent(correspondence.VisibleFrom.ToString()), prefix+"visibleFrom" },
-            { new StringContent(correspondence.AllowSystemDeleteAfter.ToString()), prefix+"AllowSystemDeleteAfter" },
-            { new StringContent(correspondence.Content.MessageTitle), prefix+"content.MessageTitle" },
-            { new StringContent(correspondence.Content.MessageSummary), prefix+"content.MessageSummary" },
-            { new StringContent(correspondence.Content.MessageBody), prefix+"content.MessageBody" },
-            { new StringContent(correspondence.Content.Language), prefix+"content.Language" },
-            { new StringContent((correspondence.IsReservable ?? false).ToString()), prefix+"isReservable" }
+            { new StringContent(correspondence.ResourceId), "correspondence.resourceId" },
+            { new StringContent(correspondence.Sender), "correspondence.sender" },
+            { new StringContent(correspondence.SendersReference), "correspondence.sendersReference" },
+            { new StringContent(correspondence.VisibleFrom.ToString()), "correspondence.visibleFrom" },
+            { new StringContent(correspondence.AllowSystemDeleteAfter.ToString()), "correspondence.AllowSystemDeleteAfter" },
+            { new StringContent(correspondence.Content.MessageTitle), "correspondence.content.MessageTitle" },
+            { new StringContent(correspondence.Content.MessageSummary), "correspondence.content.MessageSummary" },
+            { new StringContent(correspondence.Content.MessageBody), "correspondence.content.MessageBody" },
+            { new StringContent(correspondence.Content.Language), "correspondence.content.Language" },
+            { new StringContent((correspondence.IsReservable ?? false).ToString()), "correspondence.isReservable" }
         };
 
         correspondence.Content.Attachments.Select((attachment, index) => new[]
         {
-            new { Key = $"{prefix}content.Attachments[{index}].DataLocationType", Value = attachment.DataLocationType.ToString() },
-            new { Key = $"{prefix}content.Attachments[{index}].DataType", Value = attachment.DataType },
-            new { Key = $"{prefix}content.Attachments[{index}].Name", Value = attachment.Name },
-            new { Key = $"{prefix}content.Attachments[{index}].FileName", Value = attachment.FileName ?? "" },
-            new { Key = $"{prefix}content.Attachments[{index}].RestrictionName", Value = attachment.RestrictionName },
-            new { Key = $"{prefix}content.Attachments[{index}].Sender", Value = attachment.Sender },
-            new { Key = $"{prefix}content.Attachments[{index}].SendersReference", Value = attachment.SendersReference },
-            new { Key = $"{prefix}content.Attachments[{index}].IsEncrypted", Value = attachment.IsEncrypted.ToString() }
+            new { Key = $"correspondence.content.Attachments[{index}].DataLocationType", Value = attachment.DataLocationType.ToString() },
+            new { Key = $"correspondence.content.Attachments[{index}].DataType", Value = attachment.DataType },
+            new { Key = $"correspondence.content.Attachments[{index}].Name", Value = attachment.Name },
+            new { Key = $"correspondence.content.Attachments[{index}].FileName", Value = attachment.FileName ?? "" },
+            new { Key = $"correspondence.content.Attachments[{index}].RestrictionName", Value = attachment.RestrictionName },
+            new { Key = $"correspondence.content.Attachments[{index}].SendersReference", Value = attachment.SendersReference },
+            new { Key = $"correspondence.content.Attachments[{index}].IsEncrypted", Value = attachment.IsEncrypted.ToString() }
         }).SelectMany(x => x).ToList()
         .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
 
         correspondence.ExternalReferences?.Select((externalReference, index) => new[]
         {
-            new { Key = $"{prefix}ExternalReference[{index}].ReferenceType", Value = externalReference.ReferenceType.ToString() },
-            new { Key = $"{prefix}ExternalReference[{index}].ReferenceValue", Value = externalReference.ReferenceValue },
+            new { Key = $"correspondence.ExternalReference[{index}].ReferenceType", Value = externalReference.ReferenceType.ToString() },
+            new { Key = $"correspondence.ExternalReference[{index}].ReferenceValue", Value = externalReference.ReferenceValue },
         }).SelectMany(x => x).ToList()
         .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
 
         correspondence.ReplyOptions.Select((replyOption, index) => new[]
         {
-            new { Key = $"{prefix}ReplyOptions[{index}].LinkURL", Value = replyOption.LinkURL },
-            new { Key = $"{prefix}ReplyOptions[{index}].LinkText", Value = replyOption.LinkText ?? "" }
+            new { Key = $"correspondence.ReplyOptions[{index}].LinkURL", Value = replyOption.LinkURL },
+            new { Key = $"correspondence.ReplyOptions[{index}].LinkText", Value = replyOption.LinkText ?? "" }
         }).SelectMany(x => x).ToList()
         .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
 
         correspondence.Notifications.Select((notification, index) => new[]
         {
-            new { Key = $"{prefix}Notifications[{index}].NotificationTemplate", Value = notification.NotificationTemplate },
-            new { Key = $"{prefix}Notifications[{index}].CustomTextToken", Value = notification.CustomTextToken ?? ""},
-            new { Key = $"{prefix}Notifications[{index}].SendersReference", Value = notification.SendersReference ?? "" },
-            new { Key = $"{prefix}Notifications[{index}].RequestedSendTime", Value = notification.RequestedSendTime.ToString() }
+            new { Key = $"correspondence.Notifications[{index}].NotificationTemplate", Value = notification.NotificationTemplate },
+            new { Key = $"correspondence.Notifications[{index}].CustomTextToken", Value = notification.CustomTextToken ?? ""},
+            new { Key = $"correspondence.Notifications[{index}].SendersReference", Value = notification.SendersReference ?? "" },
+            new { Key = $"correspondence.Notifications[{index}].RequestedSendTime", Value = notification.RequestedSendTime.ToString() }
         }).SelectMany(x => x).ToList()
         .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
 
         correspondence.PropertyList.ToList()
-        .ForEach((item) => formData.Add(new StringContent(item.Value), prefix + "propertyLists." + item.Key));
+        .ForEach((item) => formData.Add(new StringContent(item.Value), "correspondence.propertyLists." + item.Key));
         return formData;
     }
 }

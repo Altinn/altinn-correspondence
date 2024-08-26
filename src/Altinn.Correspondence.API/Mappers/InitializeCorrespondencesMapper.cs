@@ -1,12 +1,12 @@
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.Application.InitializeMultipleCorrespondences;
+using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Core.Models;
 
 namespace Altinn.Correspondence.Mappers;
 
-internal static class InitializeMultipleCorrespondencesMapper
+internal static class InitializeCorrespondencesMapper
 {
-    internal static InitializeMultipleCorrespondencesRequest MapToRequest(BaseCorrespondenceExt initializeCorrespondenceExt, List<string> Recipients, List<IFormFile>? attachments, bool isUploadRequest)
+    internal static InitializeCorrespondencesRequest MapToRequest(BaseCorrespondenceExt initializeCorrespondenceExt, List<string> Recipients, List<IFormFile>? attachments, List<Guid>? existingAttachments, bool isUploadRequest)
     {
         var correspondence = new CorrespondenceEntity
         {
@@ -18,9 +18,10 @@ internal static class InitializeMultipleCorrespondencesMapper
             AllowSystemDeleteAfter = initializeCorrespondenceExt.AllowSystemDeleteAfter,
             DueDateTime = initializeCorrespondenceExt.DueDateTime,
             PropertyList = initializeCorrespondenceExt.PropertyList,
-            ReplyOptions = CorrespondenceReplyOptionsMapper.MapListToEntities(initializeCorrespondenceExt.ReplyOptions),
+            ReplyOptions = initializeCorrespondenceExt.ReplyOptions != null ? CorrespondenceReplyOptionsMapper.MapListToEntities(initializeCorrespondenceExt.ReplyOptions) : new List<CorrespondenceReplyOptionEntity>(),
             IsReservable = initializeCorrespondenceExt.IsReservable,
-            Notifications = InitializeCorrespondenceNotificationMapper.MapListToEntities(initializeCorrespondenceExt.Notifications),
+            Notifications = initializeCorrespondenceExt.Notifications != null ? InitializeCorrespondenceNotificationMapper.MapListToEntities(initializeCorrespondenceExt.Notifications) : new List<CorrespondenceNotificationEntity>(),
+            ExternalReferences = initializeCorrespondenceExt.ExternalReferences != null ? ExternalReferenceMapper.MapListToEntities(initializeCorrespondenceExt.ExternalReferences) : new List<ExternalReferenceEntity>(),
             Statuses = new List<CorrespondenceStatusEntity>(),
             Created = DateTimeOffset.UtcNow,
             Content = initializeCorrespondenceExt.Content != null ? new CorrespondenceContentEntity
@@ -29,14 +30,17 @@ internal static class InitializeMultipleCorrespondencesMapper
                 MessageTitle = initializeCorrespondenceExt.Content.MessageTitle,
                 MessageSummary = initializeCorrespondenceExt.Content.MessageSummary,
                 MessageBody = initializeCorrespondenceExt.Content.MessageBody,
-                Attachments = InitializeCorrespondenceAttachmentMapper.MapListToEntities(initializeCorrespondenceExt.Content.Attachments, initializeCorrespondenceExt.ResourceId)
+                Attachments = initializeCorrespondenceExt.Content.Attachments.Select(
+                    attachment => InitializeCorrespondenceAttachmentMapper.MapToEntity(attachment, initializeCorrespondenceExt.ResourceId, initializeCorrespondenceExt.Sender)
+                ).ToList()
             } : null,
         };
-        return new InitializeMultipleCorrespondencesRequest()
+        return new InitializeCorrespondencesRequest()
         {
             Correspondence = correspondence,
             Attachments = attachments ?? new List<IFormFile>(),
-            isUploadRequest = isUploadRequest,
+            IsUploadRequest = isUploadRequest,
+            ExistingAttachments = existingAttachments ?? new List<Guid>(),
             Recipients = Recipients
         };
     }

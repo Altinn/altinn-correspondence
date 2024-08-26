@@ -4,9 +4,9 @@ using Altinn.Correspondence.Application.GetAttachmentOverview;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeAttachment;
-using Altinn.Correspondence.Application.InitializeCorrespondence;
-using Altinn.Correspondence.Application.InitializeMultipleCorrespondences;
+using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.PurgeAttachment;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
@@ -21,8 +21,7 @@ public static class DependencyInjection
     public static void AddApplicationHandlers(this IServiceCollection services)
     {
         services.AddScoped<InitializeAttachmentHandler>();
-        services.AddScoped<InitializeCorrespondenceHandler>();
-        services.AddScoped<InitializeMultipleCorrespondencesHandler>();
+        services.AddScoped<InitializeCorrespondencesHandler>();
         services.AddScoped<GetCorrespondencesHandler>();
         services.AddScoped<GetCorrespondenceDetailsHandler>();
         services.AddScoped<GetCorrespondenceOverviewHandler>();
@@ -35,5 +34,8 @@ public static class DependencyInjection
         services.AddScoped<MalwareScanResultHandler>();
         services.AddScoped<PurgeCorrespondenceHandler>();
         services.AddScoped<UpdateMarkAsUnreadHandler>();
+
+        services.AddScoped<InitializeCorrespondenceHelper>();
+        services.AddScoped<UploadHelper>();
     }
 }

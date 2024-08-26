@@ -19,11 +19,24 @@ param containerAppEnvId string
 
 var probes = [
   {
+    type: 'Liveness'
     httpGet: {
-      port: 2525
       path: '/health'
+      port: 2525
     }
-    type: 'Startup'
+    periodSeconds: 10
+    failureThreshold: 3
+    initialDelaySeconds: 15
+  }
+  {
+    type: 'Readiness'
+    httpGet: {
+      path: '/health'
+      port: 2525
+    }
+    periodSeconds: 10
+    failureThreshold: 3
+    initialDelaySeconds: 15
   }
 ]
 

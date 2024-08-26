@@ -18,11 +18,12 @@ internal static class AttachmentOverviewMapper
             RestrictionName = attachmentOverview.RestrictionName,
             Status = (AttachmentStatusExt)attachmentOverview.Status,
             StatusText = attachmentOverview.StatusText,
+            Checksum = attachmentOverview.Checksum,
             DataLocationUrl = attachmentOverview.DataLocationUrl,
             StatusChanged = attachmentOverview.StatusChanged,
             DataType = attachmentOverview.DataType,
             SendersReference = attachmentOverview.SendersReference,
-            CorrespondenceIds = attachmentOverview.CorrespondenceIds
+            CorrespondenceIds = attachmentOverview.CorrespondenceIds ?? new List<Guid>(),
         };
         return attachment;
     }

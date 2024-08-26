@@ -25,7 +25,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<AttachmentEntity?> GetAttachmentByUrl(string url, CancellationToken cancellationToken)
         {
-            return await _context.Attachments.FirstOrDefaultAsync(a => a.DataLocationUrl == url, cancellationToken);
+            return await _context.Attachments.SingleOrDefaultAsync(a => a.DataLocationUrl == url, cancellationToken);
         }
 
         public async Task<AttachmentEntity?> GetAttachmentById(Guid guid, bool includeStatus, CancellationToken cancellationToken)
@@ -35,7 +35,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 attachments = attachments.Include(a => a.Statuses);
             }
-            return await attachments.FirstOrDefaultAsync(a => a.Id == guid, cancellationToken);
+            return await attachments.SingleOrDefaultAsync(a => a.Id == guid, cancellationToken);
         }
 
         public async Task<bool> SetDataLocationUrl(AttachmentEntity attachmentEntity, AttachmentDataLocationType attachmentDataLocationType, string dataLocationUrl, CancellationToken cancellationToken)
@@ -43,7 +43,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
             attachmentEntity.DataLocationType = attachmentDataLocationType;
             attachmentEntity.DataLocationUrl = dataLocationUrl;
             var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
-            return rowsUpdated > 0;
+            return rowsUpdated == 1;
+
+        }
+
+        public async Task<bool> SetChecksum(AttachmentEntity attachmentEntity, string? checkSum, CancellationToken cancellationToken)
+        {
+            Console.WriteLine("Setting checksum: " + checkSum);
+            attachmentEntity.Checksum = checkSum;
+            var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
+            return rowsUpdated == 1;
         }
 
         public async Task<bool> CanAttachmentBeDeleted(Guid attachmentId, CancellationToken cancellationToken)

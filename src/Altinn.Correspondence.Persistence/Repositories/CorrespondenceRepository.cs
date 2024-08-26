@@ -15,7 +15,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             await _context.SaveChangesAsync(cancellationToken);
             return correspondence;
         }
-        public async Task<List<CorrespondenceEntity>> CreateMultipleCorrespondences(List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken)
+        public async Task<List<CorrespondenceEntity>> CreateCorrespondences(List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken)
         {
             await _context.Correspondences.AddRangeAsync(correspondences, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
@@ -50,7 +50,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool includeContent,
             CancellationToken cancellationToken)
         {
-            var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.Notifications).ThenInclude(n => n.Statuses).AsQueryable();
+            var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).ThenInclude(n => n.Statuses).AsQueryable();
             if (includeStatus)
             {
                 correspondences = correspondences.Include(c => c.Statuses);
@@ -59,7 +59,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a.Statuses);
             }
-            return await correspondences.FirstOrDefaultAsync(c => c.Id == guid, cancellationToken);
+            return await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
         }
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesByAttachmentId(Guid attachmentId, bool includeStatus, CancellationToken cancellationToken = default)
         {
@@ -94,7 +94,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         }
         public async Task UpdateMarkedUnread(Guid correspondenceId, bool status, CancellationToken cancellationToken)
         {
-            var correspondence = await _context.Correspondences.FirstOrDefaultAsync(c => c.Id == correspondenceId, cancellationToken);
+            var correspondence = await _context.Correspondences.SingleOrDefaultAsync(c => c.Id == correspondenceId, cancellationToken);
             if (correspondence != null)
             {
                 correspondence.MarkedUnread = status;

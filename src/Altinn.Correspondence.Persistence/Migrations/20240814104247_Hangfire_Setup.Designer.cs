@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240812133346_Hangfire_Setup")]
+    [Migration("20240814104247_Hangfire_Setup")]
     partial class Hangfire_Setup
     {
         /// <inheritdoc />
@@ -20,6 +20,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("correspondence")
                 .HasAnnotation("ProductVersion", "8.0.6")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -79,7 +80,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Attachments");
+                    b.ToTable("Attachments", "correspondence");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.AttachmentStatusEntity", b =>
@@ -105,7 +106,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("AttachmentId");
 
-                    b.ToTable("AttachmentStatuses");
+                    b.ToTable("AttachmentStatuses", "correspondence");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceAttachmentEntity", b =>
@@ -132,7 +133,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("CorrespondenceContentId");
 
-                    b.ToTable("CorrespondenceAttachments");
+                    b.ToTable("CorrespondenceAttachments", "correspondence");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceContentEntity", b =>
@@ -165,7 +166,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasIndex("CorrespondenceId")
                         .IsUnique();
 
-                    b.ToTable("CorrespondenceContents");
+                    b.ToTable("CorrespondenceContents", "correspondence");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceEntity", b =>
@@ -221,7 +222,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Correspondences");
+                    b.ToTable("Correspondences", "correspondence");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceNotificationEntity", b =>
@@ -254,7 +255,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("CorrespondenceId");
 
-                    b.ToTable("CorrespondenceNotifications");
+                    b.ToTable("CorrespondenceNotifications", "correspondence");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceNotificationStatusEntity", b =>
@@ -281,7 +282,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("NotificationId");
 
-                    b.ToTable("CorrespondenceNotificationStatuses");
+                    b.ToTable("CorrespondenceNotificationStatuses", "correspondence");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceReplyOptionEntity", b =>
@@ -304,7 +305,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("CorrespondenceId");
 
-                    b.ToTable("CorrespondenceReplyOptions");
+                    b.ToTable("CorrespondenceReplyOptions", "correspondence");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.CorrespondenceStatusEntity", b =>
@@ -330,7 +331,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("CorrespondenceId");
 
-                    b.ToTable("CorrespondenceStatuses");
+                    b.ToTable("CorrespondenceStatuses", "correspondence");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.ExternalReferenceEntity", b =>
@@ -353,7 +354,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("CorrespondenceId");
 
-                    b.ToTable("ExternalReferences");
+                    b.ToTable("ExternalReferences", "correspondence");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.AttachmentStatusEntity", b =>

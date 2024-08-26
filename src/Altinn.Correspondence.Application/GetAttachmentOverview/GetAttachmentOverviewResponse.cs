@@ -20,6 +20,8 @@ public class GetAttachmentOverviewResponse
     public string FileName { get; set; } = string.Empty;
 
     public string? Name { get; set; } = string.Empty;
+    
+    public string? Checksum { get; set; } = string.Empty;
 
     public string Sender { get; set; } = string.Empty;
 

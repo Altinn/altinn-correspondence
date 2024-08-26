@@ -1,5 +1,6 @@
+using System.Text;
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Tests.Helpers;
 
 namespace Altinn.Correspondece.Tests.Factories;
 internal static class InitializeAttachmentFactory
@@ -8,7 +9,6 @@ internal static class InitializeAttachmentFactory
     {
         ResourceId = "1",
         DataType = "html",
-        ExpirationTime = DateTime.UtcNow.AddDays(1),
         Name = "Test file logical name",
         RestrictionName = "Test file restriction name",
         Sender = "0192:986252932",
