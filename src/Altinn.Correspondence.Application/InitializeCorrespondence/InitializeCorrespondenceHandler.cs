@@ -89,6 +89,26 @@ public class InitializeCorrespondenceHandler : IHandler<InitializeCorrespondence
                 return uploadError;
             }
         }
+        if (_hostEnvironment.IsDevelopment())
+        {
+            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+            {
+                CorrespondenceId = correspondence.Id,
+                Status = CorrespondenceStatus.ReadyForPublish,
+                StatusChanged = DateTimeOffset.UtcNow,
+                StatusText = CorrespondenceStatus.ReadyForPublish.ToString()
+            }, cancellationToken);
+
+            // Malware scan in between
+
+            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+            {
+                CorrespondenceId = correspondence.Id,
+                Status = CorrespondenceStatus.Published,
+                StatusChanged = DateTimeOffset.UtcNow,
+                StatusText = CorrespondenceStatus.Published.ToString()
+            }, cancellationToken);
+        }
         return new InitializeCorrespondenceResponse()
         {
             CorrespondenceId = correspondence.Id,
