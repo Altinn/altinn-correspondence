@@ -74,9 +74,9 @@ internal static class InitializeCorrespondenceFactory
             IsReservable = true
         },
         Recipients = new List<string>(){
-            "0192:986252931",
-            "0192:986252932",
-            "0192:986252933"
+            "0192:991825827",
+            "0192:991825828",
+            "0192:991825829"
         },
         ExistingAttachments = new List<Guid>(),
     };

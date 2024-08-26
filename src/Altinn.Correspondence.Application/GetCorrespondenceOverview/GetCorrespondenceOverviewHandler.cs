@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -10,12 +11,14 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _CorrespondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
+    private readonly GetCorrespondenceHelper _getCorrespondenceHelper;
 
-    public GetCorrespondenceOverviewHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository CorrespondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository)
+    public GetCorrespondenceOverviewHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository CorrespondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, GetCorrespondenceHelper getCorrespondenceHelper)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _CorrespondenceRepository = CorrespondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
+        _getCorrespondenceHelper = getCorrespondenceHelper;
     }
 
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(Guid CorrespondenceId, CancellationToken cancellationToken)
@@ -25,7 +28,7 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
         {
             return Errors.CorrespondenceNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Open }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.See }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
@@ -35,7 +38,11 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
         {
             return Errors.CorrespondenceNotFound;
         }
-        if (latestStatus.Status == CorrespondenceStatus.Published)
+
+        var userOrgNo = _getCorrespondenceHelper.GetUserID();
+        bool isRecipient = correspondence.Recipient == userOrgNo;
+
+        if (isRecipient && latestStatus.Status == CorrespondenceStatus.Published)
         {
             latestStatus.Status = CorrespondenceStatus.Fetched;
             latestStatus.StatusText = CorrespondenceStatus.Fetched.ToString();

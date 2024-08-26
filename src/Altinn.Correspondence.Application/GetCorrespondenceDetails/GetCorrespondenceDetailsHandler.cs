@@ -1,6 +1,10 @@
+using System.Text.Json;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Dapper;
+using Microsoft.AspNetCore.Http;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceDetails;
@@ -10,12 +14,14 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
+    private readonly GetCorrespondenceHelper _getCorrespondenceHelper;
 
-    public GetCorrespondenceDetailsHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository)
+    public GetCorrespondenceDetailsHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, GetCorrespondenceHelper getCorrespondenceHelper)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
+        _getCorrespondenceHelper = getCorrespondenceHelper;
     }
 
     public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
@@ -25,7 +31,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
         {
             return Errors.CorrespondenceNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Open }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.See }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
@@ -35,7 +41,11 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
         {
             return Errors.CorrespondenceNotFound;
         }
-        if (latestStatus.Status == CorrespondenceStatus.Published)
+
+        var userOrgNo = _getCorrespondenceHelper.GetUserID();
+        bool isRecipient = correspondence.Recipient == userOrgNo;
+
+        if (isRecipient && latestStatus.Status == CorrespondenceStatus.Published)
         {
             latestStatus.Status = CorrespondenceStatus.Fetched;
             latestStatus.StatusText = CorrespondenceStatus.Fetched.ToString();
