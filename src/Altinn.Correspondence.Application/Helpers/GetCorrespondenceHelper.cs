@@ -1,4 +1,3 @@
-
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 
@@ -25,6 +24,5 @@ namespace Altinn.Correspondence.Application.Helpers
             string? id = jsonDoc.RootElement.GetProperty("ID").GetString();
             return id;
         }
-
     }
 }
