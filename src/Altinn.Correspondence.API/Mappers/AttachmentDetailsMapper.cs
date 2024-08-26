@@ -15,7 +15,6 @@ internal static class AttachmentDetailsMapper
             ResourceId = "1",
             AttachmentId = AttachmentDetails.AttachmentId,
             Status = (AttachmentStatusExt)AttachmentDetails.Status,
-            DataLocationUrl = AttachmentDetails.DataLocationUrl,
             FileName = AttachmentDetails.FileName,
             Name = AttachmentDetails.Name,
             Sender = AttachmentDetails.Sender,

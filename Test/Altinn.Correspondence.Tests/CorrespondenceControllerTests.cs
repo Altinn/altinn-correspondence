@@ -135,7 +135,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             var response = await uploadCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
             var attachmentId = response?.AttachmentIds.FirstOrDefault();
             var attachmentOverview = await _client.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
-            Assert.NotNull(attachmentOverview.DataLocationUrl);
             payload.Correspondence.Content.Attachments.Add(new InitializeCorrespondenceAttachmentExt()
             {
                 DataLocationUrl = attachmentOverview.DataLocationUrl,
