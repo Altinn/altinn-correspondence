@@ -9,7 +9,7 @@ internal static class InitializeCorrespondenceFactory
         Correspondence = new BaseCorrespondenceExt()
         {
             ResourceId = "1",
-            Sender = "0192:986252932",
+            Sender = "0192:991825827",
             SendersReference = "1",
             Content = new InitializeCorrespondenceContentExt()
             {
@@ -73,9 +73,9 @@ internal static class InitializeCorrespondenceFactory
             IsReservable = true
         },
         Recipients = new List<string>(){
-            "0192:991825827",
-            "0192:991825828",
-            "0192:991825829"
+            "0192:986252931",
+            "0192:986252932",
+            "0192:986252933"
         },
         ExistingAttachments = new List<Guid>(),
     };
