@@ -38,7 +38,10 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>CorrespondenceIds</returns>
         [HttpPost]
-        public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeCorrespondences(InitializeCorrespondencesExt request, [FromServices] InitializeCorrespondencesHandler handler, CancellationToken cancellationToken)
+        public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeCorrespondences(
+            InitializeCorrespondencesExt request, 
+            [FromServices] InitializeCorrespondencesHandler handler, 
+            CancellationToken cancellationToken)
         {
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
             _logger.LogInformation("Initialize correspondences");
