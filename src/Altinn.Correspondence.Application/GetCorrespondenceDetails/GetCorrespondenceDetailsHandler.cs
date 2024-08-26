@@ -1,10 +1,7 @@
-using System.Text.Json;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
-using Dapper;
-using Microsoft.AspNetCore.Http;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceDetails;
