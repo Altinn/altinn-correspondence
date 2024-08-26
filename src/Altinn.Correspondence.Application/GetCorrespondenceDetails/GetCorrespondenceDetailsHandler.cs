@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -9,11 +10,15 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
+    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
+    private readonly GetCorrespondenceHelper _getCorrespondenceHelper;
 
-    public GetCorrespondenceDetailsHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository)
+    public GetCorrespondenceDetailsHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, GetCorrespondenceHelper getCorrespondenceHelper)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
+        _correspondenceStatusRepository = correspondenceStatusRepository;
+        _getCorrespondenceHelper = getCorrespondenceHelper;
     }
 
     public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
@@ -28,7 +33,30 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
         {
             return Errors.NoAccessToResource;
         }
-        var latestStatus = correspondence.Statuses.OrderByDescending(s => s.StatusChanged).First();
+        var latestStatus = correspondence.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault();
+        if (latestStatus == null)
+        {
+            return Errors.CorrespondenceNotFound;
+        }
+
+        var userOrgNo = _getCorrespondenceHelper.GetUserID();
+        bool isRecipient = correspondence.Recipient == userOrgNo;
+
+        if (isRecipient && latestStatus.Status == CorrespondenceStatus.Published)
+        {
+            latestStatus.Status = CorrespondenceStatus.Fetched;
+            latestStatus.StatusText = CorrespondenceStatus.Fetched.ToString();
+            latestStatus.StatusChanged = DateTimeOffset.UtcNow;
+
+            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+            {
+                CorrespondenceId = correspondence.Id,
+                Status = latestStatus.Status,
+                StatusText = latestStatus.StatusText,
+                StatusChanged = latestStatus.StatusChanged
+            }, cancellationToken);
+        }
+
         var response = new GetCorrespondenceDetailsResponse
         {
             CorrespondenceId = correspondence.Id,

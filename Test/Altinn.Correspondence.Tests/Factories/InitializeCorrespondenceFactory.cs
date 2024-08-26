@@ -1,6 +1,5 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Tests.Helpers;
 
 namespace Altinn.Correspondece.Tests.Factories;
 internal static class InitializeCorrespondenceFactory
@@ -10,7 +9,7 @@ internal static class InitializeCorrespondenceFactory
         Correspondence = new BaseCorrespondenceExt()
         {
             ResourceId = "1",
-            Sender = "0192:986252932",
+            Sender = "0192:991825827",
             SendersReference = "1",
             Content = new InitializeCorrespondenceContentExt()
             {

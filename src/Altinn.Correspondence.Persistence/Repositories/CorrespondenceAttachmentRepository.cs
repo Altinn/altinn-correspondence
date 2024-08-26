@@ -11,11 +11,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<Guid?> GetAttachmentIdByCorrespondenceAttachmentId(Guid correspondenceAttachmentId, bool isPublished, CancellationToken cancellationToken = default)
         {
-            if (isPublished && !(await _context.Correspondences
-                  .AnyAsync(c => c.Content != null && c.Content.Attachments.Any(ca => ca.Id == correspondenceAttachmentId && c.Statuses.Any(s => s.Status == CorrespondenceStatus.Published)
-                  && !c.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByAltinn || s.Status == CorrespondenceStatus.PurgedByRecipient)
-                  ), cancellationToken)))
+            var correspondenceExists = await _context.Correspondences
+                .AnyAsync(c => c.Content != null &&
+                    c.Content.Attachments.Any(ca => ca.Id == correspondenceAttachmentId) &&
+                    c.Statuses.Any(s => s.Status == CorrespondenceStatus.Published || s.Status == CorrespondenceStatus.Fetched) &&
+                    !c.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByAltinn || s.Status == CorrespondenceStatus.PurgedByRecipient),
+                    cancellationToken);
+
+            if (isPublished && !correspondenceExists)
+            {
                 return null;
+            }
 
             return await _context.CorrespondenceAttachments
                 .Where(ca => ca.Id == correspondenceAttachmentId
