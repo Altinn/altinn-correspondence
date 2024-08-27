@@ -324,6 +324,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var getCorrespondenceDetailsResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceIds.FirstOrDefault()}/details");
         Assert.True(getCorrespondenceDetailsResponse.IsSuccessStatusCode, await getCorrespondenceDetailsResponse.Content.ReadAsStringAsync());
         var response = await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+        Assert.NotEqual(Guid.Empty, Guid.Parse(response.ResourceId));
         Assert.Equal(response.Status, CorrespondenceStatusExt.Initialized);
     }
     [Fact]
