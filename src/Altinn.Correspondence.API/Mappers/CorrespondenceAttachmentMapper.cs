@@ -18,7 +18,6 @@ internal static class CorrespondenceAttachmentMapper
             SendersReference = attachment.Attachment.SendersReference,
             Checksum = attachment.Attachment.Checksum,
             DataLocationType = (AttachmentDataLocationTypeExt)attachment.Attachment.DataLocationType,
-            DataLocationUrl = attachment.Attachment.DataLocationUrl,
             RestrictionName = attachment.Attachment.RestrictionName,
             Status = (AttachmentStatusExt)attachment.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault()!.Status,
             StatusText = attachment.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault()!.StatusText,
