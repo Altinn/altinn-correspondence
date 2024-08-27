@@ -8,7 +8,7 @@ internal static class InitializeCorrespondenceFactory
     {
         Correspondence = new BaseCorrespondenceExt()
         {
-            ResourceId = "12345678-1234-1234-1234-1234567890ab",
+            ResourceId = "1",
             Sender = "0192:991825827",
             SendersReference = "1",
             Content = new InitializeCorrespondenceContentExt()

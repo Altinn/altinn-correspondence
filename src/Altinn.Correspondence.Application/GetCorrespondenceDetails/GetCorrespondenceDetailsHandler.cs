@@ -72,7 +72,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
             VisibleFrom = correspondence.VisibleFrom,
             IsReservable = correspondence.IsReservable == null || correspondence.IsReservable.Value,
             StatusHistory = correspondence.Statuses,
-            ResourceId = Guid.Parse(correspondence.ResourceId)
+            ResourceId = correspondence.ResourceId
         };
         return response;
     }
