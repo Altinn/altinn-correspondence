@@ -64,14 +64,15 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
             StatusText = latestStatus.StatusText,
             StatusChanged = latestStatus.StatusChanged,
             SendersReference = correspondence.SendersReference,
-            Content = correspondence.Content!,
             Created = correspondence.Created,
             Recipient = correspondence.Recipient,
+            Content = correspondence.Content!,
             ReplyOptions = correspondence.ReplyOptions == null ? new List<CorrespondenceReplyOptionEntity>() : correspondence.ReplyOptions,
             Notifications = correspondence.Notifications == null ? new List<CorrespondenceNotificationEntity>() : correspondence.Notifications,
             VisibleFrom = correspondence.VisibleFrom,
             IsReservable = correspondence.IsReservable == null || correspondence.IsReservable.Value,
-            StatusHistory = correspondence.Statuses
+            StatusHistory = correspondence.Statuses,
+            ResourceId = correspondence.ResourceId
         };
         return response;
     }
