@@ -8,14 +8,12 @@ public class DownloadAttachmentHandler : IHandler<DownloadAttachmentRequest, Str
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly IStorageRepository _storageRepository;
-    private readonly ICorrespondenceAttachmentRepository _correspondenceAttachmentRepository;
     private readonly IAttachmentRepository _attachmentRepository;
 
-    public DownloadAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IStorageRepository storageRepository, ICorrespondenceAttachmentRepository correspondenceAttachmentRepository, IAttachmentRepository attachmentRepository)
+    public DownloadAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IStorageRepository storageRepository, IAttachmentRepository attachmentRepository)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _storageRepository = storageRepository;
-        _correspondenceAttachmentRepository = correspondenceAttachmentRepository;
         _attachmentRepository = attachmentRepository;
     }
 
