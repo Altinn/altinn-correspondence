@@ -7,14 +7,13 @@ using OneOf;
 
 namespace Altinn.Correspondence.Application.PurgeAttachment;
 
-public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, ICorrespondenceAttachmentRepository correspondenceAttachmentRepository, IEventBus eventBus) : IHandler<Guid, Guid>
+public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IEventBus eventBus) : IHandler<Guid, Guid>
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
     private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository = attachmentStatusRepository;
     private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
-    private readonly ICorrespondenceAttachmentRepository _correspondenceAttachmentRepository = correspondenceAttachmentRepository;
     private readonly IStorageRepository _storageRepository = storageRepository;
     private readonly IEventBus _eventBus = eventBus;
 
