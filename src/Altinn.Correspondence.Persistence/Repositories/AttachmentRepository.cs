@@ -64,5 +64,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             return await _context.Correspondences.Where(c => c.Id == correspondenceId && c.Content != null).SelectMany(c => c.Content!.Attachments).Select(ca => ca.Attachment).ToListAsync(cancellationToken);
         }
+        public async Task<AttachmentEntity?> GetAttachmentByCorrespondenceIdAndAttachmentId(Guid correspondenceId, Guid attachmentId, CancellationToken cancellationToken)
+        {
+            var correspondence = await _context.Correspondences
+                .Include(c => c.Content)
+                .ThenInclude(content => content.Attachments)
+                .ThenInclude(a => a.Attachment)
+                .ThenInclude(a => a.Statuses)
+                .SingleOrDefaultAsync(c => c.Id == correspondenceId && c.Content!.Attachments.Any(ca => ca.AttachmentId == attachmentId), cancellationToken);
+            if (correspondence == null) return null;
+            var attachment = correspondence.Content!.Attachments.Single(ca => ca.AttachmentId == attachmentId).Attachment;
+            return attachment;
+        }
     }
 }

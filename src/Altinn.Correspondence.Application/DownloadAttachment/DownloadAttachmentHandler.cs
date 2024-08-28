@@ -21,19 +21,18 @@ public class DownloadAttachmentHandler : IHandler<DownloadAttachmentRequest, Str
 
     public async Task<OneOf<Stream, Error>> Process(DownloadAttachmentRequest request, CancellationToken cancellationToken)
     {
-        var attachmentId = await _correspondenceAttachmentRepository.GetAttachmentIdByCorrespondenceAttachmentId(request.AttachmentId, true, cancellationToken);
-        if (attachmentId is null || attachmentId == Guid.Empty)
+        var attachment = await _attachmentRepository.GetAttachmentByCorrespondenceIdAndAttachmentId(request.CorrespondenceId, request.AttachmentId, cancellationToken);
+        if (attachment is null)
         {
             return Errors.AttachmentNotFound;
         }
-        var attachment = await _attachmentRepository.GetAttachmentById((Guid)attachmentId, false, cancellationToken);
         var hasAccess = await _altinnAuthorizationService.CheckUserAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Open }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
         }
 
-        var attachmentStream = await _storageRepository.DownloadAttachment((Guid)attachmentId, cancellationToken);
+        var attachmentStream = await _storageRepository.DownloadAttachment((Guid)attachment.Id, cancellationToken);
         return attachmentStream;
     }
 }
