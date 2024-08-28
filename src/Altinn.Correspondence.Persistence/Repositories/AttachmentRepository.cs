@@ -66,15 +66,9 @@ namespace Altinn.Correspondence.Persistence.Repositories
         }
         public async Task<AttachmentEntity?> GetAttachmentByCorrespondenceIdAndAttachmentId(Guid correspondenceId, Guid attachmentId, CancellationToken cancellationToken)
         {
-            var correspondence = await _context.Correspondences
-                .Include(c => c.Content)
-                .ThenInclude(content => content.Attachments)
-                .ThenInclude(a => a.Attachment)
-                .ThenInclude(a => a.Statuses)
-                .SingleOrDefaultAsync(c => c.Id == correspondenceId && c.Content!.Attachments.Any(ca => ca.AttachmentId == attachmentId), cancellationToken);
-            if (correspondence == null) return null;
-            var attachment = correspondence.Content!.Attachments.Single(ca => ca.AttachmentId == attachmentId).Attachment;
-            return attachment;
+            return await _context.Correspondences
+                 .Where(c => c.Id == correspondenceId && c.Content!.Attachments.Any(ca => ca.AttachmentId == attachmentId))
+                 .Select(c => c.Content!.Attachments.SingleOrDefault(ca => ca.AttachmentId == attachmentId).Attachment).SingleOrDefaultAsync(cancellationToken);
         }
     }
 }
