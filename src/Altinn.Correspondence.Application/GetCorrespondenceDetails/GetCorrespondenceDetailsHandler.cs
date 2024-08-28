@@ -74,7 +74,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
             Notifications = correspondence.Notifications == null ? new List<CorrespondenceNotificationEntity>() : correspondence.Notifications,
             VisibleFrom = correspondence.VisibleFrom,
             IsReservable = correspondence.IsReservable == null || correspondence.IsReservable.Value,
-            StatusHistory = correspondence.Statuses,
+            StatusHistory = correspondence.Statuses?.OrderBy(s => s.StatusChanged).ToList() ?? [],
             ResourceId = correspondence.ResourceId
         };
         return response;
