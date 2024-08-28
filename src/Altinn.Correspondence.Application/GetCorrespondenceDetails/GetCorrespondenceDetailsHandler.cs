@@ -48,7 +48,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
                 CorrespondenceId = correspondence.Id,
                 Status = CorrespondenceStatus.Fetched,
                 StatusText = CorrespondenceStatus.Fetched.ToString(),
-                StatusChanged = DateTimeOffset.Now
+                StatusChanged = DateTime.Now
             };
         
             await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
