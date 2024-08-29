@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.PublishCorrespondence;
+using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -127,6 +128,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         foreach (var correspondence in correspondences)
         {
             _backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.VisibleFrom);
+            _backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime);
             await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         }
         return new InitializeCorrespondencesResponse()
