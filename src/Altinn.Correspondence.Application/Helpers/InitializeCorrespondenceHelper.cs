@@ -81,7 +81,6 @@ namespace Altinn.Correspondence.Application.Helpers
             return null;
         }
 
-
         public List<CorrespondenceNotificationEntity> ProcessNotifications(List<CorrespondenceNotificationEntity>? notifications, CancellationToken cancellationToken)
         {
             if (notifications == null) return new List<CorrespondenceNotificationEntity>();
