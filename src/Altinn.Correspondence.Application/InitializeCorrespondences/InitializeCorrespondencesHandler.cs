@@ -44,17 +44,10 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             return Errors.DuplicateRecipients;
         }
-        if (request.Correspondence.DueDateTime < DateTimeOffset.Now)
+        var dateError = _initializeCorrespondenceHelper.ValidateDateConstraints(request.Correspondence);
+        if (dateError != null)
         {
-            return Errors.DueDatePriorToday;
-        }
-        if (request.Correspondence.AllowSystemDeleteAfter < DateTimeOffset.Now)
-        {
-            return Errors.AllowSystemDeletePriorToday;
-        }
-        if (request.Correspondence.AllowSystemDeleteAfter < request.Correspondence.DueDateTime)
-        {
-            return Errors.AllowSystemDeletePriorDueDate;
+            return dateError;
         }
         var contentError = _initializeCorrespondenceHelper.ValidateCorrespondenceContent(request.Correspondence.Content);
         if (contentError != null)
