@@ -21,6 +21,4 @@ public enum AltinnEventType
     CorrespondenceReceiverNeverConfirmed,
     CorrespondenceReceiverReserved,
     CorrespondenceReceiverNeverRead,
-
-
 }
