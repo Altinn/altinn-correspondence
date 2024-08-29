@@ -31,7 +31,6 @@ namespace Altinn.Correspondence.Application.CorrespondenceDueDate
         {
             _logger.LogInformation("Due date for correspondence {correspondenceId} has expired", correspondenceId);
             var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
-            var errorMessage = "";
             if (correspondence == null)
             {
                 throw new Exception("Correspondence " + correspondenceId + " not found for exipired due date");
