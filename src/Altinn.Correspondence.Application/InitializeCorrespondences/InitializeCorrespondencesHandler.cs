@@ -126,6 +126,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         foreach (var correspondence in correspondences)
         {
             _backgroundJobClient.Schedule<PublishCorrespondenceService>((service) => service.Publish(correspondence.Id, cancellationToken), correspondence.VisibleFrom);
+            _backgroundJobClient.Schedule<DueDateCorrespondenceService>((service) => service.ProcessDueDate(correspondence.Id, cancellationToken), correspondence.DueDateTime);
             await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         }
         return new InitializeCorrespondencesResponse()
