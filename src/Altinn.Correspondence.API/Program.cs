@@ -104,19 +104,15 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.AddEndpointsApiExplorer();
     services.AddSwaggerGen();
     services.AddApplicationInsightsTelemetry();
-    services.AddDbContext<ApplicationDbContext>(opts =>
-    {
-        opts.UseNpgsql(connectionString);
-    });
 
     services.AddApplicationHandlers();
-    services.AddPersistence();
+    services.AddPersistence(config);
     services.AddIntegrations(config, hostEnvironment);
 
     services.AddHttpClient();
     services.AddProblemDetails();
 
-    services.ConfigureHangfire(connectionString);
+    services.ConfigureHangfire();
 
     services.Configure<KestrelServerOptions>(options =>
     {

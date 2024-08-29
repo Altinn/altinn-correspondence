@@ -39,8 +39,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns>CorrespondenceIds</returns>
         [HttpPost]
         public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeCorrespondences(
-            InitializeCorrespondencesExt request, 
-            [FromServices] InitializeCorrespondencesHandler handler, 
+            InitializeCorrespondencesExt request,
+            [FromServices] InitializeCorrespondencesHandler handler,
             CancellationToken cancellationToken)
         {
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
@@ -313,14 +313,16 @@ namespace Altinn.Correspondence.API.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        [Route("attachment/{attachmentId}/download")]
+        [Route("{correspondenceId}/attachment/{attachmentId}/download")]
         public async Task<ActionResult> DownloadAttachmentData(
+            Guid correspondenceId,
             Guid attachmentId,
             [FromServices] DownloadAttachmentHandler handler,
             CancellationToken cancellationToken)
         {
             var commandResult = await handler.Process(new DownloadAttachmentRequest()
             {
+                CorrespondenceId = correspondenceId,
                 AttachmentId = attachmentId
             }, cancellationToken);
             return commandResult.Match(
