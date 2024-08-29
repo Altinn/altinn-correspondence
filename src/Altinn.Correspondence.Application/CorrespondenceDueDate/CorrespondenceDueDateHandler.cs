@@ -6,17 +6,17 @@ using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 
-namespace Altinn.Correspondence.Integrations.Hangfire
+namespace Altinn.Correspondence.Application.CorrespondenceDueDate
 {
-    public class DueDateCorrespondenceService
+    public class CorrespondenceDueDateHandler
     {
-        private readonly ILogger<PublishCorrespondenceService> _logger;
+        private readonly ILogger<CorrespondenceDueDateHandler> _logger;
         private readonly ICorrespondenceRepository _correspondenceRepository;
         private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
         private readonly IEventBus _eventBus;
 
-        public DueDateCorrespondenceService(
-            ILogger<PublishCorrespondenceService> logger,
+        public CorrespondenceDueDateHandler(
+            ILogger<CorrespondenceDueDateHandler> logger,
             ICorrespondenceRepository correspondenceRepository,
             ICorrespondenceStatusRepository correspondenceStatusRepository,
             IEventBus eventBus)
@@ -26,9 +26,7 @@ namespace Altinn.Correspondence.Integrations.Hangfire
             _correspondenceStatusRepository = correspondenceStatusRepository;
             _eventBus = eventBus;
         }
-
-        [AutomaticRetry(Attempts = 0)]
-        public async Task ProcessDueDate(Guid correspondenceId, CancellationToken cancellationToken = default)
+        public async Task Process(Guid correspondenceId, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Due date for correspondence {correspondenceId} has expired", correspondenceId);
             var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
@@ -62,24 +60,5 @@ namespace Altinn.Correspondence.Integrations.Hangfire
                 await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
             }
         }
-
-        [AutomaticRetry(Attempts = 0)]
-        public Task DeleteDueDateJob(Guid correspondenceId)
-        {
-            _logger.LogInformation("Delete Due date  job for correspondence {correspondenceId}", correspondenceId);
-            var monitor = JobStorage.Current.GetMonitoringApi();
-            var jobsScheduled = monitor.ScheduledJobs(0, int.MaxValue)
-                .Where(x => x.Value.Job.Method.Name == "ProcessDueDate");
-            foreach (var j in jobsScheduled)
-            {
-                var t = (Guid)j.Value.Job.Args[0];
-                if (t == correspondenceId)
-                {
-                    BackgroundJob.Delete(j.Key);
-                }
-            }
-            return Task.CompletedTask;
-        }
     }
-
 }

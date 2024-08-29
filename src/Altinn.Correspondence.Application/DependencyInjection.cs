@@ -7,6 +7,7 @@ using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
+using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Application.PurgeAttachment;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
@@ -38,5 +39,6 @@ public static class DependencyInjection
         services.AddScoped<InitializeCorrespondenceHelper>();
         services.AddScoped<UploadHelper>();
         services.AddScoped<GetCorrespondenceHelper>();
+        services.AddScoped<PublishCorrespondenceHandler>();
     }
 }
