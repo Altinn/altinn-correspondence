@@ -140,8 +140,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         // Arrange
         var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
-        correspondence.Correspondence.AllowSystemDeleteAfter = DateTimeOffset.Now.AddDays(-7);
-        correspondence.Correspondence.DueDateTime = DateTimeOffset.Now;
+        correspondence.Correspondence.VisibleFrom = DateTimeOffset.Now.AddDays(7);
+        correspondence.Correspondence.AllowSystemDeleteAfter = DateTimeOffset.Now.AddDays(14);
+        correspondence.Correspondence.DueDateTime = DateTimeOffset.Now.AddDays(21);
 
         // Act
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
