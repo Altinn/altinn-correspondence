@@ -16,13 +16,6 @@ namespace Altinn.Correspondence.API.Models
         public required Guid AttachmentId { get; set; }
 
         /// <summary>
-        /// Specifies the location of the attachment data
-        /// </summary>
-        [JsonPropertyName("dataLocationUrl")]
-        [Required]
-        public string DataLocationUrl { get; set; }
-
-        /// <summary>
         /// Current attachment status
         /// </summary>
         [JsonPropertyName("status")]
