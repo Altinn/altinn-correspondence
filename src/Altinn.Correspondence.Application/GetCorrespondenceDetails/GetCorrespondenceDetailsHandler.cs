@@ -33,7 +33,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
         {
             return Errors.NoAccessToResource;
         }
-        var latestStatus = correspondence.Statuses?.OrderByDescending(s => s.StatusChanged).FirstOrDefault();
+        var latestStatus = correspondence.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault();
         if (latestStatus == null)
         {
             return Errors.CorrespondenceNotFound;
@@ -44,20 +44,15 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
 
         if (isRecipient && latestStatus.Status == CorrespondenceStatus.Published)
         {
-            latestStatus = new CorrespondenceStatusEntity{
-                CorrespondenceId = correspondence.Id,
-                Status = CorrespondenceStatus.Fetched,
-                StatusText = CorrespondenceStatus.Fetched.ToString(),
-                StatusChanged = DateTime.Now
-            };
-        
             await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
             {
                 CorrespondenceId = correspondence.Id,
-                Status = latestStatus.Status,
-                StatusText = latestStatus.StatusText,
-                StatusChanged = latestStatus.StatusChanged
+                Status = CorrespondenceStatus.Fetched,
+                StatusText = CorrespondenceStatus.Fetched.ToString(),
+                StatusChanged = DateTimeOffset.Now
             }, cancellationToken);
+
+            return await Process(correspondenceId, cancellationToken);
         }
 
         var response = new GetCorrespondenceDetailsResponse
@@ -74,7 +69,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
             Notifications = correspondence.Notifications == null ? new List<CorrespondenceNotificationEntity>() : correspondence.Notifications,
             VisibleFrom = correspondence.VisibleFrom,
             IsReservable = correspondence.IsReservable == null || correspondence.IsReservable.Value,
-            StatusHistory = correspondence.Statuses?.OrderBy(s => s.StatusChanged).ToList() ?? [],
+            StatusHistory = correspondence.Statuses,
             ResourceId = correspondence.ResourceId
         };
         return response;
