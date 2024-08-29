@@ -35,21 +35,18 @@ namespace Altinn.Correspondence.Application.CorrespondenceDueDate
             {
                 errorMessage = "Correspondence " + correspondenceId + " not found for exipired due date";
             }
-            else if (correspondence.Content == null || !correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Published))
+            else if (correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Failed))
             {
-                errorMessage = $"Correspondence {correspondenceId} was never published";
+                errorMessage = $"Correspondence {correspondenceId} failed to publish";
             }
-            if (correspondence.DueDateTime > DateTimeOffset.UtcNow)
-            {
-                errorMessage = $"Correspondence {correspondenceId} due date has not expired";
-            }
+
             if (!string.IsNullOrEmpty(errorMessage))
             {
                 _logger.LogError(errorMessage);
                 return;
             }
 
-            if (!correspondence.Statuses.Any(s => s.Status != CorrespondenceStatus.Read))
+            if (!correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Read))
             {
                 await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
                 await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
