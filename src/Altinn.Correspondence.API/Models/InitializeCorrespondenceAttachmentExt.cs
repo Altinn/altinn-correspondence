@@ -23,16 +23,6 @@ namespace Altinn.Correspondence.API.Models
         public InitializeAttachmentDataLocationTypeExt DataLocationType { get; set; }
 
         /// <summary>
-        /// Specifies the location url of the attachment data
-        /// </summary>
-        /// <remarks>
-        /// Required only if AttachmentDataLocationType is ExistingCorrespondenceAttachment or ExisitingExternalStorage
-        /// If the type is NewCorrespondenceAttachmentBlob, this requires the attachment data to be uploaded using the AttachmentId returned from the Initialize operation
-        /// </remarks>
-        [JsonPropertyName("dataLocationUrl")]
-        public string? DataLocationUrl { get; set; }
-
-        /// <summary>
         /// The expiration time of the attachment
         /// </summary>
         [JsonPropertyName("expirationTime")]
