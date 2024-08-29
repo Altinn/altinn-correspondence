@@ -26,7 +26,6 @@ internal static class InitializeCorrespondenceFactory
                         SendersReference = "1234",
                         FileName = "test-fil2e",
                         IsEncrypted = false,
-                        DataLocationUrl = url
                     }
                 },
             },

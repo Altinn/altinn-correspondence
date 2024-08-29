@@ -137,7 +137,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             var attachmentOverview = await _client.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
             payload.Correspondence.Content.Attachments.Add(new InitializeCorrespondenceAttachmentExt()
             {
-                DataLocationUrl = attachmentOverview.DataLocationUrl,
                 DataType = attachmentOverview.DataType,
                 FileName = attachmentOverview.FileName,
                 Name = "Logical file name",
@@ -204,7 +203,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task InitializeCorrespondences()
     {
         var uploadedAttachment = await InitializeAttachment();
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences(uploadedAttachment.DataLocationUrl));
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
     }
 
