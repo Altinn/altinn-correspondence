@@ -637,12 +637,21 @@
                 }
             }
         },
-        "/correspondence/api/v1/correspondence/attachment/{attachmentId}/download": {
+        "/correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentId}/download": {
             "get": {
                 "tags": [
                     "Correspondence"
                 ],
                 "parameters": [
+                    {
+                        "name": "correspondenceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
                     {
                         "name": "attachmentId",
                         "in": "path",
