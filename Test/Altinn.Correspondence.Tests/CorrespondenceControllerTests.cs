@@ -121,9 +121,23 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
+    [Fact]
+    public async Task InitializeCorrespondence_DueDate_PriorVisibleFrom_Returns_BadRequest()
+    {
+        // Arrange
+        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
+        correspondence.Correspondence.DueDateTime = DateTimeOffset.Now.AddDays(7);
+        correspondence.Correspondence.VisibleFrom = DateTimeOffset.Now.AddDays(14);
+
+        // Act
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
 
     [Fact]
-    public async Task InitializeCorrespondence_AllowSystemDeleAfter_PriorToday_Returns_BadRequest()
+    public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorToday_Returns_BadRequest()
     {
         // Arrange
         var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
@@ -135,8 +149,24 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
+
     [Fact]
-    public async Task InitializeCorrespondence_AllowSystemDeleAfter_PriorDueDate_Returns_BadRequest()
+    public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorVisibleFrom_Returns_BadRequest()
+    {
+        // Arrange
+        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
+        correspondence.Correspondence.VisibleFrom = DateTimeOffset.Now.AddDays(14);
+        correspondence.Correspondence.DueDateTime = DateTimeOffset.Now.AddDays(21); // ensure DueDate is after VisibleFrom
+        correspondence.Correspondence.AllowSystemDeleteAfter = DateTimeOffset.Now.AddDays(7);
+
+        // Act
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+    [Fact]
+    public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorDueDate_Returns_BadRequest()
     {
         // Arrange
         var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
