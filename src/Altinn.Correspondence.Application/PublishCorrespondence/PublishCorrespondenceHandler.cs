@@ -29,7 +29,6 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
     }
 
 
-    [AutomaticRetry(Attempts = 0)]
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Publish correspondence {correspondenceId}", correspondenceId);
