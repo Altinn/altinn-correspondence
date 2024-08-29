@@ -10,8 +10,6 @@ public class GetAttachmentDetailsResponse
 
     public AttachmentDataLocationType DataLocationType { get; set; }
 
-    public string? DataLocationUrl { get; set; }
-
     public AttachmentStatus Status { get; set; }
 
     public string StatusText { get; set; } = string.Empty;

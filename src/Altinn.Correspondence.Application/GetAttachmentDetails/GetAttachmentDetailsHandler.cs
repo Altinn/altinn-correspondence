@@ -36,7 +36,6 @@ public class GetAttachmentDetailsHandler : IHandler<Guid, GetAttachmentDetailsRe
         {
             ResourceId = attachment.ResourceId,
             AttachmentId = attachment.Id,
-            DataLocationUrl = attachment.DataLocationUrl,
             Name = attachment.FileName,
             Status = attachmentStatus.Status,
             Statuses = attachment.Statuses,

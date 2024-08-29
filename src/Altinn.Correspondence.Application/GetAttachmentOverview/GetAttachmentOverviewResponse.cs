@@ -9,8 +9,6 @@ public class GetAttachmentOverviewResponse
 
     public AttachmentDataLocationType DataLocationType { get; set; }
 
-    public string? DataLocationUrl { get; set; }
-
     public AttachmentStatus Status { get; set; }
 
     public required string StatusText { get; set; }
