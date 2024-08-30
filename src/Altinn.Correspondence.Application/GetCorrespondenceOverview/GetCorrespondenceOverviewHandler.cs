@@ -44,9 +44,12 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
 
         if (isRecipient && latestStatus.Status == CorrespondenceStatus.Published)
         {
-            latestStatus.Status = CorrespondenceStatus.Fetched;
-            latestStatus.StatusText = CorrespondenceStatus.Fetched.ToString();
-            latestStatus.StatusChanged = DateTimeOffset.UtcNow;
+            latestStatus = new CorrespondenceStatusEntity{
+                CorrespondenceId = correspondence.Id,
+                Status = CorrespondenceStatus.Fetched,
+                StatusText = CorrespondenceStatus.Fetched.ToString(),
+                StatusChanged = DateTime.Now
+            };
         
             await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
             {
