@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Persistence.Repositories
@@ -32,11 +33,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
             CancellationToken cancellationToken)
         {
             var correspondences = _context.Correspondences
-                .Where(correspondence => correspondence.ResourceId == resourceId)
-                .Where(c => (status == null || (status != null && _context.CorrespondenceStatuses.Where(cs => cs.CorrespondenceId == c.Id).OrderBy(cs => cs.StatusChanged).Last().Status == status)) &&
-                    (from == null || (from != null && c.VisibleFrom > from))
-                    && (to == null || (to != null && c.VisibleFrom < to)))
-                .OrderByDescending(c => c.VisibleFrom)
+                .Where(c => c.ResourceId == resourceId)             // Correct id
+                .Where(c => from == null || c.VisibleFrom > from)   // From date filter
+                .Where(c => to == null || c.VisibleFrom < to)       // To date filter
+                .OrderByDescending(c => c.VisibleFrom)              // Sort by visibleFrom
+                .WithValidStatuses(status)                          // Filter by status
                 .Select(c => c.Id);
 
             var totalItems = await correspondences.CountAsync(cancellationToken);
