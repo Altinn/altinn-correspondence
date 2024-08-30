@@ -22,6 +22,31 @@ namespace Altinn.Correspondence.Application.Helpers
             _uploadHelper = uploadHelper;
 
         }
+        public Error? ValidateDateConstraints(CorrespondenceEntity correspondence)
+        {
+            var visibleFrom = correspondence.VisibleFrom;
+            if (correspondence.DueDateTime < DateTimeOffset.Now)
+            {
+                return Errors.DueDatePriorToday;
+            }
+            if (correspondence.DueDateTime < visibleFrom)
+            {
+                return Errors.DueDatePriorVisibleFrom;
+            }
+            if (correspondence.AllowSystemDeleteAfter < DateTimeOffset.Now)
+            {
+                return Errors.AllowSystemDeletePriorToday;
+            }
+            if (correspondence.AllowSystemDeleteAfter < visibleFrom)
+            {
+                return Errors.AllowSystemDeletePriorVisibleFrom;
+            }
+            if (correspondence.AllowSystemDeleteAfter < correspondence.DueDateTime)
+            {
+                return Errors.AllowSystemDeletePriorDueDate;
+            }
+            return null;
+        }
         public Error? ValidateCorrespondenceContent(CorrespondenceContentEntity content)
         {
             if (!TextValidation.ValidatePlainText(content?.MessageTitle))

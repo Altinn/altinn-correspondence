@@ -109,6 +109,79 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
+    public async Task InitializeCorrespondence_DueDate_PriorToday_Returns_BadRequest()
+    {
+        // Arrange
+        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
+        correspondence.Correspondence.DueDateTime = DateTimeOffset.Now.AddDays(-7);
+
+        // Act
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+    [Fact]
+    public async Task InitializeCorrespondence_DueDate_PriorVisibleFrom_Returns_BadRequest()
+    {
+        // Arrange
+        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
+        correspondence.Correspondence.DueDateTime = DateTimeOffset.Now.AddDays(7);
+        correspondence.Correspondence.VisibleFrom = DateTimeOffset.Now.AddDays(14);
+
+        // Act
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorToday_Returns_BadRequest()
+    {
+        // Arrange
+        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
+        correspondence.Correspondence.AllowSystemDeleteAfter = DateTimeOffset.Now.AddDays(-7);
+
+        // Act
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorVisibleFrom_Returns_BadRequest()
+    {
+        // Arrange
+        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
+        correspondence.Correspondence.VisibleFrom = DateTimeOffset.Now.AddDays(14);
+        correspondence.Correspondence.DueDateTime = DateTimeOffset.Now.AddDays(21); // ensure DueDate is after VisibleFrom
+        correspondence.Correspondence.AllowSystemDeleteAfter = DateTimeOffset.Now.AddDays(7);
+
+        // Act
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+    [Fact]
+    public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorDueDate_Returns_BadRequest()
+    {
+        // Arrange
+        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
+        correspondence.Correspondence.VisibleFrom = DateTimeOffset.Now.AddDays(7);
+        correspondence.Correspondence.AllowSystemDeleteAfter = DateTimeOffset.Now.AddDays(14);
+        correspondence.Correspondence.DueDateTime = DateTimeOffset.Now.AddDays(21);
+
+        // Act
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+
+    [Fact]
     public async Task UploadCorrespondence_Gives_Ok()
     {
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
@@ -130,7 +203,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             using var fileStream = file.OpenReadStream();
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
             var uploadCorrespondenceResponse = await _client.PostAsync("correspondence/api/v1/correspondence/upload", formData);
-            uploadCorrespondenceResponse.EnsureSuccessStatusCode();
+            Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
 
             var response = await uploadCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
             var attachmentId = response?.AttachmentIds.FirstOrDefault();
@@ -523,6 +596,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             { new StringContent(correspondence.Sender), "correspondence.sender" },
             { new StringContent(correspondence.SendersReference), "correspondence.sendersReference" },
             { new StringContent(correspondence.VisibleFrom.ToString()), "correspondence.visibleFrom" },
+            { new StringContent(correspondence.DueDateTime.ToString()), "correspondence.dueDateTime" },
             { new StringContent(correspondence.AllowSystemDeleteAfter.ToString()), "correspondence.AllowSystemDeleteAfter" },
             { new StringContent(correspondence.Content.MessageTitle), "correspondence.content.MessageTitle" },
             { new StringContent(correspondence.Content.MessageSummary), "correspondence.content.MessageSummary" },

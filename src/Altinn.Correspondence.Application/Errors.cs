@@ -31,4 +31,9 @@ public static class Errors
     public static Error HashError = new Error(23, "Checksum mismatch", HttpStatusCode.BadRequest);
     public static Error DataLocationNotFound = new Error(24, "Could not get data location url", HttpStatusCode.BadRequest);
     public static Error ExistingAttachmentNotFound = new Error(25, "Existing attachment not found", HttpStatusCode.BadRequest);
+    public static Error DueDatePriorToday = new Error(26, "DueDateTime cannot be prior to today", HttpStatusCode.BadRequest);
+    public static Error DueDatePriorVisibleFrom = new Error(27, "DueDateTime cannot be prior to VisibleFrom", HttpStatusCode.BadRequest);
+    public static Error AllowSystemDeletePriorToday = new Error(28, "AllowSystemDelete cannot be prior to today", HttpStatusCode.BadRequest);
+    public static Error AllowSystemDeletePriorVisibleFrom = new Error(29, "AllowSystemDelete cannot be prior to VisibleFrom", HttpStatusCode.BadRequest);
+    public static Error AllowSystemDeletePriorDueDate = new Error(30, "AllowSystemDelete cannot be prior to DueDateTime", HttpStatusCode.BadRequest);
 }

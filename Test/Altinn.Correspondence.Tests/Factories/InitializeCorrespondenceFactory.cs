@@ -29,9 +29,9 @@ internal static class InitializeCorrespondenceFactory
                     }
                 },
             },
-            VisibleFrom = DateTime.UtcNow,
-            AllowSystemDeleteAfter = DateTime.UtcNow.AddDays(3),
-            DueDateTime = DateTime.UtcNow.AddDays(2),
+            VisibleFrom = DateTimeOffset.UtcNow,
+            AllowSystemDeleteAfter = DateTimeOffset.UtcNow.AddDays(3),
+            DueDateTime= DateTimeOffset.UtcNow.AddDays(2),
             ExternalReferences = new List<ExternalReferenceExt>(){
                 new ExternalReferenceExt()
                 {

@@ -46,6 +46,11 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             return Errors.DuplicateRecipients;
         }
+        var dateError = _initializeCorrespondenceHelper.ValidateDateConstraints(request.Correspondence);
+        if (dateError != null)
+        {
+            return dateError;
+        }
         var contentError = _initializeCorrespondenceHelper.ValidateCorrespondenceContent(request.Correspondence.Content);
         if (contentError != null)
         {
