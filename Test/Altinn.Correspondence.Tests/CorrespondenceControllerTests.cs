@@ -352,7 +352,43 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var correspondenceList = await _client.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceA}&offset=0&limit=10&status=0");
         Assert.Equal(correspondenceList?.Pagination.TotalItems, payloadForResourceA.Recipients.Count);
     }
+    [Fact]
+    public async Task GetCorrespondences_WithoutStatusSpecified_ReturnsAll()
+    {
+        // Arrange
+        var resource = Guid.NewGuid().ToString();
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.Correspondence.ResourceId = resource;
 
+        // Act
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+        var correspondenceList = await _client.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10");
+
+        // Assert
+        var expected = payload.Recipients.Count;
+        Assert.Equal(correspondenceList?.Pagination.TotalItems, expected);
+    }
+
+    [Fact]
+    public async Task GetCorrespondences_WithoutStatusSpecified_AndPurgedCorrespondence_ReturnsAllExceptBlacklisted()
+    {
+        // Arrange
+        var resource = Guid.NewGuid().ToString();
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.Correspondence.ResourceId = resource;
+
+        // Act
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+        var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        await _client.DeleteAsync($"correspondence/api/v1/correspondence/{response.CorrespondenceIds.FirstOrDefault()}/purge");
+        var correspondenceList = await _client.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10");
+
+        // Assert
+        var expected = payload.Recipients.Count - 1;
+        Assert.Equal(correspondenceList?.Pagination.TotalItems, expected);
+    }
     [Fact]
     public async Task GetCorrespondenceOverview()
     {
