@@ -11,8 +11,8 @@ public class SecurityHeadersMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        context.Response.Headers.Add("X-Content-Type-Options", new StringValues("nosniff"));
-        context.Response.Headers.Add("Cache-Control", new StringValues("no-store"));
+        context.Response.Headers.Append("X-Content-Type-Options", new StringValues("nosniff"));
+        context.Response.Headers.Append("Cache-Control", new StringValues("no-store"));
 
         await _next(context);
     }
