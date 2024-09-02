@@ -16,8 +16,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
             };
             if (status == null) // No status specified, return all except blacklisted
             {
-                return query
-                .Where(correspondence => blacklistedStatues.Contains(correspondence.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status));
+                return query.Where(correspondence => !blacklistedStatues.Contains(correspondence.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status));
             }
             else
             {
