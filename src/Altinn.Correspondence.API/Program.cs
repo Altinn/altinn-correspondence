@@ -37,6 +37,7 @@ static void BuildAndRun(string[] args)
     app.UseAuthorization();
 
     app.MapControllers();
+    app.UseMiddleware<SecurityHeadersMiddleware>();
 
     if (app.Environment.IsDevelopment())
     {
