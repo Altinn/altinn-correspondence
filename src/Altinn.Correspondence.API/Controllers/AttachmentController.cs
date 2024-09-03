@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.API.Models;
+﻿using Altinn.Correspondence.API.Configuration;
+using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.GetAttachmentDetails;
 using Altinn.Correspondence.Application.GetAttachmentOverview;
@@ -24,6 +25,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <remarks>Only required if the attachment is to be shared, otherwise this is done as part of the Initialize Correspondence operation</remarks>
     /// <returns></returns>
     [HttpPost]
+    [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<Guid>> InitializeAttachment(InitializeAttachmentExt InitializeAttachmentExt, [FromServices] InitializeAttachmentHandler handler, CancellationToken cancellationToken)
     {
         var commandRequest = InitializeAttachmentMapper.MapToRequest(InitializeAttachmentExt);
@@ -43,6 +45,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     [HttpPost]
     [Route("{attachmentId}/upload")]
     [Consumes("application/octet-stream")]
+    [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<AttachmentOverviewExt>> UploadAttachmentData(
         Guid attachmentId,
         [FromServices] UploadAttachmentHandler uploadAttachmentHandler,
@@ -76,6 +79,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <returns>AttachmentOverviewExt</returns>
     [HttpGet]
     [Route("{attachmentId}")]
+    [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
     public async Task<ActionResult<AttachmentOverviewExt>> GetAttachmentOverview(
         Guid attachmentId,
         [FromServices] GetAttachmentOverviewHandler handler,
@@ -97,6 +101,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <returns></returns>
     [HttpGet]
     [Route("{attachmentId}/details")]
+    [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
     public async Task<ActionResult<AttachmentDetailsExt>> GetAttachmentDetails(
         Guid attachmentId,
         [FromServices] GetAttachmentDetailsHandler handler,
@@ -122,6 +127,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <returns></returns>
     [HttpDelete]
     [Route("{attachmentId}")]
+    [Authorize(Policy = AuthorizationConstants.Recipient)]
     public async Task<ActionResult<AttachmentOverviewExt>> DeleteAttachment(
         Guid attachmentId,
         [FromServices] PurgeAttachmentHandler handler,

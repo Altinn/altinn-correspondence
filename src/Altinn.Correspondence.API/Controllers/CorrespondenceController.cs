@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.API.Models;
+﻿using Altinn.Correspondence.API.Configuration;
+using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.DownloadAttachment;
@@ -38,6 +39,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>CorrespondenceIds</returns>
         [HttpPost]
+        [Authorize(Policy = AuthorizationConstants.Sender)]
         public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeCorrespondences(
             InitializeCorrespondencesExt request,
             [FromServices] InitializeCorrespondencesHandler handler,
@@ -66,6 +68,7 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpPost]
         [Route("upload")]
         [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
+        [Authorize(Policy = AuthorizationConstants.Sender)]
         public async Task<ActionResult<CorrespondenceOverviewExt>> UploadCorrespondences(
             [FromForm] InitializeCorrespondencesExt request,
             [FromForm] List<IFormFile> attachments,
@@ -183,6 +186,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>StatusId</returns>
         [HttpPost]
+        [Authorize(Policy = AuthorizationConstants.Recipient)]
         [Route("{correspondenceId}/markasread")]
         public async Task<ActionResult> MarkAsRead(
             Guid correspondenceId,
@@ -211,11 +215,12 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>OK</returns>
         [HttpPost]
+        [Authorize(Policy = AuthorizationConstants.Recipient)]
         [Route("{correspondenceId}/markasunread")]
         public async Task<ActionResult> MarkAsUnread(
-          Guid correspondenceId,
-          [FromServices] UpdateMarkAsUnreadHandler handler,
-          CancellationToken cancellationToken)
+            Guid correspondenceId,
+            [FromServices] UpdateMarkAsUnreadHandler handler,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation("Marking Correspondence as unread for {correspondenceId}", correspondenceId.ToString());
 
@@ -235,6 +240,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>StatusId</returns>
         [HttpPost]
+        [Authorize(Policy = AuthorizationConstants.Recipient)]
         [Route("{correspondenceId}/confirm")]
         public async Task<ActionResult> Confirm(
             Guid correspondenceId,
@@ -263,6 +269,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>StatusId</returns>
         [HttpPost]
+        [Authorize(Policy = AuthorizationConstants.Recipient)]
         [Route("{correspondenceId}/archive")]
         public async Task<ActionResult> Archive(
             Guid correspondenceId,
