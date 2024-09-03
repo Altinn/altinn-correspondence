@@ -127,7 +127,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <returns></returns>
     [HttpDelete]
     [Route("{attachmentId}")]
-    [Authorize(Policy = AuthorizationConstants.Recipient)]
+    [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<AttachmentOverviewExt>> DeleteAttachment(
         Guid attachmentId,
         [FromServices] PurgeAttachmentHandler handler,
