@@ -77,7 +77,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
         }
         await _correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
         await _eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
-        await _eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
+        if (status.Status == CorrespondenceStatus.Published) await _eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
         return Task.CompletedTask;
     }
 }
