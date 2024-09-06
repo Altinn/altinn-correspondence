@@ -36,4 +36,5 @@ public static class Errors
     public static Error AllowSystemDeletePriorToday = new Error(28, "AllowSystemDelete cannot be prior to today", HttpStatusCode.BadRequest);
     public static Error AllowSystemDeletePriorVisibleFrom = new Error(29, "AllowSystemDelete cannot be prior to VisibleFrom", HttpStatusCode.BadRequest);
     public static Error AllowSystemDeletePriorDueDate = new Error(30, "AllowSystemDelete cannot be prior to DueDateTime", HttpStatusCode.BadRequest);
+    public static Error CouldNotFindOrgNo = new Error(31, "Could not identify orgnumber from user", HttpStatusCode.Unauthorized);
 }
