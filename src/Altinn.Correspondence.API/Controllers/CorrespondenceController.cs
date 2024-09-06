@@ -102,6 +102,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{correspondenceId}")]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
             Guid correspondenceId,
             [FromServices] GetCorrespondenceOverviewHandler handler,
@@ -126,6 +127,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns>Detailed information about the correspondence with current status and status history</returns>
         [HttpGet]
         [Route("{correspondenceId}/details")]
+        [Authorize(Policy = AuthorizationConstants.Sender)]
         public async Task<ActionResult<CorrespondenceDetailsExt>> GetCorrespondenceDetails(
             Guid correspondenceId,
             [FromServices] GetCorrespondenceDetailsHandler handler,
@@ -149,6 +151,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>A list of Correspondence ids and pagination metadata</returns>
         [HttpGet]
+        [Authorize(Policy = AuthorizationConstants.Recipient)]
         public async Task<ActionResult<CorrespondencesExt>> GetCorrespondences(
             [FromQuery] string resourceId,
             [FromQuery] int offset,
@@ -299,6 +302,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns>Ok</returns>
         [HttpDelete]
         [Route("{correspondenceId}/purge")]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         public async Task<ActionResult> Purge(
             Guid correspondenceId,
             [FromServices] PurgeCorrespondenceHandler handler,
@@ -321,6 +325,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{correspondenceId}/attachment/{attachmentId}/download")]
+        [Authorize(Policy = AuthorizationConstants.Recipient)]
         public async Task<ActionResult> DownloadAttachmentData(
             Guid correspondenceId,
             Guid attachmentId,
