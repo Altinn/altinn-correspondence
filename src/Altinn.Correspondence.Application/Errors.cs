@@ -37,4 +37,7 @@ public static class Errors
     public static Error AllowSystemDeletePriorVisibleFrom = new Error(29, "AllowSystemDelete cannot be prior to VisibleFrom", HttpStatusCode.BadRequest);
     public static Error AllowSystemDeletePriorDueDate = new Error(30, "AllowSystemDelete cannot be prior to DueDateTime", HttpStatusCode.BadRequest);
     public static Error CouldNotFindOrgNo = new Error(31, "Could not identify orgnumber from user", HttpStatusCode.Unauthorized);
+    public static Error CantPurgeCorrespondenceSender = new Error(32, "Cannot delete correspondence that has been published", HttpStatusCode.BadRequest);
+    public static Error CantPurgeCorrespondenceRecipient = new Error(33, "Cannot delete correspondence that has not been delivered", HttpStatusCode.Unauthorized);
+    public static Error CantPurgeCorrespondence = new Error(34, "You must be a sender or recipient in order to purge correspondence", HttpStatusCode.Unauthorized);
 }
