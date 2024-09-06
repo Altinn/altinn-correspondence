@@ -122,12 +122,12 @@ namespace Altinn.Correspondence.API.Controllers
         /// Get more detailed information about the Correspondence and its current status as well as noticiation statuses, if available
         /// </summary>
         /// <remarks>
-        /// Meant for Senders that want a complete overview of the status and history of the Correspondence
+        /// Meant for Senders that want a complete overview of the status and history of the Correspondence, but also available for Receivers
         /// </remarks>
         /// <returns>Detailed information about the correspondence with current status and status history</returns>
         [HttpGet]
         [Route("{correspondenceId}/details")]
-        [Authorize(Policy = AuthorizationConstants.Sender)]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         public async Task<ActionResult<CorrespondenceDetailsExt>> GetCorrespondenceDetails(
             Guid correspondenceId,
             [FromServices] GetCorrespondenceDetailsHandler handler,
@@ -147,11 +147,11 @@ namespace Altinn.Correspondence.API.Controllers
         /// Gets a list of Correspondences for the authenticated user
         /// </summary>
         /// <remarks>
-        /// Meant for Receivers
+        /// Meant for Receivers, but also available for Senders to track Correspondences
         /// </remarks>
         /// <returns>A list of Correspondence ids and pagination metadata</returns>
         [HttpGet]
-        [Authorize(Policy = AuthorizationConstants.Recipient)]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         public async Task<ActionResult<CorrespondencesExt>> GetCorrespondences(
             [FromQuery] string resourceId,
             [FromQuery] int offset,
