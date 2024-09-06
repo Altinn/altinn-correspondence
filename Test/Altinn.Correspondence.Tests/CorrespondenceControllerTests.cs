@@ -370,14 +370,40 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var expected = payload.Recipients.Count;
         Assert.Equal(correspondenceList?.Pagination.TotalItems, expected);
     }
-
     [Fact]
-    public async Task GetCorrespondences_WithoutStatusSpecified_AndPurgedCorrespondence_ReturnsAllExceptBlacklisted()
+    public async Task GetCorrespondences_WithoutStatusSpecified_AsReceiver_ReturnsAllExceptBlacklisted()
+    {
+        // Arrange
+        var resource = Guid.NewGuid().ToString();
+
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments(); // One published
+        payload.Recipients = new List<string> {_userId};
+        payload.Correspondence.Sender = "0192:123456789";
+        payload.Correspondence.ResourceId = resource;
+
+        var payloadInitialized = InitializeCorrespondenceFactory.BasicCorrespondences(); // One initialized
+        payloadInitialized.Recipients = new List<string> {_userId};
+        payloadInitialized.Correspondence.Sender = "0192:123456789";
+        payloadInitialized.Correspondence.ResourceId = resource;
+
+        // Act
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+        var initializeCorrespondenceResponse2 = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadInitialized);
+        Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
+        var correspondenceList = await _client.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10");
+
+        // Assert
+        Assert.Equal(correspondenceList?.Pagination.TotalItems, 1); // Receiver only sees the one that is published
+    }
+    [Fact]
+    public async Task GetCorrespondences_WithoutStatusSpecified_AsSender_ReturnsAllExceptBlacklisted()
     {
         // Arrange
         var resource = Guid.NewGuid().ToString();
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
         payload.Correspondence.ResourceId = resource;
+        payload.Correspondence.Sender = _userId;
 
         // Act
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
