@@ -2011,7 +2011,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=tt02&scopes=altinn:correspondence&org=ttd&orgNo=991825827&userId=1&partyId=1&pid=22069343112",
+							"raw": "https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=tt02&scopes=altinn:correspondence.write&org=ttd&orgNo=991825827&userId=1&partyId=1&pid=22069343112",
 							"protocol": "https",
 							"host": [
 								"altinn-testtools-token-generator",
@@ -2029,7 +2029,7 @@
 								},
 								{
 									"key": "scopes",
-									"value": "altinn:correspondence"
+									"value": "altinn:correspondence.write"
 								},
 								{
 									"key": "org",
@@ -2084,7 +2084,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=tt02&scopes=altinn:correspondence&org=ttd&orgNo=986252932&userId=2&partyId=2&pid=22069343112",
+							"raw": "https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=tt02&scopes=altinn:correspondence.read&org=ttd&orgNo=986252932&userId=2&partyId=2&pid=22069343112",
 							"protocol": "https",
 							"host": [
 								"altinn-testtools-token-generator",
@@ -2102,7 +2102,7 @@
 								},
 								{
 									"key": "scopes",
-									"value": "altinn:correspondence"
+									"value": "altinn:correspondence.read"
 								},
 								{
 									"key": "org",
