@@ -491,7 +491,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Equal(response.Status, CorrespondenceStatusExt.Initialized);
     }
     [Fact]
-    public async Task GetCorrespondenceDetails_AsReceiver_UpdatesStatusToFetched()
+    public async Task GetCorrespondenceDetails_AsReceiver_AddsFetchedStatusToHistory()
     {
         // Arrange
         var initialCorrespondence = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments();
@@ -506,8 +506,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
 
         // Assert
         var response = await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+        var expectedFetchedStatuses = 1;
+        Assert.Equal(response.StatusHistory.Where(s => s.Status == CorrespondenceStatusExt.Fetched).Count(), expectedFetchedStatuses);
         Assert.Contains(response.StatusHistory, item => item.Status == CorrespondenceStatusExt.Published);
-        Assert.Contains(response.StatusHistory, item => item.Status == CorrespondenceStatusExt.Fetched);
         Assert.Equal(response.Status, CorrespondenceStatusExt.Published);
     }
 
