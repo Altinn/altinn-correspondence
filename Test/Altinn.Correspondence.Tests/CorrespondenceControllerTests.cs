@@ -394,14 +394,15 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var correspondenceList = await _client.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10");
 
         // Assert
-        Assert.Equal(correspondenceList?.Pagination.TotalItems, 1); // Receiver only sees the one that is published
+        var expected = 2 - 1; // Receiver only sees the one that is published
+        Assert.Equal(correspondenceList?.Pagination.TotalItems, expected);
     }
     [Fact]
     public async Task GetCorrespondences_WithoutStatusSpecified_AsSender_ReturnsAllExceptBlacklisted()
     {
         // Arrange
         var resource = Guid.NewGuid().ToString();
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences(); // One initialized
         payload.Correspondence.ResourceId = resource;
         payload.Correspondence.Sender = _userId;
 
@@ -413,7 +414,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var correspondenceList = await _client.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10");
 
         // Assert
-        var expected = payload.Recipients.Count - 1;
+        var expected = payload.Recipients.Count - 1; // One was deleted
         Assert.Equal(correspondenceList?.Pagination.TotalItems, expected);
     }
     [Fact]
