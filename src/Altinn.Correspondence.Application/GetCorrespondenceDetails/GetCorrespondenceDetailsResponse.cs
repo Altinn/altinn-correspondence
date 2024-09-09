@@ -35,7 +35,7 @@ public class GetCorrespondenceDetailsResponse
 
     public List<ExternalReferenceEntity> ExternalReferences { get; set; } = new List<ExternalReferenceEntity>();
 
-    public string ResourceId { get; set; }
+    public string ResourceId { get; set; } = string.Empty;
 
     public DateTimeOffset VisibleFrom { get; set; }
 
