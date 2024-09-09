@@ -45,7 +45,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
         var userOrgNo = _getCorrespondenceHelper.GetUserID();
         bool isRecipient = correspondence.Recipient == userOrgNo;
 
-        if (isRecipient && latestStatus.Status >= CorrespondenceStatus.Published) // etter publish, men før purged
+        if (isRecipient && latestStatus.Status >= CorrespondenceStatus.Published)
         {
             await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
             {
