@@ -13,8 +13,6 @@ public class GetCorrespondenceDetailsResponse
 
     public DateTimeOffset StatusChanged { get; set; }
 
-    public string? Name { get; set; } = string.Empty;
-
     public string SendersReference { get; set; } = string.Empty;
 
     public string Sender { get; set; } = string.Empty;
