@@ -33,7 +33,10 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
         {
             return Errors.NoAccessToResource;
         }
-        var latestStatus = correspondence.Statuses?.OrderByDescending(s => s.StatusChanged).FirstOrDefault();
+        var latestStatus = correspondence.Statuses?
+            .OrderByDescending(s => s.StatusChanged)
+            .SkipWhile(s => s.Status == CorrespondenceStatus.Fetched)
+            .FirstOrDefault();
         if (latestStatus == null)
         {
             return Errors.CorrespondenceNotFound;
@@ -42,21 +45,14 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
         var userOrgNo = _getCorrespondenceHelper.GetUserID();
         bool isRecipient = correspondence.Recipient == userOrgNo;
 
-        if (isRecipient && latestStatus.Status == CorrespondenceStatus.Published)
+        if (isRecipient && latestStatus.Status >= CorrespondenceStatus.Published)
         {
-            latestStatus = new CorrespondenceStatusEntity{
+            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+            {
                 CorrespondenceId = correspondence.Id,
                 Status = CorrespondenceStatus.Fetched,
                 StatusText = CorrespondenceStatus.Fetched.ToString(),
                 StatusChanged = DateTime.Now
-            };
-        
-            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
-            {
-                CorrespondenceId = correspondence.Id,
-                Status = latestStatus.Status,
-                StatusText = latestStatus.StatusText,
-                StatusChanged = latestStatus.StatusChanged
             }, cancellationToken);
         }
 
