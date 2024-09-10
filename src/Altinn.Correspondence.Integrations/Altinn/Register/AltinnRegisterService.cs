@@ -28,6 +28,7 @@ public class AltinnRegisterService : IAltinnRegisterService
         if (organizationWithPrefixFormat.IsMatch(identificationId))
         {
             identificationId = identificationId.Substring(5);
+            if (identificationId.Length != 9)
             {
                 _logger.LogError("OrganizationId must be 9 digits long.");
                 return null;
@@ -44,7 +45,6 @@ public class AltinnRegisterService : IAltinnRegisterService
         {
             OrgNo = organizationWithoutPrefixFormat.IsMatch(identificationId) ? identificationId : null,
             Ssn = personFormat.IsMatch(identificationId) ? identificationId : null
-
         };
         var response = await _httpClient.PostAsJsonAsync("register/api/v1/parties/lookup", partyLookup, cancellationToken);
         if (!response.IsSuccessStatusCode)
