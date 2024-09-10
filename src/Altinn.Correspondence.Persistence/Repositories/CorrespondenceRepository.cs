@@ -86,6 +86,21 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return correspondences;
         }
 
+        public async Task AddExternalReference(Guid correspondenceId, ReferenceType referenceType, string referenceValue, CancellationToken cancellationToken = default)
+        {
+            var correspondence = await _context.Correspondences.SingleOrDefaultAsync(c => c.Id == correspondenceId, cancellationToken);
+            if (correspondence is null)
+            {
+                throw new ArgumentException("Correspondence not found", nameof(correspondenceId));
+            }
+            correspondence.ExternalReferences.Add(new ExternalReferenceEntity
+            {
+                ReferenceType = referenceType,
+                ReferenceValue = referenceValue
+            });
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
         public async Task<List<Guid>> GetCorrespondenceIdsByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default)
         {
             var correspondenceIds = await _context.Correspondences

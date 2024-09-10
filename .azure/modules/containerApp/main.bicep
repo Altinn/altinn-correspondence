@@ -60,7 +60,7 @@ var containerAppEnvVars = [
   { name: 'MaskinportenSettings__ClientId', secretRef: 'maskinporten-client-id' }
   {
     name: 'MaskinportenSettings__Scope'
-    value: 'altinn:events.publish altinn:events.publish.admin altinn:register/partylookup.admin altinn:authorization/authorize.admin'
+    value: 'altinn:events.publish altinn:events.publish.admin altinn:register/partylookup.admin altinn:authorization/authorize.admin digdir:dialogporten.serviceprovider digdir:dialogporten.serviceprovider.admin'
   }
   { 
     name: 'MaskinportenSettings__ExhangeToAltinnToken'
