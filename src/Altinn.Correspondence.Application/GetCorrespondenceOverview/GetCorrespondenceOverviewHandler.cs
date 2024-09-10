@@ -73,7 +73,8 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
             ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
             VisibleFrom = correspondence.VisibleFrom,
             IsReservable = correspondence.IsReservable == null || correspondence.IsReservable.Value,
-            MarkedUnread = correspondence.MarkedUnread
+            MarkedUnread = correspondence.MarkedUnread,
+            AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
         };
         return response;
     }
