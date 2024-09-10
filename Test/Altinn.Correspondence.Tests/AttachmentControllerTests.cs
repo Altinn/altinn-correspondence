@@ -1,8 +1,10 @@
 using Altinn.Correspondece.Tests.Factories;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Helpers;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
@@ -15,6 +17,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _responseSerializerOptions;
+    private readonly string _userId = "0192:991825827";
 
     public AttachmentControllerTests(CustomWebApplicationFactory factory)
     {
@@ -246,6 +249,37 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         Assert.NotEmpty(prevOverview.Checksum);
         Assert.NotEmpty(attachmentOverview.Checksum);
         Assert.Equal(prevOverview.Checksum, attachmentOverview.Checksum);
+    }
+    [Fact]
+    public async Task UploadAttachment_WhenFailedCorrespondence_Fails()
+    {
+        // Arrange
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.Correspondence.Sender = _userId;
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        var correspondenceId = response.CorrespondenceIds.FirstOrDefault();
+        var attachmentId = response.AttachmentIds.FirstOrDefault();
+
+        // Act
+        using (var scope = _factory.Services.CreateScope()) // Add failed status to correspondence
+        {
+            var correspondenceStatusRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceStatusRepository>();
+            await correspondenceStatusRepository.AddCorrespondenceStatus(new Core.Models.CorrespondenceStatusEntity()
+            {
+                CorrespondenceId = correspondenceId,
+                Status = Core.Models.Enums.CorrespondenceStatus.Failed,
+                StatusChanged = DateTime.UtcNow
+            }, default);
+        }
+        var getCorrespondenceOverviewResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+        Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode, await getCorrespondenceOverviewResponse.Content.ReadAsStringAsync());
+        var overviewResponse = await getCorrespondenceOverviewResponse.Content.ReadFromJsonAsync<CorrespondenceOverviewExt>(_responseSerializerOptions);
+        Assert.Equal(overviewResponse.Status, CorrespondenceStatusExt.Failed);
+        var uploadResponse = await UploadAttachment(attachmentId.ToString()); // Attempt upload
+
+        // Assert
+        Assert.Equal(uploadResponse.StatusCode, HttpStatusCode.BadRequest);
     }
 
     [Fact]
