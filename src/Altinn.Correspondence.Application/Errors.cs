@@ -40,4 +40,5 @@ public static class Errors
     public static Error CantPurgeCorrespondenceSender = new Error(32, "Cannot delete correspondence that has been published", HttpStatusCode.BadRequest);
     public static Error CantPurgeCorrespondenceRecipient = new Error(33, "Cannot delete correspondence that has not been delivered", HttpStatusCode.BadRequest);
     public static Error CantPurgeCorrespondence = new Error(34, "You must be a sender or recipient in order to purge correspondence", HttpStatusCode.BadRequest);
+    public static Error CantUploadToNonInitializedCorrespondence = new Error(35, "Cannot upload attachment to a correspondence that is not initialized", HttpStatusCode.BadRequest);
 }

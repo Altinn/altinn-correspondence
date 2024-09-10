@@ -1,7 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
-using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Hosting;
 using OneOf;
 
@@ -39,6 +38,12 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
             return Errors.InvalidUploadAttachmentStatus;
         }
         UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
+
+        var errorsBeforeUpload = await uploadHelper.IsCorrespondenceNotInitialized(request.AttachmentId);
+        if (errorsBeforeUpload != null)
+        {
+            return errorsBeforeUpload;
+        }
         var uploadResult = await uploadHelper.UploadAttachment(request.UploadStream, request.AttachmentId, cancellationToken);
 
         if (_hostEnvironment.IsDevelopment())
