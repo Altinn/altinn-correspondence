@@ -65,6 +65,7 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
             ResourceId = correspondence.ResourceId,
             Sender = correspondence.Sender,
             SendersReference = correspondence.SendersReference,
+            MessageSender = correspondence.MessageSender ?? string.Empty,
             Created = correspondence.Created,
             Recipient = correspondence.Recipient,
             ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
@@ -72,7 +73,8 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
             ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
             VisibleFrom = correspondence.VisibleFrom,
             IsReservable = correspondence.IsReservable == null || correspondence.IsReservable.Value,
-            MarkedUnread = correspondence.MarkedUnread
+            MarkedUnread = correspondence.MarkedUnread,
+            AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
         };
         return response;
     }

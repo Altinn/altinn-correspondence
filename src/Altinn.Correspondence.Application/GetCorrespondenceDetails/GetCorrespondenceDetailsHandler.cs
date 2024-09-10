@@ -63,15 +63,22 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
             StatusText = latestStatus.StatusText,
             StatusChanged = latestStatus.StatusChanged,
             SendersReference = correspondence.SendersReference,
+            Sender = correspondence.Sender,
+            MessageSender = correspondence.MessageSender ?? string.Empty,
             Created = correspondence.Created,
             Recipient = correspondence.Recipient,
             Content = correspondence.Content!,
-            ReplyOptions = correspondence.ReplyOptions == null ? new List<CorrespondenceReplyOptionEntity>() : correspondence.ReplyOptions,
-            Notifications = correspondence.Notifications == null ? new List<CorrespondenceNotificationEntity>() : correspondence.Notifications,
+            ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
+            Notifications = correspondence.Notifications ?? new List<CorrespondenceNotificationEntity>(),
+            StatusHistory = correspondence.Statuses?.OrderBy(s => s.StatusChanged).ToList() ?? new List<CorrespondenceStatusEntity>(),
+            ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
+            ResourceId = correspondence.ResourceId,
             VisibleFrom = correspondence.VisibleFrom,
             IsReservable = correspondence.IsReservable == null || correspondence.IsReservable.Value,
-            StatusHistory = correspondence.Statuses?.OrderBy(s => s.StatusChanged).ToList() ?? [],
-            ResourceId = correspondence.ResourceId
+            MarkedUnread = correspondence.MarkedUnread,
+            AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
+            DueDateTime = correspondence.DueDateTime,
+            PropertyList = correspondence.PropertyList,
         };
         return response;
     }
