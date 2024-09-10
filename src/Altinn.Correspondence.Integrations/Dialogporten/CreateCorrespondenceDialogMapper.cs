@@ -75,12 +75,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return new List<Activity>();
         }
 
-        private static string GetCorrespondenceApiEndpoint(string controllerName, string actionName, Guid correspondenceId, Guid attachmentId)
+        private static string GetDownloadAttachmentEndpoint(Guid correspondenceId, Guid attachmentId)
         {
             // TODO: Implement API endpoint discovery
-            return $"https.//platform.tt02.altinn.no/correspondence/api/v1/{controllerName}/{actionName}/{correspondenceId}";
+            return $"https.//platform.tt02.altinn.no/correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentId}/download";
         }   
-
         private static List<ApiAction> GetApiActionsForCorrespondence(CorrespondenceEntity correspondence)
         {
             // TODO: Implement API actions
@@ -111,7 +110,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                     {
                         ConsumerType = "Api",
                         MediaType = "application/octet-stream",
-                        Url = GetCorrespondenceApiEndpoint("Attachment", "GetAttachment", correspondence.Id, attachment.Id)
+                        Url = GetDownloadAttachmentEndpoint(correspondence.Id, attachment.Id)
                     }
                 }
             }).ToList() ?? new List<Attachment>();
