@@ -12,18 +12,16 @@ using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests;
 
-public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFactory>, IClassFixture<UploadFailsWebApplicationFactory>
+public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly CustomWebApplicationFactory _factory;
-    private readonly UploadFailsWebApplicationFactory _uploadFailsFactory;
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _responseSerializerOptions;
     private readonly string _userId = "0192:991825827";
 
-    public AttachmentControllerTests(CustomWebApplicationFactory factory, UploadFailsWebApplicationFactory uploadFailsFactory)
+    public AttachmentControllerTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
-        _uploadFailsFactory = uploadFailsFactory;
         _client = _factory.CreateClientInternal();
         _responseSerializerOptions = new JsonSerializerOptions(new JsonSerializerOptions()
         {
@@ -288,7 +286,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     public async Task UploadAttachment_WhenCorresponodenceFailedDuringUpload_ReturnsErrorAndDisposesAttachment()
     {
         // Arrange
-        var uploadFailsClient = _uploadFailsFactory.CreateClientInternal(); // Setup client which contains time delay during upload and no mock for hangfire
+        var uploadFailsClient = new UploadFailsWebApplicationFactory().CreateClientInternal(); // Setup client which contains time delay during upload and no mock for hangfire
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
         payload.Recipients = [payload.Recipients[0]];
         payload.Correspondence.Sender = _userId;
