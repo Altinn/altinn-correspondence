@@ -11,14 +11,14 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
-    private readonly UserClaimsHelper _getCorrespondenceHelper;
+    private readonly UserClaimsHelper _userClaimsHelper;
 
-    public GetCorrespondenceDetailsHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, UserClaimsHelper getCorrespondenceHelper)
+    public GetCorrespondenceDetailsHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, UserClaimsHelper userClaimsHelper)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
-        _getCorrespondenceHelper = getCorrespondenceHelper;
+        _userClaimsHelper = userClaimsHelper;
     }
 
     public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
@@ -42,7 +42,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
             return Errors.CorrespondenceNotFound;
         }
 
-        var userOrgNo = _getCorrespondenceHelper.GetUserID();
+        var userOrgNo = _userClaimsHelper.GetUserID();
         bool isRecipient = correspondence.Recipient == userOrgNo;
 
         if (isRecipient && latestStatus.Status >= CorrespondenceStatus.Published)
