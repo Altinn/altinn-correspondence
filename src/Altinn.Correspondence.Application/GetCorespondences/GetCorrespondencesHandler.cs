@@ -9,9 +9,9 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly GetCorrespondenceHelper _getCorrespondenceHelper;
+    private readonly UserClaimsHelper _getCorrespondenceHelper;
 
-    public GetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, GetCorrespondenceHelper getCorrespondenceHelper)
+    public GetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper getCorrespondenceHelper)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;

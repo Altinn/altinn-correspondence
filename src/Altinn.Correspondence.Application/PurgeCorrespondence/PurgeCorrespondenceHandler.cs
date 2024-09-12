@@ -17,9 +17,9 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IStorageRepository _storageRepository;
     private readonly IEventBus _eventBus;
-    private readonly GetCorrespondenceHelper _getCorrespondenceHelper;
+    private readonly UserClaimsHelper _getCorrespondenceHelper;
 
-    public PurgeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus, GetCorrespondenceHelper getCorrespondenceHelper)
+    public PurgeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus, UserClaimsHelper getCorrespondenceHelper)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _attachmentRepository = attachmentRepository;

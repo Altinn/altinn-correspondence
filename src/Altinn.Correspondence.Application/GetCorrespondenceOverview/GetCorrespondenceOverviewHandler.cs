@@ -11,9 +11,9 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _CorrespondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
-    private readonly GetCorrespondenceHelper _getCorrespondenceHelper;
+    private readonly UserClaimsHelper _getCorrespondenceHelper;
 
-    public GetCorrespondenceOverviewHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository CorrespondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, GetCorrespondenceHelper getCorrespondenceHelper)
+    public GetCorrespondenceOverviewHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository CorrespondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, UserClaimsHelper getCorrespondenceHelper)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _CorrespondenceRepository = CorrespondenceRepository;

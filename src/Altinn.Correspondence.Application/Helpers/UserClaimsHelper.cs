@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Http;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
-    public class GetCorrespondenceHelper
+    public class UserClaimsHelper
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public GetCorrespondenceHelper(IHttpContextAccessor httpContextAccessor)
+        public UserClaimsHelper(IHttpContextAccessor httpContextAccessor)
         {
             _httpContextAccessor = httpContextAccessor;
         }
