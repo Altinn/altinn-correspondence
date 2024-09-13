@@ -596,6 +596,82 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         Assert.Equal(uploadedAttachment.AttachmentId.ToString(), response?.AttachmentIds?.FirstOrDefault().ToString());
     }
+    [Fact]
+    public async Task DownloadAttachment()
+    {
+        // Arrange
+        var attachment = InitializeAttachmentFactory.BasicAttachment();
+        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+
+        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
+        var uploadedAttachment = await (await UploadAttachment(attachmentId, new ByteArrayContent([1, 2, 3, 4]))).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
+
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
+        payload.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
+        payload.Recipients = [_userId]; // Change sender to match HttpContext.User
+
+        // Act
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        var downloadResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/{response?.CorrespondenceIds.FirstOrDefault()}/attachment/{attachmentId}/download");
+        var data = downloadResponse.Content.ReadAsByteArrayAsync();
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, downloadResponse.StatusCode);
+        Assert.NotNull(data);
+    }
+    [Fact]
+    public async Task DownloadAttachment_AsSender_Fails() // The endpoint requires a recipient token, this just ensures you have to be a recipient as well
+    {
+        // Arrange
+        var attachment = InitializeAttachmentFactory.BasicAttachment();
+        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+
+        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
+        var originalAttachmentData = new byte[] { 1, 2, 3, 4 };
+        var content = new ByteArrayContent(originalAttachmentData);
+        var uploadedAttachment = await (await UploadAttachment(attachmentId, content)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
+
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
+        payload.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
+        payload.Correspondence.Sender = _userId; // Change sender to match HttpContext.User
+
+        // Act
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        var downloadResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/{response?.CorrespondenceIds.FirstOrDefault()}/attachment/{attachmentId}/download");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
+    }
+    [Fact]
+    public async Task DownloadAttachment_AsRecipient_WhenCorrespondenceUnavailable_Fails()
+    {
+        // Arrange
+        var attachment = InitializeAttachmentFactory.BasicAttachment();
+        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+        initializeResponse.EnsureSuccessStatusCode();
+
+        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
+        var originalAttachmentData = new byte[] { 1, 2, 3, 4 };
+        var content = new ByteArrayContent(originalAttachmentData);
+        var uploadedAttachment = await (await UploadAttachment(attachmentId, content)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
+
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
+        payload.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
+        payload.Correspondence.Sender = _userId; // Change sender to match HttpContext.User
+
+        // Act
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        var downloadResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/{response?.CorrespondenceIds.FirstOrDefault()}/attachment/{attachmentId}/download");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
+    }
 
     [Fact]
     public async Task Delete_Initialized_Correspondence_AsSender_Gives_OK()

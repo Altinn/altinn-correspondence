@@ -15,6 +15,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _responseSerializerOptions;
+    private readonly string _userId = "0192:991825827";
 
     public AttachmentControllerTests(CustomWebApplicationFactory factory)
     {
@@ -140,6 +141,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
         payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
         payload.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
+        payload.Recipients = [_userId];
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
 
