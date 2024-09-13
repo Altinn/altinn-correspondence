@@ -672,6 +672,27 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
     }
+    [Fact]
+    public async Task DownloadAttachment_AsRecipient_WhenCorrespondenceHasNoAttachment_Fails()
+    {
+        // Arrange
+        var attachment = InitializeAttachmentFactory.BasicAttachment();
+        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+        initializeResponse.EnsureSuccessStatusCode();
+        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
+        await UploadAttachment(attachmentId);
+
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments();
+        payload.Correspondence.Sender = _userId; // Change sender to match HttpContext.User
+
+        // Act
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        var downloadResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/{response?.CorrespondenceIds.FirstOrDefault()}/attachment/{attachmentId}/download");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
+    }
 
     [Fact]
     public async Task Delete_Initialized_Correspondence_AsSender_Gives_OK()
