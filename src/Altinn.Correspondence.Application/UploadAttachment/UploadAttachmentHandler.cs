@@ -1,13 +1,15 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 using Microsoft.Extensions.Hosting;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.UploadAttachment;
 
-public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IHostEnvironment hostEnvironment) : IHandler<UploadAttachmentRequest, UploadAttachmentResponse>
+public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IHostEnvironment hostEnvironment, IEventBus eventBus) : IHandler<UploadAttachmentRequest, UploadAttachmentResponse>
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
     private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
@@ -16,6 +18,7 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
     private readonly IStorageRepository _storageRepository = storageRepository;
     private readonly IHostEnvironment _hostEnvironment = hostEnvironment;
+    private readonly IEventBus _eventBus = eventBus;
 
     public async Task<OneOf<UploadAttachmentResponse, Error>> Process(UploadAttachmentRequest request, CancellationToken cancellationToken)
     {
@@ -39,7 +42,29 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
             return Errors.InvalidUploadAttachmentStatus;
         }
         UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
+
+        var errorsBeforeUpload = await uploadHelper.IsCorrespondenceNotInitialized(request.AttachmentId);
+        if (errorsBeforeUpload != null)
+        {
+            return errorsBeforeUpload;
+        }
         var uploadResult = await uploadHelper.UploadAttachment(request.UploadStream, request.AttachmentId, cancellationToken);
+
+        var errorsAfterUpload = await uploadHelper.IsCorrespondenceNotInitialized(request.AttachmentId); // After upload, check if Correspondence status has changed
+        if (errorsAfterUpload != null)
+        {
+            await _storageRepository.PurgeAttachment(request.AttachmentId, cancellationToken);
+            await _attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
+            {
+                AttachmentId = request.AttachmentId,
+                Status = AttachmentStatus.Purged,
+                StatusChanged = DateTimeOffset.UtcNow,
+                StatusText = AttachmentStatus.Purged.ToString()
+            }, cancellationToken);
+
+            await _eventBus.Publish(AltinnEventType.AttachmentPurged, attachment.ResourceId, request.AttachmentId.ToString(), "attachment", attachment.Sender, cancellationToken);
+            return Errors.CorrespondenceFailedDuringUpload;
+        }
 
         if (_hostEnvironment.IsDevelopment())
         {
