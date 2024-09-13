@@ -62,7 +62,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
 
         if (correspondence.Sender == orgNo)
         {
-            if (latestStatus.Status >= CorrespondenceStatus.Published)
+            if (latestStatus.Status >= CorrespondenceStatus.Published && latestStatus.Status != CorrespondenceStatus.Failed)
             {
                 return Errors.CantPurgeCorrespondenceSender;
             }
