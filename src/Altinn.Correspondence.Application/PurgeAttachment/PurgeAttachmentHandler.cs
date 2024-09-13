@@ -40,9 +40,8 @@ public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizat
             .All(correspondence =>
             {
                 var latestStatus = correspondence.GetLatestStatus();
-
-                return latestStatus.Status == CorrespondenceStatus.PurgedByRecipient ||
-                       latestStatus.Status == CorrespondenceStatus.PurgedByAltinn;
+                if (latestStatus is null) return false;
+                return latestStatus.Status.IsPurged();
             });
         if (correspondences.Count == 0 || isCorrespondencePurged)
 

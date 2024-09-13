@@ -32,7 +32,11 @@ public class UpdateMarkAsUnreadHandler : IHandler<Guid, Guid>
         {
             return Errors.CorrespondenceHasNotBeenRead;
         }
-        if (currentStatus?.Status == CorrespondenceStatus.PurgedByRecipient || currentStatus?.Status == CorrespondenceStatus.PurgedByAltinn)
+        if (currentStatus is null)
+        {
+            return Errors.LatestStatusIsNull;
+        }
+        if (currentStatus!.Status.IsPurged())
         {
             return Errors.CorrespondencePurged;
         }

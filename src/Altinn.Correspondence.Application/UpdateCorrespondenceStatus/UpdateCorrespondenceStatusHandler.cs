@@ -36,11 +36,15 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
             return Errors.NoAccessToResource;
         }
         var currentStatus = correspondence.GetLatestStatus();
-        if ((request.Status == CorrespondenceStatus.Confirmed || request.Status == CorrespondenceStatus.Read) && currentStatus?.Status < CorrespondenceStatus.Published)
+        if (currentStatus is null)
+        {
+            return Errors.LatestStatusIsNull;
+        }
+        if ((request.Status == CorrespondenceStatus.Confirmed || request.Status == CorrespondenceStatus.Read) && currentStatus!.Status < CorrespondenceStatus.Published)
         {
             return Errors.CorrespondenceNotPublished;
         }
-        if (currentStatus?.Status == CorrespondenceStatus.PurgedByRecipient || currentStatus?.Status == CorrespondenceStatus.PurgedByAltinn)
+        if (currentStatus!.Status.IsPurged())
         {
             return Errors.CorrespondencePurged;
         }
