@@ -2,9 +2,9 @@ using Altinn.Correspondence.Core.Models;
 namespace Altinn.Correspondece.Application.Helpers;
 public static class AttachmentStatusExtensions
 {
-    public static AttachmentStatusEntity? GetLatestStatus(this AttachmentEntity correspondece)
+    public static AttachmentStatusEntity? GetLatestStatus(this AttachmentEntity attachment)
     {
-        var statusEntity = correspondece.Statuses
+        var statusEntity = attachment.Statuses
             .OrderByDescending(s => s.StatusChanged).FirstOrDefault();
         return statusEntity;
     }
