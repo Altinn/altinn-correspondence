@@ -22,7 +22,7 @@ public class GetAttachmentOverviewHandler : IHandler<Guid, GetAttachmentOverview
 
     public async Task<OneOf<GetAttachmentOverviewResponse, Error>> Process(Guid attachmentId, CancellationToken cancellationToken)
     {
-        var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, false, cancellationToken);
+        var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
         if (attachment == null)
         {
             return Errors.AttachmentNotFound;
