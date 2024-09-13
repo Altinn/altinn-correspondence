@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,6 +27,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             var status = await _context.CorrespondenceStatuses
                 .Where(s => s.CorrespondenceId == CorrespondenceId)
+                .Where(s => s.Status != CorrespondenceStatus.Fetched)
                 .OrderByDescending(s => s.StatusChanged)
                 .FirstAsync(cancellationToken);
 
