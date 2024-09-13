@@ -597,7 +597,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Equal(uploadedAttachment.AttachmentId.ToString(), response?.AttachmentIds?.FirstOrDefault().ToString());
     }
     [Fact]
-    public async Task DownloadAttachment()
+    public async Task DownloadAttachment_AsRecipient_Succeeds()
     {
         // Arrange
         var attachment = InitializeAttachmentFactory.BasicAttachment();
@@ -609,7 +609,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
         payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
         payload.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
-        payload.Recipients = [_userId]; // Change sender to match HttpContext.User
+        payload.Recipients = [_userId]; // Change recipient to match HttpContext.User
 
         // Act
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
@@ -622,7 +622,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.NotNull(data);
     }
     [Fact]
-    public async Task DownloadAttachment_AsSender_Fails() // The endpoint requires a recipient token, this just ensures you have to be a recipient as well
+    public async Task DownloadAttachment_WhenNotARecipient_Fails()
     {
         // Arrange
         var attachment = InitializeAttachmentFactory.BasicAttachment();
@@ -636,7 +636,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
         payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
         payload.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
-        payload.Correspondence.Sender = _userId; // Change sender to match HttpContext.User
+        payload.Recipients = ["0192:999999999"]; // Change recipient to invalid org
 
         // Act
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
@@ -647,7 +647,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
     }
     [Fact]
-    public async Task DownloadAttachment_AsRecipient_WhenCorrespondenceUnavailable_Fails()
+    public async Task DownloadAttachment_WhenCorrespondenceUnavailable_Fails() // TODO: Fix initializeCorrespondence should check attachment is uploaded before 
     {
         // Arrange
         var attachment = InitializeAttachmentFactory.BasicAttachment();
@@ -657,12 +657,13 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
         var originalAttachmentData = new byte[] { 1, 2, 3, 4 };
         var content = new ByteArrayContent(originalAttachmentData);
-        var uploadedAttachment = await (await UploadAttachment(attachmentId, content)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
+        await UploadAttachment(attachmentId, content);
 
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
-        payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
+        payload.ExistingAttachments = new List<Guid> { Guid.Parse(attachmentId) };
         payload.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
-        payload.Correspondence.Sender = _userId; // Change sender to match HttpContext.User
+        payload.Recipients = [_userId]; // Change recipient to match HttpContext.User
+        payload.Correspondence.VisibleFrom = DateTimeOffset.UtcNow.AddDays(1); // Set visibleFrom in the future so that it is not published
 
         // Act
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
@@ -670,10 +671,10 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var downloadResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/{response?.CorrespondenceIds.FirstOrDefault()}/attachment/{attachmentId}/download");
 
         // Assert
-        Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode); 
     }
     [Fact]
-    public async Task DownloadAttachment_AsRecipient_WhenCorrespondenceHasNoAttachment_Fails()
+    public async Task DownloadAttachment_WhenCorrespondenceHasNoAttachment_Fails()
     {
         // Arrange
         var attachment = InitializeAttachmentFactory.BasicAttachment();
@@ -683,7 +684,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         await UploadAttachment(attachmentId);
 
         var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments();
-        payload.Correspondence.Sender = _userId; // Change sender to match HttpContext.User
+        payload.Recipients = [_userId]; // Change recipient to match HttpContext.User
 
         // Act
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
