@@ -42,13 +42,14 @@ public class DownloadAttachmentHandler : IHandler<DownloadAttachmentRequest, Str
         {
             return Errors.NoAccessToResource;
         }
-        var userId = _userClaimsHelper.GetUserID();
-        if (userId != correspondence.Recipient && userId != correspondence.Sender)
+        bool isRecipient = _userClaimsHelper.GetUserID() == correspondence.Recipient;
+        bool isSender = _userClaimsHelper.GetUserID() == correspondence.Sender;
+        if (!isRecipient && !isSender)
         {
             return Errors.CorrespondenceNotFound;
         }
         var latestStatus = await _correspondenceStatusRepository.GetLatestStatusByCorrespondenceId(request.CorrespondenceId, cancellationToken);
-        if (!latestStatus.Status.IsAvailableForRecipient())
+        if (isRecipient && !latestStatus.Status.IsAvailableForRecipient())
         {
             return Errors.CorrespondenceNotFound;
         }
