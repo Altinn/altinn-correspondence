@@ -1,3 +1,4 @@
+using Altinn.Correspondece.Application.Helpers;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -33,10 +34,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
         {
             return Errors.NoAccessToResource;
         }
-        var latestStatus = correspondence.Statuses?
-            .OrderByDescending(s => s.StatusChanged)
-            .SkipWhile(s => s.Status == CorrespondenceStatus.Fetched)
-            .FirstOrDefault();
+        var latestStatus = correspondence.GetLatestStatus();
         if (latestStatus == null)
         {
             return Errors.CorrespondenceNotFound;

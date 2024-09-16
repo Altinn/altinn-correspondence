@@ -1,3 +1,4 @@
+using Altinn.Correspondece.Application.Helpers;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -41,7 +42,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
             return Errors.NoAccessToResource;
         }
 
-        if (correspondence.Statuses.Any(status => status.Status == CorrespondenceStatus.PurgedByRecipient || status.Status == CorrespondenceStatus.PurgedByAltinn))
+        if (correspondence.Statuses.Any(status => status.Status.IsPurged()))
         {
             return Errors.CorrespondenceAlreadyPurged;
         }
@@ -52,7 +53,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
             return Errors.CouldNotFindOrgNo;
         }
 
-        var latestStatus = correspondence.Statuses?.OrderByDescending(s => s.StatusChanged).FirstOrDefault();
+        var latestStatus = correspondence.GetLatestStatus();
         if (latestStatus == null)
         {
             return Errors.CorrespondenceNotFound;
