@@ -3,13 +3,13 @@ using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
 using OneOf;
 using System.Text.RegularExpressions;
-using Altinn.Correspondence.Core.Models.Notifications;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
@@ -157,7 +157,6 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                     };
                     await _correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
                 }
-
             }
         }
         return new InitializeCorrespondencesResponse()
@@ -200,7 +199,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             {
                 Subject = notification.EmailSubject,
                 Body = notification.EmailBody,
-                FromAddress = "noreply@altinn.no" //
+                FromAddress = "test@altinn.no" // todo: fix correct sender
             },
             SmsTemplate = new SmsTemplate
             {
