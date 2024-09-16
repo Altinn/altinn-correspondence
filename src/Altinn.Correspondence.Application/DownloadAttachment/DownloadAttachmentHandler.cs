@@ -1,5 +1,4 @@
 ﻿using System.Runtime.CompilerServices;
-using Altinn.Correspondece.Application.Helpers;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;

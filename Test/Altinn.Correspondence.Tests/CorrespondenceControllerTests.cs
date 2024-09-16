@@ -1,4 +1,4 @@
-using Altinn.Correspondece.Tests.Factories;
+using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondences;

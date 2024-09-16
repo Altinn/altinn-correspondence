@@ -1,5 +1,5 @@
 using Altinn.Correspondence.Core.Models;
-namespace Altinn.Correspondece.Application.Helpers;
+namespace Altinn.Correspondence.Application.Helpers;
 public static class AttachmentStatusExtensions
 {
     public static AttachmentStatusEntity? GetLatestStatus(this AttachmentEntity attachment)
