@@ -51,8 +51,6 @@ public class AltinnNotificationService : IAltinnNotificationService
         Console.WriteLine(responseContent.OrderId);
         Console.WriteLine(responseContent.OrderId);
         return responseContent.OrderId;
-
-
     }
 
     public async Task<bool> CancelNotification(string orderId, CancellationToken cancellationToken = default)

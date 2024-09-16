@@ -33,8 +33,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 table: "CorrespondenceNotifications",
                 newName: "NotificationAddress");
 
-
-
             migrationBuilder.AddColumn<int>(
                 name: "NotificationChannel",
                 schema: "correspondence",

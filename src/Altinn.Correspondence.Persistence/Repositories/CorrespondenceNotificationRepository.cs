@@ -14,6 +14,5 @@ namespace Altinn.Correspondence.Persistence.Repositories
             await _context.SaveChangesAsync();
             return noticiation.Id;
         }
-
     }
 }

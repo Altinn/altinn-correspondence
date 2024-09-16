@@ -1,4 +1,3 @@
-
 using Altinn.Correspondence.Core.Models.Entities;
 using Microsoft.AspNetCore.Http;
 

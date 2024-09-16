@@ -32,8 +32,6 @@ public class AltinnDevNotificationService : IAltinnNotificationService
     public async Task<Guid?> CreateNotification(CorrespondenceEntity correspondence, NotificationOrderRequest notification, CancellationToken cancellationToken = default)
     {
         return Guid.NewGuid();
-
-
     }
 
     public async Task<bool> CancelNotification(string orderId, CancellationToken cancellationToken = default)

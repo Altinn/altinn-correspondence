@@ -144,7 +144,6 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 Console.WriteLine("Notifications: " + notifications.Count());
                 foreach (var notification in notifications)
                 {
-
                     var orderId = await _altinnNotificationService.CreateNotification(correspondence, notification, cancellationToken);
                     var entity = new CorrespondenceNotificationEntity()
                     {
