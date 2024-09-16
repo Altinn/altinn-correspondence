@@ -28,7 +28,7 @@ public class DownloadAttachmentHandler : IHandler<DownloadAttachmentRequest, Str
 
     public async Task<OneOf<Stream, Error>> Process(DownloadAttachmentRequest request, CancellationToken cancellationToken)
     {
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, false, false, cancellationToken);
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, cancellationToken);
         if (correspondence is null)
         {
             return Errors.CorrespondenceNotFound;
