@@ -30,6 +30,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             DateTimeOffset? from,
             DateTimeOffset? to,
             CorrespondenceStatus? status,
+            string orgNo,
             CancellationToken cancellationToken)
         {
             var correspondences = _context.Correspondences
@@ -37,7 +38,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => from == null || c.VisibleFrom > from)   // From date filter
                 .Where(c => to == null || c.VisibleFrom < to)       // To date filter
                 .OrderByDescending(c => c.VisibleFrom)              // Sort by visibleFrom
-                .WithValidStatuses(status)                          // Filter by status
+                .WithValidStatuses(status, orgNo)                   // Filter by status
                 .Select(c => c.Id);
 
             var totalItems = await correspondences.CountAsync(cancellationToken);

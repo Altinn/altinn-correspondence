@@ -24,7 +24,7 @@ public class InitializeAttachmentHandler : IHandler<InitializeAttachmentRequest,
 
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, CancellationToken cancellationToken)
     {
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.Attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Open }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.Attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Send }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;

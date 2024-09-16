@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
+﻿using Altinn.Correspondece.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -35,9 +36,15 @@ public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizat
         }
 
         var correspondences = await _correspondenceRepository.GetCorrespondencesByAttachmentId(attachmentId, true, cancellationToken);
+        bool isCorrespondencePurged = correspondences
+            .All(correspondence =>
+            {
+                var latestStatus = correspondence.GetLatestStatus();
+                if (latestStatus is null) return false;
+                return latestStatus.Status.IsPurged();
+            });
+        if (correspondences.Count == 0 || isCorrespondencePurged)
 
-        if (correspondences.Count == 0 ||
-            correspondences.All(correspondence => correspondence.Statuses.OrderByDescending(status => status.StatusChanged).First().Status == CorrespondenceStatus.PurgedByRecipient || correspondence.Statuses.OrderByDescending(status => status.StatusChanged).First().Status == CorrespondenceStatus.PurgedByAltinn))
         {
             await _storageRepository.PurgeAttachment(attachmentId, cancellationToken);
         }

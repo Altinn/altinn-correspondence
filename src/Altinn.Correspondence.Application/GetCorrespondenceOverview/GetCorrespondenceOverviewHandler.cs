@@ -1,3 +1,4 @@
+using Altinn.Correspondece.Application.Helpers;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -33,7 +34,7 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
         {
             return Errors.NoAccessToResource;
         }
-        var latestStatus = correspondence.Statuses?.OrderByDescending(s => s.StatusChanged).FirstOrDefault();
+        var latestStatus = correspondence.GetLatestStatus();
         if (latestStatus == null)
         {
             return Errors.CorrespondenceNotFound;
@@ -44,20 +45,12 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
 
         if (isRecipient && latestStatus.Status == CorrespondenceStatus.Published)
         {
-            latestStatus = new CorrespondenceStatusEntity
             {
                 CorrespondenceId = correspondence.Id,
                 Status = CorrespondenceStatus.Fetched,
                 StatusText = CorrespondenceStatus.Fetched.ToString(),
                 StatusChanged = DateTime.Now
-            };
 
-            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
-            {
-                CorrespondenceId = correspondence.Id,
-                Status = latestStatus.Status,
-                StatusText = latestStatus.StatusText,
-                StatusChanged = latestStatus.StatusChanged
             }, cancellationToken);
         }
         var response = new GetCorrespondenceOverviewResponse
@@ -70,6 +63,7 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
             ResourceId = correspondence.ResourceId,
             Sender = correspondence.Sender,
             SendersReference = correspondence.SendersReference,
+            MessageSender = correspondence.MessageSender ?? string.Empty,
             Created = correspondence.Created,
             Recipient = correspondence.Recipient,
             ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
@@ -77,7 +71,8 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
             ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
             VisibleFrom = correspondence.VisibleFrom,
             IsReservable = correspondence.IsReservable == null || correspondence.IsReservable.Value,
-            MarkedUnread = correspondence.MarkedUnread
+            MarkedUnread = correspondence.MarkedUnread,
+            AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
         };
         return response;
     }

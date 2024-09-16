@@ -13,8 +13,6 @@ public class GetCorrespondenceDetailsResponse
 
     public DateTimeOffset StatusChanged { get; set; }
 
-    public string? Name { get; set; } = string.Empty;
-
     public string SendersReference { get; set; } = string.Empty;
 
     public string Sender { get; set; } = string.Empty;
@@ -35,7 +33,7 @@ public class GetCorrespondenceDetailsResponse
 
     public List<ExternalReferenceEntity> ExternalReferences { get; set; } = new List<ExternalReferenceEntity>();
 
-    public string ResourceId { get; set; }
+    public string ResourceId { get; set; } = string.Empty;
 
     public DateTimeOffset VisibleFrom { get; set; }
 

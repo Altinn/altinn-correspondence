@@ -1,3 +1,4 @@
+using Altinn.Correspondece.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
@@ -30,7 +31,7 @@ public class GetAttachmentDetailsHandler : IHandler<Guid, GetAttachmentDetailsRe
             return Errors.NoAccessToResource;
         }
         var correspondenceIds = await _correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);
-        var attachmentStatus = attachment.Statuses.OrderByDescending(s => s.StatusChanged).First();
+        var attachmentStatus = attachment.GetLatestStatus();
 
         var response = new GetAttachmentDetailsResponse
         {
@@ -49,6 +50,7 @@ public class GetAttachmentDetailsHandler : IHandler<Guid, GetAttachmentDetailsRe
             Sender = attachment.Sender,
             RestrictionName = attachment.RestrictionName,
             IsEncrypted = attachment.IsEncrypted,
+            Checksum = attachment.Checksum,
         };
         return response;
     }

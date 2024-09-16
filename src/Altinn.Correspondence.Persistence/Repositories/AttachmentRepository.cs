@@ -49,7 +49,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<bool> SetChecksum(AttachmentEntity attachmentEntity, string? checkSum, CancellationToken cancellationToken)
         {
-            Console.WriteLine("Setting checksum: " + checkSum);
             attachmentEntity.Checksum = checkSum;
             var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
             return rowsUpdated == 1;
