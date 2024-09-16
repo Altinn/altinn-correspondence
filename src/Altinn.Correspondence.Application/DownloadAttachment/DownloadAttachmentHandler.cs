@@ -42,8 +42,8 @@ public class DownloadAttachmentHandler : IHandler<DownloadAttachmentRequest, Str
         {
             return Errors.NoAccessToResource;
         }
-        bool isRecipient = _userClaimsHelper.GetUserID() == correspondence.Recipient;
-        if (!isRecipient)
+        var userId = _userClaimsHelper.GetUserID();
+        if (userId != correspondence.Recipient && userId != correspondence.Sender)
         {
             return Errors.CorrespondenceNotFound;
         }
