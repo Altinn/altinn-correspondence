@@ -42,4 +42,5 @@ public static class Errors
     public static Error CantPurgeCorrespondence = new Error(34, "You must be a sender or recipient in order to purge correspondence", HttpStatusCode.BadRequest);
     public static Error CantUploadToNonInitializedCorrespondence = new Error(35, "Cannot upload attachment to a correspondence that is not initialized", HttpStatusCode.BadRequest);
     public static Error CorrespondenceFailedDuringUpload = new Error(36, "Correspondence status failed during uploading of attachment", HttpStatusCode.BadRequest);
+    public static Error LatestStatusIsNull = new Error(37, "Could not retrieve latest status for correspondence", HttpStatusCode.BadRequest);
 }

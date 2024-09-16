@@ -1,3 +1,4 @@
+using Altinn.Correspondece.Application.Helpers;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -26,12 +27,16 @@ public class UpdateMarkAsUnreadHandler : IHandler<Guid, Guid>
             return Errors.CorrespondenceNotFound;
         }
 
-        var currentStatus = correspondence.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault();
+        var currentStatus = correspondence.GetLatestStatus();
         if (!correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Read))
         {
             return Errors.CorrespondenceHasNotBeenRead;
         }
-        if (currentStatus?.Status == CorrespondenceStatus.PurgedByRecipient || currentStatus?.Status == CorrespondenceStatus.PurgedByAltinn)
+        if (currentStatus is null)
+        {
+            return Errors.LatestStatusIsNull;
+        }
+        if (currentStatus!.Status.IsPurged())
         {
             return Errors.CorrespondencePurged;
         }

@@ -14,15 +14,5 @@ namespace Altinn.Correspondence.Persistence.Repositories
             await _context.SaveChangesAsync();
             return status.Id;
         }
-
-        public async Task<AttachmentStatusEntity> GetLatestStatusByAttachmentId(Guid attachmentId, CancellationToken cancellationToken)
-        {
-            var status = await _context.AttachmentStatuses
-                .Where(s => s.AttachmentId == attachmentId)
-                .OrderByDescending(s => s.StatusChanged)
-                .FirstAsync(cancellationToken);
-
-            return status;
-        }
     }
 }

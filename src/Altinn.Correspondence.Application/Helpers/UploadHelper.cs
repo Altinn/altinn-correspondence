@@ -1,3 +1,4 @@
+using Altinn.Correspondece.Application.Helpers;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Models;
@@ -146,7 +147,7 @@ namespace Altinn.Correspondence.Application.Helpers
             var correspondences = await _correspondenceRepository.GetCorrespondencesByAttachmentId(attachmentId, true);
             foreach (var correspondence in correspondences ?? [])
             {
-                var latestStatus = correspondence.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault();
+                var latestStatus = correspondence.GetLatestStatus();
                 if (latestStatus?.Status == CorrespondenceStatus.Initialized) continue;
                 return Errors.CantUploadToNonInitializedCorrespondence;
             }
