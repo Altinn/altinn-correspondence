@@ -18,14 +18,60 @@ namespace Altinn.Correspondence.API.Models
         /// Reminders sent after 14 days if Correspondence not confirmed
         /// </remarks>
         [JsonPropertyName("notificationTemplate")]
-        public required string NotificationTemplate { get; set; }
+        public required NotificationTemplateExt NotificationTemplate { get; set; }
 
         /// <summary>
-        /// Single custom text token that can be inserted into the notification template
+        /// The email template to use for this notification
         /// </summary>
-        [JsonPropertyName("customTextToken")]
+        [JsonPropertyName("emailSubject")]
         [StringLength(128, MinimumLength = 0)]
-        public string? CustomTextToken { get; set; }
+        public string? EmailSubject { get; set; }
+
+        /// <summary>
+        /// The email template to use for this notification
+        /// </summary>
+        [JsonPropertyName("emailBody")]
+        [StringLength(1024, MinimumLength = 0)]
+        public string? EmailBody { get; set; }
+
+        /// <summary>
+        /// The sms template to use for this notification
+        /// </summary>
+        [JsonPropertyName("smsBody")]
+        [StringLength(160, MinimumLength = 0)]
+        public string? SmsBody { get; set; }
+
+        /// <summary>
+        /// Should a reminder be sent if the notification is not confirmed
+        /// </summary>
+        [JsonPropertyName("sendReminder")]
+        public bool SendReminder { get; set; }
+
+        /// <summary>
+        /// The email template to use for this notification
+        /// </summary>
+        [JsonPropertyName("reminderEmailSubject")]
+        [StringLength(128, MinimumLength = 0)]
+        public string? ReminderEmailSubject { get; set; }
+
+        /// <summary>
+        /// The email template to use for this notification
+        /// </summary>
+        [JsonPropertyName("reminderEmailBody")]
+        [StringLength(1024, MinimumLength = 0)]
+        public string? ReminderEmailBody { get; set; }
+
+        /// <summary>
+        /// The sms template to use for this notification
+        /// </summary>
+        [JsonPropertyName("reminderSmsBody")]
+        [StringLength(160, MinimumLength = 0)]
+        public string? ReminderSmsBody { get; set; }
+
+        /// <summary>
+        /// Where to send the notification
+        /// </summary>
+        public NotificationChannelExt NotificationChannel { get; set; }
 
         /// <summary>
         /// Senders Reference for this notification

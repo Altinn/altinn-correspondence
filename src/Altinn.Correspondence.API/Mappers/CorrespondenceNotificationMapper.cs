@@ -1,33 +1,29 @@
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Core.Models.Entities;
 
 namespace Altinn.Correspondence.Mappers;
 
 internal static class CorrespondenceNotificationMapper
 {
 
-    internal static CorrespondenceNotificationDetailsExt MapToExternal(CorrespondenceNotificationEntity correspondenceNotification)
+    internal static CorrespondenceNotificationExt MapToExternal(CorrespondenceNotificationEntity correspondenceNotification)
     {
-        var latestStatus = correspondenceNotification.Statuses.OrderByDescending(s => s.StatusChanged).First();
-        var notification = new CorrespondenceNotificationDetailsExt
+        var notification = new CorrespondenceNotificationExt
         {
-            NotificationTemplate = correspondenceNotification.NotificationTemplate,
+            NotificationTemplate = (NotificationTemplateExt)correspondenceNotification.NotificationTemplate,
+            NotificationChannel = (NotificationChannelExt)correspondenceNotification.NotificationChannel,
             RequestedSendTime = correspondenceNotification.RequestedSendTime,
-            SendersReference = correspondenceNotification.SendersReference,
-            CustomTextToken = correspondenceNotification.CustomTextToken,
             Created = correspondenceNotification.Created,
             NotificationId = correspondenceNotification.Id,
-            StatusHistory = correspondenceNotification.Statuses != null ? CorrespondenceNotificationStatusMapper.MapListToExternal(correspondenceNotification.Statuses) : new List<NotificationStatusEventExt>(),
-            Status = latestStatus.Status,
-            StatusText = latestStatus.StatusText ?? string.Empty,
-            StatusChanged = latestStatus.StatusChanged
+            NotificationOrderId = correspondenceNotification.NotificationOrderId,
         };
         return notification;
     }
 
-    internal static List<CorrespondenceNotificationDetailsExt> MapListToExternal(List<CorrespondenceNotificationEntity> notifications)
+    internal static List<CorrespondenceNotificationExt> MapListToExternal(List<CorrespondenceNotificationEntity> notifications)
     {
-        var notificationsExt = new List<CorrespondenceNotificationDetailsExt>();
+        var notificationsExt = new List<CorrespondenceNotificationExt>();
         foreach (var not in notifications)
         {
             notificationsExt.Add(MapToExternal(not));

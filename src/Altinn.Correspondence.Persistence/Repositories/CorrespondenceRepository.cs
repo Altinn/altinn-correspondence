@@ -1,4 +1,4 @@
-using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Helpers;
@@ -51,7 +51,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool includeContent,
             CancellationToken cancellationToken)
         {
-            var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).ThenInclude(n => n.Statuses).AsQueryable();
+            var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
             if (includeStatus)
             {
                 correspondences = correspondences.Include(c => c.Statuses);

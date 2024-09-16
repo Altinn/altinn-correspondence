@@ -1,7 +1,7 @@
 using System;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Correspondence.Core.Exceptions;
-using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Azure;
@@ -114,8 +114,8 @@ namespace Altinn.Correspondence.Application.Helpers
             var list = new List<CorrespondenceStatusEntity>();
             foreach (var correspondenceId in correspondences)
             {
-                if (uploadSuccessful) 
-                { 
+                if (uploadSuccessful)
+                {
                     list.Add(
                         new CorrespondenceStatusEntity
                         {
@@ -125,7 +125,8 @@ namespace Altinn.Correspondence.Application.Helpers
                             StatusText = CorrespondenceStatus.ReadyForPublish.ToString()
                         }
                     );
-                } else
+                }
+                else
                 {
                     list.Add(
                         new CorrespondenceStatusEntity

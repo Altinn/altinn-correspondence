@@ -1,17 +1,16 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Altinn.Correspondence.Core.Models.Enums;
 
-namespace Altinn.Correspondence.Core.Models
+namespace Altinn.Correspondence.Core.Models.Entities
 {
-    public class ExternalReferenceEntity
+    public class CorrespondenceReplyOptionEntity
     {
         [Key]
         public Guid Id { get; set; }
 
-        public required string ReferenceValue { get; set; }
+        public required string LinkURL { get; set; }
 
-        public required ReferenceType ReferenceType { get; set; }
+        public string? LinkText { get; set; }
 
         public Guid CorrespondenceId { get; set; }
         [ForeignKey("CorrespondenceId")]

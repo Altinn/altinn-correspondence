@@ -1,5 +1,8 @@
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Application.InitializeCorrespondences;
+using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Mappers;
 
@@ -9,40 +12,48 @@ internal static class InitializeCorrespondenceNotificationMapper
     {
         var notification = new CorrespondenceNotificationEntity
         {
-            NotificationTemplate = correspondenceNotificationExt.NotificationTemplate,
+            NotificationTemplate = (NotificationTemplate)correspondenceNotificationExt.NotificationTemplate,
+            NotificationChannel = (NotificationChannel)correspondenceNotificationExt.NotificationChannel,
             RequestedSendTime = correspondenceNotificationExt.RequestedSendTime,
-            SendersReference = correspondenceNotificationExt.SendersReference,
-            CustomTextToken = correspondenceNotificationExt.CustomTextToken,
             Created = DateTimeOffset.UtcNow
         };
         return notification;
     }
 
-    internal static InitializeCorrespondenceNotificationExt MapToExternal(CorrespondenceNotificationEntity correspondenceNotification)
+    internal static CorrespondenceNotificationExt MapToExternal(CorrespondenceNotificationEntity correspondenceNotification)
     {
-        var notification = new InitializeCorrespondenceNotificationExt
+        var notification = new CorrespondenceNotificationExt
         {
-            NotificationTemplate = correspondenceNotification.NotificationTemplate,
+            NotificationTemplate = (NotificationTemplateExt)correspondenceNotification.NotificationTemplate,
+            NotificationChannel = (NotificationChannelExt)correspondenceNotification.NotificationChannel,
             RequestedSendTime = correspondenceNotification.RequestedSendTime,
-            SendersReference = correspondenceNotification.SendersReference,
-            CustomTextToken = correspondenceNotification.CustomTextToken
+            Created = correspondenceNotification.Created,
+            NotificationId = correspondenceNotification.Id,
+            NotificationOrderId = correspondenceNotification.NotificationOrderId,
+        };
+        return notification;
+    }
+    internal static NotificationRequest MapToRequest(InitializeCorrespondenceNotificationExt correspondenceNotificationExt)
+    {
+        var notification = new NotificationRequest
+        {
+            NotificationTemplate = (NotificationTemplate)correspondenceNotificationExt.NotificationTemplate,
+            NotificationChannel = (NotificationChannel)correspondenceNotificationExt.NotificationChannel,
+            RequestedSendTime = correspondenceNotificationExt.RequestedSendTime,
+            EmailBody = correspondenceNotificationExt.EmailBody,
+            EmailSubject = correspondenceNotificationExt.EmailSubject,
+            ReminderEmailBody = correspondenceNotificationExt.ReminderEmailBody,
+            ReminderEmailSubject = correspondenceNotificationExt.ReminderEmailSubject,
+            ReminderSmsBody = correspondenceNotificationExt.ReminderSmsBody,
+            SmsBody = correspondenceNotificationExt.SmsBody,
+            SendReminder = correspondenceNotificationExt.SendReminder
         };
         return notification;
     }
 
-    internal static List<CorrespondenceNotificationEntity> MapListToEntities(List<InitializeCorrespondenceNotificationExt> notificationsExt)
+    internal static List<CorrespondenceNotificationExt> MapListToExternal(List<CorrespondenceNotificationEntity> notifications)
     {
-        var notifications = new List<CorrespondenceNotificationEntity>();
-        foreach (var not in notificationsExt)
-        {
-            notifications.Add(MapToEntity(not));
-        }
-        return notifications;
-    }
-
-    internal static List<InitializeCorrespondenceNotificationExt> MapListToExternal(List<CorrespondenceNotificationEntity> notifications)
-    {
-        var notificationsExt = new List<InitializeCorrespondenceNotificationExt>();
+        var notificationsExt = new List<CorrespondenceNotificationExt>();
         foreach (var not in notifications)
         {
             notificationsExt.Add(MapToExternal(not));

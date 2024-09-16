@@ -1,5 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
@@ -44,13 +44,14 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
 
         if (isRecipient && latestStatus.Status == CorrespondenceStatus.Published)
         {
-            latestStatus = new CorrespondenceStatusEntity{
+            latestStatus = new CorrespondenceStatusEntity
+            {
                 CorrespondenceId = correspondence.Id,
                 Status = CorrespondenceStatus.Fetched,
                 StatusText = CorrespondenceStatus.Fetched.ToString(),
                 StatusChanged = DateTime.Now
             };
-        
+
             await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
             {
                 CorrespondenceId = correspondence.Id,
