@@ -291,7 +291,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
         payload.Recipients = [payload.Recipients[0]];
         payload.Correspondence.Sender = _userId;
-        payload.Correspondence.VisibleFrom = DateTimeOffset.UtcNow.AddSeconds(10);
+        payload.Correspondence.VisibleFrom = DateTimeOffset.UtcNow.AddSeconds(2);
         var initializeCorrespondenceResponse = await (await uploadFailsClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions)).Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
         var correspondenceId = initializeCorrespondenceResponse.CorrespondenceIds.FirstOrDefault();
         var attachmentId = initializeCorrespondenceResponse.AttachmentIds.FirstOrDefault();
