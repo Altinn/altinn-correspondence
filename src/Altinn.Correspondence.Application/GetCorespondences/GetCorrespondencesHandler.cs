@@ -9,13 +9,13 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly GetCorrespondenceHelper _getCorrespondenceHelper;
+    private readonly UserClaimsHelper _userClaimsHelper;
 
-    public GetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, GetCorrespondenceHelper getCorrespondenceHelper)
+    public GetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
-        _getCorrespondenceHelper = getCorrespondenceHelper;
+        _userClaimsHelper = userClaimsHelper;
     }
 
     public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, CancellationToken cancellationToken)
@@ -34,7 +34,7 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
         var limit = request.Limit == 0 ? 50 : request.Limit;
         DateTimeOffset? to = request.To != null ? ((DateTimeOffset)request.To).ToUniversalTime() : null;
         DateTimeOffset? from = request.From != null ? ((DateTimeOffset)request.From).ToUniversalTime() : null;
-        string? orgNo = _getCorrespondenceHelper.GetUserID();
+        string? orgNo = _userClaimsHelper.GetUserID();
         if (orgNo is null)
         {
             return Errors.CouldNotFindOrgNo;

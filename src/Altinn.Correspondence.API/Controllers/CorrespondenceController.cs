@@ -325,7 +325,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{correspondenceId}/attachment/{attachmentId}/download")]
-        [Authorize(Policy = AuthorizationConstants.Recipient)]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         public async Task<ActionResult> DownloadAttachmentData(
             Guid correspondenceId,
             Guid attachmentId,

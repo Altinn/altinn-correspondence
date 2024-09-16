@@ -2,7 +2,7 @@ using System.Text;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Tests.Helpers;
 
-namespace Altinn.Correspondece.Tests.Factories;
+namespace Altinn.Correspondence.Tests.Factories;
 internal static class InitializeAttachmentFactory
 {
     internal static InitializeAttachmentExt BasicAttachment() => new InitializeAttachmentExt()

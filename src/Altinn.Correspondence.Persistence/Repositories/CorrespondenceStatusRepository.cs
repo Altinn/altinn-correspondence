@@ -1,6 +1,5 @@
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
@@ -21,6 +20,5 @@ namespace Altinn.Correspondence.Persistence.Repositories
             await _context.SaveChangesAsync();
             return statuses.Select(s => s.Id).ToList();
         }
-
     }
 }
