@@ -14,18 +14,12 @@ namespace Altinn.Correspondence.Integrations.Altinn.Notifications;
 public class AltinnNotificationService : IAltinnNotificationService
 {
     private readonly HttpClient _httpClient;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly IResourceRightsService _resourceRepository;
-    private readonly IHostEnvironment _hostEnvironment;
     private readonly ILogger<AltinnNotificationService> _logger;
 
-    public AltinnNotificationService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, IHttpContextAccessor httpContextAccessor, IResourceRightsService resourceRepository, IHostEnvironment hostEnvironment, ILogger<AltinnNotificationService> logger)
+    public AltinnNotificationService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnNotificationService> logger)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.PlatformSubscriptionKey);
         _httpClient = httpClient;
-        _httpContextAccessor = httpContextAccessor;
-        _resourceRepository = resourceRepository;
-        _hostEnvironment = hostEnvironment;
         _logger = logger;
     }
 
@@ -35,7 +29,11 @@ public class AltinnNotificationService : IAltinnNotificationService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError(response.StatusCode.ToString());
-            _logger.LogError(response.Content.ToString());
+            foreach (var x in response.Content.Headers)
+            {
+                _logger.LogError(x.Key + " : " + x.Value);
+            }
+            _logger.LogError(response.Content.Headers.ToString());
             return null;
         }
         var responseContent = await response.Content.ReadFromJsonAsync<NotificationOrderRequestResponse>(cancellationToken: cancellationToken);
