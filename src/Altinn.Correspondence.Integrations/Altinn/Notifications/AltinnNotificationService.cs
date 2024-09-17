@@ -9,6 +9,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Models.Entities;
 using Microsoft.AspNetCore.Authentication;
+using System.Net.Http.Headers;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Notifications;
 
@@ -29,8 +30,7 @@ public class AltinnNotificationService : IAltinnNotificationService
     public async Task<Guid?> CreateNotification(CorrespondenceEntity correspondence, NotificationOrderRequest notification, CancellationToken cancellationToken = default)
     {
         var token = await _httpContextAccessor.HttpContext.GetTokenAsync("access_token");
-
-        _httpClient.DefaultRequestHeaders.Add("Authorization", token);
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await _httpClient.PostAsJsonAsync("notifications/api/v1/orders", notification, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {

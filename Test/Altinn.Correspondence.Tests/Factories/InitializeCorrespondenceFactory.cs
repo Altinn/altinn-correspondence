@@ -64,6 +64,8 @@ internal static class InitializeCorrespondenceFactory
             Notification = new InitializeCorrespondenceNotificationExt()
             {
                 NotificationTemplate = 0,
+                NotificationChannel = 0,
+                EmailBody = "test notification",
                 SendersReference = "0192:986252932",
                 RequestedSendTime = DateTime.UtcNow.AddDays(1),
                 SendReminder = true,
