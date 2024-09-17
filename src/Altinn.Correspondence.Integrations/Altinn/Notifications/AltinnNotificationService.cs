@@ -34,6 +34,8 @@ public class AltinnNotificationService : IAltinnNotificationService
         var response = await _httpClient.PostAsJsonAsync("notifications/api/v1/orders", notification, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
+            _logger.LogError(response.StatusCode.ToString());
+            _logger.LogError(response.Content.ToString());
             return null;
         }
         var responseContent = await response.Content.ReadFromJsonAsync<NotificationOrderRequestResponse>(cancellationToken: cancellationToken);

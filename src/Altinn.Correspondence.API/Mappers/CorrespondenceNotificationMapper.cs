@@ -6,7 +6,6 @@ namespace Altinn.Correspondence.Mappers;
 
 internal static class CorrespondenceNotificationMapper
 {
-
     internal static CorrespondenceNotificationExt MapToExternal(CorrespondenceNotificationEntity correspondenceNotification)
     {
         var notification = new CorrespondenceNotificationExt
