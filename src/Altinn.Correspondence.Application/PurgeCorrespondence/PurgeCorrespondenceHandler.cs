@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -16,8 +17,9 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IStorageRepository _storageRepository;
     private readonly IEventBus _eventBus;
+    private readonly UserClaimsHelper _userClaimsHelper;
 
-    public PurgeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus)
+    public PurgeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus, UserClaimsHelper userClaimsHelper)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _attachmentRepository = attachmentRepository;
@@ -26,6 +28,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
         _storageRepository = storageRepository;
         _attachmentStatusRepository = attachmentStatusRepository;
         _eventBus = eventBus;
+        _userClaimsHelper = userClaimsHelper;
     }
 
     public async Task<OneOf<Guid, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
@@ -38,21 +41,59 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
             return Errors.NoAccessToResource;
         }
 
-        if (correspondence.Statuses.Any(status => status.Status == CorrespondenceStatus.PurgedByRecipient || status.Status == CorrespondenceStatus.PurgedByAltinn))
+        if (correspondence.Statuses.Any(status => status.Status.IsPurged()))
         {
             return Errors.CorrespondenceAlreadyPurged;
         }
-
-        // TODO: sender should only be able to delete correspondence if it is not published
-        // Receiver should be able to delete correspondence if it is published
-
-        var newStatus = new CorrespondenceStatusEntity()
+        
+        string orgNo = _userClaimsHelper.GetUserID();
+        if (orgNo is null)
         {
-            CorrespondenceId = correspondenceId,
-            Status = CorrespondenceStatus.PurgedByRecipient, // Todo: select status based on user role
-            StatusChanged = DateTimeOffset.UtcNow,
-            StatusText = CorrespondenceStatus.PurgedByRecipient.ToString()
-        };
+            return Errors.CouldNotFindOrgNo;
+        }
+
+        var latestStatus = correspondence.GetLatestStatus();
+        if (latestStatus == null)
+        {
+            return Errors.CorrespondenceNotFound;
+        }
+
+        var newStatus = new CorrespondenceStatusEntity();
+
+        if (correspondence.Sender == orgNo)
+        {
+            if (latestStatus.Status >= CorrespondenceStatus.Published && latestStatus.Status != CorrespondenceStatus.Failed)
+            {
+                return Errors.CantPurgeCorrespondenceSender;
+            }
+
+            newStatus = new CorrespondenceStatusEntity()
+            {
+                CorrespondenceId = correspondenceId,
+                Status = CorrespondenceStatus.PurgedByAltinn,
+                StatusChanged = DateTimeOffset.UtcNow,
+                StatusText = CorrespondenceStatus.PurgedByAltinn.ToString()
+            };
+        }
+        else if (correspondence.Recipient == orgNo)
+        {
+            if (latestStatus.Status < CorrespondenceStatus.Published)
+            {
+                return Errors.CantPurgeCorrespondenceRecipient;
+            }
+            newStatus = new CorrespondenceStatusEntity()
+            {
+                CorrespondenceId = correspondenceId,
+                Status = CorrespondenceStatus.PurgedByRecipient,
+                StatusChanged = DateTimeOffset.UtcNow,
+                StatusText = CorrespondenceStatus.PurgedByRecipient.ToString()
+            };
+        }
+        else
+        {
+            return Errors.CantPurgeCorrespondence;
+        }
+
         await _eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         await _correspondenceStatusRepository.AddCorrespondenceStatus(newStatus, cancellationToken);
         await CheckAndPurgeAttachments(correspondenceId, cancellationToken);

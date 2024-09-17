@@ -1,8 +1,10 @@
-using Altinn.Correspondece.Tests.Factories;
+using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Helpers;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
@@ -15,6 +17,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _responseSerializerOptions;
+    private readonly string _userId = "0192:991825827";
 
     public AttachmentControllerTests(CustomWebApplicationFactory factory)
     {
@@ -140,6 +143,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
         payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
         payload.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
+        payload.Recipients = [_userId];
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
 
@@ -247,7 +251,66 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         Assert.NotEmpty(attachmentOverview.Checksum);
         Assert.Equal(prevOverview.Checksum, attachmentOverview.Checksum);
     }
+    [Fact]
+    public async Task UploadAttachment_WhenFailedCorrespondence_Fails()
+    {
+        // Arrange
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.Correspondence.Sender = _userId;
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        var correspondenceId = response.CorrespondenceIds.FirstOrDefault();
+        var attachmentId = response.AttachmentIds.FirstOrDefault();
 
+        // Act
+        using (var scope = _factory.Services.CreateScope()) // Add failed status to correspondence
+        {
+            var correspondenceStatusRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceStatusRepository>();
+            await correspondenceStatusRepository.AddCorrespondenceStatus(new Core.Models.CorrespondenceStatusEntity()
+            {
+                CorrespondenceId = correspondenceId,
+                Status = Core.Models.Enums.CorrespondenceStatus.Failed,
+                StatusChanged = DateTime.UtcNow
+            }, default);
+        }
+        var getCorrespondenceOverviewResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+        Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode, await getCorrespondenceOverviewResponse.Content.ReadAsStringAsync());
+        var overviewResponse = await getCorrespondenceOverviewResponse.Content.ReadFromJsonAsync<CorrespondenceOverviewExt>(_responseSerializerOptions);
+        Assert.Equal(overviewResponse.Status, CorrespondenceStatusExt.Failed);
+        var uploadResponse = await UploadAttachment(attachmentId.ToString()); // Attempt upload
+
+        // Assert
+        Assert.Equal(uploadResponse.StatusCode, HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task UploadAttachment_WhenCorresponodenceFailedDuringUpload_ReturnsErrorAndDisposesAttachment()
+    {
+        // Arrange
+        var uploadFailsClient = new UploadFailsWebApplicationFactory().CreateClientInternal(); // Setup client which contains time delay during upload and no mock for hangfire
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        payload.Recipients = [payload.Recipients[0]];
+        payload.Correspondence.Sender = _userId;
+        payload.Correspondence.VisibleFrom = DateTimeOffset.UtcNow.AddSeconds(2);
+        var initializeCorrespondenceResponse = await (await uploadFailsClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions)).Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        var correspondenceId = initializeCorrespondenceResponse.CorrespondenceIds.FirstOrDefault();
+        var attachmentId = initializeCorrespondenceResponse.AttachmentIds.FirstOrDefault();
+
+        // Act
+        var attachmentOverview = await (await _client.GetAsync($"correspondence/api/v1/attachment/{attachmentId}")).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
+        Assert.Equal(AttachmentStatusExt.Initialized, attachmentOverview.Status); // Verify attachment is ok
+        var overviewResponse = await (await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}")).Content.ReadFromJsonAsync<CorrespondenceOverviewExt>(_responseSerializerOptions);
+        Assert.Equal(CorrespondenceStatusExt.Initialized, overviewResponse.Status); // Verify correspondence is ok
+
+        var uploadResponse = await uploadFailsClient.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", new ByteArrayContent([1, 2, 3, 4]));// Attempt upload
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, uploadResponse.StatusCode);
+        overviewResponse = await (await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}")).Content.ReadFromJsonAsync<CorrespondenceOverviewExt>(_responseSerializerOptions);
+        Assert.Equal(CorrespondenceStatusExt.Failed, overviewResponse.Status);
+        attachmentOverview = await (await _client.GetAsync($"correspondence/api/v1/attachment/{attachmentId}")).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
+        Assert.Equal(AttachmentStatusExt.Purged, attachmentOverview.Status);
+    }
     [Fact]
     public async Task DeleteAttachment_WhenAttachmentDoesNotExist_ReturnsNotFound()
     {

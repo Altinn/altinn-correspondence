@@ -1,4 +1,4 @@
-using System;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Models;
@@ -114,8 +114,8 @@ namespace Altinn.Correspondence.Application.Helpers
             var list = new List<CorrespondenceStatusEntity>();
             foreach (var correspondenceId in correspondences)
             {
-                if (uploadSuccessful) 
-                { 
+                if (uploadSuccessful)
+                {
                     list.Add(
                         new CorrespondenceStatusEntity
                         {
@@ -125,7 +125,8 @@ namespace Altinn.Correspondence.Application.Helpers
                             StatusText = CorrespondenceStatus.ReadyForPublish.ToString()
                         }
                     );
-                } else
+                }
+                else
                 {
                     list.Add(
                         new CorrespondenceStatusEntity
@@ -140,6 +141,17 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             await _correspondenceStatusRepository.AddCorrespondenceStatuses(list, cancellationToken);
             return;
+        }
+        public async Task<Error?> IsCorrespondenceNotInitialized(Guid attachmentId)
+        {
+            var correspondences = await _correspondenceRepository.GetCorrespondencesByAttachmentId(attachmentId, true);
+            foreach (var correspondence in correspondences ?? [])
+            {
+                var latestStatus = correspondence.GetLatestStatus();
+                if (latestStatus?.Status == CorrespondenceStatus.Initialized) continue;
+                return Errors.CantUploadToNonInitializedCorrespondence;
+            }
+            return null;
         }
     }
 }

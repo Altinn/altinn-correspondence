@@ -14,6 +14,7 @@ internal static class InitializeCorrespondencesMapper
             Recipient = null,
             ResourceId = initializeCorrespondenceExt.ResourceId,
             Sender = initializeCorrespondenceExt.Sender,
+            MessageSender = initializeCorrespondenceExt.MessageSender,
             VisibleFrom = initializeCorrespondenceExt.VisibleFrom,
             AllowSystemDeleteAfter = initializeCorrespondenceExt.AllowSystemDeleteAfter,
             DueDateTime = initializeCorrespondenceExt.DueDateTime,

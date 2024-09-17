@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Models;
+﻿using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -38,11 +39,11 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
         {
             errorMessage = "Correspondence " + correspondenceId + " not found when publishing";
         }
-        else if (correspondence.Statuses.OrderByDescending(s => s.StatusChanged).First().Status != CorrespondenceStatus.ReadyForPublish)
+        else if (correspondence.GetLatestStatus()?.Status != CorrespondenceStatus.ReadyForPublish)
         {
             errorMessage = $"Correspondence {correspondenceId} not ready for publish";
         }
-        else if (correspondence.Content == null || correspondence.Content.Attachments.Any(a => a.Attachment?.Statuses.OrderByDescending(s => s.StatusChanged).First().Status != AttachmentStatus.Published))
+        else if (correspondence.Content == null || correspondence.Content.Attachments.Any(a => a.Attachment?.GetLatestStatus()?.Status != AttachmentStatus.Published))
         {
             errorMessage = $"Correspondence {correspondenceId} has attachments not published";
         }
@@ -77,7 +78,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
         }
         await _correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
         await _eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
-        await _eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
+        if (status.Status == CorrespondenceStatus.Published) await _eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
         return Task.CompletedTask;
     }
 }

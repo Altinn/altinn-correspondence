@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.API.Models;
+﻿using Altinn.Correspondence.API.Configuration;
+using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.DownloadAttachment;
@@ -38,6 +39,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>CorrespondenceIds</returns>
         [HttpPost]
+        [Authorize(Policy = AuthorizationConstants.Sender)]
         public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeCorrespondences(
             InitializeCorrespondencesExt request,
             [FromServices] InitializeCorrespondencesHandler handler,
@@ -66,6 +68,7 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpPost]
         [Route("upload")]
         [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
+        [Authorize(Policy = AuthorizationConstants.Sender)]
         public async Task<ActionResult<CorrespondenceOverviewExt>> UploadCorrespondences(
             [FromForm] InitializeCorrespondencesExt request,
             [FromForm] List<IFormFile> attachments,
@@ -99,6 +102,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{correspondenceId}")]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
             Guid correspondenceId,
             [FromServices] GetCorrespondenceOverviewHandler handler,
@@ -118,11 +122,12 @@ namespace Altinn.Correspondence.API.Controllers
         /// Get more detailed information about the Correspondence and its current status as well as noticiation statuses, if available
         /// </summary>
         /// <remarks>
-        /// Meant for Senders that want a complete overview of the status and history of the Correspondence
+        /// Meant for Senders that want a complete overview of the status and history of the Correspondence, but also available for Receivers
         /// </remarks>
         /// <returns>Detailed information about the correspondence with current status and status history</returns>
         [HttpGet]
         [Route("{correspondenceId}/details")]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         public async Task<ActionResult<CorrespondenceDetailsExt>> GetCorrespondenceDetails(
             Guid correspondenceId,
             [FromServices] GetCorrespondenceDetailsHandler handler,
@@ -142,10 +147,11 @@ namespace Altinn.Correspondence.API.Controllers
         /// Gets a list of Correspondences for the authenticated user
         /// </summary>
         /// <remarks>
-        /// Meant for Receivers
+        /// Meant for Receivers, but also available for Senders to track Correspondences
         /// </remarks>
         /// <returns>A list of Correspondence ids and pagination metadata</returns>
         [HttpGet]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         public async Task<ActionResult<CorrespondencesExt>> GetCorrespondences(
             [FromQuery] string resourceId,
             [FromQuery] int offset,
@@ -183,6 +189,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>StatusId</returns>
         [HttpPost]
+        [Authorize(Policy = AuthorizationConstants.Recipient)]
         [Route("{correspondenceId}/markasread")]
         public async Task<ActionResult> MarkAsRead(
             Guid correspondenceId,
@@ -211,11 +218,12 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>OK</returns>
         [HttpPost]
+        [Authorize(Policy = AuthorizationConstants.Recipient)]
         [Route("{correspondenceId}/markasunread")]
         public async Task<ActionResult> MarkAsUnread(
-          Guid correspondenceId,
-          [FromServices] UpdateMarkAsUnreadHandler handler,
-          CancellationToken cancellationToken)
+            Guid correspondenceId,
+            [FromServices] UpdateMarkAsUnreadHandler handler,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation("Marking Correspondence as unread for {correspondenceId}", correspondenceId.ToString());
 
@@ -235,6 +243,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>StatusId</returns>
         [HttpPost]
+        [Authorize(Policy = AuthorizationConstants.Recipient)]
         [Route("{correspondenceId}/confirm")]
         public async Task<ActionResult> Confirm(
             Guid correspondenceId,
@@ -263,6 +272,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>StatusId</returns>
         [HttpPost]
+        [Authorize(Policy = AuthorizationConstants.Recipient)]
         [Route("{correspondenceId}/archive")]
         public async Task<ActionResult> Archive(
             Guid correspondenceId,
@@ -292,6 +302,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns>Ok</returns>
         [HttpDelete]
         [Route("{correspondenceId}/purge")]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         public async Task<ActionResult> Purge(
             Guid correspondenceId,
             [FromServices] PurgeCorrespondenceHandler handler,
@@ -314,6 +325,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{correspondenceId}/attachment/{attachmentId}/download")]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         public async Task<ActionResult> DownloadAttachmentData(
             Guid correspondenceId,
             Guid attachmentId,

@@ -38,7 +38,7 @@ public static class DependencyInjection
 
         services.AddScoped<InitializeCorrespondenceHelper>();
         services.AddScoped<UploadHelper>();
-        services.AddScoped<GetCorrespondenceHelper>();
+        services.AddScoped<UserClaimsHelper>();
         services.AddScoped<PublishCorrespondenceHandler>();
     }
 }

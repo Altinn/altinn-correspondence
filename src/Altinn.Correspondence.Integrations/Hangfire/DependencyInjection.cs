@@ -13,6 +13,6 @@ public static class DependencyInjection
                 c => c.UseConnectionFactory(services.BuildServiceProvider().GetService<IConnectionFactory>())
             )
         );
-        services.AddHangfireServer();
+        services.AddHangfireServer(options => options.SchedulePollingInterval = TimeSpan.FromSeconds(2));
     }
 }

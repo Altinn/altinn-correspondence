@@ -1,7 +1,9 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 using Microsoft.Extensions.Hosting;
 using OneOf;
 
@@ -25,7 +27,7 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Open }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Send }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
@@ -40,7 +42,29 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
             return Errors.InvalidUploadAttachmentStatus;
         }
         UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
+
+        var errorsBeforeUpload = await uploadHelper.IsCorrespondenceNotInitialized(request.AttachmentId);
+        if (errorsBeforeUpload != null)
+        {
+            return errorsBeforeUpload;
+        }
         var uploadResult = await uploadHelper.UploadAttachment(request.UploadStream, request.AttachmentId, cancellationToken);
+
+        var errorsAfterUpload = await uploadHelper.IsCorrespondenceNotInitialized(request.AttachmentId); // After upload, check if Correspondence status has changed
+        if (errorsAfterUpload != null)
+        {
+            await _storageRepository.PurgeAttachment(request.AttachmentId, cancellationToken);
+            await _attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
+            {
+                AttachmentId = request.AttachmentId,
+                Status = AttachmentStatus.Purged,
+                StatusChanged = DateTimeOffset.UtcNow,
+                StatusText = AttachmentStatus.Purged.ToString()
+            }, cancellationToken);
+
+            await _eventBus.Publish(AltinnEventType.AttachmentPurged, attachment.ResourceId, request.AttachmentId.ToString(), "attachment", attachment.Sender, cancellationToken);
+            return Errors.CorrespondenceFailedDuringUpload;
+        }
 
         if (_hostEnvironment.IsDevelopment())
         {

@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Core.Models;
@@ -19,9 +20,9 @@ internal static class CorrespondenceAttachmentMapper
             Checksum = attachment.Attachment.Checksum,
             DataLocationType = (AttachmentDataLocationTypeExt)attachment.Attachment.DataLocationType,
             RestrictionName = attachment.Attachment.RestrictionName,
-            Status = (AttachmentStatusExt)attachment.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault()!.Status,
-            StatusText = attachment.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault()!.StatusText,
-            StatusChanged = attachment.Attachment.Statuses.OrderByDescending(s => s.StatusChanged).FirstOrDefault()!.StatusChanged,
+            Status = (AttachmentStatusExt)attachment.Attachment.GetLatestStatus()!.Status,
+            StatusText = attachment.Attachment.GetLatestStatus()!.StatusText,
+            StatusChanged = attachment.Attachment.GetLatestStatus()!.StatusChanged,
             Created = attachment.Created,
             ExpirationTime = attachment.ExpirationTime
         };

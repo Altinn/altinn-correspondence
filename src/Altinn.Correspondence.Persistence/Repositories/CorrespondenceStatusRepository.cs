@@ -1,6 +1,5 @@
 using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
@@ -20,16 +19,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             await _context.CorrespondenceStatuses.AddRangeAsync(statuses, cancellationToken);
             await _context.SaveChangesAsync();
             return statuses.Select(s => s.Id).ToList();
-        }
-
-        public async Task<CorrespondenceStatusEntity> GetLatestStatusByCorrespondenceId(Guid CorrespondenceId, CancellationToken cancellationToken)
-        {
-            var status = await _context.CorrespondenceStatuses
-                .Where(s => s.CorrespondenceId == CorrespondenceId)
-                .OrderByDescending(s => s.StatusChanged)
-                .FirstAsync(cancellationToken);
-
-            return status;
         }
     }
 }
