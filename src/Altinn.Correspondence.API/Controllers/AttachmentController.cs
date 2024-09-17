@@ -79,7 +79,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <returns>AttachmentOverviewExt</returns>
     [HttpGet]
     [Route("{attachmentId}")]
-    [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
+    [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<AttachmentOverviewExt>> GetAttachmentOverview(
         Guid attachmentId,
         [FromServices] GetAttachmentOverviewHandler handler,
@@ -101,7 +101,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <returns></returns>
     [HttpGet]
     [Route("{attachmentId}/details")]
-    [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
+    [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<AttachmentDetailsExt>> GetAttachmentDetails(
         Guid attachmentId,
         [FromServices] GetAttachmentDetailsHandler handler,
