@@ -28,10 +28,6 @@ public class AltinnRegisterService : IAltinnRegisterService
         if (organizationWithPrefixFormat.IsMatch(identificationId))
         {
             identificationId = identificationId.Substring(5);
-            {
-                _logger.LogError("OrganizationId must be 9 digits long.");
-                return null;
-            }
         }
         var personFormat = new Regex(@"^\d{11}$");
         if (!personFormat.IsMatch(identificationId) && !organizationWithoutPrefixFormat.IsMatch(identificationId))
