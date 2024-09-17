@@ -14,6 +14,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
         {
             migrationBuilder.Sql("Delete from correspondence.\"CorrespondenceNotificationStatuses\"");
             migrationBuilder.Sql("Update correspondence.\"CorrespondenceNotifications\" SET \"CustomTextToken\" = null");
+            migrationBuilder.Sql("Update correspondence.\"CorrespondenceNotifications\" SET \"NotificationTemplate\" = 0");
 
             migrationBuilder.Sql("ALTER TABLE correspondence.\"CorrespondenceNotifications\" ALTER COLUMN \"NotificationTemplate\" TYPE integer USING \"NotificationTemplate\"::integer;");
 
