@@ -4,9 +4,9 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
 
-namespace Altinn.Correspondence.Application.DownloadAttachment;
+namespace Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 
-public class DownloadAttachmentHandler : IHandler<DownloadAttachmentRequest, Stream>
+public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespondenceAttachmentRequest, Stream>
 {
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly ICorrespondenceRepository _correspondenceRepository;
@@ -15,7 +15,7 @@ public class DownloadAttachmentHandler : IHandler<DownloadAttachmentRequest, Str
     private readonly IAttachmentRepository _attachmentRepository;
     private readonly UserClaimsHelper _userClaimsHelper;
 
-    public DownloadAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IStorageRepository storageRepository, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, UserClaimsHelper userClaimsHelper)
+    public DownloadCorrespondenceAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IStorageRepository storageRepository, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, UserClaimsHelper userClaimsHelper)
     {
         _correspondenceRepository = correspondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
@@ -25,9 +25,14 @@ public class DownloadAttachmentHandler : IHandler<DownloadAttachmentRequest, Str
         _userClaimsHelper = userClaimsHelper;
     }
 
-    public async Task<OneOf<Stream, Error>> Process(DownloadAttachmentRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<Stream, Error>> Process(DownloadCorrespondenceAttachmentRequest request, CancellationToken cancellationToken)
     {
-        var attachment = await _attachmentRepository.GetAttachmentById(request.AttachmentId, false, cancellationToken);
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, cancellationToken);
+        if (correspondence is null)
+        {
+            return Errors.CorrespondenceNotFound;
+        }
+        var attachment = await _attachmentRepository.GetAttachmentByCorrespondenceIdAndAttachmentId(request.CorrespondenceId, request.AttachmentId, cancellationToken);
         if (attachment is null)
         {
             return Errors.AttachmentNotFound;
@@ -36,6 +41,16 @@ public class DownloadAttachmentHandler : IHandler<DownloadAttachmentRequest, Str
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
+        }
+        bool isRecipient = _userClaimsHelper.GetUserID() == correspondence.Recipient;
+        if (!isRecipient)
+        {
+            return Errors.CorrespondenceNotFound;
+        }
+        var latestStatus = correspondence.GetLatestStatus();
+        if (!latestStatus.Status.IsAvailableForRecipient())
+        {
+            return Errors.CorrespondenceNotFound;
         }
         var attachmentStream = await _storageRepository.DownloadAttachment((Guid)attachment.Id, cancellationToken);
         return attachmentStream;

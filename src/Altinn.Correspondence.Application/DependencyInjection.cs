@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.DownloadAttachment;
+using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 using Altinn.Correspondence.Application.GetAttachmentDetails;
 using Altinn.Correspondence.Application.GetAttachmentOverview;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
@@ -40,5 +41,6 @@ public static class DependencyInjection
         services.AddScoped<UploadHelper>();
         services.AddScoped<UserClaimsHelper>();
         services.AddScoped<PublishCorrespondenceHandler>();
+        services.AddScoped<DownloadCorrespondenceAttachmentHandler>();
     }
 }
