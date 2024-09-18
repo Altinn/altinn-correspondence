@@ -21,7 +21,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
     private readonly IEventBus _eventBus;
     private readonly UserClaimsHelper _userClaimsHelper;
 
-    public PurgeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus, UserClaimsHelper userClaimsHelper)
+    public PurgeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus, UserClaimsHelper userClaimsHelper, IAltinnNotificationService altinnNotificationService)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _altinnNotificationService = altinnNotificationService;
@@ -48,7 +48,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
         {
             return Errors.CorrespondenceAlreadyPurged;
         }
-        
+
         string orgNo = _userClaimsHelper.GetUserID();
         if (orgNo is null)
         {
