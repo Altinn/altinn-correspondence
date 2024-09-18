@@ -16,21 +16,17 @@ namespace Altinn.Correspondence.Integrations.Altinn.Notifications;
 public class AltinnNotificationService : IAltinnNotificationService
 {
     private readonly HttpClient _httpClient;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<AltinnNotificationService> _logger;
 
     public AltinnNotificationService(HttpClient httpClient, IHttpContextAccessor httpContextAccessor, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnNotificationService> logger)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.PlatformSubscriptionKey);
         _httpClient = httpClient;
-        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
-    public async Task<Guid?> CreateNotification(CorrespondenceEntity correspondence, NotificationOrderRequest notification, CancellationToken cancellationToken = default)
+    public async Task<Guid?> CreateNotification(NotificationOrderRequest notification, CancellationToken cancellationToken = default)
     {
-        var token = await _httpContextAccessor.HttpContext.GetTokenAsync("access_token");
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await _httpClient.PostAsJsonAsync("notifications/api/v1/orders", notification, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
