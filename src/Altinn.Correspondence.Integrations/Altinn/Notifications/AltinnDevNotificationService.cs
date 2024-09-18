@@ -29,7 +29,7 @@ public class AltinnDevNotificationService : IAltinnNotificationService
         _logger = logger;
     }
 
-    public async Task<Guid?> CreateNotification(CorrespondenceEntity correspondence, NotificationOrderRequest notification, CancellationToken cancellationToken = default)
+    public async Task<Guid?> CreateNotification(NotificationOrderRequest notification, CancellationToken cancellationToken = default)
     {
         return Guid.NewGuid();
     }
