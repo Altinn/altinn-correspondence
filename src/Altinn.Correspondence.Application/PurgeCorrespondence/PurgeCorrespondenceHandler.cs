@@ -1,5 +1,4 @@
 using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondece.Application.Helpers;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -20,8 +19,9 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IStorageRepository _storageRepository;
     private readonly IEventBus _eventBus;
-    private readonly GetCorrespondenceHelper _getCorrespondenceHelper;
-    public PurgeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus, GetCorrespondenceHelper getCorrespondenceHelper)
+    private readonly UserClaimsHelper _userClaimsHelper;
+
+    public PurgeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus, UserClaimsHelper userClaimsHelper)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _altinnNotificationService = altinnNotificationService;
@@ -31,7 +31,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
         _storageRepository = storageRepository;
         _attachmentStatusRepository = attachmentStatusRepository;
         _eventBus = eventBus;
-        _getCorrespondenceHelper = getCorrespondenceHelper;
+        _userClaimsHelper = userClaimsHelper;
     }
 
     public async Task<OneOf<Guid, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
@@ -49,7 +49,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
             return Errors.CorrespondenceAlreadyPurged;
         }
         
-        string orgNo = _getCorrespondenceHelper.GetUserID();
+        string orgNo = _userClaimsHelper.GetUserID();
         if (orgNo is null)
         {
             return Errors.CouldNotFindOrgNo;

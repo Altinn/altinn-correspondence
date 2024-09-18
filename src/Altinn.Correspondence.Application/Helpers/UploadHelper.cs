@@ -1,4 +1,4 @@
-using Altinn.Correspondece.Application.Helpers;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Models.Entities;

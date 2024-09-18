@@ -1,11 +1,11 @@
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
-namespace Altinn.Correspondece.Application.Helpers;
+namespace Altinn.Correspondence.Application.Helpers;
 public static class CorrespondenceStatusExtensions
 {
-    public static CorrespondenceStatusEntity? GetLatestStatus(this CorrespondenceEntity correspondece)
+    public static CorrespondenceStatusEntity? GetLatestStatus(this CorrespondenceEntity correspondence)
     {
-        var statusEntity = correspondece.Statuses
+        var statusEntity = correspondence.Statuses
             .Where(s => s.Status != CorrespondenceStatus.Fetched)
             .OrderByDescending(s => s.StatusChanged).FirstOrDefault();
         return statusEntity;

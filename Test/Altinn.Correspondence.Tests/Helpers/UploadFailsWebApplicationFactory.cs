@@ -30,7 +30,7 @@ public class UploadFailsWebApplicationFactory : WebApplicationFactory<Program>
             var storageMock = new Mock<IStorageRepository>();
             storageMock.Setup(x => x.UploadAttachment(It.IsAny<AttachmentEntity>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>())).Callback(() =>
             {
-                Thread.Sleep(15000);
+                Thread.Sleep(5000);
             });
             services.AddScoped(_ => storageMock.Object);
         });

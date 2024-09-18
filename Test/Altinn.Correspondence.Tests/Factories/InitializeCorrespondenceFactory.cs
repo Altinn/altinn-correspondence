@@ -1,7 +1,7 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 
-namespace Altinn.Correspondece.Tests.Factories;
+namespace Altinn.Correspondence.Tests.Factories;
 internal static class InitializeCorrespondenceFactory
 {
     internal static InitializeCorrespondencesExt BasicCorrespondences(string? url = null) => new InitializeCorrespondencesExt()
