@@ -9,13 +9,13 @@ namespace Altinn.Correspondence.API.Models
     public class CorrespondenceNotificationExt
     {
         /// <summary>
-        /// The order id for this notification
+        /// The id of the notification in the correspondence system.
         /// </summary>
-        [JsonPropertyName("notificationId")]
-        public Guid? NotificationId { get; set; }
+        [JsonPropertyName("Id")]
+        public Guid? Id { get; set; }
 
         /// <summary>
-        /// The Notification Order Id
+        /// An external ID of the notification order id in Altinn Notifications
         /// </summary>
         [JsonPropertyName("orderId")]
         public Guid? NotificationOrderId { get; set; }
@@ -62,12 +62,5 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("requestedSendTime")]
         public DateTimeOffset RequestedSendTime { get; set; }
-
-        /// <summary>
-        /// Completed Status history for the Notification
-        /// </summary>
-        [JsonPropertyName("statusHistory")]
-        public List<NotificationStatusEventExt> StatusHistory { get; set; } = new List<NotificationStatusEventExt>();
-
     }
 }

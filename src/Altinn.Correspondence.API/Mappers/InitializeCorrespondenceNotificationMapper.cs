@@ -28,7 +28,7 @@ internal static class InitializeCorrespondenceNotificationMapper
             NotificationChannel = (NotificationChannelExt)correspondenceNotification.NotificationChannel,
             RequestedSendTime = correspondenceNotification.RequestedSendTime,
             Created = correspondenceNotification.Created,
-            NotificationId = correspondenceNotification.Id,
+            Id = correspondenceNotification.Id,
             NotificationOrderId = correspondenceNotification.NotificationOrderId,
         };
         return notification;
