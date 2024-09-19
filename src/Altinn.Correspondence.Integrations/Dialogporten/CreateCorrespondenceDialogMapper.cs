@@ -12,10 +12,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 ServiceResource = "urn:altinn:resource:" + correspondence.ResourceId,
                 Party = "urn:altinn:organization:identifier-no:" + organizationNo,
                 CreatedAt = correspondence.Created,
+                VisibleFrom = correspondence.VisibleFrom,
+                ExpiresAt = correspondence.AllowSystemDeleteAfter,
                 DueAt = correspondence.DueDateTime != default ? correspondence.DueDateTime : null,
                 Status = "New",
                 ExternalReference = correspondence.SendersReference,
-                VisibleFrom = DateTime.UtcNow.AddDays(1),
                 Content = CreateCorrespondenceContent(correspondence),
                 SearchTags = GetSearchTagsForCorrespondence(correspondence),
                 ApiActions = GetApiActionsForCorrespondence(correspondence),
@@ -34,7 +35,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 Value = [
                     new DialogValue()
                     {
-                        LanguageCode = "nb",
+                        LanguageCode = correspondence.Content.Language,
                         Value = correspondence.Content.MessageTitle
                     }
                 ]
@@ -45,7 +46,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 Value = [
                     new DialogValue()
                     {
-                        LanguageCode = "nb",
+                        LanguageCode = correspondence.Content.Language,
                         Value = correspondence.Content.MessageSummary
                     }
                 ],
@@ -56,7 +57,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 Value = [
                     new DialogValue()
                     {
-                        LanguageCode = "nb",
+                        LanguageCode = correspondence.Content.Language,
                         Value = correspondence.MessageSender ?? correspondence.Sender
                     }
                 ]
@@ -100,7 +101,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 {
                     new DisplayName
                     {
-                        LanguageCode = "nb",
+                        LanguageCode = correspondence.Content.Language,
                         Value = attachment.Attachment.Name
                     }
                 },
