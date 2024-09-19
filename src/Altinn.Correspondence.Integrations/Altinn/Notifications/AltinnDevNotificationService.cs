@@ -31,6 +31,7 @@ public class AltinnDevNotificationService : IAltinnNotificationService
 
     public async Task<Guid?> CreateNotification(NotificationOrderRequest notification, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Notification for Correspondence with recipient ssn: " + notification.Recipients[0].NationalIdentityNumber + " or orgNr: " + notification.Recipients[0].OrganizationNumber);
         return Guid.NewGuid();
     }
 
