@@ -198,12 +198,10 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             {
                 Subject = notification.EmailSubject,
                 Body = notification.EmailBody,
-                FromAddress = "test@altinn.no" // todo: fix correct sender
             },
             SmsTemplate = new SmsTemplate
             {
                 Body = notification.SmsBody,
-                SenderNumber = "12345" /// todo: get correct number
 
             }
         };
@@ -228,12 +226,10 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 {
                     Subject = notification.ReminderEmailSubject,
                     Body = notification.ReminderEmailBody,
-                    FromAddress = "noreply@altinn.no"
                 },
                 SmsTemplate = new SmsTemplate
                 {
                     Body = notification.ReminderSmsBody,
-                    SenderNumber = "12345" /// todo: get correct number
                 }
             });
         }
