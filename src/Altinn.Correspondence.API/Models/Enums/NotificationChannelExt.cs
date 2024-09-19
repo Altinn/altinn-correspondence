@@ -11,8 +11,18 @@
         Email,
 
         /// <summary>
+        /// The selected channel for the notification is email preferred.
+        /// </summary>
+        EmailPreferred,
+
+        /// <summary>
         /// The selected channel for the notification is sms.
         /// </summary>
-        Sms
+        Sms,
+
+        /// <summary>
+        /// The selected channel for the notification is SMS preferred.
+        /// </summary>
+        SmsPreferred
     }
 }

@@ -21,7 +21,7 @@ internal static class CorrespondenceDetailsMapper
             Recipient = correspondenceDetails.Recipient,
             Content = CorrespondenceContentMapper.MapToExternal(correspondenceDetails.Content),
             ReplyOptions = correspondenceDetails.ReplyOptions != null ? CorrespondenceReplyOptionsMapper.MapListToExternal(correspondenceDetails.ReplyOptions) : new List<CorrespondenceReplyOptionExt>(),
-            Notifications = correspondenceDetails.Notifications != null ? CorrespondenceNotificationMapper.MapListToExternal(correspondenceDetails.Notifications) : new List<CorrespondenceNotificationDetailsExt>(),
+            Notifications = correspondenceDetails.Notifications != null ? CorrespondenceNotificationMapper.MapListToExternal(correspondenceDetails.Notifications) : new List<CorrespondenceNotificationExt>(),
             StatusHistory = correspondenceDetails.StatusHistory != null ? CorrespondenceStatusMapper.MapListToExternal(correspondenceDetails.StatusHistory) : new List<CorrespondenceStatusEventExt>(),
             ExternalReferences = correspondenceDetails.ExternalReferences != null ? ExternalReferenceMapper.MapListToExternal(correspondenceDetails.ExternalReferences) : new List<ExternalReferenceExt>(),
             ResourceId = correspondenceDetails.ResourceId.ToString(),

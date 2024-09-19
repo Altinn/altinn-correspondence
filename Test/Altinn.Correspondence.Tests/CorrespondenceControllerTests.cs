@@ -878,8 +878,17 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             { new StringContent(correspondence.Content.MessageSummary), "correspondence.content.MessageSummary" },
             { new StringContent(correspondence.Content.MessageBody), "correspondence.content.MessageBody" },
             { new StringContent(correspondence.Content.Language), "correspondence.content.Language" },
-            { new StringContent((correspondence.IsReservable ?? false).ToString()), "correspondence.isReservable" }
+            { new StringContent((correspondence.IsReservable ?? false).ToString()), "correspondence.isReservable" },
+            { new StringContent(correspondence.Notification.NotificationTemplate.ToString()), "correspondence.Notification.NotificationTemplate" },
+            { new StringContent(correspondence.Notification.RequestedSendTime.ToString()), "correspondence.Notification.RequestedSendTime" }
         };
+
+        if (correspondence.Notification.EmailBody != null) formData.Add(new StringContent(correspondence.Notification.EmailBody), "correspondence.Notification.EmailBody");
+        if (correspondence.Notification.EmailSubject != null) formData.Add(new StringContent(correspondence.Notification.EmailSubject), "correspondence.Notification.EmailSubject");
+        if (correspondence.Notification.ReminderEmailBody != null) formData.Add(new StringContent(correspondence.Notification.ReminderEmailBody), "correspondence.Notification.ReminderEmailBody");
+        if (correspondence.Notification.ReminderEmailSubject != null) formData.Add(new StringContent(correspondence.Notification.ReminderEmailSubject), "correspondence.Notification.ReminderEmailSubject");
+        if (correspondence.Notification.SmsBody != null) formData.Add(new StringContent(correspondence.Notification.SmsBody), "correspondence.Notification.SmsBody");
+        if (correspondence.Notification.ReminderSmsBody != null) formData.Add(new StringContent(correspondence.Notification.ReminderSmsBody), "correspondence.Notification.ReminderSmsBody");
 
         correspondence.Content.Attachments.Select((attachment, index) => new[]
         {
@@ -904,15 +913,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         {
             new { Key = $"correspondence.ReplyOptions[{index}].LinkURL", Value = replyOption.LinkURL },
             new { Key = $"correspondence.ReplyOptions[{index}].LinkText", Value = replyOption.LinkText ?? "" }
-        }).SelectMany(x => x).ToList()
-        .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
-
-        correspondence.Notifications.Select((notification, index) => new[]
-        {
-            new { Key = $"correspondence.Notifications[{index}].NotificationTemplate", Value = notification.NotificationTemplate },
-            new { Key = $"correspondence.Notifications[{index}].CustomTextToken", Value = notification.CustomTextToken ?? ""},
-            new { Key = $"correspondence.Notifications[{index}].SendersReference", Value = notification.SendersReference ?? "" },
-            new { Key = $"correspondence.Notifications[{index}].RequestedSendTime", Value = notification.RequestedSendTime.ToString() }
         }).SelectMany(x => x).ToList()
         .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
 

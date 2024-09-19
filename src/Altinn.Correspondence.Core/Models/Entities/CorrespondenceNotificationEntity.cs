@@ -1,19 +1,19 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Altinn.Correspondence.Core.Models.Enums;
 
-namespace Altinn.Correspondence.Core.Models
+namespace Altinn.Correspondence.Core.Models.Entities
 {
     public class CorrespondenceNotificationEntity
     {
         [Key]
         public Guid Id { get; set; }
 
-        public required string NotificationTemplate { get; set; }
+        public Guid? NotificationOrderId { get; set; }
 
-        [StringLength(128, MinimumLength = 0)]
-        public string? CustomTextToken { get; set; }
+        public required NotificationTemplate NotificationTemplate { get; set; }
 
-        public string? SendersReference { get; set; }
+        public required NotificationChannel NotificationChannel { get; set; }
 
         public DateTimeOffset RequestedSendTime { get; set; }
 
@@ -24,6 +24,9 @@ namespace Altinn.Correspondence.Core.Models
         [Required]
         public required DateTimeOffset Created { get; set; }
 
-        public List<CorrespondenceNotificationStatusEntity> Statuses { get; set; } = new List<CorrespondenceNotificationStatusEntity>();
+        public DateTimeOffset? NotificationSent { get; set; }
+
+        public string? NotificationAddress { get; set; }
+
     }
 }

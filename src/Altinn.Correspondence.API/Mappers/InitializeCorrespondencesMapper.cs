@@ -1,6 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
-using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Entities;
 
 namespace Altinn.Correspondence.Mappers;
 
@@ -21,7 +21,6 @@ internal static class InitializeCorrespondencesMapper
             PropertyList = initializeCorrespondenceExt.PropertyList,
             ReplyOptions = initializeCorrespondenceExt.ReplyOptions != null ? CorrespondenceReplyOptionsMapper.MapListToEntities(initializeCorrespondenceExt.ReplyOptions) : new List<CorrespondenceReplyOptionEntity>(),
             IsReservable = initializeCorrespondenceExt.IsReservable,
-            Notifications = initializeCorrespondenceExt.Notifications != null ? InitializeCorrespondenceNotificationMapper.MapListToEntities(initializeCorrespondenceExt.Notifications) : new List<CorrespondenceNotificationEntity>(),
             ExternalReferences = initializeCorrespondenceExt.ExternalReferences != null ? ExternalReferenceMapper.MapListToEntities(initializeCorrespondenceExt.ExternalReferences) : new List<ExternalReferenceEntity>(),
             Statuses = new List<CorrespondenceStatusEntity>(),
             Created = DateTimeOffset.UtcNow,
@@ -42,7 +41,8 @@ internal static class InitializeCorrespondencesMapper
             Attachments = attachments ?? new List<IFormFile>(),
             IsUploadRequest = isUploadRequest,
             ExistingAttachments = existingAttachments ?? new List<Guid>(),
-            Recipients = Recipients
+            Recipients = Recipients,
+            Notification = initializeCorrespondenceExt.Notification != null ? InitializeCorrespondenceNotificationMapper.MapToRequest(initializeCorrespondenceExt.Notification) : null
         };
     }
 }

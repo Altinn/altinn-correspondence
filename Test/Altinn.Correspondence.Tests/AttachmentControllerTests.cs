@@ -266,7 +266,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         using (var scope = _factory.Services.CreateScope()) // Add failed status to correspondence
         {
             var correspondenceStatusRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceStatusRepository>();
-            await correspondenceStatusRepository.AddCorrespondenceStatus(new Core.Models.CorrespondenceStatusEntity()
+            await correspondenceStatusRepository.AddCorrespondenceStatus(new Core.Models.Entities.CorrespondenceStatusEntity()
             {
                 CorrespondenceId = correspondenceId,
                 Status = Core.Models.Enums.CorrespondenceStatus.Failed,

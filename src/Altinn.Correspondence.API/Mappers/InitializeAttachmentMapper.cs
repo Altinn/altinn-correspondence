@@ -1,6 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application.InitializeAttachment;
-using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Mappers;
