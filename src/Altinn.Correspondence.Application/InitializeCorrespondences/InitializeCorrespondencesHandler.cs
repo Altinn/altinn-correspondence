@@ -1,32 +1,35 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
-using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
 using OneOf;
+using System.Text.RegularExpressions;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
 public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
+    private readonly IAltinnNotificationService _altinnNotificationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
+    private readonly ICorrespondenceNotificationRepository _correspondenceNotificationRepository;
     private readonly IEventBus _eventBus;
     private readonly InitializeCorrespondenceHelper _initializeCorrespondenceHelper;
     private readonly IBackgroundJobClient _backgroundJobClient;
 
-    public InitializeCorrespondencesHandler(InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient)
+    public InitializeCorrespondencesHandler(InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceNotificationRepository correspondenceNotificationRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient)
     {
         _initializeCorrespondenceHelper = initializeCorrespondenceHelper;
         _altinnAuthorizationService = altinnAuthorizationService;
+        _altinnNotificationService = altinnNotificationService;
         _correspondenceRepository = correspondenceRepository;
+        _correspondenceNotificationRepository = correspondenceNotificationRepository;
         _eventBus = eventBus;
         _backgroundJobClient = backgroundJobClient;
     }
@@ -135,11 +138,101 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             _backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.VisibleFrom);
             _backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime);
             await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
+            if (request.Notification != null)
+            {
+                var notifications = CreateNotifications(request.Notification, correspondence);
+                Console.WriteLine("Notifications: " + notifications.Count());
+                foreach (var notification in notifications)
+                {
+                    var orderId = await _altinnNotificationService.CreateNotification(notification, cancellationToken);
+                    var entity = new CorrespondenceNotificationEntity()
+                    {
+                        Created = DateTime.UtcNow,
+                        NotificationChannel = request.Notification.NotificationChannel,
+                        NotificationTemplate = request.Notification.NotificationTemplate,
+                        CorrespondenceId = correspondence.Id,
+                        NotificationOrderId = orderId,
+                        RequestedSendTime = request.Notification.RequestedSendTime,
+                    };
+                    await _correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
+                }
+            }
         }
         return new InitializeCorrespondencesResponse()
         {
             CorrespondenceIds = correspondences.Select(c => c.Id).ToList(),
             AttachmentIds = correspondences.SelectMany(c => c.Content?.Attachments.Select(a => a.AttachmentId)).ToList()
         };
+    }
+
+    private List<NotificationOrderRequest> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence)
+    {
+        var notifications = new List<NotificationOrderRequest>();
+        var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
+        var personFormat = new Regex(@"^\d{11}$");
+        string? orgNr = null;
+        string? personNr = null;
+        if (organizationWithoutPrefixFormat.IsMatch(correspondence.Recipient))
+        {
+            orgNr = correspondence.Recipient;
+        }
+        else if (personFormat.IsMatch(correspondence.Recipient))
+        {
+            personNr = correspondence.Recipient;
+        }
+        var notificationOrder = new NotificationOrderRequest
+        {
+            IgnoreReservation = !correspondence.IsReservable,
+            Recipients = new List<Recipient>{
+            new Recipient{
+                OrganizationNumber = orgNr,
+                NationalIdentityNumber = personNr
+            },
+        },
+            ResourceId = correspondence.ResourceId,
+            RequestedSendTime = correspondence.VisibleFrom.DateTime,
+            ConditionEndpoint = null, // TODO: Implement condition endpoint
+            SendersReference = correspondence.SendersReference,
+            NotificationChannel = notification.NotificationChannel,
+            EmailTemplate = new EmailTemplate
+            {
+                Subject = notification.EmailSubject,
+                Body = notification.EmailBody,
+            },
+            SmsTemplate = new SmsTemplate
+            {
+                Body = notification.SmsBody,
+
+            }
+        };
+        notifications.Add(notificationOrder);
+        if (notification.SendReminder)
+        {
+            notifications.Add(new NotificationOrderRequest
+            {
+                IgnoreReservation = !correspondence.IsReservable,
+                Recipients = new List<Recipient>{
+            new Recipient{
+                OrganizationNumber = orgNr,
+                NationalIdentityNumber = personNr
+            },
+        },
+                ResourceId = correspondence.ResourceId,
+                RequestedSendTime = correspondence.VisibleFrom.DateTime,
+                ConditionEndpoint = null, // TODO: Implement condition endpoint
+                SendersReference = correspondence.SendersReference,
+                NotificationChannel = notification.NotificationChannel,
+                EmailTemplate = new EmailTemplate
+                {
+                    Subject = notification.ReminderEmailSubject,
+                    Body = notification.ReminderEmailBody,
+                },
+                SmsTemplate = new SmsTemplate
+                {
+                    Body = notification.ReminderSmsBody,
+                }
+            });
+        }
+        return notifications;
     }
 }

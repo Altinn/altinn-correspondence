@@ -1,7 +1,7 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Correspondence.Core.Exceptions;
-using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Azure;

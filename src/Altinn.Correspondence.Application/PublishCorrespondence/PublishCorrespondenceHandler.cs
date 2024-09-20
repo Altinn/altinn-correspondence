@@ -1,10 +1,9 @@
-﻿using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Core.Models;
+﻿using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
 
@@ -16,13 +15,16 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IEventBus _eventBus;
+    private readonly IAltinnNotificationService _altinnNotificationService;
 
     public PublishCorrespondenceHandler(
         ILogger<PublishCorrespondenceHandler> logger,
+        IAltinnNotificationService altinnNotificationService,
         ICorrespondenceRepository correspondenceRepository,
         ICorrespondenceStatusRepository correspondenceStatusRepository,
         IEventBus eventBus)
     {
+        _altinnNotificationService = altinnNotificationService;
         _logger = logger;
         _correspondenceRepository = correspondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
@@ -64,6 +66,10 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
                 StatusText = errorMessage
             };
             eventType = AltinnEventType.CorrespondencePublishFailed;
+            foreach (var notification in correspondence.Notifications)
+            {
+                await _altinnNotificationService.CancelNotification(notification.NotificationOrderId.ToString(), cancellationToken);
+            }
         }
         else
         {

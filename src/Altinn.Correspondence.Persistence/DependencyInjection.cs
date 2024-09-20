@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.AddScoped<IAttachmentStatusRepository, AttachmentStatusRepository>();
         services.AddScoped<ICorrespondenceRepository, CorrespondenceRepository>();
         services.AddScoped<ICorrespondenceStatusRepository, CorrespondenceStatusRepository>();
+        services.AddScoped<ICorrespondenceNotificationRepository, CorrespondenceNotificationRepository>();
         services.AddScoped<IStorageRepository, StorageRepository>();
     }
 

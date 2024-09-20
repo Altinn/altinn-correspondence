@@ -1,6 +1,6 @@
 using System;
 using Altinn.Correspondence.Application.UploadAttachment;
-using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.AspNetCore.Http;
@@ -84,17 +84,6 @@ namespace Altinn.Correspondence.Application.Helpers
         public List<CorrespondenceNotificationEntity> ProcessNotifications(List<CorrespondenceNotificationEntity>? notifications, CancellationToken cancellationToken)
         {
             if (notifications == null) return new List<CorrespondenceNotificationEntity>();
-            foreach (var notification in notifications)
-            {
-                notification.Statuses = new List<CorrespondenceNotificationStatusEntity>(){
-                new CorrespondenceNotificationStatusEntity
-                {
-                     Status = "Initialized", //TODO create enums for notications?
-                     StatusChanged = DateTimeOffset.UtcNow,
-                     StatusText = "Initialized"
-                }
-            };
-            }
             return notifications;
         }
 

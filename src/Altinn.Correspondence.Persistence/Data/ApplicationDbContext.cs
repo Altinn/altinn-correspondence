@@ -1,4 +1,4 @@
-using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Persistence.Helpers;
 using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -34,7 +34,6 @@ public class ApplicationDbContext : DbContext
     public DbSet<CorrespondenceEntity> Correspondences { get; set; }
     public DbSet<CorrespondenceStatusEntity> CorrespondenceStatuses { get; set; }
     public DbSet<CorrespondenceNotificationEntity> CorrespondenceNotifications { get; set; }
-    public DbSet<CorrespondenceNotificationStatusEntity> CorrespondenceNotificationStatuses { get; set; }
     public DbSet<CorrespondenceReplyOptionEntity> CorrespondenceReplyOptions { get; set; }
     public DbSet<ExternalReferenceEntity> ExternalReferences { get; set; }
 
