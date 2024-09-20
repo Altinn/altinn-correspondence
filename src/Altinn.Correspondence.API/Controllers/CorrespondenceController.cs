@@ -347,7 +347,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <summary> 
         /// Get notification details from Altinn Notifications
         /// </summary> 
-        [HttpGet("{correspondenceId}")]
+        [HttpGet("/notifications/{correspondenceId}")]
         [Authorize(Policy = AuthorizationConstants.Sender)]
         public async Task<ActionResult> GetNotificationDetails(
             Guid correspondenceId,
