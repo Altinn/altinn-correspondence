@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Helpers;
@@ -12,6 +13,15 @@ using Moq;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
+    private readonly List<Claim> _customClaims = new List<Claim>();
+    public void AddTestClaim(string type, string value)
+    {
+        _customClaims.Add(new Claim(type, value));
+    }
+    public void ClearClaim()
+    {
+        _customClaims.Clear();
+    }
     internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)
@@ -27,7 +37,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             var altinnAuthorizationService = new Mock<IAltinnAuthorizationService>();
             altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
             services.AddSingleton(altinnAuthorizationService.Object);
-            services.AddSingleton<IPolicyEvaluator, MockPolicyEvaluator>();
+            services.AddSingleton<IPolicyEvaluator, MockPolicyEvaluator>(_ => 
+            {
+                return new MockPolicyEvaluator(_customClaims);
+            });
             
         });
 
