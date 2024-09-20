@@ -13,7 +13,7 @@ public class AltinnNotificationService : IAltinnNotificationService
     private readonly HttpClient _httpClient;
     private readonly ILogger<AltinnNotificationService> _logger;
 
-    public AltinnNotificationService(HttpClient httpClient, IHttpContextAccessor httpContextAccessor, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnNotificationService> logger)
+    public AltinnNotificationService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnNotificationService> logger)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.PlatformSubscriptionKey);
         _httpClient = httpClient;
