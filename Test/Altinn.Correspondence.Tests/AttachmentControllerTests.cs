@@ -23,13 +23,8 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     public AttachmentControllerTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
-        var senderFactory = new CustomWebApplicationFactory();
-        senderFactory.AddTestClaim("scope", "altinn:correspondence.write");
-        _senderClient = senderFactory.CreateClientInternal();
-
-        var recipientFactory = new CustomWebApplicationFactory();
-        recipientFactory.AddTestClaim("scope", "altinn:correspondence.read");
-        _recipientClient = recipientFactory.CreateClientInternal();
+        _senderClient = factory.CreateClientWithAddedClaims(("scope", "altinn:correspondence.write"));
+        _recipientClient = factory.CreateClientWithAddedClaims(("scope", "altinn:correspondence.read"));
 
         _responseSerializerOptions = new JsonSerializerOptions(new JsonSerializerOptions()
         {

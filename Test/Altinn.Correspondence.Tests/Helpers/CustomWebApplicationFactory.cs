@@ -13,15 +13,6 @@ using Moq;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
-    private readonly List<Claim> _customClaims = new List<Claim>();
-    public void AddTestClaim(string type, string value)
-    {
-        _customClaims.Add(new Claim(type, value));
-    }
-    public void ClearClaim()
-    {
-        _customClaims.Clear();
-    }
     internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)
@@ -37,18 +28,42 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             var altinnAuthorizationService = new Mock<IAltinnAuthorizationService>();
             altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
             services.AddSingleton(altinnAuthorizationService.Object);
-            services.AddSingleton<IPolicyEvaluator, MockPolicyEvaluator>(_ => 
-            {
-                return new MockPolicyEvaluator(_customClaims);
-            });
-            
         });
-
     }
-
-    public HttpClient CreateClientInternal()
+    public HttpClient CreateClientWithAddedClaims(params (string type, string value)[] claims)
     {
-        var client = CreateClient();
-        return client;
+        var defaultClaims = new List<Claim>
+        {
+            new Claim("urn:altinn:authlevel", "3"),
+            new Claim("client_amr", "virksomhetssertifikat"),
+            new Claim("pid", "11015699332"),
+            new Claim("token_type", "Bearer"),
+            new Claim("client_id", "5b7b5418-1196-4539-bd1b-5f7c6fdf5963"),
+            new Claim("http://schemas.microsoft.com/claims/authnclassreference", "Level3"),
+            new Claim("exp", "1721895043"),
+            new Claim("iat", "1721893243"),
+            new Claim("client_orgno", "991825827"),
+            new Claim("consumer", "{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"0192:991825827\"}"),
+            new Claim("iss", "https://platform.tt02.altinn.no/authentication/api/v1/openid/"),
+            new Claim("actual_iss", "mock"),
+            new Claim("nbf", "1721893243"),
+            new Claim("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier", "1"),
+            new Claim("urn:altinn:userid", "1"),
+            new Claim("urn:altinn:partyid", "1")
+        };
+        var combinedClaims = defaultClaims.Concat(claims.Select(c => new Claim(c.type, c.value))).ToList();
+
+        // Clone the current factory and set the specific claims for this instance
+        var clientFactory = WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.AddSingleton<IPolicyEvaluator>(provider =>
+                {
+                    return new MockPolicyEvaluator(combinedClaims);
+                });
+            });
+        });
+        return clientFactory.CreateClient();
     }
 }

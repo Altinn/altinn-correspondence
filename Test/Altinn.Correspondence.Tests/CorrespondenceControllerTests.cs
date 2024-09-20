@@ -19,10 +19,10 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public CorrespondenceControllerTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
-        _factory.AddTestClaim("scope", "altinn:correspondence.write"); // TODO: Seperate client to senderClient and recipientClient with dedicated scopes
-        _factory.AddTestClaim("scope", "altinn:correspondence.read");
-
-        _client = _factory.CreateClientInternal();
+        _client = _factory.CreateClientWithAddedClaims( // TODO: Seperate client to senderClient and recipientClient with dedicated scopes
+            ("scope", "altinn:correspondence.write"),
+            ("scope", "altinn:correspondence.read")
+        );
         _responseSerializerOptions = new JsonSerializerOptions(new JsonSerializerOptions()
         {
             PropertyNameCaseInsensitive = true
@@ -676,7 +676,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var downloadResponse = await _client.GetAsync($"correspondence/api/v1/correspondence/{response?.CorrespondenceIds.FirstOrDefault()}/attachment/{attachmentId}/download");
 
         // Assert
-        Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode); 
+        Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
     }
     [Fact]
     public async Task DownloadCorrespondenceAttachment_WhenCorrespondenceHasNoAttachment_Fails()

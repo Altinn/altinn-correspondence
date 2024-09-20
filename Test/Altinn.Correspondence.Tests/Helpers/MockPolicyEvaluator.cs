@@ -11,42 +11,19 @@ namespace Altinn.Correspondence.Tests.Helpers
 
     internal class MockPolicyEvaluator : IPolicyEvaluator
     {
-        private List<Claim> _customClaims;
-        private readonly List<Claim> _defaultClaims = new List<Claim>
-        {
-                new Claim("urn:altinn:authlevel", "3"),
-                new Claim("client_amr", "virksomhetssertifikat"),
-                new Claim("pid", "11015699332"),
-                new Claim("token_type", "Bearer"),
-                new Claim("client_id", "5b7b5418-1196-4539-bd1b-5f7c6fdf5963"),
-                new Claim("http://schemas.microsoft.com/claims/authnclassreference", "Level3"),
-                new Claim("exp", "1721895043"),
-                new Claim("iat", "1721893243"),
-                new Claim("client_orgno", "991825827"),
-                new Claim("consumer", "{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"0192:991825827\"}"),
-                new Claim("iss", "https://platform.tt02.altinn.no/authentication/api/v1/openid/"),
-                new Claim("actual_iss", "mock"),
-                new Claim("nbf", "1721893243"),
-                new Claim("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier", "1"),
-                new Claim("urn:altinn:userid", "1"),
-                new Claim("urn:altinn:partyid", "1")
-        };
-
+        private List<Claim> _claims;
         public MockPolicyEvaluator(List<Claim> customClaims)
         {
-            _customClaims = customClaims;
+            _claims = customClaims;
         }
-
         public virtual async Task<AuthenticateResult> AuthenticateAsync(AuthorizationPolicy policy, HttpContext context)
         {
             var principal = new ClaimsPrincipal();
-            // Combine default and custom claims
-            var allClaims = _defaultClaims.Concat(_customClaims).ToList();
-            principal.AddIdentity(new ClaimsIdentity(allClaims, "MockScheme"));
+            principal.AddIdentity(new ClaimsIdentity(_claims, "MockScheme"));
             // Check if the user meets the authorization policy's requirements
             foreach (var requirement in policy.Requirements.OfType<ScopeAccessRequirement>())
             {
-                bool hasMatchingClaim = allClaims
+                bool hasMatchingClaim = _claims
                     .Any(claim => requirement.Scope
                         .Any(scope => scope.Equals(claim.Value)));
 
