@@ -4,6 +4,7 @@ using Altinn.Correspondence.Application.GetAttachmentOverview;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
+using Altinn.Correspondence.Application.GetNotificationDetails;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
@@ -26,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<GetCorrespondencesHandler>();
         services.AddScoped<GetCorrespondenceDetailsHandler>();
         services.AddScoped<GetCorrespondenceOverviewHandler>();
+        services.AddScoped<GetNotificationDetailsHandler>();
         services.AddScoped<GetAttachmentOverviewHandler>();
         services.AddScoped<GetAttachmentDetailsHandler>();
         services.AddScoped<UpdateCorrespondenceStatusHandler>();

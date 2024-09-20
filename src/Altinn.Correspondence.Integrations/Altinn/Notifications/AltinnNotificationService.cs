@@ -1,15 +1,10 @@
 using System.Net.Http.Json;
-using Altinn.Correspondence.Repositories;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Models.Notifications;
-using Altinn.Correspondence.Core.Models.Entities;
-using Microsoft.AspNetCore.Authentication;
-using System.Net.Http.Headers;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Notifications;
 
@@ -45,7 +40,6 @@ public class AltinnNotificationService : IAltinnNotificationService
             _logger.LogError("Recipient lookup failed when ordering notification.");
             return null;
         }
-        Console.WriteLine(responseContent.OrderId);
         return responseContent.OrderId;
     }
 
@@ -58,5 +52,25 @@ public class AltinnNotificationService : IAltinnNotificationService
             return false;
         }
         return true;
+    }
+
+    public async Task<NotificationOrderWithStatus> GetNotificationDetails(string orderId, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync($"notifications/api/v1/orders/{orderId}/status", cancellationToken: cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Failed to get resource from Altinn Notification. Status code: {StatusCode}", response.StatusCode);
+            _logger.LogError("Body: {Response}", await response.Content.ReadAsStringAsync(cancellationToken));
+            throw new BadHttpRequestException("Failed to get notification details from Altinn Notifications");
+        }
+
+        var notificationSummary = await response.Content.ReadFromJsonAsync<NotificationOrderWithStatus>(cancellationToken: cancellationToken);
+        if (notificationSummary is null)
+        {
+            _logger.LogError("Failed to deserialize response from Altinn Notification");
+            throw new BadHttpRequestException("Failed to process response from Altinn Notification");
+        }
+        return notificationSummary;
+
     }
 }
