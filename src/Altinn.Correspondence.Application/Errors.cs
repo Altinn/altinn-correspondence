@@ -39,8 +39,8 @@ public static class Errors
     public static Error CouldNotFindOrgNo = new Error(31, "Could not identify orgnumber from user", HttpStatusCode.Unauthorized);
     public static Error CantPurgeCorrespondenceSender = new Error(32, "Cannot delete correspondence that has been published", HttpStatusCode.BadRequest);
     public static Error CantPurgeCorrespondenceRecipient = new Error(33, "Cannot delete correspondence that has not been delivered", HttpStatusCode.BadRequest);
-    public static Error CantPurgeCorrespondence = new Error(34, "You must be a sender or recipient in order to purge correspondence", HttpStatusCode.BadRequest);
-    public static Error CantUploadToNonInitializedCorrespondence = new Error(35, "Cannot upload attachment to a correspondence that is not initialized", HttpStatusCode.BadRequest);
-    public static Error CorrespondenceFailedDuringUpload = new Error(36, "Correspondence status failed during uploading of attachment", HttpStatusCode.BadRequest);
-    public static Error LatestStatusIsNull = new Error(37, "Could not retrieve latest status for correspondence", HttpStatusCode.BadRequest);
+    public static Error CantUploadToNonInitializedCorrespondence = new Error(34, "Cannot upload attachment to a correspondence that is not initialized", HttpStatusCode.BadRequest);
+    public static Error CorrespondenceFailedDuringUpload = new Error(35, "Correspondence status failed during uploading of attachment", HttpStatusCode.BadRequest);
+    public static Error LatestStatusIsNull = new Error(36, "Could not retrieve latest status for correspondence", HttpStatusCode.BadRequest);
+    public static Error InvalidSender = new Error(37, "Creator of correspondence must be the sender", HttpStatusCode.BadRequest);
 }
