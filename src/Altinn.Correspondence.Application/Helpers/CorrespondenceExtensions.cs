@@ -23,4 +23,13 @@ public static class CorrespondenceStatusExtensions
         ];
         return validStatuses.Contains(correspondenceStatus);
     }
+    public static bool IsAvailableForSender(this CorrespondenceStatus correspondenceStatus)
+    {
+        List<CorrespondenceStatus> validStatuses =
+        [
+            CorrespondenceStatus.Initialized, CorrespondenceStatus.ReadyForPublish, CorrespondenceStatus.Failed,
+        ];
+        return validStatuses.Contains(correspondenceStatus);
+    }
+
 }
