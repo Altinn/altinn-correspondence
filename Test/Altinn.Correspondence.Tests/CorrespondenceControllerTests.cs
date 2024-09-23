@@ -442,6 +442,39 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Equal(response.Status, CorrespondenceStatusExt.Initialized);
     }
     [Fact]
+    public async Task GetCorrespondenceOverview_WhenNotSenderOrRecipient_Returns404()
+    {
+        // Arrange
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
+        initializeCorrespondenceResponse.EnsureSuccessStatusCode();
+        var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        var invalidSenderClient = _factory.CreateClientWithAddedClaims(("consumer", "{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"0192:123456789\"}"), ("scope", "altinn:correspondence.write"));
+        var invalidRecipientClient = _factory.CreateClientWithAddedClaims(("consumer", "{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"0192:123456789\"}"), ("scope", "altinn:correspondence.read"));
+
+        // Act
+        var invalidRecipientResponse = await invalidRecipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceIds.FirstOrDefault()}");
+        var invalidSenderResponse = await invalidSenderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceIds.FirstOrDefault()}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, invalidRecipientResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, invalidSenderResponse.StatusCode);
+    }
+    [Fact]
+    public async Task GetCorrespondenceOverview_AsReceiver_WhenNotPublishedReturns404()
+    {
+        // Arrange
+        var initialCorrespondence = InitializeCorrespondenceFactory.BasicCorrespondences(); // Initialized
+        initialCorrespondence.Recipients[0] = _userId; // Change recipient to match HttpContext.User
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", initialCorrespondence);
+        var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+
+        // Act
+        var getCorrespondenceOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceIds.FirstOrDefault()}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceOverviewResponse.StatusCode);
+    }
+    [Fact]
     public async Task GetCorrespondenceOverview_AsReceiver_AddsFetchedStatusToHistory()
     {
         // Arrange
@@ -451,20 +484,18 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
 
         // Act
-        var getCorrespondenceOverviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceIds.FirstOrDefault()}");
+        var getCorrespondenceOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceIds.FirstOrDefault()}");
         Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode, await getCorrespondenceOverviewResponse.Content.ReadAsStringAsync());
 
         // Assert
         var response = await getCorrespondenceOverviewResponse.Content.ReadFromJsonAsync<CorrespondenceOverviewExt>(_responseSerializerOptions);
         Assert.Equal(response.Status, CorrespondenceStatusExt.Published); // Status is not changed to fetched
-        var getCorrespondenceDetailsResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceIds.FirstOrDefault()}/details");
-        var detailsResponse = await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+        var actual = await (await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceIds.FirstOrDefault()}/details")).Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
 
-        var expectedFetchedStatuses = 2;  // One from overview and one from details
-        Assert.Equal(detailsResponse.StatusHistory.Where(s => s.Status == CorrespondenceStatusExt.Fetched).Count(), expectedFetchedStatuses);
-        Assert.Contains(detailsResponse.StatusHistory, item => item.Status == CorrespondenceStatusExt.Published);
+        var expectedFetchedStatuses = 1;
+        Assert.Equal(actual.StatusHistory.Where(s => s.Status == CorrespondenceStatusExt.Fetched).Count(), expectedFetchedStatuses);
+        Assert.Contains(actual.StatusHistory, item => item.Status == CorrespondenceStatusExt.Published);
     }
-
     [Fact]
     public async Task GetCorrespondenceOverview_AsSender_KeepsStatusAsPublished()
     {
@@ -500,6 +531,39 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Equal(response.Status, CorrespondenceStatusExt.Initialized);
     }
     [Fact]
+    public async Task GetCorrespondenceDetails_WhenNotSenderOrRecipient_Returns404()
+    {
+        // Arrange
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
+        initializeCorrespondenceResponse.EnsureSuccessStatusCode();
+        var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        var invalidSenderClient = _factory.CreateClientWithAddedClaims(("consumer", "{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"0192:123456789\"}"), ("scope", "altinn:correspondence.write"));
+        var invalidRecipientClient = _factory.CreateClientWithAddedClaims(("consumer", "{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"0192:123456789\"}"), ("scope", "altinn:correspondence.read"));
+
+        // Act
+        var invalidRecipientResponse = await invalidRecipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceIds.FirstOrDefault()}/details");
+        var invalidSenderResponse = await invalidSenderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceIds.FirstOrDefault()}/details");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, invalidRecipientResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, invalidSenderResponse.StatusCode);
+    }
+    [Fact]
+    public async Task GetCorrespondenceDetails_AsReceiver_WhenNotPublishedReturns404()
+    {
+        // Arrange
+        var initialCorrespondence = InitializeCorrespondenceFactory.BasicCorrespondences(); // Initialized
+        initialCorrespondence.Recipients[0] = _userId; // Change recipient to match HttpContext.User
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", initialCorrespondence);
+        var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+
+        // Act
+        var getCorrespondenceDetailsResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceIds.FirstOrDefault()}/details");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceDetailsResponse.StatusCode);
+    }
+    [Fact]
     public async Task GetCorrespondenceDetails_AsReceiver_AddsFetchedStatusToHistory()
     {
         // Arrange
@@ -510,7 +574,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
 
         // Act
-        var getCorrespondenceDetailsResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceIds.FirstOrDefault()}/details");
+        var getCorrespondenceDetailsResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceIds.FirstOrDefault()}/details");
         Assert.True(getCorrespondenceDetailsResponse.IsSuccessStatusCode, await getCorrespondenceDetailsResponse.Content.ReadAsStringAsync());
 
         // Assert
@@ -520,7 +584,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Contains(response.StatusHistory, item => item.Status == CorrespondenceStatusExt.Published);
         Assert.Equal(response.Status, CorrespondenceStatusExt.Published);
     }
-
     [Fact]
     public async Task GetCorrespondenceDetails_AsSender_KeepsStatusAsPublished()
     {
