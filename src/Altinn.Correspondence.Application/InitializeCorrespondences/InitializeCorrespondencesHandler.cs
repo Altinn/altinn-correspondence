@@ -141,7 +141,6 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             if (request.Notification != null)
             {
                 var notifications = CreateNotifications(request.Notification, correspondence);
-                Console.WriteLine("Notifications: " + notifications.Count());
                 foreach (var notification in notifications)
                 {
                     var orderId = await _altinnNotificationService.CreateNotification(notification, cancellationToken);
