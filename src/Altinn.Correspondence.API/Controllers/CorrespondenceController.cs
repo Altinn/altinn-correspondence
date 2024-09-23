@@ -2,7 +2,7 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
-using Altinn.Correspondence.Application.DownloadAttachment;
+using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
@@ -325,14 +325,14 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{correspondenceId}/attachment/{attachmentId}/download")]
-        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
-        public async Task<ActionResult> DownloadAttachmentData(
+        [Authorize(Policy = AuthorizationConstants.Recipient)]
+        public async Task<ActionResult> DownloadCorrespondenceAttachmentData(
             Guid correspondenceId,
             Guid attachmentId,
-            [FromServices] DownloadAttachmentHandler handler,
+            [FromServices] DownloadCorrespondenceAttachmentHandler handler,
             CancellationToken cancellationToken)
         {
-            var commandResult = await handler.Process(new DownloadAttachmentRequest()
+            var commandResult = await handler.Process(new DownloadCorrespondenceAttachmentRequest()
             {
                 CorrespondenceId = correspondenceId,
                 AttachmentId = attachmentId

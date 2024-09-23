@@ -1,6 +1,7 @@
 ﻿using Altinn.Correspondence.API.Configuration;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.DownloadAttachment;
 using Altinn.Correspondence.Application.GetAttachmentDetails;
 using Altinn.Correspondence.Application.GetAttachmentOverview;
 using Altinn.Correspondence.Application.InitializeAttachment;
@@ -79,7 +80,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <returns>AttachmentOverviewExt</returns>
     [HttpGet]
     [Route("{attachmentId}")]
-    [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
+    [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<AttachmentOverviewExt>> GetAttachmentOverview(
         Guid attachmentId,
         [FromServices] GetAttachmentOverviewHandler handler,
@@ -101,7 +102,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <returns></returns>
     [HttpGet]
     [Route("{attachmentId}/details")]
-    [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
+    [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<AttachmentDetailsExt>> GetAttachmentDetails(
         Guid attachmentId,
         [FromServices] GetAttachmentDetailsHandler handler,
@@ -139,6 +140,27 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
 
         return commandResult.Match(
             _ => Ok(null),
+            Problem
+        );
+    }
+    /// <summary>
+    /// Downloads the attachment data
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("{attachmentId}/download")]
+    [Authorize(Policy = AuthorizationConstants.Sender)]
+    public async Task<ActionResult> DownloadAttachmentData(
+        Guid attachmentId,
+        [FromServices] DownloadAttachmentHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var commandResult = await handler.Process(new DownloadAttachmentRequest()
+        {
+            AttachmentId = attachmentId
+        }, cancellationToken);
+        return commandResult.Match(
+            result => File(result, "application/octet-stream"),
             Problem
         );
     }
