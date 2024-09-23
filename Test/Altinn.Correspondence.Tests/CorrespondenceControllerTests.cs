@@ -387,12 +387,10 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
 
         var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments(); // One published
         payload.Recipients = new List<string> { _userId };
-        payload.Correspondence.Sender = "0192:123456789";
         payload.Correspondence.ResourceId = resource;
 
         var payloadInitialized = InitializeCorrespondenceFactory.BasicCorrespondences(); // One initialized
         payloadInitialized.Recipients = new List<string> { _userId };
-        payloadInitialized.Correspondence.Sender = "0192:123456789";
         payloadInitialized.Correspondence.ResourceId = resource;
 
         // Act
@@ -400,7 +398,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
         var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadInitialized);
         Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
-        var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10");
+        var correspondenceList = await _recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10");
 
         // Assert
         var expected = 2 - 1; // Receiver only sees the one that is published
