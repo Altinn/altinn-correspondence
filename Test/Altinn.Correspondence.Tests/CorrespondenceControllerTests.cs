@@ -693,7 +693,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.NotNull(data);
     }
     [Fact]
-    public async Task DownloadCorrespondenceAttachment_WhenNotARecipient_Fails()
+    public async Task DownloadCorrespondenceAttachment_WhenNotARecipient_Returns404()
     {
         // Arrange
         var attachment = InitializeAttachmentFactory.BasicAttachment();
@@ -718,7 +718,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
     }
     [Fact]
-    public async Task DownloadCorrespondenceAttachment_WhenCorrespondenceUnavailable_Fails() // TODO: Fix initializeCorrespondence should check attachment is uploaded before 
+    public async Task DownloadCorrespondenceAttachment_WhenCorrespondenceUnavailable_Returns404() // TODO: Fix initializeCorrespondence should check attachment is uploaded before 
     {
         // Arrange
         var attachment = InitializeAttachmentFactory.BasicAttachment();
@@ -745,7 +745,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
     }
     [Fact]
-    public async Task DownloadCorrespondenceAttachment_WhenCorrespondenceHasNoAttachment_Fails()
+    public async Task DownloadCorrespondenceAttachment_WhenCorrespondenceHasNoAttachment_Returns404()
     {
         // Arrange
         var attachment = InitializeAttachmentFactory.BasicAttachment();
