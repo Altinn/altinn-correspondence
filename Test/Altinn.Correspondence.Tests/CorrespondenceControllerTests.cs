@@ -683,12 +683,11 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
         payload.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
         payload.Recipients = [_userId]; // Change recipient to match HttpContext.User
-        payload.Correspondence.Sender = "0192:999999999";
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
-        var downloadResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{response?.CorrespondenceIds.FirstOrDefault()}/attachment/{attachmentId}/download");
+        var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{response?.CorrespondenceIds.FirstOrDefault()}/attachment/{attachmentId}/download");
         var data = downloadResponse.Content.ReadAsByteArrayAsync();
 
         // Assert
@@ -696,7 +695,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.NotNull(data);
     }
     [Fact]
-    public async Task DownloadCorrespondenceAttachment_WhenNotARecipientOrSender_Fails()
+    public async Task DownloadCorrespondenceAttachment_WhenNotARecipient_Fails()
     {
         // Arrange
         var attachment = InitializeAttachmentFactory.BasicAttachment();
@@ -711,12 +710,11 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
         payload.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
         payload.Recipients = ["0192:999999999"]; // Change recipient to invalid org
-        payload.Correspondence.Sender = "0192:999999999";
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
-        var downloadResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{response?.CorrespondenceIds.FirstOrDefault()}/attachment/{attachmentId}/download");
+        var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{response?.CorrespondenceIds.FirstOrDefault()}/attachment/{attachmentId}/download");
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
@@ -743,7 +741,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
-        var downloadResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{response?.CorrespondenceIds.FirstOrDefault()}/attachment/{attachmentId}/download");
+        var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{response?.CorrespondenceIds.FirstOrDefault()}/attachment/{attachmentId}/download");
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
@@ -764,7 +762,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
-        var downloadResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{response?.CorrespondenceIds.FirstOrDefault()}/attachment/{attachmentId}/download");
+        var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{response?.CorrespondenceIds.FirstOrDefault()}/attachment/{attachmentId}/download");
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
