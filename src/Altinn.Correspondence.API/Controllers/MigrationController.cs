@@ -1,3 +1,4 @@
+using Altinn.Correspondence.API.Configuration;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
@@ -40,6 +41,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns>CorrespondenceId and attachmentIds</returns>
         [HttpPost]
         [Route("correspondence")]
+        [Authorize(Policy = AuthorizationConstants.Migrate)]
         public async Task<ActionResult<CorrespondenceMigrationStatusExt>> MigrateCorrespondence(
             MigrateCorrespondenceExt migrateCorrespondence, 
             [FromServices] MigrateCorrespondenceHandler handler, 

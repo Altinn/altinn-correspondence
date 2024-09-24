@@ -124,11 +124,10 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.AddTransient<IAuthorizationHandler, ScopeAccessHandler>();
     services.AddAuthorization(options =>
     {
-        options.DefaultPolicy = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme).AddRequirements(new ScopeAccessRequirement("altinn:correspondence")).Build();
-        options.AddPolicy(AuthorizationConstants.Migrate, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MigrateScope)).AddAuthenticationSchemes(AuthorizationConstants.Migrate));
         options.AddPolicy(AuthorizationConstants.Sender, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.SenderScope)).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
         options.AddPolicy(AuthorizationConstants.Recipient, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.RecipientScope)).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
         options.AddPolicy(AuthorizationConstants.SenderOrRecipient, policy => policy.AddRequirements(new ScopeAccessRequirement([AuthorizationConstants.SenderScope, AuthorizationConstants.RecipientScope])).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
+        options.AddPolicy(AuthorizationConstants.Migrate, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MigrateScope)).AddAuthenticationSchemes(AuthorizationConstants.Migrate));
     });
     services.AddEndpointsApiExplorer();
     services.AddSwaggerGen();

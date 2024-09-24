@@ -33,7 +33,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         _logger = logger;
     }
 
-    public async Task<bool> CheckUserAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, bool isMigration = false)
+    public async Task<bool> CheckUserAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
     {
         if (_hostEnvironment.IsDevelopment())
         {
@@ -43,10 +43,6 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         if (string.IsNullOrWhiteSpace(serviceOwnerId))
         {
             return false;
-        }
-        if (isMigration)
-        {
-            return true;
         }
         var user = _httpContextAccessor.HttpContext?.User;
         if (user is null)
@@ -69,6 +65,21 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         }
         var validationResult = ValidateResult(responseContent);
         return validationResult;
+    }
+
+    public async Task<bool> CheckMigrationAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
+    {
+        if (_hostEnvironment.IsDevelopment())
+        {
+            return true;
+        }
+        var serviceOwnerId = await _resourceRepository.GetServiceOwnerOfResource(resourceId, cancellationToken);
+        if (string.IsNullOrWhiteSpace(serviceOwnerId))
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private XacmlJsonRequestRoot CreateDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId)

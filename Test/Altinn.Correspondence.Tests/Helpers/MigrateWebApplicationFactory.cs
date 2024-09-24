@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 
-public class CustomWebApplicationFactory : WebApplicationFactory<Program>
+public class MigrateWebApplicationFactory : WebApplicationFactory<Program>
 {
     internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
     protected override void ConfigureWebHost(
@@ -45,7 +45,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             new Claim("iat", "1721893243"),
             new Claim("client_orgno", "991825827"),
             new Claim("consumer", "{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"0192:991825827\"}"),
-            new Claim("iss", "https://platform.tt02.altinn.no/authentication/api/v1/openid/"),
+            new Claim("iss", "https://maskinporten.no/.well-known/oauth-authorization-server"),
             new Claim("actual_iss", "mock"),
             new Claim("nbf", "1721893243"),
             new Claim("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier", "1"),

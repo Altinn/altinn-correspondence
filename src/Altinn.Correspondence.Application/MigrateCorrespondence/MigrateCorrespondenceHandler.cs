@@ -15,11 +15,6 @@ public class MigrateCorrespondenceHandler : IHandler<MigrateCorrespondenceReques
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly IAttachmentRepository _attachmentRepository;
-    private readonly ICorrespondenceStatusRepository _statusRepository;
-    private readonly ICorrespondenceNotificationRepository _notificationRepository;
-    private readonly IEventBus _eventBus;
-    private const bool _isMigration = true;
     private readonly InitializeCorrespondenceHelper _correspondenceHelper;
     IBackgroundJobClient _backgroundJobClient;
 
@@ -27,25 +22,17 @@ public class MigrateCorrespondenceHandler : IHandler<MigrateCorrespondenceReques
         InitializeCorrespondenceHelper initializeCorrespondenceHelper,
         IAltinnAuthorizationService altinnAuthorizationService, 
         ICorrespondenceRepository correspondenceRepository, 
-        IAttachmentRepository attachmentRepository, 
-        ICorrespondenceStatusRepository statusRepository, 
-        IEventBus eventBus, 
-        ICorrespondenceNotificationRepository notificationRepository,
         IBackgroundJobClient backgroundJobClient)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
-        _attachmentRepository = attachmentRepository;
-        _eventBus = eventBus;
         _backgroundJobClient = backgroundJobClient;
-        _statusRepository = statusRepository;
-        _notificationRepository = notificationRepository;
         _correspondenceHelper = initializeCorrespondenceHelper;
     }
 
     public async Task<OneOf<MigrateCorrespondenceResponse, Error>> Process(MigrateCorrespondenceRequest request, CancellationToken cancellationToken)
     {
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.CorrespondenceEntity.ResourceId, [ResourceAccessLevel.Send], cancellationToken, _isMigration);
+        var hasAccess = await _altinnAuthorizationService.CheckMigrationAccess(request.CorrespondenceEntity.ResourceId, [ResourceAccessLevel.Send], cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;

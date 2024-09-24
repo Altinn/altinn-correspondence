@@ -9,13 +9,13 @@ using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests;
 
-public class MigrationControllerTests : IClassFixture<CustomWebApplicationFactory>
+public class MigrationControllerTests : IClassFixture<MigrateWebApplicationFactory>
 {
-    private readonly CustomWebApplicationFactory _factory;
+    private readonly MigrateWebApplicationFactory _factory;
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _responseSerializerOptions;
 
-    public MigrationControllerTests(CustomWebApplicationFactory factory)
+    public MigrationControllerTests(MigrateWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClientWithAddedClaims(("scope", "altinn:correspondence.migrate"));

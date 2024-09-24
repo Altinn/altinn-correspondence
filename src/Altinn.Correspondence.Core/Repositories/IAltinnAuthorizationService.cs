@@ -4,5 +4,6 @@ namespace Altinn.Correspondence.Core.Repositories;
 
 public interface IAltinnAuthorizationService
 {
-    Task<bool> CheckUserAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, bool isMigration = false);
+    Task<bool> CheckUserAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default);
+    Task<bool> CheckMigrationAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default);
 }
