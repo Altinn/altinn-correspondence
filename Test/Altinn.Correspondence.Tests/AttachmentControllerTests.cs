@@ -311,7 +311,6 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     {
         // Arrange
         var uploadFailsFactory = new UploadFailsWebApplicationFactory(); // Setup client which contains time delay during upload and no mock for hangfire
-        uploadFailsFactory.AddClaim("scope", "altinn:correspondence.write");
         var uploadFailsClient = uploadFailsFactory.CreateClientInternal(); // Setup client which contains time delay during upload and no mock for hangfire
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
         payload.Recipients = [payload.Recipients[0]];
