@@ -18,7 +18,7 @@ public class MigrationControllerTests : IClassFixture<CustomWebApplicationFactor
     public MigrationControllerTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
-        _client = _factory.CreateClientInternal();
+        _client = _factory.CreateClientWithAddedClaims(("scope", "altinn:correspondence.migrate"));
         _responseSerializerOptions = new JsonSerializerOptions(new JsonSerializerOptions()
         {
             PropertyNameCaseInsensitive = true
