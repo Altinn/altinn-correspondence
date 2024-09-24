@@ -1,9 +1,9 @@
 {
 	"info": {
-		"_postman_id": "c4269116-0793-4c00-9f83-3c5834aee791",
-		"name": "Altinn.Correspondence.API",
+		"_postman_id": "94617cbd-7820-4fc7-a445-38085a107d32",
+		"name": "Altinn.Correspondence.API Copy",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "1775784"
+		"_exporter_id": "34552244"
 	},
 	"item": [
 		{
@@ -304,7 +304,7 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "{{baseUrl}}/correspondence/api/v1attachment/{{attachmentId}}/download",
+																	"raw": "{{baseUrl}}/correspondence/api/v1/attachment/{{attachmentId}}/download",
 																	"host": [
 																		"{{baseUrl}}"
 																	],
@@ -828,8 +828,8 @@
 																},
 																{
 																	"key": "Attachments",
-																	"type": "file",
-																	"src": ""
+																	"value": "",
+																	"type": "file"
 																},
 																{
 																	"key": "existingAttachments[0]",
@@ -994,7 +994,8 @@
 																}
 															]
 														}
-													]
+													],
+													"description": "Details is available for both sender and recipient. The recipient can only retrieve details if the correspondence is Published. For each of the roles, the correct token must be used.\n\nAs recipient, the correspondence must also have the org number of the \"Recipient\" field be equal to the consumer. In this case it is 0192:991825827 (Digitaliseringsdirektoratet)"
 												},
 												{
 													"name": "archive",
