@@ -10,11 +10,11 @@ namespace Altinn.Correspondence.Core.Models.Entities
     public class CorrespondenceMigrationStatusEntity
     {
         [Key]
-        public Guid CorrespondenceId { get; set; }
+        public Guid? CorrespondenceId { get; set; }
 
-        public long Altinn2CorrespondenceId { get; set; }
+        public int? Altinn2CorrespondenceId { get; set; }
 
-        public CorrespondenceStatus Status { get; set; }
+        public CorrespondenceStatus? Status { get; set; }
 
         public List<AttachmentStatusEntity> AttachmentStatus { get; set; } = new List<AttachmentStatusEntity>();
     }
