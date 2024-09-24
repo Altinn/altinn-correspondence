@@ -59,7 +59,8 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     PropertyList = table.Column<Dictionary<string, string>>(type: "hstore", maxLength: 10, nullable: false),
                     IsReservable = table.Column<bool>(type: "boolean", nullable: true),
                     MarkedUnread = table.Column<bool>(type: "boolean", nullable: true),
-                    Created = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                    Created = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    Altinn2CorrespondenceId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -124,7 +125,8 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     SendersReference = table.Column<string>(type: "text", nullable: true),
                     RequestedSendTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     CorrespondenceId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Created = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                    Created = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    Altinn2NotificationId = table.Column<int>(type: "integer", nullable: true )
                 },
                 constraints: table =>
                 {
@@ -257,7 +259,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
-
+                
             migrationBuilder.CreateIndex(
                 name: "IX_AttachmentStatuses_AttachmentId",
                 schema: "correspondence",
