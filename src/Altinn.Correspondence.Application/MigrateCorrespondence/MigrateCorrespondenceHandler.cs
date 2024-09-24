@@ -23,13 +23,15 @@ public class MigrateCorrespondenceHandler : IHandler<MigrateCorrespondenceReques
     private readonly InitializeCorrespondenceHelper _correspondenceHelper;
     IBackgroundJobClient _backgroundJobClient;
 
-    public MigrateCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, 
-    ICorrespondenceRepository correspondenceRepository, 
-    IAttachmentRepository attachmentRepository, 
-    ICorrespondenceStatusRepository statusRepository, 
-    IEventBus eventBus, 
-    ICorrespondenceNotificationRepository notificationRepository,
-    IBackgroundJobClient backgroundJobClient)
+    public MigrateCorrespondenceHandler(
+        InitializeCorrespondenceHelper initializeCorrespondenceHelper,
+        IAltinnAuthorizationService altinnAuthorizationService, 
+        ICorrespondenceRepository correspondenceRepository, 
+        IAttachmentRepository attachmentRepository, 
+        ICorrespondenceStatusRepository statusRepository, 
+        IEventBus eventBus, 
+        ICorrespondenceNotificationRepository notificationRepository,
+        IBackgroundJobClient backgroundJobClient)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
@@ -38,7 +40,7 @@ public class MigrateCorrespondenceHandler : IHandler<MigrateCorrespondenceReques
         _backgroundJobClient = backgroundJobClient;
         _statusRepository = statusRepository;
         _notificationRepository = notificationRepository;
-        _correspondenceHelper = new InitializeCorrespondenceHelper(attachmentRepository, null, null);
+        _correspondenceHelper = initializeCorrespondenceHelper;
     }
 
     public async Task<OneOf<MigrateCorrespondenceResponse, Error>> Process(MigrateCorrespondenceRequest request, CancellationToken cancellationToken)
