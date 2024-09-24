@@ -33,7 +33,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         _logger = logger;
     }
 
-    public async Task<bool> CheckUserAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
+    public async Task<bool> CheckUserAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, bool isMigration = false)
     {
         if (_hostEnvironment.IsDevelopment())
         {
@@ -43,6 +43,10 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         if (string.IsNullOrWhiteSpace(serviceOwnerId))
         {
             return false;
+        }
+        if (isMigration)
+        {
+            return true;
         }
         var user = _httpContextAccessor.HttpContext?.User;
         if (user is null)

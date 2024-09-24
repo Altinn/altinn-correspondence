@@ -24,7 +24,7 @@ public class UploadFailsWebApplicationFactory : WebApplicationFactory<Program>
         builder.ConfigureTestServices((services) =>
         {
             var altinnAuthorizationService = new Mock<IAltinnAuthorizationService>();
-            altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>(), false)).ReturnsAsync(true);
             services.AddSingleton(altinnAuthorizationService.Object);
             services.AddSingleton<IPolicyEvaluator, MockPolicyEvaluator>();
             var storageMock = new Mock<IStorageRepository>();
