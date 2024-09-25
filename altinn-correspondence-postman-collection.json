@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "94617cbd-7820-4fc7-a445-38085a107d32",
-		"name": "Altinn.Correspondence.API Copy",
+		"name": "Altinn.Correspondence.API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "34552244"
 	},
