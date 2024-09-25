@@ -47,9 +47,9 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             return Errors.LatestStatusIsNull;
         }
-        if ((request.Status == CorrespondenceStatus.Confirmed || request.Status == CorrespondenceStatus.Read) && currentStatus!.Status < CorrespondenceStatus.Published)
+        if ((request.Status == CorrespondenceStatus.Confirmed || request.Status == CorrespondenceStatus.Read) && !currentStatus!.Status.IsAvailableForRecipient())
         {
-            return Errors.CorrespondenceNotPublished;
+            return Errors.CorrespondenceNotFound;
         }
         if (currentStatus!.Status.IsPurged())
         {
