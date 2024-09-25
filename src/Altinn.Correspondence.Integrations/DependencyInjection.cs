@@ -27,6 +27,7 @@ public static class DependencyInjection
         {
             services.AddScoped<IEventBus, ConsoleLogEventBus>();
             services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
+            services.AddScoped<IDialogportenService, DialogportenDevService>();
         }
         else
         {
