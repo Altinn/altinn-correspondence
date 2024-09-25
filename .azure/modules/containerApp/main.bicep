@@ -44,7 +44,7 @@ var containerAppEnvVars = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: environment }
   { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'application-insights-connection-string' }
   { name: 'DatabaseOptions__ConnectionString', secretRef: 'correspondence-ado-connection-string' }
-  { name: 'AttachmentStorageOptions__ConnectionString', secretRef: 'storage-connection-string'}
+  { name: 'AttachmentStorageOptions__ConnectionString', secretRef: 'storage-connection-string' }
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription_id }
   { name: 'AzureResourceManagerOptions__Location', value: 'norwayeast' }
   { name: 'AzureResourceManagerOptions__Environment', value: environment }
@@ -60,9 +60,9 @@ var containerAppEnvVars = [
   { name: 'MaskinportenSettings__ClientId', secretRef: 'maskinporten-client-id' }
   {
     name: 'MaskinportenSettings__Scope'
-    value: 'altinn:events.publish altinn:events.publish.admin altinn:register/partylookup.admin altinn:authorization/authorize.admin digdir:dialogporten.serviceprovider digdir:dialogporten.serviceprovider.admin'
+    value: 'altinn:events.publish altinn:events.publish.admin altinn:register/partylookup.admin altinn:authorization/authorize.admin altinn:serviceowner/notifications.create altinn:serviceowner/notifications.read digdir:dialogporten.serviceprovider digdir:dialogporten.serviceprovider.admin'
   }
-  { 
+  {
     name: 'MaskinportenSettings__ExhangeToAltinnToken'
     value: 'true'
   }

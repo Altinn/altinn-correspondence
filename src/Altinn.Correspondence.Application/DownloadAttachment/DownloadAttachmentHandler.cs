@@ -27,12 +27,7 @@ public class DownloadAttachmentHandler : IHandler<DownloadAttachmentRequest, Str
 
     public async Task<OneOf<Stream, Error>> Process(DownloadAttachmentRequest request, CancellationToken cancellationToken)
     {
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, cancellationToken);
-        if (correspondence is null)
-        {
-            return Errors.CorrespondenceNotFound;
-        }
-        var attachment = await _attachmentRepository.GetAttachmentByCorrespondenceIdAndAttachmentId(request.CorrespondenceId, request.AttachmentId, cancellationToken);
+        var attachment = await _attachmentRepository.GetAttachmentById(request.AttachmentId, false, cancellationToken);
         if (attachment is null)
         {
             return Errors.AttachmentNotFound;
@@ -41,17 +36,6 @@ public class DownloadAttachmentHandler : IHandler<DownloadAttachmentRequest, Str
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
-        }
-        bool isRecipient = _userClaimsHelper.GetUserID() == correspondence.Recipient;
-        bool isSender = _userClaimsHelper.GetUserID() == correspondence.Sender;
-        if (!isRecipient && !isSender)
-        {
-            return Errors.CorrespondenceNotFound;
-        }
-        var latestStatus = correspondence.GetLatestStatus();
-        if (isRecipient && !latestStatus.Status.IsAvailableForRecipient())
-        {
-            return Errors.CorrespondenceNotFound;
         }
         var attachmentStream = await _storageRepository.DownloadAttachment((Guid)attachment.Id, cancellationToken);
         return attachmentStream;

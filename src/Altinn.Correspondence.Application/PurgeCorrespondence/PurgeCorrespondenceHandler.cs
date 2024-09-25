@@ -1,9 +1,10 @@
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Altinn.Notifications;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.PurgeCorrespondence;
@@ -11,6 +12,7 @@ namespace Altinn.Correspondence.Application.PurgeCorrespondence;
 public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
+    private readonly IAltinnNotificationService _altinnNotificationService;
     private readonly IAttachmentRepository _attachmentRepository;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository;
     private readonly ICorrespondenceRepository _correspondenceRepository;
@@ -19,9 +21,10 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
     private readonly IEventBus _eventBus;
     private readonly UserClaimsHelper _userClaimsHelper;
 
-    public PurgeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus, UserClaimsHelper userClaimsHelper)
+    public PurgeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus, UserClaimsHelper userClaimsHelper, IAltinnNotificationService altinnNotificationService)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
+        _altinnNotificationService = altinnNotificationService;
         _attachmentRepository = attachmentRepository;
         _correspondenceRepository = correspondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
@@ -34,7 +37,14 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
     public async Task<OneOf<Guid, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
     {
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, cancellationToken);
-        if (correspondence == null) return Errors.CorrespondenceNotFound;
+        if (correspondence == null) 
+        {
+            return Errors.CorrespondenceNotFound;
+        }
+        if (!_userClaimsHelper.IsAffiliatedWithCorrespondence(correspondence.Recipient, correspondence.Sender))
+        {
+            return Errors.CorrespondenceNotFound;
+        }
         var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Open }, cancellationToken);
         if (!hasAccess)
         {
@@ -45,12 +55,6 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
         {
             return Errors.CorrespondenceAlreadyPurged;
         }
-        
-        string orgNo = _userClaimsHelper.GetUserID();
-        if (orgNo is null)
-        {
-            return Errors.CouldNotFindOrgNo;
-        }
 
         var latestStatus = correspondence.GetLatestStatus();
         if (latestStatus == null)
@@ -60,9 +64,9 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
 
         var newStatus = new CorrespondenceStatusEntity();
 
-        if (correspondence.Sender == orgNo)
+        if (_userClaimsHelper.IsSender(correspondence.Sender))
         {
-            if (latestStatus.Status >= CorrespondenceStatus.Published && latestStatus.Status != CorrespondenceStatus.Failed)
+            if (!latestStatus.Status.IsPurgeableForSender())
             {
                 return Errors.CantPurgeCorrespondenceSender;
             }
@@ -75,9 +79,9 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
                 StatusText = CorrespondenceStatus.PurgedByAltinn.ToString()
             };
         }
-        else if (correspondence.Recipient == orgNo)
+        else if (_userClaimsHelper.IsRecipient(correspondence.Recipient))
         {
-            if (latestStatus.Status < CorrespondenceStatus.Published)
+            if (!latestStatus.Status.IsAvailableForRecipient())
             {
                 return Errors.CantPurgeCorrespondenceRecipient;
             }
@@ -89,14 +93,14 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
                 StatusText = CorrespondenceStatus.PurgedByRecipient.ToString()
             };
         }
-        else
-        {
-            return Errors.CantPurgeCorrespondence;
-        }
 
         await _eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         await _correspondenceStatusRepository.AddCorrespondenceStatus(newStatus, cancellationToken);
         await CheckAndPurgeAttachments(correspondenceId, cancellationToken);
+        foreach (var notification in correspondence.Notifications)
+        {
+            if (notification.RequestedSendTime > DateTimeOffset.UtcNow) await _altinnNotificationService.CancelNotification(notification.NotificationOrderId.ToString(), cancellationToken);
+        }
         return correspondenceId;
     }
 

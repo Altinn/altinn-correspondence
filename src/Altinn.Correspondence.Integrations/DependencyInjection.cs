@@ -7,6 +7,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Altinn.Correspondence.Integrations.Altinn.Events;
+using Altinn.Correspondence.Integrations.Altinn.Notifications;
 using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 using Microsoft.Extensions.Configuration;
@@ -25,6 +26,7 @@ public static class DependencyInjection
         if (hostEnvironment.IsDevelopment())
         {
             services.AddScoped<IEventBus, ConsoleLogEventBus>();
+            services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
         }
         else
         {
@@ -51,6 +53,10 @@ public static class DependencyInjection
             services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(IDialogportenService).FullName, maskinportenSettings);
             services.AddHttpClient<IDialogportenService, DialogportenService>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
                 .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IDialogportenService>();
+
+            services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(IAltinnNotificationService).FullName, maskinportenSettings);
+            services.AddHttpClient<IAltinnNotificationService, AltinnNotificationService>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
+                    .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IAltinnNotificationService>();
         }
     }
 }

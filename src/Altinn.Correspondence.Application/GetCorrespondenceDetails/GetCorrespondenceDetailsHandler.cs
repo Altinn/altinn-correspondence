@@ -1,6 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
@@ -34,17 +33,22 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
         {
             return Errors.NoAccessToResource;
         }
+        if (!_userClaimsHelper.IsAffiliatedWithCorrespondence(correspondence.Recipient, correspondence.Sender))
+        {
+            return Errors.CorrespondenceNotFound;
+        }
         var latestStatus = correspondence.GetLatestStatus();
         if (latestStatus == null)
         {
             return Errors.CorrespondenceNotFound;
         }
 
-        var userOrgNo = _userClaimsHelper.GetUserID();
-        bool isRecipient = correspondence.Recipient == userOrgNo;
-
-        if (isRecipient && latestStatus.Status >= CorrespondenceStatus.Published)
+        if (_userClaimsHelper.IsRecipient(correspondence.Recipient))
         {
+            if (!latestStatus.Status.IsAvailableForRecipient())
+            {
+                return Errors.CorrespondenceNotFound;
+            }
             await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
             {
                 CorrespondenceId = correspondence.Id,
@@ -53,7 +57,6 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
                 StatusChanged = DateTime.Now
             }, cancellationToken);
         }
-
         var response = new GetCorrespondenceDetailsResponse
         {
             CorrespondenceId = correspondence.Id,

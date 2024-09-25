@@ -31,7 +31,7 @@ internal static class InitializeCorrespondenceFactory
             },
             VisibleFrom = DateTimeOffset.UtcNow,
             AllowSystemDeleteAfter = DateTimeOffset.UtcNow.AddDays(3),
-            DueDateTime= DateTimeOffset.UtcNow.AddDays(2),
+            DueDateTime = DateTimeOffset.UtcNow.AddDays(2),
             ExternalReferences = new List<ExternalReferenceExt>(){
                 new ExternalReferenceExt()
                 {
@@ -61,13 +61,14 @@ internal static class InitializeCorrespondenceFactory
                     LinkText = "test"
                 }
             },
-            Notifications = new List<InitializeCorrespondenceNotificationExt>(){
-                new InitializeCorrespondenceNotificationExt(){
-                    NotificationTemplate= "test",
-                    CustomTextToken = "test",
-                    SendersReference = "0192:986252932",
-                    RequestedSendTime =  DateTime.UtcNow.AddDays(1),
-                }
+            Notification = new InitializeCorrespondenceNotificationExt()
+            {
+                NotificationTemplate = 0,
+                NotificationChannel = 0,
+                EmailBody = "test notification",
+                SendersReference = "0192:986252932",
+                RequestedSendTime = DateTime.UtcNow.AddDays(1),
+                SendReminder = true,
             },
             IsReservable = true
         },

@@ -1,7 +1,7 @@
 using Altinn.Correspondence.Core.Models.Enums;
 using System.ComponentModel.DataAnnotations;
 
-namespace Altinn.Correspondence.Core.Models
+namespace Altinn.Correspondence.Core.Models.Entities
 {
     public class AttachmentEntity
     {

@@ -92,9 +92,8 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Notifications directly related to this Correspondence.
         /// </summary>
-        [JsonPropertyName("notifications")]
-        [MaxLength(6, ErrorMessage = "Notifications can contain at most 6 notifcations")]
-        public List<InitializeCorrespondenceNotificationExt> Notifications { get; set; } = new List<InitializeCorrespondenceNotificationExt>();
+        [JsonPropertyName("notification")]
+        public InitializeCorrespondenceNotificationExt? Notification { get; set; }
 
         /// <summary>
         /// Specifies whether the correspondence can override reservation against digital comminication in KRR

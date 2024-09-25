@@ -1,4 +1,4 @@
-using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Entities;
 
 namespace Altinn.Correspondence.Core.Repositories
 {

@@ -1,4 +1,4 @@
-using Altinn.Correspondence.Core.Models;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 namespace Altinn.Correspondence.Application.Helpers;
 public static class CorrespondenceStatusExtensions
@@ -23,4 +23,13 @@ public static class CorrespondenceStatusExtensions
         ];
         return validStatuses.Contains(correspondenceStatus);
     }
+    public static bool IsPurgeableForSender(this CorrespondenceStatus correspondenceStatus)
+    {
+        List<CorrespondenceStatus> validStatuses =
+        [
+            CorrespondenceStatus.Initialized, CorrespondenceStatus.ReadyForPublish, CorrespondenceStatus.Failed,
+        ];
+        return validStatuses.Contains(correspondenceStatus);
+    }
+
 }
