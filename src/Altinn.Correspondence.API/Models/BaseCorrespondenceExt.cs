@@ -71,7 +71,6 @@ namespace Altinn.Correspondence.API.Models
         /// Examples include Altinn App instances, Altinn Broker File Transfers
         /// </summary>
         /// <remarks>
-        /// TODO: Do we need this on Attachments for DialogPorten etc?
         /// </remarks>
         [JsonPropertyName("externalReferences")]
         [ExternalReferences]
