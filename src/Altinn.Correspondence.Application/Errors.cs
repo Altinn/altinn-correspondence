@@ -42,4 +42,6 @@ public static class Errors
     public static Error CorrespondenceFailedDuringUpload = new Error(34, "Correspondence status failed during uploading of attachment", HttpStatusCode.BadRequest);
     public static Error LatestStatusIsNull = new Error(35, "Could not retrieve latest status for correspondence", HttpStatusCode.BadRequest);
     public static Error InvalidSender = new Error(36, "Creator of correspondence must be the sender", HttpStatusCode.BadRequest);
+    public static Error IsRecipientIsRequired = new Error(37, "The isRecipient field is required", HttpStatusCode.BadRequest);
+    public static Error IsSenderIsRequired = new Error(38, "The isSender field is required", HttpStatusCode.BadRequest);
 }
