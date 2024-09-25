@@ -3,6 +3,7 @@ using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Helpers;
+using Altinn.Correspondence.Application.Configuration;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
@@ -23,8 +24,8 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     public AttachmentControllerTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
-        _senderClient = factory.CreateClientWithAddedClaims(("scope", "altinn:correspondence.write"));
-        _recipientClient = factory.CreateClientWithAddedClaims(("scope", "altinn:correspondence.read"));
+        _senderClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+        _recipientClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.RecipientScope));
 
         _responseSerializerOptions = new JsonSerializerOptions(new JsonSerializerOptions()
         {

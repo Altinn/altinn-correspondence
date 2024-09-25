@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
+using Altinn.Correspondence.Application.Configuration;
 using Microsoft.AspNetCore.Http;
 
 namespace Altinn.Correspondence.Application.Helpers
@@ -8,8 +9,6 @@ namespace Altinn.Correspondence.Application.Helpers
     {
         private readonly ClaimsPrincipal _user;
         private readonly IEnumerable<Claim> _claims;
-        private const string _recipientScope = "altinn:correspondence.read";
-        private const string _senderScope = "altinn:correspondence.write";
         private const string _scopeClaim = "scope";
         private const string _consumerClaim = "consumer";
         private const string _IdProperty = "ID";
@@ -26,13 +25,13 @@ namespace Altinn.Correspondence.Application.Helpers
         public bool IsRecipient(string recipientId)
         {
             if (GetUserID() != recipientId) return false;
-            if (!GetUserScope().Any(scope => scope.Value == _recipientScope)) return false;
+            if (!GetUserScope().Any(scope => scope.Value == AuthorizationConstants.RecipientScope)) return false;
             return true;
         }
         public bool IsSender(string senderId)
         {
             if (GetUserID() != senderId) return false;
-            if (!GetUserScope().Any(scope=> scope.Value == _senderScope)) return false;
+            if (!GetUserScope().Any(scope=> scope.Value == AuthorizationConstants.SenderScope)) return false;
             return true;
         }
         public string? GetUserID()
