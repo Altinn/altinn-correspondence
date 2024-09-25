@@ -19,7 +19,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
             {
                 return query.Where(c => c.Recipient == orgNo);
             }
-            return Enumerable.Empty<CorrespondenceEntity>().AsQueryable();
+            return query.Where(c => false); //TODO ask: return all or nothing if both are false?
         }
 
         public static IQueryable<CorrespondenceEntity> FilterByStatus(this IQueryable<CorrespondenceEntity> query, CorrespondenceStatus? status, string orgNo, bool isSender, bool isRecipient)
@@ -60,7 +60,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
             {
                 return query.Where(c => c.Recipient == orgNo && !blacklistRecipient.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status));
             }
-            return Enumerable.Empty<CorrespondenceEntity>().AsQueryable();
+            return query.Where(c => false); //TODO ask: return all or nothing if both are false?
         }
     }
 }
