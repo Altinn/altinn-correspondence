@@ -362,22 +362,79 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceA}&offset={0}&limit={10}&status={0}&isSender={true}&isRecipient={true}");
         Assert.Equal(correspondenceList?.Pagination.TotalItems, payloadForResourceA.Recipients.Count);
     }
+
     [Fact]
-    public async Task GetCorrespondences_WithoutStatusSpecified_ReturnsAll()
+    public async Task GetCorrespondences_When_IsSender_Or_IsRecipient_Specified_ReturnsSpecifiedCorrespondences()
     {
         // Arrange
         var resource = Guid.NewGuid().ToString();
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        var recipientId = "0192:000000000";
+        var senderId = "0192:111111111";
+        var externalId = "0192:222222222";
+
+        // Create correspondence as Sender with recipientId amongst recipients
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments();
         payload.Correspondence.ResourceId = resource;
+        payload.Correspondence.Sender = senderId;
+        payload.Recipients = [recipientId, "0192:123456789", "0192:321654987"];
+        var senderClient = _factory.CreateClientWithAddedClaims(
+            ("consumer", $"{{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"{senderId}\"}}"),
+            ("scope", AuthorizationConstants.SenderScope)
+        );
+        var initResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+        Assert.True(initResponse.IsSuccessStatusCode, await initResponse.Content.ReadAsStringAsync());
+
+        // Create some correspondences with External sender with senderId and recipientId amongst recipients
+        var externalPayload = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments();
+        externalPayload.Correspondence.ResourceId = resource;
+        externalPayload.Correspondence.Sender = externalId;
+        externalPayload.Recipients = [senderId, recipientId, "0192:864231509"];
+        var externalClient = _factory.CreateClientWithAddedClaims(
+            ("consumer", $"{{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"{externalId}\"}}"),
+            ("scope", AuthorizationConstants.SenderScope)
+        );
+        var externalInitResponse = await externalClient.PostAsJsonAsync("correspondence/api/v1/correspondence", externalPayload);
+        Assert.True(externalInitResponse.IsSuccessStatusCode, await externalInitResponse.Content.ReadAsStringAsync());
+
+        // Create recipient client to retrieve correspondences with correct ID
+        var recipientIdClient = _factory.CreateClientWithAddedClaims(
+            ("consumer", $"{{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"{recipientId}\"}}"),
+            ("scope", AuthorizationConstants.RecipientScope)
+        );
 
         // Act
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
-        var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10");
+        var correspondencesSender = await senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&isSender={true}&isRecipient={false}");
+        var correspondencesRecipient = await recipientIdClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&isSender={false}&isRecipient={true}");
+        var correspondencesSenderAndRecipient = await senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&isSender={true}&isRecipient={true}");
 
         // Assert
-        var expected = payload.Recipients.Count;
-        Assert.Equal(correspondenceList?.Pagination.TotalItems, expected);
+        var expectedIsSender = payload.Recipients.Count;
+        Assert.Equal(expectedIsSender, correspondencesSender?.Pagination.TotalItems);
+        var expectedIsRecipient = payload.Recipients.Where(r => r == recipientId).Count() + externalPayload.Recipients.Where(r => r == recipientId).Count();
+        Assert.Equal(expectedIsRecipient, correspondencesRecipient?.Pagination.TotalItems);
+        var expectedIsSenderAndIsRecipient = expectedIsSender + externalPayload.Recipients.Where(r => r == senderId).Count();
+        Assert.Equal(expectedIsSenderAndIsRecipient, correspondencesSenderAndRecipient?.Pagination.TotalItems);
+    }
+
+    [Fact]
+    public async Task GetCorrespondences_WithStatusSpecified_ShowsSpecifiedCorrespondences()
+    {
+        // Arrange
+        var resourceId = Guid.NewGuid().ToString();
+        var initializedCorrespondences = InitializeCorrespondenceFactory.BasicCorrespondences();
+        initializedCorrespondences.Correspondence.ResourceId = resourceId;
+        await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", initializedCorrespondences);
+        var publishedCorrespondences = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments();
+        publishedCorrespondences.Correspondence.ResourceId = resourceId;
+        await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", publishedCorrespondences);
+
+        // Act
+        var responseWithInitialized = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&offset=0&limit=10&status={0}&isSender={true}&isRecipient={false}");
+        var responseWithPublished = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&offset=0&limit=10&status={2}&isSender={true}&isRecipient={false}");
+
+        // Assert
+        Assert.Equal(initializedCorrespondences.Recipients.Count, responseWithInitialized?.Pagination.TotalItems);
+        Assert.Equal(publishedCorrespondences.Recipients.Count, responseWithPublished?.Pagination.TotalItems);
     }
     [Fact]
     public async Task GetCorrespondences_WithoutStatusSpecified_AsReceiver_ReturnsAllExceptBlacklisted()
