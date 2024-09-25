@@ -28,7 +28,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
             services.AddSingleton(altinnAuthorizationService.Object);
             services.AddSingleton<IPolicyEvaluator, MockPolicyEvaluator>();
-            
         });
 
     }

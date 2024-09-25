@@ -21,6 +21,6 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
 
         public required NotificationChannel NotificationChannel { get; set; }
 
-        public DateTimeOffset RequestedSendTime { get; set; }
+        public DateTimeOffset? RequestedSendTime { get; set; }
     }
 }

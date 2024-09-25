@@ -1,8 +1,4 @@
-using System.Net.Http.Json;
-using Altinn.Correspondence.Repositories;
 using Altinn.Correspondence.Core.Options;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Altinn.Correspondence.Core.Repositories;
@@ -32,23 +28,14 @@ public class AltinnDevNotificationService : IAltinnNotificationService
         return true;
     }
 
-    public async Task<NotificationOrderWithStatus> GetNotificationDetails(string orderId, CancellationToken cancellationToken = default)
+    public async Task<NotificationStatusResponse> GetNotificationDetails(string orderId, CancellationToken cancellationToken = default)
     {
-        return new NotificationOrderWithStatus
+        return new NotificationStatusResponse
         {
             Created = DateTime.UtcNow,
             Creator = "Altinn",
             Id = orderId,
-            NotificationChannel = NotificationChannel.Email,
-            NotificationsStatusSummary = new NotificationsStatusSummary()
-            {
-                Email = new EmailNotificationStatusExt()
-                {
-                    Generated = 1,
-                    Succeeded = 1,
-                }
-            }
-
+            NotificationChannel = NotificationChannel.Email
         };
     }
 }

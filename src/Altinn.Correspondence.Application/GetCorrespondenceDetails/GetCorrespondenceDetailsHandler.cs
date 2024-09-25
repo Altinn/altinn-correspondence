@@ -1,7 +1,7 @@
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
 
@@ -10,13 +10,15 @@ namespace Altinn.Correspondence.Application.GetCorrespondenceDetails;
 public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceDetailsResponse>
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
+    private readonly IAltinnNotificationService _altinnNotificationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly UserClaimsHelper _userClaimsHelper;
 
-    public GetCorrespondenceDetailsHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, UserClaimsHelper userClaimsHelper)
+    public GetCorrespondenceDetailsHandler(IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, UserClaimsHelper userClaimsHelper)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
+        _altinnNotificationService = altinnNotificationService;
         _correspondenceRepository = correspondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
         _userClaimsHelper = userClaimsHelper;
@@ -53,6 +55,18 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
                 StatusChanged = DateTime.Now
             }, cancellationToken);
         }
+        var notificationHistory = new List<NotificationStatusResponse>();
+        if (correspondence.Notifications.Count != 0)
+        {
+            foreach (var notification in correspondence.Notifications)
+            {
+                if (notification.NotificationOrderId != null)
+                {
+                    var notificationSummary = await _altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString());
+                    notificationHistory.Add(notificationSummary);
+                }
+            }
+        }
 
         var response = new GetCorrespondenceDetailsResponse
         {
@@ -67,7 +81,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
             Recipient = correspondence.Recipient,
             Content = correspondence.Content!,
             ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
-            Notifications = correspondence.Notifications ?? new List<CorrespondenceNotificationEntity>(),
+            Notifications = notificationHistory,
             StatusHistory = correspondence.Statuses?.OrderBy(s => s.StatusChanged).ToList() ?? new List<CorrespondenceStatusEntity>(),
             ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
             ResourceId = correspondence.ResourceId,

@@ -8,6 +8,6 @@ public interface IAltinnNotificationService
 
     Task<bool> CancelNotification(string orderId, CancellationToken cancellationToken = default);
 
-    Task<NotificationOrderWithStatus> GetNotificationDetails(string orderId, CancellationToken cancellationToken = default);
+    Task<NotificationStatusResponse> GetNotificationDetails(string orderId, CancellationToken cancellationToken = default);
 }
 

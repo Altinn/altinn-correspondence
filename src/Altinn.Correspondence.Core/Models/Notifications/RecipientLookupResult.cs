@@ -4,6 +4,7 @@ namespace Altinn.Correspondence.Core.Models.Notifications;
 
 public class RecipientLookupResult
 {
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public RecipientLookupStatus Status { get; set; }
 
     public List<string>? IsReserved { get; set; }

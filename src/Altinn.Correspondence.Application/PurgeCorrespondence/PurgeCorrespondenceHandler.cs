@@ -102,7 +102,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
         await CheckAndPurgeAttachments(correspondenceId, cancellationToken);
         foreach (var notification in correspondence.Notifications)
         {
-            if (notification.RequestedSendTime > DateTimeOffset.UtcNow) await _altinnNotificationService.CancelNotification(notification.NotificationOrderId.ToString(), cancellationToken);
+            if (notification.RequestedSendTime > DateTimeOffset.UtcNow && notification.NotificationOrderId != null) await _altinnNotificationService.CancelNotification(notification.NotificationOrderId.ToString(), cancellationToken);
         }
         return correspondenceId;
     }

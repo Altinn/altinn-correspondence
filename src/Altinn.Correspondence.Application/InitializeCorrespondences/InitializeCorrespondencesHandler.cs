@@ -151,7 +151,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                         NotificationTemplate = request.Notification.NotificationTemplate,
                         CorrespondenceId = correspondence.Id,
                         NotificationOrderId = orderId,
-                        RequestedSendTime = request.Notification.RequestedSendTime,
+                        RequestedSendTime = notification.RequestedSendTime ?? DateTimeOffset.UtcNow,
                     };
                     await _correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
                 }
@@ -167,13 +167,19 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
     private List<NotificationOrderRequest> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence)
     {
         var notifications = new List<NotificationOrderRequest>();
+
         var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
+        var organizationWithPrefixFormat = new Regex(@"^\d{4}:\d{9}$");
         var personFormat = new Regex(@"^\d{11}$");
         string? orgNr = null;
         string? personNr = null;
         if (organizationWithoutPrefixFormat.IsMatch(correspondence.Recipient))
         {
             orgNr = correspondence.Recipient;
+        }
+        else if (organizationWithPrefixFormat.IsMatch(correspondence.Recipient))
+        {
+            orgNr = correspondence.Recipient.Substring(5);
         }
         else if (personFormat.IsMatch(correspondence.Recipient))
         {
@@ -189,7 +195,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             },
         },
             ResourceId = correspondence.ResourceId,
-            RequestedSendTime = correspondence.VisibleFrom.DateTime,
+            RequestedSendTime = DateTime.UtcNow,
             ConditionEndpoint = null, // TODO: Implement condition endpoint
             SendersReference = correspondence.SendersReference,
             NotificationChannel = notification.NotificationChannel,
@@ -197,12 +203,10 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             {
                 Subject = notification.EmailSubject,
                 Body = notification.EmailBody,
-                FromAddress = "test@altinn.no" // todo: fix correct sender
             },
             SmsTemplate = new SmsTemplate
             {
                 Body = notification.SmsBody,
-                SenderNumber = "12345" /// todo: get correct number
 
             }
         };
@@ -227,12 +231,10 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 {
                     Subject = notification.ReminderEmailSubject,
                     Body = notification.ReminderEmailBody,
-                    FromAddress = "noreply@altinn.no"
                 },
                 SmsTemplate = new SmsTemplate
                 {
                     Body = notification.ReminderSmsBody,
-                    SenderNumber = "12345" /// todo: get correct number
                 }
             });
         }

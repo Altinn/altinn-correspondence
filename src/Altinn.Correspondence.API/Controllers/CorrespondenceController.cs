@@ -6,13 +6,14 @@ using Altinn.Correspondence.Application.DownloadAttachment;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
-using Altinn.Correspondence.Application.GetNotificationDetails;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 using Altinn.Correspondence.Application.UpdateMarkAsUnread;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Helpers;
+using Altinn.Correspondence.Integrations.Altinn.Notifications;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -342,23 +343,6 @@ namespace Altinn.Correspondence.API.Controllers
                 result => File(result, "application/octet-stream"),
                 Problem
             );
-        }
-
-        /// <summary> 
-        /// Get notification details from Altinn Notifications
-        /// </summary> 
-        [HttpGet("{correspondenceId}/notifications")]
-        [Authorize(Policy = AuthorizationConstants.Sender)]
-        public async Task<ActionResult> GetNotificationDetails(
-            Guid correspondenceId,
-            [FromServices] GetNotificationDetailsHandler handler,
-            CancellationToken cancellationToken)
-        {
-            var commandResult = await handler.Process(correspondenceId, cancellationToken);
-            return commandResult.Match(
-           data => Ok(data),
-           Problem
-       );
         }
 
         private ActionResult Problem(Error error) => Problem(detail: error.Message, statusCode: (int)error.StatusCode);

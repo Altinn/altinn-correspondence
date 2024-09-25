@@ -83,6 +83,6 @@ namespace Altinn.Correspondence.API.Models
         /// The date and time for when the notification should be sent.
         /// </summary>
         [JsonPropertyName("requestedSendTime")]
-        public DateTimeOffset RequestedSendTime { get; set; }
+        public DateTimeOffset? RequestedSendTime { get; set; }
     }
 }

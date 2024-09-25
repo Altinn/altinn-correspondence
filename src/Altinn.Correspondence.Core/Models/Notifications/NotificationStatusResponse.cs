@@ -3,7 +3,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Core.Models.Notifications;
 
-public class NotificationOrderWithStatus
+public class NotificationStatusResponse
 {
     [JsonPropertyName("id")]
     public string Id { get; set; } = string.Empty;
@@ -30,12 +30,9 @@ public class NotificationOrderWithStatus
     [JsonPropertyName("resourceId")]
     public string? ResourceId { get; set; }
 
-    [JsonPropertyName("conditionEndpoint")]
-    public Uri? ConditionEndpoint { get; set; }
-
     [JsonPropertyName("processingStatus")]
     public StatusExt ProcessingStatus { get; set; } = new();
 
     [JsonPropertyName("notificationsStatusSummary")]
-    public NotificationsStatusSummary? NotificationsStatusSummary { get; set; }
+    public NotificationsStatusDetails? NotificationsStatusDetails { get; set; }
 }
