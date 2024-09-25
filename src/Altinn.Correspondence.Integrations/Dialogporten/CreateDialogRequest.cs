@@ -16,6 +16,9 @@ public class CreateDialogRequest
     [JsonPropertyName("progress")]
     public int? Progress { get; set; }
 
+    [JsonPropertyName("process")]
+    public string? Process { get; set; }
+
     [JsonPropertyName("extendedStatus")]
     public string? ExtendedStatus { get; set; }
 

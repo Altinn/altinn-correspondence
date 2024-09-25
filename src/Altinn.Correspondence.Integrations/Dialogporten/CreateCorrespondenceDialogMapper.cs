@@ -13,6 +13,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 Party = "urn:altinn:organization:identifier-no:" + organizationNo,
                 CreatedAt = correspondence.Created,
                 VisibleFrom = correspondence.VisibleFrom,
+                Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenProcessId)?.ReferenceValue,
                 ExpiresAt = correspondence.AllowSystemDeleteAfter,
                 DueAt = correspondence.DueDateTime != default ? correspondence.DueDateTime : null,
                 Status = "New",

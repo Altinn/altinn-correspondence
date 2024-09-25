@@ -41,7 +41,7 @@ internal static class InitializeCorrespondenceFactory
                 new ExternalReferenceExt()
                 {
                     ReferenceValue = "2",
-                    ReferenceType = ReferenceTypeExt.DialogPortenDialogID
+                    ReferenceType = ReferenceTypeExt.DialogportenProcessId
                 }
             },
             PropertyList = new Dictionary<string, string>(){

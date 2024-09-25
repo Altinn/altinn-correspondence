@@ -132,7 +132,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         foreach (var correspondence in correspondences)
         {
             var dialogId = await _dialogportenService.CreateCorrespondenceDialog(correspondence.Id, cancellationToken);
-            await _correspondenceRepository.AddExternalReference(correspondence.Id, ReferenceType.DialogPortenDialogElementID, dialogId, cancellationToken);
+            await _correspondenceRepository.AddExternalReference(correspondence.Id, ReferenceType.DialogportenDialogId, dialogId, cancellationToken);
             if (correspondence.GetLatestStatus()?.Status != CorrespondenceStatus.Published) { 
                 _backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.VisibleFrom);
             }
