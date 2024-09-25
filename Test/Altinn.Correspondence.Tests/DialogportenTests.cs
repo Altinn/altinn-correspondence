@@ -1,5 +1,7 @@
-﻿using Altinn.Correspondence.Core.Services;
+﻿using Altinn.Correspondence.Application.Configuration;
+using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Net.Http.Json;
@@ -17,13 +19,13 @@ public class DialogportenTests
         mockDialogportenService
             .Setup(x => x.CreateCorrespondenceDialog(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("mocked-dialog-id");
-        var testFactory = new CustomWebApplicationFactory((IServiceCollection services) =>
+        var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
         {
             services.AddSingleton(mockDialogportenService.Object);
         });
 
         var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
-        var testClient = testFactory.CreateDefaultClient();
+        var testClient = testFactory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
 
         // Act
         var initializeCorrespondenceResponse = await testClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);

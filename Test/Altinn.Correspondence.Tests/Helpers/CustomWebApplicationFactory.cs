@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Helpers;
@@ -10,15 +9,14 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using System.Security.Claims;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
-    private Action<IServiceCollection> _customServices;
 
-    public CustomWebApplicationFactory(Action<IServiceCollection> customServices)
+    public CustomWebApplicationFactory()
     {
-        _customServices = customServices;
     }
 
     protected override void ConfigureWebHost(
@@ -35,7 +33,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             var altinnAuthorizationService = new Mock<IAltinnAuthorizationService>();
             altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
             services.AddSingleton(altinnAuthorizationService.Object);
-            _customServices(services);
         });
     }
     public HttpClient CreateClientWithAddedClaims(params (string type, string value)[] claims)
