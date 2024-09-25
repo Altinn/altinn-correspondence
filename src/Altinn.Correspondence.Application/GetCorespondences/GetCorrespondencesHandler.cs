@@ -39,7 +39,7 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
         {
             return Errors.CouldNotFindOrgNo;
         }
-        var correspondences = await _correspondenceRepository.GetCorrespondences(request.ResourceId, request.Offset, limit, from, to, request.Status, orgNo, cancellationToken);
+        var correspondences = await _correspondenceRepository.GetCorrespondences(request.ResourceId, request.Offset, limit, from, to, request.Status, orgNo, request.IsSender, request.IsRecipient, cancellationToken);
 
         var response = new GetCorrespondencesResponse
         {

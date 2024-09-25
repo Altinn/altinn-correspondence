@@ -17,6 +17,8 @@ namespace Altinn.Correspondence.Core.Repositories
             DateTimeOffset? to,
             CorrespondenceStatus? status,
             string orgNo,
+            bool isSender,
+            bool isRecipient,
             CancellationToken cancellationToken);
 
         Task<CorrespondenceEntity?> GetCorrespondenceById(

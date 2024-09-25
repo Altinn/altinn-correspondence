@@ -31,14 +31,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
             DateTimeOffset? to,
             CorrespondenceStatus? status,
             string orgNo,
+            bool isSender,
+            bool isRecipient,
             CancellationToken cancellationToken)
         {
             var correspondences = _context.Correspondences
                 .Where(c => c.ResourceId == resourceId)             // Correct id
                 .Where(c => from == null || c.VisibleFrom > from)   // From date filter
                 .Where(c => to == null || c.VisibleFrom < to)       // To date filter
+                .FilterBySenderOrRecipient(orgNo, isSender, isRecipient)
+                .FilterByStatus(status, orgNo, isSender, isRecipient)                   // Filter by status
                 .OrderByDescending(c => c.VisibleFrom)              // Sort by visibleFrom
-                .WithValidStatuses(status, orgNo)                   // Filter by status
                 .Select(c => c.Id);
 
             var totalItems = await correspondences.CountAsync(cancellationToken);

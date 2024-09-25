@@ -13,5 +13,6 @@ public class GetCorrespondencesRequest
     public DateTimeOffset? To { get; set; }
 
     public CorrespondenceStatus? Status { get; set; }
-
+    public bool IsSender {get; set; }
+    public bool IsRecipient {get; set; }
 }
