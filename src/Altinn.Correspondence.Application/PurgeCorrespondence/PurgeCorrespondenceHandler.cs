@@ -66,7 +66,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
 
         if (_userClaimsHelper.IsSender(correspondence.Sender))
         {
-            if (!latestStatus.Status.IsAvailableForSender())
+            if (!latestStatus.Status.IsPurgeableForSender())
             {
                 return Errors.CantPurgeCorrespondenceSender;
             }

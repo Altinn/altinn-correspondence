@@ -23,7 +23,7 @@ public static class CorrespondenceStatusExtensions
         ];
         return validStatuses.Contains(correspondenceStatus);
     }
-    public static bool IsAvailableForSender(this CorrespondenceStatus correspondenceStatus)
+    public static bool IsPurgeableForSender(this CorrespondenceStatus correspondenceStatus)
     {
         List<CorrespondenceStatus> validStatuses =
         [
