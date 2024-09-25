@@ -37,20 +37,4 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
         return dialogResponse;
     }
-
-    public async Task CreateCorrespondenceStatusUpdateDialogActivity(Guid correspondenceId, CorrespondenceStatus status, CancellationToken cancellationToken = default)
-    {
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
-        if (correspondence is null)
-        {
-            _logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
-            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
-        }
-        var partyId = await _altinnRegisterService.LookUpPartyId(correspondence.Sender, cancellationToken);
-        if (partyId is null)
-        {
-            throw new ArgumentException($"Could not find partyId for organization {correspondence.Sender}", nameof(correspondence.Sender));
-        }
-        throw new NotImplementedException();
-    }
 }
