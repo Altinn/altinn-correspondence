@@ -15,10 +15,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
 
-    public CustomWebApplicationFactory()
-    {
-    }
-
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)
     {
