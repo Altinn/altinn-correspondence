@@ -35,7 +35,34 @@ public class AltinnDevNotificationService : IAltinnNotificationService
             Created = DateTime.UtcNow,
             Creator = "Altinn",
             Id = orderId,
-            NotificationChannel = NotificationChannel.Email
+            NotificationChannel = NotificationChannel.Email,
+            IgnoreReservation = false,
+            NotificationsStatusDetails = new NotificationsStatusDetails
+            {
+                Email = new EmailNotificationWithResult
+                {
+                    Id = new Guid(),
+                    Recipient = new Recipient
+                    {
+                        EmailAddress = "test@test.no",
+                    },
+                    SendStatus = new StatusExt()
+                    {
+                        LastUpdate = DateTime.UtcNow,
+                        Status = "Completed",
+                        StatusDescription = "Notification processed successfully"
+                    },
+                    Succeeded = true
+                }
+            },
+            ProcessingStatus = new StatusExt
+            {
+                LastUpdate = DateTime.UtcNow,
+                Status = "Completed",
+                StatusDescription = "Notification processed successfully"
+            },
+            RequestedSendTime = DateTime.UtcNow,
+            SendersReference = "AltinnCorrespondence"
         };
     }
 }

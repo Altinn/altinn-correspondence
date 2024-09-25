@@ -45,62 +45,46 @@ internal static class NotificationMapper
     }
     private static NotificationStatusDetailsExt MapNotificationsStatusSummaryExtToExternal(NotificationsStatusDetails status)
     {
-        var Emails = new List<NotificationDetailsExt>();
-        if (status.Email != null)
-        {
-            foreach (var email in status.Email)
-            {
-                Emails.Add(new NotificationDetailsExt()
-                {
-                    Id = email.Id,
-                    Recipient = new NotificationRecipientExt()
-                    {
-                        EmailAddress = email.Recipient.EmailAddress,
-                        IsReserved = email.Recipient.IsReserved,
-                        MobileNumber = email.Recipient.MobileNumber,
-                        NationalIdentityNumber = email.Recipient.NationalIdentityNumber,
-                        OrganizationNumber = email.Recipient.OrganizationNumber
-                    },
-                    SendStatus = new NotificationStatusExt()
-                    {
-                        LastUpdate = email.SendStatus.LastUpdate,
-                        Status = email.SendStatus.Status,
-                        StatusDescription = email.SendStatus.StatusDescription
-                    },
-                    Succeeded = email.Succeeded
-                });
-            }
-        }
-        var Smses = new List<NotificationDetailsExt>();
-        if (status.Sms != null)
-        {
-            foreach (var sms in status.Sms)
-            {
-                Smses.Add(new NotificationDetailsExt()
-                {
-                    Id = sms.Id,
-                    Recipient = new NotificationRecipientExt()
-                    {
-                        EmailAddress = sms.Recipient.EmailAddress,
-                        IsReserved = sms.Recipient.IsReserved,
-                        MobileNumber = sms.Recipient.MobileNumber,
-                        NationalIdentityNumber = sms.Recipient.NationalIdentityNumber,
-                        OrganizationNumber = sms.Recipient.OrganizationNumber
-                    },
-                    SendStatus = new NotificationStatusExt()
-                    {
-                        LastUpdate = sms.SendStatus.LastUpdate,
-                        Status = sms.SendStatus.Status,
-                        StatusDescription = sms.SendStatus.StatusDescription
-                    },
-                    Succeeded = sms.Succeeded
-                });
-            }
-        }
         return new NotificationStatusDetailsExt()
         {
-            Email = Emails,
-            Sms = Smses
+            Email = status.Email != null ? new NotificationDetailsExt()
+            {
+                Id = status.Email.Id,
+                Recipient = new NotificationRecipientExt()
+                {
+                    EmailAddress = status.Email.Recipient.EmailAddress,
+                    IsReserved = status.Email.Recipient.IsReserved,
+                    MobileNumber = status.Email.Recipient.MobileNumber,
+                    NationalIdentityNumber = status.Email.Recipient.NationalIdentityNumber,
+                    OrganizationNumber = status.Email.Recipient.OrganizationNumber
+                },
+                SendStatus = new NotificationStatusExt()
+                {
+                    LastUpdate = status.Email.SendStatus.LastUpdate,
+                    Status = status.Email.SendStatus.Status,
+                    StatusDescription = status.Email.SendStatus.StatusDescription
+                },
+                Succeeded = status.Email.Succeeded
+            } : null,
+            Sms = status.Sms != null ? new NotificationDetailsExt()
+            {
+                Id = status.Sms.Id,
+                Recipient = new NotificationRecipientExt()
+                {
+                    EmailAddress = status.Sms.Recipient.EmailAddress,
+                    IsReserved = status.Sms.Recipient.IsReserved,
+                    MobileNumber = status.Sms.Recipient.MobileNumber,
+                    NationalIdentityNumber = status.Sms.Recipient.NationalIdentityNumber,
+                    OrganizationNumber = status.Sms.Recipient.OrganizationNumber
+                },
+                SendStatus = new NotificationStatusExt()
+                {
+                    LastUpdate = status.Sms.SendStatus.LastUpdate,
+                    Status = status.Sms.SendStatus.Status,
+                    StatusDescription = status.Sms.SendStatus.StatusDescription
+                },
+                Succeeded = status.Sms.Succeeded
+            } : null,
         };
     }
 }

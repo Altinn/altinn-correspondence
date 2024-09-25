@@ -5,7 +5,7 @@ namespace Altinn.Correspondence.API.Models;
 /// </summary>
 public class NotificationStatusDetailsExt
 {
-    public List<NotificationDetailsExt>? Email { get; set; }
+    public NotificationDetailsExt? Email { get; set; }
 
-    public List<NotificationDetailsExt>? Sms { get; set; }
+    public NotificationDetailsExt? Sms { get; set; }
 }
