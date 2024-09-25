@@ -16,7 +16,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     private readonly HttpClient _senderClient;
     private readonly HttpClient _recipientClient;
     private readonly JsonSerializerOptions _responseSerializerOptions;
-    private readonly string _userId = "0192:991825827";
 
     public CorrespondenceControllerTests(CustomWebApplicationFactory factory)
     {
@@ -340,7 +339,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
         Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
 
-        var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>("correspondence/api/v1/correspondence?resourceId=1&offset=0&limit=10&status=0");
+        var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={1}&offset={0}&limit={10}&status={0}&isSender={true}&isRecipient={true}");
         Assert.True(correspondenceList?.Pagination.TotalItems > 0);
     }
 
@@ -360,7 +359,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadForResourceB);
         Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
 
-        var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceA}&offset=0&limit=10&status=0");
+        var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceA}&offset={0}&limit={10}&status={0}&isSender={true}&isRecipient={true}");
         Assert.Equal(correspondenceList?.Pagination.TotalItems, payloadForResourceA.Recipients.Count);
     }
     [Fact]
@@ -385,13 +384,16 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         // Arrange
         var resource = Guid.NewGuid().ToString();
+        var recipientId = "0192:000000000";
+        var recipientClient = _factory.CreateClientWithAddedClaims(
+            ("consumer", $"{{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"{recipientId}\"}}"),
+            ("scope", AuthorizationConstants.RecipientScope)
+        );
 
         var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments(); // One published
-        payload.Recipients = new List<string> { _userId };
         payload.Correspondence.ResourceId = resource;
 
         var payloadInitialized = InitializeCorrespondenceFactory.BasicCorrespondences(); // One initialized
-        payloadInitialized.Recipients = new List<string> { _userId };
         payloadInitialized.Correspondence.ResourceId = resource;
 
         // Act
@@ -399,10 +401,10 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
         var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadInitialized);
         Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
-        var correspondenceList = await _recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10");
+        var correspondenceList = await recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&isSender={false}&isRecipient={true}");
 
         // Assert
-        var expected = 2 - 1; // Receiver only sees the one that is published
+        var expected = payload.Recipients.Where(r => r == recipientId).Count(); // Receiver only sees the one that is published
         Assert.Equal(correspondenceList?.Pagination.TotalItems, expected);
     }
     [Fact]
@@ -412,14 +414,13 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var resource = Guid.NewGuid().ToString();
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences(); // One initialized
         payload.Correspondence.ResourceId = resource;
-        payload.Correspondence.Sender = _userId;
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
         await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{response.CorrespondenceIds.FirstOrDefault()}/purge");
-        var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10");
+        var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&isSender={true}&isRecipient={false}");
 
         // Assert
         var expected = payload.Recipients.Count - 1; // One was deleted
@@ -463,7 +464,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         // Arrange
         var initialCorrespondence = InitializeCorrespondenceFactory.BasicCorrespondences(); // Initialized
-        initialCorrespondence.Recipients[0] = _userId; // Change recipient to match HttpContext.User
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", initialCorrespondence);
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
 
@@ -478,7 +478,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         // Arrange
         var initialCorrespondence = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments(); // Published
-        initialCorrespondence.Recipients[0] = _userId; // Change recipient to match HttpContext.User
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", initialCorrespondence);
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
 
@@ -552,7 +551,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         // Arrange
         var initialCorrespondence = InitializeCorrespondenceFactory.BasicCorrespondences(); // Initialized
-        initialCorrespondence.Recipients[0] = _userId; // Change recipient to match HttpContext.User
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", initialCorrespondence);
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
 
@@ -567,7 +565,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         // Arrange
         var initialCorrespondence = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments();
-        initialCorrespondence.Recipients[0] = _userId; // Change recipient to match HttpContext.User
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", initialCorrespondence);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
@@ -635,7 +632,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
         payload.Correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
         payload.Correspondence.VisibleFrom = DateTime.UtcNow.AddMinutes(-1);
-        payload.Recipients[0] = _userId;
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
@@ -681,7 +677,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
         payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
         payload.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
-        payload.Recipients = [_userId]; // Change recipient to match HttpContext.User
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
@@ -734,7 +729,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
         payload.ExistingAttachments = new List<Guid> { Guid.Parse(attachmentId) };
         payload.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
-        payload.Recipients = [_userId]; // Change recipient to match HttpContext.User
         payload.Correspondence.VisibleFrom = DateTimeOffset.UtcNow.AddDays(1); // Set visibleFrom in the future so that it is not published
 
         // Act
@@ -756,7 +750,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         await UploadAttachment(attachmentId);
 
         var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments();
-        payload.Recipients = [_userId]; // Change recipient to match HttpContext.User
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
@@ -773,7 +766,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
         payload.Recipients = new List<string> { "0192:123456789" };
-        payload.Correspondence.Sender = _userId;
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
@@ -790,7 +782,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         // Arrange
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
-        payload.Recipients = new List<string> { _userId };
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
@@ -806,7 +797,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         // Arrange
         var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments();
-        payload.Recipients = new List<string> { _userId };
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
@@ -825,7 +815,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         // Arrange
         var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments();
-        payload.Correspondence.Sender = _userId;
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
