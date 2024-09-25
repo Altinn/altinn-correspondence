@@ -14,10 +14,5 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         {
             return Task.FromResult(Guid.NewGuid().ToString());
         }
-
-        public Task CreateCorrespondenceStatusUpdateDialogActivity(Guid correspondenceId, CorrespondenceStatus status, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
