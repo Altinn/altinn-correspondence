@@ -202,7 +202,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             },
         },
             ResourceId = correspondence.ResourceId,
-            RequestedSendTime = DateTime.UtcNow,
+            RequestedSendTime = correspondence.VisibleFrom.UtcDateTime,
             ConditionEndpoint = null, // TODO: Implement condition endpoint
             SendersReference = correspondence.SendersReference,
             NotificationChannel = notification.NotificationChannel,
@@ -230,7 +230,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             },
         },
                 ResourceId = correspondence.ResourceId,
-                RequestedSendTime = correspondence.VisibleFrom.DateTime,
+                RequestedSendTime = correspondence.VisibleFrom.UtcDateTime.AddDays(7),
                 ConditionEndpoint = null, // TODO: Implement condition endpoint
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.NotificationChannel,
