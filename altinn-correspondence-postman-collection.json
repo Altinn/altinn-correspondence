@@ -1,9 +1,9 @@
 {
 	"info": {
-		"_postman_id": "94617cbd-7820-4fc7-a445-38085a107d32",
+		"_postman_id": "7fe8254e-0fb7-4907-a4f6-89cd244512e4",
 		"name": "Altinn.Correspondence.API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "34552244"
+		"_exporter_id": "7106668"
 	},
 	"item": [
 		{
@@ -590,7 +590,7 @@
 																},
 																{
 																	"key": "Correspondence.ResourceId",
-																	"value": "1",
+																	"value": "{{resource_id}}",
 																	"type": "text"
 																},
 																{
@@ -713,7 +713,7 @@
 																},
 																{
 																	"key": "Correspondence.visibleFrom",
-																	"value": "2025-05-29T13:31:28.290518+00:00",
+																	"value": "2024-05-29T13:31:28.290518+00:00",
 																	"type": "text"
 																},
 																{
@@ -922,7 +922,7 @@
 																	"bearer": [
 																		{
 																			"key": "token",
-																			"value": "{{recipient_token}}",
+																			"value": "{{sender_token}}",
 																			"type": "string"
 																		}
 																	]
@@ -1715,7 +1715,7 @@
 												],
 												"body": {
 													"mode": "raw",
-													"raw": "{ \"Correspondence\": {\n\n  \"resourceId\": \"{{resource_id}}\",\n  \"sender\": \"0192:991825827\",\n  \"sendersReference\": \"1\",\n  \"content\": {\n    \"language\": \"no\",\n    \"messageTitle\": \"test\",\n    \"messageSummary\": \"test\",\n    \"messageBody\": \"test\",\n    \"attachments\": [\n        {\n        \"dataType\": \"html\",\n        \"expirationTime\": \"2024-12-12\",\n        \"name\": \"testfile\",\n        \"restrictionName\": \"testFile23\",\n        \"sendersReference\": \"1234\",\n        \"fileName\": \"test-fil32e\",\n        \"isEncrypted\": false,\n        \"dataLocationUrl\": \"\"\n        }\n    ]\n  },\n  \"visibleFrom\": \"2024-08-20T13:31:28.290518+00:00\",\n  \"allowSystemDeleteAfter\": \"2025-08-29T13:31:28.290518+00:00\",\n  \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"1\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"2\",\n      \"referenceType\": \"DialogPortenDialogID\"\n    }\n  ],\n  \"propertyList\": {\n    \"deserunt_12\": \"1\",\n    \"culpa_852\": \"2\",\n    \"anim5\": \"3\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"www.test.no\",\n      \"linkText\": \"test\"\n    },\n    {\n      \"linkURL\": \"test.no\",\n      \"linkText\": \"test\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"test\",\n      \"customTextToken\": \"test\",\n      \"sendersReference\": \"1\",\n      \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n    }\n  ],\n  \"isReservable\": true\n},\n\"Recipients\": [\n       \"0192:991825827\"\n],\n\"existingAttachments\": [\n]\n}",
+													"raw": "{ \n\"Correspondence\": {\n    \"resourceId\": \"{{resource_id}}\",\n    \"sender\": \"0192:991825827\",\n    \"sendersReference\": \"1\",\n    \"content\": {\n        \"language\": \"nb\",\n        \"messageTitle\": \"test\",\n        \"messageSummary\": \"test\",\n        \"messageBody\": \"test\",\n        \"attachments\": [\n        ]\n    },\n    \"visibleFrom\": \"2024-09-25T09:25:28.290518+00:00\",\n    \"allowSystemDeleteAfter\": \"2025-08-29T13:31:28.290518+00:00\",\n    \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n    \"externalReferences\": [\n        {\n        \"referenceValue\": \"1\",\n        \"referenceType\": \"AltinnBrokerFileTransfer\"\n        },\n        {\n        \"referenceValue\": \"12345\",\n        \"referenceType\": \"DialogportenProcessId\"\n        }\n    ],\n    \"propertyList\": {\n        \"deserunt_12\": \"1\",\n        \"culpa_852\": \"2\",\n        \"anim5\": \"3\"\n    },\n    \"replyOptions\": [\n        {\n        \"linkURL\": \"www.test.no\",\n        \"linkText\": \"test\"\n        },\n        {\n        \"linkURL\": \"test.no\",\n        \"linkText\": \"test\"\n        }\n    ],\n    \"notifications\": [\n        {\n        \"notificationTemplate\": \"test\",\n        \"customTextToken\": \"test\",\n        \"sendersReference\": \"1\",\n        \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n        }\n    ],\n    \"isReservable\": true\n    },\n    \"Recipients\": [\n        \"0192:311141015\"\n    ],\n    \"existingAttachments\": [\n    ]\n}",
 													"options": {
 														"raw": {
 															"headerFamily": "json",
@@ -2082,7 +2082,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=tt02&scopes=altinn:correspondence.write&org=ttd&orgNo=991825827&userId=1&partyId=1&pid=22069343112",
+							"raw": "https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=tt02&scopes=altinn:correspondence.write&org=ttd&consumerOrgNo=991825827&orgNo=991825827&userId=1&partyId=1&pid=29858397535",
 							"protocol": "https",
 							"host": [
 								"altinn-testtools-token-generator",
@@ -2107,6 +2107,10 @@
 									"value": "ttd"
 								},
 								{
+									"key": "consumerOrgNo",
+									"value": "991825827"
+								},
+								{
 									"key": "orgNo",
 									"value": "991825827"
 								},
@@ -2120,7 +2124,7 @@
 								},
 								{
 									"key": "pid",
-									"value": "22069343112"
+									"value": "29858397535"
 								}
 							]
 						}
@@ -2155,7 +2159,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=tt02&scopes=altinn:correspondence.read&org=ttd&orgNo=986252932&userId=2&partyId=2&pid=22069343112",
+							"raw": "https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=tt02&scopes=altinn:correspondence.read&org=ttd&consumerOrgNo=311141015&orgNo=311141015&pid=01882949180",
 							"protocol": "https",
 							"host": [
 								"altinn-testtools-token-generator",
@@ -2180,20 +2184,27 @@
 									"value": "ttd"
 								},
 								{
+									"key": "consumerOrgNo",
+									"value": "986252932"
+								},
+								{
 									"key": "orgNo",
 									"value": "986252932"
 								},
 								{
 									"key": "userId",
-									"value": "2"
+									"value": "2",
+									"disabled": true
 								},
 								{
 									"key": "partyId",
-									"value": "2"
+									"value": "2",
+									"disabled": true
 								},
 								{
 									"key": "pid",
-									"value": "22069343112"
+									"value": "01882949180",
+									"disabled": true
 								}
 							]
 						}
@@ -2494,7 +2505,7 @@
 		},
 		{
 			"key": "resource_id",
-			"value": "Set resource id",
+			"value": "dagl-correspondence",
 			"type": "string"
 		}
 	]
