@@ -13,6 +13,13 @@ using Moq;
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
+    private Action<IServiceCollection> _customServices;
+
+    public CustomWebApplicationFactory(Action<IServiceCollection> customServices)
+    {
+        _customServices = customServices;
+    }
+
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)
     {
@@ -28,7 +35,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
             services.AddSingleton(altinnAuthorizationService.Object);
             services.AddSingleton<IPolicyEvaluator, MockPolicyEvaluator>();
-            
+            _customServices(services);
         });
 
     }
