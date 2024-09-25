@@ -12,7 +12,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     public async Task<string> CreateCorrespondenceDialog(Guid correspondenceId, CancellationToken cancellationToken = default)
     {
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
-        if (correspondence == null)
+        if (correspondence is null)
         {
             _logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
@@ -28,18 +28,29 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}"); 
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         }
         var dialogResponse = await response.Content.ReadFromJsonAsync<string>(cancellationToken);
-        if(dialogResponse is null)
+        if (dialogResponse is null)
         {
             throw new Exception("Dialogporten did not return a dialogId");
         }
         return dialogResponse;
     }
 
-    public Task CreateCorrespondenceStatusUpdateDialogActivity(Guid correspondenceId, CorrespondenceStatus status, CancellationToken cancellationToken = default)
+    public async Task CreateCorrespondenceStatusUpdateDialogActivity(Guid correspondenceId, CorrespondenceStatus status, CancellationToken cancellationToken = default)
     {
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
+        if (correspondence is null)
+        {
+            _logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+        var partyId = await _altinnRegisterService.LookUpPartyId(correspondence.Sender, cancellationToken);
+        if (partyId is null)
+        {
+            throw new ArgumentException($"Could not find partyId for organization {correspondence.Sender}", nameof(correspondence.Sender));
+        }
         throw new NotImplementedException();
     }
 }
