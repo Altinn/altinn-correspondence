@@ -286,76 +286,6 @@
 													]
 												},
 												{
-													"name": "download",
-													"item": [
-														{
-															"name": "Download Attachment",
-															"request": {
-																"auth": {
-																	"type": "bearer",
-																	"bearer": [
-																		{
-																			"key": "token",
-																			"value": "{{sender_token}}",
-																			"type": "string"
-																		}
-																	]
-																},
-																"method": "GET",
-																"header": [],
-																"url": {
-																	"raw": "{{baseUrl}}/correspondence/api/v1/attachment/{{attachmentId}}/download",
-																	"host": [
-																		"{{baseUrl}}"
-																	],
-																	"path": [
-																		"correspondence",
-																		"api",
-																		"v1",
-																		"attachment",
-																		"{{attachmentId}}",
-																		"download"
-																	]
-																}
-															},
-															"response": [
-																{
-																	"name": "Success",
-																	"originalRequest": {
-																		"method": "GET",
-																		"header": [],
-																		"url": {
-																			"raw": "{{baseUrl}}/correspondence/api/v1/attachment/:attachmentId/download",
-																			"host": [
-																				"{{baseUrl}}"
-																			],
-																			"path": [
-																				"correspondence",
-																				"api",
-																				"v1",
-																				"attachment",
-																				":attachmentId",
-																				"download"
-																			],
-																			"variable": [
-																				{
-																					"key": "attachmentId"
-																				}
-																			]
-																		}
-																	},
-																	"status": "OK",
-																	"code": 200,
-																	"_postman_previewlanguage": "text",
-																	"header": [],
-																	"cookie": [],
-																	"body": ""
-																}
-															]
-														}
-													]
-												},
-												{
 													"name": "Get Attachment",
 													"request": {
 														"auth": {
@@ -1715,7 +1645,7 @@
 												],
 												"body": {
 													"mode": "raw",
-													"raw": "{ \n\"Correspondence\": {\n    \"resourceId\": \"{{resource_id}}\",\n    \"sender\": \"0192:991825827\",\n    \"sendersReference\": \"1\",\n    \"content\": {\n        \"language\": \"nb\",\n        \"messageTitle\": \"test\",\n        \"messageSummary\": \"test\",\n        \"messageBody\": \"test\",\n        \"attachments\": [\n        ]\n    },\n    \"visibleFrom\": \"2024-09-25T09:25:28.290518+00:00\",\n    \"allowSystemDeleteAfter\": \"2025-08-29T13:31:28.290518+00:00\",\n    \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n    \"externalReferences\": [\n        {\n        \"referenceValue\": \"1\",\n        \"referenceType\": \"AltinnBrokerFileTransfer\"\n        },\n        {\n        \"referenceValue\": \"12345\",\n        \"referenceType\": \"DialogportenProcessId\"\n        }\n    ],\n    \"propertyList\": {\n        \"deserunt_12\": \"1\",\n        \"culpa_852\": \"2\",\n        \"anim5\": \"3\"\n    },\n    \"replyOptions\": [\n        {\n        \"linkURL\": \"www.test.no\",\n        \"linkText\": \"test\"\n        },\n        {\n        \"linkURL\": \"test.no\",\n        \"linkText\": \"test\"\n        }\n    ],\n    \"notifications\": [\n        {\n        \"notificationTemplate\": \"test\",\n        \"customTextToken\": \"test\",\n        \"sendersReference\": \"1\",\n        \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n        }\n    ],\n    \"isReservable\": true\n    },\n    \"Recipients\": [\n        \"0192:311141015\"\n    ],\n    \"existingAttachments\": [\n    ]\n}",
+													"raw": "{ \n\"Correspondence\": {\n    \"resourceId\": \"{{resource_id}}\",\n    \"sender\": \"0192:991825827\",\n    \"sendersReference\": \"1\",\n    \"content\": {\n        \"language\": \"nb\",\n        \"messageTitle\": \"test\",\n        \"messageSummary\": \"test\",\n        \"messageBody\": \"test2\",\n        \"attachments\": [\n        ]\n    },\n    \"visibleFrom\": \"2024-09-25T09:25:28.290518+00:00\",\n    \"allowSystemDeleteAfter\": \"2025-08-29T13:31:28.290518+00:00\",\n    \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n    \"externalReferences\": [\n        {\n        \"referenceValue\": \"1\",\n        \"referenceType\": \"AltinnBrokerFileTransfer\"\n        },\n        {\n        \"referenceValue\": \"12345\",\n        \"referenceType\": \"DialogportenProcessId\"\n        }\n    ],\n    \"propertyList\": {\n        \"deserunt_12\": \"1\",\n        \"culpa_852\": \"2\",\n        \"anim5\": \"3\"\n    },\n    \"replyOptions\": [\n        {\n        \"linkURL\": \"www.test.no\",\n        \"linkText\": \"test\"\n        },\n        {\n        \"linkURL\": \"test.no\",\n        \"linkText\": \"test\"\n        }\n    ],\n    \"notifications\": [\n        {\n        \"notificationTemplate\": \"test\",\n        \"customTextToken\": \"test\",\n        \"sendersReference\": \"1\",\n        \"requestedSendTime\": \"2025-05-29T13:31:28.290518+00:00\"\n        }\n    ],\n    \"isReservable\": true\n    },\n    \"Recipients\": [\n        \"0192:312628031\"\n    ],\n    \"existingAttachments\": [\n    ]\n}",
 													"options": {
 														"raw": {
 															"headerFamily": "json",
@@ -1826,7 +1756,7 @@
 													}
 												],
 												"url": {
-													"raw": "{{baseUrl}}/correspondence/api/v1/correspondence?from=2024-02-02T13:31:28.290518&to=2025-08-29T13:31:28.290518&offset=0&limit=30&status=2&resourceId={{resource_id}}",
+													"raw": "{{baseUrl}}/correspondence/api/v1/correspondence?from=2024-02-02T13:31:28.290518&to=2025-08-29T13:31:28.290518&offset=0&limit=30&resourceId={{resource_id}}",
 													"host": [
 														"{{baseUrl}}"
 													],
@@ -2185,11 +2115,11 @@
 								},
 								{
 									"key": "consumerOrgNo",
-									"value": "986252932"
+									"value": "311141015"
 								},
 								{
 									"key": "orgNo",
-									"value": "986252932"
+									"value": "311141015"
 								},
 								{
 									"key": "userId",
@@ -2203,8 +2133,7 @@
 								},
 								{
 									"key": "pid",
-									"value": "01882949180",
-									"disabled": true
+									"value": "01882949180"
 								}
 							]
 						}
