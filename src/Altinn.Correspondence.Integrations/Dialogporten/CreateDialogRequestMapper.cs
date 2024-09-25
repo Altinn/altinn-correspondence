@@ -2,7 +2,7 @@
 
 namespace Altinn.Correspondence.Integrations.Dialogporten
 {
-    internal static class CreateCorrespondenceDialogMapper
+    internal static class CreateDialogRequestMapper
     {
         internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string organizationNo, string dialogId)
         {
