@@ -24,7 +24,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
 
         var dialogId = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString(); // Dialogporten requires time-stamped GUIDs, not supported natively until .NET 9.0
-        var createDialogRequest = CreateCorrespondenceDialogMapper.CreateCorrespondenceDialog(correspondence, correspondence.Sender.Replace("0192:", ""), dialogId);
+        var createDialogRequest = CreateCorrespondenceDialogMapper.CreateCorrespondenceDialog(correspondence, correspondence.Recipient.Replace("0192:", ""), dialogId);
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
