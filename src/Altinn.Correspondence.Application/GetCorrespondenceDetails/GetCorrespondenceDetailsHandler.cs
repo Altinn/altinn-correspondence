@@ -36,17 +36,22 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
         {
             return Errors.NoAccessToResource;
         }
+        if (!_userClaimsHelper.IsAffiliatedWithCorrespondence(correspondence.Recipient, correspondence.Sender))
+        {
+            return Errors.CorrespondenceNotFound;
+        }
         var latestStatus = correspondence.GetLatestStatus();
         if (latestStatus == null)
         {
             return Errors.CorrespondenceNotFound;
         }
 
-        var userOrgNo = _userClaimsHelper.GetUserID();
-        bool isRecipient = correspondence.Recipient == userOrgNo;
-
-        if (isRecipient && latestStatus.Status >= CorrespondenceStatus.Published)
+        if (_userClaimsHelper.IsRecipient(correspondence.Recipient))
         {
+            if (!latestStatus.Status.IsAvailableForRecipient())
+            {
+                return Errors.CorrespondenceNotFound;
+            }
             await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
             {
                 CorrespondenceId = correspondence.Id,

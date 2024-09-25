@@ -22,8 +22,9 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
     private readonly IEventBus _eventBus;
     private readonly InitializeCorrespondenceHelper _initializeCorrespondenceHelper;
     private readonly IBackgroundJobClient _backgroundJobClient;
+    private readonly UserClaimsHelper _userClaimsHelper;
 
-    public InitializeCorrespondencesHandler(InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceNotificationRepository correspondenceNotificationRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient)
+    public InitializeCorrespondencesHandler(InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceNotificationRepository correspondenceNotificationRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient, UserClaimsHelper userClaimsHelper)
     {
         _initializeCorrespondenceHelper = initializeCorrespondenceHelper;
         _altinnAuthorizationService = altinnAuthorizationService;
@@ -32,6 +33,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         _correspondenceNotificationRepository = correspondenceNotificationRepository;
         _eventBus = eventBus;
         _backgroundJobClient = backgroundJobClient;
+        _userClaimsHelper = userClaimsHelper;
     }
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
@@ -40,6 +42,11 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
+        }
+        var isSender = _userClaimsHelper.IsSender(request.Correspondence.Sender);
+        if (!isSender)
+        {
+            return Errors.InvalidSender;
         }
         if (request.IsUploadRequest && request.Attachments.Count == 0)
         {

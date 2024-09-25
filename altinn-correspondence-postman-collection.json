@@ -1,9 +1,9 @@
 {
 	"info": {
-		"_postman_id": "c4269116-0793-4c00-9f83-3c5834aee791",
+		"_postman_id": "94617cbd-7820-4fc7-a445-38085a107d32",
 		"name": "Altinn.Correspondence.API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "1775784"
+		"_exporter_id": "34552244"
 	},
 	"item": [
 		{
@@ -128,7 +128,7 @@
 																	"bearer": [
 																		{
 																			"key": "token",
-																			"value": "{{recipient_token}}",
+																			"value": "{{sender_token}}",
 																			"type": "string"
 																		}
 																	]
@@ -280,6 +280,76 @@
 																	],
 																	"cookie": [],
 																	"body": "{\n  \"dataLocationUrl\": \"ExternalStorage\",\n  \"dataType\": \"<string>\",\n  \"expirationTime\": \"<dateTime>\",\n  \"name\": \"<string>\",\n  \"restrictionName\": \"<string>\",\n  \"sendersReference\": \"<string>\",\n  \"usageType\": \"MachineReadable\",\n  \"fileName\": \"<string>\",\n  \"isEncrypted\": \"<boolean>\",\n  \"checksum\": \"<string>\",\n  \"attachmentId\": \"<uuid>\",\n  \"status\": \"UploadProcessing\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\"\n}"
+																}
+															]
+														}
+													]
+												},
+												{
+													"name": "download",
+													"item": [
+														{
+															"name": "Download Attachment",
+															"request": {
+																"auth": {
+																	"type": "bearer",
+																	"bearer": [
+																		{
+																			"key": "token",
+																			"value": "{{sender_token}}",
+																			"type": "string"
+																		}
+																	]
+																},
+																"method": "GET",
+																"header": [],
+																"url": {
+																	"raw": "{{baseUrl}}/correspondence/api/v1/attachment/{{attachmentId}}/download",
+																	"host": [
+																		"{{baseUrl}}"
+																	],
+																	"path": [
+																		"correspondence",
+																		"api",
+																		"v1",
+																		"attachment",
+																		"{{attachmentId}}",
+																		"download"
+																	]
+																}
+															},
+															"response": [
+																{
+																	"name": "Success",
+																	"originalRequest": {
+																		"method": "GET",
+																		"header": [],
+																		"url": {
+																			"raw": "{{baseUrl}}/correspondence/api/v1/attachment/:attachmentId/download",
+																			"host": [
+																				"{{baseUrl}}"
+																			],
+																			"path": [
+																				"correspondence",
+																				"api",
+																				"v1",
+																				"attachment",
+																				":attachmentId",
+																				"download"
+																			],
+																			"variable": [
+																				{
+																					"key": "attachmentId"
+																				}
+																			]
+																		}
+																	},
+																	"status": "OK",
+																	"code": 200,
+																	"_postman_previewlanguage": "text",
+																	"header": [],
+																	"cookie": [],
+																	"body": ""
 																}
 															]
 														}
@@ -758,8 +828,8 @@
 																},
 																{
 																	"key": "Attachments",
-																	"type": "file",
-																	"src": ""
+																	"value": "",
+																	"type": "file"
 																},
 																{
 																	"key": "existingAttachments[0]",
@@ -924,7 +994,8 @@
 																}
 															]
 														}
-													]
+													],
+													"description": "Details is available for both sender and recipient. The recipient can only retrieve details if the correspondence is Published. For each of the roles, the correct token must be used.\n\nAs recipient, the correspondence must also have the org number of the \"Recipient\" field be equal to the consumer. In this case it is 0192:991825827 (Digitaliseringsdirektoratet)"
 												},
 												{
 													"name": "archive",
