@@ -17,11 +17,6 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             _logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
-        var partyId = await _altinnRegisterService.LookUpPartyId(correspondence.Sender, cancellationToken);
-        if (partyId is null)
-        {
-            throw new ArgumentException($"Could not find partyId for organization {correspondence.Sender}", nameof(correspondence.Sender));
-        }
 
         var dialogId = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString(); // Dialogporten requires time-stamped GUIDs, not supported natively until .NET 9.0
         var createDialogRequest = CreateCorrespondenceDialogMapper.CreateCorrespondenceDialog(correspondence, correspondence.Recipient.Replace("0192:", ""), dialogId);
