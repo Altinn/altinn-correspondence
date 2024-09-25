@@ -3,6 +3,7 @@ using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Helpers;
+using Altinn.Correspondence.Application.Configuration;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
@@ -23,8 +24,8 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     public AttachmentControllerTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
-        _senderClient = factory.CreateClientWithAddedClaims(("scope", "altinn:correspondence.write"));
-        _recipientClient = factory.CreateClientWithAddedClaims(("scope", "altinn:correspondence.read"));
+        _senderClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+        _recipientClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.RecipientScope));
 
         _responseSerializerOptions = new JsonSerializerOptions(new JsonSerializerOptions()
         {
@@ -40,7 +41,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         Assert.True(initializeAttachmentResponse.IsSuccessStatusCode, await initializeAttachmentResponse.Content.ReadAsStringAsync());
     }
     [Fact]
-    public async Task InitializeAttachment_AsRecipient_Fails()
+    public async Task InitializeAttachment_AsRecipient_ReturnsForbidden()
     {
         var initializeAttachmentResponse = await _recipientClient.PostAsJsonAsync("correspondence/api/v1/attachment", InitializeAttachmentFactory.BasicAttachment());
         Assert.Equal(HttpStatusCode.Forbidden, initializeAttachmentResponse.StatusCode);
@@ -68,7 +69,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         Assert.True(getAttachmentOverviewResponse.IsSuccessStatusCode, await getAttachmentOverviewResponse.Content.ReadAsStringAsync());
     }
     [Fact]
-    public async Task GetAttachmentOverview_AsRecipient_Fails()
+    public async Task GetAttachmentOverview_AsRecipient_ReturnsForbidden()
     {
         var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", InitializeAttachmentFactory.BasicAttachment());
         var attachmentId = Guid.Parse(await initializeAttachmentResponse.Content.ReadAsStringAsync());
@@ -85,7 +86,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         Assert.True(getAttachmentOverviewResponse.IsSuccessStatusCode, await getAttachmentOverviewResponse.Content.ReadAsStringAsync());
     }
     [Fact]
-    public async Task GetAttachmentDetails_AsRecipient_Fails()
+    public async Task GetAttachmentDetails_AsRecipient_ReturnsForbidden()
     {
         var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", InitializeAttachmentFactory.BasicAttachment());
         var attachmentId = Guid.Parse(await initializeAttachmentResponse.Content.ReadAsStringAsync());
@@ -311,7 +312,6 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     {
         // Arrange
         var uploadFailsFactory = new UploadFailsWebApplicationFactory(); // Setup client which contains time delay during upload and no mock for hangfire
-        uploadFailsFactory.AddClaim("scope", "altinn:correspondence.write");
         var uploadFailsClient = uploadFailsFactory.CreateClientInternal(); // Setup client which contains time delay during upload and no mock for hangfire
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
         payload.Recipients = [payload.Recipients[0]];
@@ -337,7 +337,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         Assert.Equal(AttachmentStatusExt.Purged, attachmentOverview.Status);
     }
     [Fact]
-    public async Task UploadAtttachmentData_AsRecipient_Fails()
+    public async Task UploadAtttachmentData_AsRecipient_ReturnsForbidden()
     {
         // Arrange
         var attachment = InitializeAttachmentFactory.BasicAttachment();
@@ -380,7 +380,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         Assert.NotNull(data);
     }
     [Fact]
-    public async Task DownloadAttachment_AsRecipient_Fails()
+    public async Task DownloadAttachment_AsRecipient_ReturnsForbidden()
     {
         // Arrange
         var attachment = InitializeAttachmentFactory.BasicAttachment();
@@ -464,7 +464,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         Assert.Equal(HttpStatusCode.BadRequest, deleteResponse.StatusCode);
     }
     [Fact]
-    public async Task DeleteAttachment_AsRecipient_Fails()
+    public async Task DeleteAttachment_AsRecipient_ReturnsForbidden()
     {
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();

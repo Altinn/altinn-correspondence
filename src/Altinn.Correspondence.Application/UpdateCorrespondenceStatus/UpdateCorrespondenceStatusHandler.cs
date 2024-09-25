@@ -14,13 +14,15 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IEventBus _eventBus;
+    private readonly UserClaimsHelper _userClaimsHelper;
 
-    public UpdateCorrespondenceStatusHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IEventBus eventBus)
+    public UpdateCorrespondenceStatusHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IEventBus eventBus, UserClaimsHelper userClaimsHelper)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
         _eventBus = eventBus;
+        _userClaimsHelper = userClaimsHelper;
     }
 
     public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusRequest request, CancellationToken cancellationToken)
@@ -35,14 +37,19 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             return Errors.NoAccessToResource;
         }
+        var isRecipient = _userClaimsHelper.IsRecipient(correspondence.Recipient);
+        if (!isRecipient)
+        {
+            return Errors.CorrespondenceNotFound;
+        }
         var currentStatus = correspondence.GetLatestStatus();
         if (currentStatus is null)
         {
             return Errors.LatestStatusIsNull;
         }
-        if ((request.Status == CorrespondenceStatus.Confirmed || request.Status == CorrespondenceStatus.Read) && currentStatus!.Status < CorrespondenceStatus.Published)
+        if ((request.Status == CorrespondenceStatus.Confirmed || request.Status == CorrespondenceStatus.Read) && !currentStatus!.Status.IsAvailableForRecipient())
         {
-            return Errors.CorrespondenceNotPublished;
+            return Errors.CorrespondenceNotFound;
         }
         if (currentStatus!.Status.IsPurged())
         {
