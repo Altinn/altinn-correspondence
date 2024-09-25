@@ -12,7 +12,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 ServiceResource = "urn:altinn:resource:" + correspondence.ResourceId,
                 Party = "urn:altinn:organization:identifier-no:" + organizationNo,
                 CreatedAt = correspondence.Created,
-                VisibleFrom = correspondence.VisibleFrom,
+                VisibleFrom = correspondence.VisibleFrom < DateTime.UtcNow.AddMinutes(1) ? DateTime.UtcNow.AddMinutes(1) : correspondence.VisibleFrom,
                 Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenProcessId)?.ReferenceValue,
                 ExpiresAt = correspondence.AllowSystemDeleteAfter,
                 DueAt = correspondence.DueDateTime != default ? correspondence.DueDateTime : null,
