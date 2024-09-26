@@ -1,31 +1,19 @@
-using System.Net.Http.Json;
-using Altinn.Correspondence.Repositories;
 using Altinn.Correspondence.Core.Options;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Models.Notifications;
-using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Notifications;
 
 public class AltinnDevNotificationService : IAltinnNotificationService
 {
-    private readonly HttpClient _httpClient;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly IResourceRightsService _resourceRepository;
-    private readonly IHostEnvironment _hostEnvironment;
     private readonly ILogger<AltinnNotificationService> _logger;
 
-    public AltinnDevNotificationService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, IHttpContextAccessor httpContextAccessor, IResourceRightsService resourceRepository, IHostEnvironment hostEnvironment, ILogger<AltinnNotificationService> logger)
+    public AltinnDevNotificationService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnNotificationService> logger)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.PlatformSubscriptionKey);
-        _httpClient = httpClient;
-        _httpContextAccessor = httpContextAccessor;
-        _resourceRepository = resourceRepository;
-        _hostEnvironment = hostEnvironment;
         _logger = logger;
     }
 
@@ -38,5 +26,43 @@ public class AltinnDevNotificationService : IAltinnNotificationService
     public async Task<bool> CancelNotification(string orderId, CancellationToken cancellationToken = default)
     {
         return true;
+    }
+
+    public async Task<NotificationStatusResponse> GetNotificationDetails(string orderId, CancellationToken cancellationToken = default)
+    {
+        return new NotificationStatusResponse
+        {
+            Created = DateTime.UtcNow,
+            Creator = "Altinn",
+            Id = orderId,
+            NotificationChannel = NotificationChannel.Email,
+            IgnoreReservation = false,
+            NotificationsStatusDetails = new NotificationsStatusDetails
+            {
+                Email = new EmailNotificationWithResult
+                {
+                    Id = new Guid(),
+                    Recipient = new Recipient
+                    {
+                        EmailAddress = "test@test.no",
+                    },
+                    SendStatus = new StatusExt()
+                    {
+                        LastUpdate = DateTime.UtcNow,
+                        Status = "Completed",
+                        StatusDescription = "Notification processed successfully"
+                    },
+                    Succeeded = true
+                }
+            },
+            ProcessingStatus = new StatusExt
+            {
+                LastUpdate = DateTime.UtcNow,
+                Status = "Completed",
+                StatusDescription = "Notification processed successfully"
+            },
+            RequestedSendTime = DateTime.UtcNow,
+            SendersReference = "AltinnCorrespondence"
+        };
     }
 }

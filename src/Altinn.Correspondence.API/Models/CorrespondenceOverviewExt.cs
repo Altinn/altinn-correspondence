@@ -60,6 +60,6 @@ namespace Altinn.Correspondence.API.Models
         /// A list of notification events for this correspondence
         /// </summary>
         [JsonPropertyName("notifications")]
-        public List<CorrespondenceNotificationExt> Notifications { get; set; } = new List<CorrespondenceNotificationExt>();
+        public List<NotificationExt> Notifications { get; set; } = new List<NotificationExt>();
     }
 }

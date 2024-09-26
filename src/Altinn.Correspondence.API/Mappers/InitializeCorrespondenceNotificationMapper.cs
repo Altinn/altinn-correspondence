@@ -14,22 +14,8 @@ internal static class InitializeCorrespondenceNotificationMapper
         {
             NotificationTemplate = (NotificationTemplate)correspondenceNotificationExt.NotificationTemplate,
             NotificationChannel = (NotificationChannel)correspondenceNotificationExt.NotificationChannel,
-            RequestedSendTime = correspondenceNotificationExt.RequestedSendTime,
+            RequestedSendTime = correspondenceNotificationExt.RequestedSendTime ?? DateTimeOffset.UtcNow,
             Created = DateTimeOffset.UtcNow
-        };
-        return notification;
-    }
-
-    internal static CorrespondenceNotificationExt MapToExternal(CorrespondenceNotificationEntity correspondenceNotification)
-    {
-        var notification = new CorrespondenceNotificationExt
-        {
-            NotificationTemplate = (NotificationTemplateExt)correspondenceNotification.NotificationTemplate,
-            NotificationChannel = (NotificationChannelExt)correspondenceNotification.NotificationChannel,
-            RequestedSendTime = correspondenceNotification.RequestedSendTime,
-            Created = correspondenceNotification.Created,
-            Id = correspondenceNotification.Id,
-            NotificationOrderId = correspondenceNotification.NotificationOrderId,
         };
         return notification;
     }
@@ -49,15 +35,5 @@ internal static class InitializeCorrespondenceNotificationMapper
             SendReminder = correspondenceNotificationExt.SendReminder
         };
         return notification;
-    }
-
-    internal static List<CorrespondenceNotificationExt> MapListToExternal(List<CorrespondenceNotificationEntity> notifications)
-    {
-        var notificationsExt = new List<CorrespondenceNotificationExt>();
-        foreach (var not in notifications)
-        {
-            notificationsExt.Add(MapToExternal(not));
-        }
-        return notificationsExt;
     }
 }
