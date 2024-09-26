@@ -5,24 +5,18 @@ namespace Altinn.Correspondence.Persistence.Helpers
 {
     public static class QueryExtensions
     {
-        public static IQueryable<CorrespondenceEntity> FilterBySenderOrRecipient(this IQueryable<CorrespondenceEntity> query, string orgNo, bool sender, bool recipient)
+        public static IQueryable<CorrespondenceEntity> FilterBySenderOrRecipient(this IQueryable<CorrespondenceEntity> query, string orgNo, CorrespondencesRoleType role)
         {
-            if (sender && recipient)
+            return role switch
             {
-                return query.Where(c => c.Sender == orgNo || c.Recipient == orgNo);
-            }
-            else if (sender)
-            {
-                return query.Where(c => c.Sender == orgNo);
-            }
-            else if (recipient)
-            {
-                return query.Where(c => c.Recipient == orgNo);
-            }
-            return query.Where(c => false); //TODO ask: return all or nothing if both are false?
+                CorrespondencesRoleType.RecipientAndSender => query.Where(c => c.Sender == orgNo || c.Recipient == orgNo),
+                CorrespondencesRoleType.Recipient => query.Where(c => c.Recipient == orgNo),
+                CorrespondencesRoleType.Sender => query.Where(c => c.Sender == orgNo),
+                _ => query.Where(c => false),
+            };
         }
 
-        public static IQueryable<CorrespondenceEntity> FilterByStatus(this IQueryable<CorrespondenceEntity> query, CorrespondenceStatus? status, string orgNo, bool isSender, bool isRecipient)
+        public static IQueryable<CorrespondenceEntity> FilterByStatus(this IQueryable<CorrespondenceEntity> query, CorrespondenceStatus? status, string orgNo, CorrespondencesRoleType role)
         {
             var blacklistSender = new List<CorrespondenceStatus?>
             {
@@ -45,22 +39,15 @@ namespace Altinn.Correspondence.Persistence.Helpers
                 .Where(correspondence => correspondence.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status == status);
             }
 
-            if (isSender && isRecipient)
+            return role switch
             {
-                return query.Where(c =>
-                    (c.Sender == orgNo && !blacklistSender.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)) ||
-                    (c.Recipient == orgNo && !blacklistRecipient.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status))
-                );
-            }
-            else if (isSender)
-            {
-                return query.Where(c => c.Sender == orgNo && !blacklistSender.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status));
-            }
-            else if (isRecipient)
-            {
-                return query.Where(c => c.Recipient == orgNo && !blacklistRecipient.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status));
-            }
-            return query.Where(c => false); //TODO ask: return all or nothing if both are false?
+                CorrespondencesRoleType.RecipientAndSender => query.Where(c =>
+                                    (c.Sender == orgNo && !blacklistSender.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)) ||
+                                    (c.Recipient == orgNo && !blacklistRecipient.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status))),
+                CorrespondencesRoleType.Recipient => query.Where(c => c.Recipient == orgNo && !blacklistRecipient.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)),
+                CorrespondencesRoleType.Sender => query.Where(c => c.Sender == orgNo && !blacklistSender.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)),
+                _ => query.Where(c => false),
+            };
         }
     }
 }

@@ -20,14 +20,6 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
 
     public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, CancellationToken cancellationToken)
     {
-        if (request.IsRecipient is null)
-        {
-            return Errors.IsRecipientIsRequired;
-        }
-        if (request.IsSender is null)
-        {
-            return Errors.IsSenderIsRequired;
-        }
         var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.See }, cancellationToken);
         if (!hasAccess)
         {
@@ -37,8 +29,6 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
         {
             return Errors.OffsetAndLimitIsNegative;
         }
-        bool isRecipient = request.IsRecipient!.Value;
-        bool isSender = request.IsSender!.Value;
         var limit = request.Limit == 0 ? 50 : request.Limit;
         DateTimeOffset? to = request.To != null ? ((DateTimeOffset)request.To).ToUniversalTime() : null;
         DateTimeOffset? from = request.From != null ? ((DateTimeOffset)request.From).ToUniversalTime() : null;
@@ -47,7 +37,7 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
         {
             return Errors.CouldNotFindOrgNo;
         }
-        var correspondences = await _correspondenceRepository.GetCorrespondences(request.ResourceId, request.Offset, limit, from, to, request.Status, orgNo, isSender, isRecipient, cancellationToken);
+        var correspondences = await _correspondenceRepository.GetCorrespondences(request.ResourceId, request.Offset, limit, from, to, request.Status, orgNo, request.Role, cancellationToken);
         var response = new GetCorrespondencesResponse
         {
             Items = correspondences.Item1,

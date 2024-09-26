@@ -160,8 +160,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromQuery] DateTimeOffset? to,
             [FromServices] GetCorrespondencesHandler handler,
             [FromQuery] CorrespondenceStatusExt? status,
-            [FromQuery] bool? isSender,
-            [FromQuery] bool? isRecipient,
+            [FromQuery, RequiredEnum] CorrespondencesRoleType role,
             CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Get correspondences for receiver");
@@ -174,8 +173,7 @@ namespace Altinn.Correspondence.API.Controllers
                 Limit = limit,
                 Offset = offset,
                 Status = status is null? null : (CorrespondenceStatus)status,
-                IsSender = isSender,
-                IsRecipient = isRecipient,
+                Role = role,
             }, cancellationToken);
 
             return commandResult.Match(
