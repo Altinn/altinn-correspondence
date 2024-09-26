@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Models.Notifications;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceDetails;
 
@@ -27,7 +28,7 @@ public class GetCorrespondenceDetailsResponse
 
     public List<CorrespondenceReplyOptionEntity> ReplyOptions { get; set; } = new List<CorrespondenceReplyOptionEntity>();
 
-    public List<CorrespondenceNotificationEntity> Notifications { get; set; } = new List<CorrespondenceNotificationEntity>();
+    public List<NotificationStatusResponse> Notifications { get; set; } = new List<NotificationStatusResponse>();
 
     public List<CorrespondenceStatusEntity> StatusHistory { get; set; } = new List<CorrespondenceStatusEntity>();
 

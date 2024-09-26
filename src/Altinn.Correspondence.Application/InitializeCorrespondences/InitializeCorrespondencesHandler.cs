@@ -148,7 +148,6 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             if (request.Notification != null)
             {
                 var notifications = CreateNotifications(request.Notification, correspondence);
-                Console.WriteLine("Notifications: " + notifications.Count());
                 foreach (var notification in notifications)
                 {
                     var orderId = await _altinnNotificationService.CreateNotification(notification, cancellationToken);
@@ -159,7 +158,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                         NotificationTemplate = request.Notification.NotificationTemplate,
                         CorrespondenceId = correspondence.Id,
                         NotificationOrderId = orderId,
-                        RequestedSendTime = request.Notification.RequestedSendTime,
+                        RequestedSendTime = notification.RequestedSendTime ?? DateTimeOffset.UtcNow,
                     };
                     await _correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
                 }
@@ -175,13 +174,19 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
     private List<NotificationOrderRequest> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence)
     {
         var notifications = new List<NotificationOrderRequest>();
+
         var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
+        var organizationWithPrefixFormat = new Regex(@"^\d{4}:\d{9}$");
         var personFormat = new Regex(@"^\d{11}$");
         string? orgNr = null;
         string? personNr = null;
         if (organizationWithoutPrefixFormat.IsMatch(correspondence.Recipient))
         {
             orgNr = correspondence.Recipient;
+        }
+        else if (organizationWithPrefixFormat.IsMatch(correspondence.Recipient))
+        {
+            orgNr = correspondence.Recipient.Substring(5);
         }
         else if (personFormat.IsMatch(correspondence.Recipient))
         {
@@ -197,7 +202,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             },
         },
             ResourceId = correspondence.ResourceId,
-            RequestedSendTime = correspondence.VisibleFrom.DateTime,
+            RequestedSendTime = correspondence.VisibleFrom.UtcDateTime,
             ConditionEndpoint = null, // TODO: Implement condition endpoint
             SendersReference = correspondence.SendersReference,
             NotificationChannel = notification.NotificationChannel,
@@ -225,7 +230,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             },
         },
                 ResourceId = correspondence.ResourceId,
-                RequestedSendTime = correspondence.VisibleFrom.DateTime,
+                RequestedSendTime = correspondence.VisibleFrom.UtcDateTime.AddDays(7),
                 ConditionEndpoint = null, // TODO: Implement condition endpoint
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.NotificationChannel,

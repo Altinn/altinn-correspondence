@@ -170,7 +170,7 @@ namespace Altinn.Correspondence.API.Controllers
                 From = from,
                 Limit = limit,
                 Offset = offset,
-                Status = status is null? null : (CorrespondenceStatus)status,
+                Status = status is null ? null : (CorrespondenceStatus)status,
                 To = to
 
             }, cancellationToken);
