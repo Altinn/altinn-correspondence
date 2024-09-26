@@ -68,6 +68,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
                 if (notification.NotificationOrderId != null)
                 {
                     var notificationSummary = await _altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString());
+                    notificationSummary.IsReminder = notification.IsReminder;
                     notificationHistory.Add(notificationSummary);
                 }
             }

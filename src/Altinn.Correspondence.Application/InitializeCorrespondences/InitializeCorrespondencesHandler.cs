@@ -167,6 +167,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                         CorrespondenceId = correspondence.Id,
                         NotificationOrderId = orderId,
                         RequestedSendTime = notification.RequestedSendTime ?? DateTimeOffset.UtcNow,
+                        IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
                     };
                     await _correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
                 }
