@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Helpers;
@@ -10,10 +9,12 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using System.Security.Claims;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
+
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)
     {

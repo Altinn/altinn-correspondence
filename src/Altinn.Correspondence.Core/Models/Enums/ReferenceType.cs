@@ -21,13 +21,13 @@ namespace Altinn.Correspondence.Core.Models.Enums
         AltinnBrokerFileTransfer = 2,
 
         /// <summary>
-        /// Specifies that the reference is a DialogPorten Dialog ID
+        /// Specifies that the reference is a Dialogporten Dialog ID
         /// </summary>
-        DialogPortenDialogID = 3,
+        DialogportenDialogId = 3,
 
         /// <summary>
-        /// Specifies that the reference is a DialogPorten Dialog Element ID
+        /// Specifies that the reference is a Dialogporten Process ID
         /// </summary>
-        DialogPortenDialogElementID = 4,
+        DialogportenProcessId = 4,
     }
 }
