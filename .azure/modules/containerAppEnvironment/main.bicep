@@ -42,7 +42,7 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2023-11-02-p
   }
 }
 
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
   name: storageAccountName
 }
 
