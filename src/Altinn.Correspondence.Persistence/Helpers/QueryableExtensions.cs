@@ -18,34 +18,67 @@ namespace Altinn.Correspondence.Persistence.Helpers
 
         public static IQueryable<CorrespondenceEntity> FilterByStatus(this IQueryable<CorrespondenceEntity> query, CorrespondenceStatus? status, string orgNo, CorrespondencesRoleType role)
         {
-            var blacklistSender = new List<CorrespondenceStatus?>
+            var blacklistSender = new List<CorrespondenceStatus?> // TODO: any missing? or should not be here?
             {
                 CorrespondenceStatus.Archived,
                 CorrespondenceStatus.PurgedByAltinn,
-                CorrespondenceStatus.PurgedByRecipient
+                CorrespondenceStatus.PurgedByRecipient,
             };
-            var blacklistRecipient = new List<CorrespondenceStatus?>
+
+            var blacklistRecipient = new List<CorrespondenceStatus?> // TODO: any missing? or should not be here?
             {
                 CorrespondenceStatus.Initialized,
                 CorrespondenceStatus.ReadyForPublish,
-                CorrespondenceStatus.Archived,
                 CorrespondenceStatus.PurgedByAltinn,
-                CorrespondenceStatus.PurgedByRecipient
+                CorrespondenceStatus.PurgedByRecipient,
+                CorrespondenceStatus.Failed,
             };
 
+            // If status is not null, check against blacklists based on the orgNo's role
             if (status is not null)
             {
-                return query
-                .Where(correspondence => correspondence.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status == status);
+                return role switch
+                {
+                    CorrespondencesRoleType.Recipient => query.Where(c =>
+                        c.Recipient == orgNo && 
+                        !blacklistRecipient.Contains(status) && 
+                        c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status == status),
+
+                    CorrespondencesRoleType.Sender => query.Where(c =>
+                        c.Sender == orgNo && 
+                        !blacklistSender.Contains(status) && 
+                        c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status == status),
+
+                    CorrespondencesRoleType.RecipientAndSender => query.Where(c =>
+                        (c.Sender == orgNo && 
+                        !blacklistSender.Contains(status) && 
+                        c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status == status) 
+                        ||
+                        (c.Recipient == orgNo && !blacklistRecipient.Contains(status) && 
+                        c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status == status)),
+
+                    _ => query.Where(c => false),
+                };
             }
 
+            // If status is null, return all except blacklisted based on the role
             return role switch
             {
+                CorrespondencesRoleType.Recipient => query.Where(c =>
+                    c.Recipient == orgNo && 
+                    !blacklistRecipient.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)),
+
+                CorrespondencesRoleType.Sender => query.Where(c =>
+                    c.Sender == orgNo && 
+                    !blacklistSender.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)),
+
                 CorrespondencesRoleType.RecipientAndSender => query.Where(c =>
-                                    (c.Sender == orgNo && !blacklistSender.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)) ||
-                                    (c.Recipient == orgNo && !blacklistRecipient.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status))),
-                CorrespondencesRoleType.Recipient => query.Where(c => c.Recipient == orgNo && !blacklistRecipient.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)),
-                CorrespondencesRoleType.Sender => query.Where(c => c.Sender == orgNo && !blacklistSender.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)),
+                    (c.Sender == orgNo && 
+                    !blacklistSender.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)) 
+                    ||
+                    (c.Recipient == orgNo && 
+                    !blacklistRecipient.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status))),
+
                 _ => query.Where(c => false),
             };
         }

@@ -494,6 +494,28 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var expected = payload.Recipients.Count - 1; // One was deleted
         Assert.Equal(correspondenceList?.Pagination.TotalItems, expected);
     }
+
+    [Fact]
+    public async Task GetCorrespondences_WithStatusSpecified_ButStatusIsBlackListed_DoesNotReturnCorrespondence()
+    {
+        // Arrange
+        var resource = Guid.NewGuid().ToString();
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondences(); // One initialized
+        payload.Correspondence.ResourceId = resource;
+
+        // Act
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+        var correspondencesRecipient = await _recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&status={0}&role={"recipient"}");
+        var correspondencesSender = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&status={0}&role={"sender"}");
+
+        // Assert
+        var expectedRecipient = 0;
+        var expectedSender = payload.Recipients.Count;
+        Assert.Equal(correspondencesRecipient?.Pagination.TotalItems, expectedRecipient);
+        Assert.Equal(correspondencesSender?.Pagination.TotalItems, expectedSender);
+    }
+
     [Fact]
     public async Task GetCorrespondenceOverview()
     {
