@@ -15,7 +15,7 @@ namespace Altinn.Correspondence.API.Models
         /// Unique Altinn 2 Id for this correspondence
         /// </summary>
         [JsonPropertyName("altinn2CorrespondenceId")]
-        public required long Altinn2CorrespondenceId { get; set; }
+        public required int Altinn2CorrespondenceId { get; set; }
 
         /// <summary>
         /// Unique Altinn 3 Id for this correspondence

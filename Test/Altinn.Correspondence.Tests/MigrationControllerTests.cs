@@ -118,6 +118,29 @@ public class MigrationControllerTests : IClassFixture<MigrateWebApplicationFacto
         string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
     }
+    
+    [Fact]
+    public async Task InitializeMigrateCorrespondence_NotReadNoNotifications()
+    {
+        InitializeCorrespondencesExt basicCorrespondence = InitializeCorrespondenceFactory.BasicCorrespondences();
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new()
+        {
+            CorrespondenceData = basicCorrespondence,
+            Altinn2CorrespondenceId = 12345,
+            EventHistory =
+        [
+            new CorrespondenceStatusEventExt()
+            {
+                Status = CorrespondenceStatusExt.Initialized,
+                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
+            }
+        ]
+        };
+
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
+    }
 
     private async Task<HttpResponseMessage> UploadAttachment(string? attachmentId, ByteArrayContent? originalAttachmentData = null)
     {
