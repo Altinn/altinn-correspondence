@@ -442,9 +442,8 @@
 													"listen": "test",
 													"script": {
 														"exec": [
-															"var attachmentId = pm.response.text().replace(/\\\"/g, \"\")\r",
-															"pm.collectionVariables.set(\"attachmentId\", attachmentId);\r",
-															""
+															"var attachmentId = pm.response.json()\r",
+															"pm.collectionVariables.set(\"attachmentId\", attachmentId.attachmentId);"
 														],
 														"type": "text/javascript",
 														"packages": {}
