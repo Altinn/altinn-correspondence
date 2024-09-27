@@ -19,18 +19,20 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
     private readonly IAltinnNotificationService _altinnNotificationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceNotificationRepository _correspondenceNotificationRepository;
+    private readonly INotificationTemplateRepository _notificationTemplateRepository;
     private readonly IEventBus _eventBus;
     private readonly InitializeCorrespondenceHelper _initializeCorrespondenceHelper;
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly UserClaimsHelper _userClaimsHelper;
 
-    public InitializeCorrespondencesHandler(InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceNotificationRepository correspondenceNotificationRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient, UserClaimsHelper userClaimsHelper)
+    public InitializeCorrespondencesHandler(InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceNotificationRepository correspondenceNotificationRepository, INotificationTemplateRepository notificationTemplateRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient, UserClaimsHelper userClaimsHelper)
     {
         _initializeCorrespondenceHelper = initializeCorrespondenceHelper;
         _altinnAuthorizationService = altinnAuthorizationService;
         _altinnNotificationService = altinnNotificationService;
         _correspondenceRepository = correspondenceRepository;
         _correspondenceNotificationRepository = correspondenceNotificationRepository;
+        _notificationTemplateRepository = notificationTemplateRepository;
         _eventBus = eventBus;
         _backgroundJobClient = backgroundJobClient;
         _userClaimsHelper = userClaimsHelper;
@@ -95,6 +97,21 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 return uploadError;
             }
         }
+        List<NotificationContent>? notificationContents = null;
+        if (request.Notification != null)
+        {
+            notificationContents = await getMessageContent(request.Notification, cancellationToken, request.Correspondence.Content?.Language);
+            if (notificationContents.Count == 0)
+            {
+                return Errors.NotificationTemplateNotFound;
+            }
+            var notificationError = _initializeCorrespondenceHelper.ValidateNotification(request.Notification);
+            if (notificationError != null)
+            {
+                return notificationError;
+            }
+        }
+
         var status = _initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);
         var correspondences = new List<CorrespondenceEntity>();
         foreach (var recipient in request.Recipients)
@@ -125,7 +142,6 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
                 ReplyOptions = request.Correspondence.ReplyOptions,
                 IsReservable = request.Correspondence.IsReservable,
-                Notifications = _initializeCorrespondenceHelper.ProcessNotifications(request.Correspondence.Notifications, cancellationToken),
                 Statuses = new List<CorrespondenceStatusEntity>(){
                     new CorrespondenceStatusEntity
                     {
@@ -147,7 +163,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
             if (request.Notification != null)
             {
-                var notifications = CreateNotifications(request.Notification, correspondence);
+                var notifications = CreateNotifications(request.Notification, correspondence, notificationContents, cancellationToken);
                 foreach (var notification in notifications)
                 {
                     var orderId = await _altinnNotificationService.CreateNotification(notification, cancellationToken);
@@ -171,7 +187,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         };
     }
 
-    private List<NotificationOrderRequest> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence)
+    private List<NotificationOrderRequest> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
     {
         var notifications = new List<NotificationOrderRequest>();
 
@@ -180,17 +196,21 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         var personFormat = new Regex(@"^\d{11}$");
         string? orgNr = null;
         string? personNr = null;
+        NotificationContent? content = null;
         if (organizationWithoutPrefixFormat.IsMatch(correspondence.Recipient))
         {
             orgNr = correspondence.Recipient;
+            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person || c.RecipientType == null);
         }
         else if (organizationWithPrefixFormat.IsMatch(correspondence.Recipient))
         {
             orgNr = correspondence.Recipient.Substring(5);
+            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person || c.RecipientType == null);
         }
         else if (personFormat.IsMatch(correspondence.Recipient))
         {
             personNr = correspondence.Recipient;
+            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person || c.RecipientType == null);
         }
         var notificationOrder = new NotificationOrderRequest
         {
@@ -202,18 +222,18 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             },
         },
             ResourceId = correspondence.ResourceId,
-            RequestedSendTime = correspondence.VisibleFrom.UtcDateTime,
+            RequestedSendTime = correspondence.VisibleFrom.UtcDateTime.AddMinutes(5),
             ConditionEndpoint = null, // TODO: Implement condition endpoint
             SendersReference = correspondence.SendersReference,
             NotificationChannel = notification.NotificationChannel,
             EmailTemplate = new EmailTemplate
             {
-                Subject = notification.EmailSubject,
-                Body = notification.EmailBody,
+                Subject = content.EmailSubject,
+                Body = content.EmailBody,
             },
             SmsTemplate = new SmsTemplate
             {
-                Body = notification.SmsBody,
+                Body = content.SmsBody,
 
             }
         };
@@ -236,15 +256,58 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 NotificationChannel = notification.NotificationChannel,
                 EmailTemplate = new EmailTemplate
                 {
-                    Subject = notification.ReminderEmailSubject,
-                    Body = notification.ReminderEmailBody,
+                    Subject = content.ReminderEmailSubject,
+                    Body = content.ReminderEmailBody,
                 },
                 SmsTemplate = new SmsTemplate
                 {
-                    Body = notification.ReminderSmsBody,
+                    Body = content.ReminderSmsBody,
                 }
             });
         }
         return notifications;
+    }
+    private async Task<List<NotificationContent>> getMessageContent(NotificationRequest request, CancellationToken cancellationToken, string? language = null)
+    {
+
+        var templates = await _notificationTemplateRepository.GetNotificationTemplates(request.NotificationTemplate, cancellationToken, language);
+        if (templates.Count == 0)
+        {
+            throw new Exception("No notification templates found");
+        }
+        var content = new List<NotificationContent>();
+        foreach (var template in templates)
+        {
+            content.Add(new NotificationContent()
+            {
+                EmailSubject = CreateMessageFromToken(template.EmailSubject, request.EmailSubject),
+                EmailBody = CreateMessageFromToken(template.EmailBody, request.EmailBody),
+                SmsBody = CreateMessageFromToken(template.SmsBody, request.SmsBody),
+                ReminderEmailBody = CreateMessageFromToken(template.ReminderEmailBody, request.ReminderEmailBody),
+                ReminderEmailSubject = CreateMessageFromToken(template.ReminderEmailSubject, request.ReminderEmailSubject),
+                ReminderSmsBody = CreateMessageFromToken(template.ReminderSmsBody, request.ReminderSmsBody),
+                Language = template.Language,
+                RecipientType = template.RecipientType
+
+            });
+        }
+
+        return content;
+    }
+    private string CreateMessageFromToken(string message, string? token = "")
+    {
+        return message.Replace("{textToken}", token + " ").Trim();
+    }
+
+    internal class NotificationContent
+    {
+        public string? EmailSubject { get; set; }
+        public string? EmailBody { get; set; }
+        public string? SmsBody { get; set; }
+        public string? ReminderEmailBody { get; set; }
+        public string? ReminderEmailSubject { get; set; }
+        public string? ReminderSmsBody { get; set; }
+        public string? Language { get; set; }
+        public RecipientType? RecipientType { get; set; }
     }
 }
