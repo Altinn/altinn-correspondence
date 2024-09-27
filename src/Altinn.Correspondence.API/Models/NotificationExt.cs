@@ -39,6 +39,12 @@ namespace Altinn.Correspondence.API.Models
         public DateTime Created { get; set; }
 
         /// <summary>
+        /// whether the notification is a reminder notification
+        /// </summary>
+        [JsonPropertyName("isReminder")]
+        public bool IsReminder { get; set; }
+
+        /// <summary>
         /// Gets or sets the preferred notification channel of the notification order
         /// </summary>
         [JsonPropertyName("notificationChannel")]

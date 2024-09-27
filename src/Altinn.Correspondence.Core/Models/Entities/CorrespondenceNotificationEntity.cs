@@ -24,9 +24,12 @@ namespace Altinn.Correspondence.Core.Models.Entities
         [Required]
         public required DateTimeOffset Created { get; set; }
 
+        public bool IsReminder { get; set; }
+
         public DateTimeOffset? NotificationSent { get; set; }
 
         public string? NotificationAddress { get; set; }
 
+        public int? Altinn2NotificationId { get; set; }
     }
 }

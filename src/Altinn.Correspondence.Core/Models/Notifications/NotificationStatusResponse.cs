@@ -20,6 +20,9 @@ public class NotificationStatusResponse
     [JsonPropertyName("created")]
     public DateTime Created { get; set; }
 
+    [JsonPropertyName("isReminder")]
+    public bool IsReminder { get; set; }
+
     [JsonPropertyName("notificationChannel")]
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public NotificationChannel NotificationChannel { get; set; }

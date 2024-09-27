@@ -38,7 +38,6 @@ public class ApplicationDbContext : DbContext
     public DbSet<ExternalReferenceEntity> ExternalReferences { get; set; }
     public DbSet<NotificationTemplateEntity> NotificationTemplates { get; set; }
 
-
     private bool IsAccessTokenValid()
     {
         if (string.IsNullOrWhiteSpace(_accessToken))

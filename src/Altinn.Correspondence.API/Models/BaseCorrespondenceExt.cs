@@ -71,9 +71,9 @@ namespace Altinn.Correspondence.API.Models
         /// Examples include Altinn App instances, Altinn Broker File Transfers
         /// </summary>
         /// <remarks>
-        /// TODO: Do we need this on Attachments for DialogPorten etc?
         /// </remarks>
         [JsonPropertyName("externalReferences")]
+        [ExternalReferences]
         public List<ExternalReferenceExt>? ExternalReferences { get; set; }
 
         /// <summary>
@@ -134,6 +134,31 @@ namespace Altinn.Correspondence.API.Models
                 if (keyValuePair.Value.Length > 300)
                     return new ValidationResult(String.Format("propertyList Value can not be longer than 300. Length:{0}, Value:{1}", keyValuePair.Value.Length.ToString(), keyValuePair.Value));
             }
+
+            return ValidationResult.Success;
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Property)]
+    internal class ExternalReferencesAttribute : ValidationAttribute
+    {
+        public ExternalReferencesAttribute()
+        {
+        }
+
+        protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
+        {
+            if (value == null)
+                return ValidationResult.Success;
+
+            if (!(value is List<ExternalReferenceExt>))
+                return new ValidationResult("externalReferences is not of proper type");
+
+            var externalReferences = (List<ExternalReferenceExt>)value;
+            if (externalReferences.Count > 10)
+                return new ValidationResult("externalReferences can contain at most 10 references");
+            if (externalReferences.Any(externalReference => externalReference.ReferenceType == Enums.ReferenceTypeExt.DialogportenDialogId))
+                return new ValidationResult("Cannot initialize a correspondence with pre-existing dialog element defined");
 
             return ValidationResult.Success;
         }
