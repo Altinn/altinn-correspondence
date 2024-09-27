@@ -1,7 +1,7 @@
-using Altinn.Correspondence.API.Configuration;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Application.DownloadAttachment;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
