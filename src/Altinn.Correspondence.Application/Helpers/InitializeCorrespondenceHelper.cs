@@ -65,6 +65,7 @@ namespace Altinn.Correspondence.Application.Helpers
         }
         public Error? ValidateNotification(NotificationRequest notification)
         {
+            if (notification.NotificationTemplate == NotificationTemplate.GenericAltinnMessage || notification.NotificationTemplate == NotificationTemplate.Altinn2Message) return null;
             if (notification.NotificationChannel == NotificationChannel.Email)
             {
                 if (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject))

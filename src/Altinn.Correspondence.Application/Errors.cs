@@ -43,7 +43,7 @@ public static class Errors
     public static Error LatestStatusIsNull = new Error(35, "Could not retrieve latest status for correspondence", HttpStatusCode.BadRequest);
     public static Error InvalidSender = new Error(36, "Creator of correspondence must be the sender", HttpStatusCode.BadRequest);
     public static Error CorrespondenceDoesNotHaveNotifications = new Error(37, "The Correspondence does not have any connected notifications", HttpStatusCode.BadRequest);
-    public static Error NotificationTemplateNotFound = new Error(38, "The requested notification template was not found", HttpStatusCode.NotFound);
+    public static Error NotificationTemplateNotFound = new Error(38, "The requested notification template with the given language was not found", HttpStatusCode.NotFound);
     public static Error MissingEmailContent = new Error(39, "Email body and subject must be provided when sending email notifications", HttpStatusCode.BadRequest);
     public static Error MissingEmailReminderNotificationContent = new Error(40, "Reminder email body and subject must be provided when sending reminder email notifications", HttpStatusCode.BadRequest);
     public static Error MissingSmsContent = new Error(41, "SMS body must be provided when sending SMS notifications", HttpStatusCode.BadRequest);

@@ -102,9 +102,15 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             }
         }
         List<NotificationContent>? notificationContents = null;
+        List<NotificationTemplateEntity>? templates = null;
         if (request.Notification != null)
         {
-            notificationContents = await getMessageContent(request.Notification, cancellationToken, request.Correspondence.Content?.Language);
+            templates = await _notificationTemplateRepository.GetNotificationTemplates(request.Notification.NotificationTemplate, cancellationToken, request.Correspondence.Content?.Language);
+            if (templates.Count == 0)
+            {
+                return Errors.NotificationTemplateNotFound;
+            }
+            notificationContents = await getMessageContent(request.Notification, templates, cancellationToken, request.Correspondence.Content?.Language);
             if (notificationContents.Count == 0)
             {
                 return Errors.NotificationTemplateNotFound;
@@ -164,7 +170,8 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             var dialogId = await _dialogportenService.CreateCorrespondenceDialog(correspondence.Id, cancellationToken);
             await _correspondenceRepository.AddExternalReference(correspondence.Id, ReferenceType.DialogportenDialogId, dialogId, cancellationToken);
-            if (correspondence.GetLatestStatus()?.Status != CorrespondenceStatus.Published) { 
+            if (correspondence.GetLatestStatus()?.Status != CorrespondenceStatus.Published)
+            {
                 _backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.VisibleFrom);
             }
             _backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime);
@@ -276,14 +283,8 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         }
         return notifications;
     }
-    private async Task<List<NotificationContent>> getMessageContent(NotificationRequest request, CancellationToken cancellationToken, string? language = null)
+    private async Task<List<NotificationContent>> getMessageContent(NotificationRequest request, List<NotificationTemplateEntity> templates, CancellationToken cancellationToken, string? language = null)
     {
-
-        var templates = await _notificationTemplateRepository.GetNotificationTemplates(request.NotificationTemplate, cancellationToken, language);
-        if (templates.Count == 0)
-        {
-            throw new Exception("No notification templates found");
-        }
         var content = new List<NotificationContent>();
         foreach (var template in templates)
         {
@@ -297,10 +298,8 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 ReminderSmsBody = CreateMessageFromToken(template.ReminderSmsBody, request.ReminderSmsBody),
                 Language = template.Language,
                 RecipientType = template.RecipientType
-
             });
         }
-
         return content;
     }
     private string CreateMessageFromToken(string message, string? token = "")
