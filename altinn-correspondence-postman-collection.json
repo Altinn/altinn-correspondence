@@ -1,9 +1,9 @@
 {
 	"info": {
-		"_postman_id": "7fe8254e-0fb7-4907-a4f6-89cd244512e4",
+		"_postman_id": "04b04a8a-51a8-40a4-b37f-0b108a409fc6",
 		"name": "Altinn.Correspondence.API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "7106668"
+		"_exporter_id": "34552244"
 	},
 	"item": [
 		{
@@ -280,6 +280,76 @@
 																	],
 																	"cookie": [],
 																	"body": "{\n  \"dataLocationUrl\": \"ExternalStorage\",\n  \"dataType\": \"<string>\",\n  \"expirationTime\": \"<dateTime>\",\n  \"name\": \"<string>\",\n  \"restrictionName\": \"<string>\",\n  \"sendersReference\": \"<string>\",\n  \"usageType\": \"MachineReadable\",\n  \"fileName\": \"<string>\",\n  \"isEncrypted\": \"<boolean>\",\n  \"checksum\": \"<string>\",\n  \"attachmentId\": \"<uuid>\",\n  \"status\": \"UploadProcessing\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\"\n}"
+																}
+															]
+														}
+													]
+												},
+												{
+													"name": "download",
+													"item": [
+														{
+															"name": "Download Attachment",
+															"request": {
+																"auth": {
+																	"type": "bearer",
+																	"bearer": [
+																		{
+																			"key": "token",
+																			"value": "{{sender_token}}",
+																			"type": "string"
+																		}
+																	]
+																},
+																"method": "GET",
+																"header": [],
+																"url": {
+																	"raw": "{{baseUrl}}/correspondence/api/v1/attachment/{{attachmentId}}/download",
+																	"host": [
+																		"{{baseUrl}}"
+																	],
+																	"path": [
+																		"correspondence",
+																		"api",
+																		"v1",
+																		"attachment",
+																		"{{attachmentId}}",
+																		"download"
+																	]
+																}
+															},
+															"response": [
+																{
+																	"name": "Success",
+																	"originalRequest": {
+																		"method": "GET",
+																		"header": [],
+																		"url": {
+																			"raw": "{{baseUrl}}/correspondence/api/v1/attachment/:attachmentId/download",
+																			"host": [
+																				"{{baseUrl}}"
+																			],
+																			"path": [
+																				"correspondence",
+																				"api",
+																				"v1",
+																				"attachment",
+																				":attachmentId",
+																				"download"
+																			],
+																			"variable": [
+																				{
+																					"key": "attachmentId"
+																				}
+																			]
+																		}
+																	},
+																	"status": "OK",
+																	"code": 200,
+																	"_postman_previewlanguage": "text",
+																	"header": [],
+																	"cookie": [],
+																	"body": ""
 																}
 															]
 														}
@@ -2439,6 +2509,11 @@
 		{
 			"key": "resource_id",
 			"value": "dagl-correspondence",
+			"type": "string"
+		},
+		{
+			"key": "local_testing",
+			"value": "http://localhost:5096",
 			"type": "string"
 		}
 	]
