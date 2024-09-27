@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Altinn.Correspondence.Application.Helpers;
+﻿using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
@@ -42,8 +41,7 @@ public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespo
         {
             return Errors.NoAccessToResource;
         }
-        bool isRecipient = _userClaimsHelper.GetUserID() == correspondence.Recipient;
-        if (!isRecipient)
+        if (!_userClaimsHelper.IsRecipient(correspondence.Recipient))
         {
             return Errors.CorrespondenceNotFound;
         }

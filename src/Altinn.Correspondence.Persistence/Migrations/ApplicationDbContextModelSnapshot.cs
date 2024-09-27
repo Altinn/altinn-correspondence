@@ -240,6 +240,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<DateTimeOffset>("Created")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsReminder")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("NotificationAddress")
                         .HasColumnType("text");
 

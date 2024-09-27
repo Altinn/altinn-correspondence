@@ -1,4 +1,4 @@
-namespace Altinn.Correspondence.API.Configuration;
+namespace Altinn.Correspondence.Application.Configuration;
 
 public static class AuthorizationConstants
 {

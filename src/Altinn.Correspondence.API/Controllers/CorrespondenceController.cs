@@ -1,7 +1,7 @@
-﻿using Altinn.Correspondence.API.Configuration;
-using Altinn.Correspondence.API.Models;
+﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
@@ -170,7 +170,7 @@ namespace Altinn.Correspondence.API.Controllers
                 From = from,
                 Limit = limit,
                 Offset = offset,
-                Status = status is null? null : (CorrespondenceStatus)status,
+                Status = status is null ? null : (CorrespondenceStatus)status,
                 To = to
 
             }, cancellationToken);

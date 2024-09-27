@@ -37,7 +37,14 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
     public async Task<OneOf<Guid, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
     {
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, cancellationToken);
-        if (correspondence == null) return Errors.CorrespondenceNotFound;
+        if (correspondence == null) 
+        {
+            return Errors.CorrespondenceNotFound;
+        }
+        if (!_userClaimsHelper.IsAffiliatedWithCorrespondence(correspondence.Recipient, correspondence.Sender))
+        {
+            return Errors.CorrespondenceNotFound;
+        }
         var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Open }, cancellationToken);
         if (!hasAccess)
         {
@@ -49,12 +56,6 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
             return Errors.CorrespondenceAlreadyPurged;
         }
 
-        string orgNo = _userClaimsHelper.GetUserID();
-        if (orgNo is null)
-        {
-            return Errors.CouldNotFindOrgNo;
-        }
-
         var latestStatus = correspondence.GetLatestStatus();
         if (latestStatus == null)
         {
@@ -63,9 +64,9 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
 
         var newStatus = new CorrespondenceStatusEntity();
 
-        if (correspondence.Sender == orgNo)
+        if (_userClaimsHelper.IsSender(correspondence.Sender))
         {
-            if (latestStatus.Status >= CorrespondenceStatus.Published && latestStatus.Status != CorrespondenceStatus.Failed)
+            if (!latestStatus.Status.IsPurgeableForSender())
             {
                 return Errors.CantPurgeCorrespondenceSender;
             }
@@ -78,9 +79,9 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
                 StatusText = CorrespondenceStatus.PurgedByAltinn.ToString()
             };
         }
-        else if (correspondence.Recipient == orgNo)
+        else if (_userClaimsHelper.IsRecipient(correspondence.Recipient))
         {
-            if (latestStatus.Status < CorrespondenceStatus.Published)
+            if (!latestStatus.Status.IsAvailableForRecipient())
             {
                 return Errors.CantPurgeCorrespondenceRecipient;
             }
@@ -92,17 +93,13 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
                 StatusText = CorrespondenceStatus.PurgedByRecipient.ToString()
             };
         }
-        else
-        {
-            return Errors.CantPurgeCorrespondence;
-        }
 
         await _eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         await _correspondenceStatusRepository.AddCorrespondenceStatus(newStatus, cancellationToken);
         await CheckAndPurgeAttachments(correspondenceId, cancellationToken);
         foreach (var notification in correspondence.Notifications)
         {
-            if (notification.RequestedSendTime > DateTimeOffset.UtcNow) await _altinnNotificationService.CancelNotification(notification.NotificationOrderId.ToString(), cancellationToken);
+            if (notification.RequestedSendTime > DateTimeOffset.UtcNow && notification.NotificationOrderId != null) await _altinnNotificationService.CancelNotification(notification.NotificationOrderId.ToString(), cancellationToken);
         }
         return correspondenceId;
     }

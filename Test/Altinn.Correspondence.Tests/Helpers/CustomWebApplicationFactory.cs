@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Helpers;
@@ -10,10 +9,12 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using System.Security.Claims;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
+
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)
     {
@@ -52,8 +53,19 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             new Claim("urn:altinn:userid", "1"),
             new Claim("urn:altinn:partyid", "1")
         };
-        var combinedClaims = defaultClaims.Concat(claims.Select(c => new Claim(c.type, c.value))).ToList();
-
+        var claimsWithDuplicatesAllowed = new List<string> { "scope" };
+        foreach (var (type, value) in claims)
+        {
+            if (claimsWithDuplicatesAllowed.Contains(type))
+            {
+                defaultClaims.Add(new Claim(type, value));
+            }
+            else
+            {
+                defaultClaims.RemoveAll(c => c.Type == type);
+                defaultClaims.Add(new Claim(type, value));
+            }
+        }
         // Clone the current factory and set the specific claims for this instance
         var clientFactory = WithWebHostBuilder(builder =>
         {
@@ -61,7 +73,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             {
                 services.AddSingleton<IPolicyEvaluator>(provider =>
                 {
-                    return new MockPolicyEvaluator(combinedClaims);
+                    return new MockPolicyEvaluator(defaultClaims);
                 });
             });
         });
