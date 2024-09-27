@@ -41,11 +41,11 @@ namespace Altinn.Correspondence.Persistence.Migrations
            {
                     { "{textToken}", "{textToken}", null, null, "{textToken}", "{textToken}", "{textToken}", "{textToken}", 0 },
                     { "Hei $recipientName$, du har mottatt en ny melding i Altinn fra $sendersName$. {textToken} Logg deg inn i Altinn inboks for å se denne meldingen.",
-                    "Du har mottatt en melding i Altinn {textToken}", "nb", 0, "Hei $recipientName$, dette er en påminnelse om at du har mottatt en ny melding i Altinn fra $sendersName$. {textToken}Logg deg inn i Altinn inboks for å se denne meldingen.",
+                    "Du har mottatt en melding i Altinn {textToken}", "no", 0, "Hei $recipientName$, dette er en påminnelse om at du har mottatt en ny melding i Altinn fra $sendersName$. {textToken}Logg deg inn i Altinn inboks for å se denne meldingen.",
                     "Påminnelse - du har mottatt en melding i Altinn {textToken}", "Hei $recipientName$, dette er en påminnelse om at du har mottatt en ny melding i Altinn fra $sendersName$. {textToken} Logg deg inn i Altinn inboks for å se denne meldingen.",
                      "Hei $recipientName$, du har mottatt en ny melding i Altinn fra $sendersName$. {textToken}Logg deg inn i Altinn inboks for å se denne meldingen.", 1 },
                     { "Hei $recipientName$, du har mottatt en ny melding i Altinn fra $sendersName$. {textToken} Logg deg inn i Altinn inboks for å se denne meldingen.",
-                    "Du har mottatt en melding i Altinn {textToken}", "nb", 1, "Hei $recipientName$, dette er en påminnelse om at du har mottatt en ny melding i Altinn fra $sendersName$. {textToken}Logg deg inn i Altinn inboks for å se denne meldingen.",
+                    "Du har mottatt en melding i Altinn {textToken}", "no", 1, "Hei $recipientName$, dette er en påminnelse om at du har mottatt en ny melding i Altinn fra $sendersName$. {textToken}Logg deg inn i Altinn inboks for å se denne meldingen.",
                     "Påminnelse - du har mottatt en melding i Altinn {textToken}", "Hei $recipientName$, dette er en påminnelse om at du har mottatt en ny melding i Altinn fra $sendersName$. {textToken}Logg deg inn i Altinn inboks for å se denne meldingen.",
                      "Hei $recipientName$, du har mottatt en ny melding i Altinn fra $sendersName$. {textToken}Logg deg inn i Altinn inboks for å se denne meldingen.", 1 },
                     
