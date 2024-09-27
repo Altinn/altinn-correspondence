@@ -1,5 +1,7 @@
+using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.PublishCorrespondence;
+using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -22,9 +24,10 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
     private readonly IEventBus _eventBus;
     private readonly InitializeCorrespondenceHelper _initializeCorrespondenceHelper;
     private readonly IBackgroundJobClient _backgroundJobClient;
+    private readonly IDialogportenService _dialogportenService;
     private readonly UserClaimsHelper _userClaimsHelper;
 
-    public InitializeCorrespondencesHandler(InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceNotificationRepository correspondenceNotificationRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient, UserClaimsHelper userClaimsHelper)
+    public InitializeCorrespondencesHandler(InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceNotificationRepository correspondenceNotificationRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient, UserClaimsHelper userClaimsHelper, IDialogportenService dialogportenService)
     {
         _initializeCorrespondenceHelper = initializeCorrespondenceHelper;
         _altinnAuthorizationService = altinnAuthorizationService;
@@ -33,6 +36,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         _correspondenceNotificationRepository = correspondenceNotificationRepository;
         _eventBus = eventBus;
         _backgroundJobClient = backgroundJobClient;
+        _dialogportenService = dialogportenService;
         _userClaimsHelper = userClaimsHelper;
     }
 
@@ -142,13 +146,16 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         correspondences = await _correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
         foreach (var correspondence in correspondences)
         {
-            _backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.VisibleFrom);
+            var dialogId = await _dialogportenService.CreateCorrespondenceDialog(correspondence.Id, cancellationToken);
+            await _correspondenceRepository.AddExternalReference(correspondence.Id, ReferenceType.DialogportenDialogId, dialogId, cancellationToken);
+            if (correspondence.GetLatestStatus()?.Status != CorrespondenceStatus.Published) { 
+                _backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.VisibleFrom);
+            }
             _backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime);
             await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
             if (request.Notification != null)
             {
                 var notifications = CreateNotifications(request.Notification, correspondence);
-                Console.WriteLine("Notifications: " + notifications.Count());
                 foreach (var notification in notifications)
                 {
                     var orderId = await _altinnNotificationService.CreateNotification(notification, cancellationToken);
@@ -159,7 +166,8 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                         NotificationTemplate = request.Notification.NotificationTemplate,
                         CorrespondenceId = correspondence.Id,
                         NotificationOrderId = orderId,
-                        RequestedSendTime = request.Notification.RequestedSendTime,
+                        RequestedSendTime = notification.RequestedSendTime ?? DateTimeOffset.UtcNow,
+                        IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
                     };
                     await _correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
                 }
@@ -175,13 +183,19 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
     private List<NotificationOrderRequest> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence)
     {
         var notifications = new List<NotificationOrderRequest>();
+
         var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
+        var organizationWithPrefixFormat = new Regex(@"^\d{4}:\d{9}$");
         var personFormat = new Regex(@"^\d{11}$");
         string? orgNr = null;
         string? personNr = null;
         if (organizationWithoutPrefixFormat.IsMatch(correspondence.Recipient))
         {
             orgNr = correspondence.Recipient;
+        }
+        else if (organizationWithPrefixFormat.IsMatch(correspondence.Recipient))
+        {
+            orgNr = correspondence.Recipient.Substring(5);
         }
         else if (personFormat.IsMatch(correspondence.Recipient))
         {
@@ -197,7 +211,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             },
         },
             ResourceId = correspondence.ResourceId,
-            RequestedSendTime = correspondence.VisibleFrom.DateTime,
+            RequestedSendTime = correspondence.VisibleFrom.UtcDateTime,
             ConditionEndpoint = null, // TODO: Implement condition endpoint
             SendersReference = correspondence.SendersReference,
             NotificationChannel = notification.NotificationChannel,
@@ -225,7 +239,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             },
         },
                 ResourceId = correspondence.ResourceId,
-                RequestedSendTime = correspondence.VisibleFrom.DateTime,
+                RequestedSendTime = correspondence.VisibleFrom.UtcDateTime.AddDays(7),
                 ConditionEndpoint = null, // TODO: Implement condition endpoint
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.NotificationChannel,
