@@ -34,7 +34,10 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
         _logger.LogInformation("Initialize attachment");
 
         return commandResult.Match(
-            id => Ok(id.ToString()),
+            attachmentId => Ok(new AttachmentInitializeResponseExt()
+            {
+                AttachmentId = attachmentId
+            }),
             Problem
         );
     }

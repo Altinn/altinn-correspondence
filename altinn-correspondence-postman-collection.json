@@ -1,9 +1,9 @@
 {
 	"info": {
-		"_postman_id": "c4269116-0793-4c00-9f83-3c5834aee791",
+		"_postman_id": "ce1839e6-7c1f-469e-a001-c3e31d1b7f1c",
 		"name": "Altinn.Correspondence.API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "1775784"
+		"_exporter_id": "38611559"
 	},
 	"item": [
 		{
@@ -833,8 +833,8 @@
 																},
 																{
 																	"key": "Attachments",
-																	"type": "file",
-																	"src": ""
+																	"value": "",
+																	"type": "file"
 																},
 																{
 																	"key": "existingAttachments[0]",
