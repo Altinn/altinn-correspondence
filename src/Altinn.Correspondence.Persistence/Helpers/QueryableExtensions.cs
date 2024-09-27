@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Microsoft.EntityFrameworkCore.Internal;
 
 namespace Altinn.Correspondence.Persistence.Helpers
 {
@@ -34,52 +35,28 @@ namespace Altinn.Correspondence.Persistence.Helpers
                 CorrespondenceStatus.Failed,
             };
 
-            // If status is not null, check against blacklists based on the orgNo's role
-            if (status is not null)
+            // Helper functions for common query patterns
+            IQueryable<CorrespondenceEntity> FilterForSender()
             {
-                return role switch
-                {
-                    CorrespondencesRoleType.Recipient => query.Where(c =>
-                        c.Recipient == orgNo && 
-                        !blacklistRecipient.Contains(status) && 
-                        c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status == status),
-
-                    CorrespondencesRoleType.Sender => query.Where(c =>
-                        c.Sender == orgNo && 
-                        !blacklistSender.Contains(status) && 
-                        c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status == status),
-
-                    CorrespondencesRoleType.RecipientAndSender => query.Where(c =>
-                        (c.Sender == orgNo && 
-                        !blacklistSender.Contains(status) && 
-                        c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status == status) 
-                        ||
-                        (c.Recipient == orgNo && !blacklistRecipient.Contains(status) && 
-                        c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status == status)),
-
-                    _ => query.Where(c => false),
-                };
+                return query.Where(c => c.Sender == orgNo &&
+                    status.HasValue ?
+                    (!blacklistSender.Contains(status)) && status == c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status :
+                    (!blacklistSender.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)));
             }
 
-            // If status is null, return all except blacklisted based on the role
+            IQueryable<CorrespondenceEntity> FilterForRecipient()
+            {
+                return query.Where(c => c.Recipient == orgNo &&
+                    status.HasValue ?
+                    (!blacklistRecipient.Contains(status)) && status == c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status :
+                    (!blacklistRecipient.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)));
+            }
             return role switch
             {
-                CorrespondencesRoleType.Recipient => query.Where(c =>
-                    c.Recipient == orgNo && 
-                    !blacklistRecipient.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)),
-
-                CorrespondencesRoleType.Sender => query.Where(c =>
-                    c.Sender == orgNo && 
-                    !blacklistSender.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)),
-
-                CorrespondencesRoleType.RecipientAndSender => query.Where(c =>
-                    (c.Sender == orgNo && 
-                    !blacklistSender.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)) 
-                    ||
-                    (c.Recipient == orgNo && 
-                    !blacklistRecipient.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status))),
-
-                _ => query.Where(c => false),
+                CorrespondencesRoleType.Sender => FilterForSender(),
+                CorrespondencesRoleType.Recipient => FilterForRecipient(),
+                CorrespondencesRoleType.RecipientAndSender => FilterForSender().Union(FilterForRecipient()),
+                _ => throw new ArgumentException("Invalid CorrespondencesRoleType")
             };
         }
     }
