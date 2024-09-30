@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240927071339_Altinn2CorrespondenceIds")]
+    partial class Altinn2CorrespondenceIds
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -240,9 +243,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<DateTimeOffset>("Created")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("IsReminder")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("NotificationAddress")
                         .HasColumnType("text");
 
@@ -338,52 +338,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasIndex("CorrespondenceId");
 
                     b.ToTable("ExternalReferences", "correspondence");
-                });
-
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.NotificationTemplateEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("EmailBody")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("EmailSubject")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Language")
-                        .HasColumnType("text");
-
-                    b.Property<int?>("RecipientType")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ReminderEmailBody")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("ReminderEmailSubject")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("ReminderSmsBody")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("SmsBody")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("Template")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("NotificationTemplates", "correspondence");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.AttachmentStatusEntity", b =>

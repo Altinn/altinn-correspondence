@@ -30,5 +30,6 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         public string? NotificationAddress { get; set; }
 
+        public int? Altinn2NotificationId { get; set; }
     }
 }
