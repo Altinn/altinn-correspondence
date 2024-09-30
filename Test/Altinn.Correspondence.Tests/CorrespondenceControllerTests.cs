@@ -965,8 +965,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse4.StatusCode);
     }
 
-
-
     private async Task<HttpResponseMessage> UploadAttachment(string? attachmentId, ByteArrayContent? originalAttachmentData = null)
     {
         if (attachmentId == null)
