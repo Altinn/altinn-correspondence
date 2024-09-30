@@ -51,5 +51,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         [Required]
         public required DateTimeOffset Created { get; set; }
+
+        public int? Altinn2CorrespondenceId { get; set; }
     }
 }

@@ -15,6 +15,7 @@ internal static class NotificationMapper
             Created = notification.Created,
             Id = notification.Id,
             Creator = notification.Creator,
+            IsReminder = notification.IsReminder,
             IgnoreReservation = notification.IgnoreReservation,
             NotificationStatusDetails = notification.NotificationsStatusDetails != null ? MapNotificationsStatusSummaryExtToExternal(notification.NotificationsStatusDetails) : null,
             ProcessingStatus = MapStatusToExternal(notification.ProcessingStatus),

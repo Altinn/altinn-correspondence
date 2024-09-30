@@ -41,7 +41,7 @@ internal static class InitializeCorrespondenceFactory
                 new ExternalReferenceExt()
                 {
                     ReferenceValue = "2",
-                    ReferenceType = ReferenceTypeExt.DialogPortenDialogID
+                    ReferenceType = ReferenceTypeExt.DialogportenProcessId
                 }
             },
             PropertyList = new Dictionary<string, string>(){
@@ -63,9 +63,8 @@ internal static class InitializeCorrespondenceFactory
             },
             Notification = new InitializeCorrespondenceNotificationExt()
             {
-                NotificationTemplate = 0,
-                NotificationChannel = 0,
-                EmailBody = "test notification",
+                NotificationTemplate = NotificationTemplateExt.GenericAltinnMessage,
+                NotificationChannel = NotificationChannelExt.Email,
                 SendersReference = "0192:986252932",
                 RequestedSendTime = DateTime.UtcNow.AddDays(1),
                 SendReminder = true,
@@ -145,6 +144,121 @@ internal static class InitializeCorrespondenceFactory
         var data = BasicCorrespondences();
         data.Correspondence.Content!.MessageBody = "<h1>test</h1>";
 
+        return data;
+    }
+    internal static InitializeCorrespondencesExt BasicCorrespondenceWithGenericAltinnEmailNotification()
+    {
+        var data = BasicCorrespondences();
+        data.Correspondence.Notification!.NotificationTemplate = NotificationTemplateExt.GenericAltinnMessage;
+        data.Correspondence.Notification!.NotificationChannel = NotificationChannelExt.Email;
+        data.Correspondence.Notification!.EmailBody = "test";
+        data.Correspondence.Notification!.EmailSubject = "test";
+        data.Correspondence.Notification!.SendReminder = true;
+        data.Correspondence.Notification!.ReminderEmailBody = "test";
+        data.Correspondence.Notification!.ReminderEmailSubject = "test";
+        return data;
+    }
+    internal static InitializeCorrespondencesExt BasicCorrespondenceWithGenericAltinnSmsNotification()
+    {
+        var data = BasicCorrespondences();
+        data.Correspondence.Notification!.NotificationTemplate = NotificationTemplateExt.GenericAltinnMessage;
+        data.Correspondence.Notification!.NotificationChannel = NotificationChannelExt.Sms;
+        data.Correspondence.Notification!.SmsBody = "test";
+        data.Correspondence.Notification!.SendReminder = true;
+        data.Correspondence.Notification!.ReminderSmsBody = "test";
+        return data;
+    }
+    internal static InitializeCorrespondencesExt BasicCorrespondenceWithEmptyGenericAltinnEmailNotification()
+    {
+        var data = BasicCorrespondences();
+        data.Correspondence.Notification!.NotificationTemplate = NotificationTemplateExt.GenericAltinnMessage;
+        data.Correspondence.Notification!.NotificationChannel = NotificationChannelExt.Email;
+        data.Correspondence.Notification!.SendReminder = true;
+        return data;
+    }
+    internal static InitializeCorrespondencesExt BasicCorrespondenceWithEmptyGenericAltinnSmsNotification()
+    {
+        var data = BasicCorrespondences();
+        data.Correspondence.Notification!.NotificationTemplate = NotificationTemplateExt.GenericAltinnMessage;
+        data.Correspondence.Notification!.NotificationChannel = NotificationChannelExt.Sms;
+        data.Correspondence.Notification!.SendReminder = true;
+        return data;
+    }
+    internal static InitializeCorrespondencesExt BasicCorrespondenceWithPrefferedEmailCustomNotification()
+    {
+        var data = BasicCorrespondences();
+        data.Correspondence.Notification!.NotificationTemplate = NotificationTemplateExt.CustomMessage;
+        data.Correspondence.Notification!.NotificationChannel = NotificationChannelExt.EmailPreferred;
+        data.Correspondence.Notification!.EmailBody = "test";
+        data.Correspondence.Notification!.EmailSubject = "test";
+        data.Correspondence.Notification!.SmsBody = "test";
+        data.Correspondence.Notification!.SendReminder = true;
+        data.Correspondence.Notification!.ReminderEmailBody = "test";
+        data.Correspondence.Notification!.ReminderEmailSubject = "test";
+        data.Correspondence.Notification!.ReminderSmsBody = "test";
+        return data;
+    }
+    internal static InitializeCorrespondencesExt BasicCorrespondenceWithPrefferedEmailAltinnNotification()
+    {
+        var data = BasicCorrespondences();
+        data.Correspondence.Notification!.NotificationTemplate = NotificationTemplateExt.GenericAltinnMessage;
+        data.Correspondence.Notification!.NotificationChannel = NotificationChannelExt.EmailPreferred;
+        data.Correspondence.Notification!.SendReminder = true;
+        return data;
+    }
+    internal static InitializeCorrespondencesExt BasicCorrespondenceWithCustomEmailNotification()
+    {
+        var data = BasicCorrespondences();
+        data.Correspondence.Notification!.NotificationTemplate = NotificationTemplateExt.CustomMessage;
+        data.Correspondence.Notification!.NotificationChannel = NotificationChannelExt.Email;
+        data.Correspondence.Notification!.EmailBody = "test";
+        data.Correspondence.Notification!.EmailSubject = "test";
+        data.Correspondence.Notification!.SendReminder = true;
+        data.Correspondence.Notification!.ReminderEmailBody = "test";
+        data.Correspondence.Notification!.ReminderEmailSubject = "test";
+        return data;
+    }
+    internal static InitializeCorrespondencesExt BasicCorrespondenceWithCustomSmsNotification()
+    {
+        var data = BasicCorrespondences();
+        data.Correspondence.Notification!.NotificationTemplate = NotificationTemplateExt.CustomMessage;
+        data.Correspondence.Notification!.NotificationChannel = NotificationChannelExt.Sms;
+        data.Correspondence.Notification!.SmsBody = "test";
+        data.Correspondence.Notification!.SendReminder = true;
+        data.Correspondence.Notification!.ReminderSmsBody = "test";
+        return data;
+    }
+    internal static InitializeCorrespondencesExt BasicCorrespondenceWithEmptyCustomEmailNotification()
+    {
+        var data = BasicCorrespondences();
+        data.Correspondence.Notification!.NotificationTemplate = NotificationTemplateExt.CustomMessage;
+        data.Correspondence.Notification!.NotificationChannel = NotificationChannelExt.Email;
+        data.Correspondence.Notification!.SendReminder = true;
+        return data;
+    }
+    internal static InitializeCorrespondencesExt BasicCorrespondenceWithEmptyCustomSmsNotification()
+    {
+        var data = BasicCorrespondences();
+        data.Correspondence.Notification!.NotificationTemplate = NotificationTemplateExt.CustomMessage;
+        data.Correspondence.Notification!.NotificationChannel = NotificationChannelExt.Sms;
+        data.Correspondence.Notification!.SendReminder = true;
+        return data;
+    }
+    internal static InitializeCorrespondencesExt BasicCorrespondenceWithPrefferedDataWithMissingData()
+    {
+        var data = BasicCorrespondences();
+        data.Correspondence.Notification!.NotificationTemplate = NotificationTemplateExt.CustomMessage;
+        data.Correspondence.Notification!.NotificationChannel = NotificationChannelExt.Email;
+        return data;
+    }
+    internal static InitializeCorrespondencesExt BasicCorrespondenceWithPrefferedDataWithMissingReminderData()
+    {
+        var data = BasicCorrespondences();
+        data.Correspondence.Notification!.NotificationTemplate = NotificationTemplateExt.CustomMessage;
+        data.Correspondence.Notification!.NotificationChannel = NotificationChannelExt.Email;
+        data.Correspondence.Notification!.EmailBody = "test";
+        data.Correspondence.Notification!.EmailSubject = "test";
+        data.Correspondence.Notification!.SendReminder = true;
         return data;
     }
 }

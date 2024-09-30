@@ -13,6 +13,7 @@ using Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Altinn.Correspondence.Integrations.Dialogporten;
 
 namespace Altinn.Correspondence.Integrations;
 public static class DependencyInjection
@@ -26,6 +27,7 @@ public static class DependencyInjection
         {
             services.AddScoped<IEventBus, ConsoleLogEventBus>();
             services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
+            services.AddScoped<IDialogportenService, DialogportenDevService>();
         }
         else
         {
@@ -48,6 +50,10 @@ public static class DependencyInjection
             services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(IAltinnAuthorizationService).FullName, maskinportenSettings);
             services.AddHttpClient<IAltinnAuthorizationService, AltinnAuthorizationService>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
                     .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IAltinnAuthorizationService>();
+
+            services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(IDialogportenService).FullName, maskinportenSettings);
+            services.AddHttpClient<IDialogportenService, DialogportenService>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
+                .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IDialogportenService>();
 
             services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(IAltinnNotificationService).FullName, maskinportenSettings);
             services.AddHttpClient<IAltinnNotificationService, AltinnNotificationService>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))

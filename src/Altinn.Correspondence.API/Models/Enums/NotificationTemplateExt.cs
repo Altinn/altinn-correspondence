@@ -8,16 +8,12 @@ namespace Altinn.Correspondence.API.Models.Enums
         /// <summary>
         /// Fully customizable template.
         /// </summary>
-        TextTokenOnly,
+        CustomMessage,
 
         /// <summary>
-        /// Standard Altinn notification template for a person.
+        /// Standard Altinn notification template.
         /// </summary>
-        GenericPersonMessage,
+        GenericAltinnMessage,
 
-        /// <summary>
-        /// Standard Altinn notification template for a organization.
-        /// </summary>
-        GenericOrganizationMessage
     }
 }

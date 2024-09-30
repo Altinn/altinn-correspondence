@@ -8,11 +8,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
     {
         private readonly ApplicationDbContext _context = context;
 
-        public async Task<Guid> AddNotification(CorrespondenceNotificationEntity noticiation, CancellationToken cancellationToken)
+        public async Task<Guid> AddNotification(CorrespondenceNotificationEntity notification, CancellationToken cancellationToken)
         {
-            await _context.CorrespondenceNotifications.AddAsync(noticiation, cancellationToken);
+            await _context.CorrespondenceNotifications.AddAsync(notification, cancellationToken);
             await _context.SaveChangesAsync();
-            return noticiation.Id;
+            return notification.Id;
         }
     }
 }

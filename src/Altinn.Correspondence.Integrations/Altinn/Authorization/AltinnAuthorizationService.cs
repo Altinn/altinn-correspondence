@@ -67,6 +67,21 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         return validationResult;
     }
 
+    public async Task<bool> CheckMigrationAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
+    {
+        if (_hostEnvironment.IsDevelopment())
+        {
+            return true;
+        }
+        var serviceOwnerId = await _resourceRepository.GetServiceOwnerOfResource(resourceId, cancellationToken);
+        if (string.IsNullOrWhiteSpace(serviceOwnerId))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     private XacmlJsonRequestRoot CreateDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId)
     {
         XacmlJsonRequest request = new()

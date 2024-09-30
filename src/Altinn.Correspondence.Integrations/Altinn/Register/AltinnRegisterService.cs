@@ -40,7 +40,6 @@ public class AltinnRegisterService : IAltinnRegisterService
         {
             OrgNo = organizationWithoutPrefixFormat.IsMatch(identificationId) ? identificationId : null,
             Ssn = personFormat.IsMatch(identificationId) ? identificationId : null
-
         };
         var response = await _httpClient.PostAsJsonAsync("register/api/v1/parties/lookup", partyLookup, cancellationToken);
         if (!response.IsSuccessStatusCode)
