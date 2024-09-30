@@ -81,7 +81,7 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return Errors.MissingSmsContent;
             }
-            if (notification.SendReminder && string.IsNullOrEmpty(notification.ReminderSmsBody))
+            if (notification.NotificationChannel == NotificationChannel.Sms && notification.SendReminder && string.IsNullOrEmpty(notification.ReminderSmsBody))
             {
                 return Errors.MissingSmsReminderNotificationContent;
             }
