@@ -1,7 +1,7 @@
 {
 	"info": {
-		"_postman_id": "88b24a77-c1e4-464f-9e2f-4bca15cc93f8",
-		"name": "Altinn.Correspondence.API Rev2",
+		"_postman_id": "2f063075-488c-4b14-8616-76e6f4a7ffef",
+		"name": "Altinn.Correspondence.API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "7106668"
 	},
@@ -1001,16 +1001,6 @@
 									"type": "text"
 								},
 								{
-									"key": "Correspondence.externalReferences[1].referenceValue",
-									"value": "test",
-									"type": "text"
-								},
-								{
-									"key": "Correspondence.externalReferences[1].referenceType",
-									"value": "DialogPortenDialogID",
-									"type": "text"
-								},
-								{
 									"key": "Correspondence.propertyList.deserunt_12",
 									"value": "string",
 									"type": "text"
@@ -1957,22 +1947,22 @@
 		},
 		{
 			"key": "senderSsn",
-			"value": "Go to https://testdata.skatteetaten.no to find test data. Person should be dagl/\"daglig leder\").",
+			"value": "Go to https://tt02.altinn.no/ and login to get test data. Person should be dagl/\"daglig leder\").",
 			"type": "string"
 		},
 		{
 			"key": "senderOrgNo",
-			"value": "Go to https://testdata.skatteetaten.no to find test data. Person should be dagl/\"daglig leder\").",
+			"value": "Go to https://tt02.altinn.no/ and login to get test data. Person should be dagl/\"daglig leder\").",
 			"type": "string"
 		},
 		{
 			"key": "recipientSsn",
-			"value": "Go to https://testdata.skatteetaten.no to find test data. Person should be dagl/\"daglig leder\").",
+			"value": "Go to https://tt02.altinn.no/ and login to get test data. Person should be dagl/\"daglig leder\").",
 			"type": "string"
 		},
 		{
 			"key": "recipientOrgNo",
-			"value": "Go to https://testdata.skatteetaten.no to find test data. Person should be dagl/\"daglig leder\").",
+			"value": "Go to https://tt02.altinn.no/ and login to get test data. Person should be dagl/\"daglig leder\").",
 			"type": "string"
 		},
 		{
