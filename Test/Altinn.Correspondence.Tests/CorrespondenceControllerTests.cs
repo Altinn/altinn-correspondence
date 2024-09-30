@@ -887,6 +887,84 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task CorrespondenceWithGenericNotification_Gives_Ok()
+    {
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithGenericAltinnSmsNotification();
+        var initializeCorrespondenceResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response1 = await initializeCorrespondenceResponse1.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        initializeCorrespondenceResponse1.EnsureSuccessStatusCode();
+        Assert.NotNull(response1);
+
+        payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithGenericAltinnEmailNotification();
+        var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response2 = await initializeCorrespondenceResponse2.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        initializeCorrespondenceResponse2.EnsureSuccessStatusCode();
+        Assert.NotNull(response2);
+
+        payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithEmptyGenericAltinnSmsNotification();
+        var initializeCorrespondenceResponse3 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response3 = await initializeCorrespondenceResponse3.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        initializeCorrespondenceResponse3.EnsureSuccessStatusCode();
+        Assert.NotNull(response3);
+
+        payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithEmptyGenericAltinnEmailNotification();
+        var initializeCorrespondenceResponse4 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response4 = await initializeCorrespondenceResponse4.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        initializeCorrespondenceResponse4.EnsureSuccessStatusCode();
+        Assert.NotNull(response4);
+    }
+    [Fact]
+    public async Task CorrespondenceWithCustomNotification_Gives_Ok()
+    {
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithCustomEmailNotification();
+        var initializeCorrespondenceResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response1 = await initializeCorrespondenceResponse1.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        initializeCorrespondenceResponse1.EnsureSuccessStatusCode();
+        Assert.NotNull(response1);
+
+        payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithCustomSmsNotification();
+        var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response2 = await initializeCorrespondenceResponse2.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        initializeCorrespondenceResponse2.EnsureSuccessStatusCode();
+        Assert.NotNull(response2);
+    }
+    [Fact]
+    public async Task CorrespondenceWithPrefferedNotification_Gives_Ok()
+    {
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithPrefferedEmailCustomNotification();
+        var initializeCorrespondenceResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response1 = await initializeCorrespondenceResponse1.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        initializeCorrespondenceResponse1.EnsureSuccessStatusCode();
+        Assert.NotNull(response1);
+
+        payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithPrefferedEmailAltinnNotification();
+        var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response2 = await initializeCorrespondenceResponse2.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        initializeCorrespondenceResponse2.EnsureSuccessStatusCode();
+        Assert.NotNull(response2);
+    }
+
+    [Fact]
+    public async Task CorrespondenceWithEmptyCustomNotification_Gives_BadRequest()
+    {
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithEmptyCustomEmailNotification();
+        var initializeCorrespondenceResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse1.StatusCode);
+
+        payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithEmptyCustomSmsNotification();
+        var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse2.StatusCode);
+
+        payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithPrefferedDataWithMissingData();
+        var initializeCorrespondenceResponse3 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse3.StatusCode);
+
+        payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithPrefferedDataWithMissingReminderData();
+        var initializeCorrespondenceResponse4 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse4.StatusCode);
+    }
+
     private async Task<HttpResponseMessage> UploadAttachment(string? attachmentId, ByteArrayContent? originalAttachmentData = null)
     {
         if (attachmentId == null)

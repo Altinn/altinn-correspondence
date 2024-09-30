@@ -1,4 +1,4 @@
-using System;
+using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -63,6 +63,42 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             return null;
         }
+        public Error? ValidateNotification(NotificationRequest notification)
+        {
+            if (notification.NotificationTemplate == NotificationTemplate.GenericAltinnMessage || notification.NotificationTemplate == NotificationTemplate.Altinn2Message) return null;
+            if (notification.NotificationChannel == NotificationChannel.Email)
+            {
+                if (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject))
+                {
+                    return Errors.MissingEmailContent;
+                }
+                if (notification.SendReminder && (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject)))
+                {
+                    return Errors.MissingEmailReminderNotificationContent;
+                }
+            }
+            if (notification.NotificationChannel == NotificationChannel.Sms && string.IsNullOrEmpty(notification.SmsBody))
+            {
+                return Errors.MissingSmsContent;
+            }
+            if (notification.NotificationChannel == NotificationChannel.Sms && notification.SendReminder && string.IsNullOrEmpty(notification.ReminderSmsBody))
+            {
+                return Errors.MissingSmsReminderNotificationContent;
+            }
+            if (notification.NotificationChannel == NotificationChannel.EmailPreferred || notification.NotificationChannel == NotificationChannel.SmsPreferred)
+            {
+                if (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject) || string.IsNullOrEmpty(notification.SmsBody))
+                {
+                    return Errors.MissingPrefferedNotificationContent;
+                }
+                if (notification.SendReminder && (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject) || string.IsNullOrEmpty(notification.ReminderSmsBody)))
+                {
+                    return Errors.MissingPrefferedReminderNotificationContent;
+                }
+            }
+            return null;
+        }
+
         public Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments, bool isUpload)
         {
             if (files.Count > 0 || isUpload)
@@ -79,12 +115,6 @@ namespace Altinn.Correspondence.Application.Helpers
                 }
             }
             return null;
-        }
-
-        public List<CorrespondenceNotificationEntity> ProcessNotifications(List<CorrespondenceNotificationEntity>? notifications, CancellationToken cancellationToken)
-        {
-            if (notifications == null) return new List<CorrespondenceNotificationEntity>();
-            return notifications;
         }
 
         public CorrespondenceStatus GetInitializeCorrespondenceStatus(CorrespondenceEntity correspondence)
