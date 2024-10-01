@@ -3,7 +3,7 @@
 		"_postman_id": "2f063075-488c-4b14-8616-76e6f4a7ffef",
 		"name": "Altinn.Correspondence.API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "7106668"
+		"_exporter_id": "34552244"
 	},
 	"item": [
 		{
@@ -1972,6 +1972,11 @@
 		{
 			"key": "correspondenceId",
 			"value": ""
+		},
+		{
+			"key": "local_testing",
+			"value": "http://localhost:5096",
+			"type": "string"
 		}
 	]
 }

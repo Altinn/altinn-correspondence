@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Microsoft.Extensions.Logging;
 using OneOf;
+using Microsoft.Extensions.Hosting;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
 
@@ -16,19 +17,22 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IEventBus _eventBus;
     private readonly IAltinnNotificationService _altinnNotificationService;
+    private readonly IHostEnvironment _hostEnvironment;
 
     public PublishCorrespondenceHandler(
         ILogger<PublishCorrespondenceHandler> logger,
         IAltinnNotificationService altinnNotificationService,
         ICorrespondenceRepository correspondenceRepository,
         ICorrespondenceStatusRepository correspondenceStatusRepository,
-        IEventBus eventBus)
+        IEventBus eventBus,
+        IHostEnvironment hostEnvironment)
     {
         _altinnNotificationService = altinnNotificationService;
         _logger = logger;
         _correspondenceRepository = correspondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
         _eventBus = eventBus;
+        _hostEnvironment = hostEnvironment;
     }
 
 
@@ -40,6 +44,10 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
         if (correspondence == null)
         {
             errorMessage = "Correspondence " + correspondenceId + " not found when publishing";
+        }
+        else if (_hostEnvironment.IsDevelopment() && correspondence.GetLatestStatus()?.Status == CorrespondenceStatus.Published)
+        {
+            return Task.CompletedTask;
         }
         else if (correspondence.GetLatestStatus()?.Status != CorrespondenceStatus.ReadyForPublish)
         {
