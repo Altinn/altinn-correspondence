@@ -83,7 +83,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
         {
             if (!latestStatus.Status.IsAvailableForRecipient())
             {
-                return Errors.CantPurgeCorrespondenceRecipient;
+                return Errors.CorrespondenceNotFound;
             }
             newStatus = new CorrespondenceStatusEntity()
             {

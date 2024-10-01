@@ -891,7 +891,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var response = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.CorrespondenceIds.FirstOrDefault()}/purge");
 
         // Assert
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
     [Fact]
     public async Task Delete_Published_Correspondence_AsRecipient_Gives_OK()
