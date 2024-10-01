@@ -9,7 +9,7 @@ using OneOf;
 
 namespace Altinn.Correspondence.Application.UploadAttachment;
 
-public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IHostEnvironment hostEnvironment, IEventBus eventBus) : IHandler<UploadAttachmentRequest, UploadAttachmentResponse>
+public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IHostEnvironment hostEnvironment, IDialogportenService dialogportenService, IEventBus eventBus) : IHandler<UploadAttachmentRequest, UploadAttachmentResponse>
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
     private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
@@ -18,6 +18,7 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
     private readonly IStorageRepository _storageRepository = storageRepository;
     private readonly IHostEnvironment _hostEnvironment = hostEnvironment;
+    private readonly IDialogportenService _dialogportenService = dialogportenService;
     private readonly IEventBus _eventBus = eventBus;
 
     public async Task<OneOf<UploadAttachmentResponse, Error>> Process(UploadAttachmentRequest request, CancellationToken cancellationToken)
@@ -41,7 +42,7 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
         {
             return Errors.InvalidUploadAttachmentStatus;
         }
-        UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment);
+        UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment, _dialogportenService);
 
         var errorsBeforeUpload = await uploadHelper.IsCorrespondenceNotInitialized(request.AttachmentId);
         if (errorsBeforeUpload != null)
