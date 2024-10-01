@@ -7,6 +7,7 @@ using Altinn.Correspondence.Integrations;
 using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Persistence;
 using Azure.Identity;
+using dotenv.net;
 using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -15,8 +16,10 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
+using Slack.Webhooks;
 using System.Text.Json.Serialization;
 
+DotEnv.Load();
 BuildAndRun(args);
 
 static void BuildAndRun(string[] args)
@@ -152,6 +155,9 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         options.MultipartBodyLengthLimit = long.MaxValue;
         options.MultipartHeadersLengthLimit = int.MaxValue;
     });
+    var slackUrl = Environment.GetEnvironmentVariable("SlackUrl");
+
+    services.AddSingleton<ISlackClient>(new SlackClient(slackUrl));
 }
 
 static string GetConnectionString(IConfiguration config)

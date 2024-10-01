@@ -13,6 +13,7 @@
       <PackageReference Include="OneOf" Version="3.0.271" />
       <PackageReference Include="Markdig" Version="0.37.0" />
       <PackageReference Include="ReverseMarkdown" Version="4.6.0" />
+      <PackageReference Include="Slack.Webhooks" Version="1.1.5" />
     </ItemGroup>
 
   <ItemGroup>
