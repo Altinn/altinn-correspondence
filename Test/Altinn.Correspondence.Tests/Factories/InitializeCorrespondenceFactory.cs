@@ -213,7 +213,7 @@ internal static class InitializeCorrespondenceFactory
         data.Correspondence.Notification!.NotificationChannel = NotificationChannelExt.Email;
         data.Correspondence.Notification!.EmailBody = "test";
         data.Correspondence.Notification!.EmailSubject = "test";
-        data.Correspondence.Notification!.SendReminder = false;
+        data.Correspondence.Notification!.SendReminder = true;
         data.Correspondence.Notification!.ReminderEmailBody = "test";
         data.Correspondence.Notification!.ReminderEmailSubject = "test";
         return data;
