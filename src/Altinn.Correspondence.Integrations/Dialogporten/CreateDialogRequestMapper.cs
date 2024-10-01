@@ -1,24 +1,27 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
+using UUIDNext;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten
 {
     internal static class CreateDialogRequestMapper
     {
-        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string organizationNo, string dialogId)
+        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl)
         {
+            var dialogId = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString(); // Dialogporten requires time-stamped GUIDs, not supported natively until .NET 9.0
             return new CreateDialogRequest
             {
                 Id = dialogId,
                 ServiceResource = "urn:altinn:resource:" + correspondence.ResourceId,
-                Party = "urn:altinn:organization:identifier-no:" + organizationNo,
+                Party = correspondence.GetRecipientUrn(),
                 CreatedAt = correspondence.Created,
                 VisibleFrom = correspondence.VisibleFrom < DateTime.UtcNow.AddMinutes(1) ? DateTime.UtcNow.AddMinutes(1) : correspondence.VisibleFrom,
-                Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenProcessId)?.ReferenceValue,
+                Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
                 ExpiresAt = correspondence.AllowSystemDeleteAfter,
                 DueAt = correspondence.DueDateTime != default ? correspondence.DueDateTime : null,
                 Status = "New",
                 ExternalReference = correspondence.SendersReference,
-                Content = CreateCorrespondenceContent(correspondence),
+                Content = CreateCorrespondenceContent(correspondence, baseUrl),
                 SearchTags = GetSearchTagsForCorrespondence(correspondence),
                 ApiActions = GetApiActionsForCorrespondence(correspondence),
                 GuiActions = GetGuiActionsForCorrespondence(correspondence),
@@ -27,7 +30,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             };
         }
 
-        private static Content CreateCorrespondenceContent(CorrespondenceEntity correspondence) => new()
+        private static Content CreateCorrespondenceContent(CorrespondenceEntity correspondence, string baseUrl) => new()
         {
             Title = new Title()
             {
@@ -51,6 +54,17 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                         Value = correspondence.Content.MessageSummary
                     }
                 ],
+            },
+            MainContentReference = new MainContentReference()
+            {
+                MediaType = "application/vnd.dialogporten.frontchannelembed+json;type=markdown",
+                Value = [
+                    new DialogValue()
+                    {
+                        LanguageCode = correspondence.Content.Language,
+                        Value = $"{baseUrl}/correspondence/api/v1/correspondence/{correspondence.Id}/content"
+                    }
+                ]
             },
             SenderName = new SenderName()
             {
