@@ -1,9 +1,10 @@
-using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 using Azure;
 using Microsoft.Extensions.Hosting;
 using OneOf;
@@ -18,8 +19,9 @@ namespace Altinn.Correspondence.Application.Helpers
         private readonly IAttachmentRepository _attachmentRepository;
         private readonly IStorageRepository _storageRepository;
         private readonly IHostEnvironment _hostEnvironment;
+        private readonly IDialogportenService _dialogportenService;
 
-        public UploadHelper(ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepositor, IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository, IStorageRepository storageRepository, IHostEnvironment hostEnvironment)
+        public UploadHelper(ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepositor, IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository, IStorageRepository storageRepository, IHostEnvironment hostEnvironment, IDialogportenService dialogportenService)
         {
             _correspondenceRepository = correspondenceRepository;
             _correspondenceStatusRepository = correspondenceStatusRepositor;
@@ -27,7 +29,7 @@ namespace Altinn.Correspondence.Application.Helpers
             _attachmentRepository = attachmentRepository;
             _hostEnvironment = hostEnvironment;
             _storageRepository = storageRepository;
-
+            _dialogportenService = dialogportenService;
         }
         public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, CancellationToken cancellationToken)
         {
@@ -96,6 +98,62 @@ namespace Altinn.Correspondence.Application.Helpers
             };
             await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
             return currentStatus;
+        }
+        public async Task CheckCorrespondenceStatusesAfterUploadAndPublish(Guid attachmentId, bool uploadSuccessful, CancellationToken cancellationToken)
+        {
+            var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
+            if (attachment == null)
+            {
+                return;
+            }
+
+            var correspondences = await _correspondenceRepository.GetNonPublishedCorrespondencesByAttachmentId(attachment.Id, cancellationToken);
+            if (correspondences.Count == 0)
+            {
+                return;
+            }
+
+            var list = new List<CorrespondenceStatusEntity>();
+            foreach (var correspondenceId in correspondences)
+            {
+                if (uploadSuccessful)
+                {
+                    list.Add(
+                        new CorrespondenceStatusEntity
+                        {
+                            CorrespondenceId = correspondenceId,
+                            Status = CorrespondenceStatus.ReadyForPublish,
+                            StatusChanged = DateTime.UtcNow,
+                            StatusText = CorrespondenceStatus.ReadyForPublish.ToString()
+                        }
+                    );
+                }
+                else
+                {
+                    list.Add(
+                        new CorrespondenceStatusEntity
+                        {
+                            CorrespondenceId = correspondenceId,
+                            Status = CorrespondenceStatus.Failed,
+                            StatusChanged = DateTime.UtcNow,
+                            StatusText = "Malware scan failed"
+                        }
+                    );
+                }
+            }
+            await _correspondenceStatusRepository.AddCorrespondenceStatuses(list, cancellationToken);
+            return;
+        }
+        public async Task<Error?> IsCorrespondenceNotInitialized(Guid attachmentId)
+        {
+            var correspondences = await _correspondenceRepository.GetCorrespondencesByAttachmentId(attachmentId, true);
+            foreach (var correspondence in correspondences ?? [])
+            {
+                var latestStatus = correspondence.GetLatestStatus();
+                if (latestStatus?.Status == CorrespondenceStatus.Initialized) continue;
+                return Errors.CantUploadToNonInitializedCorrespondence;
+            }
+            return null;
         }
     }
 }

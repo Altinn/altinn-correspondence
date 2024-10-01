@@ -1,5 +1,5 @@
-﻿using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Application.Helpers;
+﻿using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -19,6 +19,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IEventBus _eventBus;
     private readonly IAltinnNotificationService _altinnNotificationService;
+    private readonly IDialogportenService _dialogportenService;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly IBackgroundJobClient _backgroundJobClient;
 
@@ -28,6 +29,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
         ICorrespondenceRepository correspondenceRepository,
         ICorrespondenceStatusRepository correspondenceStatusRepository,
         IEventBus eventBus,
+        IDialogportenService dialogportenService,
         IHostEnvironment hostEnvironment,
         IBackgroundJobClient backgroundJobClient)
     {
@@ -36,6 +38,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
         _correspondenceRepository = correspondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
         _eventBus = eventBus;
+        _dialogportenService = dialogportenService;
         _hostEnvironment = hostEnvironment;
         _backgroundJobClient = backgroundJobClient;
     }
@@ -93,8 +96,9 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
                 StatusChanged = DateTimeOffset.UtcNow,
                 StatusText = CorrespondenceStatus.Published.ToString()
             };
-
         }
+
+        await _dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, status.StatusText, cancellationToken: cancellationToken);
         await _correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
         await _eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         if (status.Status == CorrespondenceStatus.Published) await _eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);

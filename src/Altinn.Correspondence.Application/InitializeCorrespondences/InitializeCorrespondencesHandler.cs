@@ -226,6 +226,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                         IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
                     };
                     await _correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
+                    await _dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, $"Opprettet varslingsordre for tidspunkt {entity.RequestedSendTime}", cancellationToken: cancellationToken);
                 }
             }
         }

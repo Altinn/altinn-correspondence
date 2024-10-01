@@ -1,6 +1,9 @@
 using System.Runtime.CompilerServices;
+using System.Threading;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
 using Hangfire.Server;
 using Microsoft.Extensions.Logging;
@@ -13,6 +16,7 @@ namespace Altinn.Correspondence.Application.CancelNotification
     {
         private readonly ILogger<CancelNotificationHandler> _logger;
         private readonly IAltinnNotificationService _altinnNotificationService;
+        private readonly IDialogportenService _dialogportenService;
         private readonly ISlackClient _slackClient;
         private const string TestChannel = "#test-varslinger";
         private const string RetryCountKey = "RetryCount";
@@ -20,10 +24,12 @@ namespace Altinn.Correspondence.Application.CancelNotification
         public CancelNotificationHandler(
             ILogger<CancelNotificationHandler> logger,
             IAltinnNotificationService altinnNotificationService,
+            IDialogportenService dialogportenService,
             ISlackClient slackClient)
         {
             _logger = logger;
             _altinnNotificationService = altinnNotificationService;
+            _dialogportenService = dialogportenService;
             _slackClient = slackClient;
         }
 
@@ -54,6 +60,9 @@ namespace Altinn.Correspondence.Application.CancelNotification
                     var error = $"Error while cancelling notification. Failed to cancel notification for notificationId: {notification.Id}";
                     if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
                     throw new Exception(error);
+                } else
+                {
+                    await _dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, "Varslingsordre kansellert", cancellationToken: cancellationToken);
                 }
             }
         }
