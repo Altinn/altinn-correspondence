@@ -1034,6 +1034,37 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         initializeCorrespondenceResponse2.EnsureSuccessStatusCode();
         Assert.NotNull(response2);
     }
+    [Fact]
+    public async Task CorrespondenceWithEmailNotificationAndSmsReminder_Gives_Ok()
+    {
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithEmailNotificationWithSmsReminder();
+        var initializeCorrespondenceResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response1 = await initializeCorrespondenceResponse1.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        initializeCorrespondenceResponse1.EnsureSuccessStatusCode();
+        Assert.NotNull(response1);
+
+        payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithEmailNotificationWithSmsPrefferedReminder();
+        var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response2 = await initializeCorrespondenceResponse2.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        initializeCorrespondenceResponse2.EnsureSuccessStatusCode();
+        Assert.NotNull(response2);
+    }
+
+    [Fact]
+    public async Task CorrespondenceWithSmsNotificationAndEmailReminder_Gives_Ok()
+    {
+        var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithSmsNotificationAndEmailReminder();
+        var initializeCorrespondenceResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response1 = await initializeCorrespondenceResponse1.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        initializeCorrespondenceResponse1.EnsureSuccessStatusCode();
+        Assert.NotNull(response1);
+
+        payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithSmsNotificationAndEmailPrefferedReminder();
+        var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var response2 = await initializeCorrespondenceResponse2.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        initializeCorrespondenceResponse2.EnsureSuccessStatusCode();
+        Assert.NotNull(response2);
+    }
 
     [Fact]
     public async Task CorrespondenceWithEmptyCustomNotification_Gives_BadRequest()

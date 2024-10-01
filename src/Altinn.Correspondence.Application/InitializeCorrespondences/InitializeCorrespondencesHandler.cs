@@ -110,7 +110,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             {
                 return Errors.NotificationTemplateNotFound;
             }
-            notificationContents = await getMessageContent(request.Notification, templates, cancellationToken, request.Correspondence.Content?.Language);
+            notificationContents = await GetMessageContent(request.Notification, templates, cancellationToken, request.Correspondence.Content?.Language);
             if (notificationContents.Count == 0)
             {
                 return Errors.NotificationTemplateNotFound;
@@ -269,7 +269,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 RequestedSendTime = correspondence.VisibleFrom.UtcDateTime.AddDays(7),
                 ConditionEndpoint = null, // TODO: Implement condition endpoint
                 SendersReference = correspondence.SendersReference,
-                NotificationChannel = notification.NotificationChannel,
+                NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,
                 EmailTemplate = new EmailTemplate
                 {
                     Subject = content.ReminderEmailSubject,
@@ -283,7 +283,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         }
         return notifications;
     }
-    private async Task<List<NotificationContent>> getMessageContent(NotificationRequest request, List<NotificationTemplateEntity> templates, CancellationToken cancellationToken, string? language = null)
+    private async Task<List<NotificationContent>> GetMessageContent(NotificationRequest request, List<NotificationTemplateEntity> templates, CancellationToken cancellationToken, string? language = null)
     {
         var content = new List<NotificationContent>();
         foreach (var template in templates)
