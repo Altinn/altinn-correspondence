@@ -3,7 +3,7 @@
 		"_postman_id": "2f063075-488c-4b14-8616-76e6f4a7ffef",
 		"name": "Altinn.Correspondence.API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "34552244"
+		"_exporter_id": "7106668"
 	},
 	"item": [
 		{
@@ -1382,7 +1382,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{baseUrl}}/correspondence/api/v1/correspondence?from=2024-02-02T13:31:28.290518&to=2025-08-29T13:31:28.290518&offset=0&limit=30&status=2&resourceId={{resource_id}}",
+							"raw": "{{baseUrl}}/correspondence/api/v1/correspondence?from=2024-02-02T13:31:28.290518&to=2025-08-29T13:31:28.290518&offset=0&limit=30&status=2&resourceId={{resource_id}}&role=RecipientAndSender",
 							"host": [
 								"{{baseUrl}}"
 							],
@@ -1416,6 +1416,10 @@
 								{
 									"key": "resourceId",
 									"value": "{{resource_id}}"
+								},
+								{
+									"key": "role",
+									"value": "RecipientAndSender"
 								}
 							]
 						}
@@ -1987,11 +1991,6 @@
 		{
 			"key": "correspondenceId",
 			"value": ""
-		},
-		{
-			"key": "local_testing",
-			"value": "http://localhost:5096",
-			"type": "string"
 		}
 	]
 }
