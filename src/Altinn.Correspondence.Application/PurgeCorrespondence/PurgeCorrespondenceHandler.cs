@@ -101,7 +101,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
         await _correspondenceStatusRepository.AddCorrespondenceStatus(newStatus, cancellationToken);
         await CheckAndPurgeAttachments(correspondenceId, cancellationToken);
         List<Guid?> notificationIds = correspondence.Notifications.Select(n => n.NotificationOrderId).ToList();
-        var cancellationResponse = _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondence.Notifications, cancellationToken));
+        _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondence.Notifications, cancellationToken));
         return correspondenceId;
     }
 
