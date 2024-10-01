@@ -1,8 +1,6 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.PublishCorrespondence;
-using Altinn.Correspondence.Core.Models;
-using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
@@ -170,6 +168,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                         IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
                     };
                     await _correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
+                    await _dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, $"Opprettet varslingsordre for tidspunkt {entity.RequestedSendTime}", cancellationToken: cancellationToken);
                 }
             }
         }
