@@ -7,6 +7,8 @@ using Altinn.Correspondence.Core.Services.Enums;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using Microsoft.Extensions.Hosting;
+using Altinn.Correspondence.Application.CancelNotification;
+using Hangfire;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
 
@@ -18,6 +20,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
     private readonly IEventBus _eventBus;
     private readonly IAltinnNotificationService _altinnNotificationService;
     private readonly IHostEnvironment _hostEnvironment;
+    private readonly IBackgroundJobClient _backgroundJobClient;
 
     public PublishCorrespondenceHandler(
         ILogger<PublishCorrespondenceHandler> logger,
@@ -25,7 +28,8 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
         ICorrespondenceRepository correspondenceRepository,
         ICorrespondenceStatusRepository correspondenceStatusRepository,
         IEventBus eventBus,
-        IHostEnvironment hostEnvironment)
+        IHostEnvironment hostEnvironment,
+        IBackgroundJobClient backgroundJobClient)
     {
         _altinnNotificationService = altinnNotificationService;
         _logger = logger;
@@ -33,6 +37,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
         _correspondenceStatusRepository = correspondenceStatusRepository;
         _eventBus = eventBus;
         _hostEnvironment = hostEnvironment;
+        _backgroundJobClient = backgroundJobClient;
     }
 
 
@@ -76,7 +81,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
             eventType = AltinnEventType.CorrespondencePublishFailed;
             foreach (var notification in correspondence.Notifications)
             {
-                await _altinnNotificationService.CancelNotification(notification.NotificationOrderId.ToString(), cancellationToken);
+                _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondence.Notifications, cancellationToken));
             }
         }
         else
