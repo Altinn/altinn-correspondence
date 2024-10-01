@@ -1,10 +1,5 @@
-﻿using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Core.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten
 {
@@ -13,6 +8,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         public Task<string> CreateCorrespondenceDialog(Guid correspondenceId, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(Guid.NewGuid().ToString());
+        }
+
+        public Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, string description, string? extendedType = null, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
         }
     }
 }
