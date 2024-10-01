@@ -14,14 +14,16 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IEventBus _eventBus;
+    private readonly IDialogportenService _dialogportenService;
     private readonly UserClaimsHelper _userClaimsHelper;
 
-    public UpdateCorrespondenceStatusHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IEventBus eventBus, UserClaimsHelper userClaimsHelper)
+    public UpdateCorrespondenceStatusHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IEventBus eventBus, IDialogportenService dialogportenService, UserClaimsHelper userClaimsHelper)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
         _eventBus = eventBus;
+        _dialogportenService = dialogportenService;
         _userClaimsHelper = userClaimsHelper;
     }
 
@@ -71,6 +73,7 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
             StatusChanged = DateTimeOffset.UtcNow,
             StatusText = request.Status.ToString(),
         }, cancellationToken);
+        await _dialogportenService.CreateInformationActivity(request.CorrespondenceId, isRecipient ? DialogportenActorType.Recipient : DialogportenActorType.Sender, $"Status oppdatert: {request.Status}", cancellationToken: cancellationToken);
         await PublishEvent(correspondence, request.Status, cancellationToken);
         return request.CorrespondenceId;
     }
