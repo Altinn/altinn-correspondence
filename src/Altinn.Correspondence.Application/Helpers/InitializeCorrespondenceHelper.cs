@@ -66,35 +66,33 @@ namespace Altinn.Correspondence.Application.Helpers
         public Error? ValidateNotification(NotificationRequest notification)
         {
             if (notification.NotificationTemplate == NotificationTemplate.GenericAltinnMessage || notification.NotificationTemplate == NotificationTemplate.Altinn2Message) return null;
-            if (notification.NotificationChannel == NotificationChannel.Email)
+
+            var reminderNotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel;
+            if (notification.NotificationChannel == NotificationChannel.Email && (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject)))
             {
-                if (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject))
-                {
-                    return Errors.MissingEmailContent;
-                }
-                if (notification.SendReminder && (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject)))
-                {
-                    return Errors.MissingEmailReminderNotificationContent;
-                }
+                return Errors.MissingEmailContent;
+            }
+            if (reminderNotificationChannel == NotificationChannel.Email && notification.SendReminder && (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject)))
+            {
+                return Errors.MissingEmailReminderNotificationContent;
             }
             if (notification.NotificationChannel == NotificationChannel.Sms && string.IsNullOrEmpty(notification.SmsBody))
             {
                 return Errors.MissingSmsContent;
             }
-            if (notification.NotificationChannel == NotificationChannel.Sms && notification.SendReminder && string.IsNullOrEmpty(notification.ReminderSmsBody))
+            if (reminderNotificationChannel == NotificationChannel.Sms && notification.SendReminder && string.IsNullOrEmpty(notification.ReminderSmsBody))
             {
                 return Errors.MissingSmsReminderNotificationContent;
             }
-            if (notification.NotificationChannel == NotificationChannel.EmailPreferred || notification.NotificationChannel == NotificationChannel.SmsPreferred)
+            if ((notification.NotificationChannel == NotificationChannel.EmailPreferred || notification.NotificationChannel == NotificationChannel.SmsPreferred) &&
+                (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject) || string.IsNullOrEmpty(notification.SmsBody)))
             {
-                if (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject) || string.IsNullOrEmpty(notification.SmsBody))
-                {
-                    return Errors.MissingPrefferedNotificationContent;
-                }
-                if (notification.SendReminder && (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject) || string.IsNullOrEmpty(notification.ReminderSmsBody)))
-                {
-                    return Errors.MissingPrefferedReminderNotificationContent;
-                }
+                return Errors.MissingPrefferedNotificationContent;
+            }
+            if ((reminderNotificationChannel == NotificationChannel.EmailPreferred || reminderNotificationChannel == NotificationChannel.SmsPreferred) &&
+                notification.SendReminder && (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject) || string.IsNullOrEmpty(notification.ReminderSmsBody)))
+            {
+                return Errors.MissingPrefferedReminderNotificationContent;
             }
             return null;
         }
