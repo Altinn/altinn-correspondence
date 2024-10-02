@@ -40,12 +40,14 @@ namespace Altinn.Correspondence.Application.CancelNotification
             {
                 if (notification.RequestedSendTime <= DateTimeOffset.UtcNow) continue; // Notification has already been sent
 
-                if (notification.NotificationOrderId?.ToString() is not string notificationOrderId)
-                {
-                    var error = $"Error while cancelling notification. NotificationOrderId is null for notificationId: {notification.Id}";
-                    if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
-                    throw new Exception(error);
-                }
+                string? notificationOrderId = notification.NotificationOrderId?.ToString();
+
+                if (string.IsNullOrWhiteSpace(notificationOrderId))
+                    {
+                        var error = $"Error while cancelling notification. NotificationOrderId is null for notificationId: {notification.Id}";
+                        if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
+                        throw new Exception(error);
+                    }
                 bool isCancellationSuccessful = await _altinnNotificationService.CancelNotification(notificationOrderId, cancellationToken);
                 if (!isCancellationSuccessful)
                 {
