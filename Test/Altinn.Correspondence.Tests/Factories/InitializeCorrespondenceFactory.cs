@@ -1,5 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Core.Models.Entities;
 
 namespace Altinn.Correspondence.Tests.Factories;
 internal static class InitializeCorrespondenceFactory
@@ -260,5 +261,29 @@ internal static class InitializeCorrespondenceFactory
         data.Correspondence.Notification!.EmailSubject = "test";
         data.Correspondence.Notification!.SendReminder = true;
         return data;
+    }
+    internal static CorrespondenceEntity CorrespondenceEntityWithNotifications()
+    {
+        return new CorrespondenceEntity()
+        {
+            ResourceId = "1",
+            Sender = "0192:991825827",
+            Recipient = "0192:991825827",
+            SendersReference = "1",
+            VisibleFrom = DateTimeOffset.UtcNow,
+            Statuses = new List<CorrespondenceStatusEntity>(),
+            Created = DateTimeOffset.UtcNow,
+            Notifications = new List<CorrespondenceNotificationEntity>()
+            {
+                new CorrespondenceNotificationEntity()
+                {
+                    Created = DateTimeOffset.UtcNow,
+                    NotificationOrderId = Guid.NewGuid(),
+                    RequestedSendTime = DateTimeOffset.UtcNow.AddDays(1),
+                    NotificationTemplate = new Core.Models.Enums.NotificationTemplate(),
+                    NotificationChannel = new Core.Models.Enums.NotificationChannel(),
+                }
+            }
+        };
     }
 }
