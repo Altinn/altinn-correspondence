@@ -1,5 +1,5 @@
-﻿using Altinn.Correspondence.API.Models.Enums;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models
@@ -66,6 +66,10 @@ namespace Altinn.Correspondence.API.Models
             if (stringValue.Length != 2)
             {
                 return new ValidationResult("The ISO6391 field must be exactly 2 characters long!");
+            }
+            if (CultureInfo.InvariantCulture.TwoLetterISOLanguageName.Contains(stringValue))
+            {
+                return new ValidationResult("The language code must be ISO6391 compliant!");
             }
             return ValidationResult.Success;
         }
