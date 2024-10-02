@@ -15,7 +15,6 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
-using Slack.Webhooks;
 using System.Text.Json.Serialization;
 
 BuildAndRun(args);
@@ -153,8 +152,6 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         options.MultipartBodyLengthLimit = long.MaxValue;
         options.MultipartHeadersLengthLimit = int.MaxValue;
     });
-    var slackUrl = config["GeneralSettings:SlackUrl"];
-    services.AddSingleton<ISlackClient>(new SlackClient(slackUrl));
 }
 
 static string GetConnectionString(IConfiguration config)

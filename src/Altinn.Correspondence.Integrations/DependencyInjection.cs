@@ -14,6 +14,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Altinn.Correspondence.Integrations.Dialogporten;
+using Slack.Webhooks;
+using Altinn.Correspondence.Integrations.Settings;
 
 namespace Altinn.Correspondence.Integrations;
 public static class DependencyInjection
@@ -23,6 +25,9 @@ public static class DependencyInjection
         services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationService>();
         services.AddScoped<IResourceRightsService, ResourceRightsService>();
         services.AddScoped<IAltinnRegisterService, AltinnRegisterService>();
+        var generalSettings = new GeneralSettings();
+        config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
+        services.AddSingleton<ISlackClient>(new SlackClient(generalSettings.SlackUrl));
         if (hostEnvironment.IsDevelopment())
         {
             services.AddScoped<IEventBus, ConsoleLogEventBus>();
