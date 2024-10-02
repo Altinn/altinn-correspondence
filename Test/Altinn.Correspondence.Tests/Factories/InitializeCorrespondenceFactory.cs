@@ -13,7 +13,7 @@ internal static class InitializeCorrespondenceFactory
             SendersReference = "1",
             Content = new InitializeCorrespondenceContentExt()
             {
-                Language = "no",
+                Language = "nb",
                 MessageTitle = "test",
                 MessageSummary = "# test",
                 MessageBody = "# test body /n __test__ /n **test**/n [test](www.test.no) /n ![test](www.test.no) /n ```test``` /n > test /n - test /n 1. test /n 1. test /n [x] test /n [ ] test /n ## test /n ### test /n #### test /n ##### test /n ###### test /n + test list /n - test list /n * list element",
