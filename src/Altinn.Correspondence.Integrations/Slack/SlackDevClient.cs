@@ -1,31 +1,43 @@
 using Slack.Webhooks;
 
-namespace Alinn.Correspondence.Integrations.Slack
+namespace Altinn.Correspondence.Integrations.Slack
 {
-    internal class SlackDevClient : ISlackClient
+    public class SlackDevClient : ISlackClient
     {
-        public SlackDevClient()
+        private readonly HttpClient _httpClient;
+        private readonly Uri _webhookUri;
+        private const string POST_SUCCESS = "ok";
+        public SlackDevClient(string webhookUrl, HttpClient httpClient = null)
         {
+            _httpClient = httpClient ?? new HttpClient();
+            if (!Uri.TryCreate(webhookUrl, UriKind.Absolute, out _webhookUri))
+                return;
         }
-
-        public Task<bool> PostAsync(SlackMessage slackMessage)
+        public virtual bool Post(SlackMessage slackMessage)
         {
-            return Task.FromResult(true);
+            return PostAsync(slackMessage, false).Result;
         }
-
+        public async Task<bool> PostAsync(SlackMessage slackMessage)
+        {
+            return await PostAsync(slackMessage, true);
+        }
+        public async Task<bool> PostAsync(SlackMessage slackMessage, bool configureAwait = true)
+        {
+            using (var request = new HttpRequestMessage(HttpMethod.Post, _webhookUri))
+            {
+                request.Content = new StringContent(slackMessage.AsJson(), System.Text.Encoding.UTF8, "application/json");
+                var response = await _httpClient.SendAsync(request).ConfigureAwait(configureAwait);
+                var content = await response.Content.ReadAsStringAsync();
+                return content.Equals(POST_SUCCESS, StringComparison.OrdinalIgnoreCase);
+            }
+        }
         public bool PostToChannels(SlackMessage message, IEnumerable<string> channels)
         {
             return true;
         }
-
         public IEnumerable<Task<bool>> PostToChannelsAsync(SlackMessage message, IEnumerable<string> channels)
         {
             return [];
-        }
-
-        bool ISlackClient.Post(SlackMessage slackMessage)
-        {
-            return true;
         }
     }
 }
