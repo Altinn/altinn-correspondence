@@ -198,73 +198,6 @@
 					"name": "actions",
 					"item": [
 						{
-							"name": "Download Attachment",
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "{{recipient_token}}",
-											"type": "string"
-										}
-									]
-								},
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{baseUrl}}/correspondence/api/v1/correspondence/{{correspondenceId}}/attachment/{{attachmentId}}/download",
-									"host": [
-										"{{baseUrl}}"
-									],
-									"path": [
-										"correspondence",
-										"api",
-										"v1",
-										"correspondence",
-										"{{correspondenceId}}",
-										"attachment",
-										"{{attachmentId}}",
-										"download"
-									]
-								}
-							},
-							"response": [
-								{
-									"name": "Success",
-									"originalRequest": {
-										"method": "GET",
-										"header": [],
-										"url": {
-											"raw": "{{baseUrl}}/correspondence/api/v1/attachment/:attachmentId/download",
-											"host": [
-												"{{baseUrl}}"
-											],
-											"path": [
-												"correspondence",
-												"api",
-												"v1",
-												"attachment",
-												":attachmentId",
-												"download"
-											],
-											"variable": [
-												{
-													"key": "attachmentId"
-												}
-											]
-										}
-									},
-									"status": "OK",
-									"code": 200,
-									"_postman_previewlanguage": "text",
-									"header": [],
-									"cookie": [],
-									"body": ""
-								}
-							]
-						},
-						{
 							"name": "Mark As Read",
 							"request": {
 								"auth": {
@@ -669,6 +602,73 @@
 									],
 									"cookie": [],
 									"body": "{\n  \"recipient\": \"<string>\",\n  \"resourceId\": \"<string>\",\n  \"sender\": \"0913:541697724\",\n  \"sendersReference\": \"<string>\",\n  \"content\": {\n    \"language\": \"English\",\n    \"messageTitle\": \"<string>\",\n    \"messageSummary\": \"<string>\",\n    \"attachments\": [\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"HumanReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Initialized\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      },\n      {\n        \"dataLocationType\": \"AltinnCorrespondenceAttachment\",\n        \"dataType\": \"<string>\",\n        \"intendedPresentation\": \"MachineReadable\",\n        \"name\": \"<string>\",\n        \"restrictionName\": \"<string>\",\n        \"sendersReference\": \"<string>\",\n        \"fileName\": \"<string>\",\n        \"isEncrypted\": \"<boolean>\",\n        \"checksum\": \"<string>\",\n        \"dataLocationUrl\": \"<string>\",\n        \"attachmentId\": \"<uuid>\",\n        \"createdDateTime\": \"<dateTime>\",\n        \"status\": \"Initialized\",\n        \"statusText\": \"<string>\",\n        \"StatusChangedDateTime\": \"<dateTime>\"\n      }\n    ]\n  },\n  \"visibleFrom\": \"<dateTime>\",\n  \"allowSystemDeleteAfter\": \"<dateTime>\",\n  \"dueDateTime\": \"<dateTime>\",\n  \"externalReferences\": [\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"AltinnBrokerFileTransfer\"\n    },\n    {\n      \"referenceValue\": \"<string>\",\n      \"referenceType\": \"DialogPortenDialogElementID\"\n    }\n  ],\n  \"propertyList\": {\n    \"euf\": \"<string>\",\n    \"eu_34\": \"<string>\"\n  },\n  \"replyOptions\": [\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    },\n    {\n      \"linkURL\": \"<string>\",\n      \"linkText\": \"<string>\"\n    }\n  ],\n  \"notifications\": [\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    },\n    {\n      \"notificationTemplate\": \"<string>\",\n      \"customTextToken\": \"<string>\",\n      \"sendersReference\": \"<string>\",\n      \"requestedSendTime\": \"<dateTime>\"\n    }\n  ],\n  \"isReservable\": \"<boolean>\",\n  \"correspondenceId\": \"<uuid>\",\n  \"created\": \"<dateTime>\",\n  \"status\": \"Published\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\"\n}"
+								}
+							]
+						},
+						{
+							"name": "Download attachment",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{recipient_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/correspondence/api/v1/correspondence/{{correspondenceId}}/attachment/{{attachmentId}}/download",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"correspondence",
+										"api",
+										"v1",
+										"correspondence",
+										"{{correspondenceId}}",
+										"attachment",
+										"{{attachmentId}}",
+										"download"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "Success",
+									"originalRequest": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/correspondence/api/v1/attachment/:attachmentId/download",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"correspondence",
+												"api",
+												"v1",
+												"attachment",
+												":attachmentId",
+												"download"
+											],
+											"variable": [
+												{
+													"key": "attachmentId"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "text",
+									"header": [],
+									"cookie": [],
+									"body": ""
 								}
 							]
 						},
@@ -1637,6 +1637,98 @@
 								"attachment",
 								"{{attachmentId}}",
 								"upload"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "text/plain"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/correspondence/api/v1/attachment/:attachmentId/upload",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"correspondence",
+										"api",
+										"v1",
+										"attachment",
+										":attachmentId",
+										"upload"
+									],
+									"variable": [
+										{
+											"key": "attachmentId"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"dataLocationUrl\": \"ExternalStorage\",\n  \"dataType\": \"<string>\",\n  \"expirationTime\": \"<dateTime>\",\n  \"name\": \"<string>\",\n  \"restrictionName\": \"<string>\",\n  \"sendersReference\": \"<string>\",\n  \"usageType\": \"MachineReadable\",\n  \"fileName\": \"<string>\",\n  \"isEncrypted\": \"<boolean>\",\n  \"checksum\": \"<string>\",\n  \"attachmentId\": \"<uuid>\",\n  \"status\": \"UploadProcessing\",\n  \"statusText\": \"<string>\",\n  \"statusChanged\": \"<dateTime>\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Download attachment",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						},
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{sender_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/octet-stream"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "postman-cloud:///1ef7ccd7-bbc9-40b0-b540-3c47a5226c58"
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/correspondence/api/v1/attachment/{{attachmentId}}/download",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"correspondence",
+								"api",
+								"v1",
+								"attachment",
+								"{{attachmentId}}",
+								"download"
 							]
 						}
 					},
