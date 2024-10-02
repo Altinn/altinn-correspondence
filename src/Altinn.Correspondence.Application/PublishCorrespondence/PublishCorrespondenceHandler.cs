@@ -18,6 +18,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
     private readonly IEventBus _eventBus;
     private readonly IAltinnNotificationService _altinnNotificationService;
     private readonly IDialogportenService _dialogportenService;
+    private readonly IHostEnvironment _hostEnvironment;
 
     public PublishCorrespondenceHandler(
         ILogger<PublishCorrespondenceHandler> logger,
@@ -25,7 +26,8 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
         ICorrespondenceRepository correspondenceRepository,
         ICorrespondenceStatusRepository correspondenceStatusRepository,
         IEventBus eventBus,
-        IDialogportenService dialogportenService)
+        IDialogportenService dialogportenService,
+        IHostEnvironment hostEnvironment)
     {
         _altinnNotificationService = altinnNotificationService;
         _logger = logger;
@@ -33,6 +35,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
         _correspondenceStatusRepository = correspondenceStatusRepository;
         _eventBus = eventBus;
         _dialogportenService = dialogportenService;
+        _hostEnvironment = hostEnvironment;
     }
 
 
