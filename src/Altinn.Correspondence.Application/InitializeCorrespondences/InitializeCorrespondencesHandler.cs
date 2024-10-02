@@ -240,7 +240,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         },
             ResourceId = correspondence.ResourceId,
             RequestedSendTime = correspondence.VisibleFrom.UtcDateTime.AddMinutes(5),
-            ConditionEndpoint = null, // TODO: Implement condition endpoint
+            ConditionEndpoint = CreateConditonEndpoint(correspondence.Id.ToString()),
             SendersReference = correspondence.SendersReference,
             NotificationChannel = notification.NotificationChannel,
             EmailTemplate = new EmailTemplate
