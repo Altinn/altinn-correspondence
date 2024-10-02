@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.CheckNotification;
 using Altinn.Correspondence.Application.DownloadAttachment;
 using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 using Altinn.Correspondence.Application.GetAttachmentDetails;
@@ -38,7 +39,7 @@ public static class DependencyInjection
         services.AddScoped<PurgeCorrespondenceHandler>();
         services.AddScoped<UpdateMarkAsUnreadHandler>();
         services.AddScoped<MigrateCorrespondenceHandler>();
-
+        services.AddScoped<CheckNotificationHandler>();
         services.AddScoped<InitializeCorrespondenceHelper>();
         services.AddScoped<UploadHelper>();
         services.AddScoped<UserClaimsHelper>();

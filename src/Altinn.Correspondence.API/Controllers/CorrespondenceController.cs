@@ -1,6 +1,7 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.CheckNotification;
 using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
@@ -340,6 +341,26 @@ namespace Altinn.Correspondence.API.Controllers
             }, cancellationToken);
             return commandResult.Match(
                 result => File(result, "application/octet-stream"),
+                Problem
+            );
+        }
+
+        /// <summary>
+        /// Check if a reminder notification should be sent
+        /// </summary>
+        [HttpGet]
+        [Route("{correspondenceId}/notification/check")]
+        [Authorize(Policy = AuthorizationConstants.NotificationCheck)]
+        [ApiExplorerSettings(IgnoreApi = true)]
+        public async Task<ActionResult> CheckNotification(
+            Guid correspondenceId,
+            [FromServices] CheckNotificationHandler handler,
+            CancellationToken cancellationToken)
+        {
+            var commandResult = await handler.Process(correspondenceId, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
                 Problem
             );
         }
