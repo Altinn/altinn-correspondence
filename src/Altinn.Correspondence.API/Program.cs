@@ -38,6 +38,7 @@ static void BuildAndRun(string[] args)
     app.UseAuthorization();
 
     app.MapControllers();
+    app.UseCors();
     app.UseMiddleware<SecurityHeadersMiddleware>();
 
     if (app.Environment.IsDevelopment())
@@ -62,6 +63,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
 {
     var connectionString = GetConnectionString(config);
 
+    services.AddHostedService<EdDsaSecurityKeysCacheService>();
     services.Configure<AttachmentStorageOptions>(config.GetSection(key: nameof(AttachmentStorageOptions)));
     services.Configure<AltinnOptions>(config.GetSection(key: nameof(AltinnOptions)));
 
@@ -69,11 +71,11 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
+    var altinnOptions = new AltinnOptions();
+    config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
     services.AddAuthentication()
         .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
         {
-            var altinnOptions = new AltinnOptions();
-            config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
             options.SaveToken = true;
             options.MetadataAddress = altinnOptions.OpenIdWellKnown;
             options.TokenValidationParameters = new TokenValidationParameters
@@ -100,8 +102,6 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         })
         .AddJwtBearer(AuthorizationConstants.Migrate, options => // To support migration
         {
-            var altinnOptions = new AltinnOptions();
-            config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
             options.SaveToken = true;
             if (hostEnvironment.IsProduction())
             {
@@ -120,6 +120,21 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
                 ValidateLifetime = !hostEnvironment.IsDevelopment(),
                 ClockSkew = TimeSpan.Zero
             };
+        })
+        .AddJwtBearer(AuthorizationConstants.Dialogporten, options =>
+        {
+            options.SaveToken = true;
+            options.MetadataAddress = "https://platform.tt02.altinn.no/dialogporten/api/v1/.well-known/oauth-authorization-server";
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                IssuerSigningKeyResolver = (_, _, _, _) => EdDsaSecurityKeysCacheService.EdDsaSecurityKeys,
+                ValidateIssuerSigningKey = true,
+                ValidateIssuer = true,
+                ValidateAudience = false,
+                RequireExpirationTime = true,
+                ValidateLifetime = !hostEnvironment.IsDevelopment(),
+                ClockSkew = TimeSpan.Zero
+            };
         });
     services.AddTransient<IAuthorizationHandler, ScopeAccessHandler>();
     services.AddAuthorization(options =>
@@ -128,6 +143,11 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         options.AddPolicy(AuthorizationConstants.Recipient, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.RecipientScope)).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
         options.AddPolicy(AuthorizationConstants.SenderOrRecipient, policy => policy.AddRequirements(new ScopeAccessRequirement([AuthorizationConstants.SenderScope, AuthorizationConstants.RecipientScope])).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
         options.AddPolicy(AuthorizationConstants.Migrate, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MigrateScope)).AddAuthenticationSchemes(AuthorizationConstants.Migrate));
+        options.AddPolicy(AuthorizationConstants.Dialogporten, policy =>
+        {
+            policy.RequireAuthenticatedUser();
+            policy.AddAuthenticationSchemes(AuthorizationConstants.Dialogporten);
+        });
     });
     services.AddEndpointsApiExplorer();
     services.AddSwaggerGen();

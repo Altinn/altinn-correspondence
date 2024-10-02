@@ -21,7 +21,7 @@ namespace Altinn.Correspondence.API.Controllers
 {
     [ApiController]
     [Route("correspondence/api/v1/correspondence")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = AuthorizationConstants.Dialogporten, Policy = AuthorizationConstants.Dialogporten)]
     public class CorrespondenceController : Controller
     {
         private readonly ILogger<CorrespondenceController> _logger;
@@ -193,6 +193,8 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpGet]
         [Route("{correspondenceId}/content")]
         [Produces("application/vnd.dialogporten.frontchannelembed+json;type=markdown")]
+        [Authorize(Policy = AuthorizationConstants.Dialogporten)]
+        [Authorize(AuthenticationSchemes = AuthorizationConstants.Dialogporten)]
         [EnableCors("https://af.tt.altinn.no")]
         public async Task<ActionResult> GetCorrespondenceContent(
             Guid correspondenceId,
