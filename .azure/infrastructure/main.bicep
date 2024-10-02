@@ -20,6 +20,8 @@ param maskinportenClientId string
 param platformSubscriptionKey string
 @secure()
 param notificationEmail string
+@secure()
+param slackUrl string
 
 @secure()
 param storageAccountName string
@@ -63,6 +65,10 @@ var secrets = [
   {
     name: 'platform-subscription-key'
     value: platformSubscriptionKey
+  }
+  {
+    name: 'slack-url'
+    value: slackUrl
   }
 ]
 
@@ -124,6 +130,7 @@ module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
     namePrefix: namePrefix
     storageAccountName: storageAccountName
     emailReceiver: notificationEmail
+    slackUrl: slackUrl
   }
 }
 output resourceGroupName string = resourceGroup.name
