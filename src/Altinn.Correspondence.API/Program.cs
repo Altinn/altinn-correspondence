@@ -120,6 +120,29 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
                 ValidateLifetime = !hostEnvironment.IsDevelopment(),
                 ClockSkew = TimeSpan.Zero
             };
+        })
+        .AddJwtBearer(AuthorizationConstants.Legacy, options => // To support correspondence accessed from legacy solution
+        {
+            var altinnOptions = new AltinnOptions();
+            config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
+            options.SaveToken = true;
+            if (hostEnvironment.IsProduction())
+            {
+                options.MetadataAddress = "https://maskinporten.no/.well-known/oauth-authorization-server";
+            }
+            else
+            {
+                options.MetadataAddress = "https://test.maskinporten.no/.well-known/oauth-authorization-server";
+            }
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                ValidateIssuer = true,
+                ValidateAudience = false,
+                RequireExpirationTime = true,
+                ValidateLifetime = !hostEnvironment.IsDevelopment(),
+                ClockSkew = TimeSpan.Zero
+            };
         });
     services.AddTransient<IAuthorizationHandler, ScopeAccessHandler>();
     services.AddAuthorization(options =>

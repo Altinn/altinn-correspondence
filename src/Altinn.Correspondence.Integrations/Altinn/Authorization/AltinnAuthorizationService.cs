@@ -12,6 +12,17 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Azure.Core;
+using System.Diagnostics;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+using System.Diagnostics.CodeAnalysis;
+using Altinn.Platform.Register.Models;
+using Npgsql.Internal;
+using System;
+using System.IO;
+using System.Text.Json;
+using Altinn.Correspondence.Core.Models.Entities;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Authorization;
 
@@ -64,6 +75,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             return false;
         }
         var validationResult = ValidateResult(responseContent);
+
         return validationResult;
     }
 
@@ -123,5 +135,50 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             ResourceAccessLevel.Send => "send",
             _ => throw new NotImplementedException()
         };
+    }
+
+    public async Task<List<SimpleParty>> GetAutorizedParties(SimpleParty partyToRequestFor, CancellationToken cancellationToken = default)
+    {
+        AuthorizedPartiesRequest request = new(partyToRequestFor);
+        JsonSerializerOptions serializerOptions = new()
+        {
+            PropertyNameCaseInsensitive = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+        };
+        var response = await _httpClient.PostAsJsonAsync("/accessmanagement/api/v1/resourceowner/authorizedparties?includeAltinn2=true", request, serializerOptions, cancellationToken: cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Error code in call against Authorization GetAuthorizedParties");
+            return null;
+        }
+        var responseContent = await response.Content.ReadFromJsonAsync<XacmlJsonResponse>(cancellationToken: cancellationToken);
+        if (responseContent is null)
+        {
+            _logger.LogError("Unexpected null or invalid json response from Authorization GetAuthorizedParties.");
+            return null;
+        }
+        
+        return null;
+    }
+}
+
+internal sealed class AuthorizedPartiesRequest
+{
+    public string Type { get; init; }
+    public string Value { get; init; }
+
+    public AuthorizedPartiesRequest(SimpleParty party)
+    {
+        if(party.PartyTypeName == SimplePartyType.Person)
+        {
+            Type = "urn:altinn:person:identifier-no";
+            Value = party.SSN;
+        }
+        else
+        {
+            Type = "urn:altinn:organization:identifier-no";
+            Value = party.OrgNumber;
+        }
     }
 }

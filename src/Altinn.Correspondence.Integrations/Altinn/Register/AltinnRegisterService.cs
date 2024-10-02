@@ -1,6 +1,7 @@
 ﻿using System.Net.Http.Json;
 using System.Text.RegularExpressions;
-
+using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Platform.Register.Models;
@@ -54,5 +55,29 @@ public class AltinnRegisterService : IAltinnRegisterService
             return null;
         }
         return party.PartyId.ToString();
+    }
+
+    public async Task<SimpleParty?> LookUpParty(int partyId, CancellationToken cancellationToken = default)
+    {
+        if(partyId <= 0)
+        {
+            _logger.LogError("partyId is not a valid number.");
+            return null;
+        }
+        
+        var response = await _httpClient.PostAsJsonAsync($"register/api/v1/parties/{partyId}", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Error when looking up party in Altinn Register.Statuscode was: {statusCode}, error was: {error}", response.StatusCode, await response.Content.ReadAsStringAsync());
+            return null;
+        }
+        var party = await response.Content.ReadFromJsonAsync<Party>();
+        if (party is null)
+        {
+            _logger.LogError("Unexpected json response when looking up Party in Altinn Register");
+            return null;
+        }
+
+        return new SimpleParty(party.PartyId, party.PartyUuid, (SimplePartyType)party.PartyTypeName, party.OrgNumber, party.SSN);
     }
 }
