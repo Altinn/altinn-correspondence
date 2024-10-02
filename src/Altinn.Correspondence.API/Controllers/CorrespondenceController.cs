@@ -191,7 +191,6 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>Message body in markdown format</returns>
         [HttpGet]
-        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]  
         [Route("{correspondenceId}/content")]
         [Produces("application/vnd.dialogporten.frontchannelembed+json;type=markdown")]
         [EnableCors("https://af.tt.altinn.no")]
