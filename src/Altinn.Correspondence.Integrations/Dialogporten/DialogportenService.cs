@@ -4,11 +4,12 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
 
-public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IAltinnRegisterService _altinnRegisterService, AltinnOptions altinnOptions, ILogger<DialogportenService> _logger) : IDialogportenService
+public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IAltinnRegisterService _altinnRegisterService, IOptions<AltinnOptions> altinnOptions, ILogger<DialogportenService> _logger) : IDialogportenService
 {
     public async Task<string> CreateCorrespondenceDialog(Guid correspondenceId, CancellationToken cancellationToken = default)
     {
@@ -19,7 +20,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
 
-        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, altinnOptions.PlatformGatewayUrl);
+        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, altinnOptions.Value.PlatformGatewayUrl);
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
