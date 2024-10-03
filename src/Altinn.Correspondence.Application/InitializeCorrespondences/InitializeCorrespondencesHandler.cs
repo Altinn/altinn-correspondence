@@ -305,7 +305,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
     }
     private Uri CreateConditonEndpoint(string correspondenceId)
     {
-        return new Uri($"{_altinnOptions.Value.PlatformGatewayUrl}correspondence/{correspondenceId}/notification/check");
+        return new Uri($"{_altinnOptions.Value.PlatformGatewayUrl}correspondence/api/v1/correspondence/{correspondenceId}/notification/check");
     }
     private string CreateMessageFromToken(string message, string? token = "")
     {
