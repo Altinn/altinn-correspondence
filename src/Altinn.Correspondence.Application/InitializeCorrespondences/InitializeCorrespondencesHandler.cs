@@ -172,6 +172,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             await _correspondenceRepository.AddExternalReference(correspondence.Id, ReferenceType.DialogportenDialogId, dialogId, cancellationToken);
             if (correspondence.GetLatestStatus()?.Status != CorrespondenceStatus.Published)
             {
+                //Added 1 minute delay for malware scan to finish
                 var publishTime = correspondence.VisibleFrom.UtcDateTime.AddSeconds(-30) < DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(1) : correspondence.VisibleFrom.UtcDateTime;
                 _backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), publishTime);
             }
