@@ -357,6 +357,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] CheckNotificationHandler handler,
             CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Checking notification for Correspondence with id: {correspondenceId}", correspondenceId.ToString());
             var commandResult = await handler.Process(correspondenceId, cancellationToken);
 
             return commandResult.Match(
