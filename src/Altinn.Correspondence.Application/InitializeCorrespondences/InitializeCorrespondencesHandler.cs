@@ -305,7 +305,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
     }
     private Uri CreateConditonEndpoint(string correspondenceId)
     {
-        return new Uri($"{_altinnOptions.Value.PlatformGatewayUrl}correspondence/api/v1/correspondence/{correspondenceId}/notification/check");
+        return new Uri($"https://altinn-corr-test-app.bravetree-6fa93aee.norwayeast.azurecontainerapps.io/correspondence/api/v1/correspondence/{correspondenceId}/notification/check");
     }
     private string CreateMessageFromToken(string message, string? token = "")
     {
