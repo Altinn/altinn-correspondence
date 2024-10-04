@@ -58,6 +58,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", InitializeAttachmentFactory.BasicAttachment());
         var attachmentId = await initializeAttachmentResponse.Content.ReadAsStringAsync();
+        var attachmentOverview = await (await _senderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}")).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
+        Assert.Equal(AttachmentStatusExt.Initialized, attachmentOverview?.Status ); 
+
         var correspondence = new CorrespondenceBuilder()
             .CreateBasicCorrespondence()
             .WithExistingAttachments(attachmentId)
@@ -76,10 +79,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", InitializeAttachmentFactory.BasicAttachment());
         var attachmentId = await initializeAttachmentResponse.Content.ReadAsStringAsync();
-
-        var data = new ByteArrayContent(new byte[] { 1, 2, 3, 4 });
-
-        var uploadResponse = await _senderClient.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", data);
+        await UploadAttachment(attachmentId);
 
         var correspondence = new CorrespondenceBuilder()
             .CreateBasicCorrespondence()
