@@ -35,10 +35,9 @@ static void BuildAndRun(string[] args)
         app.UseSwagger();
         app.UseSwaggerUI();
     }
-    app.UseAuthorization();
-
-    app.MapControllers();
     app.UseCors(AuthorizationConstants.ArbeidsflateCors);
+    app.UseAuthorization();
+    app.MapControllers();
     app.UseMiddleware<SecurityHeadersMiddleware>();
 
     if (app.Environment.IsDevelopment())
@@ -73,6 +72,17 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     });
     var altinnOptions = new AltinnOptions();
     config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
+    services.AddCors(options =>
+    {
+        options.AddPolicy(name: AuthorizationConstants.ArbeidsflateCors,
+                          policy =>
+                          {
+                              policy.WithOrigins("https://af.tt.altinn.no").SetIsOriginAllowedToAllowWildcardSubdomains();
+                              policy.WithMethods("GET", "POST");
+                              policy.WithHeaders("Authorization");
+                              policy.AllowCredentials();
+                          });
+    });
     services.AddAuthentication()
         .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
         {
@@ -144,21 +154,10 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         options.AddPolicy(AuthorizationConstants.SenderOrRecipient, policy => policy.AddRequirements(new ScopeAccessRequirement([AuthorizationConstants.SenderScope, AuthorizationConstants.RecipientScope])).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
         options.AddPolicy(AuthorizationConstants.Dialogporten, policy =>
         {
-            policy.RequireAuthenticatedUser();
-            policy.AddAuthenticationSchemes(AuthorizationConstants.Dialogporten);
+            policy.AddAuthenticationSchemes(AuthorizationConstants.Dialogporten).RequireAuthenticatedUser();
         });
         options.AddPolicy(AuthorizationConstants.Migrate, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MigrateScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
         options.AddPolicy(AuthorizationConstants.NotificationCheck, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.NotificationCheckScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
-    });
-    services.AddCors(options =>
-    {
-        options.AddPolicy(name: AuthorizationConstants.ArbeidsflateCors,
-                          policy =>
-                          {
-                              policy.WithOrigins("https://af.tt.altinn.no").SetIsOriginAllowedToAllowWildcardSubdomains();
-                              policy.WithMethods("GET", "POST");
-                              policy.WithHeaders("Authorization");
-                          });
     });
     services.AddEndpointsApiExplorer();
     services.AddSwaggerGen();
