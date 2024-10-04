@@ -35,7 +35,6 @@ namespace Altinn.Correspondence.API.Controllers
         /// </summary>
         /// <remarks>
         /// Requires uploads of specified attachments if any before it can be Published
-        /// If no attachments are specified, should go directly to Published
         /// </remarks>
         /// <returns>CorrespondenceIds</returns>
         [HttpPost]

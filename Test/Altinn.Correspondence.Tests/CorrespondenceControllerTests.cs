@@ -36,6 +36,80 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
+    public async Task InitializeCorrespondence_NoUpload_WithoutExistingAttachments_ReturnsBadRequest()
+    {
+        // Arrange
+        var correspondence = new CorrespondenceBuilder()
+            .CreateBasicCorrespondence()
+            .Build();
+
+        // Act
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        var content = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+
+    }
+
+    [Fact]
+    public async Task InitializeCorrespondence_NoUpload_WithExistingAttachmentsNotPublished_ReturnsBadRequest()
+    {
+        // Arrange
+        var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", InitializeAttachmentFactory.BasicAttachment());
+        var attachmentId = await initializeAttachmentResponse.Content.ReadAsStringAsync();
+        var correspondence = new CorrespondenceBuilder()
+            .CreateBasicCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .Build();
+
+        // Act
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task InitializeCorrespondence_NoUpload_WithExistingAttachmentsPublished_ReturnsOK()
+    {
+        // Arrange
+        var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", InitializeAttachmentFactory.BasicAttachment());
+        var attachmentId = await initializeAttachmentResponse.Content.ReadAsStringAsync();
+
+        var data = new ByteArrayContent(new byte[] { 1, 2, 3, 4 });
+
+        var uploadResponse = await _senderClient.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", data);
+
+        var correspondence = new CorrespondenceBuilder()
+            .CreateBasicCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .Build();
+
+        // Act
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task InitializeCorrespondence_IsUpload_WithoutAttachments_ReturnsBadRequest()
+    {
+        // Arrange
+        var correspondence = new CorrespondenceBuilder()
+            .CreateBasicCorrespondence()
+            .Build();
+
+        // Act
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence/upload", correspondence);
+        var content = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+
+    [Fact]
     public async Task InitializeCorrespondence()
     {
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());

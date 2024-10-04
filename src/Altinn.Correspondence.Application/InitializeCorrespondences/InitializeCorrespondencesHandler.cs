@@ -1,8 +1,6 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.PublishCorrespondence;
-using Altinn.Correspondence.Core.Models;
-using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
@@ -22,13 +20,14 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceNotificationRepository _correspondenceNotificationRepository;
     private readonly INotificationTemplateRepository _notificationTemplateRepository;
+    private readonly IAttachmentRepository _attachmentRepository;
     private readonly IEventBus _eventBus;
     private readonly InitializeCorrespondenceHelper _initializeCorrespondenceHelper;
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly IDialogportenService _dialogportenService;
     private readonly UserClaimsHelper _userClaimsHelper;
 
-    public InitializeCorrespondencesHandler(InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceNotificationRepository correspondenceNotificationRepository, INotificationTemplateRepository notificationTemplateRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient, UserClaimsHelper userClaimsHelper, IDialogportenService dialogportenService)
+    public InitializeCorrespondencesHandler(InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceNotificationRepository correspondenceNotificationRepository, INotificationTemplateRepository notificationTemplateRepository, IAttachmentRepository attachmentRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient, UserClaimsHelper userClaimsHelper, IDialogportenService dialogportenService)
     {
         _initializeCorrespondenceHelper = initializeCorrespondenceHelper;
         _altinnAuthorizationService = altinnAuthorizationService;
@@ -36,6 +35,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         _correspondenceRepository = correspondenceRepository;
         _correspondenceNotificationRepository = correspondenceNotificationRepository;
         _notificationTemplateRepository = notificationTemplateRepository;
+        _attachmentRepository = attachmentRepository;
         _eventBus = eventBus;
         _backgroundJobClient = backgroundJobClient;
         _dialogportenService = dialogportenService;
@@ -54,10 +54,6 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             return Errors.InvalidSender;
         }
-        if (request.IsUploadRequest && request.Attachments.Count == 0)
-        {
-            return Errors.NoAttachments;
-        }
         if (request.Recipients.Count != request.Recipients.Distinct().Count())
         {
             return Errors.DuplicateRecipients;
@@ -72,16 +68,36 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             return contentError;
         }
+        if (!request.IsUploadRequest && request.ExistingAttachments.Count == 0)
+        {
+            return Errors.NoExistingAttachments;
+        }
+        if (request.IsUploadRequest && request.Attachments.Count == 0)
+        {
+            return Errors.NoAttachments;
+        }
 
-        var attachmentError = _initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content!.Attachments, request.IsUploadRequest);
+        foreach (var attachmentId in request.ExistingAttachments)
+        {
+            var existingAttachment = await _attachmentRepository.GetAttachmentById(attachmentId, true);
+
+            if (existingAttachment == null) return Errors.ExistingAttachmentNotFound;
+
+            if (existingAttachment.GetLatestStatus()?.Status == AttachmentStatus.Published) continue;
+
+            return Errors.AttachmentNotPublished;
+        }
+
+        var attachmentError = _initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content!.Attachments, request.IsUploadRequest); // Check if necessary to pass isUploadRequest
         if (attachmentError != null) return attachmentError;
+
         var attachments = new List<AttachmentEntity>();
         if (request.Correspondence.Content!.Attachments.Count() > 0)
         {
             foreach (var attachment in request.Correspondence.Content!.Attachments)
             {
-                var a = await _initializeCorrespondenceHelper.ProcessNewAttachment(attachment, cancellationToken);
-                attachments.Add(a);
+                var processedAttachment = await _initializeCorrespondenceHelper.ProcessNewAttachment(attachment, cancellationToken);
+                attachments.Add(processedAttachment);
             }
         }
         if (request.ExistingAttachments.Count > 0)
