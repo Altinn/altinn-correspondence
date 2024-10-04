@@ -12,7 +12,7 @@ namespace Altinn.Correspondence.Tests.Factories
             return _correspondence;
         }
 
-        public CorrespondenceBuilder CreateBasicCorrespondence()
+        public CorrespondenceBuilder CreateCorrespondence()
         {
             _correspondence = new InitializeCorrespondencesExt()
             {
@@ -29,8 +29,8 @@ namespace Altinn.Correspondence.Tests.Factories
                         MessageBody = "# test body /n __test__ /n **test**/n [test](www.test.no) /n ![test](www.test.no) /n ```test``` /n > test /n - test /n 1. test /n 1. test /n [x] test /n [ ] test /n ## test /n ### test /n #### test /n ##### test /n ###### test /n + test list /n - test list /n * list element",
                     },
                     VisibleFrom = DateTimeOffset.UtcNow,
-                    AllowSystemDeleteAfter = DateTimeOffset.UtcNow.AddDays(3),
                     DueDateTime = DateTimeOffset.UtcNow.AddDays(2),
+                    AllowSystemDeleteAfter = DateTimeOffset.UtcNow.AddDays(3),
                     PropertyList = new Dictionary<string, string>(){
                         {"deserunt_12", "1"},
                         {"culpa_852", "2"},
@@ -39,11 +39,16 @@ namespace Altinn.Correspondence.Tests.Factories
                     IsReservable = true
                 },
                 Recipients = new List<string>(){
-                    "0192:991825827",
+                    "0192:991825827",   // org number
                 },
                 ExistingAttachments = new List<Guid>(),
             };
 
+            return this;
+        }
+        public CorrespondenceBuilder WithTitle(string title)
+        {
+            _correspondence.Correspondence.Content.MessageTitle = title;
             return this;
         }
         public CorrespondenceBuilder WithAttachments()
@@ -104,12 +109,42 @@ namespace Altinn.Correspondence.Tests.Factories
 
             return this;
         }
-
         public CorrespondenceBuilder WithExistingAttachments(string attachmentId)
         {
             _correspondence.ExistingAttachments = new List<Guid>(){
                 Guid.Parse(attachmentId)
             };
+            return this;
+        }
+        public CorrespondenceBuilder WithSender(string sender)
+        {
+            _correspondence.Correspondence.Sender = sender;
+            return this;
+        }
+        public CorrespondenceBuilder WithRecipients(List<string> recipients)
+        {
+            _correspondence.Recipients = recipients;
+            return this;
+        }
+
+        public CorrespondenceBuilder WithMessageBody(string? messageBody)
+        {
+            _correspondence.Correspondence.Content!.MessageBody = messageBody;
+            return this;
+        }
+        public CorrespondenceBuilder WithDueDateTime(DateTimeOffset dueDateTime)
+        {
+            _correspondence.Correspondence.DueDateTime = dueDateTime;
+            return this;
+        }
+        public CorrespondenceBuilder WithVisibleFrom(DateTimeOffset dueDateTime)
+        {
+            _correspondence.Correspondence.VisibleFrom = dueDateTime;
+            return this;
+        }
+        public CorrespondenceBuilder WithAllowSystemDeleteAfter(DateTimeOffset dueDateTime)
+        {
+            _correspondence.Correspondence.AllowSystemDeleteAfter = dueDateTime;
             return this;
         }
     }

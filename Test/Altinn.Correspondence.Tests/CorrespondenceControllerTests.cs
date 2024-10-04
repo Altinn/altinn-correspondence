@@ -36,33 +36,52 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
-    public async Task InitializeCorrespondence_NoUpload_WithoutExistingAttachments_ReturnsBadRequest()
+    public async Task InitializeCorrespondence()
+    {
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .Build();
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task InitializeCorrespondenceMultiple()
+    {
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithRecipients([ "0192:986252932" ,  "0198:991234649" ])
+            .Build();
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task InitializeCorrespondence_WithoutExistingAttachments_ReturnsBadRequest()
     {
         // Arrange
         var correspondence = new CorrespondenceBuilder()
-            .CreateBasicCorrespondence()
+            .CreateCorrespondence()
             .Build();
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
-        var content = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-
     }
 
     [Fact]
-    public async Task InitializeCorrespondence_NoUpload_WithExistingAttachmentsNotPublished_ReturnsBadRequest()
+    public async Task InitializeCorrespondence_WithExistingAttachmentsNotPublished_ReturnsBadRequest()
     {
         // Arrange
-        var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", InitializeAttachmentFactory.BasicAttachment());
-        var attachmentId = await initializeAttachmentResponse.Content.ReadAsStringAsync();
-        var attachmentOverview = await (await _senderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}")).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
-        Assert.Equal(AttachmentStatusExt.Initialized, attachmentOverview?.Status ); 
-
+        var attachmentId = await AttachmentFactory.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
         var correspondence = new CorrespondenceBuilder()
-            .CreateBasicCorrespondence()
+            .CreateCorrespondence()
             .WithExistingAttachments(attachmentId)
             .Build();
 
@@ -74,15 +93,12 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
-    public async Task InitializeCorrespondence_NoUpload_WithExistingAttachmentsPublished_ReturnsOK()
+    public async Task InitializeCorrespondence_WithExistingAttachmentsPublished_ReturnsOK()
     {
         // Arrange
-        var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", InitializeAttachmentFactory.BasicAttachment());
-        var attachmentId = await initializeAttachmentResponse.Content.ReadAsStringAsync();
-        await UploadAttachment(attachmentId);
-
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var correspondence = new CorrespondenceBuilder()
-            .CreateBasicCorrespondence()
+            .CreateCorrespondence()
             .WithExistingAttachments(attachmentId)
             .Build();
 
@@ -94,56 +110,60 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
-    public async Task InitializeCorrespondence_IsUpload_WithoutAttachments_ReturnsBadRequest()
-    {
-        // Arrange
-        var correspondence = new CorrespondenceBuilder()
-            .CreateBasicCorrespondence()
-            .Build();
-
-        // Act
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence/upload", correspondence);
-        var content = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
-
-        // Assert
-        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-    }
-
-    [Fact]
-    public async Task InitializeCorrespondence()
-    {
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
-        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
-    }
-    [Fact]
     public async Task InitializeCorrespondence_With_HTML_Or_Markdown_In_Title_fails()
     {
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithHtmlInTitle());
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .Build();
+
+        payload.Correspondence.Content!.MessageTitle = "<h1>test</h1>";
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
 
-        initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithMarkdownInTitle());
+        payload.Correspondence.Content.MessageTitle = "# test";
+        initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
     [Fact]
     public async Task InitializeCorrespondence_With_HTML_In_Summary_Or_Body_fails()
     {
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithHtmlInSummary());
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .Build();
+
+        payload.Correspondence.Content!.MessageSummary = "<h1>test</h1>";
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
 
-        initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithHtmlInBody());
+        payload.Correspondence.Content.MessageBody = "<h1>test</h1>";
+        initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
     [Fact]
     public async Task InitializeCorrespondence_No_Message_Body_fails()
     {
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondenceWithNoMessageBody());
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithMessageBody(null)
+            .Build();
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
     [Fact]
     public async Task InitializeCorrespondence_With_Different_Markdown_In_Body()
     {
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
-        payload.Correspondence.Content.MessageBody = File.ReadAllText("Data/Markdown.text");
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithMessageBody(File.ReadAllText("Data/Markdown.text"))
+            .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
     }
@@ -151,42 +171,48 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task InitializeCorrespondence_Recipient_Can_Handle_Org_And_Ssn()
     {
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
-        payload.Recipients = new List<string> { "1234:123456789" };
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithRecipients([ "1234:123456789" ,  "12345678901" ])
+            .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-        initializeCorrespondenceResponse.EnsureSuccessStatusCode();
-
-        payload.Recipients = new List<string> { "12345678901" };
-        initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
     }
 
     [Fact]
     public async Task InitializeCorrespondence_With_Invalid_Sender_Returns_BadRequest()
     {
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
-        payload.Correspondence.Sender = "invalid-sender";
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithSender("invalid-sender")
+            .Build();
 
-        payload.Correspondence.Sender = "123456789";
-        initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
 
     [Fact]
     public async Task InitializeCorrespondence_With_Invalid_Recipient_Returns_BadRequest()
     {
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
-        payload.Recipients = new List<string> { "invalid-recipient" };
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithRecipients([ "invalid-recipient" ])
+            .Build();
+
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
 
-        payload.Recipients = new List<string> { "123456789" };
+        payload.Recipients = ["123456789"];
         initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
 
-        payload.Recipients = new List<string> { "1234567812390123" };
+        payload.Recipients = ["1234567812390123"];
         initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
@@ -194,19 +220,32 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task InitializeCorrespondence_As_Recipient_Is_Forbidden()
     {
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        // Arrange
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .Build();
+
+        // Act
         var initializeCorrespondenceResponse = await _recipientClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+        // Assert
         Assert.Equal(HttpStatusCode.Forbidden, initializeCorrespondenceResponse.StatusCode);
     }
     [Fact]
     public async Task InitializeCorrespondence_DueDate_PriorToday_Returns_BadRequest()
     {
         // Arrange
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
-        correspondence.Correspondence.DueDateTime = DateTimeOffset.Now.AddDays(-7);
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithDueDateTime(DateTimeOffset.Now.AddDays(-7))
+            .Build();
 
         // Act
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
@@ -215,12 +254,16 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task InitializeCorrespondence_DueDate_PriorVisibleFrom_Returns_BadRequest()
     {
         // Arrange
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
-        correspondence.Correspondence.DueDateTime = DateTimeOffset.Now.AddDays(7);
-        correspondence.Correspondence.VisibleFrom = DateTimeOffset.Now.AddDays(14);
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithDueDateTime(DateTimeOffset.Now.AddDays(7))
+            .WithVisibleFrom(DateTimeOffset.Now.AddDays(14))
+            .Build();
 
         // Act
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
@@ -230,11 +273,15 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorToday_Returns_BadRequest()
     {
         // Arrange
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
-        correspondence.Correspondence.AllowSystemDeleteAfter = DateTimeOffset.Now.AddDays(-7);
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithAllowSystemDeleteAfter(DateTimeOffset.Now.AddDays(-7))
+            .Build();
 
         // Act
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
@@ -244,13 +291,17 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorVisibleFrom_Returns_BadRequest()
     {
         // Arrange
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
-        correspondence.Correspondence.VisibleFrom = DateTimeOffset.Now.AddDays(14);
-        correspondence.Correspondence.DueDateTime = DateTimeOffset.Now.AddDays(21); // ensure DueDate is after VisibleFrom
-        correspondence.Correspondence.AllowSystemDeleteAfter = DateTimeOffset.Now.AddDays(7);
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithAllowSystemDeleteAfter(DateTimeOffset.Now.AddDays(7))
+            .WithVisibleFrom(DateTimeOffset.Now.AddDays(14))
+            .WithDueDateTime(DateTimeOffset.Now.AddDays(21)) // ensure DueDate is after VisibleFrom
+            .Build();
 
         // Act
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
@@ -259,13 +310,32 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorDueDate_Returns_BadRequest()
     {
         // Arrange
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
-        correspondence.Correspondence.VisibleFrom = DateTimeOffset.Now.AddDays(7);
-        correspondence.Correspondence.AllowSystemDeleteAfter = DateTimeOffset.Now.AddDays(14);
-        correspondence.Correspondence.DueDateTime = DateTimeOffset.Now.AddDays(21);
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithAllowSystemDeleteAfter(DateTimeOffset.Now.AddDays(14))
+            .WithVisibleFrom(DateTimeOffset.Now.AddDays(7))
+            .WithDueDateTime(DateTimeOffset.Now.AddDays(21))
+            .Build();
 
         // Act
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+    [Fact]
+    public async Task UploadCorrespondence_WithoutAttachments_ReturnsBadRequest()
+    {
+        // Arrange
+        var correspondence = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .Build();
+
+        // Act
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence/upload", correspondence);
+        var content = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
@@ -363,17 +433,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
-    public async Task InitializeCorrespondences()
-    {
-        var uploadedAttachment = await InitializeAttachment();
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
-        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
-    }
-
-    [Fact]
     public async Task UploadCorrespondences_With_Multiple_Files()
     {
-
         var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
         using var stream = System.IO.File.OpenRead("./Data/Markdown.text");
         var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
@@ -1196,15 +1257,16 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         slackClientMock.Verify(client => client.Post(It.IsAny<SlackMessage>()), Times.Once);
     }
 
-    private async Task<HttpResponseMessage> UploadAttachment(string? attachmentId, ByteArrayContent? originalAttachmentData = null)
+    private async Task<HttpResponseMessage> UploadAttachment(string? attachmentId, ByteArrayContent? originalAttachmentData = null, HttpClient? client = null)
     {
         if (attachmentId == null)
         {
             Assert.Fail("AttachmentId is null");
         }
-        var data = originalAttachmentData ?? new ByteArrayContent(new byte[] { 1, 2, 3, 4 });
+        var data = originalAttachmentData ?? new ByteArrayContent([1, 2, 3, 4]);
 
-        var uploadResponse = await _senderClient.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", data);
+        client ??= _senderClient;
+        var uploadResponse = await client.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", data);
         return uploadResponse;
     }
     private async Task<AttachmentOverviewExt?> InitializeAttachment()
