@@ -13,6 +13,7 @@ using Moq;
 using Altinn.Correspondence.Application.CancelNotification;
 using Microsoft.Extensions.Logging;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Tests;
 
@@ -36,6 +37,21 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
+    public async Task InitializeCorrespondence()
+    {
+        // Arrange
+        var correspondence = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .Build();
+
+        // Act
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+    }
+
+    [Fact]
     public async Task InitializeCorrespondence_WithExistingAttachmentsPublished_ReturnsOK()
     {
         // Arrange
@@ -44,7 +60,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             .CreateCorrespondence()
             .WithExistingAttachments(attachmentId)
             .Build();
-        
+
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
@@ -59,18 +75,19 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments(attachmentId)
-            .WithRecipients([ "0192:986252932" ,  "0198:991234649" ])
+            .WithRecipients(["0192:986252932", "0198:991234649"])
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
     }
 
     [Fact]
-    public async Task InitializeCorrespondence_WithoutExistingAttachments_ReturnsBadRequest()
+    public async Task InitializeCorrespondence_WithInvalidExistingAttachments_ReturnsBadRequest()
     {
         // Arrange
         var correspondence = new CorrespondenceBuilder()
             .CreateCorrespondence()
+            .WithExistingAttachments(Guid.NewGuid().ToString())
             .Build();
 
         // Act
@@ -100,10 +117,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task InitializeCorrespondence_With_HTML_Or_Markdown_In_Title_fails()
     {
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
             .Build();
 
         payload.Correspondence.Content!.MessageTitle = "<h1>test</h1>";
@@ -118,10 +133,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task InitializeCorrespondence_With_HTML_In_Summary_Or_Body_fails()
     {
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
             .Build();
 
         payload.Correspondence.Content!.MessageSummary = "<h1>test</h1>";
@@ -136,10 +149,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task InitializeCorrespondence_No_Message_Body_fails()
     {
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
             .WithMessageBody(null)
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
@@ -149,10 +160,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task InitializeCorrespondence_With_Different_Markdown_In_Body()
     {
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
             .WithMessageBody(File.ReadAllText("Data/Markdown.text"))
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
@@ -162,11 +171,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task InitializeCorrespondence_Recipient_Can_Handle_Org_And_Ssn()
     {
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
-            .WithRecipients([ "1234:123456789" ,  "12345678901" ])
+            .WithRecipients(["1234:123456789", "12345678901"])
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
@@ -175,10 +182,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task InitializeCorrespondence_With_Invalid_Sender_Returns_BadRequest()
     {
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
             .WithSender("invalid-sender")
             .Build();
 
@@ -189,11 +194,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task InitializeCorrespondence_With_Invalid_Recipient_Returns_BadRequest()
     {
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
-            .WithRecipients([ "invalid-recipient" ])
+            .WithRecipients(["invalid-recipient"])
             .Build();
 
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
@@ -212,10 +215,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task InitializeCorrespondence_As_Recipient_Is_Forbidden()
     {
         // Arrange
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
             .Build();
 
         // Act
@@ -229,10 +230,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task InitializeCorrespondence_DueDate_PriorToday_Returns_BadRequest()
     {
         // Arrange
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
             .WithDueDateTime(DateTimeOffset.Now.AddDays(-7))
             .Build();
 
@@ -247,10 +246,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task InitializeCorrespondence_DueDate_PriorVisibleFrom_Returns_BadRequest()
     {
         // Arrange
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
             .WithDueDateTime(DateTimeOffset.Now.AddDays(7))
             .WithVisibleFrom(DateTimeOffset.Now.AddDays(14))
             .Build();
@@ -266,10 +263,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorToday_Returns_BadRequest()
     {
         // Arrange
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
             .WithAllowSystemDeleteAfter(DateTimeOffset.Now.AddDays(-7))
             .Build();
 
@@ -284,10 +279,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorVisibleFrom_Returns_BadRequest()
     {
         // Arrange
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
             .WithAllowSystemDeleteAfter(DateTimeOffset.Now.AddDays(7))
             .WithVisibleFrom(DateTimeOffset.Now.AddDays(14))
             .WithDueDateTime(DateTimeOffset.Now.AddDays(21)) // ensure DueDate is after VisibleFrom
@@ -304,10 +297,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorDueDate_Returns_BadRequest()
     {
         // Arrange
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
             .WithAllowSystemDeleteAfter(DateTimeOffset.Now.AddDays(14))
             .WithVisibleFrom(DateTimeOffset.Now.AddDays(7))
             .WithDueDateTime(DateTimeOffset.Now.AddDays(21))

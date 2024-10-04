@@ -73,10 +73,6 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         var uploadAttachments = request.Attachments;
         var uploadAttachmentMetadata = request.Correspondence.Content.Attachments;
 
-        if (!isUploadRequest && existingAttachmentIds.Count == 0)
-        {
-            return Errors.NoExistingAttachments;
-        }
         if (isUploadRequest && uploadAttachments.Count == 0)
         {
             return Errors.NoAttachments;
