@@ -3,10 +3,23 @@ using System.Text.Json;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Tests.Factories;
+using Microsoft.AspNetCore.Http;
 namespace Altinn.Correspondence.Tests.Factories;
 public static class AttachmentFactory
 {
-
+    public static InitializeCorrespondenceAttachmentExt GetAttachmentMetaData(FormFile file)
+    {
+        var attachmentData = new InitializeCorrespondenceAttachmentExt()
+        {
+            DataType = "text",
+            Name = file.FileName,
+            RestrictionName = "testFile3",
+            SendersReference = "1234",
+            FileName = file.FileName,
+            IsEncrypted = false
+        };
+        return attachmentData;
+    }
     public static async Task<string> GetInitializedAttachment(HttpClient client, JsonSerializerOptions responseSerializerOptions)
     {
         var initializeAttachmentResponse = await client.PostAsJsonAsync("correspondence/api/v1/attachment", InitializeAttachmentFactory.BasicAttachment());

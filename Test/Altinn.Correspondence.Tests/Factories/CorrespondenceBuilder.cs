@@ -109,6 +109,11 @@ namespace Altinn.Correspondence.Tests.Factories
 
             return this;
         }
+        public CorrespondenceBuilder WithAttachmentMetaData(List<InitializeCorrespondenceAttachmentExt> attachmentMetaData)
+        {
+            _correspondence.Correspondence.Content!.Attachments = attachmentMetaData;
+            return this;
+        }
         public CorrespondenceBuilder WithExistingAttachments(string attachmentId)
         {
             _correspondence.ExistingAttachments = new List<Guid>(){

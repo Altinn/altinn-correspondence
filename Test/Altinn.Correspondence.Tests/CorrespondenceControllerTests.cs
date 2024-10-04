@@ -34,21 +34,25 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         });
         _responseSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     }
-
     [Fact]
-    public async Task InitializeCorrespondence()
+    public async Task InitializeCorrespondence_WithExistingAttachmentsPublished_ReturnsOK()
     {
+        // Arrange
         var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments(attachmentId)
             .Build();
+        
+        // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+        // Assert
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
     }
 
     [Fact]
-    public async Task InitializeCorrespondenceMultiple()
+    public async Task InitializeCorrespondenceMultiple_WithExistingAttachmentsPublished_ReturnsOK()
     {
         var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
@@ -90,23 +94,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-    }
-
-    [Fact]
-    public async Task InitializeCorrespondence_WithExistingAttachmentsPublished_ReturnsOK()
-    {
-        // Arrange
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
-        var correspondence = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
-            .Build();
-
-        // Act
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
-
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
     }
 
     [Fact]
@@ -325,6 +312,49 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
+
+    [Fact]
+    public async Task UploadCorrespondence_Gives_Ok()
+    {
+        // Arrange
+        using var stream = File.OpenRead("./Data/Markdown.text");
+        var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+        var attachmentMetaData = AttachmentFactory.GetAttachmentMetaData(file);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithRecipients(["0192:986252932"])
+            .WithAttachmentMetaData([attachmentMetaData])
+            .Build();
+
+        var formData = CorrespondenceToFormData(payload.Correspondence); // Create form data for the payload
+        formData.Add(new StringContent("0192:986252932"), "recipients[0]");
+        using var fileStream = file.OpenReadStream();
+        formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
+
+        // Act
+        var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, uploadCorrespondenceResponse.StatusCode);
+
+        var response = await uploadCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+        var attachmentId = response?.AttachmentIds.FirstOrDefault();
+        var attachmentOverview = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
+        payload.Correspondence.Content.Attachments.Add(new InitializeCorrespondenceAttachmentExt()
+        {
+            DataType = attachmentOverview.DataType,
+            FileName = attachmentOverview.FileName,
+            Name = "Logical file name",
+            RestrictionName = attachmentOverview.RestrictionName,
+            SendersReference = attachmentOverview.SendersReference,
+            IsEncrypted = attachmentOverview.IsEncrypted,
+            Checksum = attachmentOverview.Checksum
+        });
+        formData = CorrespondenceToFormData(payload.Correspondence);
+        formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
+        var uploadCorrespondenceResponse2 = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+        Assert.Equal(HttpStatusCode.OK, uploadCorrespondenceResponse2.StatusCode);
+    }
     [Fact]
     public async Task UploadCorrespondence_WithoutAttachments_ReturnsBadRequest()
     {
@@ -335,59 +365,13 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence/upload", correspondence);
-        var content = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
-
-    [Fact]
-    public async Task UploadCorrespondence_Gives_Ok()
-    {
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
-        using (var stream = System.IO.File.OpenRead("./Data/Markdown.text"))
-        {
-            var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
-            var attachmentData = new InitializeCorrespondenceAttachmentExt()
-            {
-                DataType = "text",
-                Name = file.FileName,
-                RestrictionName = "testFile3",
-                SendersReference = "1234",
-                FileName = file.FileName,
-                IsEncrypted = false
-            };
-            payload.Correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>() { attachmentData };
-            var formData = CorrespondenceToFormData(payload.Correspondence);
-            formData.Add(new StringContent("0192:986252932"), "recipients[0]");
-            using var fileStream = file.OpenReadStream();
-            formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
-            var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
-            Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
-
-            var response = await uploadCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            var attachmentId = response?.AttachmentIds.FirstOrDefault();
-            var attachmentOverview = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
-            payload.Correspondence.Content.Attachments.Add(new InitializeCorrespondenceAttachmentExt()
-            {
-                DataType = attachmentOverview.DataType,
-                FileName = attachmentOverview.FileName,
-                Name = "Logical file name",
-                RestrictionName = attachmentOverview.RestrictionName,
-                SendersReference = attachmentOverview.SendersReference,
-                IsEncrypted = attachmentOverview.IsEncrypted,
-                Checksum = attachmentOverview.Checksum
-            });
-            formData = CorrespondenceToFormData(payload.Correspondence);
-            formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
-            var uploadCorrespondenceResponse2 = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
-            Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
-        }
-    }
     [Fact]
     public async Task UploadCorrespondence_With_Multiple_Files()
     {
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
 
         using var stream = System.IO.File.OpenRead("./Data/Markdown.text");
         var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
@@ -396,30 +380,20 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var file2 = new FormFile(stream2, 0, stream2.Length, null, Path.GetFileName(stream2.Name));
         using var fileStream2 = file2.OpenReadStream();
 
-        payload.Correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>(){
-            new InitializeCorrespondenceAttachmentExt(){
-                DataType = "text",
-                Name = "markdown example",
-                RestrictionName = "testFile3",
-                SendersReference = "1234",
-                FileName = file.FileName,
-                IsEncrypted = false,
-            },
-             new InitializeCorrespondenceAttachmentExt(){
-                DataType = "text",
-                Name = "test file",
-                RestrictionName = "testFile3",
-                SendersReference = "1234",
-                FileName = file2.FileName,
-                IsEncrypted = false,
-            }};
+        var attachmentMetaData = AttachmentFactory.GetAttachmentMetaData(file);
+        var attachmentMetaData2 = AttachmentFactory.GetAttachmentMetaData(file2);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithRecipients(["0192:986252932"])
+            .WithAttachmentMetaData([attachmentMetaData, attachmentMetaData2])
+            .Build();
         var formData = CorrespondenceToFormData(payload.Correspondence);
         formData.Add(new StringContent("0192:986252932"), "recipients[0]");
         formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
         formData.Add(new StreamContent(fileStream2), "attachments", file2.FileName);
 
         var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
-        Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.OK, uploadCorrespondenceResponse.StatusCode);
     }
 
     [Fact]
@@ -435,33 +409,23 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task UploadCorrespondences_With_Multiple_Files()
     {
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
-        using var stream = System.IO.File.OpenRead("./Data/Markdown.text");
+        using var stream = File.OpenRead("./Data/Markdown.text");
         var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
         using var fileStream = file.OpenReadStream();
-        using var stream2 = System.IO.File.OpenRead("./Data/test.txt");
+        var attachmentMetaData = AttachmentFactory.GetAttachmentMetaData(file);
+
+        using var stream2 = File.OpenRead("./Data/test.txt");
         var file2 = new FormFile(stream2, 0, stream2.Length, null, Path.GetFileName(stream2.Name));
         using var fileStream2 = file2.OpenReadStream();
-        payload.Correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>(){
-            new InitializeCorrespondenceAttachmentExt(){
-                DataType = "text",
-                Name = "MARKDOWN EXAMPLE",
-                RestrictionName = "testFile3",
-                SendersReference = "1234",
-                FileName = file.FileName,
-                IsEncrypted = false,
-            },
-             new InitializeCorrespondenceAttachmentExt(){
-                DataType = "text",
-                Name = "test file",
-                RestrictionName = "testFile3",
-                SendersReference = "1234",
-                FileName = file2.FileName,
-                IsEncrypted = false,
-            }};
+        var attachmentMetaData2 = AttachmentFactory.GetAttachmentMetaData(file2);
+
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithRecipients(["0192:986252932"])
+            .WithAttachmentMetaData([attachmentMetaData, attachmentMetaData2])
+            .Build();
 
         var formData = CorrespondenceToFormData(payload.Correspondence);
-
         formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
         formData.Add(new StreamContent(fileStream2), "attachments", file2.FileName);
         formData.Add(new StringContent("0192:986252932"), "recipients[0]");
@@ -470,6 +434,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
         Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
     }
+
+
 
     [Fact]
     public async Task GetCorrespondences()
