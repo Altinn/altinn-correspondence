@@ -38,7 +38,7 @@ static void BuildAndRun(string[] args)
     app.UseAuthorization();
 
     app.MapControllers();
-    app.UseCors();
+    app.UseCors(AuthorizationConstants.ArbeidsflateCors);
     app.UseMiddleware<SecurityHeadersMiddleware>();
 
     if (app.Environment.IsDevelopment())
@@ -154,7 +154,9 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         options.AddPolicy(name: AuthorizationConstants.ArbeidsflateCors,
                           policy =>
                           {
-                              policy.WithOrigins("https://af.tt.altinn.no");
+                              policy.WithOrigins("https://af.tt.altinn.no").SetIsOriginAllowedToAllowWildcardSubdomains();
+                              policy.WithMethods("GET", "POST");
+                              policy.WithHeaders("Authorization");
                           });
     });
     services.AddEndpointsApiExplorer();
