@@ -952,15 +952,11 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task DownloadCorrespondenceAttachment_AsRecipient_Succeeds()
     {
         // Arrange
-        var attachment = InitializeAttachmentFactory.BasicAttachment();
-        var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
-
-        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
-        var uploadedAttachment = await (await UploadAttachment(attachmentId, new ByteArrayContent([1, 2, 3, 4]))).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
-
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
-        payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
-        payload.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .Build();
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
@@ -977,18 +973,12 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task DownloadCorrespondenceAttachment_WhenNotARecipient_Returns404()
     {
         // Arrange
-        var attachment = InitializeAttachmentFactory.BasicAttachment();
-        var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
-
-        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
-        var originalAttachmentData = new byte[] { 1, 2, 3, 4 };
-        var content = new ByteArrayContent(originalAttachmentData);
-        var uploadedAttachment = await (await UploadAttachment(attachmentId, content)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
-
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
-        payload.ExistingAttachments = new List<Guid> { uploadedAttachment.AttachmentId };
-        payload.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
-        payload.Recipients = ["0192:999999999"]; // Change recipient to invalid org
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithRecipients(["0192:999999999"]) // Change recipient to invalid org
+            .Build();
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
@@ -1000,22 +990,16 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
-    public async Task DownloadCorrespondenceAttachment_WhenCorrespondenceUnavailable_Returns404() // TODO: Fix initializeCorrespondence should check attachment is uploaded before 
+    public async Task DownloadCorrespondenceAttachment_WhenCorrespondenceUnavailable_Returns404()
     {
         // Arrange
-        var attachment = InitializeAttachmentFactory.BasicAttachment();
-        var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
-        initializeResponse.EnsureSuccessStatusCode();
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithVisibleFrom(DateTimeOffset.Now.AddDays(1)) // Set visibleFrom in the future so that it is not published
+            .Build();
 
-        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
-        var originalAttachmentData = new byte[] { 1, 2, 3, 4 };
-        var content = new ByteArrayContent(originalAttachmentData);
-        await UploadAttachment(attachmentId, content);
-
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
-        payload.ExistingAttachments = new List<Guid> { Guid.Parse(attachmentId) };
-        payload.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>();
-        payload.Correspondence.VisibleFrom = DateTimeOffset.UtcNow.AddDays(1); // Set visibleFrom in the future so that it is not published
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
@@ -1030,13 +1014,10 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task DownloadCorrespondenceAttachment_WhenCorrespondenceHasNoAttachment_Returns404()
     {
         // Arrange
-        var attachment = InitializeAttachmentFactory.BasicAttachment();
-        var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
-        initializeResponse.EnsureSuccessStatusCode();
-        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
-        await UploadAttachment(attachmentId);
-
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments();
+        var attachmentId = Guid.NewGuid().ToString();
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .Build();
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
