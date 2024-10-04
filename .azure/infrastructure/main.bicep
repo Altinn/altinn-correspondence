@@ -130,7 +130,6 @@ module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
     namePrefix: namePrefix
     storageAccountName: storageAccountName
     emailReceiver: notificationEmail
-    slackUrl: slackUrl
   }
 }
 output resourceGroupName string = resourceGroup.name
