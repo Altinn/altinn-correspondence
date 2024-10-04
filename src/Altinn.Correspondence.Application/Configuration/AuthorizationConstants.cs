@@ -10,4 +10,5 @@ public static class AuthorizationConstants
     public const string SenderScope = "altinn:correspondence.write";
     public const string RecipientScope = "altinn:correspondence.read";
     public const string MigrateScope = "altinn:correspondence.migrate";
+    public const string ArbeidsflateCors = "ArbeidsflateCors";
 }

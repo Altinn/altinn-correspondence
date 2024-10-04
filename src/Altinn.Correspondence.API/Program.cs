@@ -149,6 +149,14 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
             policy.AddAuthenticationSchemes(AuthorizationConstants.Dialogporten);
         });
     });
+    services.AddCors(options =>
+    {
+        options.AddPolicy(name: AuthorizationConstants.ArbeidsflateCors,
+                          policy =>
+                          {
+                              policy.WithOrigins("https://af.tt.altinn.no");
+                          });
+    });
     services.AddEndpointsApiExplorer();
     services.AddSwaggerGen();
     services.AddApplicationInsightsTelemetry();
