@@ -1029,79 +1029,67 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
-    public async Task Delete_Initialized_Correspondence_AsSender_Gives_OK()
+    public async Task Delete_ReadyForPublished_Correspondence_SuccessForSender_FailsForRecipient()
     {
         // Arrange
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
-        payload.Recipients = new List<string> { "0192:123456789" };
-        // Act
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithVisibleFrom(DateTimeOffset.Now.AddDays(1))
+            .Build();
+
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
         Assert.NotNull(correspondenceResponse);
-        var response = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.CorrespondenceIds.FirstOrDefault()}/purge");
+
+        // Act (Call recipient first to ensure that the correspondence is not purged)
+        var recipientResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.CorrespondenceIds.FirstOrDefault()}/purge");
+        var senderResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.CorrespondenceIds.FirstOrDefault()}/purge");
 
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, recipientResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, senderResponse.StatusCode);
         var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse.CorrespondenceIds.FirstOrDefault()}", _responseSerializerOptions);
         Assert.Equal(overview?.Status, CorrespondenceStatusExt.PurgedByAltinn);
     }
 
     [Fact]
-    public async Task Delete_Initialized_Correspondences_As_Receiver_Fails()
+    public async Task Delete_Published_Correspondence_SuccessForRecipient_FailsForSender()
     {
         // Arrange
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondences();
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .Build();
 
-        // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
         Assert.NotNull(correspondenceResponse);
-        var response = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.CorrespondenceIds.FirstOrDefault()}/purge");
+
+        // Act (Call sender first to ensure that the correspondence is not purged)
+        var senderResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.CorrespondenceIds.FirstOrDefault()}/purge");
+        var recipientResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.CorrespondenceIds.FirstOrDefault()}/purge");
 
         // Assert
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Delete_Published_Correspondence_AsRecipient_Gives_OK()
-    {
-        // Arrange
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments();
-
-        // Act
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
-        Assert.NotNull(correspondenceResponse);
-        var response = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.CorrespondenceIds.FirstOrDefault()}/purge");
-
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, senderResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, recipientResponse.StatusCode);
         var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse.CorrespondenceIds.FirstOrDefault()}", _responseSerializerOptions);
         Assert.Equal(overview?.Status, CorrespondenceStatusExt.PurgedByRecipient);
     }
 
     [Fact]
-    public async Task Delete_Published_Correspondences_As_Sender_Fails()
+    public async Task Delete_Correspondence_Also_deletes_attachment()
     {
         // Arrange
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments();
-
-        // Act
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithVisibleFrom(DateTimeOffset.Now.AddDays(1))
+            .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
         Assert.NotNull(correspondenceResponse);
-        var response = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.CorrespondenceIds.FirstOrDefault()}/purge");
 
-        // Assert
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Delete_Correspondence_Also_deletes_attachment()
-    {
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
-        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
-        Assert.NotNull(correspondenceResponse);
+        // Act
         foreach (var correspondenceId in correspondenceResponse.CorrespondenceIds)
         {
             var response = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
@@ -1109,6 +1097,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceId}", _responseSerializerOptions);
             Assert.Equal(overview?.Status, CorrespondenceStatusExt.PurgedByAltinn);
         }
+
+        // Assert
         var attachment = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{correspondenceResponse.AttachmentIds.FirstOrDefault()}", _responseSerializerOptions);
         Assert.Equal(attachment?.Status, AttachmentStatusExt.Purged);
     }
@@ -1116,19 +1106,25 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task Delete_correspondence_dont_delete_attachment_with_multiple_correspondences()
     {
-        var attachment = await InitializeAttachment();
-        Assert.NotNull(attachment);
-        var correspondence1 = InitializeCorrespondenceFactory.BasicCorrespondences();
-        correspondence1.ExistingAttachments = new List<Guid> { attachment.AttachmentId };
-        var correspondence2 = InitializeCorrespondenceFactory.BasicCorrespondences();
-        correspondence2.ExistingAttachments = new List<Guid> { attachment.AttachmentId };
+        // Arrange
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var payload1 = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithVisibleFrom(DateTimeOffset.Now.AddDays(1))
+            .Build();
+        var payload2 = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithVisibleFrom(DateTimeOffset.Now.AddDays(1))
+            .Build();
 
-        var initializeCorrespondenceResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence1, _responseSerializerOptions);
+        var initializeCorrespondenceResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload1, _responseSerializerOptions);
         var response1 = await initializeCorrespondenceResponse1.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
         initializeCorrespondenceResponse1.EnsureSuccessStatusCode();
         Assert.NotNull(response1);
 
-        var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence2, _responseSerializerOptions);
+        var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload2, _responseSerializerOptions);
         var response2 = await initializeCorrespondenceResponse2.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
         initializeCorrespondenceResponse2.EnsureSuccessStatusCode();
         Assert.NotNull(response2);
