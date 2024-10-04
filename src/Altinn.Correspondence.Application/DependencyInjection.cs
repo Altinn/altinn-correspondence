@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.CancelNotification;
 using Altinn.Correspondence.Application.DownloadAttachment;
 using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 using Altinn.Correspondence.Application.GetAttachmentDetails;
@@ -43,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<UploadHelper>();
         services.AddScoped<UserClaimsHelper>();
         services.AddScoped<PublishCorrespondenceHandler>();
+        services.AddScoped<CancelNotificationHandler>();
         services.AddScoped<DownloadCorrespondenceAttachmentHandler>();
     }
 }

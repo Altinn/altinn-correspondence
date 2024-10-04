@@ -67,6 +67,7 @@ var containerAppEnvVars = [
     value: 'true'
   }
   { name: 'MaskinportenSettings__EncodedJwk', secretRef: 'maskinporten-jwk' }
+  { name: 'GeneralSettings__SlackUrl', secretRef: 'slack-url' }
 ]
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: '${namePrefix}-app'
@@ -99,6 +100,11 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           identity: principal_id
           keyVaultUrl: '${keyVaultUrl}/secrets/maskinporten-jwk'
           name: 'maskinporten-jwk'
+        }
+        {
+          identity: principal_id
+          keyVaultUrl: '${keyVaultUrl}/secrets/slack-url'
+          name: 'slack-url'
         }
         {
           identity: principal_id
