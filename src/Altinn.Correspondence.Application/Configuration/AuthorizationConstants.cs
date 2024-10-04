@@ -12,4 +12,5 @@ public static class AuthorizationConstants
     public const string MigrateScope = "altinn:correspondence.migrate";
     public const string NotificationCheckScope = "altinn:system/notifications.condition.check";
     public const string MaskinportenScheme = "Maskinporten";
+    public const string ArbeidsflateCors = "ArbeidsflateCors";
 }
