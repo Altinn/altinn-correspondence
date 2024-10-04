@@ -437,11 +437,11 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task GetCorrespondences()
     {
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .Build();
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
-
-        var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
-        Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
 
         var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={1}&offset={0}&limit={10}&status={0}&role={"sender"}");
         Assert.True(correspondenceList?.Pagination.TotalItems > 0);
@@ -450,7 +450,10 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task GetCorrespondences_WithInvalidRole_ReturnsBadRequest()
     {
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", InitializeCorrespondenceFactory.BasicCorrespondences());
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .Build();
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
         var responseWithout = await _senderClient.GetAsync($"correspondence/api/v1/correspondence?resourceId={1}&offset={0}&limit={10}&status={0}");
@@ -465,19 +468,28 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         var resourceA = Guid.NewGuid().ToString();
         var resourceB = Guid.NewGuid().ToString();
-        var payloadForResourceA = InitializeCorrespondenceFactory.BasicCorrespondences();
-        payloadForResourceA.Correspondence.ResourceId = resourceA;
-        var payloadForResourceB = InitializeCorrespondenceFactory.BasicCorrespondences();
-        payloadForResourceB.Correspondence.ResourceId = resourceB;
+        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
 
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadForResourceA);
+        var payloadResourceA = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithResourceId(resourceA)
+            .Build();
+        var payloadResourceB = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExistingAttachments(attachmentId)
+            .WithResourceId(resourceB)
+            .Build();
+
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadResourceA);
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
-        var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadForResourceB);
+        var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadResourceB);
         Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
 
-        var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceA}&offset={0}&limit={10}&status={0}&role={"recipientandsender"}");
-        Assert.Equal(correspondenceList?.Pagination.TotalItems, payloadForResourceA.Recipients.Count);
+        int status = (int)CorrespondenceStatus.Published;
+        var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceA}&offset={0}&limit={10}&status={status}&role={"recipientandsender"}");
+        Assert.Equal(correspondenceList?.Pagination.TotalItems, payloadResourceA.Recipients.Count);
     }
 
     [Fact]
@@ -490,22 +502,26 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var externalId = "0192:222222222";
 
         // Create correspondence as Sender with recipientId amongst recipients
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments();
-        payload.Correspondence.ResourceId = resource;
-        payload.Correspondence.Sender = senderId;
-        payload.Recipients = [recipientId, "0192:123456789", "0192:321654987"];
+        var senderPayload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithResourceId(resource)
+            .WithSender(senderId)
+            .WithRecipients([recipientId, "0192:123456789", "0192:321654987"])
+            .Build();
         var senderClient = _factory.CreateClientWithAddedClaims(
             ("consumer", $"{{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"{senderId}\"}}"),
             ("scope", AuthorizationConstants.SenderScope)
         );
-        var initResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+        var initResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", senderPayload);
         Assert.True(initResponse.IsSuccessStatusCode, await initResponse.Content.ReadAsStringAsync());
 
         // Create some correspondences with External sender with senderId and recipientId amongst recipients
-        var externalPayload = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments();
-        externalPayload.Correspondence.ResourceId = resource;
-        externalPayload.Correspondence.Sender = externalId;
-        externalPayload.Recipients = [senderId, recipientId, "0192:864231509"];
+        var externalPayload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithResourceId(resource)
+            .WithSender(externalId)
+            .WithRecipients([senderId, recipientId, "0192:864231509"])
+            .Build();
         var externalClient = _factory.CreateClientWithAddedClaims(
             ("consumer", $"{{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"{externalId}\"}}"),
             ("scope", AuthorizationConstants.SenderScope)
@@ -525,9 +541,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var correspondencesSenderAndRecipient = await senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&role={"recipientandsender"}");
 
         // Assert
-        var expectedSender = payload.Recipients.Count; // sender only sees the ones they sent
+        var expectedSender = senderPayload.Recipients.Count; // sender only sees the ones they sent
         Assert.Equal(expectedSender, correspondencesSender?.Pagination.TotalItems);
-        var expectedRecipient = payload.Recipients.Where(r => r == recipientId).Count() + externalPayload.Recipients.Where(r => r == recipientId).Count(); // recipient sees the ones from the initial sender and external sender
+        var expectedRecipient = senderPayload.Recipients.Where(r => r == recipientId).Count() + externalPayload.Recipients.Where(r => r == recipientId).Count(); // recipient sees the ones from the initial sender and external sender
         Assert.Equal(expectedRecipient, correspondencesRecipient?.Pagination.TotalItems);
         var expectedSenderAndRecipient = expectedSender + externalPayload.Recipients.Where(r => r == senderId).Count(); // sender sees the ones they sent and the ones where they were the recipient from external
         Assert.Equal(expectedSenderAndRecipient, correspondencesSenderAndRecipient?.Pagination.TotalItems);
@@ -538,19 +554,29 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         // Arrange
         var resourceId = Guid.NewGuid().ToString();
-        var initializedCorrespondences = InitializeCorrespondenceFactory.BasicCorrespondences();
-        initializedCorrespondences.Correspondence.ResourceId = resourceId;
-        await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", initializedCorrespondences);
-        var publishedCorrespondences = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments();
-        publishedCorrespondences.Correspondence.ResourceId = resourceId;
+        var initializedCorrespondence = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithResourceId(resourceId)
+            .WithVisibleFrom(DateTimeOffset.Now.AddDays(1))
+            .Build();
+        var a = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", initializedCorrespondence);
+        var correspondence = await a.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        var getCorrespondenceOverviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.CorrespondenceIds.FirstOrDefault()}");
+        var b = await getCorrespondenceOverviewResponse.Content.ReadFromJsonAsync<CorrespondenceOverviewExt>(_responseSerializerOptions);
+
+        var publishedCorrespondences = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithResourceId(resourceId)
+            .WithVisibleFrom(DateTimeOffset.Now.AddDays(-1))
+            .Build();
         await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", publishedCorrespondences);
 
         // Act
-        var responseWithInitialized = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&offset=0&limit=10&status={0}&role={"sender"}");
+        var responseWithInitialized = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&offset=0&limit=10&status={1}&role={"sender"}");
         var responseWithPublished = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&offset=0&limit=10&status={2}&role={"sender"}");
 
         // Assert
-        var expectedInitialized = initializedCorrespondences.Recipients.Count;
+        var expectedInitialized = initializedCorrespondence.Recipients.Count;
         Assert.Equal(expectedInitialized, responseWithInitialized?.Pagination.TotalItems);
         var expectedPublished = publishedCorrespondences.Recipients.Count;
         Assert.Equal(expectedPublished, responseWithPublished?.Pagination.TotalItems);
@@ -567,19 +593,24 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             ("scope", AuthorizationConstants.RecipientScope)
         );
 
-        var payloadPublished = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments(); // One published
-        payloadPublished.Recipients[0] = recipientId;
-        payloadPublished.Correspondence.ResourceId = resource;
+        var payloadPublished = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithResourceId(resource)
+            .WithRecipients([recipientId])
+            .Build(); // One published
 
-        var payloadInitialized = InitializeCorrespondenceFactory.BasicCorrespondences(); // One initialized
-        payloadInitialized.Recipients[0] = recipientId;
-        payloadInitialized.Correspondence.ResourceId = resource;
+        var payloadReadyForPublish = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithResourceId(resource)
+            .WithRecipients([recipientId])
+            .WithVisibleFrom(DateTimeOffset.Now.AddDays(1))
+            .Build(); // One ready for publish
 
         // Act
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadPublished);
-        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
-        var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadInitialized);
-        Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
+        var responsePublished = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadPublished);
+        Assert.True(responsePublished.IsSuccessStatusCode, await responsePublished.Content.ReadAsStringAsync());
+        var responseReadyForPublish = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadReadyForPublish);
+        Assert.True(responseReadyForPublish.IsSuccessStatusCode, await responseReadyForPublish.Content.ReadAsStringAsync());
         var correspondenceList = await recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&role={"recipient"}");
 
         // Assert
@@ -592,8 +623,11 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         // Arrange
         var resource = Guid.NewGuid().ToString();
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondences(); // One initialized
-        payload.Correspondence.ResourceId = resource;
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithResourceId(resource)
+            .WithVisibleFrom(DateTimeOffset.Now.AddDays(1))
+            .Build(); // One ReadyForPublish
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
@@ -616,17 +650,20 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         // Arrange
         var resource = Guid.NewGuid().ToString();
-        var payload = InitializeCorrespondenceFactory.BasicCorrespondences(); // One initialized
-        payload.Correspondence.ResourceId = resource;
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithResourceId(resource)
+            .WithVisibleFrom(DateTimeOffset.Now.AddDays(1))
+            .Build(); // One ReadyForPublish
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
-        var correspondencesRecipient = await _recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&status={0}&role={"recipient"}");
-        var correspondencesSender = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&status={0}&role={"sender"}");
+        var correspondencesRecipient = await _recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&status={1}&role={"recipient"}");
+        var correspondencesSender = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&status={1}&role={"sender"}");
 
         // Assert
-        var expectedRecipient = 0; // recipient does not see initialized
+        var expectedRecipient = 0; // recipient does not see ReadyForPublish
         var expectedSender = payload.Recipients.Count;
         Assert.Equal(expectedRecipient, correspondencesRecipient?.Pagination.TotalItems);
         Assert.Equal(expectedSender, correspondencesSender?.Pagination.TotalItems);
@@ -1254,7 +1291,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var uploadResponse = await client.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", data);
         return uploadResponse;
     }
-    
+
     private async Task<AttachmentOverviewExt?> InitializeAttachment()
     {
         var attachment = InitializeAttachmentFactory.BasicAttachment();

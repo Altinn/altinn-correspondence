@@ -46,14 +46,19 @@ namespace Altinn.Correspondence.Tests.Factories
 
             return this;
         }
+        public CorrespondenceBuilder WithResourceId(string resourceId)
+        {
+            _correspondence.Correspondence.ResourceId = resourceId;
+            return this;
+        }
         public CorrespondenceBuilder WithTitle(string title)
         {
-            _correspondence.Correspondence.Content.MessageTitle = title;
+            _correspondence.Correspondence.Content!.MessageTitle = title;
             return this;
         }
         public CorrespondenceBuilder WithAttachments()
         {
-            _correspondence.Correspondence.Content.Attachments = new List<InitializeCorrespondenceAttachmentExt>() {
+            _correspondence.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>() {
                 new InitializeCorrespondenceAttachmentExt()
                 {
                     DataType = "html",
