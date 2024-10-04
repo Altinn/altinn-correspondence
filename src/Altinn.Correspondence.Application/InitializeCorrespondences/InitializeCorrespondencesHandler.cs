@@ -68,50 +68,57 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             return contentError;
         }
-        if (!request.IsUploadRequest && request.ExistingAttachments.Count == 0)
+        bool isUploadRequest = request.IsUploadRequest;
+        var existingAttachmentIds = request.ExistingAttachments;
+        var uploadAttachments = request.Attachments;
+        var uploadAttachmentMetadata = request.Correspondence.Content.Attachments;
+
+        if (!isUploadRequest && existingAttachmentIds.Count == 0)
         {
             return Errors.NoExistingAttachments;
         }
-        if (request.IsUploadRequest && request.Attachments.Count == 0)
+        if (isUploadRequest && uploadAttachments.Count == 0)
         {
             return Errors.NoAttachments;
         }
-
-        foreach (var attachmentId in request.ExistingAttachments)
+        // Validate that existing attachments are correct
+        var existingAttachments = await _initializeCorrespondenceHelper.GetExistingAttachments(existingAttachmentIds);
+        if (existingAttachments.Count != existingAttachmentIds.Count)
         {
-            var existingAttachment = await _attachmentRepository.GetAttachmentById(attachmentId, true);
-
-            if (existingAttachment == null) return Errors.ExistingAttachmentNotFound;
-
-            if (existingAttachment.GetLatestStatus()?.Status == AttachmentStatus.Published) continue;
-
+            return Errors.ExistingAttachmentNotFound;
+        }
+        // Validate that existing attachments are published
+        var anyExistingAttachmentsNotPublished = existingAttachments.Any(a => a.GetLatestStatus()?.Status != AttachmentStatus.Published);
+        if (anyExistingAttachmentsNotPublished)
+        {
             return Errors.AttachmentNotPublished;
         }
-
-        var attachmentError = _initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content!.Attachments, request.IsUploadRequest); // Check if necessary to pass isUploadRequest
-        if (attachmentError != null) return attachmentError;
-
-        var attachments = new List<AttachmentEntity>();
-        if (request.Correspondence.Content!.Attachments.Count() > 0)
+        // Validate that uploaded files match attachment metadata
+        // TODO: This was previously in an if (files.Count > 0 || isUpload) block. Is this correct?
+        var attachmentMetaDataError = InitializeCorrespondenceHelper.ValidateAttachmentFiles(uploadAttachments, uploadAttachmentMetadata);
+        if (attachmentMetaDataError != null)
         {
-            foreach (var attachment in request.Correspondence.Content!.Attachments)
+            return attachmentMetaDataError;
+        }
+
+        // Gather attachments for the correspondence
+        var attachmentsToBeUploaded = new List<AttachmentEntity>();
+        if (uploadAttachmentMetadata.Count > 0)
+        {
+            foreach (var attachment in uploadAttachmentMetadata)
             {
                 var processedAttachment = await _initializeCorrespondenceHelper.ProcessNewAttachment(attachment, cancellationToken);
-                attachments.Add(processedAttachment);
+                attachmentsToBeUploaded.Add(processedAttachment);
             }
         }
-        if (request.ExistingAttachments.Count > 0)
+        if (existingAttachmentIds.Count > 0)
         {
-            var existingAttachments = await _initializeCorrespondenceHelper.GetExistingAttachments(request.ExistingAttachments, cancellationToken);
-            if (existingAttachments == null)
-            {
-                return Errors.ExistingAttachmentNotFound;
-            }
-            attachments.AddRange(existingAttachments);
+            attachmentsToBeUploaded.AddRange(existingAttachments.Where(a => a != null).Select(a => a!));
         }
-        if (request.Attachments.Count > 0)
+        // Upload attachments
+        if (uploadAttachments.Count > 0)
         {
-            var uploadError = await _initializeCorrespondenceHelper.UploadAttachments(attachments, request.Attachments, cancellationToken);
+            var uploadError = await _initializeCorrespondenceHelper.UploadAttachments(attachmentsToBeUploaded, uploadAttachments, cancellationToken);
             if (uploadError != null)
             {
                 return uploadError;
@@ -151,7 +158,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 MessageSender = request.Correspondence.MessageSender,
                 Content = new CorrespondenceContentEntity
                 {
-                    Attachments = attachments.Select(a => new CorrespondenceAttachmentEntity
+                    Attachments = attachmentsToBeUploaded.Select(a => new CorrespondenceAttachmentEntity
                     {
                         Attachment = a,
                         Created = DateTimeOffset.UtcNow,

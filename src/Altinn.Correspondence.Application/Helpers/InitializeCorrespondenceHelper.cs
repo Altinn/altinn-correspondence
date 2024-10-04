@@ -97,22 +97,41 @@ namespace Altinn.Correspondence.Application.Helpers
             return null;
         }
 
-        public Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments, bool isUpload)
+        /// <summary>
+        /// Validates that the uploaded files match the attachments in the correspondence
+        /// </summary>
+        public static Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments)
         {
-            if (files.Count > 0 || isUpload)
+            var maxUploadSize = long.Parse(int.MaxValue.ToString());
+            foreach (var attachment in attachments)
             {
-                var maxUploadSize = long.Parse(int.MaxValue.ToString());
-                if (isUpload && attachments.Count == 0) return Errors.UploadCorrespondenceNoAttachments;
-                foreach (var attachment in attachments)
-                {
-                    if (attachment.Attachment?.DataLocationUrl != null) continue;
-                    if (files.Count == 0 && isUpload) return Errors.UploadCorrespondenceNoAttachments;
-                    var file = files.FirstOrDefault(a => a.FileName == attachment.Attachment?.FileName);
-                    if (file == null) return Errors.UploadedFilesDoesNotMatchAttachments;
-                    if (file?.Length > maxUploadSize || file?.Length == 0) return Errors.InvalidFileSize;
-                }
+                if (attachment.Attachment?.DataLocationUrl != null) continue;
+                var file = files.FirstOrDefault(a => a.FileName == attachment.Attachment?.FileName);
+                if (file == null) return Errors.UploadedFilesDoesNotMatchAttachments;
+                if (file?.Length > maxUploadSize || file?.Length == 0) return Errors.InvalidFileSize;
             }
             return null;
+        }
+
+        /// <summary>
+        /// Get existing attachments from the database
+        /// </summary>
+        /// <remarks>
+        /// If the attachment is not found in the database, it is not included in the returned list
+        /// </remarks>
+        /// <returns>A list of the attachments found</returns>
+        public async Task<List<AttachmentEntity>> GetExistingAttachments(List<Guid> attachmentIds)
+        {
+            var attachments = new List<AttachmentEntity>();
+            foreach (var attachmentId in attachmentIds)
+            {
+                var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true);
+                if (attachment is not null)
+                {
+                    attachments.Add(attachment);
+                }
+            }
+            return attachments;
         }
 
         public CorrespondenceStatus GetInitializeCorrespondenceStatus(CorrespondenceEntity correspondence)
@@ -148,18 +167,6 @@ namespace Altinn.Correspondence.Application.Helpers
                 if (error != null) return error;
             }
             return null;
-        }
-
-        public async Task<List<AttachmentEntity>?> GetExistingAttachments(List<Guid> attachmentIds, CancellationToken cancellationToken)
-        {
-            var attachments = new List<AttachmentEntity>();
-            foreach (var attachmentId in attachmentIds)
-            {
-                var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, false, cancellationToken);
-                if (attachment == null) return null;
-                attachments.Add(attachment);
-            }
-            return attachments;
         }
 
         public async Task<AttachmentEntity> ProcessNewAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, CancellationToken cancellationToken)
