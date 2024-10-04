@@ -34,6 +34,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         });
         _responseSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     }
+
     [Fact]
     public async Task InitializeCorrespondence_WithExistingAttachmentsPublished_ReturnsOK()
     {
@@ -113,6 +114,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
+
     [Fact]
     public async Task InitializeCorrespondence_With_HTML_In_Summary_Or_Body_fails()
     {
@@ -130,6 +132,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
+
     [Fact]
     public async Task InitializeCorrespondence_No_Message_Body_fails()
     {
@@ -142,6 +145,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
+
     [Fact]
     public async Task InitializeCorrespondence_With_Different_Markdown_In_Body()
     {
@@ -220,6 +224,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.Forbidden, initializeCorrespondenceResponse.StatusCode);
     }
+
     [Fact]
     public async Task InitializeCorrespondence_DueDate_PriorToday_Returns_BadRequest()
     {
@@ -237,6 +242,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
+
     [Fact]
     public async Task InitializeCorrespondence_DueDate_PriorVisibleFrom_Returns_BadRequest()
     {
@@ -293,6 +299,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
+
     [Fact]
     public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorDueDate_Returns_BadRequest()
     {
@@ -355,6 +362,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var uploadCorrespondenceResponse2 = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
         Assert.Equal(HttpStatusCode.OK, uploadCorrespondenceResponse2.StatusCode);
     }
+
     [Fact]
     public async Task UploadCorrespondence_WithoutAttachments_ReturnsBadRequest()
     {
@@ -369,10 +377,10 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
+
     [Fact]
     public async Task UploadCorrespondence_With_Multiple_Files()
     {
-
         using var stream = System.IO.File.OpenRead("./Data/Markdown.text");
         var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
         using var fileStream = file.OpenReadStream();
@@ -434,8 +442,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
         Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
     }
-
-
 
     [Fact]
     public async Task GetCorrespondences()
@@ -558,6 +564,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var expectedPublished = publishedCorrespondences.Recipients.Count;
         Assert.Equal(expectedPublished, responseWithPublished?.Pagination.TotalItems);
     }
+
     [Fact]
     public async Task GetCorrespondences_WithoutStatusSpecified_AsReceiver_ReturnsAllExceptBlacklisted()
     {
@@ -588,6 +595,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var expected = payloadPublished.Recipients.Where(r => r == recipientId).Count(); // Receiver only sees the one that is published
         Assert.Equal(expected, correspondenceList?.Pagination.TotalItems);
     }
+
     [Fact]
     public async Task GetCorrespondences_WithoutStatusSpecified_AsSender_ReturnsAllExceptBlacklisted()
     {
@@ -648,6 +656,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var response = await getCorrespondenceOverviewResponse.Content.ReadFromJsonAsync<CorrespondenceOverviewExt>(_responseSerializerOptions);
         Assert.Equal(CorrespondenceStatusExt.Initialized, response.Status);
     }
+
     [Fact]
     public async Task GetCorrespondenceOverview_WhenNotSenderOrRecipient_Returns404()
     {
@@ -666,6 +675,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Equal(HttpStatusCode.NotFound, invalidRecipientResponse.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, invalidSenderResponse.StatusCode);
     }
+
     [Fact]
     public async Task GetCorrespondenceOverview_AsReceiver_WhenNotPublishedReturns404()
     {
@@ -680,6 +690,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceOverviewResponse.StatusCode);
     }
+
     [Fact]
     public async Task GetCorrespondenceOverview_AsReceiver_AddsFetchedStatusToHistory()
     {
@@ -701,6 +712,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Equal(actual.StatusHistory.Where(s => s.Status == CorrespondenceStatusExt.Fetched).Count(), expectedFetchedStatuses);
         Assert.Contains(actual.StatusHistory, item => item.Status == CorrespondenceStatusExt.Published);
     }
+
     [Fact]
     public async Task GetCorrespondenceOverview_AsSender_KeepsStatusAsPublished()
     {
@@ -719,6 +731,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.DoesNotContain(detailsResponse.StatusHistory, item => item.Status == CorrespondenceStatusExt.Fetched); // Fetched is not added to the list
         Assert.Equal(response.Status, CorrespondenceStatusExt.Published);
     }
+
     [Fact]
     public async Task GetCorrespondenceDetails()
     {
@@ -735,6 +748,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var response = await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
         Assert.Equal(response.Status, CorrespondenceStatusExt.Initialized);
     }
+
     [Fact]
     public async Task GetCorrespondenceDetails_WhenNotSenderOrRecipient_Returns404()
     {
@@ -753,6 +767,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Equal(HttpStatusCode.NotFound, invalidRecipientResponse.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, invalidSenderResponse.StatusCode);
     }
+
     [Fact]
     public async Task GetCorrespondenceDetails_AsReceiver_WhenNotPublishedReturns404()
     {
@@ -767,6 +782,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceDetailsResponse.StatusCode);
     }
+
     [Fact]
     public async Task GetCorrespondenceDetails_AsReceiver_AddsFetchedStatusToHistory()
     {
@@ -787,6 +803,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Contains(response.StatusHistory, item => item.Status == CorrespondenceStatusExt.Published);
         Assert.Equal(response.Status, CorrespondenceStatusExt.Published);
     }
+
     [Fact]
     public async Task GetCorrespondenceDetails_AsSender_KeepsStatusAsPublished()
     {
@@ -804,6 +821,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.DoesNotContain(response.StatusHistory, item => item.Status == CorrespondenceStatusExt.Fetched);
         Assert.Equal(response.Status, CorrespondenceStatusExt.Published);
     }
+
     [Fact]
     public async Task MarkActions_CorrespondenceNotExists_ReturnNotFound()
     {
@@ -871,6 +889,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         Assert.Equal(uploadedAttachment.AttachmentId.ToString(), response?.AttachmentIds?.FirstOrDefault().ToString());
     }
+
     [Fact]
     public async Task DownloadCorrespondenceAttachment_AsRecipient_Succeeds()
     {
@@ -895,6 +914,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Equal(HttpStatusCode.OK, downloadResponse.StatusCode);
         Assert.NotNull(data);
     }
+
     [Fact]
     public async Task DownloadCorrespondenceAttachment_WhenNotARecipient_Returns404()
     {
@@ -920,6 +940,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
     }
+
     [Fact]
     public async Task DownloadCorrespondenceAttachment_WhenCorrespondenceUnavailable_Returns404() // TODO: Fix initializeCorrespondence should check attachment is uploaded before 
     {
@@ -946,6 +967,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
     }
+
     [Fact]
     public async Task DownloadCorrespondenceAttachment_WhenCorrespondenceHasNoAttachment_Returns404()
     {
@@ -984,6 +1006,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse.CorrespondenceIds.FirstOrDefault()}", _responseSerializerOptions);
         Assert.Equal(overview?.Status, CorrespondenceStatusExt.PurgedByAltinn);
     }
+
     [Fact]
     public async Task Delete_Initialized_Correspondences_As_Receiver_Fails()
     {
@@ -999,6 +1022,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+
     [Fact]
     public async Task Delete_Published_Correspondence_AsRecipient_Gives_OK()
     {
@@ -1032,6 +1056,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
+
     [Fact]
     public async Task Delete_Correspondence_Also_deletes_attachment()
     {
@@ -1110,6 +1135,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         initializeCorrespondenceResponse4.EnsureSuccessStatusCode();
         Assert.NotNull(response4);
     }
+
     [Fact]
     public async Task CorrespondenceWithCustomNotification_Gives_Ok()
     {
@@ -1125,6 +1151,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         initializeCorrespondenceResponse2.EnsureSuccessStatusCode();
         Assert.NotNull(response2);
     }
+
     [Fact]
     public async Task CorrespondenceWithPrefferedNotification_Gives_Ok()
     {
@@ -1140,6 +1167,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         initializeCorrespondenceResponse2.EnsureSuccessStatusCode();
         Assert.NotNull(response2);
     }
+
     [Fact]
     public async Task CorrespondenceWithEmailNotificationAndSmsReminder_Gives_Ok()
     {
@@ -1235,6 +1263,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var uploadResponse = await client.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", data);
         return uploadResponse;
     }
+    
     private async Task<AttachmentOverviewExt?> InitializeAttachment()
     {
         var attachment = InitializeAttachmentFactory.BasicAttachment();
@@ -1244,6 +1273,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var overview = await (await UploadAttachment(attachmentId)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
         return overview;
     }
+
     private MultipartFormDataContent CorrespondenceToFormData(BaseCorrespondenceExt correspondence)
     {
         var formData = new MultipartFormDataContent(){
