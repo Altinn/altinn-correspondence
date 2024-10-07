@@ -350,7 +350,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </summary>
         [HttpGet]
         [Route("{correspondenceId}/notification/check")]
-        [Authorize(Policy = AuthorizationConstants.NotificationCheck)]
+        //[Authorize(Policy = AuthorizationConstants.NotificationCheck)]
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<ActionResult> CheckNotification(
             Guid correspondenceId,
