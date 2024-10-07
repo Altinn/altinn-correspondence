@@ -37,17 +37,16 @@ public static class Errors
     public static Error AllowSystemDeletePriorDueDate = new Error(29, "AllowSystemDelete cannot be prior to DueDateTime", HttpStatusCode.BadRequest);
     public static Error CouldNotFindOrgNo = new Error(30, "Could not identify orgnumber from user", HttpStatusCode.Unauthorized);
     public static Error CantPurgeCorrespondenceSender = new Error(31, "Cannot delete correspondence that has been published", HttpStatusCode.BadRequest);
-    public static Error CantPurgeCorrespondenceRecipient = new Error(32, "Cannot delete correspondence that has not been delivered", HttpStatusCode.BadRequest);
-    public static Error CantUploadToNonInitializedCorrespondence = new Error(33, "Cannot upload attachment to a correspondence that is not initialized", HttpStatusCode.BadRequest);
-    public static Error CorrespondenceFailedDuringUpload = new Error(34, "Correspondence status failed during uploading of attachment", HttpStatusCode.BadRequest);
-    public static Error LatestStatusIsNull = new Error(35, "Could not retrieve latest status for correspondence", HttpStatusCode.BadRequest);
-    public static Error InvalidSender = new Error(36, "Creator of correspondence must be the sender", HttpStatusCode.BadRequest);
-    public static Error CorrespondenceDoesNotHaveNotifications = new Error(37, "The Correspondence does not have any connected notifications", HttpStatusCode.BadRequest);
-    public static Error NotificationTemplateNotFound = new Error(38, "The requested notification template with the given language was not found", HttpStatusCode.NotFound);
-    public static Error MissingEmailContent = new Error(39, "Email body and subject must be provided when sending email notifications", HttpStatusCode.BadRequest);
-    public static Error MissingEmailReminderNotificationContent = new Error(40, "Reminder email body and subject must be provided when sending reminder email notifications", HttpStatusCode.BadRequest);
-    public static Error MissingSmsContent = new Error(41, "SMS body must be provided when sending SMS notifications", HttpStatusCode.BadRequest);
-    public static Error MissingSmsReminderNotificationContent = new Error(42, "Reminder SMS body must be provided when sending reminder SMS notifications", HttpStatusCode.BadRequest);
-    public static Error MissingPrefferedNotificationContent = new Error(43, "Email body, subject and SMS body must be provided when sending preferred notifications", HttpStatusCode.BadRequest);
-    public static Error MissingPrefferedReminderNotificationContent = new Error(44, $"Reminder email body, subject and SMS body must be provided when sending reminder preferred notifications", HttpStatusCode.BadRequest);
-}
+    public static Error CantUploadToNonInitializedCorrespondence = new Error(32, "Cannot upload attachment to a correspondence that is not initialized", HttpStatusCode.BadRequest);
+    public static Error CorrespondenceFailedDuringUpload = new Error(33, "Correspondence status failed during uploading of attachment", HttpStatusCode.BadRequest);
+    public static Error LatestStatusIsNull = new Error(34, "Could not retrieve latest status for correspondence", HttpStatusCode.BadRequest);
+    public static Error InvalidSender = new Error(35, "Creator of correspondence must be the sender", HttpStatusCode.BadRequest);
+    public static Error CorrespondenceDoesNotHaveNotifications = new Error(36, "The Correspondence does not have any connected notifications", HttpStatusCode.BadRequest);
+    public static Error NotificationTemplateNotFound = new Error(37, "The requested notification template with the given language was not found", HttpStatusCode.NotFound);
+    public static Error MissingEmailContent = new Error(38, "Email body and subject must be provided when sending email notifications", HttpStatusCode.BadRequest);
+    public static Error MissingEmailReminderNotificationContent = new Error(39, "Reminder email body and subject must be provided when sending reminder email notifications", HttpStatusCode.BadRequest);
+    public static Error MissingSmsContent = new Error(40, "SMS body must be provided when sending SMS notifications", HttpStatusCode.BadRequest);
+    public static Error MissingSmsReminderNotificationContent = new Error(41, "Reminder SMS body must be provided when sending reminder SMS notifications", HttpStatusCode.BadRequest);
+    public static Error MissingPrefferedNotificationContent = new Error(42, "Email body, subject and SMS body must be provided when sending preferred notifications", HttpStatusCode.BadRequest);
+    public static Error MissingPrefferedReminderNotificationContent = new Error(43, $"Reminder email body, subject and SMS body must be provided when sending reminder preferred notifications", HttpStatusCode.BadRequest);
+    }

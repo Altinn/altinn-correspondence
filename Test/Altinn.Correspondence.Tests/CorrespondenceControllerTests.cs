@@ -8,6 +8,11 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Data;
+using Slack.Webhooks;
+using Moq;
+using Altinn.Correspondence.Application.CancelNotification;
+using Microsoft.Extensions.Logging;
+using Altinn.Correspondence.Core.Repositories;
 
 namespace Altinn.Correspondence.Tests;
 
@@ -891,7 +896,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var response = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.CorrespondenceIds.FirstOrDefault()}/purge");
 
         // Assert
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
     [Fact]
     public async Task Delete_Published_Correspondence_AsRecipient_Gives_OK()
@@ -1084,6 +1089,37 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         payload = InitializeCorrespondenceFactory.BasicCorrespondenceWithPrefferedDataWithMissingReminderData();
         var initializeCorrespondenceResponse4 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse4.StatusCode);
+    }
+
+    [Fact]
+    public async Task CancelNotificationHandler_SendsSlackNotification_WhenCancellationJobFailsWithMaximumRetries()
+    {
+        // Arrange
+        var correspondence = InitializeCorrespondenceFactory.CorrespondenceEntityWithNotifications();
+        var loggerMock = new Mock<ILogger<CancelNotificationHandler>>();
+        var altinnNotificationServiceMock = new Mock<IAltinnNotificationService>();
+        var slackClientMock = new Mock<ISlackClient>();
+
+        var cancelNotificationHandler = new CancelNotificationHandler(loggerMock.Object, altinnNotificationServiceMock.Object, slackClientMock.Object);
+        var notificationEntities = correspondence.Notifications;
+        notificationEntities.ForEach(notification =>
+        {
+            notification.RequestedSendTime = correspondence.VisibleFrom.AddMinutes(1); // Set requested send time to future
+            notification.NotificationOrderId = null; // Invalidate notification order id
+        });
+
+        // Act
+        try
+        {
+            await cancelNotificationHandler.CancelNotification(notificationEntities, retryAttempts: 10, default);
+        }
+        catch
+        {
+            Console.WriteLine("Exception thrown");
+        }
+
+        // Assert
+        slackClientMock.Verify(client => client.Post(It.IsAny<SlackMessage>()), Times.Once);
     }
 
     private async Task<HttpResponseMessage> UploadAttachment(string? attachmentId, ByteArrayContent? originalAttachmentData = null)
