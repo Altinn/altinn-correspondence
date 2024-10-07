@@ -1192,6 +1192,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             .WithNotificationTemplate(NotificationTemplateExt.CustomMessage)
             .WithNotificationChannel(NotificationChannelExt.Email)
             .WithEmailContent()
+            .WithEmailReminder()
             .Build();
         var initializeCorrespondenceResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", emailPayload, _responseSerializerOptions);
         var response1 = await initializeCorrespondenceResponse1.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
@@ -1203,6 +1204,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             .WithNotificationTemplate(NotificationTemplateExt.CustomMessage)
             .WithNotificationChannel(NotificationChannelExt.Sms)
             .WithSmsContent()
+            .WithSmsReminder()
             .Build();
         var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", smsPayload, _responseSerializerOptions);
         var response2 = await initializeCorrespondenceResponse2.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
@@ -1219,6 +1221,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             .WithNotificationChannel(NotificationChannelExt.EmailPreferred)
             .WithEmailContent()
             .WithSmsContent()
+            .WithEmailReminder()
+            .WithSmsReminder()
             .Build();
         var initializeCorrespondenceResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", preferredEmailCustomPayload, _responseSerializerOptions);
         var response1 = await initializeCorrespondenceResponse1.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
