@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
@@ -9,17 +8,6 @@ using Microsoft.AspNetCore.Http;
 namespace Altinn.Correspondence.Tests.Factories;
 public static class AttachmentFactory
 {
-    public static InitializeAttachmentExt GetBasicAttachment() => new InitializeAttachmentExt()
-    {
-        ResourceId = "1",
-        DataType = "html",
-        Name = "Test file logical name",
-        RestrictionName = "Test file restriction name",
-        Sender = "0192:986252932",
-        SendersReference = "1234",
-        FileName = "test-file",
-        IsEncrypted = false
-    };
     public static InitializeCorrespondenceAttachmentExt GetAttachmentMetaData(string fileName, AttachmentOverviewExt existingAttachmentData = null)
     {
         var attachmentData = new InitializeCorrespondenceAttachmentExt()

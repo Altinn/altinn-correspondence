@@ -160,7 +160,7 @@ public class MigrationControllerTests : IClassFixture<MigrateWebApplicationFacto
     }
     private async Task<AttachmentOverviewExt?> InitializeAttachment()
     {
-        var attachment = AttachmentFactory.GetBasicAttachment();
+        var attachment = new AttachmentBuilder().CreateAttachment().Build();
         var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
         initializeResponse.EnsureSuccessStatusCode();
         var attachmentId = await initializeResponse.Content.ReadAsStringAsync();

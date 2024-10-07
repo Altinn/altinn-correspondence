@@ -260,7 +260,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     public async Task UploadAtttachmentData_AsRecipient_ReturnsForbidden()
     {
         // Arrange
-        var attachment = AttachmentFactory.GetBasicAttachment();
+        var attachment = new AttachmentBuilder().CreateAttachment().Build();
         
         // Act
         var uploadResponse = await _recipientClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
