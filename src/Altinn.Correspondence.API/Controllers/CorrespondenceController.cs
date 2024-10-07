@@ -21,6 +21,7 @@ namespace Altinn.Correspondence.API.Controllers
 {
     [ApiController]
     [Route("correspondence/api/v1/correspondence")]
+    [Authorize]
     public class CorrespondenceController : Controller
     {
         private readonly ILogger<CorrespondenceController> _logger;
@@ -349,7 +350,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </summary>
         [HttpGet]
         [Route("{correspondenceId}/notification/check")]
-        //[Authorize(Policy = AuthorizationConstants.NotificationCheck)]
+        [Authorize(Policy = AuthorizationConstants.NotificationCheck)]
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<ActionResult> CheckNotification(
             Guid correspondenceId,
