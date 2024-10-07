@@ -23,7 +23,6 @@ public class AltinnNotificationService : IAltinnNotificationService
     public async Task<Guid?> CreateNotification(NotificationOrderRequest notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Creating notification in Altinn Notification");
-        _logger.LogInformation(JsonConvert.SerializeObject(notification));
         var response = await _httpClient.PostAsJsonAsync("notifications/api/v1/orders", notification, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
