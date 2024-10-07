@@ -24,7 +24,7 @@ public class DialogportenTests
             services.AddSingleton(mockDialogportenService.Object);
         });
 
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var testClient = testFactory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
 
         // Act
