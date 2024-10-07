@@ -9,13 +9,13 @@ using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests;
 
-public class MigrationControllerTests : IClassFixture<MigrateWebApplicationFactory>
+public class MigrationControllerTests : IClassFixture<MaskinportenWebApplicationFactory>
 {
-    private readonly MigrateWebApplicationFactory _factory;
+    private readonly MaskinportenWebApplicationFactory _factory;
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _responseSerializerOptions;
 
-    public MigrationControllerTests(MigrateWebApplicationFactory factory)
+    public MigrationControllerTests(MaskinportenWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClientWithAddedClaims(("scope", "altinn:correspondence.migrate"));
@@ -54,7 +54,7 @@ public class MigrationControllerTests : IClassFixture<MigrateWebApplicationFacto
         ]
         };
 
-        migrateCorrespondenceExt.NotificationHistory = 
+        migrateCorrespondenceExt.NotificationHistory =
         [
             new MigrateCorrespondenceNotificationExt()
             {
@@ -118,7 +118,7 @@ public class MigrationControllerTests : IClassFixture<MigrateWebApplicationFacto
         string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
     }
-    
+
     [Fact]
     public async Task InitializeMigrateCorrespondence_NotReadNoNotifications()
     {

@@ -240,7 +240,6 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         },
             ResourceId = correspondence.ResourceId,
             RequestedSendTime = correspondence.VisibleFrom.UtcDateTime.AddMinutes(5),
-            ConditionEndpoint = CreateConditonEndpoint(correspondence.Id.ToString()),
             SendersReference = correspondence.SendersReference,
             NotificationChannel = notification.NotificationChannel,
             EmailTemplate = new EmailTemplate
@@ -305,7 +304,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
     }
     private Uri CreateConditonEndpoint(string correspondenceId)
     {
-        return new Uri($"https://altinn-corr-test-app.bravetree-6fa93aee.norwayeast.azurecontainerapps.io/correspondence/api/v1/correspondence/{correspondenceId}/notification/check");
+        return new Uri($"{_altinnOptions.Value.PlatformGatewayUrl}correspondence/api/v1/correspondence/{correspondenceId}/notification/check");
     }
     private string CreateMessageFromToken(string message, string? token = "")
     {
