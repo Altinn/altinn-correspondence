@@ -21,7 +21,6 @@ namespace Altinn.Correspondence.API.Controllers
 {
     [ApiController]
     [Route("correspondence/api/v1/correspondence")]
-    [Authorize]
     public class CorrespondenceController : Controller
     {
         private readonly ILogger<CorrespondenceController> _logger;
