@@ -2,8 +2,6 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Tests.Factories;
-using Humanizer;
 using Microsoft.AspNetCore.Http;
 namespace Altinn.Correspondence.Tests.Factories;
 public static class AttachmentFactory
