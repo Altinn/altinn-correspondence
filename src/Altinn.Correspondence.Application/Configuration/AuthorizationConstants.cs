@@ -11,4 +11,5 @@ public static class AuthorizationConstants
     public const string RecipientScope = "altinn:correspondence.read";
     public const string MigrateScope = "altinn:correspondence.migrate";
     public const string NotificationCheckScope = "altinn:system/notifications.condition.check";
+    public const string MaskinportenScheme = "Maskinporten";
 }
