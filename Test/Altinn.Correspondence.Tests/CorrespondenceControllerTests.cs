@@ -1374,29 +1374,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         slackClientMock.Verify(client => client.Post(It.IsAny<SlackMessage>()), Times.Once);
     }
 
-    private async Task<HttpResponseMessage> UploadAttachment(string? attachmentId, ByteArrayContent? originalAttachmentData = null, HttpClient? client = null)
-    {
-        if (attachmentId == null)
-        {
-            Assert.Fail("AttachmentId is null");
-        }
-        var data = originalAttachmentData ?? new ByteArrayContent([1, 2, 3, 4]);
-
-        client ??= _senderClient;
-        var uploadResponse = await client.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", data);
-        return uploadResponse;
-    }
-
-    private async Task<AttachmentOverviewExt?> InitializeAttachment()
-    {
-        var attachment = InitializeAttachmentFactory.BasicAttachment();
-        var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
-        initializeResponse.EnsureSuccessStatusCode();
-        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
-        var overview = await (await UploadAttachment(attachmentId)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
-        return overview;
-    }
-
     private MultipartFormDataContent CorrespondenceToFormData(BaseCorrespondenceExt correspondence)
     {
         var formData = new MultipartFormDataContent(){
