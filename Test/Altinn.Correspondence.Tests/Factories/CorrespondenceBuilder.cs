@@ -1,5 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Core.Models.Entities;
 
 namespace Altinn.Correspondence.Tests.Factories
 {
@@ -72,31 +73,6 @@ namespace Altinn.Correspondence.Tests.Factories
 
             return this;
         }
-        public CorrespondenceBuilder WithNotifications()
-        {
-            _correspondence.Correspondence.Notification = new InitializeCorrespondenceNotificationExt()
-            {
-                NotificationTemplate = NotificationTemplateExt.GenericAltinnMessage,
-                NotificationChannel = NotificationChannelExt.Email,
-                SendersReference = "0192:986252932",
-                RequestedSendTime = DateTime.UtcNow.AddDays(1),
-                SendReminder = true,
-            };
-            _correspondence.Correspondence.ReplyOptions = new List<CorrespondenceReplyOptionExt>(){
-                new CorrespondenceReplyOptionExt()
-                {
-                    LinkURL = "www.test.no",
-                    LinkText = "test"
-                },
-                new CorrespondenceReplyOptionExt()
-                {
-                    LinkURL = "test.no",
-                    LinkText = "test"
-                }
-            };
-
-            return this;
-        }
         public CorrespondenceBuilder WithExternalReference()
         {
             _correspondence.Correspondence.ExternalReferences = new List<ExternalReferenceExt>(){
@@ -136,7 +112,6 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Recipients = recipients;
             return this;
         }
-
         public CorrespondenceBuilder WithMessageBody(string? messageBody)
         {
             _correspondence.Correspondence.Content!.MessageBody = messageBody;
@@ -156,6 +131,76 @@ namespace Altinn.Correspondence.Tests.Factories
         {
             _correspondence.Correspondence.AllowSystemDeleteAfter = dueDateTime;
             return this;
+        }
+        public CorrespondenceBuilder WithNotificationTemplate(NotificationTemplateExt notificationTemplate)
+        {
+            _correspondence.Correspondence.Notification ??= new InitializeCorrespondenceNotificationExt()
+            {
+                NotificationTemplate = notificationTemplate,
+                SendReminder = true
+            };
+            return this;
+        }
+        public CorrespondenceBuilder WithNotificationChannel(NotificationChannelExt notificationChannel)
+        {
+            _correspondence.Correspondence.Notification!.NotificationChannel = notificationChannel;
+            return this;
+        }
+        public CorrespondenceBuilder WithReminderNotificationChannel(NotificationChannelExt notificationChannel)
+        {
+            _correspondence.Correspondence.Notification!.ReminderNotificationChannel= notificationChannel;
+            return this;
+        }
+        public CorrespondenceBuilder WithEmailContent()
+        {
+            _correspondence.Correspondence.Notification!.EmailBody = "test";
+            _correspondence.Correspondence.Notification!.EmailSubject = "test";
+            return this;
+        }
+        public CorrespondenceBuilder WithEmailReminder()
+        {
+            _correspondence.Correspondence.Notification!.ReminderEmailBody = "test";
+            _correspondence.Correspondence.Notification!.ReminderEmailSubject = "test";
+            return this;
+        }
+        public CorrespondenceBuilder WithSmsContent()
+        {
+            _correspondence.Correspondence.Notification!.SmsBody= "test";
+            return this;
+        }
+        public CorrespondenceBuilder WithSmsReminder()
+        {
+            _correspondence.Correspondence.Notification!.ReminderSmsBody = "test";
+            return this;
+        }
+        public CorrespondenceBuilder WithoutSendReminder()
+        {
+            _correspondence.Correspondence.Notification!.SendReminder = false;
+            return this;
+        }
+        public static CorrespondenceEntity CorrespondenceEntityWithNotifications()
+        {
+            return new CorrespondenceEntity()
+            {
+                ResourceId = "1",
+                Sender = "0192:991825827",
+                Recipient = "0192:991825827",
+                SendersReference = "1",
+                VisibleFrom = DateTimeOffset.UtcNow,
+                Statuses = new List<CorrespondenceStatusEntity>(),
+                Created = DateTimeOffset.UtcNow,
+                Notifications = new List<CorrespondenceNotificationEntity>()
+                {
+                    new CorrespondenceNotificationEntity()
+                    {
+                        Created = DateTimeOffset.UtcNow,
+                        NotificationOrderId = Guid.NewGuid(),
+                        RequestedSendTime = DateTimeOffset.UtcNow.AddDays(1),
+                        NotificationTemplate = new Core.Models.Enums.NotificationTemplate(),
+                        NotificationChannel = new Core.Models.Enums.NotificationChannel(),
+                    }
+                }
+            };
         }
     }
 }
