@@ -118,9 +118,8 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     {
         return right switch
         {
-            ResourceAccessLevel.See => "see",
-            ResourceAccessLevel.Open => "open",
-            ResourceAccessLevel.Send => "send",
+            ResourceAccessLevel.Read => "read",
+            ResourceAccessLevel.Write => "write",
             _ => throw new NotImplementedException()
         };
     }
