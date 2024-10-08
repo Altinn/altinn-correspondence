@@ -145,16 +145,5 @@ namespace Altinn.Correspondence.Application.Helpers
             await _correspondenceStatusRepository.AddCorrespondenceStatuses(list, cancellationToken);
             return;
         }
-        public async Task<Error?> IsCorrespondenceNotInitialized(Guid attachmentId)
-        {
-            var correspondences = await _correspondenceRepository.GetCorrespondencesByAttachmentId(attachmentId, true);
-            foreach (var correspondence in correspondences ?? [])
-            {
-                var latestStatus = correspondence.GetLatestStatus();
-                if (latestStatus?.Status == CorrespondenceStatus.Initialized) continue;
-                return Errors.CantUploadToNonInitializedCorrespondence;
-            }
-            return null;
-        }
     }
 }

@@ -62,7 +62,7 @@ namespace Altinn.Correspondence.Application.CancelNotification
                     throw new Exception(error);
                 } else
                 {
-                    await _dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, "Varslingsordre kansellert", cancellationToken: cancellationToken);
+                    await _dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, "Varslingsordre kansellert", cancellationToken: cancellationToken);
                 }
             }
         }

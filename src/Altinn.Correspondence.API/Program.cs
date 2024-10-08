@@ -1,4 +1,3 @@
-using Altinn.ApiClients.Maskinporten.Config;
 using Altinn.Common.PEP.Authorization;
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Application;
@@ -9,16 +8,12 @@ using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Persistence;
 using Azure.Identity;
 using Hangfire;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Web;
-using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Net.Http.Headers;
 using Npgsql;
 using System.Text.Json.Serialization;
 
@@ -40,11 +35,11 @@ static void BuildAndRun(string[] args)
         app.UseSwagger();
         app.UseSwaggerUI();
     }
-    //app.UseMiddleware<SecurityHeadersMiddleware>();
     app.UseCors(AuthorizationConstants.ArbeidsflateCors);
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
+    app.UseMiddleware<SecurityHeadersMiddleware>();
 
     if (app.Environment.IsDevelopment())
     {
@@ -107,13 +102,13 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
             options.Events = new JwtBearerEvents()
             {
                 //OnAuthenticationFailed = context => JWTBearerEventsHelper.OnAuthenticationFailed(context),
-                OnChallenge = c =>
+                OnChallenge = context =>
                 {
-                    if (c.AuthenticateFailure != null)
+                    if (context.AuthenticateFailure != null)
                     {
-                        c.HandleResponse();
+                        context.HandleResponse();
                     }
-                    return Task.CompletedTask;
+                    return context.Response.CompleteAsync();
                 }
             };
         })
@@ -161,9 +156,9 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
             policy.RequireScopesUnlessDialogporten(config, AuthorizationConstants.RecipientScope).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme));
         options.AddPolicy(AuthorizationConstants.SenderOrRecipient, policy =>
             policy.RequireScopesUnlessDialogporten(config, AuthorizationConstants.SenderScope, AuthorizationConstants.RecipientScope).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme));
-        options.AddPolicy(AuthorizationConstants.Dialogporten, policy =>
+        options.AddPolicy(AuthorizationConstants.DialogportenPolicy, policy =>
         {
-            policy.AddAuthenticationSchemes(AuthorizationConstants.Dialogporten).RequireAuthenticatedUser();
+            policy.AddAuthenticationSchemes(AuthorizationConstants.DialogportenScheme).RequireAuthenticatedUser();
         });
         options.AddPolicy(AuthorizationConstants.Migrate, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MigrateScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
         options.AddPolicy(AuthorizationConstants.NotificationCheck, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.NotificationCheckScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));

@@ -1,5 +1,4 @@
-﻿using Altinn.Authorization.ABAC.Xacml;
-using Altinn.Authorization.ABAC.Xacml.JsonProfile;
+﻿using Altinn.Authorization.ABAC.Xacml.JsonProfile;
 using Altinn.Common.PEP.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
@@ -12,7 +11,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Net.Http.Json;
 using System.Security.Claims;
-using System.Text.Json;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Authorization;
 
@@ -102,7 +100,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         {
             request.Action.Add(XacmlMappers.CreateActionCategory(actionType));
         }
-        var resourceCategory = XacmlMappers.CreateResourceCategory(resourceId, user);
+        var resourceCategory = XacmlMappers.CreateResourceCategory(resourceId);
         request.Resource.Add(resourceCategory);
 
         XacmlJsonRequestRoot jsonRequest = new() { Request = request };
@@ -124,7 +122,6 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
                 return false;
             }
         }
-
         return true;
     }
 

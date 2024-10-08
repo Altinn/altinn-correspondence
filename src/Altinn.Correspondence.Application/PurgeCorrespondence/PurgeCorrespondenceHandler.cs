@@ -24,7 +24,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly UserClaimsHelper _userClaimsHelper;
 
-    public PurgeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus, IDialogportenService dialogportenService, UserClaimsHelper userClaimsHelper, IAltinnNotificationService altinnNotificationService)
+    public PurgeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus, IDialogportenService dialogportenService, UserClaimsHelper userClaimsHelper, IAltinnNotificationService altinnNotificationService, IBackgroundJobClient backgroundJobClient)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _altinnNotificationService = altinnNotificationService;

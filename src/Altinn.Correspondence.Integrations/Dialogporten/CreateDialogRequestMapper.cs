@@ -110,6 +110,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
 
         private static List<Attachment> GetAttachmentsForCorrespondence(CorrespondenceEntity correspondence)
         {
+            return new List<Attachment>();
             return correspondence.Content?.Attachments.Select(attachment => new Attachment
             {
                 DisplayName = new List<DisplayName>

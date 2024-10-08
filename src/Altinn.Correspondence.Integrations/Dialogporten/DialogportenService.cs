@@ -20,7 +20,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
 
-        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, "https://altinn-corr-test-app.bravetree-6fa93aee.norwayeast.azurecontainerapps.io");// altinnOptions.Value.PlatformGatewayUrl);
+        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, "https://localhost:7241");// altinnOptions.Value.PlatformGatewayUrl);
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {

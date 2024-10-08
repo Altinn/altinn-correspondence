@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Tests.Helpers;
+using Altinn.Correspondence.Core.Services;
 
 namespace Altinn.Correspondence.Tests;
 
@@ -1331,8 +1332,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var loggerMock = new Mock<ILogger<CancelNotificationHandler>>();
         var altinnNotificationServiceMock = new Mock<IAltinnNotificationService>();
         var slackClientMock = new Mock<ISlackClient>();
+        var dialogportenServicemock = new Mock<IDialogportenService>();
 
-        var cancelNotificationHandler = new CancelNotificationHandler(loggerMock.Object, altinnNotificationServiceMock.Object, slackClientMock.Object);
+        var cancelNotificationHandler = new CancelNotificationHandler(loggerMock.Object, altinnNotificationServiceMock.Object, dialogportenServicemock.Object, slackClientMock.Object);
         var notificationEntities = correspondence.Notifications;
         notificationEntities.ForEach(notification =>
         {
