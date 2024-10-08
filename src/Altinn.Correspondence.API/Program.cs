@@ -1,3 +1,4 @@
+using Altinn.ApiClients.Maskinporten.Config;
 using Altinn.Common.PEP.Authorization;
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Application;
@@ -8,12 +9,16 @@ using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Persistence;
 using Azure.Identity;
 using Hangfire;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Web;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Net.Http.Headers;
 using Npgsql;
 using System.Text.Json.Serialization;
 
@@ -35,10 +40,11 @@ static void BuildAndRun(string[] args)
         app.UseSwagger();
         app.UseSwaggerUI();
     }
+    //app.UseMiddleware<SecurityHeadersMiddleware>();
     app.UseCors(AuthorizationConstants.ArbeidsflateCors);
+    app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
-    app.UseMiddleware<SecurityHeadersMiddleware>();
 
     if (app.Environment.IsDevelopment())
     {
@@ -65,6 +71,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.AddHostedService<EdDsaSecurityKeysCacheService>();
     services.Configure<AttachmentStorageOptions>(config.GetSection(key: nameof(AttachmentStorageOptions)));
     services.Configure<AltinnOptions>(config.GetSection(key: nameof(AltinnOptions)));
+    services.Configure<DialogportenSettings>(config.GetSection(key: nameof(DialogportenSettings)));
 
     services.AddControllers().AddJsonOptions(options =>
     {
@@ -99,7 +106,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
             };
             options.Events = new JwtBearerEvents()
             {
-                OnAuthenticationFailed = context => JWTBearerEventsHelper.OnAuthenticationFailed(context),
+                //OnAuthenticationFailed = context => JWTBearerEventsHelper.OnAuthenticationFailed(context),
                 OnChallenge = c =>
                 {
                     if (c.AuthenticateFailure != null)
@@ -131,7 +138,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
                 ClockSkew = TimeSpan.Zero
             };
         })
-        .AddJwtBearer(AuthorizationConstants.Dialogporten, options =>
+        .AddJwtBearer(AuthorizationConstants.DialogportenScheme, options =>
         {
             options.SaveToken = true;
             options.MetadataAddress = "https://platform.tt02.altinn.no/dialogporten/api/v1/.well-known/oauth-authorization-server";
@@ -150,8 +157,10 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.AddAuthorization(options =>
     {
         options.AddPolicy(AuthorizationConstants.Sender, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.SenderScope)).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
-        options.AddPolicy(AuthorizationConstants.Recipient, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.RecipientScope)).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
-        options.AddPolicy(AuthorizationConstants.SenderOrRecipient, policy => policy.AddRequirements(new ScopeAccessRequirement([AuthorizationConstants.SenderScope, AuthorizationConstants.RecipientScope])).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
+        options.AddPolicy(AuthorizationConstants.Recipient, policy =>
+            policy.RequireScopesUnlessDialogporten(config, AuthorizationConstants.RecipientScope).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme));
+        options.AddPolicy(AuthorizationConstants.SenderOrRecipient, policy =>
+            policy.RequireScopesUnlessDialogporten(config, AuthorizationConstants.SenderScope, AuthorizationConstants.RecipientScope).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme));
         options.AddPolicy(AuthorizationConstants.Dialogporten, policy =>
         {
             policy.AddAuthenticationSchemes(AuthorizationConstants.Dialogporten).RequireAuthenticatedUser();
