@@ -358,7 +358,7 @@
                                             "$ref": "#/components/schemas/InitializeCorrespondenceNotificationExt"
                                         }
                                     },
-                                    "Correspondence.IsReservable": {
+                                    "Correspondence.IgnoreReservation": {
                                         "type": "boolean"
                                     },
                                     "Recipients": {
@@ -432,7 +432,7 @@
                                 "Correspondence.Notifications": {
                                     "style": "form"
                                 },
-                                "Correspondence.IsReservable": {
+                                "Correspondence.IgnoreReservation": {
                                     "style": "form"
                                 },
                                 "Recipients": {
@@ -998,7 +998,7 @@
                         },
                         "nullable": true
                     },
-                    "isReservable": {
+                    "IgnoreReservation": {
                         "type": "boolean",
                         "nullable": true
                     }
@@ -1197,7 +1197,7 @@
                         },
                         "nullable": true
                     },
-                    "isReservable": {
+                    "IgnoreReservation": {
                         "type": "boolean",
                         "nullable": true
                     },
@@ -1386,7 +1386,7 @@
                         },
                         "nullable": true
                     },
-                    "isReservable": {
+                    "IgnoreReservation": {
                         "type": "boolean",
                         "nullable": true
                     },

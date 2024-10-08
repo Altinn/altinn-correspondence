@@ -92,7 +92,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
             ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
             ResourceId = correspondence.ResourceId,
             VisibleFrom = correspondence.VisibleFrom,
-            IsReservable = correspondence.IsReservable == null || correspondence.IsReservable.Value,
+            IgnoreReservation = correspondence.IgnoreReservation == null || correspondence.IgnoreReservation.Value,
             MarkedUnread = correspondence.MarkedUnread,
             AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
             DueDateTime = correspondence.DueDateTime,

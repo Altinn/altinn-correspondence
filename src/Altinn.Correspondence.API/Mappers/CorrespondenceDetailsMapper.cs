@@ -26,7 +26,7 @@ internal static class CorrespondenceDetailsMapper
             ExternalReferences = correspondenceDetails.ExternalReferences != null ? ExternalReferenceMapper.MapListToExternal(correspondenceDetails.ExternalReferences) : new List<ExternalReferenceExt>(),
             ResourceId = correspondenceDetails.ResourceId.ToString(),
             VisibleFrom = correspondenceDetails.VisibleFrom,
-            IsReservable = correspondenceDetails.IsReservable,
+            IgnoreReservation = correspondenceDetails.IgnoreReservation,
             MarkedUnread = correspondenceDetails.MarkedUnread,
             AllowSystemDeleteAfter = correspondenceDetails.AllowSystemDeleteAfter,
             DueDateTime = correspondenceDetails.DueDateTime,

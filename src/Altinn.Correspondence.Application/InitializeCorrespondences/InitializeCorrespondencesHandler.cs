@@ -155,7 +155,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 DueDateTime = request.Correspondence.DueDateTime,
                 PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
                 ReplyOptions = request.Correspondence.ReplyOptions,
-                IsReservable = request.Correspondence.IsReservable,
+                IgnoreReservation = request.Correspondence.IgnoreReservation,
                 Statuses = new List<CorrespondenceStatusEntity>(){
                     new CorrespondenceStatusEntity
                     {
@@ -242,7 +242,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         }
         var notificationOrder = new NotificationOrderRequest
         {
-            IgnoreReservation = !correspondence.IsReservable,
+            IgnoreReservation = !correspondence.IgnoreReservation,
             Recipients = new List<Recipient>{
             new Recipient{
                 OrganizationNumber = orgNr,
@@ -270,7 +270,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             notifications.Add(new NotificationOrderRequest
             {
-                IgnoreReservation = !correspondence.IsReservable,
+                IgnoreReservation = !correspondence.IgnoreReservation,
                 Recipients = new List<Recipient>{
             new Recipient{
                 OrganizationNumber = orgNr,
