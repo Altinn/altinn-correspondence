@@ -144,7 +144,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _senderClient, content);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
+            .WithExistingAttachments([attachmentId])
             .Build();
 
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
@@ -328,7 +328,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
+            .WithExistingAttachments([attachmentId])
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
@@ -345,7 +345,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
+            .WithExistingAttachments([attachmentId])
             .WithVisibleFrom(DateTime.UtcNow.AddDays(1))
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
@@ -367,7 +367,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
 
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
+            .WithExistingAttachments([attachmentId])
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();

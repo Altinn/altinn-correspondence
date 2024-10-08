@@ -1,9 +1,7 @@
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Core.Services.Enums;
 using Microsoft.Extensions.Hosting;
 using OneOf;
 
@@ -18,7 +16,6 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
     private readonly IStorageRepository _storageRepository = storageRepository;
     private readonly IHostEnvironment _hostEnvironment = hostEnvironment;
-    private readonly IEventBus _eventBus = eventBus;
 
     public async Task<OneOf<UploadAttachmentResponse, Error>> Process(UploadAttachmentRequest request, CancellationToken cancellationToken)
     {

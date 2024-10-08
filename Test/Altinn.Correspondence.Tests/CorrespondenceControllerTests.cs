@@ -41,9 +41,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task InitializeCorrespondence()
     {
         // Arrange
-        var correspondence = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
@@ -59,7 +57,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
+            .WithExistingAttachments([attachmentId])
             .Build();
 
         // Act
@@ -75,7 +73,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
+            .WithExistingAttachments([attachmentId])
             .WithRecipients(["0192:986252932", "0198:991234649"])
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
@@ -88,7 +86,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var correspondence = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(Guid.NewGuid().ToString())
+            .WithExistingAttachments([Guid.NewGuid().ToString()])
             .Build();
 
         // Act
@@ -105,7 +103,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
         var correspondence = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
+            .WithExistingAttachments([attachmentId])
             .Build();
 
         // Act
@@ -118,9 +116,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task InitializeCorrespondence_With_HTML_Or_Markdown_In_Title_fails()
     {
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
 
         payload.Correspondence.Content!.MessageTitle = "<h1>test</h1>";
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
@@ -134,9 +130,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task InitializeCorrespondence_With_HTML_In_Summary_Or_Body_fails()
     {
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
 
         payload.Correspondence.Content!.MessageSummary = "<h1>test</h1>";
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
@@ -216,9 +210,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task InitializeCorrespondence_As_Recipient_Is_Forbidden()
     {
         // Arrange
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
 
         // Act
         var initializeCorrespondenceResponse = await _recipientClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
@@ -436,9 +428,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task GetCorrespondences()
     {
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
@@ -449,9 +439,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task GetCorrespondences_WithInvalidRole_ReturnsBadRequest()
     {
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
@@ -471,12 +459,12 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
 
         var payloadResourceA = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
+            .WithExistingAttachments([attachmentId])
             .WithResourceId(resourceA)
             .Build();
         var payloadResourceB = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
+            .WithExistingAttachments([attachmentId])
             .WithResourceId(resourceB)
             .Build();
 
@@ -672,9 +660,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task GetCorrespondenceOverview()
     {
         // Arrange
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
 
@@ -689,9 +675,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task GetCorrespondenceOverview_WhenNotSenderOrRecipient_Returns404()
     {
         // Arrange
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
@@ -730,9 +714,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task GetCorrespondenceOverview_AsReceiver_AddsFetchedStatusToHistory()
     {
         // Arrange
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
 
@@ -754,9 +736,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task GetCorrespondenceOverview_AsSender_KeepsStatusAsPublished()
     {
         // Arrange
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
 
@@ -776,9 +756,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task GetCorrespondenceDetails()
     {
         // Arrange
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
@@ -794,9 +772,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task GetCorrespondenceDetails_WhenNotSenderOrRecipient_Returns404()
     {
         // Arrange
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
@@ -834,9 +810,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task GetCorrespondenceDetails_AsReceiver_AddsFetchedStatusToHistory()
     {
         // Arrange
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
@@ -857,9 +831,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task GetCorrespondenceDetails_AsSender_KeepsStatusAsPublished()
     {
         // Arrange
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
@@ -910,7 +882,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
+            .WithExistingAttachments([attachmentId])
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
@@ -938,7 +910,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
+            .WithExistingAttachments([attachmentId])
             .WithAttachments([])
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
@@ -954,7 +926,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
+            .WithExistingAttachments([attachmentId])
             .Build();
 
         // Act
@@ -975,7 +947,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
+            .WithExistingAttachments([attachmentId])
             .WithRecipients(["0192:999999999"]) // Change recipient to invalid org
             .Build();
 
@@ -995,7 +967,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
+            .WithExistingAttachments([attachmentId])
             .WithVisibleFrom(DateTimeOffset.Now.AddDays(1)) // Set visibleFrom in the future so that it is not published
             .Build();
 
@@ -1014,9 +986,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         // Arrange
         var attachmentId = Guid.NewGuid().ToString();
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
 
         // Act
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
@@ -1055,9 +1025,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task Delete_Published_Correspondence_SuccessForRecipient_FailsForSender()
     {
         // Arrange
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
 
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
@@ -1081,7 +1049,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
+            .WithExistingAttachments([attachmentId])
             .WithVisibleFrom(DateTimeOffset.Now.AddDays(1))
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
@@ -1109,12 +1077,12 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload1 = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
+            .WithExistingAttachments([attachmentId])
             .WithVisibleFrom(DateTimeOffset.Now.AddDays(1))
             .Build();
         var payload2 = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments(attachmentId)
+            .WithExistingAttachments([attachmentId])
             .WithVisibleFrom(DateTimeOffset.Now.AddDays(1))
             .Build();
 

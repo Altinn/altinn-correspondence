@@ -7,12 +7,10 @@ namespace Altinn.Correspondence.Tests.Factories
     public class AttachmentBuilder
     {
         private InitializeAttachmentExt _attachment;
-
         public InitializeAttachmentExt Build()
         {
             return _attachment;
         }
-
         public AttachmentBuilder CreateAttachment()
         {
             _attachment = new InitializeAttachmentExt()

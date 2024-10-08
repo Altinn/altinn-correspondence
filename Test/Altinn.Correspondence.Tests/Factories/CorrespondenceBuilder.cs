@@ -7,12 +7,10 @@ namespace Altinn.Correspondence.Tests.Factories
     public class CorrespondenceBuilder
     {
         private InitializeCorrespondencesExt _correspondence;
-
         public InitializeCorrespondencesExt Build()
         {
             return _correspondence;
         }
-
         public CorrespondenceBuilder CreateCorrespondence()
         {
             _correspondence = new InitializeCorrespondencesExt()
@@ -70,7 +68,6 @@ namespace Altinn.Correspondence.Tests.Factories
                     IsEncrypted = false,
                 }
             };
-
             return this;
         }
         public CorrespondenceBuilder WithExternalReference()
@@ -87,7 +84,6 @@ namespace Altinn.Correspondence.Tests.Factories
                     ReferenceType = ReferenceTypeExt.DialogportenProcessId
                 }
             };
-
             return this;
         }
         public CorrespondenceBuilder WithAttachments(List<InitializeCorrespondenceAttachmentExt> attachmentMetaData)
@@ -95,11 +91,9 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.Content!.Attachments = attachmentMetaData;
             return this;
         }
-        public CorrespondenceBuilder WithExistingAttachments(string attachmentId) // TODO: list
+        public CorrespondenceBuilder WithExistingAttachments(List<string> attachmentIds)
         {
-            _correspondence.ExistingAttachments = new List<Guid>(){
-                Guid.Parse(attachmentId)
-            };
+            _correspondence.ExistingAttachments = attachmentIds.Select(Guid.Parse).ToList();
             return this;
         }
         public CorrespondenceBuilder WithSender(string sender)
