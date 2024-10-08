@@ -5,7 +5,6 @@ using Altinn.Correspondence.Tests.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Net.Http.Json;
-using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests;
 
