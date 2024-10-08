@@ -90,7 +90,6 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             return Errors.AttachmentNotPublished;
         }
         // Validate that uploaded files match attachment metadata
-        // TODO: This was previously in an if (files.Count > 0 || isUpload) block. Is this correct?
         var attachmentMetaDataError = InitializeCorrespondenceHelper.ValidateAttachmentFiles(uploadAttachments, uploadAttachmentMetadata);
         if (attachmentMetaDataError != null)
         {

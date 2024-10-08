@@ -37,7 +37,7 @@ public static class Errors
     public static Error AllowSystemDeletePriorDueDate = new Error(29, "AllowSystemDelete cannot be prior to DueDateTime", HttpStatusCode.BadRequest);
     public static Error CouldNotFindOrgNo = new Error(30, "Could not identify orgnumber from user", HttpStatusCode.Unauthorized);
     public static Error CantPurgeCorrespondenceSender = new Error(31, "Cannot delete correspondence that has been published", HttpStatusCode.BadRequest);
-    public static Error CantUploadToNonInitializedCorrespondence = new Error(32, "Cannot upload attachment to a correspondence that is not initialized", HttpStatusCode.BadRequest);
+    public static Error CantUploadToExistingCorrespondence = new Error(32, "Cannot upload attachment to a correspondence that has been created", HttpStatusCode.BadRequest);
     public static Error CorrespondenceFailedDuringUpload = new Error(33, "Correspondence status failed during uploading of attachment", HttpStatusCode.BadRequest);
     public static Error LatestStatusIsNull = new Error(34, "Could not retrieve latest status for correspondence", HttpStatusCode.BadRequest);
     public static Error InvalidSender = new Error(35, "Creator of correspondence must be the sender", HttpStatusCode.BadRequest);
