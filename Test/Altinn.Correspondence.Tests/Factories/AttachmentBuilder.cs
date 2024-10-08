@@ -1,7 +1,5 @@
 using System.Text;
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Tests.Helpers;
 
 namespace Altinn.Correspondence.Tests.Factories

@@ -40,7 +40,7 @@ namespace Altinn.Correspondence.Tests.Helpers
             var initializeAttachmentResponse = await client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
             Assert.Equal(HttpStatusCode.OK, initializeAttachmentResponse.StatusCode);
             var attachmentId = await initializeAttachmentResponse.Content.ReadAsStringAsync();
-            var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, client);
+            var uploadResponse = await UploadAttachment(attachmentId, client);
             Assert.Equal(HttpStatusCode.OK, uploadResponse.StatusCode);
             var attachmentOverview = await (await client.GetAsync($"correspondence/api/v1/attachment/{attachmentId}")).Content.ReadFromJsonAsync<AttachmentOverviewExt>(responseSerializerOptions);
             Assert.Equal(AttachmentStatusExt.Published, attachmentOverview?.Status);
