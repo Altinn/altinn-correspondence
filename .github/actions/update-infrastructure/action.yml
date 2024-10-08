@@ -42,6 +42,9 @@ inputs:
   NOTIFICATION_EMAIL:
     description: "Email for notifications"
     required: true
+  SLACK_URL:
+    description: "Email for Slack channel to post to"
+    required: true
 
 runs:
   using: "composite"
@@ -86,6 +89,7 @@ runs:
         MASKINPORTEN_CLIENT_ID: ${{ inputs.MASKINPORTEN_CLIENT_ID }}
         PLATFORM_SUBSCRIPTION_KEY: ${{ inputs.PLATFORM_SUBSCRIPTION_KEY }}
         NOTIFICATION_EMAIL: ${{ inputs.NOTIFICATION_EMAIL }}
+        SLACK_URL: ${{ inputs.SLACK_URL }}
       with:
         scope: subscription
         template: ./.azure/infrastructure/main.bicep
