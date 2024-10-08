@@ -14,6 +14,7 @@ using Altinn.Correspondence.Application.CancelNotification;
 using Microsoft.Extensions.Logging;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Tests.Helpers;
 
 namespace Altinn.Correspondence.Tests;
 
@@ -55,7 +56,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task InitializeCorrespondence_WithExistingAttachmentsPublished_ReturnsOK()
     {
         // Arrange
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments(attachmentId)
@@ -71,7 +72,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task InitializeCorrespondenceMultiple_WithExistingAttachmentsPublished_ReturnsOK()
     {
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments(attachmentId)
@@ -101,7 +102,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task InitializeCorrespondence_WithExistingAttachmentsNotPublished_ReturnsBadRequest()
     {
         // Arrange
-        var attachmentId = await AttachmentFactory.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
         var correspondence = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments(attachmentId)
@@ -317,7 +318,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         using var stream = File.OpenRead("./Data/Markdown.text");
         var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
-        var attachmentData = AttachmentFactory.GetAttachmentMetaData(file.FileName);
+        var attachmentData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithAttachments([attachmentData])
@@ -336,7 +337,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var response = await uploadCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
         var attachmentId = response?.AttachmentIds.FirstOrDefault();
         var attachmentOverview = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
-        var newAttachmentData = AttachmentFactory.GetAttachmentMetaData("Logical file name", attachmentOverview);
+        var newAttachmentData = AttachmentHelper.GetAttachmentMetaData("Logical file name", attachmentOverview);
         var payload2 = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithAttachments([attachmentData, newAttachmentData])
@@ -375,8 +376,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var file2 = new FormFile(stream2, 0, stream2.Length, null, Path.GetFileName(stream2.Name));
         using var fileStream2 = file2.OpenReadStream();
 
-        var attachmentMetaData = AttachmentFactory.GetAttachmentMetaData(file.FileName);
-        var attachmentMetaData2 = AttachmentFactory.GetAttachmentMetaData(file2.FileName);
+        var attachmentMetaData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
+        var attachmentMetaData2 = AttachmentHelper.GetAttachmentMetaData(file2.FileName);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithRecipients(["0192:986252932"])
@@ -409,12 +410,12 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         using var stream = File.OpenRead("./Data/Markdown.text");
         var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
         using var fileStream = file.OpenReadStream();
-        var attachmentMetaData = AttachmentFactory.GetAttachmentMetaData(file.FileName);
+        var attachmentMetaData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
 
         using var stream2 = File.OpenRead("./Data/test.txt");
         var file2 = new FormFile(stream2, 0, stream2.Length, null, Path.GetFileName(stream2.Name));
         using var fileStream2 = file2.OpenReadStream();
-        var attachmentMetaData2 = AttachmentFactory.GetAttachmentMetaData(file2.FileName);
+        var attachmentMetaData2 = AttachmentHelper.GetAttachmentMetaData(file2.FileName);
 
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
@@ -466,7 +467,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         var resourceA = Guid.NewGuid().ToString();
         var resourceB = Guid.NewGuid().ToString();
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
 
         var payloadResourceA = new CorrespondenceBuilder()
             .CreateCorrespondence()
@@ -906,7 +907,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task ReceiverMarkActions_CorrespondencePublished_ReturnOk()
     {
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments(attachmentId)
@@ -934,7 +935,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task Correspondence_with_dataLocationUrl_Reuses_Attachment()
     {
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments(attachmentId)
@@ -950,7 +951,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task DownloadCorrespondenceAttachment_AsRecipient_Succeeds()
     {
         // Arrange
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments(attachmentId)
@@ -971,7 +972,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task DownloadCorrespondenceAttachment_WhenNotARecipient_Returns404()
     {
         // Arrange
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments(attachmentId)
@@ -991,7 +992,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task DownloadCorrespondenceAttachment_WhenCorrespondenceUnavailable_Returns404()
     {
         // Arrange
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments(attachmentId)
@@ -1077,7 +1078,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task Delete_Correspondence_Also_deletes_attachment()
     {
         // Arrange
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments(attachmentId)
@@ -1105,7 +1106,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task Delete_correspondence_dont_delete_attachment_with_multiple_correspondences()
     {
         // Arrange
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload1 = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments(attachmentId)

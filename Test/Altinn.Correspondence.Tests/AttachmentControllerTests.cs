@@ -1,11 +1,9 @@
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Application.Configuration;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
@@ -37,7 +35,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     [Fact]
     public async Task InitializeAttachment()
     {
-        var attachmentId = await AttachmentFactory.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
         Assert.NotNull(attachmentId);
     }
     [Fact]
@@ -69,14 +67,14 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     [Fact]
     public async Task GetAttachmentOverview()
     {
-        var attachmentId = await AttachmentFactory.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
         var getAttachmentOverviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}");
         Assert.True(getAttachmentOverviewResponse.IsSuccessStatusCode, await getAttachmentOverviewResponse.Content.ReadAsStringAsync());
     }
     [Fact]
     public async Task GetAttachmentOverview_AsRecipient_ReturnsForbidden()
     {
-        var attachmentId = await AttachmentFactory.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
         var getAttachmentOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}");
         Assert.Equal(HttpStatusCode.Forbidden, getAttachmentOverviewResponse.StatusCode);
     }
@@ -84,14 +82,14 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     [Fact]
     public async Task GetAttachmentDetails()
     {
-        var attachmentId = await AttachmentFactory.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
         var getAttachmentOverviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}/details");
         Assert.True(getAttachmentOverviewResponse.IsSuccessStatusCode, await getAttachmentOverviewResponse.Content.ReadAsStringAsync());
     }
     [Fact]
     public async Task GetAttachmentDetails_AsRecipient_ReturnsForbidden()
     {
-        var attachmentId = await AttachmentFactory.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
         var getAttachmentDetailsResponse = await _recipientClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}/details");
         Assert.Equal(HttpStatusCode.Forbidden, getAttachmentDetailsResponse.StatusCode);
     }
@@ -105,7 +103,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     [Fact]
     public async Task UploadAttachmentData_WhenAttachmentExists_Succeeds()
     {
-        var attachmentId = await AttachmentFactory.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
         var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _senderClient);
         Assert.True(uploadResponse.IsSuccessStatusCode, await uploadResponse.Content.ReadAsStringAsync());
     }
@@ -114,7 +112,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     public async Task UploadAttachmentData_UploadsTwice_FailsSecondAttempt()
     {
         // First upload
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
 
         // Second upload
         var secondUploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _senderClient);
@@ -126,7 +124,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     [Fact]
     public async Task UploadAttachmentData_UploadFails_GetErrorMessage()
     {
-        var attachmentId = await AttachmentFactory.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
         var content = new StreamContent(new MemoryStream([])); // Empty content to simulate failure
 
         var uploadResponse = await _senderClient.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", content);
@@ -140,7 +138,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     [Fact]
     public async Task UploadAttachmentData_Succeeds_DownloadedBytesAreSame()
     {
-        var attachmentId = await AttachmentFactory.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
         var originalAttachmentData = new byte[] { 1, 2, 3, 4 };
         var content = new ByteArrayContent(originalAttachmentData);
         var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _senderClient, content);
@@ -211,7 +209,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     public async Task UploadAttachment_NoChecksumSetWhenInitialized_ChecksumSetAfterUpload()
     {
         // Arrange
-        var attachmentId = await AttachmentFactory.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
         var prevOverview = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
         Assert.Empty(prevOverview.Checksum);
 
@@ -272,7 +270,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     public async Task DownloadAttachment_AsSender_Succeeds()
     {
         // Arrange
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
 
         // Act
         var downloadResponse = await _senderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}/download");
@@ -286,7 +284,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     public async Task DownloadAttachment_AsRecipient_ReturnsForbidden()
     {
         // Arrange
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
 
         // Act
         var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}/download");
@@ -306,7 +304,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     [Fact]
     public async Task DeleteAttachment_WhenAttachmentIsIntiliazied_Succeeds()
     {
-        var attachmentId = await AttachmentFactory.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
 
         var deleteResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/attachment/{attachmentId}");
         Assert.True(deleteResponse.IsSuccessStatusCode, await deleteResponse.Content.ReadAsStringAsync());
@@ -315,7 +313,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     [Fact]
     public async Task DeleteAttachment_Twice_Fails()
     {
-        var attachmentId = await AttachmentFactory.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
 
         var deleteResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/attachment/{attachmentId}");
         Assert.True(deleteResponse.IsSuccessStatusCode, await deleteResponse.Content.ReadAsStringAsync());
@@ -327,7 +325,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     [Fact]
     public async Task DeleteAttachment_WhenAttachedCorrespondenceIsPublished_ReturnsBadRequest()
     {
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments(attachmentId)
@@ -344,7 +342,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     [Fact]
     public async Task DeleteAttachment_WhenAttachedCorrespondenceIsReadyForPublish_Fails()
     {
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments(attachmentId)
@@ -362,7 +360,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     public async Task DeleteAttachment_AsRecipient_ReturnsForbidden()
     {
         // Arrange
-        var attachmentId = await AttachmentFactory.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
         var deleteResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/attachment/{attachmentId}");
         // Assert failure before correspondence is created
         Assert.Equal(HttpStatusCode.Forbidden, deleteResponse.StatusCode);
