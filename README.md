@@ -15,7 +15,7 @@ To support features like hot reload etc, the app itself is run directly. Either 
 To add a new migration you can run the following command: 
 
 ```
-dotnet ef migrations add "MigIgnoreReservation" --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API
+dotnet ef migrations add "MigrationName" --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API
 ```
 Database migrations is applied automaticly on startup when doing local development, but to update the database manually, run: 
 ```
