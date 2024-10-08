@@ -50,9 +50,19 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.ResourceId = resourceId;
             return this;
         }
-        public CorrespondenceBuilder WithTitle(string title)
+        public CorrespondenceBuilder WithMessageTitle(string title)
         {
             _correspondence.Correspondence.Content!.MessageTitle = title;
+            return this;
+        }
+        public CorrespondenceBuilder WithMessageBody(string? messageBody)
+        {
+            _correspondence.Correspondence.Content!.MessageBody = messageBody;
+            return this;
+        }
+        public CorrespondenceBuilder WithMessageSummary(string? messageBody)
+        {
+            _correspondence.Correspondence.Content!.MessageSummary = messageBody;
             return this;
         }
         public CorrespondenceBuilder WithAttachments()
@@ -104,11 +114,6 @@ namespace Altinn.Correspondence.Tests.Factories
         public CorrespondenceBuilder WithRecipients(List<string> recipients)
         {
             _correspondence.Recipients = recipients;
-            return this;
-        }
-        public CorrespondenceBuilder WithMessageBody(string? messageBody)
-        {
-            _correspondence.Correspondence.Content!.MessageBody = messageBody;
             return this;
         }
         public CorrespondenceBuilder WithDueDateTime(DateTimeOffset dueDateTime)

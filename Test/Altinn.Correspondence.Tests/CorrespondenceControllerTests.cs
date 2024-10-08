@@ -84,13 +84,13 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task InitializeCorrespondence_WithInvalidExistingAttachments_ReturnsBadRequest()
     {
         // Arrange
-        var correspondence = new CorrespondenceBuilder()
+        var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments([Guid.NewGuid().ToString()])
             .Build();
 
         // Act
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
@@ -101,13 +101,13 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         // Arrange
         var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
-        var correspondence = new CorrespondenceBuilder()
+        var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments([attachmentId])
             .Build();
 
         // Act
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
@@ -116,13 +116,18 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task InitializeCorrespondence_With_HTML_Or_Markdown_In_Title_fails()
     {
-        var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithMessageTitle("<h1>test</h1>")
+            .Build();
 
-        payload.Correspondence.Content!.MessageTitle = "<h1>test</h1>";
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
 
-        payload.Correspondence.Content.MessageTitle = "# test";
+        payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithMessageTitle("# test")
+            .Build();
         initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
@@ -130,13 +135,19 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task InitializeCorrespondence_With_HTML_In_Summary_Or_Body_fails()
     {
-        var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithMessageSummary("<h1>test</h1>")
+            .Build();
 
-        payload.Correspondence.Content!.MessageSummary = "<h1>test</h1>";
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
 
-        payload.Correspondence.Content.MessageBody = "<h1>test</h1>";
+        payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithMessageBody("<h1>test</h1>")
+            .Build();
+
         initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
