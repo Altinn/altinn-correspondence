@@ -1,9 +1,5 @@
 using Altinn.Correspondence.Tests.Factories;
-using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.API.Models.Enums;
-using Markdig;
-using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Altinn.Correspondence.Application.Configuration;
@@ -45,7 +41,7 @@ public class NotificationTests : IClassFixture<MaskinportenWebApplicationFactory
     {
         var factory = new CustomWebApplicationFactory();
         var client = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondences();
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var initializeCorrespondenceResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         var responseContent = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
@@ -63,8 +59,11 @@ public class NotificationTests : IClassFixture<MaskinportenWebApplicationFactory
     {
         var factory = new CustomWebApplicationFactory();
         var client = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
-        var correspondence = InitializeCorrespondenceFactory.BasicCorrespondenceWithoutAttachments();
-        correspondence.Correspondence.VisibleFrom = DateTime.UtcNow.AddHours(-1);
+        var correspondence = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithVisibleFrom(DateTime.UtcNow.AddHours(-1))
+            .Build();
+
         var initializeCorrespondenceResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         var responseContent = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();

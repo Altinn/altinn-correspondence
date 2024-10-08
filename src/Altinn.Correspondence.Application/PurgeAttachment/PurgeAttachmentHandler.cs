@@ -36,23 +36,19 @@ public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizat
         }
 
         var correspondences = await _correspondenceRepository.GetCorrespondencesByAttachmentId(attachmentId, true, cancellationToken);
-        bool isCorrespondencePurged = correspondences
+        bool allCorrespondencesArePurged = correspondences
             .All(correspondence =>
             {
                 var latestStatus = correspondence.GetLatestStatus();
                 if (latestStatus is null) return false;
                 return latestStatus.Status.IsPurged();
             });
-        if (correspondences.Count == 0 || isCorrespondencePurged)
-
-        {
-            await _storageRepository.PurgeAttachment(attachmentId, cancellationToken);
-        }
-        else
+        if (correspondences.Count != 0 && !allCorrespondencesArePurged)
         {
             return Errors.PurgeAttachmentWithExistingCorrespondence;
         }
 
+        await _storageRepository.PurgeAttachment(attachmentId, cancellationToken);
         await _attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
         {
             AttachmentId = attachmentId,

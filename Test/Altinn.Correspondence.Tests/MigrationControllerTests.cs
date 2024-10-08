@@ -2,8 +2,6 @@ using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Markdig;
-using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -29,7 +27,9 @@ public class MigrationControllerTests : IClassFixture<MaskinportenWebApplication
     [Fact]
     public async Task InitializeMigrateCorrespondence()
     {
-        InitializeCorrespondencesExt basicCorrespondence = InitializeCorrespondenceFactory.BasicCorrespondences();
+        var basicCorrespondence = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .Build();
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
             CorrespondenceData = basicCorrespondence,
@@ -122,7 +122,9 @@ public class MigrationControllerTests : IClassFixture<MaskinportenWebApplication
     [Fact]
     public async Task InitializeMigrateCorrespondence_NotReadNoNotifications()
     {
-        InitializeCorrespondencesExt basicCorrespondence = InitializeCorrespondenceFactory.BasicCorrespondences();
+        var basicCorrespondence = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .Build();
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
             CorrespondenceData = basicCorrespondence,
@@ -155,11 +157,11 @@ public class MigrationControllerTests : IClassFixture<MaskinportenWebApplication
     }
     private async Task<AttachmentOverviewExt?> InitializeAttachment()
     {
-        var attachment = InitializeAttachmentFactory.BasicAttachment();
+        var attachment = new AttachmentBuilder().CreateAttachment().Build();
         var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
         initializeResponse.EnsureSuccessStatusCode();
         var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
-        var overview = await (await UploadAttachment(attachmentId)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
+        var overview = await (await AttachmentHelper.UploadAttachment(attachmentId, _client)).Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
         return overview;
     }
 }
