@@ -74,7 +74,7 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
             Notifications = correspondence.Notifications ?? new List<CorrespondenceNotificationEntity>(),
             ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
             VisibleFrom = correspondence.VisibleFrom,
-            IgnoreReservation = correspondence.IgnoreReservation == null || correspondence.IgnoreReservation.Value,
+            IgnoreReservation = correspondence.IgnoreReservation ?? false,
             MarkedUnread = correspondence.MarkedUnread,
             AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
         };

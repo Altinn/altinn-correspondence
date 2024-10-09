@@ -242,7 +242,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         }
         var notificationOrder = new NotificationOrderRequest
         {
-            IgnoreReservation = !correspondence.IgnoreReservation,
+            IgnoreReservation = correspondence.IgnoreReservation,
             Recipients = new List<Recipient>{
             new Recipient{
                 OrganizationNumber = orgNr,
@@ -270,7 +270,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             notifications.Add(new NotificationOrderRequest
             {
-                IgnoreReservation = !correspondence.IgnoreReservation,
+                IgnoreReservation = correspondence.IgnoreReservation,
                 Recipients = new List<Recipient>{
             new Recipient{
                 OrganizationNumber = orgNr,

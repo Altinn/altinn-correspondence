@@ -70,7 +70,7 @@ internal static class InitializeCorrespondenceFactory
                 RequestedSendTime = DateTime.UtcNow.AddDays(1),
                 SendReminder = true,
             },
-            IgnoreReservation = true
+            IgnoreReservation = false
         },
         Recipients = new List<string>(){
             "0192:991825827",
