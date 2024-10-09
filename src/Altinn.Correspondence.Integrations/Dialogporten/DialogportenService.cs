@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Services.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
 
@@ -21,6 +22,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
 
         var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, "https://localhost:7241");// altinnOptions.Value.PlatformGatewayUrl);
+        var serialized = JsonSerializer.Serialize(createDialogRequest);
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {

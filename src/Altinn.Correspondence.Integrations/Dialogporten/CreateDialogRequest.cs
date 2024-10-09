@@ -92,15 +92,6 @@ public class Activity
     public List<Description> Description { get; set; }
 }
 
-public class AdditionalInfo
-{
-    [JsonPropertyName("value")]
-    public List<DialogValue> Value { get; set; }
-
-    [JsonPropertyName("mediaType")]
-    public string MediaType { get; set; }
-}
-
 public class ApiAction
 {
     [JsonPropertyName("action")]
@@ -125,23 +116,23 @@ public class Attachment
 public class Content
 {
     [JsonPropertyName("title")]
-    public Title Title { get; set; }
+    public ContentValue Title { get; set; }
 
     [JsonPropertyName("summary")]
-    public Summary Summary { get; set; }
+    public ContentValue Summary { get; set; }
 
     [JsonPropertyName("senderName")]
-    public SenderName SenderName { get; set; }
+    public ContentValue SenderName { get; set; }
 
     [JsonPropertyName("additionalInfo")]
-    public AdditionalInfo AdditionalInfo { get; set; }
+    public ContentValue AdditionalInfo { get; set; }
 
     [JsonPropertyName("extendedStatus")]
     public ExtendedStatus ExtendedStatus { get; set; }
 
     // Used for embedded iframes
     [JsonPropertyName("mainContentReference")]
-    public MainContentReference? MainContentReference { get; set; }
+    public ContentValue? MainContentReference { get; set; }
 }
 
 public class Description
@@ -225,18 +216,6 @@ public class GuiAction
     public List<Prompt> Prompt { get; set; }
 }
 
-/// <summary>
-/// Front-channel embedded content. Used to dynamically embed content in the frontend from an external URL.
-/// </summary>
-public class MainContentReference
-{
-    [JsonPropertyName("value")]
-    public List<DialogValue> Value { get; set; }
-
-    [JsonPropertyName("mediaType")]
-    public string MediaType { get; set; }
-}
-
 public class PerformedBy
 {
     [JsonPropertyName("actorType")]
@@ -285,7 +264,7 @@ public class SenderName
     public string MediaType { get; set; }
 }
 
-public class Summary
+public class ContentValue
 {
     [JsonPropertyName("value")]
     public List<DialogValue> Value { get; set; }
@@ -297,7 +276,7 @@ public class Summary
 public class Title
 {
     [JsonPropertyName("value")]
-    public List<DialogValue> Value { get; set; }
+    public string Value { get; set; }
 
     [JsonPropertyName("mediaType")]
     public string MediaType { get; set; }
