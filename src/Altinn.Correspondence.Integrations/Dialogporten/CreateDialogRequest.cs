@@ -174,10 +174,10 @@ public class Endpoint
     public string ResponseSchema { get; set; }
 
     [JsonPropertyName("deprecated")]
-    public bool Deprecated { get; set; }
+    public bool Deprecated { get; set; } = false; 
 
     [JsonPropertyName("sunsetAt")]
-    public DateTimeOffset SunsetAt { get; set; }
+    public DateTimeOffset? SunsetAt { get; set; }
 }
 
 public class ExtendedStatus

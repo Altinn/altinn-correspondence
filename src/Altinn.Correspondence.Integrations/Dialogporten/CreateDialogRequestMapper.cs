@@ -153,8 +153,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                         new Endpoint()
                         {
                             HttpMethod = "POST",
-                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/confirm",
-                            Deprecated = true
+                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/confirm"
                         }
                     }
                 },
@@ -166,8 +165,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                         new Endpoint()
                         {
                             HttpMethod = "POST",
-                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive",
-                            Deprecated = true
+                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive"
                         }
                     }
                 }
@@ -182,8 +180,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                         new Endpoint()
                         {
                             HttpMethod = "GET",
-                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/attachment/{attachment.Id}/download",
-                            Deprecated = true
+                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/attachment/{attachment.Id}/download"
                         }
                     }
                 });
