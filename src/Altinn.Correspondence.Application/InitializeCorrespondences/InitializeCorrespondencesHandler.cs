@@ -1,17 +1,18 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.PublishCorrespondence;
-using Altinn.Correspondence.Core.Models;
-using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
+using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
 using OneOf;
 using System.Text.RegularExpressions;
+
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Hosting;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
@@ -20,9 +21,11 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly IAltinnNotificationService _altinnNotificationService;
+    private readonly IOptions<AltinnOptions> _altinnOptions;
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceNotificationRepository _correspondenceNotificationRepository;
     private readonly INotificationTemplateRepository _notificationTemplateRepository;
+    private readonly IAttachmentRepository _attachmentRepository;
     private readonly IEventBus _eventBus;
     private readonly InitializeCorrespondenceHelper _initializeCorrespondenceHelper;
     private readonly IBackgroundJobClient _backgroundJobClient;
@@ -30,15 +33,16 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
     private readonly UserClaimsHelper _userClaimsHelper;
     private readonly IHostEnvironment _hostEnvironment;
 
-
-    public InitializeCorrespondencesHandler(InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceNotificationRepository correspondenceNotificationRepository, INotificationTemplateRepository notificationTemplateRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient, UserClaimsHelper userClaimsHelper, IDialogportenService dialogportenService, IHostEnvironment hostEnvironment)
+    public InitializeCorrespondencesHandler(IOptions<AltinnOptions> altinnOptions, InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceNotificationRepository correspondenceNotificationRepository, INotificationTemplateRepository notificationTemplateRepository, IAttachmentRepository attachmentRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient, UserClaimsHelper userClaimsHelper, IDialogportenService dialogportenService, IHostEnvironment hostEnvironment)
     {
+        _altinnOptions = altinnOptions;
         _initializeCorrespondenceHelper = initializeCorrespondenceHelper;
         _altinnAuthorizationService = altinnAuthorizationService;
         _altinnNotificationService = altinnNotificationService;
         _correspondenceRepository = correspondenceRepository;
         _correspondenceNotificationRepository = correspondenceNotificationRepository;
         _notificationTemplateRepository = notificationTemplateRepository;
+        _attachmentRepository = attachmentRepository;
         _eventBus = eventBus;
         _backgroundJobClient = backgroundJobClient;
         _dialogportenService = dialogportenService;
@@ -58,10 +62,6 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             return Errors.InvalidSender;
         }
-        if (request.IsUploadRequest && request.Attachments.Count == 0)
-        {
-            return Errors.NoAttachments;
-        }
         if (request.Recipients.Count != request.Recipients.Distinct().Count())
         {
             return Errors.DuplicateRecipients;
@@ -76,30 +76,52 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             return contentError;
         }
+        bool isUploadRequest = request.IsUploadRequest;
+        var existingAttachmentIds = request.ExistingAttachments;
+        var uploadAttachments = request.Attachments;
+        var uploadAttachmentMetadata = request.Correspondence.Content.Attachments;
 
-        var attachmentError = _initializeCorrespondenceHelper.ValidateAttachmentFiles(request.Attachments, request.Correspondence.Content!.Attachments, request.IsUploadRequest);
-        if (attachmentError != null) return attachmentError;
-        var attachments = new List<AttachmentEntity>();
-        if (request.Correspondence.Content!.Attachments.Count() > 0)
+        if (isUploadRequest && uploadAttachments.Count == 0)
         {
-            foreach (var attachment in request.Correspondence.Content!.Attachments)
+            return Errors.NoAttachments;
+        }
+        // Validate that existing attachments are correct
+        var existingAttachments = await _initializeCorrespondenceHelper.GetExistingAttachments(existingAttachmentIds);
+        if (existingAttachments.Count != existingAttachmentIds.Count)
+        {
+            return Errors.ExistingAttachmentNotFound;
+        }
+        // Validate that existing attachments are published
+        var anyExistingAttachmentsNotPublished = existingAttachments.Any(a => a.GetLatestStatus()?.Status != AttachmentStatus.Published);
+        if (anyExistingAttachmentsNotPublished)
+        {
+            return Errors.AttachmentNotPublished;
+        }
+        // Validate that uploaded files match attachment metadata
+        var attachmentMetaDataError = InitializeCorrespondenceHelper.ValidateAttachmentFiles(uploadAttachments, uploadAttachmentMetadata);
+        if (attachmentMetaDataError != null)
+        {
+            return attachmentMetaDataError;
+        }
+
+        // Gather attachments for the correspondence
+        var attachmentsToBeUploaded = new List<AttachmentEntity>();
+        if (uploadAttachmentMetadata.Count > 0)
+        {
+            foreach (var attachment in uploadAttachmentMetadata)
             {
-                var a = await _initializeCorrespondenceHelper.ProcessNewAttachment(attachment, cancellationToken);
-                attachments.Add(a);
+                var processedAttachment = await _initializeCorrespondenceHelper.ProcessNewAttachment(attachment, cancellationToken);
+                attachmentsToBeUploaded.Add(processedAttachment);
             }
         }
-        if (request.ExistingAttachments.Count > 0)
+        if (existingAttachmentIds.Count > 0)
         {
-            var existingAttachments = await _initializeCorrespondenceHelper.GetExistingAttachments(request.ExistingAttachments, cancellationToken);
-            if (existingAttachments == null)
-            {
-                return Errors.ExistingAttachmentNotFound;
-            }
-            attachments.AddRange(existingAttachments);
+            attachmentsToBeUploaded.AddRange(existingAttachments.Where(a => a != null).Select(a => a!));
         }
-        if (request.Attachments.Count > 0)
+        // Upload attachments
+        if (uploadAttachments.Count > 0)
         {
-            var uploadError = await _initializeCorrespondenceHelper.UploadAttachments(attachments, request.Attachments, cancellationToken);
+            var uploadError = await _initializeCorrespondenceHelper.UploadAttachments(attachmentsToBeUploaded, uploadAttachments, cancellationToken);
             if (uploadError != null)
             {
                 return uploadError;
@@ -114,7 +136,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             {
                 return Errors.NotificationTemplateNotFound;
             }
-            notificationContents = await GetMessageContent(request.Notification, templates, cancellationToken, request.Correspondence.Content?.Language);
+            notificationContents = GetMessageContent(request.Notification, templates, cancellationToken, request.Correspondence.Content?.Language);
             if (notificationContents.Count == 0)
             {
                 return Errors.NotificationTemplateNotFound;
@@ -139,11 +161,10 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 MessageSender = request.Correspondence.MessageSender,
                 Content = new CorrespondenceContentEntity
                 {
-                    Attachments = attachments.Select(a => new CorrespondenceAttachmentEntity
+                    Attachments = attachmentsToBeUploaded.Select(a => new CorrespondenceAttachmentEntity
                     {
                         Attachment = a,
                         Created = DateTimeOffset.UtcNow,
-
                     }).ToList(),
                     Language = request.Correspondence.Content.Language,
                     MessageBody = request.Correspondence.Content.MessageBody,
@@ -228,12 +249,12 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         if (organizationWithoutPrefixFormat.IsMatch(correspondence.Recipient))
         {
             orgNr = correspondence.Recipient;
-            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person || c.RecipientType == null);
+            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Organization || c.RecipientType == null);
         }
         else if (organizationWithPrefixFormat.IsMatch(correspondence.Recipient))
         {
             orgNr = correspondence.Recipient.Substring(5);
-            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person || c.RecipientType == null);
+            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Organization || c.RecipientType == null);
         }
         else if (personFormat.IsMatch(correspondence.Recipient))
         {
@@ -251,7 +272,6 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         },
             ResourceId = correspondence.ResourceId,
             RequestedSendTime = correspondence.VisibleFrom.UtcDateTime.AddMinutes(5),
-            ConditionEndpoint = null, // TODO: Implement condition endpoint
             SendersReference = correspondence.SendersReference,
             NotificationChannel = notification.NotificationChannel,
             EmailTemplate = new EmailTemplate
@@ -279,7 +299,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         },
                 ResourceId = correspondence.ResourceId,
                 RequestedSendTime = correspondence.VisibleFrom.UtcDateTime.AddDays(7),
-                ConditionEndpoint = null, // TODO: Implement condition endpoint
+                ConditionEndpoint = CreateConditonEndpoint(correspondence.Id.ToString()),
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,
                 EmailTemplate = new EmailTemplate
@@ -295,7 +315,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         }
         return notifications;
     }
-    private async Task<List<NotificationContent>> GetMessageContent(NotificationRequest request, List<NotificationTemplateEntity> templates, CancellationToken cancellationToken, string? language = null)
+    private List<NotificationContent> GetMessageContent(NotificationRequest request, List<NotificationTemplateEntity> templates, CancellationToken cancellationToken, string? language = null)
     {
         var content = new List<NotificationContent>();
         foreach (var template in templates)
@@ -313,6 +333,10 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             });
         }
         return content;
+    }
+    private Uri CreateConditonEndpoint(string correspondenceId)
+    {
+        return new Uri($"{_altinnOptions.Value.PlatformGatewayUrl}correspondence/api/v1/correspondence/{correspondenceId}/notification/check");
     }
     private string CreateMessageFromToken(string message, string? token = "")
     {

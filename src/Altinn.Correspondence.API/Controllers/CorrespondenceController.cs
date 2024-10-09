@@ -1,6 +1,7 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.CheckNotification;
 using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
@@ -35,7 +36,6 @@ namespace Altinn.Correspondence.API.Controllers
         /// </summary>
         /// <remarks>
         /// Requires uploads of specified attachments if any before it can be Published
-        /// If no attachments are specified, should go directly to Published
         /// </remarks>
         /// <returns>CorrespondenceIds</returns>
         [HttpPost]
@@ -340,6 +340,27 @@ namespace Altinn.Correspondence.API.Controllers
             }, cancellationToken);
             return commandResult.Match(
                 result => File(result, "application/octet-stream"),
+                Problem
+            );
+        }
+
+        /// <summary>
+        /// Check if a reminder notification should be sent
+        /// </summary>
+        [HttpGet]
+        [Route("{correspondenceId}/notification/check")]
+        [Authorize(Policy = AuthorizationConstants.NotificationCheck)]
+        [ApiExplorerSettings(IgnoreApi = true)]
+        public async Task<ActionResult> CheckNotification(
+            Guid correspondenceId,
+            [FromServices] CheckNotificationHandler handler,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Checking notification for Correspondence with id: {correspondenceId}", correspondenceId.ToString());
+            var commandResult = await handler.Process(correspondenceId, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
                 Problem
             );
         }

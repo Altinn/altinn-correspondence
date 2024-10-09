@@ -13,10 +13,10 @@ public static class Errors
     public static Error InvalidFileSize = new(5, "File must have content and has a max file size of 2GB", HttpStatusCode.BadRequest);
     public static Error InvalidUploadAttachmentStatus = new(6, "File has already been or is being uploaded", HttpStatusCode.BadRequest);
     public static Error InvalidPurgeAttachmentStatus = new(7, "File has already been purged", HttpStatusCode.BadRequest);
-    public static Error PurgeAttachmentWithExistingCorrespondence = new Error(8, "Attachment cannot be purged as it is linked to atleast one existing correspondence", HttpStatusCode.BadRequest);
+    public static Error PurgeAttachmentWithExistingCorrespondence = new Error(8, "Attachment cannot be purged as it is linked to at least one existing correspondence", HttpStatusCode.BadRequest);
     public static Error TooManyMessageBodies = new Error(9, "Only one attachment can be marked as message body", HttpStatusCode.BadRequest);
-    public static Error NoMessageBody = new Error(10, "Atleast one attachment must be marked as message body", HttpStatusCode.BadRequest);
-    public static Error NoAttachments = new Error(11, "Need atleast one attachment to upload", HttpStatusCode.BadRequest);
+    public static Error NoMessageBody = new Error(10, "At least one attachment must be marked as message body", HttpStatusCode.BadRequest);
+    public static Error NoAttachments = new Error(11, "For upload requests at least one attachment has to be included", HttpStatusCode.BadRequest);
     public static Error CorrespondencePurged = new Error(12, "Correspondence has been purged", HttpStatusCode.BadRequest);
     public static Error CorrespondenceAlreadyPurged = new Error(13, "Correspondence has already been purged", HttpStatusCode.BadRequest);
     public static Error MessageTitleIsNotPlainText = new Error(14, "Message title must be plain text", HttpStatusCode.BadRequest);
@@ -37,7 +37,7 @@ public static class Errors
     public static Error AllowSystemDeletePriorDueDate = new Error(29, "AllowSystemDelete cannot be prior to DueDateTime", HttpStatusCode.BadRequest);
     public static Error CouldNotFindOrgNo = new Error(30, "Could not identify orgnumber from user", HttpStatusCode.Unauthorized);
     public static Error CantPurgeCorrespondenceSender = new Error(31, "Cannot delete correspondence that has been published", HttpStatusCode.BadRequest);
-    public static Error CantUploadToNonInitializedCorrespondence = new Error(32, "Cannot upload attachment to a correspondence that is not initialized", HttpStatusCode.BadRequest);
+    public static Error CantUploadToExistingCorrespondence = new Error(32, "Cannot upload attachment to a correspondence that has been created", HttpStatusCode.BadRequest);
     public static Error CorrespondenceFailedDuringUpload = new Error(33, "Correspondence status failed during uploading of attachment", HttpStatusCode.BadRequest);
     public static Error LatestStatusIsNull = new Error(34, "Could not retrieve latest status for correspondence", HttpStatusCode.BadRequest);
     public static Error InvalidSender = new Error(35, "Creator of correspondence must be the sender", HttpStatusCode.BadRequest);
@@ -49,4 +49,6 @@ public static class Errors
     public static Error MissingSmsReminderNotificationContent = new Error(41, "Reminder SMS body must be provided when sending reminder SMS notifications", HttpStatusCode.BadRequest);
     public static Error MissingPrefferedNotificationContent = new Error(42, "Email body, subject and SMS body must be provided when sending preferred notifications", HttpStatusCode.BadRequest);
     public static Error MissingPrefferedReminderNotificationContent = new Error(43, $"Reminder email body, subject and SMS body must be provided when sending reminder preferred notifications", HttpStatusCode.BadRequest);
-    }
+    public static Error NoExistingAttachments = new Error(44, "Initializing correspondence without upload requires existing attachments", HttpStatusCode.BadRequest);
+    public static Error AttachmentNotPublished = new Error(45, "Attachment is not published", HttpStatusCode.BadRequest);
+}
