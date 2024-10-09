@@ -21,6 +21,7 @@ public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespo
         _altinnAuthorizationService = altinnAuthorizationService;
         _storageRepository = storageRepository;
         _attachmentRepository = attachmentRepository;
+        _dialogportenService = dialogportenService;
         _userClaimsHelper = userClaimsHelper;
     }
 
