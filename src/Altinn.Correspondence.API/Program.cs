@@ -101,7 +101,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
             };
             options.Events = new JwtBearerEvents()
             {
-                //OnAuthenticationFailed = context => JWTBearerEventsHelper.OnAuthenticationFailed(context),
+                OnAuthenticationFailed = context => JWTBearerEventsHelper.OnAuthenticationFailed(context),
                 OnChallenge = context =>
                 {
                     if (context.AuthenticateFailure != null)
