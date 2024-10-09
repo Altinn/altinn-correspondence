@@ -3,6 +3,7 @@ using Altinn.Common.PEP.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
@@ -87,6 +88,10 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
     private XacmlJsonRequestRoot CreateDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId)
     {
+        if (user.Claims.Any(claim => claim.Type == "iss" && claim.Value == _dialogportenSettings.Issuer))
+        {
+            return CreateDialogportenDecisionRequest(user, resourceId);
+        }
         XacmlJsonRequest request = new()
         {
             AccessSubject = new List<XacmlJsonCategory>(),
@@ -106,6 +111,27 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         XacmlJsonRequestRoot jsonRequest = new() { Request = request };
 
         return jsonRequest;
+    }
+
+    private XacmlJsonRequestRoot CreateDialogportenDecisionRequest(ClaimsPrincipal user, string resourceId)
+    {
+        XacmlJsonRequest request = new()
+        {
+            AccessSubject = new List<XacmlJsonCategory>(),
+            Action = new List<XacmlJsonCategory>(),
+            Resource = new List<XacmlJsonCategory>()
+        };
+
+        var subjectCategory = DialogportenXacmlMapper.CreateSubjectCategory(user);
+        request.AccessSubject.Add(subjectCategory);
+        request.Action.Add(DialogportenXacmlMapper.CreateActionCategory(user));
+        var resourceCategory = DialogportenXacmlMapper.CreateResourceCategory(resourceId, user);
+        request.Resource.Add(resourceCategory);
+
+        XacmlJsonRequestRoot jsonRequest = new() { Request = request };
+
+        return jsonRequest;
+
     }
 
     private static bool ValidateResult(XacmlJsonResponse response, ClaimsPrincipal user)

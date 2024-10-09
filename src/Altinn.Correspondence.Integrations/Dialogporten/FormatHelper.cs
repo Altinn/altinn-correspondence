@@ -1,11 +1,5 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Models.Notifications;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten
 {
