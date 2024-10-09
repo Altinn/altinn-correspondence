@@ -107,6 +107,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
                     if (context.AuthenticateFailure != null)
                     {
                         context.HandleResponse();
+                        return Task.CompletedTask;
                     }
                     return context.Response.CompleteAsync();
                 }
