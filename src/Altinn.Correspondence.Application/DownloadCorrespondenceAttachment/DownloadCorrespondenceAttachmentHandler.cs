@@ -2,11 +2,12 @@
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Microsoft.AspNetCore.Routing.Constraints;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 
-public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespondenceAttachmentRequest, Stream>
+public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespondenceAttachmentRequest, DownloadCorrespondenceAttachmentResponse>
 {
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
@@ -25,7 +26,7 @@ public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespo
         _userClaimsHelper = userClaimsHelper;
     }
 
-    public async Task<OneOf<Stream, Error>> Process(DownloadCorrespondenceAttachmentRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<DownloadCorrespondenceAttachmentResponse, Error>> Process(DownloadCorrespondenceAttachmentRequest request, CancellationToken cancellationToken)
     {
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, cancellationToken);
         if (correspondence is null)
@@ -53,6 +54,9 @@ public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespo
         }
         var attachmentStream = await _storageRepository.DownloadAttachment(attachment.Id, cancellationToken);
         await _dialogportenService.CreateInformationActivity(request.CorrespondenceId, Core.Services.Enums.DialogportenActorType.Recipient, $"Startet nedlastning av {attachment.FileName}", cancellationToken: cancellationToken);
-        return attachmentStream;
+        return new DownloadCorrespondenceAttachmentResponse(){
+            FileName = attachment.FileName,
+            Stream = attachmentStream
+        };
     }
 }
