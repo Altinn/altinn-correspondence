@@ -40,7 +40,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
     public async Task<OneOf<Guid, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
     {
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, cancellationToken);
-        if (correspondence == null) 
+        if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
         }
@@ -48,7 +48,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
         {
             return Errors.CorrespondenceNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Open }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read, ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
