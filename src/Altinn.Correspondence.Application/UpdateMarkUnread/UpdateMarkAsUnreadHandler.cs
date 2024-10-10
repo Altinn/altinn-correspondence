@@ -47,7 +47,6 @@ public class UpdateMarkAsUnreadHandler : IHandler<Guid, Guid>
         }
 
         await _correspondenceRepository.UpdateMarkedUnread(correspondenceId, true, cancellationToken);
-        await _dialogportenService.CreateInformationActivity(correspondenceId, isRecipient ? DialogportenActorType.Recipient : DialogportenActorType.Sender, "Markert som ulest", cancellationToken: cancellationToken);   
         return correspondenceId;
     }
 }

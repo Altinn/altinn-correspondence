@@ -3,7 +3,7 @@ using Altinn.Common.PEP.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
-using Altinn.Correspondence.Integrations.Dialogporten;
+using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;

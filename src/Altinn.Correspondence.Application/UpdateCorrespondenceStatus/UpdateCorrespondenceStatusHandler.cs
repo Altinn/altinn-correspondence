@@ -5,6 +5,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using OneOf;
+using Azure.Core;
 
 namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 
@@ -73,7 +74,7 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
             StatusChanged = DateTimeOffset.UtcNow,
             StatusText = request.Status.ToString(),
         }, cancellationToken);
-        await _dialogportenService.CreateInformationActivity(request.CorrespondenceId, isRecipient ? DialogportenActorType.Recipient : DialogportenActorType.Sender, $"Status oppdatert: {request.Status}", cancellationToken: cancellationToken);
+        await ReportActivityToDialogporten(request.CorrespondenceId, DialogportenActorType.Recipient, request.Status, cancellationToken);
         await PublishEvent(correspondence, request.Status, cancellationToken);
         return request.CorrespondenceId;
     }
@@ -89,4 +90,10 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
             await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         }
     }
+    private Task ReportActivityToDialogporten(Guid correspondenceId, DialogportenActorType dialogportenActorType, CorrespondenceStatus status, CancellationToken cancellationToken) => status switch
+    {
+        CorrespondenceStatus.Confirmed => _dialogportenService.CreateInformationActivity(correspondenceId, dialogportenActorType, "Mottaker har bekreftet mottak", cancellationToken: cancellationToken),
+        CorrespondenceStatus.Archived => _dialogportenService.CreateInformationActivity(correspondenceId, dialogportenActorType, "Meldingen er arkivert", cancellationToken: cancellationToken),
+        _ => Task.CompletedTask
+    };
 }
