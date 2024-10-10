@@ -38,7 +38,7 @@ public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespo
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Open }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;

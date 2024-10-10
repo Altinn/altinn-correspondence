@@ -35,7 +35,7 @@ namespace Altinn.Correspondence.Tests.Factories
                         {"culpa_852", "2"},
                         {"anim5", "3"}
                     },
-                    IsReservable = true
+                    IgnoreReservation = false
                 },
                 Recipients = new List<string>(){
                     "0192:991825827",   // org number

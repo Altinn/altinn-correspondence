@@ -1369,7 +1369,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             { new StringContent(correspondence.Content.MessageSummary), "correspondence.content.MessageSummary" },
             { new StringContent(correspondence.Content.MessageBody), "correspondence.content.MessageBody" },
             { new StringContent(correspondence.Content.Language), "correspondence.content.Language" },
-            { new StringContent((correspondence.IsReservable ?? false).ToString()), "correspondence.isReservable" },
+            { new StringContent((correspondence.IgnoreReservation ?? false).ToString()), "correspondence.IgnoreReservation" },
         };
         if (correspondence.Notification != null)
         {

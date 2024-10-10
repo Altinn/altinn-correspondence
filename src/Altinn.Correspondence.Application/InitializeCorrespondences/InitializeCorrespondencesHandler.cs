@@ -52,7 +52,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
     {
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.Correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Send }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.Correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
@@ -176,7 +176,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 DueDateTime = request.Correspondence.DueDateTime,
                 PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
                 ReplyOptions = request.Correspondence.ReplyOptions,
-                IsReservable = request.Correspondence.IsReservable,
+                IgnoreReservation = request.Correspondence.IgnoreReservation,
                 Statuses = new List<CorrespondenceStatusEntity>(){
                     new CorrespondenceStatusEntity
                     {
@@ -199,11 +199,12 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             {
                 var publishTime = correspondence.VisibleFrom;
 
-                if (!_hostEnvironment.IsDevelopment()) {
+                if (!_hostEnvironment.IsDevelopment())
+                {
                     //Adds a 1 minute delay for malware scan to finish if not running locally
                     publishTime = correspondence.VisibleFrom.UtcDateTime.AddSeconds(-30) < DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(1) : correspondence.VisibleFrom.UtcDateTime;
                 }
-                
+
                 _backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), publishTime);
 
             }
@@ -264,7 +265,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         }
         var notificationOrder = new NotificationOrderRequest
         {
-            IgnoreReservation = !correspondence.IsReservable,
+            IgnoreReservation = correspondence.IgnoreReservation,
             Recipients = new List<Recipient>{
             new Recipient{
                 OrganizationNumber = orgNr,
@@ -291,7 +292,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             notifications.Add(new NotificationOrderRequest
             {
-                IgnoreReservation = !correspondence.IsReservable,
+                IgnoreReservation = correspondence.IgnoreReservation,
                 Recipients = new List<Recipient>{
             new Recipient{
                 OrganizationNumber = orgNr,

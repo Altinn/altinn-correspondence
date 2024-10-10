@@ -37,7 +37,7 @@ internal static class MigrateCorrespondenceMapper
             DueDateTime = migrateCorrespondenceExt.CorrespondenceData.Correspondence.DueDateTime,
             PropertyList = migrateCorrespondenceExt.CorrespondenceData.Correspondence.PropertyList,
             ReplyOptions = migrateCorrespondenceExt.CorrespondenceData.Correspondence.ReplyOptions != null ? CorrespondenceReplyOptionsMapper.MapListToEntities(migrateCorrespondenceExt.CorrespondenceData.Correspondence.ReplyOptions) : new List<CorrespondenceReplyOptionEntity>(),
-            IsReservable = migrateCorrespondenceExt.CorrespondenceData.Correspondence.IsReservable,
+            IgnoreReservation = migrateCorrespondenceExt.CorrespondenceData.Correspondence.IgnoreReservation,
             ExternalReferences = migrateCorrespondenceExt.CorrespondenceData.Correspondence.ExternalReferences != null ? ExternalReferenceMapper.MapListToEntities(migrateCorrespondenceExt.CorrespondenceData.Correspondence.ExternalReferences) : new List<ExternalReferenceEntity>(),
             Created = DateTimeOffset.UtcNow,
             Content = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content != null ? new CorrespondenceContentEntity
