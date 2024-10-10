@@ -28,7 +28,7 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
         {
             return Errors.CorrespondenceNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.See }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read, ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
@@ -74,7 +74,7 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
             Notifications = correspondence.Notifications ?? new List<CorrespondenceNotificationEntity>(),
             ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
             VisibleFrom = correspondence.VisibleFrom,
-            IsReservable = correspondence.IsReservable == null || correspondence.IsReservable.Value,
+            IgnoreReservation = correspondence.IgnoreReservation ?? false,
             MarkedUnread = correspondence.MarkedUnread,
             AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
         };

@@ -52,7 +52,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
     {
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.Correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Send }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.Correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
@@ -176,7 +176,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 DueDateTime = request.Correspondence.DueDateTime,
                 PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
                 ReplyOptions = request.Correspondence.ReplyOptions,
-                IsReservable = request.Correspondence.IsReservable,
+                IgnoreReservation = request.Correspondence.IgnoreReservation,
                 Statuses = new List<CorrespondenceStatusEntity>(){
                     new CorrespondenceStatusEntity
                     {
@@ -264,7 +264,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         }
         var notificationOrder = new NotificationOrderRequest
         {
-            IgnoreReservation = !correspondence.IsReservable,
+            IgnoreReservation = correspondence.IgnoreReservation,
             Recipients = new List<Recipient>
             {
                 new Recipient
@@ -292,7 +292,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             notifications.Add(new NotificationOrderRequest
             {
-                IgnoreReservation = !correspondence.IsReservable,
+                IgnoreReservation = correspondence.IgnoreReservation,
                 Recipients = new List<Recipient>
                 {
                     new Recipient

@@ -38,7 +38,7 @@ public class GetCorrespondenceDetailsResponse
 
     public DateTimeOffset VisibleFrom { get; set; }
 
-    public bool IsReservable { get; set; }
+    public bool IgnoreReservation { get; set; }
 
     public bool? MarkedUnread { get; set; }
 

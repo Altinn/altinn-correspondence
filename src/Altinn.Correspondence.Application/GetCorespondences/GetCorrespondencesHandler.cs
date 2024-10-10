@@ -20,7 +20,7 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
 
     public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, CancellationToken cancellationToken)
     {
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.See }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read, ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;

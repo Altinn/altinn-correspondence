@@ -43,7 +43,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         [MaxLength(6, ErrorMessage = "Notifications can contain at most 6 notifcations")]
         public List<CorrespondenceNotificationEntity> Notifications { get; set; } = new List<CorrespondenceNotificationEntity>();
 
-        public bool? IsReservable { get; set; }
+        public bool? IgnoreReservation { get; set; }
 
         public bool? MarkedUnread { get; set; }
 

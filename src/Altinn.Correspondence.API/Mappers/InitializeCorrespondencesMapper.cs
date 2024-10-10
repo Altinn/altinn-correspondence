@@ -20,7 +20,7 @@ internal static class InitializeCorrespondencesMapper
             DueDateTime = initializeCorrespondenceExt.DueDateTime,
             PropertyList = initializeCorrespondenceExt.PropertyList,
             ReplyOptions = initializeCorrespondenceExt.ReplyOptions != null ? CorrespondenceReplyOptionsMapper.MapListToEntities(initializeCorrespondenceExt.ReplyOptions) : new List<CorrespondenceReplyOptionEntity>(),
-            IsReservable = initializeCorrespondenceExt.IsReservable,
+            IgnoreReservation = initializeCorrespondenceExt.IgnoreReservation,
             ExternalReferences = initializeCorrespondenceExt.ExternalReferences != null ? ExternalReferenceMapper.MapListToEntities(initializeCorrespondenceExt.ExternalReferences) : new List<ExternalReferenceEntity>(),
             Statuses = new List<CorrespondenceStatusEntity>(),
             Created = DateTimeOffset.UtcNow,

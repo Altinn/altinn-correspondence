@@ -98,8 +98,8 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Specifies whether the correspondence can override reservation against digital comminication in KRR
         /// </summary>
-        [JsonPropertyName("isReservable")]
-        public bool? IsReservable { get; set; }
+        [JsonPropertyName("IgnoreReservation")]
+        public bool? IgnoreReservation { get; set; }
     }
 
     [AttributeUsage(AttributeTargets.Property)]
