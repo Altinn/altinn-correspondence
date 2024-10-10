@@ -249,37 +249,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                     Priority = "Secondary"
                 }
             };
-            foreach (var attachment in correspondence.Content?.Attachments)
-            {
-                guiActions.Add(new GuiAction()
-                {
-                    Title = new List<Title>()
-                        {
-                            new Title()
-                            {
-                                LanguageCode = "nb",
-                                MediaType = "text/plain",
-                                Value = "Last ned vedlegg"
-                            },
-                            new Title()
-                            {
-                                LanguageCode = "nn",
-                                MediaType = "text/plain",
-                                Value = "Last ned vedlegg"
-                            },
-                            new Title()
-                            {
-                                LanguageCode = "en",
-                                MediaType = "text/plain",
-                                Value = "Download Attachment"
-                            },
-                        },
-                    Action = "read",
-                    Url = GetDownloadAttachmentEndpoint(baseUrl, correspondence.Id, attachment.Id),
-                    HttpMethod = "GET",
-                    Priority = "Tertiary"
-                });
-            }
             return guiActions;
         }
 
