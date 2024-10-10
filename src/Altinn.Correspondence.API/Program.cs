@@ -104,16 +104,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
             };
             options.Events = new JwtBearerEvents()
             {
-                OnAuthenticationFailed = context => JWTBearerEventsHelper.OnAuthenticationFailed(context),
-                OnChallenge = context =>
-                {
-                    if (context.AuthenticateFailure != null)
-                    {
-                        context.HandleResponse();
-                        return Task.CompletedTask;
-                    }
-                    return context.Response.CompleteAsync();
-                }
+                OnAuthenticationFailed = context => JWTBearerEventsHelper.OnAuthenticationFailed(context)
             };
         })
         .AddJwtBearer(AuthorizationConstants.MaskinportenScheme, options => // To support maskinporten tokens 
@@ -151,52 +142,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
                 ValidateLifetime = !hostEnvironment.IsDevelopment(),
                 ClockSkew = TimeSpan.Zero
             };
-        })
-        .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
-        {
-            options.Cookie.Name = "session";
-            options.Cookie.SameSite = SameSiteMode.None;
-            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-            options.Cookie.IsEssential = true;
-        })
-         .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
-         {
-             options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
-             options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
-             options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-             options.GetClaimsFromUserInfoEndpoint = true;
-             options.AuthenticationMethod = OpenIdConnectRedirectBehavior.RedirectGet;
-             options.ResponseMode = OpenIdConnectResponseMode.FormPost;
-             options.Authority = "https://test.idporten.no/";
-             options.ClientId = configuration["Idporten:ClientId"];
-             options.ClientSecret = configuration["Idporten:Secret"];
-             options.ResponseType = OpenIdConnectResponseType.Code;
-             options.UsePkce = true;
-             options.CallbackPath = configuration["Idporten:CallbackPath"];
-             options.SaveTokens = true;
-             options.GetClaimsFromUserInfoEndpoint = false;
-             options.Scope.Add("openid");
-             options.Scope.Add("profile");
-
-             options.Events = new OpenIdConnectEvents
-             {
-                 OnRedirectToIdentityProviderForSignOut = context =>
-                 {
-                     context.Response.Redirect(configuration["Idporten:RedirectOnSignOut"]!);
-                     context.HandleResponse();
-
-                     return Task.CompletedTask;
-                 },
-
-                 OnRemoteFailure = context =>
-                 {
-                     context.Response.Redirect("/error");
-                     context.HandleResponse();
-                     return Task.FromResult(0);
-                 },
-             };
-         });
-    ;
+        });
     services.AddTransient<IAuthorizationHandler, ScopeAccessHandler>();
     services.AddAuthorization(options =>
     {
