@@ -27,7 +27,6 @@ namespace Altinn.Correspondence.API.Controllers
     public class CorrespondenceController : Controller
     {
         private readonly ILogger<CorrespondenceController> _logger;
-        private const string AltinnTokenOrDialogporten = AuthorizationConstants.DialogportenScheme + "," + JwtBearerDefaults.AuthenticationScheme;
 
         public CorrespondenceController(ILogger<CorrespondenceController> logger)
         {
@@ -105,7 +104,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{correspondenceId}")]
-        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AltinnTokenOrDialogporten)]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
             Guid correspondenceId,
             [FromServices] GetCorrespondenceOverviewHandler handler,
@@ -130,7 +129,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns>Detailed information about the correspondence with current status and status history</returns>
         [HttpGet]
         [Route("{correspondenceId}/details")]
-        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AltinnTokenOrDialogporten)]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         public async Task<ActionResult<CorrespondenceDetailsExt>> GetCorrespondenceDetails(
             Guid correspondenceId,
             [FromServices] GetCorrespondenceDetailsHandler handler,
@@ -273,7 +272,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>StatusId</returns>
         [HttpPost]
-        [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AltinnTokenOrDialogporten)]
+        [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         [Route("{correspondenceId}/confirm")]
         public async Task<ActionResult> Confirm(
@@ -303,7 +302,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>StatusId</returns>
         [HttpPost]
-        [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AltinnTokenOrDialogporten)]
+        [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         [Route("{correspondenceId}/archive")]
         public async Task<ActionResult> Archive(
@@ -357,7 +356,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{correspondenceId}/attachment/{attachmentId}/download")]
-        [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AltinnTokenOrDialogporten)]
+        [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         public async Task<ActionResult> DownloadCorrespondenceAttachmentData(
             Guid correspondenceId,

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+
 namespace Altinn.Correspondence.Application.Configuration;
 
 public static class AuthorizationConstants
@@ -15,4 +17,5 @@ public static class AuthorizationConstants
     public const string NotificationCheckScope = "altinn:system/notifications.condition.check";
     public const string MaskinportenScheme = "Maskinporten";
     public const string ArbeidsflateCors = "ArbeidsflateCors";
+    public const string AltinnTokenOrDialogportenScheme = DialogportenScheme + "," + JwtBearerDefaults.AuthenticationScheme;
 }
