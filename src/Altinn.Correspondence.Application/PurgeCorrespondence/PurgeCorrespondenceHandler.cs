@@ -42,7 +42,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
     public async Task<OneOf<Guid, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
     {
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, cancellationToken);
-        if (correspondence == null) 
+        if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
         }
@@ -102,7 +102,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
         await _eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         await _correspondenceStatusRepository.AddCorrespondenceStatus(newStatus, cancellationToken);
         await CheckAndPurgeAttachments(correspondenceId, cancellationToken);
-        await _dialogportenService.CreateInformationActivity(correspondenceId, newStatus.Status == CorrespondenceStatus.PurgedByRecipient ? DialogportenActorType.Recipient : DialogportenActorType.Sender, $"Correspondence purged: {newStatus.StatusText}", cancellationToken: cancellationToken);
+        await _dialogportenService.CreateInformationActivity(correspondenceId, newStatus.Status == CorrespondenceStatus.PurgedByRecipient ? DialogportenActorType.Recipient : DialogportenActorType.Sender, ($"Vedlegg slettet av {(newStatus.Status == CorrespondenceStatus.PurgedByRecipient ? "mottaker" : "avsender")}"), cancellationToken: cancellationToken);
         _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondence.Notifications, cancellationToken));
         return correspondenceId;
     }

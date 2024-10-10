@@ -140,7 +140,6 @@ namespace Altinn.Correspondence.Application.Helpers
                         }
                     );
                 }
-                await _dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, list.Last().StatusText, cancellationToken: cancellationToken);
             }
             await _correspondenceStatusRepository.AddCorrespondenceStatuses(list, cancellationToken);
             return;
