@@ -24,7 +24,7 @@ namespace Altinn.Correspondence.API.Helpers
                     });
                 }
             }
-            return context.Response.CompleteAsync();
+            return Task.CompletedTask;
         }
     }
 
