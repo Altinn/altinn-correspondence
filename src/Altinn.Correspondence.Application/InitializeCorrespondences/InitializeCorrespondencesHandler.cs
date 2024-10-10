@@ -199,11 +199,12 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             {
                 var publishTime = correspondence.VisibleFrom;
 
-                if (!_hostEnvironment.IsDevelopment()) {
+                if (!_hostEnvironment.IsDevelopment())
+                {
                     //Adds a 1 minute delay for malware scan to finish if not running locally
                     publishTime = correspondence.VisibleFrom.UtcDateTime.AddSeconds(-30) < DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(1) : correspondence.VisibleFrom.UtcDateTime;
                 }
-                
+
                 _backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), publishTime);
 
             }
@@ -264,12 +265,14 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         var notificationOrder = new NotificationOrderRequest
         {
             IgnoreReservation = !correspondence.IsReservable,
-            Recipients = new List<Recipient>{
-            new Recipient{
-                OrganizationNumber = orgNr,
-                NationalIdentityNumber = personNr
+            Recipients = new List<Recipient>
+            {
+                new Recipient
+                {
+                    OrganizationNumber = orgNr,
+                    NationalIdentityNumber = personNr
+                },
             },
-        },
             ResourceId = correspondence.ResourceId,
             RequestedSendTime = correspondence.VisibleFrom.UtcDateTime.AddMinutes(5),
             SendersReference = correspondence.SendersReference,
@@ -282,7 +285,6 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             SmsTemplate = new SmsTemplate
             {
                 Body = content.SmsBody,
-
             }
         };
         notifications.Add(notificationOrder);
@@ -291,14 +293,16 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             notifications.Add(new NotificationOrderRequest
             {
                 IgnoreReservation = !correspondence.IsReservable,
-                Recipients = new List<Recipient>{
-            new Recipient{
-                OrganizationNumber = orgNr,
-                NationalIdentityNumber = personNr
-            },
-        },
+                Recipients = new List<Recipient>
+                {
+                    new Recipient
+                    {
+                        OrganizationNumber = orgNr,
+                        NationalIdentityNumber = personNr
+                    },
+                },
                 ResourceId = correspondence.ResourceId,
-                RequestedSendTime = correspondence.VisibleFrom.UtcDateTime.AddDays(7),
+                RequestedSendTime = _hostEnvironment.IsProduction() ? correspondence.VisibleFrom.UtcDateTime.AddDays(7) : correspondence.VisibleFrom.UtcDateTime.AddHours(1),
                 ConditionEndpoint = CreateConditonEndpoint(correspondence.Id.ToString()),
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,
