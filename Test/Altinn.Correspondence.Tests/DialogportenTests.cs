@@ -3,7 +3,7 @@ using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Integrations.Dialogporten;
+using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Persistence.Repositories;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Helpers;
@@ -90,7 +90,7 @@ public class DialogportenTests : IClassFixture<CustomWebApplicationFactory>
         var config = _factory.Services.GetService<IConfiguration>();
         var dialogportenSettings = new DialogportenSettings();
         config.GetSection(nameof(DialogportenSettings)).Bind(dialogportenSettings);
-        var dialogTokenClient = _factory.CreateClientWithDialogportenClaims(dialogportenSettings.Issuer, ("p", FormatHelper.GetRecipientUrn(correspondence)));
+        var dialogTokenClient = _factory.CreateClientWithDialogportenClaims(dialogportenSettings.Issuer, ("p", DialogportenCorrespondenceMapper.GetRecipientUrn(correspondence)));
 
         // Act
         var contentResponse = await dialogTokenClient.GetAsync("correspondence/api/v1/correspondence/" + initializedCorrespondence.CorrespondenceIds[0] + "/content");

@@ -1,8 +1,9 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using UUIDNext;
 
-namespace Altinn.Correspondence.Integrations.Dialogporten
+namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
     internal static class CreateDialogRequestMapper
     {

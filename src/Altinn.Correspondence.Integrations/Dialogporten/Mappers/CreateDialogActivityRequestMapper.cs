@@ -1,5 +1,7 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
+using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using UUIDNext;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten

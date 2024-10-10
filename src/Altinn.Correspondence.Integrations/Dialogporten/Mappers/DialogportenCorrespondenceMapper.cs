@@ -1,9 +1,9 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
 using System.Text.RegularExpressions;
 
-namespace Altinn.Correspondence.Integrations.Dialogporten
+namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
-    public static class FormatHelper
+    public static class DialogportenCorrespondenceMapper
     {
         public static string GetSenderUrn(this CorrespondenceEntity correspondence)
         {

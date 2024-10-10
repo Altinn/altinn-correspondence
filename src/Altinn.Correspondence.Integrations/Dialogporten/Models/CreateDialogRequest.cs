@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Altinn.Correspondence.Integrations.Dialogporten;
+namespace Altinn.Correspondence.Integrations.Dialogporten.Models;
 
 public class CreateDialogRequest
 {
@@ -174,7 +174,7 @@ public class Endpoint
     public string ResponseSchema { get; set; }
 
     [JsonPropertyName("deprecated")]
-    public bool Deprecated { get; set; } = false; 
+    public bool Deprecated { get; set; } = false;
 
     [JsonPropertyName("sunsetAt")]
     public DateTimeOffset? SunsetAt { get; set; }

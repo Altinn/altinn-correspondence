@@ -6,7 +6,7 @@ using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Altinn.Correspondence.Integrations.Dialogporten
+namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
     public static class DialogportenXacmlMapper
     {    /// <summary>

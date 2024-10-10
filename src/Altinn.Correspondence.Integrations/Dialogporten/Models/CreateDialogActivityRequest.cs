@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Altinn.Correspondence.Integrations.Dialogporten;
+namespace Altinn.Correspondence.Integrations.Dialogporten.Models;
 
 public class ActivityDescription
 {
