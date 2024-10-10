@@ -45,6 +45,9 @@ inputs:
   SLACK_URL:
     description: "Email for Slack channel to post to"
     required: true
+  DIALOGPORTEN_ISSUER:
+    description: "Issuer for Dialogporten tokens"
+    required: true
 
 runs:
   using: "composite"
@@ -90,6 +93,7 @@ runs:
         PLATFORM_SUBSCRIPTION_KEY: ${{ inputs.PLATFORM_SUBSCRIPTION_KEY }}
         NOTIFICATION_EMAIL: ${{ inputs.NOTIFICATION_EMAIL }}
         SLACK_URL: ${{ inputs.SLACK_URL }}
+        DIALOGPORTEN_ISSUER: ${{ inputs.DIALOGPORTEN_ISSUER }}
       with:
         scope: subscription
         template: ./.azure/infrastructure/main.bicep
