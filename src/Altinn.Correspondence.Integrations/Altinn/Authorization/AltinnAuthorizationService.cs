@@ -46,7 +46,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         var serviceOwnerId = await _resourceRepository.GetServiceOwnerOfResource(resourceId, cancellationToken);
         if (string.IsNullOrWhiteSpace(serviceOwnerId))
         {
-            _logger.LogWarning("Service owner not found for resource {resourceId}", resourceId);
+            _logger.LogWarning("Service owner not found for resource");
             return false;
         }
         if (user is null)
