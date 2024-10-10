@@ -36,11 +36,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             var correspondences = _context.Correspondences
                 .Where(c => c.ResourceId == resourceId)             // Correct id
-                .Where(c => from == null || c.VisibleFrom > from)   // From date filter
-                .Where(c => to == null || c.VisibleFrom < to)       // To date filter
+                .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
+                .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter
                 .FilterBySenderOrRecipient(orgNo, role)             // Filter by role
                 .FilterByStatus(status, orgNo, role)                // Filter by status
-                .OrderByDescending(c => c.VisibleFrom)              // Sort by visibleFrom
+                .OrderByDescending(c => c.RequestedPublishTime)              // Sort by RequestedPublishTime
                 .Select(c => c.Id);
 
             var totalItems = await correspondences.CountAsync(cancellationToken);

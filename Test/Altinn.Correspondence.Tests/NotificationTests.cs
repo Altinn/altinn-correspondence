@@ -61,7 +61,7 @@ public class NotificationTests : IClassFixture<MaskinportenWebApplicationFactory
         var client = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
         var correspondence = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithVisibleFrom(DateTime.UtcNow.AddHours(-1))
+            .WithRequestedPublishTime(DateTime.UtcNow.AddHours(-1))
             .Build();
 
         var initializeCorrespondenceResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);

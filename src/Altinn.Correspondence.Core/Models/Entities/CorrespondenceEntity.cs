@@ -27,7 +27,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         public CorrespondenceContentEntity? Content { get; set; }
 
-        public required DateTimeOffset VisibleFrom { get; set; }
+        public required DateTimeOffset RequestedPublishTime { get; set; }
 
         public DateTimeOffset? AllowSystemDeleteAfter { get; set; }
 

@@ -25,7 +25,7 @@ internal static class CorrespondenceDetailsMapper
             StatusHistory = correspondenceDetails.StatusHistory != null ? CorrespondenceStatusMapper.MapListToExternal(correspondenceDetails.StatusHistory) : new List<CorrespondenceStatusEventExt>(),
             ExternalReferences = correspondenceDetails.ExternalReferences != null ? ExternalReferenceMapper.MapListToExternal(correspondenceDetails.ExternalReferences) : new List<ExternalReferenceExt>(),
             ResourceId = correspondenceDetails.ResourceId.ToString(),
-            VisibleFrom = correspondenceDetails.VisibleFrom,
+            RequestedPublishTime = correspondenceDetails.RequestedPublishTime,
             IgnoreReservation = correspondenceDetails.IgnoreReservation,
             MarkedUnread = correspondenceDetails.MarkedUnread,
             AllowSystemDeleteAfter = correspondenceDetails.AllowSystemDeleteAfter,
