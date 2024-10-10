@@ -201,8 +201,8 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
 
                 if (!_hostEnvironment.IsDevelopment())
                 {
-                    //Adds a 1 minute delay for mRequestedPublishTime to finish if not running locallyRequestedPublishTime
-                    publishTime = correspondence.VisibleFrom.UtcDateTime.AddSeconds(-30) < DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(1) : correspondence.VisibleFrom.UtcDateTime;
+                    //Adds a 1 minute delay for malware scan to finish if not running locally
+                    publishTime = correspondence.RequestedPublishTime.UtcDateTime.AddSeconds(-30) < DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(1) : correspondence.RequestedPublishTime.UtcDateTime;
                 }
 
                 _backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), publishTime);
@@ -271,8 +271,8 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 NationalIdentityNumber = personNr
             },
         },
-            ResourceId = correspondence.ResourcRequestedPublishTime
-            RequestedSendTime = correspondence.VisibleFrom.UtcDateTime.AddMinutes(5),
+            ResourceId = correspondence.ResourceId,
+            RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
             SendersReference = correspondence.SendersReference,
             NotificationChannel = notification.NotificationChannel,
             EmailTemplate = new EmailTemplate
@@ -298,8 +298,8 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 NationalIdentityNumber = personNr
             },
         },
-                ResourceId = correspondence.ResourcRequestedPublishTime
-                RequestedSendTime = correspondence.VisibleFrom.UtcDateTime.AddDays(7),
+                ResourceId = correspondence.ResourceId,
+                RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime.AddDays(7),
                 ConditionEndpoint = CreateConditonEndpoint(correspondence.Id.ToString()),
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,
