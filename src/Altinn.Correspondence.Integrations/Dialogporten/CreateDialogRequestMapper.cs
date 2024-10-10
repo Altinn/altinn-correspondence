@@ -268,7 +268,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 {
                     new DialogUrl
                     {
-                        ConsumerType = "Api",
+                        ConsumerType = "Gui",
                         MediaType = "application/octet-stream",
                         Url = GetDownloadAttachmentEndpoint(baseUrl, correspondence.Id, attachment.Id)
                     }
