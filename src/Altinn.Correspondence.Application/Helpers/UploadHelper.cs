@@ -99,50 +99,5 @@ namespace Altinn.Correspondence.Application.Helpers
             await _attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
             return currentStatus;
         }
-        public async Task CheckCorrespondenceStatusesAfterUploadAndPublish(Guid attachmentId, bool uploadSuccessful, CancellationToken cancellationToken)
-        {
-            var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
-            if (attachment == null)
-            {
-                return;
-            }
-
-            var correspondences = await _correspondenceRepository.GetNonPublishedCorrespondencesByAttachmentId(attachment.Id, cancellationToken);
-            if (correspondences.Count == 0)
-            {
-                return;
-            }
-
-            var list = new List<CorrespondenceStatusEntity>();
-            foreach (var correspondenceId in correspondences)
-            {
-                if (uploadSuccessful)
-                {
-                    list.Add(
-                        new CorrespondenceStatusEntity
-                        {
-                            CorrespondenceId = correspondenceId,
-                            Status = CorrespondenceStatus.ReadyForPublish,
-                            StatusChanged = DateTime.UtcNow,
-                            StatusText = CorrespondenceStatus.ReadyForPublish.ToString()
-                        }
-                    );
-                }
-                else
-                {
-                    list.Add(
-                        new CorrespondenceStatusEntity
-                        {
-                            CorrespondenceId = correspondenceId,
-                            Status = CorrespondenceStatus.Failed,
-                            StatusChanged = DateTime.UtcNow,
-                            StatusText = "Malware scan failed"
-                        }
-                    );
-                }
-            }
-            await _correspondenceStatusRepository.AddCorrespondenceStatuses(list, cancellationToken);
-            return;
-        }
     }
 }
