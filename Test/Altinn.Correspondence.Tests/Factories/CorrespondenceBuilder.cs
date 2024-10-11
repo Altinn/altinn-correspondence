@@ -27,7 +27,7 @@ namespace Altinn.Correspondence.Tests.Factories
                         MessageSummary = "# test",
                         MessageBody = "# test body /n __test__ /n **test**/n [test](www.test.no) /n ![test](www.test.no) /n ```test``` /n > test /n - test /n 1. test /n 1. test /n [x] test /n [ ] test /n ## test /n ### test /n #### test /n ##### test /n ###### test /n + test list /n - test list /n * list element",
                     },
-                    VisibleFrom = DateTimeOffset.UtcNow,
+                    RequestedPublishTime = DateTimeOffset.UtcNow,
                     DueDateTime = DateTimeOffset.UtcNow.AddDays(2),
                     AllowSystemDeleteAfter = DateTimeOffset.UtcNow.AddDays(3),
                     PropertyList = new Dictionary<string, string>(){
@@ -121,9 +121,9 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.DueDateTime = dueDateTime;
             return this;
         }
-        public CorrespondenceBuilder WithVisibleFrom(DateTimeOffset dueDateTime)
+        public CorrespondenceBuilder WithRequestedPublishTime(DateTimeOffset? requestedPublishTime)
         {
-            _correspondence.Correspondence.VisibleFrom = dueDateTime;
+            _correspondence.Correspondence.RequestedPublishTime = requestedPublishTime;
             return this;
         }
         public CorrespondenceBuilder WithAllowSystemDeleteAfter(DateTimeOffset dueDateTime)
@@ -185,7 +185,7 @@ namespace Altinn.Correspondence.Tests.Factories
                 Sender = "0192:991825827",
                 Recipient = "0192:991825827",
                 SendersReference = "1",
-                VisibleFrom = DateTimeOffset.UtcNow,
+                RequestedPublishTime = DateTimeOffset.UtcNow,
                 Statuses = new List<CorrespondenceStatusEntity>(),
                 Created = DateTimeOffset.UtcNow,
                 Notifications = new List<CorrespondenceNotificationEntity>()

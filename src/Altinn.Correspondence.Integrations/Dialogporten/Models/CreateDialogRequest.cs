@@ -25,8 +25,8 @@ public class CreateDialogRequest
     [JsonPropertyName("externalReference")]
     public string ExternalReference { get; set; }
 
-    [JsonPropertyName("visibleFrom")]
-    public DateTimeOffset? VisibleFrom { get; set; }
+    [JsonPropertyName("RequestedPublishTime")]
+    public DateTimeOffset? RequestedPublishTime { get; set; }
 
     [JsonPropertyName("dueAt")]
     public DateTimeOffset? DueAt { get; set; }

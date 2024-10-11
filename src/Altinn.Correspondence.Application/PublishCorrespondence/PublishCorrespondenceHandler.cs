@@ -59,7 +59,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
         {
             errorMessage = $"Correspondence {correspondenceId} has attachments not published";
         }
-        else if (correspondence.VisibleFrom > DateTimeOffset.UtcNow)
+        else if (correspondence.RequestedPublishTime > DateTimeOffset.UtcNow)
         {
             errorMessage = $"Correspondence {correspondenceId} not visible yet";
         }

@@ -36,7 +36,7 @@ public class GetCorrespondenceDetailsResponse
 
     public string ResourceId { get; set; } = string.Empty;
 
-    public DateTimeOffset VisibleFrom { get; set; }
+    public DateTimeOffset RequestedPublishTime { get; set; }
 
     public bool IgnoreReservation { get; set; }
 

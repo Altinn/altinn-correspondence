@@ -24,22 +24,22 @@ namespace Altinn.Correspondence.Application.Helpers
         }
         public Error? ValidateDateConstraints(CorrespondenceEntity correspondence)
         {
-            var visibleFrom = correspondence.VisibleFrom;
+            var RequestedPublishTime = correspondence.RequestedPublishTime;
             if (correspondence.DueDateTime < DateTimeOffset.Now)
             {
                 return Errors.DueDatePriorToday;
             }
-            if (correspondence.DueDateTime < visibleFrom)
+            if (correspondence.DueDateTime < RequestedPublishTime)
             {
-                return Errors.DueDatePriorVisibleFrom;
+                return Errors.DueDatePriorRequestedPublishTime;
             }
             if (correspondence.AllowSystemDeleteAfter < DateTimeOffset.Now)
             {
                 return Errors.AllowSystemDeletePriorToday;
             }
-            if (correspondence.AllowSystemDeleteAfter < visibleFrom)
+            if (correspondence.AllowSystemDeleteAfter < RequestedPublishTime)
             {
-                return Errors.AllowSystemDeletePriorVisibleFrom;
+                return Errors.AllowSystemDeletePriorRequestedPublishTime;
             }
             if (correspondence.AllowSystemDeleteAfter < correspondence.DueDateTime)
             {
@@ -139,7 +139,7 @@ namespace Altinn.Correspondence.Application.Helpers
             var status = CorrespondenceStatus.Initialized;
             if (correspondence.Content != null && correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.Statuses.Any(s => s.Status == AttachmentStatus.Published)))
             {
-                if (_hostEnvironment.IsDevelopment() && correspondence.VisibleFrom < DateTime.UtcNow) status = CorrespondenceStatus.Published; // used to test on published correspondences in development
+                if (_hostEnvironment.IsDevelopment() && correspondence.RequestedPublishTime < DateTime.UtcNow) status = CorrespondenceStatus.Published; // used to test on published correspondences in development
                 else status = CorrespondenceStatus.ReadyForPublish;
             }
             return status;
