@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Models.Entities;
+﻿using Altinn.Correspondence.Core.Dialogporten.Mappers;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
@@ -8,7 +9,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
 {
     internal class CreateDialogActivityRequestMapper
     {
-        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, string description, string? extendedType, ActivityType activityType = ActivityType.Information)
+        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType textType, params string[] tokens)
         {
             var dialogActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString(); // Dialogporten requires time-stamped GUIDs, not supported natively until .NET 9.0
             var urnActorId = actorType switch
@@ -27,16 +28,25 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                     new ActivityDescription()
                     {
                         LanguageCode = "nb",
-                        Value = description
+                        Value = DialogportenText.GetDialogportenText(textType, DialogportenLanguageCode.NB, tokens)
+                    },
+                    new ActivityDescription()
+                    {
+                        LanguageCode = "nn",
+                        Value = DialogportenText.GetDialogportenText(textType, DialogportenLanguageCode.NN, tokens)
+                    },
+                    new ActivityDescription()
+                    {
+                        LanguageCode = "en",
+                        Value = DialogportenText.GetDialogportenText(textType, DialogportenLanguageCode.EN, tokens)
                     }
                 },
-                ExtendedType = extendedType,
                 PerformedBy = new ActivityPerformedBy()
                 {
                     ActorType = actorType == DialogportenActorType.ServiceOwner ? "ServiceOwner" : "PartyRepresentative",
                     ActorId = urnActorId
                 },
-                Type = activityType
+                Type = ActivityType.Information
             };
         }
     }

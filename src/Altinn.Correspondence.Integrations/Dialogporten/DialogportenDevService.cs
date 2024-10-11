@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Services;
+﻿using Altinn.Correspondence.Core.Dialogporten.Mappers;
+using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten
@@ -10,7 +11,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.FromResult(Guid.NewGuid().ToString());
         }
 
-        public Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, string description, string? extendedType = null)
+        public Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, params string[] tokens)
         {
             return Task.CompletedTask;
         }

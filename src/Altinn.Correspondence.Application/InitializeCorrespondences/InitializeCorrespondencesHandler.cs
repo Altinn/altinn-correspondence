@@ -223,7 +223,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                         IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
                     };
                     await _correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
-                    _backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, $"Opprettet varslingsordre for tidspunkt {entity.RequestedSendTime}", null));
+                    _backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, Core.Dialogporten.Mappers.DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime!.Value.ToString("yyyy-MM-dd HH:mm")));
                 }
             }
         }

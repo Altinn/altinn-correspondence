@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Models.Enums;
+﻿using Altinn.Correspondence.Core.Dialogporten.Mappers;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -38,7 +39,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return dialogResponse;
     }
 
-    public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, string description, string? extendedType = null)
+    public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, params string[] tokens)
     {
         var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
@@ -54,7 +55,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new ArgumentException($"No dialog found on on correspondence with id {correspondenceId}");
         }
 
-        var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, description, extendedType, ActivityType.Information);
+        var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, textType, tokens);
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {

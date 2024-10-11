@@ -90,9 +90,9 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
                 StatusChanged = DateTimeOffset.UtcNow,
                 StatusText = CorrespondenceStatus.Published.ToString()
             };
+            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, Core.Dialogporten.Mappers.DialogportenTextType.CorrespondencePublished));
         }
 
-        _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, status.StatusText, null));
         await _correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
         await _eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         if (status.Status == CorrespondenceStatus.Published) await _eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);

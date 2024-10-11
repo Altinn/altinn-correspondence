@@ -97,8 +97,8 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
     // Must be public to be run by Hangfire
     public Task ReportActivityToDialogporten(Guid correspondenceId, DialogportenActorType dialogportenActorType, CorrespondenceStatus status) => status switch
     {
-        CorrespondenceStatus.Confirmed => _dialogportenService.CreateInformationActivity(correspondenceId, dialogportenActorType, "Mottaker har bekreftet mottak", null),
-        CorrespondenceStatus.Archived => _dialogportenService.CreateInformationActivity(correspondenceId, dialogportenActorType, "Meldingen er arkivert", null),
+        CorrespondenceStatus.Confirmed => _dialogportenService.CreateInformationActivity(correspondenceId, dialogportenActorType, Core.Dialogporten.Mappers.DialogportenTextType.CorrespondenceConfirmed),
+        CorrespondenceStatus.Archived => _dialogportenService.CreateInformationActivity(correspondenceId, dialogportenActorType, Core.Dialogporten.Mappers.DialogportenTextType.CorrespondenceArchived),
         _ => Task.CompletedTask
     };
 }

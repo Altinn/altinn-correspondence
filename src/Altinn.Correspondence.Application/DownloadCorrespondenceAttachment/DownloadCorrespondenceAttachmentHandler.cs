@@ -54,7 +54,7 @@ public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespo
             return Errors.CorrespondenceNotFound;
         }
         var attachmentStream = await _storageRepository.DownloadAttachment(attachment.Id, cancellationToken);
-        _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, Core.Services.Enums.DialogportenActorType.Recipient, $"Startet nedlastning av {attachment.FileName}", null));
+        _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, Core.Services.Enums.DialogportenActorType.Recipient, Core.Dialogporten.Mappers.DialogportenTextType.DownloadStarted, attachment.FileName ?? attachment.Name));
         return new DownloadCorrespondenceAttachmentResponse(){
             FileName = attachment.FileName,
             Stream = attachmentStream
