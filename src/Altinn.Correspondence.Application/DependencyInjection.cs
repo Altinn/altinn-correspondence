@@ -40,6 +40,9 @@ public static class DependencyInjection
         services.AddScoped<UpdateMarkAsUnreadHandler>();
         services.AddScoped<MigrateCorrespondenceHandler>();
         services.AddScoped<CheckNotificationHandler>();
+        services.AddScoped<MigrateInitializeAttachmentHandler>();
+        services.AddScoped<MigrateUploadAttachmentHandler>();
+
         services.AddScoped<InitializeCorrespondenceHelper>();
         services.AddScoped<UploadHelper>();
         services.AddScoped<UserClaimsHelper>();
