@@ -5,12 +5,12 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
 {
     internal class DialogportenDevService : IDialogportenService
     {
-        public Task<string> CreateCorrespondenceDialog(Guid correspondenceId, CancellationToken cancellationToken = default)
+        public Task<string> CreateCorrespondenceDialog(Guid correspondenceId)
         {
             return Task.FromResult(Guid.NewGuid().ToString());
         }
 
-        public Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, string description, string? extendedType = null, CancellationToken cancellationToken = default)
+        public Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, string description, string? extendedType = null)
         {
             return Task.CompletedTask;
         }

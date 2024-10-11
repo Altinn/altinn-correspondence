@@ -2,6 +2,7 @@
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Hangfire;
 using Microsoft.AspNetCore.Routing.Constraints;
 using OneOf;
 
@@ -13,17 +14,17 @@ public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespo
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly IStorageRepository _storageRepository;
     private readonly IAttachmentRepository _attachmentRepository;
-    private readonly IDialogportenService _dialogportenService;
     private readonly UserClaimsHelper _userClaimsHelper;
+    private readonly IBackgroundJobClient _backgroundJobClient;
 
-    public DownloadCorrespondenceAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IStorageRepository storageRepository, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, IDialogportenService dialogportenService, UserClaimsHelper userClaimsHelper)
+    public DownloadCorrespondenceAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IStorageRepository storageRepository, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IBackgroundJobClient backgroundJobClient)
     {
         _correspondenceRepository = correspondenceRepository;
         _altinnAuthorizationService = altinnAuthorizationService;
         _storageRepository = storageRepository;
         _attachmentRepository = attachmentRepository;
-        _dialogportenService = dialogportenService;
         _userClaimsHelper = userClaimsHelper;
+        _backgroundJobClient = backgroundJobClient;
     }
 
     public async Task<OneOf<DownloadCorrespondenceAttachmentResponse, Error>> Process(DownloadCorrespondenceAttachmentRequest request, CancellationToken cancellationToken)
@@ -53,7 +54,7 @@ public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespo
             return Errors.CorrespondenceNotFound;
         }
         var attachmentStream = await _storageRepository.DownloadAttachment(attachment.Id, cancellationToken);
-        await _dialogportenService.CreateInformationActivity(request.CorrespondenceId, Core.Services.Enums.DialogportenActorType.Recipient, $"Startet nedlastning av {attachment.FileName}", cancellationToken: cancellationToken);
+        _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, Core.Services.Enums.DialogportenActorType.Recipient, $"Startet nedlastning av {attachment.FileName}", null));
         return new DownloadCorrespondenceAttachmentResponse(){
             FileName = attachment.FileName,
             Stream = attachmentStream

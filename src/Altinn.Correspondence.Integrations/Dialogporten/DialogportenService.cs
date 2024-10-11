@@ -11,10 +11,12 @@ using System.Net.Http.Json;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
 
-public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IAltinnRegisterService _altinnRegisterService, IOptions<AltinnOptions> altinnOptions, ILogger<DialogportenService> _logger) : IDialogportenService
+public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IOptions<AltinnOptions> altinnOptions, ILogger<DialogportenService> _logger) : IDialogportenService
 {
-    public async Task<string> CreateCorrespondenceDialog(Guid correspondenceId, CancellationToken cancellationToken = default)
+    public async Task<string> CreateCorrespondenceDialog(Guid correspondenceId)
     {
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
         if (correspondence is null)
         {
@@ -36,8 +38,10 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return dialogResponse;
     }
 
-    public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, string description, string? extendedType = null, CancellationToken cancellationToken = default)
+    public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, string description, string? extendedType = null)
     {
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
         if (correspondence is null)
         {

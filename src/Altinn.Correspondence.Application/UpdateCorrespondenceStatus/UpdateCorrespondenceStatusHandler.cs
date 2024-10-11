@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using OneOf;
 using Azure.Core;
+using Hangfire;
 
 namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 
@@ -17,8 +18,9 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
     private readonly IEventBus _eventBus;
     private readonly IDialogportenService _dialogportenService;
     private readonly UserClaimsHelper _userClaimsHelper;
+    private readonly IBackgroundJobClient _backgroundJobClient;
 
-    public UpdateCorrespondenceStatusHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IEventBus eventBus, IDialogportenService dialogportenService, UserClaimsHelper userClaimsHelper)
+    public UpdateCorrespondenceStatusHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IEventBus eventBus, IDialogportenService dialogportenService, UserClaimsHelper userClaimsHelper, IBackgroundJobClient backgroundJobClient)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
@@ -26,6 +28,7 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         _eventBus = eventBus;
         _dialogportenService = dialogportenService;
         _userClaimsHelper = userClaimsHelper;
+        _backgroundJobClient = backgroundJobClient;
     }
 
     public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusRequest request, CancellationToken cancellationToken)
@@ -74,7 +77,7 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
             StatusChanged = DateTimeOffset.UtcNow,
             StatusText = request.Status.ToString(),
         }, cancellationToken);
-        await ReportActivityToDialogporten(request.CorrespondenceId, DialogportenActorType.Recipient, request.Status, cancellationToken);
+        _backgroundJobClient.Enqueue(() => ReportActivityToDialogporten(request.CorrespondenceId, DialogportenActorType.Recipient, request.Status));
         await PublishEvent(correspondence, request.Status, cancellationToken);
         return request.CorrespondenceId;
     }
@@ -90,10 +93,12 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
             await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         }
     }
-    private Task ReportActivityToDialogporten(Guid correspondenceId, DialogportenActorType dialogportenActorType, CorrespondenceStatus status, CancellationToken cancellationToken) => status switch
+
+    // Must be public to be run by Hangfire
+    public Task ReportActivityToDialogporten(Guid correspondenceId, DialogportenActorType dialogportenActorType, CorrespondenceStatus status) => status switch
     {
-        CorrespondenceStatus.Confirmed => _dialogportenService.CreateInformationActivity(correspondenceId, dialogportenActorType, "Mottaker har bekreftet mottak", cancellationToken: cancellationToken),
-        CorrespondenceStatus.Archived => _dialogportenService.CreateInformationActivity(correspondenceId, dialogportenActorType, "Meldingen er arkivert", cancellationToken: cancellationToken),
+        CorrespondenceStatus.Confirmed => _dialogportenService.CreateInformationActivity(correspondenceId, dialogportenActorType, "Mottaker har bekreftet mottak", null),
+        CorrespondenceStatus.Archived => _dialogportenService.CreateInformationActivity(correspondenceId, dialogportenActorType, "Meldingen er arkivert", null),
         _ => Task.CompletedTask
     };
 }

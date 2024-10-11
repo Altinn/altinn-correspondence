@@ -1,21 +1,21 @@
-using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Application.GetCorrespondences;
+using Altinn.Correspondence.Application.CancelNotification;
 using Altinn.Correspondence.Application.Configuration;
+using Altinn.Correspondence.Application.GetCorrespondences;
+using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Helpers;
+using Hangfire;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using Moq;
+using Slack.Webhooks;
+using System.Data;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Data;
-using Slack.Webhooks;
-using Moq;
-using Altinn.Correspondence.Application.CancelNotification;
-using Microsoft.Extensions.Logging;
-using Altinn.Correspondence.Core.Repositories;
-using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Tests.Helpers;
-using Altinn.Correspondence.Core.Services;
 
 namespace Altinn.Correspondence.Tests;
 
@@ -1332,9 +1332,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var loggerMock = new Mock<ILogger<CancelNotificationHandler>>();
         var altinnNotificationServiceMock = new Mock<IAltinnNotificationService>();
         var slackClientMock = new Mock<ISlackClient>();
-        var dialogportenServicemock = new Mock<IDialogportenService>();
+        var backgroundJobClient = new Mock<IBackgroundJobClient>();
 
-        var cancelNotificationHandler = new CancelNotificationHandler(loggerMock.Object, altinnNotificationServiceMock.Object, dialogportenServicemock.Object, slackClientMock.Object);
+        var cancelNotificationHandler = new CancelNotificationHandler(loggerMock.Object, altinnNotificationServiceMock.Object, slackClientMock.Object, backgroundJobClient.Object);
         var notificationEntities = correspondence.Notifications;
         notificationEntities.ForEach(notification =>
         {

@@ -16,21 +16,21 @@ namespace Altinn.Correspondence.Application.CancelNotification
     {
         private readonly ILogger<CancelNotificationHandler> _logger;
         private readonly IAltinnNotificationService _altinnNotificationService;
-        private readonly IDialogportenService _dialogportenService;
         private readonly ISlackClient _slackClient;
+        private readonly IBackgroundJobClient _backgroundJobClient; 
         private const string TestChannel = "#test-varslinger";
         private const string RetryCountKey = "RetryCount";
         private const int MaxRetries = 10;
         public CancelNotificationHandler(
             ILogger<CancelNotificationHandler> logger,
             IAltinnNotificationService altinnNotificationService,
-            IDialogportenService dialogportenService,
-            ISlackClient slackClient)
+            ISlackClient slackClient,
+            IBackgroundJobClient backgroundJobClient)
         {
             _logger = logger;
             _altinnNotificationService = altinnNotificationService;
-            _dialogportenService = dialogportenService;
             _slackClient = slackClient;
+            _backgroundJobClient = backgroundJobClient;
         }
 
         [AutomaticRetry(Attempts = MaxRetries)]
@@ -62,7 +62,7 @@ namespace Altinn.Correspondence.Application.CancelNotification
                     throw new Exception(error);
                 } else
                 {
-                    await _dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, "Varslingsordre kansellert", cancellationToken: cancellationToken);
+                    _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, "Varslingsordre kansellert", null));
                 }
             }
         }

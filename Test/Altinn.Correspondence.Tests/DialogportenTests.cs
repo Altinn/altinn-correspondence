@@ -4,14 +4,11 @@ using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
-using Altinn.Correspondence.Persistence.Repositories;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Helpers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.OpenApi.Validations;
 using Moq;
-using Org.BouncyCastle.Tls;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -39,7 +36,7 @@ public class DialogportenTests : IClassFixture<CustomWebApplicationFactory>
         // Arrange
         var mockDialogportenService = new Mock<IDialogportenService>();
         mockDialogportenService
-            .Setup(x => x.CreateCorrespondenceDialog(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CreateCorrespondenceDialog(It.IsAny<Guid>()))
             .ReturnsAsync("mocked-dialog-id");
         var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
         {
@@ -54,14 +51,8 @@ public class DialogportenTests : IClassFixture<CustomWebApplicationFactory>
 
         // Assert
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
-        mockDialogportenService.Verify(
-            x => x.CreateCorrespondenceDialog(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
-            Times.Exactly(correspondence.Recipients.Count));
+        Assert.True(testFactory.HangfireBackgroundJobClient.Invocations.Any(invocation => invocation.Arguments[0].ToString() == "InitializeCorrespondencesHandler.CreateDialogportenDialog"));
     }
-
-    // TODO, test called InitializeCorrespondence_WithDialogToken_Fails
-    // TODO, test called GetCorrespondenceContent_WithDialogTokenFromRecipient_Succeeds
-    // TODO, test called GetCorrespondenceContent_WithDialogTokenFromSomeoneElse_Fails
 
     [Fact]
     public async Task InitializeCorrespondence_WithDialogToken_Fails()
