@@ -24,7 +24,7 @@ public class MigrateInitializeAttachmentHandler : IHandler<InitializeAttachmentR
 
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, CancellationToken cancellationToken)
     {
-        var hasAccess = await _altinnAuthorizationService.CheckMigrationAccess(request.Attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Send }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckMigrationAccess(request.Attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
