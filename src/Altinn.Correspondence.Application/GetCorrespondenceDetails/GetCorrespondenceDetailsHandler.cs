@@ -57,7 +57,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
                 CorrespondenceId = correspondence.Id,
                 Status = CorrespondenceStatus.Fetched,
                 StatusText = CorrespondenceStatus.Fetched.ToString(),
-                StatusChanged = DateTime.Now
+                StatusChanged = DateTime.UtcNow
             }, cancellationToken);
         }
         var notificationHistory = new List<NotificationStatusResponse>();

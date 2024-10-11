@@ -25,7 +25,7 @@ namespace Altinn.Correspondence.Application.Helpers
         public Error? ValidateDateConstraints(CorrespondenceEntity correspondence)
         {
             var RequestedPublishTime = correspondence.RequestedPublishTime;
-            if (correspondence.DueDateTime < DateTimeOffset.Now)
+            if (correspondence.DueDateTime < DateTimeOffset.UtcNow)
             {
                 return Errors.DueDatePriorToday;
             }
@@ -33,7 +33,7 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return Errors.DueDatePriorRequestedPublishTime;
             }
-            if (correspondence.AllowSystemDeleteAfter < DateTimeOffset.Now)
+            if (correspondence.AllowSystemDeleteAfter < DateTimeOffset.UtcNow)
             {
                 return Errors.AllowSystemDeletePriorToday;
             }

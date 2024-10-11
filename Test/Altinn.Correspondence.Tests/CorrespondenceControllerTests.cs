@@ -236,7 +236,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithDueDateTime(DateTimeOffset.Now.AddDays(-7))
+            .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(-7))
             .Build();
 
         // Act
@@ -252,8 +252,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithDueDateTime(DateTimeOffset.Now.AddDays(7))
-            .WithRequestedPublishTime(DateTimeOffset.Now.AddDays(14))
+            .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(7))
+            .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(14))
             .Build();
 
         // Act
@@ -269,7 +269,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithAllowSystemDeleteAfter(DateTimeOffset.Now.AddDays(-7))
+            .WithAllowSystemDeleteAfter(DateTimeOffset.UtcNow.AddDays(-7))
             .Build();
 
         // Act
@@ -285,9 +285,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithAllowSystemDeleteAfter(DateTimeOffset.Now.AddDays(7))
-            .WithRequestedPublishTime(DateTimeOffset.Now.AddDays(14))
-            .WithDueDateTime(DateTimeOffset.Now.AddDays(21)) // ensure DueDate is after RequestedPublishTime
+            .WithAllowSystemDeleteAfter(DateTimeOffset.UtcNow.AddDays(7))
+            .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(14))
+            .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(21)) // ensure DueDate is after RequestedPublishTime
             .Build();
 
         // Act
@@ -303,9 +303,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithAllowSystemDeleteAfter(DateTimeOffset.Now.AddDays(14))
-            .WithRequestedPublishTime(DateTimeOffset.Now.AddDays(7))
-            .WithDueDateTime(DateTimeOffset.Now.AddDays(21))
+            .WithAllowSystemDeleteAfter(DateTimeOffset.UtcNow.AddDays(14))
+            .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(7))
+            .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(21))
             .Build();
 
         // Act
@@ -555,7 +555,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializedCorrespondence = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithResourceId(resourceId)
-            .WithRequestedPublishTime(DateTimeOffset.Now.AddDays(1))
+            .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
             .Build();
         var a = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", initializedCorrespondence);
         var correspondence = await a.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
@@ -565,7 +565,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var publishedCorrespondences = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithResourceId(resourceId)
-            .WithRequestedPublishTime(DateTimeOffset.Now.AddDays(-1))
+            .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(-1))
             .Build();
         await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", publishedCorrespondences);
 
@@ -601,7 +601,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             .CreateCorrespondence()
             .WithResourceId(resource)
             .WithRecipients([recipientId])
-            .WithRequestedPublishTime(DateTimeOffset.Now.AddDays(1))
+            .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
             .Build(); // One ready for publish
 
         // Act
@@ -624,7 +624,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithResourceId(resource)
-            .WithRequestedPublishTime(DateTimeOffset.Now.AddDays(1))
+            .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
             .Build(); // One ReadyForPublish
 
         // Act
@@ -651,7 +651,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithResourceId(resource)
-            .WithRequestedPublishTime(DateTimeOffset.Now.AddDays(1))
+            .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
             .Build(); // One ReadyForPublish
 
         // Act
@@ -708,7 +708,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithRequestedPublishTime(DateTimeOffset.Now.AddDays(1))
+            .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
             .Build();
 
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
@@ -805,7 +805,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithRequestedPublishTime(DateTimeOffset.Now.AddDays(1))
+            .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
@@ -875,7 +875,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     {
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithRequestedPublishTime(DateTimeOffset.Now.AddDays(1))
+            .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
@@ -979,7 +979,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments([attachmentId])
-            .WithRequestedPublishTime(DateTimeOffset.Now.AddDays(1)) // Set RequestedPublishTime in the future so that it is not published
+            .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1)) // Set RequestedPublishTime in the future so that it is not published
             .Build();
 
 
@@ -1014,7 +1014,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithRequestedPublishTime(DateTimeOffset.Now.AddDays(1))
+            .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
             .Build();
 
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
@@ -1061,7 +1061,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments([attachmentId])
-            .WithRequestedPublishTime(DateTimeOffset.Now.AddDays(1))
+            .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
@@ -1089,12 +1089,12 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var payload1 = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments([attachmentId])
-            .WithRequestedPublishTime(DateTimeOffset.Now.AddDays(1))
+            .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
             .Build();
         var payload2 = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments([attachmentId])
-            .WithRequestedPublishTime(DateTimeOffset.Now.AddDays(1))
+            .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
             .Build();
 
         var initializeCorrespondenceResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload1, _responseSerializerOptions);
