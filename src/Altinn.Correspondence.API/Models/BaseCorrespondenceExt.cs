@@ -52,7 +52,7 @@ namespace Altinn.Correspondence.API.Models
         /// When the correspondence should become visible to the recipient.
         /// </summary>
         [JsonPropertyName("RequestedPublishTime")]
-        public required DateTimeOffset RequestedPublishTime { get; set; }
+        public DateTimeOffset? RequestedPublishTime { get; set; }
 
         /// <summary>
         /// Gets or sets the date for when Altinn can remove the correspondence from its database.

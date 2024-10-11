@@ -32,7 +32,7 @@ internal static class MigrateCorrespondenceMapper
             ResourceId = migrateCorrespondenceExt.CorrespondenceData.Correspondence.ResourceId,
             Sender = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Sender,
             MessageSender = migrateCorrespondenceExt.CorrespondenceData.Correspondence.MessageSender,
-            RequestedPublishTime = migrateCorrespondenceExt.CorrespondenceData.Correspondence.RequestedPublishTime,
+            RequestedPublishTime = (DateTimeOffset)migrateCorrespondenceExt.CorrespondenceData.Correspondence.RequestedPublishTime,
             AllowSystemDeleteAfter = migrateCorrespondenceExt.CorrespondenceData.Correspondence.AllowSystemDeleteAfter,
             DueDateTime = migrateCorrespondenceExt.CorrespondenceData.Correspondence.DueDateTime,
             PropertyList = migrateCorrespondenceExt.CorrespondenceData.Correspondence.PropertyList,
