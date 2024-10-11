@@ -14,7 +14,6 @@ namespace Altinn.Correspondence.Tests.Helpers
 {
     internal class UnitWebApplicationFactory : WebApplicationFactory<Program>
     {
-        internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
         private Action<IServiceCollection>? _customServices;
 
         public UnitWebApplicationFactory(Action<IServiceCollection> customServices)
@@ -31,8 +30,6 @@ namespace Altinn.Correspondence.Tests.Helpers
                 services.AddHangfire(config =>
                                config.UseMemoryStorage()
                            );
-                HangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
-                services.AddSingleton(HangfireBackgroundJobClient.Object);
                 var altinnAuthorizationService = new Mock<IAltinnAuthorizationService>();
                 altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
                 services.AddSingleton(altinnAuthorizationService.Object);
