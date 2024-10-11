@@ -122,6 +122,11 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           keyVaultUrl: '${keyVaultUrl}/secrets/storage-connection-string'
           name: 'storage-connection-string'
         }
+        {
+          identity: principal_id
+          keyVaultUrl: '${keyVaultUrl}/secrets/dialogporten-issuer'
+          name: 'dialogporten-issuer'
+        }
       ]
     }
 
