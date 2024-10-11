@@ -121,9 +121,9 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.DueDateTime = dueDateTime;
             return this;
         }
-        public CorrespondenceBuilder WithRequestedPublishTime(DateTimeOffset dueDateTime)
+        public CorrespondenceBuilder WithRequestedPublishTime(DateTimeOffset? requestedPublishTime)
         {
-            _correspondence.Correspondence.RequestedPublishTime = dueDateTime;
+            _correspondence.Correspondence.RequestedPublishTime = requestedPublishTime;
             return this;
         }
         public CorrespondenceBuilder WithAllowSystemDeleteAfter(DateTimeOffset dueDateTime)

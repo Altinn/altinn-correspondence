@@ -1354,6 +1354,21 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         slackClientMock.Verify(client => client.Post(It.IsAny<SlackMessage>()), Times.Once);
     }
 
+    [Fact]
+    public async Task InitializeCorrespondence_With_RequestedPublishTime_Null()
+    {
+    // Arrange
+        var correspondence = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithRequestedPublishTime(null)
+            .Build();
+
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+    }
+
     private MultipartFormDataContent CorrespondenceToFormData(BaseCorrespondenceExt correspondence)
     {
         var formData = new MultipartFormDataContent(){
