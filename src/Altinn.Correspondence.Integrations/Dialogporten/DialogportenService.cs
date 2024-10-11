@@ -12,7 +12,7 @@ using System.Net.Http.Json;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
 
-public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IOptions<AltinnOptions> altinnOptions, ILogger<DialogportenService> _logger) : IDialogportenService
+public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IOptions<DialogportenSettings> dialogportenSettings, ILogger<DialogportenService> _logger) : IDialogportenService
 {
     public async Task<string> CreateCorrespondenceDialog(Guid correspondenceId)
     {
@@ -25,7 +25,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
 
-        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, altinnOptions.Value.PlatformGatewayUrl);
+        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, dialogportenSettings.Value.CorrespondenceBaseUrl);
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
