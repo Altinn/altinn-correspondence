@@ -31,9 +31,9 @@ public static class Errors
     public static Error DataLocationNotFound = new Error(23, "Could not get data location url", HttpStatusCode.BadRequest);
     public static Error ExistingAttachmentNotFound = new Error(24, "Existing attachment not found", HttpStatusCode.BadRequest);
     public static Error DueDatePriorToday = new Error(25, "DueDateTime cannot be prior to today", HttpStatusCode.BadRequest);
-    public static Error DueDatePriorVisibleFrom = new Error(26, "DueDateTime cannot be prior to VisibleFrom", HttpStatusCode.BadRequest);
+    public static Error DueDatePriorRequestedPublishTime = new Error(26, "DueDateTime cannot be prior to RequestedPublishTime", HttpStatusCode.BadRequest);
     public static Error AllowSystemDeletePriorToday = new Error(27, "AllowSystemDelete cannot be prior to today", HttpStatusCode.BadRequest);
-    public static Error AllowSystemDeletePriorVisibleFrom = new Error(28, "AllowSystemDelete cannot be prior to VisibleFrom", HttpStatusCode.BadRequest);
+    public static Error AllowSystemDeletePriorRequestedPublishTime = new Error(28, "AllowSystemDelete cannot be prior to RequestedPublishTime", HttpStatusCode.BadRequest);
     public static Error AllowSystemDeletePriorDueDate = new Error(29, "AllowSystemDelete cannot be prior to DueDateTime", HttpStatusCode.BadRequest);
     public static Error CouldNotFindOrgNo = new Error(30, "Could not identify orgnumber from user", HttpStatusCode.Unauthorized);
     public static Error CantPurgeCorrespondenceSender = new Error(31, "Cannot delete correspondence that has been published", HttpStatusCode.BadRequest);

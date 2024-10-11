@@ -51,8 +51,8 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// When the correspondence should become visible to the recipient.
         /// </summary>
-        [JsonPropertyName("visibleFrom")]
-        public required DateTimeOffset VisibleFrom { get; set; }
+        [JsonPropertyName("RequestedPublishTime")]
+        public DateTimeOffset? RequestedPublishTime { get; set; }
 
         /// <summary>
         /// Gets or sets the date for when Altinn can remove the correspondence from its database.
@@ -98,8 +98,8 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Specifies whether the correspondence can override reservation against digital comminication in KRR
         /// </summary>
-        [JsonPropertyName("isReservable")]
-        public bool? IsReservable { get; set; }
+        [JsonPropertyName("IgnoreReservation")]
+        public bool? IgnoreReservation { get; set; }
     }
 
     [AttributeUsage(AttributeTargets.Property)]

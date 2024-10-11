@@ -52,7 +52,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
     {
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.Correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Send }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.Correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
@@ -171,12 +171,12 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                     MessageSummary = request.Correspondence.Content.MessageSummary,
                     MessageTitle = request.Correspondence.Content.MessageTitle,
                 },
-                VisibleFrom = request.Correspondence.VisibleFrom,
+                RequestedPublishTime = request.Correspondence.RequestedPublishTime,
                 AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,
                 DueDateTime = request.Correspondence.DueDateTime,
                 PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
                 ReplyOptions = request.Correspondence.ReplyOptions,
-                IsReservable = request.Correspondence.IsReservable,
+                IgnoreReservation = request.Correspondence.IgnoreReservation,
                 Statuses = new List<CorrespondenceStatusEntity>(){
                     new CorrespondenceStatusEntity
                     {
@@ -197,13 +197,14 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             await _correspondenceRepository.AddExternalReference(correspondence.Id, ReferenceType.DialogportenDialogId, dialogId, cancellationToken);
             if (correspondence.GetLatestStatus()?.Status != CorrespondenceStatus.Published)
             {
-                var publishTime = correspondence.VisibleFrom;
+                var publishTime = correspondence.RequestedPublishTime;
 
-                if (!_hostEnvironment.IsDevelopment()) {
+                if (!_hostEnvironment.IsDevelopment())
+                {
                     //Adds a 1 minute delay for malware scan to finish if not running locally
-                    publishTime = correspondence.VisibleFrom.UtcDateTime.AddSeconds(-30) < DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(1) : correspondence.VisibleFrom.UtcDateTime;
+                    publishTime = correspondence.RequestedPublishTime.UtcDateTime.AddSeconds(-30) < DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(1) : correspondence.RequestedPublishTime.UtcDateTime;
                 }
-                
+
                 _backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), publishTime);
 
             }
@@ -263,7 +264,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         }
         var notificationOrder = new NotificationOrderRequest
         {
-            IgnoreReservation = !correspondence.IsReservable,
+            IgnoreReservation = correspondence.IgnoreReservation,
             Recipients = new List<Recipient>{
             new Recipient{
                 OrganizationNumber = orgNr,
@@ -271,7 +272,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             },
         },
             ResourceId = correspondence.ResourceId,
-            RequestedSendTime = correspondence.VisibleFrom.UtcDateTime.AddMinutes(5),
+            RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
             SendersReference = correspondence.SendersReference,
             NotificationChannel = notification.NotificationChannel,
             EmailTemplate = new EmailTemplate
@@ -290,7 +291,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             notifications.Add(new NotificationOrderRequest
             {
-                IgnoreReservation = !correspondence.IsReservable,
+                IgnoreReservation = correspondence.IgnoreReservation,
                 Recipients = new List<Recipient>{
             new Recipient{
                 OrganizationNumber = orgNr,
@@ -298,7 +299,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             },
         },
                 ResourceId = correspondence.ResourceId,
-                RequestedSendTime = correspondence.VisibleFrom.UtcDateTime.AddDays(7),
+                RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime.AddDays(7),
                 ConditionEndpoint = CreateConditonEndpoint(correspondence.Id.ToString()),
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,

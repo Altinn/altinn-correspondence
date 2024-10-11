@@ -23,12 +23,12 @@ internal static class CorrespondenceOverviewMapper
             ReplyOptions = CorrespondenceReplyOptionsMapper.MapListToExternal(correspondenceOverview.ReplyOptions),
             ExternalReferences = ExternalReferenceMapper.MapListToExternal(correspondenceOverview.ExternalReferences),
             ResourceId = correspondenceOverview.ResourceId.ToString(),
-            VisibleFrom = correspondenceOverview.VisibleFrom,
+            RequestedPublishTime = correspondenceOverview.RequestedPublishTime,
             MarkedUnread = correspondenceOverview.MarkedUnread,
             AllowSystemDeleteAfter = correspondenceOverview.AllowSystemDeleteAfter,
             DueDateTime = correspondenceOverview.DueDateTime,
             PropertyList = correspondenceOverview.PropertyList,
-            IsReservable = correspondenceOverview.IsReservable
+            IgnoreReservation = correspondenceOverview.IgnoreReservation
         };
         return Correspondence;
     }
