@@ -81,41 +81,33 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static List<SearchTag> GetSearchTagsForCorrespondence(CorrespondenceEntity correspondence)
         {
-            var searchTags = new List<SearchTag>
-            {
-                new SearchTag()
-                {
-                    Value = correspondence.SendersReference
-                },
-                new SearchTag()
-                {
-                    Value = correspondence.Sender
-                },
-                new SearchTag()
-                {
-                    Value = correspondence.ResourceId
-                }
-            };
-            if (correspondence.MessageSender is not null)
-            {
-                searchTags.Add(new SearchTag()
-                {
-                    Value = correspondence.MessageSender.ToString()
-                });
-            }
+            var list = new List<SearchTag>();
+            list = AddSearchTagIfValid(list, correspondence.SendersReference);
+            list = AddSearchTagIfValid(list, correspondence.Sender);
+            list = AddSearchTagIfValid(list, correspondence.ResourceId);
+            list = AddSearchTagIfValid(list, correspondence.MessageSender);
             foreach (var reference in correspondence.ExternalReferences)
             {
-                searchTags.Add(new SearchTag()
-                {
-                    Value = reference.ReferenceType.ToString()
-                });
-                searchTags.Add(new SearchTag()
-                {
-                    Value = reference.ReferenceValue
-                });
+                list = AddSearchTagIfValid(list, reference.ReferenceType.ToString());
+                list = AddSearchTagIfValid(list, reference.ReferenceValue.ToString());
             }
-            searchTags = searchTags.DistinctBy(tag => tag.Value).ToList(); // Remove duplicates
-            return searchTags;
+            list = list.DistinctBy(tag => tag.Value).ToList(); // Remove duplicates
+            return list;
+        }
+
+        private static List<SearchTag> AddSearchTagIfValid(List<SearchTag> list, string? searchTag)
+        {
+            if (string.IsNullOrWhiteSpace(searchTag) || searchTag.Length < 3)
+            {
+                return list;
+            }
+            list.Add(
+                new SearchTag()
+                {
+                    Value = searchTag
+                }
+            );
+            return list;
         }
 
         private static List<Activity> GetActivitiesForCorrespondence(CorrespondenceEntity correspondence)
