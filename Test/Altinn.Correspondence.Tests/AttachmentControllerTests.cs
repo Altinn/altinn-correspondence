@@ -346,7 +346,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithExistingAttachments([attachmentId])
-            .WithVisibleFrom(DateTime.UtcNow.AddDays(1))
+            .WithRequestedPublishTime(DateTime.UtcNow.AddDays(1))
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();

@@ -279,7 +279,7 @@
                                     "Correspondence.ResourceId",
                                     "Correspondence.Sender",
                                     "Correspondence.SendersReference",
-                                    "Correspondence.VisibleFrom",
+                                    "Correspondence.RequestedPublishTime",
                                     "Recipients"
                                 ],
                                 "type": "object",
@@ -321,7 +321,7 @@
                                             "$ref": "#/components/schemas/InitializeCorrespondenceAttachmentExt"
                                         }
                                     },
-                                    "Correspondence.VisibleFrom": {
+                                    "Correspondence.RequestedPublishTime": {
                                         "type": "string",
                                         "format": "date-time"
                                     },
@@ -411,7 +411,7 @@
                                 "Correspondence.Content.Attachments": {
                                     "style": "form"
                                 },
-                                "Correspondence.VisibleFrom": {
+                                "Correspondence.RequestedPublishTime": {
                                     "style": "form"
                                 },
                                 "Correspondence.AllowSystemDeleteAfter": {
@@ -923,7 +923,7 @@
                     "resourceId",
                     "sender",
                     "sendersReference",
-                    "visibleFrom"
+                    "RequestedPublishTime"
                 ],
                 "type": "object",
                 "properties": {
@@ -951,7 +951,7 @@
                     "content": {
                         "$ref": "#/components/schemas/InitializeCorrespondenceContentExt"
                     },
-                    "visibleFrom": {
+                    "RequestedPublishTime": {
                         "type": "string",
                         "format": "date-time"
                     },
@@ -1123,7 +1123,7 @@
                     "resourceId",
                     "sender",
                     "sendersReference",
-                    "visibleFrom"
+                    "RequestedPublishTime"
                 ],
                 "type": "object",
                 "properties": {
@@ -1151,7 +1151,7 @@
                     "content": {
                         "$ref": "#/components/schemas/CorrespondenceContentExt"
                     },
-                    "visibleFrom": {
+                    "RequestedPublishTime": {
                         "type": "string",
                         "format": "date-time"
                     },
@@ -1311,7 +1311,7 @@
                     "resourceId",
                     "sender",
                     "sendersReference",
-                    "visibleFrom"
+                    "RequestedPublishTime"
                 ],
                 "type": "object",
                 "properties": {
@@ -1339,7 +1339,7 @@
                     "content": {
                         "$ref": "#/components/schemas/CorrespondenceContentExt"
                     },
-                    "visibleFrom": {
+                    "RequestedPublishTime": {
                         "type": "string",
                         "format": "date-time"
                     },
