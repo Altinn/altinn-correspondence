@@ -93,10 +93,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 },
                 new SearchTag()
                 {
-                    Value = correspondence.Recipient
-                },
-                new SearchTag()
-                {
                     Value = correspondence.ResourceId
                 }
             };
@@ -105,17 +101,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 searchTags.Add(new SearchTag()
                 {
                     Value = correspondence.MessageSender.ToString()
-                });
-            }
-            foreach (var property in correspondence.PropertyList)
-            {
-                searchTags.Add(new SearchTag()
-                {
-                    Value = property.Key
-                });
-                searchTags.Add(new SearchTag()
-                {
-                    Value = property.Value
                 });
             }
             foreach (var reference in correspondence.ExternalReferences)
@@ -167,6 +152,30 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                         {
                             HttpMethod = "POST",
                             Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive"
+                        }
+                    }
+                },
+                new ApiAction()
+                {
+                    Action = "write",
+                    Endpoints = new List<Endpoint>()
+                    {
+                        new Endpoint()
+                        {
+                            HttpMethod = "DELETE",
+                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/purge"
+                        }
+                    }
+                },
+                new ApiAction()
+                {
+                    Action = "write",
+                    Endpoints = new List<Endpoint>()
+                    {
+                        new Endpoint()
+                        {
+                            HttpMethod = "POST",
+                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/markasread"
                         }
                     }
                 }
@@ -248,6 +257,63 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive",
                     HttpMethod = "POST",
                     Priority = "Secondary"
+                },
+                new GuiAction()
+                {
+                    Title = new List<Title>()
+                    {
+                        new Title()
+                        {
+                            LanguageCode = "nb",
+                            MediaType = "text/plain",
+                            Value = "Marker som lest"
+                        },
+                        new Title()
+                        {
+                            LanguageCode = "nn",
+                            MediaType = "text/plain",
+                            Value = "Mark som lest"
+                        },
+                        new Title()
+                        {
+                            LanguageCode = "en",
+                            MediaType = "text/plain",
+                            Value = "Mark as read"
+                        },
+                    },
+                    Action = "write",
+                    Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/markasread",
+                    HttpMethod = "POST",
+                    Priority = "Tertiary"
+                },
+                new GuiAction()
+                {
+                    Title = new List<Title>()
+                    {
+                        new Title()
+                        {
+                            LanguageCode = "nb",
+                            MediaType = "text/plain",
+                            Value = "Slett"
+                        },
+                        new Title()
+                        {
+                            LanguageCode = "nn",
+                            MediaType = "text/plain",
+                            Value = "Slett"
+                        },
+                        new Title()
+                        {
+                            LanguageCode = "en",
+                            MediaType = "text/plain",
+                            Value = "Purge"
+                        },
+                    },
+                    Action = "write",
+                    IsDeleteDialogAction = true,
+                    Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/purge",
+                    HttpMethod = "DELETE",
+                    Priority = "Tertiary"
                 }
             };
             return guiActions;
