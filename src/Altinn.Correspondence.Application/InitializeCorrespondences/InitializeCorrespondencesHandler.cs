@@ -202,7 +202,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 if (!_hostEnvironment.IsDevelopment())
                 {
                     //Adds a 1 minute delay for malware scan to finish if not running locally
-                    publishTime = correspondence.RequestedPublishTime.UtcDateTime.AddSeconds(-30) < DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(1) : correspondence.RequestedPublishTime.UtcDateTime;
+                    publishTime = correspondence.RequestedPublishTime.UtcDateTime.AddSeconds(-30) < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow.AddMinutes(1) : correspondence.RequestedPublishTime.UtcDateTime;
                 }
 
                 _backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), publishTime);
@@ -218,7 +218,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                     var orderId = await _altinnNotificationService.CreateNotification(notification, cancellationToken);
                     var entity = new CorrespondenceNotificationEntity()
                     {
-                        Created = DateTime.UtcNow,
+                        Created = DateTimeOffset.UtcNow,
                         NotificationChannel = request.Notification.NotificationChannel,
                         NotificationTemplate = request.Notification.NotificationTemplate,
                         CorrespondenceId = correspondence.Id,

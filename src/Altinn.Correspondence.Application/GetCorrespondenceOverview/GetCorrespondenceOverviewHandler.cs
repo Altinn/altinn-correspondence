@@ -54,7 +54,7 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
                 CorrespondenceId = correspondence.Id,
                 Status = CorrespondenceStatus.Fetched,
                 StatusText = CorrespondenceStatus.Fetched.ToString(),
-                StatusChanged = DateTime.UtcNow
+                StatusChanged = DateTimeOffset.UtcNow
             }, cancellationToken);
         }
         var response = new GetCorrespondenceOverviewResponse
