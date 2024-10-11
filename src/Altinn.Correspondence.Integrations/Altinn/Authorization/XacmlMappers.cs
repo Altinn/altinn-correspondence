@@ -39,6 +39,8 @@ public static class XacmlMappers
     /// </summary>
     internal const string ResourceId = "r";
 
+    internal const string OrgNumberAttributeId = "urn:altinn:organization:identifier-no";
+
     /// <param name="actionType">Action type represented as a string</param>
     /// <param name="includeResult">A value indicating whether the value should be included in the result</param>
     /// <returns>A XacmlJsonCategory</returns>
@@ -56,11 +58,16 @@ public static class XacmlMappers
 
     /// If id is required this should be included by the caller. 
     /// Attribute eventId is tagged with `includeInResponse`</remarks>
-    internal static XacmlJsonCategory CreateResourceCategory(string resourceId)
+    internal static XacmlJsonCategory CreateResourceCategory(string resourceId, ClaimsPrincipal user)
     {
         XacmlJsonCategory resourceCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
 
         resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceId, resourceId, DefaultType, DefaultIssuer));
+        var claim = user.Claims.FirstOrDefault(claim => IsClientOrgNo(claim.Type));
+        if (claim is not null)
+        {
+            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(OrgNumberAttributeId, claim.Value, DefaultType, DefaultIssuer));
+        }
 
         return resourceCategory;
     }
@@ -75,7 +82,7 @@ public static class XacmlMappers
             if (IsCamelCaseOrgnumberClaim(claim.Type))
             {
                 list.Add(CreateXacmlJsonAttribute("urn:altinn:organizationnumber", claim.Value, "string", claim.Issuer));
-                list.Add(CreateXacmlJsonAttribute("urn:altinn:organization:identifier-no", claim.Value, "string", claim.Issuer));
+                list.Add(CreateXacmlJsonAttribute(OrgNumberAttributeId, claim.Value, "string", claim.Issuer));
             }
             else if (IsScopeClaim(claim.Type))
             {
@@ -88,6 +95,10 @@ public static class XacmlMappers
             else if (IsValidUrn(claim.Type))
             {
                 list.Add(CreateXacmlJsonAttribute(claim.Type, claim.Value, "string", claim.Issuer));
+            }
+            else if (IsValidPid(claim.Type))
+            {
+                list.Add(CreateXacmlJsonAttribute("urn:altinn:person:identifier-no", claim.Value, "string", claim.Issuer));
             }
         }
         xacmlJsonCategory.Attribute = list;
@@ -104,6 +115,11 @@ public static class XacmlMappers
         return value.Equals("urn:altinn:orgNumber");
     }
 
+    private static bool IsClientOrgNo(string value)
+    {
+        return value.Equals("client_orgno");
+    }
+
     private static bool IsScopeClaim(string value)
     {
         return value.Equals("scope");
@@ -113,6 +129,11 @@ public static class XacmlMappers
     {
         return value.Equals("jti");
     }
+
+    private static bool IsValidPid(string value)
+    {
+        return value.Equals("pid");
+    }   
 
     private static XacmlJsonAttribute CreateXacmlJsonAttribute(string attributeId, string value, string dataType, string issuer, bool includeResult = false)
     {

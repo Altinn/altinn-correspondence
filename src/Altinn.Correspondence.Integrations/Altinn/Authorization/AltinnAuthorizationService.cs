@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Authorization;
 
@@ -99,13 +100,13 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             Resource = new List<XacmlJsonCategory>()
         };
 
-        var subjectCategory = DecisionHelper.CreateSubjectCategory(user.Claims);
+        var subjectCategory = XacmlMappers.CreateSubjectCategory(user);
         request.AccessSubject.Add(subjectCategory);
         foreach (var actionType in actionTypes)
         {
             request.Action.Add(XacmlMappers.CreateActionCategory(actionType));
         }
-        var resourceCategory = XacmlMappers.CreateResourceCategory(resourceId);
+        var resourceCategory = XacmlMappers.CreateResourceCategory(resourceId, user);
         request.Resource.Add(resourceCategory);
 
         XacmlJsonRequestRoot jsonRequest = new() { Request = request };
