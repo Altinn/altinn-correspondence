@@ -171,7 +171,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                     MessageSummary = request.Correspondence.Content.MessageSummary,
                     MessageTitle = request.Correspondence.Content.MessageTitle,
                 },
-                VisibleFrom = request.Correspondence.VisibleFrom,
+                RequestedPublishTime = request.Correspondence.RequestedPublishTime,
                 AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,
                 DueDateTime = request.Correspondence.DueDateTime,
                 PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
@@ -197,12 +197,12 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             await _correspondenceRepository.AddExternalReference(correspondence.Id, ReferenceType.DialogportenDialogId, dialogId, cancellationToken);
             if (correspondence.GetLatestStatus()?.Status != CorrespondenceStatus.Published)
             {
-                var publishTime = correspondence.VisibleFrom;
+                var publishTime = correspondence.RequestedPublishTime;
 
                 if (!_hostEnvironment.IsDevelopment())
                 {
                     //Adds a 1 minute delay for malware scan to finish if not running locally
-                    publishTime = correspondence.VisibleFrom.UtcDateTime.AddSeconds(-30) < DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(1) : correspondence.VisibleFrom.UtcDateTime;
+                    publishTime = correspondence.RequestedPublishTime.UtcDateTime.AddSeconds(-30) < DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(1) : correspondence.RequestedPublishTime.UtcDateTime;
                 }
 
                 _backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), publishTime);
@@ -272,7 +272,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             },
         },
             ResourceId = correspondence.ResourceId,
-            RequestedSendTime = correspondence.VisibleFrom.UtcDateTime.AddMinutes(5),
+            RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
             SendersReference = correspondence.SendersReference,
             NotificationChannel = notification.NotificationChannel,
             EmailTemplate = new EmailTemplate
@@ -299,7 +299,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             },
         },
                 ResourceId = correspondence.ResourceId,
-                RequestedSendTime = correspondence.VisibleFrom.UtcDateTime.AddDays(7),
+                RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime.AddDays(7),
                 ConditionEndpoint = CreateConditonEndpoint(correspondence.Id.ToString()),
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,

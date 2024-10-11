@@ -30,7 +30,7 @@ internal static class InitializeCorrespondenceFactory
                     }
                 },
             },
-            VisibleFrom = DateTimeOffset.UtcNow,
+            RequestedPublishTime = DateTimeOffset.UtcNow,
             AllowSystemDeleteAfter = DateTimeOffset.UtcNow.AddDays(3),
             DueDateTime = DateTimeOffset.UtcNow.AddDays(2),
             ExternalReferences = new List<ExternalReferenceExt>(){
@@ -118,7 +118,7 @@ internal static class InitializeCorrespondenceFactory
     internal static InitializeCorrespondencesExt BasicCorrespondenceAlreadyVisible()
     {
         var data = BasicCorrespondences();
-        data.Correspondence.VisibleFrom = DateTime.UtcNow.AddDays(-1);
+        data.Correspondence.RequestedPublishTime = DateTime.UtcNow.AddDays(-1);
         return data;
     }
     internal static InitializeCorrespondencesExt BasicCorrespondenceWithHtmlInTitle()
@@ -320,7 +320,7 @@ internal static class InitializeCorrespondenceFactory
             Sender = "0192:991825827",
             Recipient = "0192:991825827",
             SendersReference = "1",
-            VisibleFrom = DateTimeOffset.UtcNow,
+            RequestedPublishTime = DateTimeOffset.UtcNow,
             Statuses = new List<CorrespondenceStatusEntity>(),
             Created = DateTimeOffset.UtcNow,
             Notifications = new List<CorrespondenceNotificationEntity>()

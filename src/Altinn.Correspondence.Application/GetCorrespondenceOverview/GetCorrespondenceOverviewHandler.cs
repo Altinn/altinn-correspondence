@@ -73,7 +73,7 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
             ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
             Notifications = correspondence.Notifications ?? new List<CorrespondenceNotificationEntity>(),
             ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
-            VisibleFrom = correspondence.VisibleFrom,
+            RequestedPublishTime = correspondence.RequestedPublishTime,
             IgnoreReservation = correspondence.IgnoreReservation ?? false,
             MarkedUnread = correspondence.MarkedUnread,
             AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
