@@ -91,8 +91,8 @@ namespace Altinn.Correspondence.API.Auth
                 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
                 {
                     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                    options.NonceCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-                    options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+                    options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
+                    options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
                     options.NonceCookie.SameSite = SameSiteMode.None;
                     options.CorrelationCookie.SameSite = SameSiteMode.None;
                     options.AuthenticationMethod = OpenIdConnectRedirectBehavior.RedirectGet;
