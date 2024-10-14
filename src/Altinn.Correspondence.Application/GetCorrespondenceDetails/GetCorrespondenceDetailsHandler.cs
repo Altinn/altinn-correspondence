@@ -3,6 +3,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceDetails;

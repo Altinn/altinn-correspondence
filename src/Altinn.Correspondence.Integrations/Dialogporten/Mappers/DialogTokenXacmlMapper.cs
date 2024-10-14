@@ -1,43 +1,39 @@
 ﻿using Altinn.Authorization.ABAC.Xacml.JsonProfile;
 using Altinn.Common.PEP.Constants;
 using Altinn.Common.PEP.Helpers;
-using static Altinn.Authorization.ABAC.Constants.XacmlConstants;
+using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
-using Microsoft.IdentityModel.Tokens;
+using static Altinn.Authorization.ABAC.Constants.XacmlConstants;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
-    public static class DialogportenXacmlMapper
-    {    /// <summary>
-         /// Default issuer for attributes
-         /// </summary>
+    public static class DialogTokenXacmlMapper
+    {
         internal const string DefaultIssuer = "Dialogporten";
-
-        /// <summary>
-        /// Default type for attributes
-        /// </summary>
         internal const string DefaultType = "string";
 
-        /// <summary>
-        /// Subject id for multi requests. Inde should be appended.
-        /// </summary>
-        internal const string SubjectId = "s";
+        public static XacmlJsonRequestRoot CreateDialogportenDecisionRequest(ClaimsPrincipal user, string resourceId)
+        {
+            XacmlJsonRequest request = new()
+            {
+                AccessSubject = new List<XacmlJsonCategory>(),
+                Action = new List<XacmlJsonCategory>(),
+                Resource = new List<XacmlJsonCategory>()
+            };
 
-        /// <summary>
-        /// Action id for multi requests. Inde should be appended.
-        /// </summary>
-        internal const string ActionId = "a";
+            var subjectCategory = CreateSubjectCategory(user);
+            request.AccessSubject.Add(subjectCategory);
+            request.Action.Add(CreateActionCategory(user));
+            var resourceCategory = CreateResourceCategory(resourceId, user);
+            request.Resource.Add(resourceCategory);
 
-        /// <summary>
-        /// Resource id for multi requests. Inde should be appended.
-        /// </summary>
-        internal const string ResourceId = "r";
+            XacmlJsonRequestRoot jsonRequest = new() { Request = request };
 
-        /// <param name="actionType">Action type represented as a string</param>
-        /// <param name="includeResult">A value indicating whether the value should be included in the result</param>
-        /// <returns>A XacmlJsonCategory</returns>
-        internal static XacmlJsonCategory CreateActionCategory(ClaimsPrincipal user, bool includeResult = false)
+            return jsonRequest;
+        }
+
+        private static XacmlJsonCategory CreateActionCategory(ClaimsPrincipal user, bool includeResult = false)
         {
             var actionClaim = user.Claims.FirstOrDefault(claim => IsActionClaim(claim.Type));
             if (actionClaim is null)
@@ -54,21 +50,19 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return actionAttributes;
         }
 
-        /// If id is required this should be included by the caller. 
-        /// Attribute eventId is tagged with `includeInResponse`</remarks>
-        internal static XacmlJsonCategory CreateResourceCategory(string resourceId, ClaimsPrincipal user)
+        private static XacmlJsonCategory CreateResourceCategory(string resourceId, ClaimsPrincipal user)
         {
             XacmlJsonCategory resourceCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
             resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceId, resourceId, DefaultType, DefaultIssuer));
-            var claim = user.Claims.FirstOrDefault(claim => IsOrgClaim(claim.Type));
-            if (claim is not null)
+            var orgClaim = user.Claims.FirstOrDefault(claim => IsOrgClaim(claim.Type));
+            if (orgClaim is not null)
             {
-                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute("urn:altinn:organization:identifier-no", claim.Value, DefaultType, DefaultIssuer));
+                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute("urn:altinn:organization:identifier-no", orgClaim.Value, DefaultType, DefaultIssuer));
             }
             return resourceCategory;
         }
 
-        internal static XacmlJsonCategory CreateSubjectCategory(ClaimsPrincipal user)
+        private static XacmlJsonCategory CreateSubjectCategory(ClaimsPrincipal user)
         {
             XacmlJsonCategory xacmlJsonCategory = new XacmlJsonCategory();
             List<XacmlJsonAttribute> list = new List<XacmlJsonAttribute>();

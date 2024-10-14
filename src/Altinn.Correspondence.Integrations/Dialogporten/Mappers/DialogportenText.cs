@@ -1,22 +1,9 @@
-﻿namespace Altinn.Correspondence.Core.Dialogporten.Mappers
-{
-    public enum DialogportenTextType
-    {
-        NotificationOrderCreated,
-        NotificationOrderCancelled,
-        DownloadStarted,
-        CorrespondencePublished,
-        CorrespondenceConfirmed,
-        CorrespondenceArchived,
-        CorrespondencePurged
-    }
+﻿using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Dialogporten.Enums;
 
-    public enum DialogportenLanguageCode
-    {
-        NB,
-        NN,
-        EN
-    }
+namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
+{
+
     public static class DialogportenText
     {
         public static string GetDialogportenText(DialogportenTextType type, DialogportenLanguageCode languageCode, params string[] tokens) => languageCode switch
@@ -27,7 +14,6 @@
             _ => throw new ArgumentException("Invalid language code")
         };
 
-
         private static string GetNBText(DialogportenTextType type, params string[] tokens) => type switch
         {
             DialogportenTextType.NotificationOrderCreated => "Varslingsordre opprettet.",
@@ -37,7 +23,9 @@
             DialogportenTextType.CorrespondenceConfirmed => "Melding bekreftet.",
             DialogportenTextType.CorrespondenceArchived => "Melding arkivert.",
             DialogportenTextType.CorrespondencePurged => "Melding slettet.",
+            _ => throw new ArgumentException("Invalid text type")
         };
+
         private static string GetNNText(DialogportenTextType type, params string[] tokens) => type switch
         {
             DialogportenTextType.NotificationOrderCreated => "Varslingsordre opprettet.",
@@ -47,7 +35,9 @@
             DialogportenTextType.CorrespondenceConfirmed => "Melding bekreftet.",
             DialogportenTextType.CorrespondenceArchived => "Melding arkivert.",
             DialogportenTextType.CorrespondencePurged => "Melding slettet.",
+            _ => throw new ArgumentException("Invalid text type")
         };
+
         private static string GetENText(DialogportenTextType type, params string[] tokens) => type switch
         {
             DialogportenTextType.NotificationOrderCreated => "Notification order created.",
@@ -57,6 +47,7 @@
             DialogportenTextType.CorrespondenceConfirmed => "Message confirmed.",
             DialogportenTextType.CorrespondenceArchived => "Message archived.",
             DialogportenTextType.CorrespondencePurged => "Message deleted.",
+            _ => throw new ArgumentException("Invalid text type")
         };
     }
 }

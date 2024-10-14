@@ -7,6 +7,8 @@ param platform_base_url = readEnvironmentVariable('PLATFORM_BASE_URL')
 param correspondenceBaseUrl = readEnvironmentVariable('CORRESPONDENCE_BASE_URL')
 param environment = readEnvironmentVariable('ENVIRONMENT')
 param maskinporten_environment = 'test'
+param dialogportenIssuer = readEnvironmentVariable('DIALOGPORTEN_ISSUER')
+param idportenIssuer = readEnvironmentVariable('IDPORTEN_ISSUER')
 // secrets
 param sourceKeyVaultName = readEnvironmentVariable('KEY_VAULT_NAME')
 param keyVaultUrl = readEnvironmentVariable('KEY_VAULT_URL')

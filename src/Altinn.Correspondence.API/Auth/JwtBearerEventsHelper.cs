@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Altinn.Correspondence.API.Helpers
+namespace Altinn.Correspondence.API.Auth
 {
     public class JWTBearerEventsHelper
     {

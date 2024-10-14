@@ -1,8 +1,10 @@
 ﻿using Microsoft.IdentityModel.Tokens;
 using ScottBrady.IdentityModel.Tokens;
 using ScottBrady.IdentityModel;
+using Microsoft.Extensions.Options;
+using Altinn.Correspondence.Core.Options;
 
-namespace Altinn.Correspondence.API.Helpers
+namespace Altinn.Correspondence.API.Auth
 {
     public class EdDsaSecurityKeysCacheService : IHostedService, IDisposable
     {
@@ -11,23 +13,14 @@ namespace Altinn.Correspondence.API.Helpers
 
         private PeriodicTimer? _timer;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly AltinnOptions _altinnOptions;
         private readonly ILogger<EdDsaSecurityKeysCacheService> _logger;
-
         private readonly TimeSpan _refreshInterval = TimeSpan.FromHours(12);
 
-        // In this service we allow keys for all non-production environments for
-        // simplicity. Usually one would only allow a single environment (issuer) here,
-        // which we could get from an injected IConfiguration/IOptions
-        private readonly List<string> _wellKnownEndpoints =
-        [
-            //"https://localhost:7214/api/v1/.well-known/jwks.json",
-            "https://altinn-dev-api.azure-api.net/dialogporten/api/v1/.well-known/jwks.json",
-        "https://platform.tt02.altinn.no/dialogporten/api/v1/.well-known/jwks.json"
-        ];
-
-        public EdDsaSecurityKeysCacheService(IHttpClientFactory httpClientFactory, ILogger<EdDsaSecurityKeysCacheService> logger)
+        public EdDsaSecurityKeysCacheService(IHttpClientFactory httpClientFactory, IOptions<AltinnOptions> altinnOptions, ILogger<EdDsaSecurityKeysCacheService> logger)
         {
             _httpClientFactory = httpClientFactory;
+            _altinnOptions = altinnOptions.Value;
             _logger = logger;
         }
 
@@ -67,27 +60,23 @@ namespace Altinn.Correspondence.API.Helpers
         {
             var httpClient = _httpClientFactory.CreateClient();
             var keys = new List<EdDsaSecurityKey>();
-
-            foreach (var endpoint in _wellKnownEndpoints)
+            var endpoint = $"{_altinnOptions.PlatformGatewayUrl.Trim('/')}/dialogporten/api/v1/.well-known/jwks.json";
+            try
             {
-                try
+                var response = await httpClient.GetStringAsync(endpoint, cancellationToken);
+                var jwks = new JsonWebKeySet(response);
+                foreach (var jwk in jwks.Keys)
                 {
-                    var response = await httpClient.GetStringAsync(endpoint, cancellationToken);
-                    var jwks = new JsonWebKeySet(response);
-                    foreach (var jwk in jwks.Keys)
+                    if (ExtendedJsonWebKeyConverter.TryConvertToEdDsaSecurityKey(jwk, out var edDsaKey))
                     {
-                        if (ExtendedJsonWebKeyConverter.TryConvertToEdDsaSecurityKey(jwk, out var edDsaKey))
-                        {
-                            keys.Add(edDsaKey);
-                        }
+                        keys.Add(edDsaKey);
                     }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to retrieve keys from {endpoint}", endpoint);
-                }
             }
-
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to retrieve keys from {endpoint}", endpoint);
+            }
             _logger.LogInformation("Refreshed EdDsa keys cache with {count} keys", keys.Count);
 
             var newKeys = keys.ToList();

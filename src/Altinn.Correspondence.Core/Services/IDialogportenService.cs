@@ -1,5 +1,4 @@
-﻿using Altinn.Correspondence.Core.Dialogporten.Mappers;
-using Altinn.Correspondence.Core.Services.Enums;
+﻿using Altinn.Correspondence.Core.Services.Enums;
 
 namespace Altinn.Correspondence.Core.Services;
 
