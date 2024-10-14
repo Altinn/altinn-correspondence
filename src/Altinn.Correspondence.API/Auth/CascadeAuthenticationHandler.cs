@@ -50,7 +50,7 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
             }
             else
             {
-                Logger.LogInformation($"Authentication failed with scheme: {schemeName}. Reason: {result.Failure?.Message}");
+                Logger.LogInformation($"Authentication failed with scheme: {schemeName}. Reason: {result.Failure?.Message}: {result.Failure?.StackTrace}");
             }
 
             // If it's OpenIdConnect and it failed, we don't want to redirect yet
