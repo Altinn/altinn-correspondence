@@ -32,6 +32,8 @@ inputs:
   STORAGE_ACCOUNT_NAME:
     description: "Name of the storage account used for attachments"
     required: true
+  CORRESPONDENCE_BASE_URL:
+    description: "Base url for callbacks to Correspondence"
 
 runs:
   using: "composite"
@@ -59,6 +61,7 @@ runs:
         TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
         PLATFORM_BASE_URL: ${{ inputs.PLATFORM_BASE_URL }}
         STORAGE_ACCOUNT_NAME: ${{ inputs.STORAGE_ACCOUNT_NAME }}
+        CORRESPONDENCE_BASE_URL: ${{ inputs.CORRESPONDENCE_BASE_URL }}
       with:
         scope: subscription
         subscriptionId: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
