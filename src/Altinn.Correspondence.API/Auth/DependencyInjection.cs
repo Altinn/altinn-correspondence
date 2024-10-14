@@ -2,6 +2,7 @@
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Core.Options;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -22,10 +23,7 @@ namespace Altinn.Correspondence.API.Auth
             var dialogportenSettings = new DialogportenSettings();
             config.GetSection(nameof(DialogportenSettings)).Bind(dialogportenSettings);
             services
-                .AddAuthentication(options =>
-                {
-                    options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
-                })
+                .AddAuthentication()
                 .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
                 {
                     options.SaveToken = true;
@@ -72,6 +70,7 @@ namespace Altinn.Correspondence.API.Auth
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         IssuerSigningKeyResolver = (_, _, _, _) => EdDsaSecurityKeysCacheService.EdDsaSecurityKeys,
+                        ValidIssuer = dialogportenSettings.Issuer,
                         ValidateIssuerSigningKey = true,
                         ValidateIssuer = true,
                         ValidateAudience = false,
@@ -106,7 +105,8 @@ namespace Altinn.Correspondence.API.Auth
                     options.GetClaimsFromUserInfoEndpoint = true;
                     options.Scope.Add("openid");
                     options.Scope.Add("profile");
-                });
+                })
+                .AddScheme<AuthenticationSchemeOptions, CascadeAuthenticationHandler>(AuthorizationConstants.AllSchemes, options => { });
         }
 
         public static void ConfigureAuthorization(this IServiceCollection services, IConfiguration config)
@@ -126,7 +126,8 @@ namespace Altinn.Correspondence.API.Auth
                 options.AddPolicy(AuthorizationConstants.Migrate, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MigrateScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.NotificationCheck, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.NotificationCheckScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.DownloadAttachmentPolicy, policy =>
-                    policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme, OpenIdConnectDefaults.AuthenticationScheme));
+                    policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope)
+                          .AddAuthenticationSchemes(AuthorizationConstants.AllSchemes));
                 });
         }
     }
