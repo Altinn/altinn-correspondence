@@ -9,6 +9,7 @@ using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Slack.Webhooks;
@@ -1333,8 +1334,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var altinnNotificationServiceMock = new Mock<IAltinnNotificationService>();
         var slackClientMock = new Mock<ISlackClient>();
         var backgroundJobClient = new Mock<IBackgroundJobClient>();
+        var hostEnvironment = new Mock<IHostEnvironment>();
 
-        var cancelNotificationHandler = new CancelNotificationHandler(loggerMock.Object, altinnNotificationServiceMock.Object, slackClientMock.Object, backgroundJobClient.Object);
+        var cancelNotificationHandler = new CancelNotificationHandler(loggerMock.Object, altinnNotificationServiceMock.Object, slackClientMock.Object, backgroundJobClient.Object, hostEnvironment.Object);
         var notificationEntities = correspondence.Notifications;
         notificationEntities.ForEach(notification =>
         {
@@ -1345,7 +1347,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Act
         try
         {
-            await cancelNotificationHandler.CancelNotification(notificationEntities, retryAttempts: 10, default);
+            await cancelNotificationHandler.CancelNotification(Guid.Empty, notificationEntities, retryAttempts: 10, default);
         }
         catch
         {
