@@ -78,7 +78,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
             eventType = AltinnEventType.CorrespondencePublishFailed;
             foreach (var notification in correspondence.Notifications)
             {
-                _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondence.Notifications, cancellationToken));
+                _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, correspondence.Notifications, cancellationToken));
             }
         }
         else
