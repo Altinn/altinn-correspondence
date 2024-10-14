@@ -9,11 +9,10 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using OneOf;
 using System.Text.RegularExpressions;
-
-using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Hosting;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
@@ -25,7 +24,6 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceNotificationRepository _correspondenceNotificationRepository;
     private readonly INotificationTemplateRepository _notificationTemplateRepository;
-    private readonly IAttachmentRepository _attachmentRepository;
     private readonly IEventBus _eventBus;
     private readonly InitializeCorrespondenceHelper _initializeCorrespondenceHelper;
     private readonly IBackgroundJobClient _backgroundJobClient;
@@ -33,7 +31,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
     private readonly UserClaimsHelper _userClaimsHelper;
     private readonly IHostEnvironment _hostEnvironment;
 
-    public InitializeCorrespondencesHandler(IOptions<AltinnOptions> altinnOptions, InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceNotificationRepository correspondenceNotificationRepository, INotificationTemplateRepository notificationTemplateRepository, IAttachmentRepository attachmentRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient, UserClaimsHelper userClaimsHelper, IDialogportenService dialogportenService, IHostEnvironment hostEnvironment)
+    public InitializeCorrespondencesHandler(IOptions<AltinnOptions> altinnOptions, InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceNotificationRepository correspondenceNotificationRepository, INotificationTemplateRepository notificationTemplateRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient, UserClaimsHelper userClaimsHelper, IDialogportenService dialogportenService, IHostEnvironment hostEnvironment)
     {
         _altinnOptions = altinnOptions;
         _initializeCorrespondenceHelper = initializeCorrespondenceHelper;
@@ -42,7 +40,6 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         _correspondenceRepository = correspondenceRepository;
         _correspondenceNotificationRepository = correspondenceNotificationRepository;
         _notificationTemplateRepository = notificationTemplateRepository;
-        _attachmentRepository = attachmentRepository;
         _eventBus = eventBus;
         _backgroundJobClient = backgroundJobClient;
         _dialogportenService = dialogportenService;
@@ -193,8 +190,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         correspondences = await _correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
         foreach (var correspondence in correspondences)
         {
-            var dialogId = await _dialogportenService.CreateCorrespondenceDialog(correspondence.Id, cancellationToken);
-            await _correspondenceRepository.AddExternalReference(correspondence.Id, ReferenceType.DialogportenDialogId, dialogId, cancellationToken);
+            var dialogJob = _backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
             if (correspondence.GetLatestStatus()?.Status != CorrespondenceStatus.Published)
             {
                 var publishTime = correspondence.RequestedPublishTime;
@@ -227,6 +223,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                         IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
                     };
                     await _correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
+                    _backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, Core.Dialogporten.Mappers.DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime!.Value.ToString("yyyy-MM-dd HH:mm")));
                 }
             }
         }
@@ -342,6 +339,13 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
     private string CreateMessageFromToken(string message, string? token = "")
     {
         return message.Replace("{textToken}", token + " ").Trim();
+    }
+
+    // Must be public to be run by Hangfire
+    public async Task CreateDialogportenDialog(CorrespondenceEntity correspondence)
+    {
+        var dialogId = await _dialogportenService.CreateCorrespondenceDialog(correspondence.Id);
+        await _correspondenceRepository.AddExternalReference(correspondence.Id, ReferenceType.DialogportenDialogId, dialogId);
     }
 
     internal class NotificationContent

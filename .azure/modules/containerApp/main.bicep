@@ -5,6 +5,7 @@ param image string
 param environment string
 param platform_base_url string
 param maskinporten_environment string
+param correspondenceBaseUrl string
 
 @secure()
 param subscription_id string
@@ -68,6 +69,8 @@ var containerAppEnvVars = [
   }
   { name: 'MaskinportenSettings__EncodedJwk', secretRef: 'maskinporten-jwk' }
   { name: 'GeneralSettings__SlackUrl', secretRef: 'slack-url' }
+  { name: 'DialogportenSettings__Issuer', secretRef: 'dialogporten-issuer' }
+  { name: 'DialogportenSettings__CorrespondenceBaseUrl', value: correspondenceBaseUrl }
 ]
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: '${namePrefix}-app'
@@ -120,6 +123,11 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           identity: principal_id
           keyVaultUrl: '${keyVaultUrl}/secrets/storage-connection-string'
           name: 'storage-connection-string'
+        }
+        {
+          identity: principal_id
+          keyVaultUrl: '${keyVaultUrl}/secrets/dialogporten-issuer'
+          name: 'dialogporten-issuer'
         }
       ]
     }

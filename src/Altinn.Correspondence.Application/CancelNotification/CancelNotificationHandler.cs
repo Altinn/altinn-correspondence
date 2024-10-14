@@ -1,6 +1,9 @@
 using System.Runtime.CompilerServices;
+using System.Threading;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
 using Hangfire.Server;
 using Microsoft.Extensions.Logging;
@@ -14,17 +17,20 @@ namespace Altinn.Correspondence.Application.CancelNotification
         private readonly ILogger<CancelNotificationHandler> _logger;
         private readonly IAltinnNotificationService _altinnNotificationService;
         private readonly ISlackClient _slackClient;
+        private readonly IBackgroundJobClient _backgroundJobClient; 
         private const string TestChannel = "#test-varslinger";
         private const string RetryCountKey = "RetryCount";
         private const int MaxRetries = 10;
         public CancelNotificationHandler(
             ILogger<CancelNotificationHandler> logger,
             IAltinnNotificationService altinnNotificationService,
-            ISlackClient slackClient)
+            ISlackClient slackClient,
+            IBackgroundJobClient backgroundJobClient)
         {
             _logger = logger;
             _altinnNotificationService = altinnNotificationService;
             _slackClient = slackClient;
+            _backgroundJobClient = backgroundJobClient;
         }
 
         [AutomaticRetry(Attempts = MaxRetries)]
@@ -54,6 +60,9 @@ namespace Altinn.Correspondence.Application.CancelNotification
                     var error = $"Error while cancelling notification. Failed to cancel notification for notificationId: {notification.Id}";
                     if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
                     throw new Exception(error);
+                } else
+                {
+                    _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, Core.Dialogporten.Mappers.DialogportenTextType.NotificationOrderCancelled));
                 }
             }
         }

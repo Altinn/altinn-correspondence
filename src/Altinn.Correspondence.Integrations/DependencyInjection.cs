@@ -57,10 +57,9 @@ public static class DependencyInjection
             services.AddHttpClient<IAltinnAuthorizationService, AltinnAuthorizationService>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
                     .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IAltinnAuthorizationService>();
 
-            /*services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(IDialogportenService).FullName, maskinportenSettings);
+            services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(IDialogportenService).FullName, maskinportenSettings);
             services.AddHttpClient<IDialogportenService, DialogportenService>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
-                .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IDialogportenService>();*/
-            services.AddScoped<IDialogportenService, DialogportenDevService>();
+                .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IDialogportenService>();
 
             services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(IAltinnNotificationService).FullName, maskinportenSettings);
             services.AddHttpClient<IAltinnNotificationService, AltinnNotificationService>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))

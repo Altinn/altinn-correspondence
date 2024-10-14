@@ -84,7 +84,7 @@ public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizat
                 {
                     CorrespondenceId = correspondenceId,
                     Status = CorrespondenceStatus.Published,
-                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusChanged = DateTime.UtcNow,
                     StatusText = CorrespondenceStatus.Published.ToString()
                 }
             );
