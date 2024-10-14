@@ -1,5 +1,5 @@
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -13,7 +13,6 @@ namespace Altinn.Correspondence.Application.PurgeCorrespondence;
 public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly IAltinnNotificationService _altinnNotificationService;
     private readonly IAttachmentRepository _attachmentRepository;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository;
     private readonly ICorrespondenceRepository _correspondenceRepository;
@@ -23,10 +22,9 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly UserClaimsHelper _userClaimsHelper;
 
-    public PurgeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus, UserClaimsHelper userClaimsHelper, IAltinnNotificationService altinnNotificationService, IBackgroundJobClient backgroundJobClient)
+    public PurgeCorrespondenceHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus, UserClaimsHelper userClaimsHelper, IBackgroundJobClient backgroundJobClient)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
-        _altinnNotificationService = altinnNotificationService;
         _attachmentRepository = attachmentRepository;
         _correspondenceRepository = correspondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
@@ -100,6 +98,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
         await _eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         await _correspondenceStatusRepository.AddCorrespondenceStatus(newStatus, cancellationToken);
         await CheckAndPurgeAttachments(correspondenceId, cancellationToken);
+        _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, newStatus.Status == CorrespondenceStatus.PurgedByRecipient ? DialogportenActorType.Recipient : DialogportenActorType.Sender, Core.Dialogporten.Mappers.DialogportenTextType.CorrespondencePurged, (newStatus.Status == CorrespondenceStatus.PurgedByRecipient ? "mottaker" : "avsender")));
         _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondence.Notifications, cancellationToken));
         return correspondenceId;
     }

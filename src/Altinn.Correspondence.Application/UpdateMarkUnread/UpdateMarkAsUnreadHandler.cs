@@ -1,6 +1,8 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.UpdateMarkAsUnread;
@@ -8,12 +10,12 @@ namespace Altinn.Correspondence.Application.UpdateMarkAsUnread;
 public class UpdateMarkAsUnreadHandler : IHandler<Guid, Guid>
 {
     private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
+    private readonly IDialogportenService _dialogportenService;
     private readonly UserClaimsHelper _userClaimsHelper;
-    public UpdateMarkAsUnreadHandler(ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, UserClaimsHelper userClaimsHelper)
+    public UpdateMarkAsUnreadHandler(ICorrespondenceRepository correspondenceRepository, IDialogportenService dialogportenService, UserClaimsHelper userClaimsHelper)
     {
         _correspondenceRepository = correspondenceRepository;
-        _correspondenceStatusRepository = correspondenceStatusRepository;
+        _dialogportenService = dialogportenService;
         _userClaimsHelper = userClaimsHelper;
     }
 

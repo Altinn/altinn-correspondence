@@ -22,6 +22,8 @@ param platformSubscriptionKey string
 param notificationEmail string
 @secure()
 param slackUrl string
+@secure()
+param dialogportenIssuer string
 
 @secure()
 param storageAccountName string
@@ -69,6 +71,10 @@ var secrets = [
   {
     name: 'slack-url'
     value: slackUrl
+  }
+  {
+    name: 'dialogporten-issuer'
+    value: dialogportenIssuer
   }
 ]
 
