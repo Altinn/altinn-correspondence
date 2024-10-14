@@ -32,7 +32,7 @@ public class MigrateCorrespondenceHandler : IHandler<MigrateCorrespondenceReques
 
     public async Task<OneOf<MigrateCorrespondenceResponse, Error>> Process(MigrateCorrespondenceRequest request, CancellationToken cancellationToken)
     {
-        var hasAccess = await _altinnAuthorizationService.CheckMigrationAccess(request.CorrespondenceEntity.ResourceId, [ResourceAccessLevel.Send], cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckMigrationAccess(request.CorrespondenceEntity.ResourceId, [ResourceAccessLevel.Write], cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;

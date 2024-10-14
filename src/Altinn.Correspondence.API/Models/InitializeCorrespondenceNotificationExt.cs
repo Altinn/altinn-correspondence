@@ -74,6 +74,11 @@ namespace Altinn.Correspondence.API.Models
         public NotificationChannelExt NotificationChannel { get; set; }
 
         /// <summary>
+        /// Where to send the reminder notification
+        /// </summary>
+        public NotificationChannelExt? ReminderNotificationChannel { get; set; }
+
+        /// <summary>
         /// Senders Reference for this notification
         /// </summary>
         [JsonPropertyName("sendersReference")]

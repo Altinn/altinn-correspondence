@@ -1,5 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Core.Models.Entities;
 
 namespace Altinn.Correspondence.Tests.Factories;
 internal static class InitializeCorrespondenceFactory
@@ -29,7 +30,7 @@ internal static class InitializeCorrespondenceFactory
                     }
                 },
             },
-            VisibleFrom = DateTimeOffset.UtcNow,
+            RequestedPublishTime = DateTimeOffset.UtcNow,
             AllowSystemDeleteAfter = DateTimeOffset.UtcNow.AddDays(3),
             DueDateTime = DateTimeOffset.UtcNow.AddDays(2),
             ExternalReferences = new List<ExternalReferenceExt>(){
@@ -66,13 +67,13 @@ internal static class InitializeCorrespondenceFactory
                 NotificationTemplate = NotificationTemplateExt.GenericAltinnMessage,
                 NotificationChannel = NotificationChannelExt.Email,
                 SendersReference = "0192:986252932",
-                RequestedSendTime = DateTime.UtcNow.AddDays(1),
+                RequestedSendTime = DateTimeOffset.UtcNow.AddDays(1),
                 SendReminder = true,
             },
-            IsReservable = true
+            IgnoreReservation = false
         },
         Recipients = new List<string>(){
-            "0192:986252931",
+            "0192:991825827",
             "0192:986252932",
             "0192:986252933"
         },
@@ -117,7 +118,7 @@ internal static class InitializeCorrespondenceFactory
     internal static InitializeCorrespondencesExt BasicCorrespondenceAlreadyVisible()
     {
         var data = BasicCorrespondences();
-        data.Correspondence.VisibleFrom = DateTime.UtcNow.AddDays(-1);
+        data.Correspondence.RequestedPublishTime = DateTimeOffset.UtcNow.AddDays(-1);
         return data;
     }
     internal static InitializeCorrespondencesExt BasicCorrespondenceWithHtmlInTitle()
@@ -260,5 +261,79 @@ internal static class InitializeCorrespondenceFactory
         data.Correspondence.Notification!.EmailSubject = "test";
         data.Correspondence.Notification!.SendReminder = true;
         return data;
+    }
+    internal static InitializeCorrespondencesExt BasicCorrespondenceWithEmailNotificationWithSmsReminder()
+    {
+        var data = BasicCorrespondences();
+        data.Correspondence.Notification!.NotificationTemplate = NotificationTemplateExt.GenericAltinnMessage;
+        data.Correspondence.Notification!.NotificationChannel = NotificationChannelExt.Email;
+        data.Correspondence.Notification!.ReminderNotificationChannel = NotificationChannelExt.Sms;
+        data.Correspondence.Notification!.EmailBody = "test";
+        data.Correspondence.Notification!.EmailSubject = "test";
+        data.Correspondence.Notification!.SendReminder = true;
+        data.Correspondence.Notification!.ReminderSmsBody = "test";
+        return data;
+    }
+    internal static InitializeCorrespondencesExt BasicCorrespondenceWithEmailNotificationWithSmsPrefferedReminder()
+    {
+        var data = BasicCorrespondences();
+        data.Correspondence.Notification!.NotificationTemplate = NotificationTemplateExt.GenericAltinnMessage;
+        data.Correspondence.Notification!.NotificationChannel = NotificationChannelExt.Email;
+        data.Correspondence.Notification!.ReminderNotificationChannel = NotificationChannelExt.Sms;
+        data.Correspondence.Notification!.EmailBody = "test";
+        data.Correspondence.Notification!.EmailSubject = "test";
+        data.Correspondence.Notification!.SendReminder = true;
+        data.Correspondence.Notification!.ReminderSmsBody = "test";
+        data.Correspondence.Notification!.ReminderEmailBody = "test";
+        data.Correspondence.Notification!.ReminderEmailSubject = "test";
+        return data;
+    }
+    internal static InitializeCorrespondencesExt BasicCorrespondenceWithSmsNotificationAndEmailReminder()
+    {
+        var data = BasicCorrespondences();
+        data.Correspondence.Notification!.NotificationTemplate = NotificationTemplateExt.GenericAltinnMessage;
+        data.Correspondence.Notification!.NotificationChannel = NotificationChannelExt.Sms;
+        data.Correspondence.Notification!.ReminderNotificationChannel = NotificationChannelExt.Email;
+        data.Correspondence.Notification!.ReminderSmsBody = "test";
+        data.Correspondence.Notification!.SendReminder = true;
+        data.Correspondence.Notification!.ReminderEmailBody = "test";
+        data.Correspondence.Notification!.ReminderEmailSubject = "test";
+        return data;
+    }
+    internal static InitializeCorrespondencesExt BasicCorrespondenceWithSmsNotificationAndEmailPrefferedReminder()
+    {
+        var data = BasicCorrespondences();
+        data.Correspondence.Notification!.NotificationTemplate = NotificationTemplateExt.GenericAltinnMessage;
+        data.Correspondence.Notification!.NotificationChannel = NotificationChannelExt.Sms;
+        data.Correspondence.Notification!.ReminderNotificationChannel = NotificationChannelExt.EmailPreferred;
+        data.Correspondence.Notification!.ReminderSmsBody = "test";
+        data.Correspondence.Notification!.SendReminder = true;
+        data.Correspondence.Notification!.ReminderEmailBody = "test";
+        data.Correspondence.Notification!.ReminderEmailSubject = "test";
+        return data;
+    }
+    internal static CorrespondenceEntity CorrespondenceEntityWithNotifications()
+    {
+        return new CorrespondenceEntity()
+        {
+            ResourceId = "1",
+            Sender = "0192:991825827",
+            Recipient = "0192:991825827",
+            SendersReference = "1",
+            RequestedPublishTime = DateTimeOffset.UtcNow,
+            Statuses = new List<CorrespondenceStatusEntity>(),
+            Created = DateTimeOffset.UtcNow,
+            Notifications = new List<CorrespondenceNotificationEntity>()
+            {
+                new CorrespondenceNotificationEntity()
+                {
+                    Created = DateTimeOffset.UtcNow,
+                    NotificationOrderId = Guid.NewGuid(),
+                    RequestedSendTime = DateTimeOffset.UtcNow.AddDays(1),
+                    NotificationTemplate = new Core.Models.Enums.NotificationTemplate(),
+                    NotificationChannel = new Core.Models.Enums.NotificationChannel(),
+                }
+            }
+        };
     }
 }

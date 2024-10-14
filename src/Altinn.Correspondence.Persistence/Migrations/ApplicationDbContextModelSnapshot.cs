@@ -184,7 +184,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<DateTimeOffset>("DueDateTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool?>("IsReservable")
+                    b.Property<bool?>("IgnoreReservation")
                         .HasColumnType("boolean");
 
                     b.Property<bool?>("MarkedUnread")
@@ -203,6 +203,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTimeOffset>("RequestedPublishTime")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("ResourceId")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -216,9 +219,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(4096)
                         .HasColumnType("character varying(4096)");
-
-                    b.Property<DateTimeOffset>("VisibleFrom")
-                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 

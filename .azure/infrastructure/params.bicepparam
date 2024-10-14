@@ -15,6 +15,8 @@ param maskinportenClientId = readEnvironmentVariable('MASKINPORTEN_CLIENT_ID')
 param platformSubscriptionKey = readEnvironmentVariable('PLATFORM_SUBSCRIPTION_KEY')
 param notificationEmail = readEnvironmentVariable('NOTIFICATION_EMAIL')
 param accessManagementSubscriptionKey = readEnvironmentVariable('ACCESS_MANAGEMENT_SUBSCRIPTION_KEY')
+param slackUrl = readEnvironmentVariable('SLACK_URL')
+param dialogportenIssuer = readEnvironmentVariable('DIALOGPORTEN_ISSUER')
 // SKUs
 param keyVaultSku = {
   name: 'standard'

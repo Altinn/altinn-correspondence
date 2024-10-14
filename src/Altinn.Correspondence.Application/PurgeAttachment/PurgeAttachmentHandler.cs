@@ -25,7 +25,7 @@ public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizat
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Open }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
@@ -36,23 +36,19 @@ public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizat
         }
 
         var correspondences = await _correspondenceRepository.GetCorrespondencesByAttachmentId(attachmentId, true, cancellationToken);
-        bool isCorrespondencePurged = correspondences
+        bool allCorrespondencesArePurged = correspondences
             .All(correspondence =>
             {
                 var latestStatus = correspondence.GetLatestStatus();
                 if (latestStatus is null) return false;
                 return latestStatus.Status.IsPurged();
             });
-        if (correspondences.Count == 0 || isCorrespondencePurged)
-
-        {
-            await _storageRepository.PurgeAttachment(attachmentId, cancellationToken);
-        }
-        else
+        if (correspondences.Count != 0 && !allCorrespondencesArePurged)
         {
             return Errors.PurgeAttachmentWithExistingCorrespondence;
         }
 
+        await _storageRepository.PurgeAttachment(attachmentId, cancellationToken);
         await _attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
         {
             AttachmentId = attachmentId,
@@ -64,36 +60,5 @@ public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizat
         await _eventBus.Publish(AltinnEventType.AttachmentPurged, attachment.ResourceId, attachmentId.ToString(), "attachment", attachment.Sender, cancellationToken);
 
         return attachmentId;
-    }
-
-    public async Task CheckCorrespondenceStatusesAfterDeleteAndPublish(Guid attachmentId, CancellationToken cancellationToken)
-    {
-        var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
-        if (attachment == null)
-        {
-            return;
-        }
-
-        var correspondences = await _correspondenceRepository.GetNonPublishedCorrespondencesByAttachmentId(attachment.Id, cancellationToken);
-        if (correspondences.Count == 0)
-        {
-            return;
-        }
-
-        var list = new List<CorrespondenceStatusEntity>();
-        foreach (var correspondenceId in correspondences)
-        {
-            list.Add(
-                new CorrespondenceStatusEntity
-                {
-                    CorrespondenceId = correspondenceId,
-                    Status = CorrespondenceStatus.Published,
-                    StatusChanged = DateTime.UtcNow,
-                    StatusText = CorrespondenceStatus.Published.ToString()
-                }
-            );
-        }
-        await _correspondenceStatusRepository.AddCorrespondenceStatuses(list, cancellationToken);
-        return;
     }
 }

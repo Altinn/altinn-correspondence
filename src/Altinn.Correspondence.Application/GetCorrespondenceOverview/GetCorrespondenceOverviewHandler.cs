@@ -2,6 +2,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Microsoft.Extensions.Logging;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceOverview;
@@ -12,13 +13,15 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
     private readonly ICorrespondenceRepository _CorrespondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly UserClaimsHelper _userClaimsHelper;
+    private readonly ILogger<GetCorrespondenceOverviewHandler> _logger;
 
-    public GetCorrespondenceOverviewHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository CorrespondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, UserClaimsHelper userClaimsHelper)
+    public GetCorrespondenceOverviewHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository CorrespondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, UserClaimsHelper userClaimsHelper, ILogger<GetCorrespondenceOverviewHandler> logger)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _CorrespondenceRepository = CorrespondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
         _userClaimsHelper = userClaimsHelper;
+        _logger = logger;
     }
 
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(Guid CorrespondenceId, CancellationToken cancellationToken)
@@ -28,18 +31,20 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
         {
             return Errors.CorrespondenceNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.See }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read, ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
         }
         if (!_userClaimsHelper.IsAffiliatedWithCorrespondence(correspondence.Recipient, correspondence.Sender))
         {
+            _logger.LogWarning("Caller not affiliated with correspondence");
             return Errors.CorrespondenceNotFound;
         }
         var latestStatus = correspondence.GetLatestStatus();
         if (latestStatus == null)
         {
+            _logger.LogWarning("Latest status not found for correspondence");
             return Errors.CorrespondenceNotFound;
         }
 
@@ -47,6 +52,7 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
         {
             if (!latestStatus.Status.IsAvailableForRecipient())
             {
+                _logger.LogWarning("Rejected because correspondence not available for recipient in current state.");
                 return Errors.CorrespondenceNotFound;
             }
             await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
@@ -54,7 +60,7 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
                 CorrespondenceId = correspondence.Id,
                 Status = CorrespondenceStatus.Fetched,
                 StatusText = CorrespondenceStatus.Fetched.ToString(),
-                StatusChanged = DateTime.Now
+                StatusChanged = DateTimeOffset.UtcNow
             }, cancellationToken);
         }
         var response = new GetCorrespondenceOverviewResponse
@@ -73,8 +79,8 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
             ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
             Notifications = correspondence.Notifications ?? new List<CorrespondenceNotificationEntity>(),
             ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
-            VisibleFrom = correspondence.VisibleFrom,
-            IsReservable = correspondence.IsReservable == null || correspondence.IsReservable.Value,
+            RequestedPublishTime = correspondence.RequestedPublishTime,
+            IgnoreReservation = correspondence.IgnoreReservation ?? false,
             MarkedUnread = correspondence.MarkedUnread,
             AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
         };

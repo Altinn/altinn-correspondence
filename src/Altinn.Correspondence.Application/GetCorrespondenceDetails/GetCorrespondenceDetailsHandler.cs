@@ -31,7 +31,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
         {
             return Errors.CorrespondenceNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.See }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read, ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
@@ -57,7 +57,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
                 CorrespondenceId = correspondence.Id,
                 Status = CorrespondenceStatus.Fetched,
                 StatusText = CorrespondenceStatus.Fetched.ToString(),
-                StatusChanged = DateTime.Now
+                StatusChanged = DateTimeOffset.UtcNow
             }, cancellationToken);
         }
         var notificationHistory = new List<NotificationStatusResponse>();
@@ -91,8 +91,8 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
             StatusHistory = correspondence.Statuses?.OrderBy(s => s.StatusChanged).ToList() ?? new List<CorrespondenceStatusEntity>(),
             ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
             ResourceId = correspondence.ResourceId,
-            VisibleFrom = correspondence.VisibleFrom,
-            IsReservable = correspondence.IsReservable == null || correspondence.IsReservable.Value,
+            RequestedPublishTime = correspondence.RequestedPublishTime,
+            IgnoreReservation = correspondence.IgnoreReservation ?? false,
             MarkedUnread = correspondence.MarkedUnread,
             AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
             DueDateTime = correspondence.DueDateTime,

@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 
-public class MigrateWebApplicationFactory : WebApplicationFactory<Program>
+public class MaskinportenWebApplicationFactory : WebApplicationFactory<Program>
 {
     internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
     protected override void ConfigureWebHost(

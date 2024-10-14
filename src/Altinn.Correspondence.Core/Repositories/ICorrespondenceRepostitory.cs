@@ -17,6 +17,7 @@ namespace Altinn.Correspondence.Core.Repositories
             DateTimeOffset? to,
             CorrespondenceStatus? status,
             string orgNo,
+            CorrespondencesRoleType role,
             CancellationToken cancellationToken);
 
         Task<(List<CorrespondenceEntity>, int)> GetCorrespondencesForParties(

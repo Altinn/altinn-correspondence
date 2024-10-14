@@ -109,7 +109,7 @@ resource exceptionOccuredAlertRule 'Microsoft.Insights/scheduledQueryRules@2023-
   name: '${namePrefix}-500-exception-occured'
   location: location
   properties: {
-    description: 'Alert for 500 errors in broker'
+    description: 'Alert for 500 errors in correspondence'
     enabled: true
     severity: 1
     evaluationFrequency: 'PT5M'

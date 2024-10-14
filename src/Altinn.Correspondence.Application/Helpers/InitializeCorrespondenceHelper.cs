@@ -24,22 +24,22 @@ namespace Altinn.Correspondence.Application.Helpers
         }
         public Error? ValidateDateConstraints(CorrespondenceEntity correspondence)
         {
-            var visibleFrom = correspondence.VisibleFrom;
-            if (correspondence.DueDateTime < DateTimeOffset.Now)
+            var RequestedPublishTime = correspondence.RequestedPublishTime;
+            if (correspondence.DueDateTime < DateTimeOffset.UtcNow)
             {
                 return Errors.DueDatePriorToday;
             }
-            if (correspondence.DueDateTime < visibleFrom)
+            if (correspondence.DueDateTime < RequestedPublishTime)
             {
-                return Errors.DueDatePriorVisibleFrom;
+                return Errors.DueDatePriorRequestedPublishTime;
             }
-            if (correspondence.AllowSystemDeleteAfter < DateTimeOffset.Now)
+            if (correspondence.AllowSystemDeleteAfter < DateTimeOffset.UtcNow)
             {
                 return Errors.AllowSystemDeletePriorToday;
             }
-            if (correspondence.AllowSystemDeleteAfter < visibleFrom)
+            if (correspondence.AllowSystemDeleteAfter < RequestedPublishTime)
             {
-                return Errors.AllowSystemDeletePriorVisibleFrom;
+                return Errors.AllowSystemDeletePriorRequestedPublishTime;
             }
             if (correspondence.AllowSystemDeleteAfter < correspondence.DueDateTime)
             {
@@ -66,63 +66,80 @@ namespace Altinn.Correspondence.Application.Helpers
         public Error? ValidateNotification(NotificationRequest notification)
         {
             if (notification.NotificationTemplate == NotificationTemplate.GenericAltinnMessage || notification.NotificationTemplate == NotificationTemplate.Altinn2Message) return null;
-            if (notification.NotificationChannel == NotificationChannel.Email)
+
+            var reminderNotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel;
+            if (notification.NotificationChannel == NotificationChannel.Email && (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject)))
             {
-                if (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject))
-                {
-                    return Errors.MissingEmailContent;
-                }
-                if (notification.SendReminder && (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject)))
-                {
-                    return Errors.MissingEmailReminderNotificationContent;
-                }
+                return Errors.MissingEmailContent;
+            }
+            if (reminderNotificationChannel == NotificationChannel.Email && notification.SendReminder && (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject)))
+            {
+                return Errors.MissingEmailReminderNotificationContent;
             }
             if (notification.NotificationChannel == NotificationChannel.Sms && string.IsNullOrEmpty(notification.SmsBody))
             {
                 return Errors.MissingSmsContent;
             }
-            if (notification.NotificationChannel == NotificationChannel.Sms && notification.SendReminder && string.IsNullOrEmpty(notification.ReminderSmsBody))
+            if (reminderNotificationChannel == NotificationChannel.Sms && notification.SendReminder && string.IsNullOrEmpty(notification.ReminderSmsBody))
             {
                 return Errors.MissingSmsReminderNotificationContent;
             }
-            if (notification.NotificationChannel == NotificationChannel.EmailPreferred || notification.NotificationChannel == NotificationChannel.SmsPreferred)
+            if ((notification.NotificationChannel == NotificationChannel.EmailPreferred || notification.NotificationChannel == NotificationChannel.SmsPreferred) &&
+                (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject) || string.IsNullOrEmpty(notification.SmsBody)))
             {
-                if (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject) || string.IsNullOrEmpty(notification.SmsBody))
-                {
-                    return Errors.MissingPrefferedNotificationContent;
-                }
-                if (notification.SendReminder && (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject) || string.IsNullOrEmpty(notification.ReminderSmsBody)))
-                {
-                    return Errors.MissingPrefferedReminderNotificationContent;
-                }
+                return Errors.MissingPrefferedNotificationContent;
+            }
+            if ((reminderNotificationChannel == NotificationChannel.EmailPreferred || reminderNotificationChannel == NotificationChannel.SmsPreferred) &&
+                notification.SendReminder && (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject) || string.IsNullOrEmpty(notification.ReminderSmsBody)))
+            {
+                return Errors.MissingPrefferedReminderNotificationContent;
             }
             return null;
         }
 
-        public Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments, bool isUpload)
+        /// <summary>
+        /// Validates that the uploaded files match the attachments in the correspondence
+        /// </summary>
+        public static Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments)
         {
-            if (files.Count > 0 || isUpload)
+            var maxUploadSize = long.Parse(int.MaxValue.ToString());
+            foreach (var attachment in attachments)
             {
-                var maxUploadSize = long.Parse(int.MaxValue.ToString());
-                if (isUpload && attachments.Count == 0) return Errors.UploadCorrespondenceNoAttachments;
-                foreach (var attachment in attachments)
-                {
-                    if (attachment.Attachment?.DataLocationUrl != null) continue;
-                    if (files.Count == 0 && isUpload) return Errors.UploadCorrespondenceNoAttachments;
-                    var file = files.FirstOrDefault(a => a.FileName == attachment.Attachment?.FileName);
-                    if (file == null) return Errors.UploadedFilesDoesNotMatchAttachments;
-                    if (file?.Length > maxUploadSize || file?.Length == 0) return Errors.InvalidFileSize;
-                }
+                if (attachment.Attachment?.DataLocationUrl != null) continue;
+                var file = files.FirstOrDefault(a => a.FileName == attachment.Attachment?.FileName);
+                if (file == null) return Errors.UploadedFilesDoesNotMatchAttachments;
+                if (file?.Length > maxUploadSize || file?.Length == 0) return Errors.InvalidFileSize;
             }
             return null;
+        }
+
+        /// <summary>
+        /// Get existing attachments from the database
+        /// </summary>
+        /// <remarks>
+        /// If the attachment is not found in the database, it is not included in the returned list
+        /// </remarks>
+        /// <returns>A list of the attachments found</returns>
+        public async Task<List<AttachmentEntity>> GetExistingAttachments(List<Guid> attachmentIds)
+        {
+            var attachments = new List<AttachmentEntity>();
+            foreach (var attachmentId in attachmentIds)
+            {
+                var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true);
+                if (attachment is not null)
+                {
+                    attachments.Add(attachment);
+                }
+            }
+            return attachments;
         }
 
         public CorrespondenceStatus GetInitializeCorrespondenceStatus(CorrespondenceEntity correspondence)
         {
             var status = CorrespondenceStatus.Initialized;
-            if (correspondence.Content != null && correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.Statuses.All(s => s.Status == AttachmentStatus.Published)))
+            if (correspondence.Content != null && correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.Statuses.Any(s => s.Status == AttachmentStatus.Published)))
             {
-                if (_hostEnvironment.IsDevelopment() && correspondence.VisibleFrom < DateTime.UtcNow) status = CorrespondenceStatus.Published; // used to test on published correspondences in development
+                if (_hostEnvironment.IsDevelopment() && correspondence.RequestedPublishTime < DateTimeOffset.UtcNow) status = CorrespondenceStatus.Published; // used to test on published correspondences in development
                 else status = CorrespondenceStatus.ReadyForPublish;
             }
             return status;
@@ -150,18 +167,6 @@ namespace Altinn.Correspondence.Application.Helpers
                 if (error != null) return error;
             }
             return null;
-        }
-
-        public async Task<List<AttachmentEntity>?> GetExistingAttachments(List<Guid> attachmentIds, CancellationToken cancellationToken)
-        {
-            var attachments = new List<AttachmentEntity>();
-            foreach (var attachmentId in attachmentIds)
-            {
-                var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, false, cancellationToken);
-                if (attachment == null) return null;
-                attachments.Add(attachment);
-            }
-            return attachments;
         }
 
         public async Task<AttachmentEntity> ProcessNewAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, CancellationToken cancellationToken)
