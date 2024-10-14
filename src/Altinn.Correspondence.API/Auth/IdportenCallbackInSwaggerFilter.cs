@@ -11,7 +11,7 @@ public class IdportenCallbackInSwaggerFilter : IDocumentFilter
         {
             Summary = "Callback for Idporten login"
         };
-        operation.Tags.Add(new OpenApiTag { Name = "Idporten" });
+        operation.Tags.Add(new OpenApiTag { Name = "ID-Porten" });
         var response = new OpenApiResponse
         {
             Description = "Success"
