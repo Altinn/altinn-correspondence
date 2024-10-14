@@ -100,7 +100,7 @@ namespace Altinn.Correspondence.API.Auth
                     options.ClientSecret = idPortenSettings.ClientSecret;
                     options.ResponseType = OpenIdConnectResponseType.Code;
                     options.UsePkce = true;
-                    options.CallbackPath = "/signin-oauth/code/callback/test-roarm";
+                    options.CallbackPath = "/correspondence/api/v1/idporten-callback";
                     options.SaveTokens = true;
                     options.GetClaimsFromUserInfoEndpoint = true;
                     options.Scope.Add("openid");
@@ -136,7 +136,7 @@ namespace Altinn.Correspondence.API.Auth
                 options.AddPolicy(AuthorizationConstants.DownloadAttachmentPolicy, policy =>
                     policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope)
                           .AddAuthenticationSchemes(AuthorizationConstants.AllSchemes));
-                });
+            });
         }
     }
 }
