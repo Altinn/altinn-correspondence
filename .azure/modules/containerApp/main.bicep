@@ -56,6 +56,7 @@ var containerAppEnvVars = [
   }
   { name: 'AltinnOptions__PlatformGatewayUrl', value: platform_base_url }
   { name: 'AltinnOptions__PlatformSubscriptionKey', secretRef: 'platform-subscription-key' }
+  { name: 'AltinnOptions__AccessManagementSubscriptionKey', secretRef: 'access-management-subscription-key' }
   { name: 'MaskinportenSettings__Environment', value: maskinporten_environment }
   { name: 'MaskinportenSettings__ClientId', secretRef: 'maskinporten-client-id' }
   {
@@ -99,6 +100,11 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           identity: principal_id
           keyVaultUrl: '${keyVaultUrl}/secrets/maskinporten-jwk'
           name: 'maskinporten-jwk'
+        }
+        {
+          identity: principal_id
+          keyVaultUrl: '${keyVaultUrl}/secrets/access-management-subscription-key'
+          name: 'access-management-subscription-key'
         }
         {
           identity: principal_id

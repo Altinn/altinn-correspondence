@@ -13,7 +13,7 @@
         /// <summary>
         /// Party Type is Organization
         /// </summary>
-        Organisation = 2,
+        Organization = 2,
 
         /// <summary>
         /// Party Type is Self Identified user

@@ -24,7 +24,6 @@ namespace Altinn.Correspondence.API.Controllers
     /// </summary>
     [ApiController]
     [Route("correspondence/api/legacy/v1/correspondence")]
-    [Authorize(AuthenticationSchemes = AuthorizationConstants.Legacy)]
     [Authorize(Policy = AuthorizationConstants.Legacy)]
     public class LegacyCorrespondenceController : Controller
     {
@@ -67,7 +66,7 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpPost]
         public async Task<ActionResult<CorrespondencesExt>> GetCorrespondences(
             LegacyGetCorrespondencesRequestExt request,
-            [FromServices] LegacyGetCorrespondencesHandler handler,            
+            [FromServices] LegacyGetCorrespondencesHandler handler,
             CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Get correspondences for receiver");

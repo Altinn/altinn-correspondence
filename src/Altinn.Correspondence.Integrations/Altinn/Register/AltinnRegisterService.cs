@@ -59,13 +59,13 @@ public class AltinnRegisterService : IAltinnRegisterService
 
     public async Task<SimpleParty?> LookUpParty(int partyId, CancellationToken cancellationToken = default)
     {
-        if(partyId <= 0)
+        if (partyId <= 0)
         {
             _logger.LogError("partyId is not a valid number.");
             return null;
         }
-        
-        var response = await _httpClient.PostAsJsonAsync($"register/api/v1/parties/{partyId}", cancellationToken);
+
+        var response = await _httpClient.GetAsync($"register/api/v1/parties/{partyId}", cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("Error when looking up party in Altinn Register.Statuscode was: {statusCode}, error was: {error}", response.StatusCode, await response.Content.ReadAsStringAsync());

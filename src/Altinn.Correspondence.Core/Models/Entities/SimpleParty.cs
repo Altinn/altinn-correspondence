@@ -35,13 +35,16 @@ namespace Altinn.Correspondence.Core.Models.Entities
         /// </summary>
         public string SSN { get; set; }
 
-        public SimpleParty(int partyId, Guid? partyUuid, SimplePartyType partyTypeName, string orgNumber, string sSN)
+        public List<string>? Resources { get; set; }
+
+        public SimpleParty(int partyId, Guid? partyUuid, SimplePartyType partyTypeName, string orgNumber, string sSN, List<string>? resources = null)
         {
             PartyId = partyId;
             PartyUuid = partyUuid;
             PartyTypeName = partyTypeName;
             OrgNumber = orgNumber;
             SSN = sSN;
+            Resources = resources;
         }
     }
 }

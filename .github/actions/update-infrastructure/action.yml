@@ -42,6 +42,9 @@ inputs:
   NOTIFICATION_EMAIL:
     description: "Email for notifications"
     required: true
+  ACCESS_MANAGEMENT_SUBCRIPTION_KEY:
+    description: "Subscription key for access management"
+    required: true
 
 runs:
   using: "composite"
@@ -86,6 +89,7 @@ runs:
         MASKINPORTEN_CLIENT_ID: ${{ inputs.MASKINPORTEN_CLIENT_ID }}
         PLATFORM_SUBSCRIPTION_KEY: ${{ inputs.PLATFORM_SUBSCRIPTION_KEY }}
         NOTIFICATION_EMAIL: ${{ inputs.NOTIFICATION_EMAIL }}
+        ACCESS_MANAGEMENT_SUBCRIPTION_KEY: ${{ inputs.ACCESS_MANAGEMENT_SUBCRIPTION_KEY }}
       with:
         scope: subscription
         template: ./.azure/infrastructure/main.bicep
