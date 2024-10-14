@@ -299,7 +299,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                     },
                 },
                 ResourceId = correspondence.ResourceId,
-                RequestedSendTime = _hostEnvironment.IsProduction() ? correspondence.RequestedPublishTime.UtcDateTime.AddDays(7) : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(6),
+                RequestedSendTime = _hostEnvironment.IsProduction() ? correspondence.RequestedPublishTime.UtcDateTime.AddDays(7) : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(3),
                 ConditionEndpoint = CreateConditonEndpoint(correspondence.Id.ToString()),
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,
