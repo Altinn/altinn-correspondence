@@ -23,7 +23,7 @@ public static class Errors
     public static Error MessageBodyIsNotMarkdown = new Error(15, "Message body must be markdown", HttpStatusCode.BadRequest);
     public static Error MessageSummaryIsNotMarkdown = new Error(16, "Message summary must be markdown", HttpStatusCode.BadRequest);
     public static Error CorrespondenceHasNotBeenRead = new Error(17, "Correspondence has not been read", HttpStatusCode.BadRequest);
-    public static Error NoAccessToResource = new Error(18, "You must use an Altinn token, DialogToken or log in to IDPorten as someone that represents someone with access to the resource and orgaization in Altinn Authorization", HttpStatusCode.Unauthorized);
+    public static Error NoAccessToResource = new Error(18, "You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization", HttpStatusCode.Unauthorized);
     public static Error UploadedFilesDoesNotMatchAttachments = new Error(19, "Mismatch between uploaded files and attachment metadata", HttpStatusCode.BadRequest);
     public static Error DuplicateRecipients = new Error(20, "Recipients must be unique", HttpStatusCode.BadRequest);
     public static Error UploadCorrespondenceNoAttachments = new Error(21, "When uploading correspondences, either upload or use existing attachments", HttpStatusCode.BadRequest);
