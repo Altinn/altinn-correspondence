@@ -83,6 +83,7 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
             IgnoreReservation = correspondence.IgnoreReservation ?? false,
             MarkedUnread = correspondence.MarkedUnread,
             AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
+            Published = latestStatus.StatusText == "Published" ? latestStatus.StatusChanged : null
         };
         return response;
     }

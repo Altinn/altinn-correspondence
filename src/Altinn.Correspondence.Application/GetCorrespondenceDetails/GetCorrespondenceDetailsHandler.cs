@@ -97,6 +97,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
             AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
             DueDateTime = correspondence.DueDateTime,
             PropertyList = correspondence.PropertyList,
+            Published = latestStatus.StatusText == "Published" ? latestStatus.StatusChanged : null
         };
         return response;
     }

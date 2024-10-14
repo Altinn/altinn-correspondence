@@ -100,6 +100,12 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("IgnoreReservation")]
         public bool? IgnoreReservation { get; set; }
+
+        /// <summary>
+        /// Is null until the correspondence is published.
+        /// </summary>
+        [JsonPropertyName("Published")]
+        public DateTimeOffset? Published { get; set; }
     }
 
     [AttributeUsage(AttributeTargets.Property)]
