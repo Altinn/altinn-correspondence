@@ -16,6 +16,7 @@ namespace Altinn.Correspondence.Application.CancelNotification
     public class CancelNotificationHandler
     {
         private readonly ILogger<CancelNotificationHandler> _logger;
+        private readonly ICorrespondenceRepository _correspondenceRepository;
         private readonly IAltinnNotificationService _altinnNotificationService;
         private readonly ISlackClient _slackClient;
         private readonly IBackgroundJobClient _backgroundJobClient;
@@ -25,12 +26,14 @@ namespace Altinn.Correspondence.Application.CancelNotification
         private const int MaxRetries = 10;
         public CancelNotificationHandler(
             ILogger<CancelNotificationHandler> logger,
+            ICorrespondenceRepository correspondenceRepository,
             IAltinnNotificationService altinnNotificationService,
             ISlackClient slackClient,
             IBackgroundJobClient backgroundJobClient,
             IHostEnvironment hostEnvironment)
         {
             _logger = logger;
+            _correspondenceRepository = correspondenceRepository;
             _altinnNotificationService = altinnNotificationService;
             _slackClient = slackClient;
             _backgroundJobClient = backgroundJobClient;
@@ -38,10 +41,12 @@ namespace Altinn.Correspondence.Application.CancelNotification
         }
 
         [AutomaticRetry(Attempts = MaxRetries)]
-        public async Task Process(PerformContext context, Guid correspondenceId, List<CorrespondenceNotificationEntity> notificationEntities, CancellationToken cancellationToken = default)
+        public async Task Process(PerformContext context, Guid correspondenceId, CancellationToken cancellationToken = default)
         {
             var retryAttempts = context.GetJobParameter<int>(RetryCountKey);
             _logger.LogInformation("Cancelling notifications for purged correspondence. Retry attempt: {retryAttempts}", retryAttempts);
+            var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, cancellationToken);
+            var notificationEntities = correspondence?.Notifications ?? [];
             await CancelNotification(correspondenceId, notificationEntities, retryAttempts, cancellationToken);
         }
         internal async Task CancelNotification(Guid correspondenceId, List<CorrespondenceNotificationEntity> notificationEntities, int retryAttempts, CancellationToken cancellationToken)
