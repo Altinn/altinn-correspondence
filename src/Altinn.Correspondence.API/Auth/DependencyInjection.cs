@@ -105,6 +105,14 @@ namespace Altinn.Correspondence.API.Auth
                     options.GetClaimsFromUserInfoEndpoint = true;
                     options.Scope.Add("openid");
                     options.Scope.Add("profile");
+                    options.Events = new OpenIdConnectEvents
+                    {
+                        OnRedirectToIdentityProvider = context =>
+                        {
+                            context.ProtocolMessage.RedirectUri = $"{dialogportenSettings.CorrespondenceBaseUrl.TrimEnd('/')}{options.CallbackPath}";
+                            return Task.CompletedTask;
+                        }
+                    };
                 })
                 .AddScheme<AuthenticationSchemeOptions, CascadeAuthenticationHandler>(AuthorizationConstants.AllSchemes, options => { });
         }
