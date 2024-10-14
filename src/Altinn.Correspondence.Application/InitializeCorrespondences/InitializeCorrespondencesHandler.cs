@@ -289,14 +289,16 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             notifications.Add(new NotificationOrderRequest
             {
                 IgnoreReservation = correspondence.IgnoreReservation,
-                Recipients = new List<Recipient>{
-            new Recipient{
-                OrganizationNumber = orgNr,
-                NationalIdentityNumber = personNr
-            },
-        },
+                Recipients = new List<Recipient>
+                {
+                    new Recipient
+                    {
+                        OrganizationNumber = orgNr,
+                        NationalIdentityNumber = personNr
+                    },
+                },
                 ResourceId = correspondence.ResourceId,
-                RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime.AddDays(7),
+                RequestedSendTime = _hostEnvironment.IsProduction() ? correspondence.RequestedPublishTime.UtcDateTime.AddDays(7) : correspondence.RequestedPublishTime.UtcDateTime.AddHours(1),
                 ConditionEndpoint = CreateConditonEndpoint(correspondence.Id.ToString()),
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,
