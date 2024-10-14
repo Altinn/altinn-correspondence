@@ -93,8 +93,6 @@ namespace Altinn.Correspondence.API.Auth
                     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                     options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
                     options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
-                    options.NonceCookie.SameSite = SameSiteMode.None;
-                    options.CorrelationCookie.SameSite = SameSiteMode.None;
                     options.AuthenticationMethod = OpenIdConnectRedirectBehavior.RedirectGet;
                     options.ResponseMode = OpenIdConnectResponseMode.FormPost;
                     options.Authority = idPortenSettings.Issuer;
