@@ -73,9 +73,9 @@ var containerAppEnvVars = [
   { name: 'GeneralSettings__SlackUrl', secretRef: 'slack-url' }
   { name: 'DialogportenSettings__Issuer', value: dialogportenIssuer }
   { name: 'DialogportenSettings__CorrespondenceBaseUrl', value: correspondenceBaseUrl }
-  { name: 'IdportenSettings__IdportenIssuer', value: idportenIssuer }
-  { name: 'IdportenSettings__IdportenClientId', secretRef: 'idporten-client-id' }
-  { name: 'IdportenSettings__IdportenClientSecret', secretRef: 'idporten-client-secret' }
+  { name: 'IdportenSettings__Issuer', value: idportenIssuer }
+  { name: 'IdportenSettings__ClientId', secretRef: 'idporten-client-id' }
+  { name: 'IdportenSettings__ClientSecret', secretRef: 'idporten-client-secret' }
 ]
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: '${namePrefix}-app'
