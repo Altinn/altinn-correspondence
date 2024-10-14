@@ -8,16 +8,19 @@ using System.Text.Encodings.Web;
 public class CascadeAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     private readonly IAuthenticationSchemeProvider _schemeProvider;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public CascadeAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
         ISystemClock clock,
-        IAuthenticationSchemeProvider schemeProvider)
+        IAuthenticationSchemeProvider schemeProvider,
+        IHttpContextAccessor httpContextAccessor)
         : base(options, logger, encoder, clock)
     {
         _schemeProvider = schemeProvider;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -51,6 +54,10 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
             else
             {
                 Logger.LogInformation($"Authentication failed with scheme: {schemeName}. Reason: {result.Failure?.Message}: {result.Failure?.StackTrace}");
+                foreach (var item in _httpContextAccessor.HttpContext?.Items)
+                {
+                    Logger.LogInformation(schemeName + " " + item.Key + " " + item.Value);
+                }
             }
 
             // If it's OpenIdConnect and it failed, we don't want to redirect yet
