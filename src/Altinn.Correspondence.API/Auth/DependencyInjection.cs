@@ -83,9 +83,9 @@ namespace Altinn.Correspondence.API.Auth
                 {
                     options.Cookie.Name = "CorrespondenceIdportenSession";
                     options.Cookie.SameSite = SameSiteMode.None;
-                    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+                    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                     options.Cookie.IsEssential = true;
-                    options.ExpireTimeSpan = TimeSpan.FromSeconds(60); // Must be transient/short-lived
+                    options.ExpireTimeSpan = TimeSpan.FromSeconds(10); // Must be transient/short-lived
                     options.SlidingExpiration = false;
                 })
                 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
@@ -93,8 +93,6 @@ namespace Altinn.Correspondence.API.Auth
                     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                     options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
                     options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
-                    options.NonceCookie.SameSite = SameSiteMode.None;
-                    options.CorrelationCookie.SameSite = SameSiteMode.None;
                     options.AuthenticationMethod = OpenIdConnectRedirectBehavior.RedirectGet;
                     options.ResponseMode = OpenIdConnectResponseMode.FormPost;
                     options.Authority = idPortenSettings.Issuer;
