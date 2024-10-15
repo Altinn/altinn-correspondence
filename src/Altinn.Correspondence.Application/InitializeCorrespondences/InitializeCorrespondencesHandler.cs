@@ -257,9 +257,9 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             var notification = await _altinnNotificationService.GetNotificationDetails(n.NotificationOrderId.ToString() ?? "");
             if (notification == null) continue;
+            var processing = notification.ProcessingStatus;
             
-            bool success = notification.NotificationsStatusDetails?.Sms?.Succeeded == true || 
-                notification.NotificationsStatusDetails?.Email?.Succeeded == true;
+            bool success = notification.ProcessingStatus.Status != "SendConditionNotMet";
             var notificationDetail = new NotificationDetails()
             {
                 OrderId = n.NotificationOrderId,
