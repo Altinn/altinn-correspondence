@@ -1,5 +1,4 @@
 namespace Altinn.Correspondence.Core.Exceptions;
-using Microsoft.AspNetCore.Http;
 public class HashMismatchException : InvalidOperationException
 {
     public HashMismatchException(string message) : base(message) { }
