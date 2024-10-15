@@ -3,10 +3,10 @@ using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 
@@ -22,6 +22,8 @@ namespace Altinn.Correspondence.API.Auth
             config.GetSection(nameof(IdportenSettings)).Bind(idPortenSettings);
             var dialogportenSettings = new DialogportenSettings();
             config.GetSection(nameof(DialogportenSettings)).Bind(dialogportenSettings);
+            services.AddDistributedMemoryCache();
+            services.AddTransient<IdportenTokenValidator>();
             services
                 .AddAuthentication()
                 .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
@@ -79,22 +81,11 @@ namespace Altinn.Correspondence.API.Auth
                         ClockSkew = TimeSpan.Zero
                     };
                 })
-                .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
-                {
-                    options.Cookie.Name = "CorrespondenceIdportenSession";
-                    options.Cookie.SameSite = SameSiteMode.None;
-                    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-                    options.Cookie.IsEssential = true;
-                    options.ExpireTimeSpan = TimeSpan.FromSeconds(10); // Must be transient/short-lived
-                    options.SlidingExpiration = false;
-                })
+                .AddScheme<AuthenticationSchemeOptions, CascadeAuthenticationHandler>(AuthorizationConstants.AllSchemes, options => { })
                 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
                 {
-                    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                    options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
-                    options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
-                    options.AuthenticationMethod = OpenIdConnectRedirectBehavior.RedirectGet;
-                    options.ResponseMode = OpenIdConnectResponseMode.FormPost;
+                    options.SignInScheme = AuthorizationConstants.AllSchemes;
+                    options.ResponseMode = OpenIdConnectResponseMode.Query;
                     options.Authority = idPortenSettings.Issuer;
                     options.ClientId = idPortenSettings.ClientId;
                     options.ClientSecret = idPortenSettings.ClientSecret;
@@ -111,10 +102,20 @@ namespace Altinn.Correspondence.API.Auth
                         {
                             context.ProtocolMessage.RedirectUri = $"{dialogportenSettings.CorrespondenceBaseUrl.TrimEnd('/')}{options.CallbackPath}";
                             return Task.CompletedTask;
+                        },
+                        OnTokenValidated = async context =>
+                        {
+                            var sessionId = Guid.NewGuid().ToString();
+                            var cache = context.HttpContext.RequestServices.GetRequiredService<IDistributedCache>();
+                            await cache.SetStringAsync(sessionId, context.TokenEndpointResponse.AccessToken,
+                                new DistributedCacheEntryOptions
+                                {
+                                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                                });
+                            context.Properties.RedirectUri = CascadeAuthenticationHandler.AppendSessionToUrl($"{dialogportenSettings.CorrespondenceBaseUrl.TrimEnd('/')}{context.Properties.RedirectUri}", sessionId);
                         }
                     };
-                })
-                .AddScheme<AuthenticationSchemeOptions, CascadeAuthenticationHandler>(AuthorizationConstants.AllSchemes, options => { });
+                });
         }
 
         public static void ConfigureAuthorization(this IServiceCollection services, IConfiguration config)
