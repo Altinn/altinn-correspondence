@@ -255,10 +255,11 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         List<NotificationDetails> notificationDetails = new List<NotificationDetails>();
         foreach (var n in notifications)
         {
-            var notification = await _altinnNotificationService.GetNotificationDetails(n.NotificationOrderId.ToString());
+            var notification = await _altinnNotificationService.GetNotificationDetails(n.NotificationOrderId.ToString() ?? "");
             if (notification == null) continue;
             
-            bool success = notification.NotificationsStatusDetails.Email.Succeeded || notification.NotificationsStatusDetails.Sms.Succeeded;
+            bool success = notification.NotificationsStatusDetails?.Sms?.Succeeded == true || 
+                notification.NotificationsStatusDetails?.Email?.Succeeded == true;
             var notificationDetail = new NotificationDetails()
             {
                 OrderId = n.NotificationOrderId,
