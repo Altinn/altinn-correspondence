@@ -136,7 +136,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
 //   https://github.com/Altinn/altinn-resource-registry/blob/main/src/Altinn.ResourceRegistry/Controllers/ResourceController.cs#L258
 
 
-// TODO: Get All Resources these parties can access
+// TODO: Get All Resources these parties can access. I do think these resources is included in authorized parties response
 //   <https://docs.altinn.studio/api/resourceregistry/spec/#/Resource/post_resource_bysubjects>
 //   https://digdir.slack.com/archives/D07CXBW9AJH/p1727966248268839?thread_ts=1727960943.538609&cid=D07CXBW9AJH
 
