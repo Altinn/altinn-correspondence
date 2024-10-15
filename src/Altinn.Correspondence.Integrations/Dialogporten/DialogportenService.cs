@@ -1,11 +1,9 @@
-﻿using Altinn.Correspondence.Core.Dialogporten.Mappers;
-using Altinn.Correspondence.Core.Models.Enums;
+﻿using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
-using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Json;

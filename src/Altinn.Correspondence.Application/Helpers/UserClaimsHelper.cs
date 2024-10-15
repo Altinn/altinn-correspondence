@@ -4,6 +4,7 @@ using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
@@ -12,16 +13,18 @@ namespace Altinn.Correspondence.Application.Helpers
         private readonly ClaimsPrincipal _user;
         private readonly IEnumerable<Claim> _claims;
         private readonly DialogportenSettings _dialogportenSettings;
+        private readonly IdportenSettings _idportenSettings;
         private const string _scopeClaim = "scope";
         private const string _consumerClaim = "consumer";
         private const string _IdProperty = "ID";
         private const string _dialogportenOrgClaim = "p";
 
-        public UserClaimsHelper(IHttpContextAccessor httpContextAccessor, IOptions<DialogportenSettings> dialogportenSettings)
+        public UserClaimsHelper(IHttpContextAccessor httpContextAccessor, IOptions<DialogportenSettings> dialogportenSettings, IOptions<IdportenSettings> idportenSettings)
         {
             _user = httpContextAccessor?.HttpContext?.User ?? new ClaimsPrincipal();
             _claims = _user.Claims ?? [];
             _dialogportenSettings = dialogportenSettings.Value;
+            _idportenSettings = idportenSettings.Value;
         }
         public bool IsAffiliatedWithCorrespondence(string recipientId, string senderId)
         {
@@ -30,6 +33,7 @@ namespace Altinn.Correspondence.Application.Helpers
         public bool IsRecipient(string recipientId)
         {
             if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(recipientId);
+            if (_claims.Any(c => c.Issuer == _idportenSettings.Issuer)) return true; // Idporten tokens are always recipients, verified by altinn authorization
             if (GetUserID() != recipientId) return false;
             if (!GetUserScope().Any(scope => scope.Value == AuthorizationConstants.RecipientScope)) return false;
             return true;
@@ -37,6 +41,7 @@ namespace Altinn.Correspondence.Application.Helpers
         public bool IsSender(string senderId)
         {
             if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(senderId);
+            if (_claims.Any(c => c.Issuer == _idportenSettings.Issuer)) return false; 
             if (GetUserID() != senderId) return false;
             if (!GetUserScope().Any(scope=> scope.Value == AuthorizationConstants.SenderScope)) return false;
             return true;

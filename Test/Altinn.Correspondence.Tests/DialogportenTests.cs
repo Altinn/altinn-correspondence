@@ -3,6 +3,7 @@ using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Helpers;

@@ -1,50 +1,41 @@
-﻿using System.Security.Claims;
-using System.Text.RegularExpressions;
-
-using Altinn.Authorization.ABAC.Xacml.JsonProfile;
+﻿using Altinn.Authorization.ABAC.Xacml.JsonProfile;
 using Altinn.Common.PEP.Constants;
 using Altinn.Common.PEP.Helpers;
-
+using System.Security.Claims;
+using System.Text.RegularExpressions;
 using static Altinn.Authorization.ABAC.Constants.XacmlConstants;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Authorization;
 
-/// <summary>
-/// Utility class for converting Events to XACML request
-/// </summary>
-public static class XacmlMappers
+public static class AltinnTokenXacmlMapper
 {
-    /// <summary>
-    /// Default issuer for attributes
-    /// </summary>
-    internal const string DefaultIssuer = "Altinn";
+    private const string DefaultIssuer = "Altinn";
+    private const string DefaultType = "string";
+    private const string OrgNumberAttributeId = "urn:altinn:organization:identifier-no";
 
-    /// <summary>
-    /// Default type for attributes
-    /// </summary>
-    internal const string DefaultType = "string";
+    public static XacmlJsonRequestRoot CreateAltinnDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId)
+    {
+        XacmlJsonRequest request = new()
+        {
+            AccessSubject = new List<XacmlJsonCategory>(),
+            Action = new List<XacmlJsonCategory>(),
+            Resource = new List<XacmlJsonCategory>()
+        };
 
-    /// <summary>
-    /// Subject id for multi requests. Inde should be appended.
-    /// </summary>
-    internal const string SubjectId = "s";
+        var subjectCategory = CreateSubjectCategory(user);
+        request.AccessSubject.Add(subjectCategory);
+        foreach (var actionType in actionTypes)
+        {
+            request.Action.Add(CreateActionCategory(actionType));
+        }
+        var resourceCategory = CreateResourceCategory(resourceId, user);
+        request.Resource.Add(resourceCategory);
 
-    /// <summary>
-    /// Action id for multi requests. Inde should be appended.
-    /// </summary>
-    internal const string ActionId = "a";
+        XacmlJsonRequestRoot jsonRequest = new() { Request = request };
+        return jsonRequest;
+    }
 
-    /// <summary>
-    /// Resource id for multi requests. Inde should be appended.
-    /// </summary>
-    internal const string ResourceId = "r";
-
-    internal const string OrgNumberAttributeId = "urn:altinn:organization:identifier-no";
-
-    /// <param name="actionType">Action type represented as a string</param>
-    /// <param name="includeResult">A value indicating whether the value should be included in the result</param>
-    /// <returns>A XacmlJsonCategory</returns>
-    internal static XacmlJsonCategory CreateActionCategory(string actionType, bool includeResult = false)
+    private static XacmlJsonCategory CreateActionCategory(string actionType, bool includeResult = false)
     {
         XacmlJsonCategory actionAttributes = new()
         {
@@ -56,9 +47,7 @@ public static class XacmlMappers
         return actionAttributes;
     }
 
-    /// If id is required this should be included by the caller. 
-    /// Attribute eventId is tagged with `includeInResponse`</remarks>
-    internal static XacmlJsonCategory CreateResourceCategory(string resourceId, ClaimsPrincipal user)
+    private static XacmlJsonCategory CreateResourceCategory(string resourceId, ClaimsPrincipal user)
     {
         XacmlJsonCategory resourceCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
 
@@ -72,7 +61,7 @@ public static class XacmlMappers
         return resourceCategory;
     }
 
-    internal static XacmlJsonCategory CreateSubjectCategory(ClaimsPrincipal user)
+    private static XacmlJsonCategory CreateSubjectCategory(ClaimsPrincipal user)
     {
         XacmlJsonCategory xacmlJsonCategory = new XacmlJsonCategory();
         List<XacmlJsonAttribute> list = new List<XacmlJsonAttribute>();

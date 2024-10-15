@@ -69,7 +69,7 @@ namespace Altinn.Correspondence.Application.CancelNotification
                 }
                 else
                 {
-                    _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, Core.Dialogporten.Mappers.DialogportenTextType.NotificationOrderCancelled));
+                    _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled));
                 }
             }
         }

@@ -1,12 +1,12 @@
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using OneOf;
-using Azure.Core;
+using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Hangfire;
+using OneOf;
 
 namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 
@@ -97,8 +97,8 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
     // Must be public to be run by Hangfire
     public Task ReportActivityToDialogporten(Guid correspondenceId, DialogportenActorType dialogportenActorType, CorrespondenceStatus status) => status switch
     {
-        CorrespondenceStatus.Confirmed => _dialogportenService.CreateInformationActivity(correspondenceId, dialogportenActorType, Core.Dialogporten.Mappers.DialogportenTextType.CorrespondenceConfirmed),
-        CorrespondenceStatus.Archived => _dialogportenService.CreateInformationActivity(correspondenceId, dialogportenActorType, Core.Dialogporten.Mappers.DialogportenTextType.CorrespondenceArchived),
+        CorrespondenceStatus.Confirmed => _dialogportenService.CreateInformationActivity(correspondenceId, dialogportenActorType, DialogportenTextType.CorrespondenceConfirmed),
+        CorrespondenceStatus.Archived => _dialogportenService.CreateInformationActivity(correspondenceId, dialogportenActorType, DialogportenTextType.CorrespondenceArchived),
         _ => Task.CompletedTask
     };
 }
