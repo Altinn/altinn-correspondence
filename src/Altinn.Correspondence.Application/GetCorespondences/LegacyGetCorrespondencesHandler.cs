@@ -1,13 +1,9 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Integrations.Altinn.Register;
-using Altinn.Platform.Register.Models;
-using Microsoft.Extensions.Azure;
-using Microsoft.IdentityModel.Tokens;
+using Altinn.Correspondence.Repositories;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.GetCorrespondences;
@@ -18,16 +14,18 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
     private readonly IAltinnAccessManagementService _altinnAccessManagementService;
     private readonly IAltinnRegisterService _altinnRegisterService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
+    private readonly IResourceRightsService _resourceRightsService;
     private readonly UserClaimsHelper _userClaimsHelper;
 
 
-    public LegacyGetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, IAltinnAccessManagementService altinnAccessManagement, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IAltinnRegisterService altinnRegisterService)
+    public LegacyGetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, IAltinnAccessManagementService altinnAccessManagement, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IAltinnRegisterService altinnRegisterService, IResourceRightsService resourceRightsService)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _altinnAccessManagementService = altinnAccessManagement;
         _correspondenceRepository = correspondenceRepository;
         _userClaimsHelper = userClaimsHelper;
         _altinnRegisterService = altinnRegisterService;
+        _resourceRightsService = resourceRightsService;
     }
 
     public async Task<OneOf<LegacyGetCorrespondencesResponse, Error>> Process(LegacyGetCorrespondencesRequest request, CancellationToken cancellationToken)
@@ -46,11 +44,12 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         {
             return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
         }
-
+        Console.WriteLine($"UserParty: {userParty.OrgNumber}");
         var recipients = new List<string>();
         if (request.InstanceOwnerPartyIdList == null || request.InstanceOwnerPartyIdList.Length == 0)
         {
-            recipients.Add(userParty.OrgNumber);
+            if (userParty.OrgNumber != null) recipients.Add("0192:" + userParty.OrgNumber);
+            else if (userParty.SSN != null) recipients.Add(userParty.SSN);
         }
         foreach (int instanceOwnerPartyId in request.InstanceOwnerPartyIdList)
         {
@@ -60,11 +59,16 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                 return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
             }
             if (mappedInstanceOwner.OrgNumber != null)
-                recipients.Add(mappedInstanceOwner.OrgNumber);
-            if (mappedInstanceOwner.SSN != null)
+                recipients.Add("0192:" + mappedInstanceOwner.OrgNumber);
+            else if (mappedInstanceOwner.SSN != null)
                 recipients.Add(mappedInstanceOwner.SSN);
         }
+        Console.WriteLine($"Recipients: {recipients.Count}");
 
+        foreach (var recipient in recipients)
+        {
+            Console.WriteLine($"Recipient: {recipient}");
+        }
         var parties = await _altinnAccessManagementService.GetAutorizedParties(userParty, cancellationToken);
         var authorizedResources = new List<string>();
         List<string> recipientIds = new List<string>();
@@ -78,24 +82,34 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         // Get all correspondences owned by Recipients
         var correspondences = await _correspondenceRepository.GetCorrespondencesForParties(request.Offset, limit, from, to, request.Status, recipients, resourcesToSearch, request.Language, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken);
 
-        var resourceIds = correspondences.Item1.Select(c => c.ResourceId).Distinct().ToList();
-        foreach (var resource in resourceIds)
-        {
-            if (!authorizedResources.Contains(resource))
-            {
-                // Remove all correspondences for this resource
-                correspondences.Item1.RemoveAll(c => c.ResourceId == resource);
-            }
-        }
+        Console.WriteLine($"Found {correspondences.Item1.Count} correspondences");
 
-        List<LegacyCorrespondenceItem> correspondenceItems = new List<LegacyCorrespondenceItem>();
+        var resourceIds = correspondences.Item1.Select(c => c.ResourceId).Distinct().ToList();
+        var authorizedCorrespondences = new List<CorrespondenceEntity>();
         foreach (var correspondence in correspondences.Item1)
         {
+            var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken, "0192:" + userParty.OrgNumber);
+            if (hasAccess)
+            {
+                authorizedCorrespondences.Add(correspondence);
+            }
+        }
+        Console.WriteLine($"Authorized correspondences: {authorizedCorrespondences.Count}");
+        List<LegacyCorrespondenceItem> correspondenceItems = new List<LegacyCorrespondenceItem>();
+        var resourceOwners = new List<Tuple<string, string>>();
+        foreach (var orgNr in correspondences.Item1.Select(c => c.Sender).Distinct().ToList())
+        {
+            var resourceOwnerParty = await _altinnRegisterService.LookUpName(orgNr, cancellationToken);
+            resourceOwners.Add(new Tuple<string, string>(orgNr, resourceOwnerParty));
+        }
+        foreach (var correspondence in authorizedCorrespondences)
+        {
+
             correspondenceItems.Add(
                 new LegacyCorrespondenceItem()
                 {
                     Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId,
-                    ServiceOwnerName = correspondence.MessageSender, // Find alternative source
+                    ServiceOwnerName = resourceOwners.SingleOrDefault(r => r.Item1 == correspondence.Sender)?.Item2,
                     MessageTitle = correspondence.Content.MessageTitle,
                     Status = correspondence.GetLatestStatus().Status,
                     CorrespondenceId = correspondence.Id,
@@ -103,7 +117,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                 }
                 );
         }
-
+        Console.WriteLine($"Finished correspondences: {correspondenceItems.Count}");
         var response = new LegacyGetCorrespondencesResponse
         {
             Items = correspondenceItems,
@@ -123,7 +137,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
 
 
 // TODO: Get All Resources these parties can access
-//   https://docs.altinn.studio/api/resourceregistry/spec/#/Resource/post_resource_bysubjects
+//   <https://docs.altinn.studio/api/resourceregistry/spec/#/Resource/post_resource_bysubjects>
 //   https://digdir.slack.com/archives/D07CXBW9AJH/p1727966248268839?thread_ts=1727960943.538609&cid=D07CXBW9AJH
 
 // TODO: Authorize each correspondence using multirequests

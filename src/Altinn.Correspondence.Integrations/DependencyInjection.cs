@@ -17,6 +17,7 @@ using Altinn.Correspondence.Integrations.Dialogporten;
 using Slack.Webhooks;
 using Altinn.Correspondence.Integrations.Settings;
 using Altinn.Correspondence.Integrations.Slack;
+using Altinn.Correspondence.Integrations.Altinn.AccessManangement;
 
 namespace Altinn.Correspondence.Integrations;
 public static class DependencyInjection
@@ -26,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationService>();
         services.AddScoped<IResourceRightsService, ResourceRightsService>();
         services.AddScoped<IAltinnRegisterService, AltinnRegisterService>();
+        services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementService>();
         var generalSettings = new GeneralSettings();
         config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
         if (hostEnvironment.IsDevelopment())
@@ -65,6 +67,10 @@ public static class DependencyInjection
             services.AddHttpClient<IAltinnNotificationService, AltinnNotificationService>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
                     .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IAltinnNotificationService>();
             services.AddSingleton<ISlackClient>(new SlackClient(generalSettings.SlackUrl));
+
+            services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(IAltinnAccessManagementService).FullName, maskinportenSettings);
+            services.AddHttpClient<IAltinnAccessManagementService, AltinnAccessManagementService>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
+                    .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IAltinnAccessManagementService>();
         }
     }
 }

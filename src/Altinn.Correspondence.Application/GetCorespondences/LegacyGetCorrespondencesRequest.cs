@@ -22,10 +22,10 @@ public class LegacyGetCorrespondencesRequest
     public DateTimeOffset? From { get; set; }
 
     public DateTimeOffset? To { get; set; }
-    
-    public string SearchString { get; set; }
 
-    public string Language { get; set; }
+    public string? SearchString { get; set; }
+
+    public string? Language { get; set; }
 
     public CorrespondenceStatus? Status { get; set; }
 }

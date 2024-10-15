@@ -24,37 +24,14 @@ public class AltinnRegisterService : IAltinnRegisterService
 
     public async Task<string?> LookUpPartyId(string identificationId, CancellationToken cancellationToken = default)
     {
-        var organizationWithPrefixFormat = new Regex(@"^\d{4}:\d{9}$");
-        var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
-        if (organizationWithPrefixFormat.IsMatch(identificationId))
-        {
-            identificationId = identificationId.Substring(5);
-        }
-        var personFormat = new Regex(@"^\d{11}$");
-        if (!personFormat.IsMatch(identificationId) && !organizationWithoutPrefixFormat.IsMatch(identificationId))
-        {
-            _logger.LogError("identificationId is not a valid organization or person number.");
-            return null;
-        }
-
-        var partyLookup = new PartyLookup()
-        {
-            OrgNo = organizationWithoutPrefixFormat.IsMatch(identificationId) ? identificationId : null,
-            Ssn = personFormat.IsMatch(identificationId) ? identificationId : null
-        };
-        var response = await _httpClient.PostAsJsonAsync("register/api/v1/parties/lookup", partyLookup, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            _logger.LogError("Error when looking up organization in Altinn Register.Statuscode was: {statusCode}, error was: {error}", response.StatusCode, await response.Content.ReadAsStringAsync());
-            return null;
-        }
-        var party = await response.Content.ReadFromJsonAsync<Party>();
-        if (party is null)
-        {
-            _logger.LogError("Unexpected json response when looking up organization in Altinn Register");
-            return null;
-        }
+        var party = await LookUpFullParty(identificationId, cancellationToken);
         return party.PartyId.ToString();
+    }
+
+    public async Task<string?> LookUpName(string identificationId, CancellationToken cancellationToken = default)
+    {
+        var party = await LookUpFullParty(identificationId, cancellationToken);
+        return party.Name;
     }
 
     public async Task<SimpleParty?> LookUpParty(int partyId, CancellationToken cancellationToken = default)
@@ -79,5 +56,40 @@ public class AltinnRegisterService : IAltinnRegisterService
         }
 
         return new SimpleParty(party.PartyId, party.PartyUuid, (SimplePartyType)party.PartyTypeName, party.OrgNumber, party.SSN);
+    }
+    private async Task<Party> LookUpFullParty(string identificationId, CancellationToken cancellationToken = default)
+    {
+        var organizationWithPrefixFormat = new Regex(@"^\d{4}:\d{9}$");
+        var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
+        if (organizationWithPrefixFormat.IsMatch(identificationId))
+        {
+            identificationId = identificationId.Substring(5);
+        }
+        var personFormat = new Regex(@"^\d{11}$");
+        if (!personFormat.IsMatch(identificationId) && !organizationWithoutPrefixFormat.IsMatch(identificationId))
+        {
+            _logger.LogError("identificationId is not a valid organization or person number.");
+            return null;
+        }
+
+        var partyLookup = new PartyLookup()
+        {
+            OrgNo = organizationWithoutPrefixFormat.IsMatch(identificationId) ? identificationId : null,
+            Ssn = personFormat.IsMatch(identificationId) ? identificationId : null
+        };
+        var response = await _httpClient.PostAsJsonAsync("register/api/v1/parties/lookup", partyLookup, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Error when looking up organization in Altinn Register.Statuscode was: {statusCode}, error was: {error}", response.StatusCode, await response.Content.ReadAsStringAsync());
+            return null;
+        }
+
+        var party = await response.Content.ReadFromJsonAsync<Party>();
+        if (party is null)
+        {
+            _logger.LogError("Unexpected json response when looking up organization in Altinn Register");
+            return null;
+        }
+        return party;
     }
 }

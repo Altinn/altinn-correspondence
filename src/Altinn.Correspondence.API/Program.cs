@@ -87,23 +87,6 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.AddEndpointsApiExplorer();
     services.AddSwaggerGen(options =>
     {
-        options.AddPolicy(AuthorizationConstants.Legacy, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.LegacyScope)).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
-        options.AddPolicy(AuthorizationConstants.Sender, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.SenderScope)).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
-        
-        options.AddPolicy(AuthorizationConstants.Recipient, policy =>
-            policy.RequireScopesUnlessDialogporten(config, AuthorizationConstants.RecipientScope).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme));
-        options.AddPolicy(AuthorizationConstants.SenderOrRecipient, policy =>
-            policy.RequireScopesUnlessDialogporten(config, AuthorizationConstants.SenderScope, AuthorizationConstants.RecipientScope).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme));
-        options.AddPolicy(AuthorizationConstants.DialogportenPolicy, policy =>
-        {
-            policy.AddAuthenticationSchemes(AuthorizationConstants.DialogportenScheme).RequireAuthenticatedUser();
-        });
-        options.AddPolicy(AuthorizationConstants.Migrate, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MigrateScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
-        options.AddPolicy(AuthorizationConstants.NotificationCheck, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.NotificationCheckScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
-        options.AddPolicy("DownloadAttachment", policy =>
-        {
-            policy.RequireScopesUnlessDialogporten(config, AuthorizationConstants.SenderScope, AuthorizationConstants.RecipientScope).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme);
-        });
         options.DocumentFilter<IdportenCallbackInSwaggerFilter>();
     });
     services.AddApplicationInsightsTelemetry();

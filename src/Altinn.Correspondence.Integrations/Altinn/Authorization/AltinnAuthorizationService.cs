@@ -121,7 +121,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         {
             return IdportenXacmlMapper.ValidateIdportenAuthorizationResponse(response, user);
         }
-        foreach (var decision in response.Response)        
+        foreach (var decision in response.Response)
         {
             var result = DecisionHelper.ValidateDecisionResult(decision, user);
             if (result == false)
@@ -141,7 +141,6 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             _ => throw new NotImplementedException()
         };
     }
-}
 
     private Claim GetPersonIdClaim()
     {
