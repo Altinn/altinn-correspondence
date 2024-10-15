@@ -3,6 +3,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.UpdateMarkAsUnread;

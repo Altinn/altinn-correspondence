@@ -46,7 +46,16 @@ inputs:
     description: "Email for Slack channel to post to"
     required: true
   DIALOGPORTEN_ISSUER:
-    description: "Issuer for Dialogporten tokens"
+    description: "Issuer for Dialogporten integration used to support ID"
+    required: true
+  IDPORTEN_ISSUER:
+    description: "Issuer for Maskinporten integration used for IDPorten auth"
+    required: true
+  IDPORTEN_CLIENT_ID:
+    description: "Client id for Maskinporten integration used for IDPorten auth"
+    required: true
+  IDPORTEN_CLIENT_SECRET:
+    description: "Client secret for Maskinporten integration used for IDPorten auth"
     required: true
 
 runs:
@@ -94,6 +103,9 @@ runs:
         NOTIFICATION_EMAIL: ${{ inputs.NOTIFICATION_EMAIL }}
         SLACK_URL: ${{ inputs.SLACK_URL }}
         DIALOGPORTEN_ISSUER: ${{ inputs.DIALOGPORTEN_ISSUER }}
+        IDPORTEN_ISSUER: ${{ inputs.IDPORTEN_ISSUER }}
+        IDPORTEN_CLIENT_ID: ${{ inputs.IDPORTEN_CLIENT_ID }}
+        IDPORTEN_CLIENT_SECRET: ${{ inputs.IDPORTEN_CLIENT_SECRET }}
       with:
         scope: subscription
         template: ./.azure/infrastructure/main.bicep

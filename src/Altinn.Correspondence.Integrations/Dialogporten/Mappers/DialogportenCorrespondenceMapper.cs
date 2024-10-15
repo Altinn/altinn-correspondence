@@ -5,6 +5,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
     public static class DialogportenCorrespondenceMapper
     {
+        private const string OrgNoPrefix = "urn:altinn:organization:identifier-no";
+        private const string SsnPrefix = "urn:altinn:person:identifier-no";
+
         public static string GetSenderUrn(this CorrespondenceEntity correspondence)
         {
             var urn = GetUrn(correspondence.Sender);
@@ -24,9 +27,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             }
             return urn;
         }
-
-        private const string OrgNoPrefix = "urn:altinn:organization:identifier-no";
-        private const string SsnPrefix = "urn:altinn:person:identifier-no";
 
         private static string? GetUrn(string input)
         {
