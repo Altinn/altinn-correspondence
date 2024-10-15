@@ -193,6 +193,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         }
         await _correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
 
+        var CorrespondenceDetails = new List<CorrespondenceDetails>();
         foreach (var correspondence in correspondences)
         {
             var dialogJob = _backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
@@ -211,75 +212,57 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             }
             _backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime);
             await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
+
+            var notificationDetails = new List<NotificationDetails>();
             if (request.Notification != null)
             {
                 var notifications = CreateNotifications(request.Notification, correspondence, notificationContents, cancellationToken);
                 foreach (var notification in notifications)
                 {
-                    try
+                    var notificationOrder = await _altinnNotificationService.CreateNotification(notification, cancellationToken);
+                    if (notificationOrder is null)
                     {
-                        var orderId = await _altinnNotificationService.CreateNotification(notification, cancellationToken);
-                        var entity = new CorrespondenceNotificationEntity()
+                        notificationDetails.Add(new NotificationDetails()
                         {
-                            Created = DateTimeOffset.UtcNow,
-                            NotificationChannel = request.Notification.NotificationChannel,
-                            NotificationTemplate = request.Notification.NotificationTemplate,
-                            CorrespondenceId = correspondence.Id,
-                            NotificationOrderId = orderId,
-                            RequestedSendTime = notification.RequestedSendTime ?? DateTimeOffset.UtcNow,
-                            IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
-                        };
-                        await _correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
-                        _backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime!.Value.ToString("yyyy-MM-dd HH:mm")));
+                            OrderId = Guid.Empty,
+                            Status = NotificationStatus.Failure
+                        });
+                        continue;
                     }
-                    catch (NotificationCreationException)
+                    var entity = new CorrespondenceNotificationEntity()
                     {
-                        return Errors.InvalidNotification;
-                    }
-                    catch (RecipientLookupException)
+                        Created = DateTimeOffset.UtcNow,
+                        NotificationChannel = request.Notification.NotificationChannel,
+                        NotificationTemplate = request.Notification.NotificationTemplate,
+                        CorrespondenceId = correspondence.Id,
+                        NotificationOrderId = notificationOrder.OrderId,
+                        RequestedSendTime = notification.RequestedSendTime ?? DateTimeOffset.UtcNow,
+                        IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
+                    };
+                    notificationDetails.Add(new NotificationDetails()
                     {
-                        return Errors.RecipientLookupFailed;
-                    }
+                        OrderId = entity.NotificationOrderId,
+                        IsReminder = entity.IsReminder,
+                        Status = notificationOrder.RecipientLookup?.Status == RecipientLookupStatus.Success ? NotificationStatus.Success : NotificationStatus.MissingContact
+                    });
+                    await _correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
+            _backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime!.Value.ToString("yyyy-MM-dd HH:mm")));
                 }
             }
-        }
-        var CorrespondenceDetails = new List<CorrespondenceDetails>();
-        foreach (var correspondence in correspondences)
-        {
-            var correspondenceDetails = new CorrespondenceDetails()
+            CorrespondenceDetails.Add(new CorrespondenceDetails()
             {
                 CorrespondenceId = correspondence.Id,
                 Status = correspondence.GetLatestStatus().Status,
                 Recipient = correspondence.Recipient,
-                Notifications = await GetNotificationDetails(correspondence.Notifications)
-            };
-            CorrespondenceDetails.Add(correspondenceDetails);
+                Notifications = notificationDetails
+            });
         }
+
         return new InitializeCorrespondencesResponse()
         {
             Correspondences = CorrespondenceDetails,
             AttachmentIds = correspondences.SelectMany(c => c.Content?.Attachments.Select(a => a.AttachmentId)).ToList()
         };
-    }
-
-    private async Task<List<NotificationDetails>> GetNotificationDetails(List<CorrespondenceNotificationEntity> notifications)
-    {
-        List<NotificationDetails> notificationDetails = new List<NotificationDetails>();
-        foreach (var n in notifications)
-        {
-            var notification = await _altinnNotificationService.GetNotificationDetails(n.NotificationOrderId.ToString() ?? "");
-            if (notification == null) continue;
-
-            var notificationDetail = new NotificationDetails()
-            {
-                OrderId = n.NotificationOrderId,
-                Id = notification.Id,
-                IsReminder = notification.IsReminder,
-                Status = notification.ProcessingStatus.Status
-            };
-            notificationDetails.Add(notificationDetail);
-        }
-        return notificationDetails;
     }
 
     private List<NotificationOrderRequest> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)

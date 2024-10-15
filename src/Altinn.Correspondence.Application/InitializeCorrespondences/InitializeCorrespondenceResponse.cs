@@ -19,7 +19,12 @@ public class CorrespondenceDetails
 public class NotificationDetails
 {
     public Guid? OrderId { get; set; }
-    public string Id { get; set; } = string.Empty;
-    public bool IsReminder { get; set; }
-    public string Status { get; set; }
+    public bool? IsReminder { get; set; }
+    public NotificationStatus Status { get; set; }
+}
+public enum NotificationStatus 
+{
+    Success,
+    MissingContact,
+    Failure,
 }

@@ -20,7 +20,7 @@ public class AltinnNotificationService : IAltinnNotificationService
         _logger = logger;
     }
 
-    public async Task<Guid?> CreateNotification(NotificationOrderRequest notification, CancellationToken cancellationToken = default)
+    public async Task<NotificationOrderRequestResponse?> CreateNotification(NotificationOrderRequest notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Creating notification in Altinn Notification");
         var response = await _httpClient.PostAsJsonAsync("notifications/api/v1/orders", notification, cancellationToken);
@@ -28,21 +28,15 @@ public class AltinnNotificationService : IAltinnNotificationService
         {
             _logger.LogError("Failed to create notification in Altinn Notification. Status code: {StatusCode}", response.StatusCode);
             _logger.LogError("Body: {Response}", await response.Content.ReadAsStringAsync(cancellationToken));
-            throw new NotificationCreationException("Failed to create notification in Altinn Notification");
+            return null;
         }
         var responseContent = await response.Content.ReadFromJsonAsync<NotificationOrderRequestResponse>(cancellationToken: cancellationToken);
         if (responseContent is null)
         {
             _logger.LogError("Unexpected null or invalid json response from Notification.");
-            throw new NotificationCreationException("Failed to process response from Altinn Notification");
+            return null;
         }
-        if (responseContent.RecipientLookup!.Status != RecipientLookupStatus.Success)
-        {
-            _logger.LogError(responseContent.RecipientLookup.Status.ToString());
-            _logger.LogError("Recipient lookup failed when ordering notification.");
-            throw new RecipientLookupException("Recipient lookup failed when ordering notification");
-        }
-        return responseContent.OrderId;
+        return responseContent;
     }
 
     public async Task<bool> CancelNotification(string orderId, CancellationToken cancellationToken = default)
