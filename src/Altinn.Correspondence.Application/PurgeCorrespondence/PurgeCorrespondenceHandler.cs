@@ -100,7 +100,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
         await _correspondenceStatusRepository.AddCorrespondenceStatus(newStatus, cancellationToken);
         await CheckAndPurgeAttachments(correspondenceId, cancellationToken);
         _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, newStatus.Status == CorrespondenceStatus.PurgedByRecipient ? DialogportenActorType.Recipient : DialogportenActorType.Sender, DialogportenTextType.CorrespondencePurged, (newStatus.Status == CorrespondenceStatus.PurgedByRecipient ? "mottaker" : "avsender")));
-        _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, correspondence.Notifications, cancellationToken));
+        _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, cancellationToken));
         return correspondenceId;
     }
 
