@@ -12,7 +12,9 @@ using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Hangfire;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Npgsql.Internal;
 using OneOf;
+using System.Security.AccessControl;
 using System.Text.RegularExpressions;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
@@ -188,7 +190,8 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             };
             correspondences.Add(correspondence);
         }
-        correspondences = await _correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
+        await _correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
+
         foreach (var correspondence in correspondences)
         {
             var dialogJob = _backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
@@ -228,11 +231,43 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 }
             }
         }
+        var CorrespondenceDetails = new List<CorrespondenceDetails>();
+        foreach (var correspondence in correspondences)
+        {
+            var correspondenceDetails = new CorrespondenceDetails()
+            {
+                CorrespondenceId = correspondence.Id,
+                Status = correspondence.GetLatestStatus().Status,
+                Recipient = correspondence.Recipient,
+                Notifications = await Getgetty(correspondence.Notifications)
+            };
+            CorrespondenceDetails.Add(correspondenceDetails);
+        }
         return new InitializeCorrespondencesResponse()
         {
-            CorrespondenceIds = correspondences.Select(c => c.Id).ToList(),
+            Correspondences = CorrespondenceDetails,
             AttachmentIds = correspondences.SelectMany(c => c.Content?.Attachments.Select(a => a.AttachmentId)).ToList()
         };
+    }
+
+    private async Task<List<NotificationDetails>> Getgetty(List<CorrespondenceNotificationEntity> notifications)
+    {
+        List<NotificationDetails> notificationDetails = new List<NotificationDetails>();
+        foreach (var n in notifications)
+        {
+            var notification = await _altinnNotificationService.GetNotificationDetails(n.NotificationOrderId.ToString());
+            if (notification == null) continue;
+            
+            bool success = notification.NotificationsStatusDetails.Email.Succeeded || notification.NotificationsStatusDetails.Sms.Succeeded;
+            var notificationDetail = new NotificationDetails()
+            {
+                OrderId = n.NotificationOrderId,
+                IsReminder = n.IsReminder,
+                Status = success ? NotificationStatus.Success : NotificationStatus.MissingContact
+            };
+            notificationDetails.Add(notificationDetail);
+        }
+        return notificationDetails;
     }
 
     private List<NotificationOrderRequest> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
