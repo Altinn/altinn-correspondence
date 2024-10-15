@@ -15,6 +15,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -47,20 +48,20 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] InitializeCorrespondencesHandler handler,
             CancellationToken cancellationToken)
         {
-            LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
-            _logger.LogInformation("Initialize correspondences");
+                LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
+                _logger.LogInformation("Initialize correspondences");
 
-            var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, null, request.ExistingAttachments, false);
-            var commandResult = await handler.Process(commandRequest, cancellationToken);
+                var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, null, request.ExistingAttachments, false);
+                var commandResult = await handler.Process(commandRequest, cancellationToken);
 
-            return commandResult.Match(
-                data => Ok(new InitializeCorrespondencesResponseExt()
-                {
-                    CorrespondenceIds = data.CorrespondenceIds,
-                    AttachmentIds = data.AttachmentIds
-                }),
-                Problem
-            );
+                return commandResult.Match(
+                    data => Ok(new InitializeCorrespondencesResponseExt()
+                    {
+                        CorrespondenceIds = data.CorrespondenceIds,
+                        AttachmentIds = data.AttachmentIds
+                    }),
+                    Problem
+                );
         }
 
         /// <summary>
@@ -356,7 +357,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{correspondenceId}/attachment/{attachmentId}/download")]
-        [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
+        [Authorize(Policy = AuthorizationConstants.DownloadAttachmentPolicy, AuthenticationSchemes = AuthorizationConstants.AllSchemes)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         public async Task<ActionResult> DownloadCorrespondenceAttachmentData(
             Guid correspondenceId,

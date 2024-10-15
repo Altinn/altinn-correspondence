@@ -176,7 +176,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 apiActions.Add(new ApiAction()
                 {
-                    Action = "write",
+                    Action = "read",
                     Endpoints = new List<Endpoint>()
                     {
                         new Endpoint()
