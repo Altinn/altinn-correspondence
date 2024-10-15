@@ -275,7 +275,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 OrderId = n.NotificationOrderId,
                 Id = notification.Id,
                 IsReminder = notification.IsReminder,
-                Status = notification.ProcessingStatus
+                Status = notification.ProcessingStatus.Status
             };
             notificationDetails.Add(notificationDetail);
         }

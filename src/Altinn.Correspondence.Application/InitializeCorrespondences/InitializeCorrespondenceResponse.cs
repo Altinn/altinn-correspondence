@@ -21,11 +21,5 @@ public class NotificationDetails
     public Guid? OrderId { get; set; }
     public string Id { get; set; } = string.Empty;
     public bool IsReminder { get; set; }
-    public StatusExt Status { get; set; }
-}
-public enum NotificationStatus 
-{
-    Success,
-    MissingContact,
-    Failure,
+    public string Status { get; set; }
 }
