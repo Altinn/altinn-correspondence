@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Models.Notifications;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
@@ -18,8 +19,9 @@ public class CorrespondenceDetails
 public class NotificationDetails
 {
     public Guid? OrderId { get; set; }
+    public string Id { get; set; } = string.Empty;
     public bool IsReminder { get; set; }
-    public NotificationStatus Status { get; set; }
+    public StatusExt Status { get; set; }
 }
 public enum NotificationStatus 
 {

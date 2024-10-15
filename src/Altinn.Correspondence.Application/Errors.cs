@@ -51,4 +51,6 @@ public static class Errors
     public static Error MissingPrefferedReminderNotificationContent = new Error(43, $"Reminder email body, subject and SMS body must be provided when sending reminder preferred notifications", HttpStatusCode.BadRequest);
     public static Error NoExistingAttachments = new Error(44, "Initializing correspondence without upload requires existing attachments", HttpStatusCode.BadRequest);
     public static Error AttachmentNotPublished = new Error(45, "Attachment is not published", HttpStatusCode.BadRequest);
+    public static Error InvalidNotification = new Error(46, "Invalid notification", HttpStatusCode.BadRequest);
+    public static Error RecipientLookupFailed = new Error(47, "Recipient lookup failed", HttpStatusCode.BadRequest);
 }
