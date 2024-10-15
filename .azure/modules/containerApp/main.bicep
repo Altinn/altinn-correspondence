@@ -77,7 +77,7 @@ var containerAppEnvVars = [
   { name: 'IdportenSettings__ClientId', secretRef: 'idporten-client-id' }
   { name: 'IdportenSettings__ClientSecret', secretRef: 'idporten-client-secret' }
 ]
-resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
+resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: '${namePrefix}-app'
   location: location
   identity: {
