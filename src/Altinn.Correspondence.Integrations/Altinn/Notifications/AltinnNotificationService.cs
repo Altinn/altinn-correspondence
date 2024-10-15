@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Models.Notifications;
-using Altinn.Correspondence.Core.Exceptions;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Notifications;
 

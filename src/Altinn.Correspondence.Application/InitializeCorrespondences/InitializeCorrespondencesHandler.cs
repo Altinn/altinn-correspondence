@@ -1,7 +1,6 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.PublishCorrespondence;
-using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
@@ -9,13 +8,10 @@ using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Hangfire;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Npgsql.Internal;
 using OneOf;
-using System.Security.AccessControl;
 using System.Text.RegularExpressions;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
@@ -193,7 +189,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         }
         await _correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
 
-        var CorrespondenceDetails = new List<CorrespondenceDetails>();
+        var correspondenceDetails = new List<CorrespondenceDetails>();
         foreach (var correspondence in correspondences)
         {
             var dialogJob = _backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
@@ -246,10 +242,10 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                         Status = notificationOrder.RecipientLookup?.Status == RecipientLookupStatus.Success ? NotificationStatus.Success : NotificationStatus.MissingContact
                     });
                     await _correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
-            _backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime!.Value.ToString("yyyy-MM-dd HH:mm")));
+                    _backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime!.Value.ToString("yyyy-MM-dd HH:mm")));
                 }
             }
-            CorrespondenceDetails.Add(new CorrespondenceDetails()
+            correspondenceDetails.Add(new CorrespondenceDetails()
             {
                 CorrespondenceId = correspondence.Id,
                 Status = correspondence.GetLatestStatus().Status,
@@ -260,7 +256,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
 
         return new InitializeCorrespondencesResponse()
         {
-            Correspondences = CorrespondenceDetails,
+            Correspondences = correspondenceDetails,
             AttachmentIds = correspondences.SelectMany(c => c.Content?.Attachments.Select(a => a.AttachmentId)).ToList()
         };
     }
