@@ -1331,12 +1331,13 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var correspondence = CorrespondenceBuilder.CorrespondenceEntityWithNotifications();
         var loggerMock = new Mock<ILogger<CancelNotificationHandler>>();
+        var correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
         var altinnNotificationServiceMock = new Mock<IAltinnNotificationService>();
         var slackClientMock = new Mock<ISlackClient>();
         var backgroundJobClient = new Mock<IBackgroundJobClient>();
         var hostEnvironment = new Mock<IHostEnvironment>();
 
-        var cancelNotificationHandler = new CancelNotificationHandler(loggerMock.Object, altinnNotificationServiceMock.Object, slackClientMock.Object, backgroundJobClient.Object, hostEnvironment.Object);
+        var cancelNotificationHandler = new CancelNotificationHandler(loggerMock.Object, correspondenceRepositoryMock.Object, altinnNotificationServiceMock.Object, slackClientMock.Object, backgroundJobClient.Object, hostEnvironment.Object);
         var notificationEntities = correspondence.Notifications;
         notificationEntities.ForEach(notification =>
         {
