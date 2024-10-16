@@ -62,7 +62,7 @@ public class AltinnEventBus : IEventBus
         {
             Id = Guid.NewGuid(),
             SpecVersion = "1.0",
-            Time = DateTime.UtcNow,
+            Time = DateTimeOffset.UtcNow,
             Resource = "urn:altinn:resource:" + resourceId,
             ResourceInstance = itemId,
             Type = "no.altinn.correspondence." + type.ToString().ToLowerInvariant(),

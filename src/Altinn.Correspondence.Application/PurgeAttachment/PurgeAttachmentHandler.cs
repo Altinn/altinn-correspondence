@@ -61,35 +61,4 @@ public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizat
 
         return attachmentId;
     }
-
-    public async Task CheckCorrespondenceStatusesAfterDeleteAndPublish(Guid attachmentId, CancellationToken cancellationToken)
-    {
-        var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
-        if (attachment == null)
-        {
-            return;
-        }
-
-        var correspondences = await _correspondenceRepository.GetNonPublishedCorrespondencesByAttachmentId(attachment.Id, cancellationToken);
-        if (correspondences.Count == 0)
-        {
-            return;
-        }
-
-        var list = new List<CorrespondenceStatusEntity>();
-        foreach (var correspondenceId in correspondences)
-        {
-            list.Add(
-                new CorrespondenceStatusEntity
-                {
-                    CorrespondenceId = correspondenceId,
-                    Status = CorrespondenceStatus.Published,
-                    StatusChanged = DateTime.UtcNow,
-                    StatusText = CorrespondenceStatus.Published.ToString()
-                }
-            );
-        }
-        await _correspondenceStatusRepository.AddCorrespondenceStatuses(list, cancellationToken);
-        return;
-    }
 }

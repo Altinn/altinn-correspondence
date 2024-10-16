@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "2f063075-488c-4b14-8616-76e6f4a7ffef",
+		"_postman_id": "f1377c01-c7ce-4f03-88ff-3e977acd8f95",
 		"name": "Altinn.Correspondence.API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "7106668"
@@ -28,7 +28,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=tt02&scopes=altinn:correspondence.write&org=ttd&consumerOrgNo={{senderOrgNo}}&orgNo={{senderOrgNo}}&userId=1&partyId=1&pid={{senderSsn}}&ttl=43200",
+							"raw": "https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=tt02&scopes=altinn:correspondence.write&org=ttd&consumerOrgNo={{senderOrgNo}}&orgNo={{senderOrgNo}}&pid={{senderSsn}}&ttl=43200",
 							"protocol": "https",
 							"host": [
 								"altinn-testtools-token-generator",
@@ -61,14 +61,6 @@
 									"value": "{{senderOrgNo}}"
 								},
 								{
-									"key": "userId",
-									"value": "1"
-								},
-								{
-									"key": "partyId",
-									"value": "1"
-								},
-								{
 									"key": "pid",
 									"value": "{{senderSsn}}"
 								},
@@ -99,7 +91,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=tt02&scopes=altinn:correspondence.read&org=ttd&consumerOrgNo={{recipientOrgNo}}&orgNo={{recipientOrgNo}}&pid={{recipientSsn}}&ttl=43200&userId=1&partyId=1",
+							"raw": "https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=tt02&scopes=altinn:correspondence.read&org=ttd&consumerOrgNo={{recipientOrgNo}}&orgNo={{recipientOrgNo}}&pid={{recipientSsn}}&ttl=43200",
 							"protocol": "https",
 							"host": [
 								"altinn-testtools-token-generator",
@@ -138,14 +130,6 @@
 								{
 									"key": "ttl",
 									"value": "43200"
-								},
-								{
-									"key": "userId",
-									"value": "1"
-								},
-								{
-									"key": "partyId",
-									"value": "1"
 								}
 							]
 						}

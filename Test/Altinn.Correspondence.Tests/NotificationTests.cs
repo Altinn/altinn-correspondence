@@ -1,9 +1,9 @@
-using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.Application.CheckNotification;
+using Altinn.Correspondence.Application.Configuration;
+using Altinn.Correspondence.Tests.Factories;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Altinn.Correspondence.Application.Configuration;
-using Altinn.Correspondence.Application.CheckNotification;
 
 namespace Altinn.Correspondence.Tests;
 

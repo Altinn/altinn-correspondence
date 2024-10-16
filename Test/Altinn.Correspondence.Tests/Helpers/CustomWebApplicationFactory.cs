@@ -2,7 +2,9 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
+using Hangfire.Common;
 using Hangfire.MemoryStorage;
+using Hangfire.States;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -25,9 +27,12 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                            config.UseMemoryStorage()
                        );
             HangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            HangfireBackgroundJobClient.Setup(x => x.Create(
+                It.IsAny<Job>(), 
+                It.IsAny<IState>())).Returns("1"); 
             services.AddSingleton(HangfireBackgroundJobClient.Object);
             var altinnAuthorizationService = new Mock<IAltinnAuthorizationService>();
-            altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>(), It.IsAny<string?>())).ReturnsAsync(true);
             altinnAuthorizationService.Setup(x => x.CheckMigrationAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
             services.AddSingleton(altinnAuthorizationService.Object);
         });
@@ -65,6 +70,41 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 defaultClaims.RemoveAll(c => c.Type == type);
                 defaultClaims.Add(new Claim(type, value));
             }
+        }
+        // Clone the current factory and set the specific claims for this instance
+        var clientFactory = WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.AddSingleton<IPolicyEvaluator>(provider =>
+                {
+                    return new MockPolicyEvaluator(defaultClaims);
+                });
+            });
+        });
+        return clientFactory.CreateClient();
+    }
+
+    public HttpClient CreateClientWithDialogportenClaims(string? issuer, params (string type, string value)[] claims)
+    {
+        var defaultClaims = new List<Claim>
+        {
+            new Claim("jti", "fdf63f48-f470-49f8-bda0-0e8f7b4dbcb8", null, issuer),
+            new Claim("c", "urn:altinn:person:identifier-no:04825999731", null, issuer),
+            new Claim("l", "3", null, issuer),
+            new Claim("p", "urn:altinn:organization:identifier-no:310654302", null, issuer),
+            new Claim("s", "urn:altinn:resource:dagl-correspondence", null, issuer),
+            new Claim("i", "01926bb3-5b36-777f-bf9a-73bf5a7baa2e", null, issuer),
+            new Claim("a", "read", null, issuer),
+            new Claim("iss", "https://platform.tt02.altinn.no/dialogporten/api/v1", null, issuer),
+            new Claim("iat", "1728457448", null, issuer),
+            new Claim("nbf", "1728457448", null, issuer),
+            new Claim("exp", "1728458048", null, issuer)
+        };
+        foreach (var (type, value) in claims)
+        {
+            defaultClaims.RemoveAll(c => c.Type == type);
+            defaultClaims.Add(new Claim(type, value));
         }
         // Clone the current factory and set the specific claims for this instance
         var clientFactory = WithWebHostBuilder(builder =>
