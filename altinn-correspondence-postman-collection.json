@@ -1,9 +1,9 @@
 {
 	"info": {
-		"_postman_id": "f1377c01-c7ce-4f03-88ff-3e977acd8f95",
+		"_postman_id": "0990ec3d-32ae-4af6-adc6-23ff0ea2cf5c",
 		"name": "Altinn.Correspondence.API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "7106668"
+		"_exporter_id": "34552244"
 	},
 	"item": [
 		{
@@ -746,7 +746,7 @@
 							"script": {
 								"exec": [
 									"var correspondence = pm.response.json()\r",
-									"pm.collectionVariables.set(\"correspondenceId\", correspondence.correspondenceIds[0]);\r",
+									"pm.collectionVariables.set(\"correspondenceId\", correspondence.correspondences[0].correspondenceId);\r",
 									"pm.collectionVariables.set(\"attachmentId\", correspondence.attachmentIds[0])\r",
 									""
 								],
@@ -860,7 +860,7 @@
 							"script": {
 								"exec": [
 									"var correspondence = pm.response.json()\r",
-									"pm.collectionVariables.set(\"correspondenceId\", correspondence.correspondenceIds[0]);\r",
+									"pm.collectionVariables.set(\"correspondenceId\", correspondence.correspondences[0].correspondenceId);\r",
 									"pm.collectionVariables.set(\"attachmentId\", correspondence.attachmentIds[0])\r",
 									""
 								],

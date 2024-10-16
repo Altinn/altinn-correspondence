@@ -332,9 +332,9 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
             .WithExistingAttachments([attachmentId])
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
 
-        var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse?.CorrespondenceIds.FirstOrDefault()}", _responseSerializerOptions);
+        var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse?.Correspondences.FirstOrDefault().CorrespondenceId}", _responseSerializerOptions);
         Assert.True(overview?.Status == CorrespondenceStatusExt.Published);
 
         var deleteResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/attachment/{attachmentId}");
@@ -350,8 +350,8 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
             .WithRequestedPublishTime(DateTime.UtcNow.AddDays(1))
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
-        var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse?.CorrespondenceIds.FirstOrDefault()}", _responseSerializerOptions);
+        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+        var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse?.Correspondences.FirstOrDefault().CorrespondenceId}", _responseSerializerOptions);
         Assert.True(overview?.Status == CorrespondenceStatusExt.ReadyForPublish);
 
         var deleteResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/attachment/{correspondenceResponse?.AttachmentIds.FirstOrDefault()}");
@@ -371,9 +371,9 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
             .WithExistingAttachments([attachmentId])
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>();
+        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
 
-        var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse?.CorrespondenceIds.FirstOrDefault()}", _responseSerializerOptions);
+        var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse?.Correspondences.FirstOrDefault().CorrespondenceId}", _responseSerializerOptions);
         Assert.Equal(CorrespondenceStatusExt.Published, overview?.Status);
 
         // Act
