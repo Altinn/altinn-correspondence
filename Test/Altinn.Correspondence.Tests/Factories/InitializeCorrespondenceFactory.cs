@@ -67,7 +67,7 @@ internal static class InitializeCorrespondenceFactory
                 NotificationTemplate = NotificationTemplateExt.GenericAltinnMessage,
                 NotificationChannel = NotificationChannelExt.Email,
                 SendersReference = "0192:986252932",
-                RequestedSendTime = DateTime.UtcNow.AddDays(1),
+                RequestedSendTime = DateTimeOffset.UtcNow.AddDays(1),
                 SendReminder = true,
             },
             IgnoreReservation = false
@@ -118,7 +118,7 @@ internal static class InitializeCorrespondenceFactory
     internal static InitializeCorrespondencesExt BasicCorrespondenceAlreadyVisible()
     {
         var data = BasicCorrespondences();
-        data.Correspondence.RequestedPublishTime = DateTime.UtcNow.AddDays(-1);
+        data.Correspondence.RequestedPublishTime = DateTimeOffset.UtcNow.AddDays(-1);
         return data;
     }
     internal static InitializeCorrespondencesExt BasicCorrespondenceWithHtmlInTitle()

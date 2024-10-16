@@ -1,5 +1,4 @@
-using Altinn.Common.PEP.Authorization;
-using Altinn.Correspondence.API.Helpers;
+using Altinn.Correspondence.API.Auth;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Core.Options;
@@ -8,12 +7,9 @@ using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Persistence;
 using Azure.Identity;
 using Hangfire;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using System.Text.Json.Serialization;
 
@@ -35,8 +31,9 @@ static void BuildAndRun(string[] args)
         app.UseSwagger();
         app.UseSwaggerUI();
     }
+    app.UseCors(AuthorizationConstants.ArbeidsflateCors);
+    app.UseAuthentication();
     app.UseAuthorization();
-
     app.MapControllers();
     app.UseMiddleware<SecurityHeadersMiddleware>();
 
@@ -62,76 +59,36 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
 {
     var connectionString = GetConnectionString(config);
 
+    services.AddHostedService<EdDsaSecurityKeysCacheService>();
     services.Configure<AttachmentStorageOptions>(config.GetSection(key: nameof(AttachmentStorageOptions)));
     services.Configure<AltinnOptions>(config.GetSection(key: nameof(AltinnOptions)));
+    services.Configure<DialogportenSettings>(config.GetSection(key: nameof(DialogportenSettings)));
+    services.Configure<IdportenSettings>(config.GetSection(key: nameof(IdportenSettings)));
 
     services.AddControllers().AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
-    services.AddAuthentication()
-        .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-        {
-            var altinnOptions = new AltinnOptions();
-            config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
-            options.SaveToken = true;
-            options.MetadataAddress = altinnOptions.OpenIdWellKnown;
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                ValidateIssuer = true,
-                ValidateAudience = false,
-                RequireExpirationTime = true,
-                ValidateLifetime = !hostEnvironment.IsDevelopment(), // Do not validate lifetime in tests
-                ClockSkew = TimeSpan.Zero
-            };
-            options.Events = new JwtBearerEvents()
-            {
-                OnAuthenticationFailed = context => JWTBearerEventsHelper.OnAuthenticationFailed(context),
-                OnChallenge = c =>
-                {
-                    if (c.AuthenticateFailure != null)
-                    {
-                        c.HandleResponse();
-                    }
-                    return Task.CompletedTask;
-                }
-            };
-        })
-        .AddJwtBearer(AuthorizationConstants.MaskinportenScheme, options => // To support maskinporten tokens 
-        {
-            var altinnOptions = new AltinnOptions();
-            config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
-            options.SaveToken = true;
-            if (hostEnvironment.IsProduction())
-            {
-                options.MetadataAddress = "https://maskinporten.no/.well-known/oauth-authorization-server";
-            }
-            else
-            {
-                options.MetadataAddress = "https://test.maskinporten.no/.well-known/oauth-authorization-server";
-            }
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                ValidateIssuer = true,
-                ValidateAudience = false,
-                RequireExpirationTime = true,
-                ValidateLifetime = !hostEnvironment.IsDevelopment(),
-                ClockSkew = TimeSpan.Zero
-            };
-        });
-    services.AddTransient<IAuthorizationHandler, ScopeAccessHandler>();
-    services.AddAuthorization(options =>
+    var altinnOptions = new AltinnOptions();
+    config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
+    services.AddCors(options =>
     {
-        options.AddPolicy(AuthorizationConstants.Sender, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.SenderScope)).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
-        options.AddPolicy(AuthorizationConstants.Recipient, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.RecipientScope)).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
-        options.AddPolicy(AuthorizationConstants.SenderOrRecipient, policy => policy.AddRequirements(new ScopeAccessRequirement([AuthorizationConstants.SenderScope, AuthorizationConstants.RecipientScope])).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
-        options.AddPolicy(AuthorizationConstants.Migrate, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MigrateScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
-        options.AddPolicy(AuthorizationConstants.NotificationCheck, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.NotificationCheckScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
+        options.AddPolicy(name: AuthorizationConstants.ArbeidsflateCors,
+                          policy =>
+                          {
+                              policy.WithOrigins("https://af.tt.altinn.no").SetIsOriginAllowedToAllowWildcardSubdomains();
+                              policy.WithMethods("GET", "POST");
+                              policy.WithHeaders("Authorization");
+                              policy.AllowCredentials();
+                          });
     });
+    services.ConfigureAuthentication(config, hostEnvironment);
+    services.ConfigureAuthorization(config);
     services.AddEndpointsApiExplorer();
-    services.AddSwaggerGen();
+    services.AddSwaggerGen(options =>
+    {
+        options.DocumentFilter<IdportenCallbackInSwaggerFilter>();
+    });
     services.AddApplicationInsightsTelemetry();
 
     services.AddApplicationHandlers();

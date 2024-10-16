@@ -2,19 +2,19 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Altinn.Correspondence.API.Helpers
+namespace Altinn.Correspondence.API.Auth
 {
     public class JWTBearerEventsHelper
     {
         public static Task OnAuthenticationFailed(AuthenticationFailedContext context)
         {
-            context.Response.ContentType = "application/problem+json";
-            context.Response.Headers.Append("WWW-Authenticate", context.Options.Challenge + " error=\"invalid_token\"");
             if (context.Exception is SecurityTokenInvalidIssuerException)
             {
                 var issuer = ((SecurityTokenInvalidIssuerException)context.Exception).InvalidIssuer;
                 if (issuer.ToString().Contains("maskinporten.no"))
                 {
+                    context.Response.ContentType = "application/problem+json";
+                    context.Response.Headers.Append("WWW-Authenticate", context.Options.Challenge + " error=\"invalid_token\"");
                     context.Response.StatusCode = StatusCodes.Status403Forbidden;
                     return context.Response.WriteAsJsonAsync(new ProblemDetails()
                     {
@@ -24,13 +24,7 @@ namespace Altinn.Correspondence.API.Helpers
                     });
                 }
             }
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            return context.Response.WriteAsJsonAsync(new ProblemDetails
-            {
-                Status = StatusCodes.Status401Unauthorized,
-                Title = "Authentication failed",
-                Detail = context.Exception.Message
-            });
+            return Task.CompletedTask;
         }
     }
 

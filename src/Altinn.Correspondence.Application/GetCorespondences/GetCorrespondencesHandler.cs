@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.GetCorrespondences;

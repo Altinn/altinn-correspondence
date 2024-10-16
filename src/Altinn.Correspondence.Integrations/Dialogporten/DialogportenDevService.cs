@@ -1,18 +1,18 @@
-﻿using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Core.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten
 {
     internal class DialogportenDevService : IDialogportenService
     {
-        public Task<string> CreateCorrespondenceDialog(Guid correspondenceId, CancellationToken cancellationToken = default)
+        public Task<string> CreateCorrespondenceDialog(Guid correspondenceId)
         {
             return Task.FromResult(Guid.NewGuid().ToString());
+        }
+
+        public Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, params string[] tokens)
+        {
+            return Task.CompletedTask;
         }
     }
 }

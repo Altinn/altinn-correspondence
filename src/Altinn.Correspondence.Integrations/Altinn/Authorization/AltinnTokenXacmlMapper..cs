@@ -1,48 +1,41 @@
-﻿using System.Security.Claims;
-using System.Text.RegularExpressions;
-
-using Altinn.Authorization.ABAC.Xacml.JsonProfile;
+﻿using Altinn.Authorization.ABAC.Xacml.JsonProfile;
 using Altinn.Common.PEP.Constants;
 using Altinn.Common.PEP.Helpers;
-
+using System.Security.Claims;
+using System.Text.RegularExpressions;
 using static Altinn.Authorization.ABAC.Constants.XacmlConstants;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Authorization;
 
-/// <summary>
-/// Utility class for converting Events to XACML request
-/// </summary>
-public static class XacmlMappers
+public static class AltinnTokenXacmlMapper
 {
-    /// <summary>
-    /// Default issuer for attributes
-    /// </summary>
-    internal const string DefaultIssuer = "Altinn";
+    private const string DefaultIssuer = "Altinn";
+    private const string DefaultType = "string";
+    private const string OrgNumberAttributeId = "urn:altinn:organization:identifier-no";
 
-    /// <summary>
-    /// Default type for attributes
-    /// </summary>
-    internal const string DefaultType = "string";
+    public static XacmlJsonRequestRoot CreateAltinnDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId)
+    {
+        XacmlJsonRequest request = new()
+        {
+            AccessSubject = new List<XacmlJsonCategory>(),
+            Action = new List<XacmlJsonCategory>(),
+            Resource = new List<XacmlJsonCategory>()
+        };
 
-    /// <summary>
-    /// Subject id for multi requests. Inde should be appended.
-    /// </summary>
-    internal const string SubjectId = "s";
+        var subjectCategory = CreateSubjectCategory(user);
+        request.AccessSubject.Add(subjectCategory);
+        foreach (var actionType in actionTypes)
+        {
+            request.Action.Add(CreateActionCategory(actionType));
+        }
+        var resourceCategory = CreateResourceCategory(resourceId, user);
+        request.Resource.Add(resourceCategory);
 
-    /// <summary>
-    /// Action id for multi requests. Inde should be appended.
-    /// </summary>
-    internal const string ActionId = "a";
+        XacmlJsonRequestRoot jsonRequest = new() { Request = request };
+        return jsonRequest;
+    }
 
-    /// <summary>
-    /// Resource id for multi requests. Inde should be appended.
-    /// </summary>
-    internal const string ResourceId = "r";
-
-    /// <param name="actionType">Action type represented as a string</param>
-    /// <param name="includeResult">A value indicating whether the value should be included in the result</param>
-    /// <returns>A XacmlJsonCategory</returns>
-    internal static XacmlJsonCategory CreateActionCategory(string actionType, bool includeResult = false)
+    private static XacmlJsonCategory CreateActionCategory(string actionType, bool includeResult = false)
     {
         XacmlJsonCategory actionAttributes = new()
         {
@@ -54,18 +47,21 @@ public static class XacmlMappers
         return actionAttributes;
     }
 
-    /// If id is required this should be included by the caller. 
-    /// Attribute eventId is tagged with `includeInResponse`</remarks>
-    internal static XacmlJsonCategory CreateResourceCategory(string resourceId)
+    private static XacmlJsonCategory CreateResourceCategory(string resourceId, ClaimsPrincipal user)
     {
         XacmlJsonCategory resourceCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
 
         resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceId, resourceId, DefaultType, DefaultIssuer));
+        var claim = user.Claims.FirstOrDefault(claim => IsClientOrgNo(claim.Type));
+        if (claim is not null)
+        {
+            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(OrgNumberAttributeId, claim.Value, DefaultType, DefaultIssuer));
+        }
 
         return resourceCategory;
     }
 
-    internal static XacmlJsonCategory CreateSubjectCategory(ClaimsPrincipal user)
+    private static XacmlJsonCategory CreateSubjectCategory(ClaimsPrincipal user)
     {
         XacmlJsonCategory xacmlJsonCategory = new XacmlJsonCategory();
         List<XacmlJsonAttribute> list = new List<XacmlJsonAttribute>();
@@ -75,7 +71,7 @@ public static class XacmlMappers
             if (IsCamelCaseOrgnumberClaim(claim.Type))
             {
                 list.Add(CreateXacmlJsonAttribute("urn:altinn:organizationnumber", claim.Value, "string", claim.Issuer));
-                list.Add(CreateXacmlJsonAttribute("urn:altinn:organization:identifier-no", claim.Value, "string", claim.Issuer));
+                list.Add(CreateXacmlJsonAttribute(OrgNumberAttributeId, claim.Value, "string", claim.Issuer));
             }
             else if (IsScopeClaim(claim.Type))
             {
@@ -88,6 +84,10 @@ public static class XacmlMappers
             else if (IsValidUrn(claim.Type))
             {
                 list.Add(CreateXacmlJsonAttribute(claim.Type, claim.Value, "string", claim.Issuer));
+            }
+            else if (IsValidPid(claim.Type))
+            {
+                list.Add(CreateXacmlJsonAttribute("urn:altinn:person:identifier-no", claim.Value, "string", claim.Issuer));
             }
         }
         xacmlJsonCategory.Attribute = list;
@@ -104,6 +104,11 @@ public static class XacmlMappers
         return value.Equals("urn:altinn:orgNumber");
     }
 
+    private static bool IsClientOrgNo(string value)
+    {
+        return value.Equals("client_orgno");
+    }
+
     private static bool IsScopeClaim(string value)
     {
         return value.Equals("scope");
@@ -113,6 +118,11 @@ public static class XacmlMappers
     {
         return value.Equals("jti");
     }
+
+    private static bool IsValidPid(string value)
+    {
+        return value.Equals("pid");
+    }   
 
     private static XacmlJsonAttribute CreateXacmlJsonAttribute(string attributeId, string value, string dataType, string issuer, bool includeResult = false)
     {

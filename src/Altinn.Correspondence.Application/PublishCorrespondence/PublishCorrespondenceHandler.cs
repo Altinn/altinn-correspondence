@@ -1,5 +1,5 @@
-﻿using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Application.Helpers;
+﻿using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -18,20 +18,17 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IEventBus _eventBus;
-    private readonly IAltinnNotificationService _altinnNotificationService;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly IBackgroundJobClient _backgroundJobClient;
 
     public PublishCorrespondenceHandler(
         ILogger<PublishCorrespondenceHandler> logger,
-        IAltinnNotificationService altinnNotificationService,
         ICorrespondenceRepository correspondenceRepository,
         ICorrespondenceStatusRepository correspondenceStatusRepository,
         IEventBus eventBus,
         IHostEnvironment hostEnvironment,
         IBackgroundJobClient backgroundJobClient)
     {
-        _altinnNotificationService = altinnNotificationService;
         _logger = logger;
         _correspondenceRepository = correspondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
@@ -81,7 +78,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
             eventType = AltinnEventType.CorrespondencePublishFailed;
             foreach (var notification in correspondence.Notifications)
             {
-                _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondence.Notifications, cancellationToken));
+                _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, cancellationToken));
             }
         }
         else
@@ -93,8 +90,9 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
                 StatusChanged = DateTimeOffset.UtcNow,
                 StatusText = CorrespondenceStatus.Published.ToString()
             };
-
+            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.CorrespondencePublished));
         }
+
         await _correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
         await _eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         if (status.Status == CorrespondenceStatus.Published) await _eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);

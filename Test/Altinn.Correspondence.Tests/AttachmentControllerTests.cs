@@ -1,8 +1,9 @@
-using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Application.Configuration;
+using Altinn.Correspondence.Integrations.Altinn.Authorization;
+using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Net.Http.Json;

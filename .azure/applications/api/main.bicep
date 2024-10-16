@@ -19,6 +19,9 @@ param namePrefix string
 param storageAccountName string
 @minLength(3)
 param maskinporten_environment string
+param correspondenceBaseUrl string
+param idportenIssuer string
+param dialogportenIssuer string
 
 var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'
@@ -90,6 +93,9 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     userIdentityClientId: appIdentity.outputs.clientId
     containerAppEnvId: keyvault.getSecret('container-app-env-id')
     maskinporten_environment: maskinporten_environment
+    correspondenceBaseUrl: correspondenceBaseUrl
+    idportenIssuer: idportenIssuer
+    dialogportenIssuer: dialogportenIssuer
   }
 }
 

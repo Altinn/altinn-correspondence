@@ -14,7 +14,10 @@ using Altinn.Correspondence.Application.UpdateMarkAsUnread;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Correspondence.API.Controllers
@@ -45,20 +48,20 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] InitializeCorrespondencesHandler handler,
             CancellationToken cancellationToken)
         {
-            LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
-            _logger.LogInformation("Initialize correspondences");
+                LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
+                _logger.LogInformation("Initialize correspondences");
 
-            var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, null, request.ExistingAttachments, false);
-            var commandResult = await handler.Process(commandRequest, cancellationToken);
+                var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, null, request.ExistingAttachments, false);
+                var commandResult = await handler.Process(commandRequest, cancellationToken);
 
-            return commandResult.Match(
-                data => Ok(new InitializeCorrespondencesResponseExt()
-                {
-                    CorrespondenceIds = data.CorrespondenceIds,
-                    AttachmentIds = data.AttachmentIds
-                }),
-                Problem
-            );
+                return commandResult.Match(
+                    data => Ok(new InitializeCorrespondencesResponseExt()
+                    {
+                        CorrespondenceIds = data.CorrespondenceIds,
+                        AttachmentIds = data.AttachmentIds
+                    }),
+                    Problem
+                );
         }
 
         /// <summary>
@@ -102,7 +105,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{correspondenceId}")]
-        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
             Guid correspondenceId,
             [FromServices] GetCorrespondenceOverviewHandler handler,
@@ -127,7 +130,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns>Detailed information about the correspondence with current status and status history</returns>
         [HttpGet]
         [Route("{correspondenceId}/details")]
-        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         public async Task<ActionResult<CorrespondenceDetailsExt>> GetCorrespondenceDetails(
             Guid correspondenceId,
             [FromServices] GetCorrespondenceDetailsHandler handler,
@@ -139,6 +142,32 @@ namespace Altinn.Correspondence.API.Controllers
 
             return commandResult.Match(
                 data => Ok(CorrespondenceDetailsMapper.MapToExternal(data)),
+                Problem
+            );
+        }
+
+        /// <summary>
+        /// Gets the message body of a correspondence
+        /// </summary>
+        /// <remarks>
+        /// Meant for use with Felles Arbeidsflate
+        /// </remarks>
+        /// <returns>Message body in markdown format</returns>
+        [HttpGet]
+        [Route("{correspondenceId}/content")]
+        [Produces("application/vnd.dialogporten.frontchannelembed+json;type=markdown")]
+        [Authorize(AuthenticationSchemes = AuthorizationConstants.DialogportenScheme)]
+        [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
+        public async Task<ActionResult> GetCorrespondenceContent(
+            Guid correspondenceId,
+            [FromServices] GetCorrespondenceOverviewHandler handler,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Getting Correspondence content for {correspondenceId}", correspondenceId.ToString());
+
+            var commandResult = await handler.Process(correspondenceId, cancellationToken);
+            return commandResult.Match(
+                data => Ok(data.Content.MessageBody),
                 Problem
             );
         }
@@ -190,7 +219,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>StatusId</returns>
         [HttpPost]
-        [Authorize(Policy = AuthorizationConstants.Recipient)]
+        [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [Route("{correspondenceId}/markasread")]
         public async Task<ActionResult> MarkAsRead(
             Guid correspondenceId,
@@ -219,7 +248,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>OK</returns>
         [HttpPost]
-        [Authorize(Policy = AuthorizationConstants.Recipient)]
+        [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [Route("{correspondenceId}/markasunread")]
         public async Task<ActionResult> MarkAsUnread(
             Guid correspondenceId,
@@ -244,7 +273,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>StatusId</returns>
         [HttpPost]
-        [Authorize(Policy = AuthorizationConstants.Recipient)]
+        [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
+        [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         [Route("{correspondenceId}/confirm")]
         public async Task<ActionResult> Confirm(
             Guid correspondenceId,
@@ -273,7 +303,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>StatusId</returns>
         [HttpPost]
-        [Authorize(Policy = AuthorizationConstants.Recipient)]
+        [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
+        [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         [Route("{correspondenceId}/archive")]
         public async Task<ActionResult> Archive(
             Guid correspondenceId,
@@ -326,7 +357,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{correspondenceId}/attachment/{attachmentId}/download")]
-        [Authorize(Policy = AuthorizationConstants.Recipient)]
+        [Authorize(Policy = AuthorizationConstants.DownloadAttachmentPolicy, AuthenticationSchemes = AuthorizationConstants.AllSchemes)]
+        [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         public async Task<ActionResult> DownloadCorrespondenceAttachmentData(
             Guid correspondenceId,
             Guid attachmentId,
@@ -339,7 +371,7 @@ namespace Altinn.Correspondence.API.Controllers
                 AttachmentId = attachmentId
             }, cancellationToken);
             return commandResult.Match(
-                result => File(result, "application/octet-stream"),
+                result => File(result.Stream, "application/octet-stream", result.FileName),
                 Problem
             );
         }

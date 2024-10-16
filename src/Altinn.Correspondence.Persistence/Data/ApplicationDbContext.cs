@@ -46,7 +46,7 @@ public class ApplicationDbContext : DbContext
         }
         JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
         SecurityToken token = tokenHandler.ReadToken(_accessToken);
-        return DateTime.UtcNow.AddSeconds(60) < token.ValidTo;
+        return DateTimeOffset.UtcNow.AddSeconds(60) < token.ValidTo;
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
