@@ -43,6 +43,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns>Detailed information about the correspondence with current status and status history</returns>
         [HttpGet]
         [Route("{correspondenceId}/details")]
+        [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<ActionResult<CorrespondenceDetailsExt>> GetCorrespondenceDetails(
             Guid correspondenceId,
             [FromQuery] string onBehalfOfPartyId,
@@ -64,6 +65,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </summary>
         /// <returns>A list of overall Correspondence data and pagination metadata</returns>
         [HttpPost]
+        [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<ActionResult<CorrespondencesExt>> GetCorrespondences(
             LegacyGetCorrespondencesRequestExt request,
             [FromServices] LegacyGetCorrespondencesHandler handler,
