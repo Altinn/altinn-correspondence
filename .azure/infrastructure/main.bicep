@@ -70,7 +70,7 @@ var secrets = [
   {
     name: 'platform-subscription-key'
     value: platformSubscriptionKey
-  },
+  }
   {
     name: 'access-management-subscription-key'
     value: accessManagementSubscriptionKey
