@@ -28,7 +28,8 @@ internal static class CorrespondenceOverviewMapper
             AllowSystemDeleteAfter = correspondenceOverview.AllowSystemDeleteAfter,
             DueDateTime = correspondenceOverview.DueDateTime,
             PropertyList = correspondenceOverview.PropertyList,
-            IgnoreReservation = correspondenceOverview.IgnoreReservation
+            IgnoreReservation = correspondenceOverview.IgnoreReservation,
+            Published = correspondenceOverview.Published
         };
         return Correspondence;
     }

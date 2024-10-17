@@ -121,7 +121,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 await _context.SaveChangesAsync(cancellationToken);
             }
         }
-
+        public async Task UpdatePublished(Guid correspondenceId, DateTimeOffset published, CancellationToken cancellationToken)
+        {
+            var correspondence = await _context.Correspondences.SingleOrDefaultAsync(c => c.Id == correspondenceId, cancellationToken);
+            if (correspondence != null)
+            {
+                correspondence.Published = published;
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+        }
+        
         public async Task<(List<CorrespondenceEntity>, int)> GetCorrespondencesForParties(int offset, int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, string language, bool includeActive, bool includeArchived, bool includePurged, string searchString, CancellationToken cancellationToken)
         {
             var correspondences = _context.Correspondences

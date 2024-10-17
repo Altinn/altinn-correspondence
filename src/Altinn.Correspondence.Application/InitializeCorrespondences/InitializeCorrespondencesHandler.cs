@@ -185,6 +185,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 },
                 Created = request.Correspondence.Created,
                 ExternalReferences = request.Correspondence.ExternalReferences,
+                Published = request.Correspondence.Published
             };
             correspondences.Add(correspondence);
         }

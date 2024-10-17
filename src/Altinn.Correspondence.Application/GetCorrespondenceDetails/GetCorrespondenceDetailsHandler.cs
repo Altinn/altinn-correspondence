@@ -98,6 +98,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
             AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
             DueDateTime = correspondence.DueDateTime,
             PropertyList = correspondence.PropertyList,
+            Published = correspondence.Published
         };
         return response;
     }
