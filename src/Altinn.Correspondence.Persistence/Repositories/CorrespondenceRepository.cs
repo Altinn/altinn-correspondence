@@ -120,5 +120,14 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 await _context.SaveChangesAsync(cancellationToken);
             }
         }
+        public async Task UpdatePublished(Guid correspondenceId, DateTimeOffset published, CancellationToken cancellationToken)
+        {
+            var correspondence = await _context.Correspondences.SingleOrDefaultAsync(c => c.Id == correspondenceId, cancellationToken);
+            if (correspondence != null)
+            {
+                correspondence.Published = published;
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+        }
     }
 }
