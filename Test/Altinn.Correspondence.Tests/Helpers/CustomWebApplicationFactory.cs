@@ -32,7 +32,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 It.IsAny<IState>())).Returns("1"); 
             services.AddSingleton(HangfireBackgroundJobClient.Object);
             var altinnAuthorizationService = new Mock<IAltinnAuthorizationService>();
-            altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>(), It.IsAny<string?>())).ReturnsAsync(true);
             altinnAuthorizationService.Setup(x => x.CheckMigrationAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
             services.AddSingleton(altinnAuthorizationService.Object);
         });

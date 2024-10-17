@@ -61,7 +61,7 @@ namespace Altinn.Correspondence.API.Models
             var stringValue = value as string;
             if (string.IsNullOrWhiteSpace(stringValue))
             {
-                return new ValidationResult("The ISO6391 field cannot be null or empty!");
+                return ValidationResult.Success;
             }
             if (stringValue.Length != 2)
             {

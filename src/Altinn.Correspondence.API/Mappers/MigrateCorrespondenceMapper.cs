@@ -46,16 +46,15 @@ internal static class MigrateCorrespondenceMapper
                 MessageTitle = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content.MessageTitle,
                 MessageSummary = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content.MessageSummary,
                 MessageBody = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content.MessageBody,
-                Attachments = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content.Attachments.Select(
-                    attachment => InitializeCorrespondenceAttachmentMapper.MapToEntity(attachment, migrateCorrespondenceExt.CorrespondenceData.Correspondence.ResourceId, migrateCorrespondenceExt.CorrespondenceData.Correspondence.Sender)
-                ).ToList()
+                Attachments = []
             } : null,
         };
         
         return new MigrateCorrespondenceRequest()
         {
             CorrespondenceEntity = correspondence,
-            Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId
+            Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId,
+            ExistingAttachments = migrateCorrespondenceExt.CorrespondenceData.ExistingAttachments ?? new List<Guid>(),
         };
     }
 

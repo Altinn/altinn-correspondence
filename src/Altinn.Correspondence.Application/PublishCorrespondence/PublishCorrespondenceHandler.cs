@@ -78,7 +78,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
             eventType = AltinnEventType.CorrespondencePublishFailed;
             foreach (var notification in correspondence.Notifications)
             {
-                _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondence.Notifications, cancellationToken));
+                _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, cancellationToken));
             }
         }
         else
@@ -91,7 +91,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
                 StatusText = CorrespondenceStatus.Published.ToString()
             };
             await _correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
-            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, Core.Dialogporten.Mappers.DialogportenTextType.CorrespondencePublished));
+            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.CorrespondencePublished));
         }
 
         await _correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);

@@ -1,21 +1,22 @@
 ﻿using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Authorization;
-using System.IdentityModel.Tokens.Jwt;
 
 namespace Altinn.Correspondence.API.Helpers
 {
     public static class TokenHelper
     {
-        public static AuthorizationPolicyBuilder RequireScopesUnlessDialogporten(this AuthorizationPolicyBuilder authorizationPolicyBuilder, IConfiguration config, params string[] scopes) => authorizationPolicyBuilder.RequireAssertion(context =>
-        {
-            var dialogportenSettings = new DialogportenSettings();
-            config.GetSection(nameof(DialogportenSettings)).Bind(dialogportenSettings);
-            bool isDialogportenToken = context.User.HasClaim(c => c.Issuer == dialogportenSettings.Issuer);
-            if (isDialogportenToken)
+        public static AuthorizationPolicyBuilder RequireScopeIfAltinn(this AuthorizationPolicyBuilder authorizationPolicyBuilder, IConfiguration config, params string[] scopes) => 
+            authorizationPolicyBuilder.RequireAssertion(context =>
             {
-                return true; // Allow Dialogporten without checking scopes
-            }
-            return context.User.HasClaim(c => c.Type == "scope" && scopes.Contains(c.Value));
-        });
+                var altinnOptions = new AltinnOptions();
+                config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
+                bool isAltinnToken = context.User.HasClaim(c => c.Issuer == $"{altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/");
+                if (isAltinnToken)
+                {
+                    return context.User.HasClaim(c => c.Type == "scope" && scopes.Contains(c.Value));
+                }
+                return true;            
+            });
     }
+
 }

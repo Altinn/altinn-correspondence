@@ -2,8 +2,8 @@
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
-using Microsoft.AspNetCore.Routing.Constraints;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
@@ -39,7 +39,7 @@ public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespo
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken, correspondence.Recipient.Replace("0192:", ""));
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
@@ -54,7 +54,7 @@ public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespo
             return Errors.CorrespondenceNotFound;
         }
         var attachmentStream = await _storageRepository.DownloadAttachment(attachment.Id, cancellationToken);
-        _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, Core.Services.Enums.DialogportenActorType.Recipient, Core.Dialogporten.Mappers.DialogportenTextType.DownloadStarted, attachment.FileName ?? attachment.Name));
+        _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, Core.Services.Enums.DialogportenActorType.Recipient, DialogportenTextType.DownloadStarted, attachment.FileName ?? attachment.Name));
         return new DownloadCorrespondenceAttachmentResponse(){
             FileName = attachment.FileName,
             Stream = attachmentStream

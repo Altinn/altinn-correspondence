@@ -59,5 +59,40 @@ namespace Altinn.Correspondence.Persistence.Helpers
                 _ => throw new ArgumentException("Invalid CorrespondencesRoleType")
             };
         }
+
+        public static IQueryable<CorrespondenceEntity> IncludeByStatuses(this IQueryable<CorrespondenceEntity> query, bool includeActive, bool includeArchived, bool includePurged, CorrespondenceStatus? specificStatus)
+        {
+            var statusesToFilter = new List<CorrespondenceStatus?>();
+
+            if (specificStatus != null) // Specific status overrides other choices
+            {
+                statusesToFilter.Add(specificStatus);
+            }
+            else
+            {
+                if (includeActive) // Include correspondences with active status
+                {
+                    statusesToFilter.Add(CorrespondenceStatus.Published);
+                    statusesToFilter.Add(CorrespondenceStatus.Fetched);
+                    statusesToFilter.Add(CorrespondenceStatus.Read);
+                    statusesToFilter.Add(CorrespondenceStatus.Confirmed);
+                    statusesToFilter.Add(CorrespondenceStatus.Replied);
+                }
+
+                if (includeArchived) // Include correspondences with active status
+                {
+                    statusesToFilter.Add(CorrespondenceStatus.Archived);
+                }
+
+                if (includePurged) // Include correspondences with active status
+                {
+                    statusesToFilter.Add(CorrespondenceStatus.PurgedByAltinn);
+                    statusesToFilter.Add(CorrespondenceStatus.PurgedByRecipient);
+                }
+            }
+
+            return query
+                .Where(cs => statusesToFilter.Contains(cs.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status));
+        }
     }
 }

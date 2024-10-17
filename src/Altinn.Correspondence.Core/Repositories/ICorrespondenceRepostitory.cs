@@ -20,6 +20,22 @@ namespace Altinn.Correspondence.Core.Repositories
             CorrespondencesRoleType role,
             CancellationToken cancellationToken);
 
+        Task<(List<CorrespondenceEntity>, int)> GetCorrespondencesForParties(
+            int offset,
+            int limit,
+            DateTimeOffset? from,
+            DateTimeOffset? to,
+            CorrespondenceStatus? status,
+            List<string> recipientIds,
+            List<string> resourceIds,
+            string language,
+            bool includeActive,
+            bool includeArchived,
+            bool includePurged,
+            string searchString,
+            CancellationToken cancellationToken);
+
+
         Task<CorrespondenceEntity?> GetCorrespondenceById(
             Guid guid,
             bool includeStatus,

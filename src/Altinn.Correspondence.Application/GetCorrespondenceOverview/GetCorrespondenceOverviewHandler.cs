@@ -2,6 +2,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Microsoft.Extensions.Logging;
 using OneOf;
 
@@ -60,7 +61,7 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
                 CorrespondenceId = correspondence.Id,
                 Status = CorrespondenceStatus.Fetched,
                 StatusText = CorrespondenceStatus.Fetched.ToString(),
-                StatusChanged = DateTime.Now
+                StatusChanged = DateTimeOffset.UtcNow
             }, cancellationToken);
         }
         var response = new GetCorrespondenceOverviewResponse

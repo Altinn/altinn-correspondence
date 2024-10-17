@@ -8,6 +8,7 @@ using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Hangfire;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -199,7 +200,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 if (!_hostEnvironment.IsDevelopment())
                 {
                     //Adds a 1 minute delay for malware scan to finish if not running locally
-                    publishTime = correspondence.RequestedPublishTime.UtcDateTime.AddSeconds(-30) < DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(1) : correspondence.RequestedPublishTime.UtcDateTime;
+                    publishTime = correspondence.RequestedPublishTime.UtcDateTime.AddSeconds(-30) < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow.AddMinutes(1) : correspondence.RequestedPublishTime.UtcDateTime;
                 }
 
                 _backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), publishTime);
@@ -215,7 +216,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                     var orderId = await _altinnNotificationService.CreateNotification(notification, cancellationToken);
                     var entity = new CorrespondenceNotificationEntity()
                     {
-                        Created = DateTime.UtcNow,
+                        Created = DateTimeOffset.UtcNow,
                         NotificationChannel = request.Notification.NotificationChannel,
                         NotificationTemplate = request.Notification.NotificationTemplate,
                         CorrespondenceId = correspondence.Id,
@@ -224,7 +225,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                         IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
                     };
                     await _correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
-                    _backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, Core.Dialogporten.Mappers.DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime!.Value.ToString("yyyy-MM-dd HH:mm")));
+                    _backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime!.Value.ToString("yyyy-MM-dd HH:mm")));
                 }
             }
         }
@@ -290,14 +291,16 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             notifications.Add(new NotificationOrderRequest
             {
                 IgnoreReservation = correspondence.IgnoreReservation,
-                Recipients = new List<Recipient>{
-            new Recipient{
-                OrganizationNumber = orgNr,
-                NationalIdentityNumber = personNr
-            },
-        },
+                Recipients = new List<Recipient>
+                {
+                    new Recipient
+                    {
+                        OrganizationNumber = orgNr,
+                        NationalIdentityNumber = personNr
+                    },
+                },
                 ResourceId = correspondence.ResourceId,
-                RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime.AddDays(7),
+                RequestedSendTime = _hostEnvironment.IsProduction() ? correspondence.RequestedPublishTime.UtcDateTime.AddDays(7) : correspondence.RequestedPublishTime.UtcDateTime.AddHours(1),
                 ConditionEndpoint = CreateConditonEndpoint(correspondence.Id.ToString()),
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,

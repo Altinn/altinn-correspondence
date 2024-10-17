@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
+using Altinn.Correspondence.Integrations.Idporten;
 using Altinn.Correspondence.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
@@ -12,7 +13,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Net.Http.Json;
 using System.Security.Claims;
-using System.Text.Json;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Authorization;
 
@@ -22,13 +22,19 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IResourceRightsService _resourceRepository;
     private readonly IHostEnvironment _hostEnvironment;
-    private readonly ILogger<AltinnAuthorizationService> _logger;
+    private readonly AltinnOptions _altinnOptions;
     private readonly DialogportenSettings _dialogportenSettings;
+    private readonly IdportenSettings _idPortenSettings;
+    private readonly ClaimsPrincipal? _user;
+    private readonly ILogger<AltinnAuthorizationService> _logger;
 
-    public AltinnAuthorizationService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, IOptions<DialogportenSettings> dialogportenSettings, IHttpContextAccessor httpContextAccessor, IResourceRightsService resourceRepository, IHostEnvironment hostEnvironment, ILogger<AltinnAuthorizationService> logger)
+    public AltinnAuthorizationService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, IOptions<DialogportenSettings> dialogportenSettings, IOptions<IdportenSettings> idPortenSettings, IHttpContextAccessor httpContextAccessor, IResourceRightsService resourceRepository, IHostEnvironment hostEnvironment, ILogger<AltinnAuthorizationService> logger)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.PlatformSubscriptionKey);
+        _altinnOptions = altinnOptions.Value;
         _dialogportenSettings = dialogportenSettings.Value;
+        _idPortenSettings = idPortenSettings.Value;
+        _user = httpContextAccessor.HttpContext?.User;
         _httpClient = httpClient;
         _httpContextAccessor = httpContextAccessor;
         _resourceRepository = resourceRepository;
@@ -36,11 +42,10 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         _logger = logger;
     }
 
-    public async Task<bool> CheckUserAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
+    public async Task<bool> CheckUserAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, string? recipientOrgNo = null)
     {
         var user = _httpContextAccessor.HttpContext?.User;
-        var dialogportenRequest = user.Claims.FirstOrDefault(claim => claim.Type == "iss")?.Value == _dialogportenSettings.Issuer;
-        if (_hostEnvironment.IsDevelopment() || dialogportenRequest)
+        if (_hostEnvironment.IsDevelopment())
         {
             return true;
         }
@@ -56,7 +61,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             return false;
         }
         var actionIds = rights.Select(GetActionId).ToList();
-        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, actionIds, resourceId);
+        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, actionIds, resourceId, recipientOrgNo);
         var response = await _httpClient.PostAsJsonAsync("authorization/api/v1/authorize", jsonRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -68,7 +73,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             _logger.LogError("Unexpected null or invalid json response from Authorization.");
             return false;
         }
-        var validationResult = ValidateResult(responseContent, user);
+        var validationResult = ValidateAuthorizationResponse(responseContent, user);
         return validationResult;
     }
 
@@ -87,61 +92,36 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         return true;
     }
 
-    private XacmlJsonRequestRoot CreateDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId)
+    private XacmlJsonRequestRoot CreateDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string? recipientOrgNo)
     {
-        if (user.Claims.Any(claim => claim.Type == "iss" && claim.Value == _dialogportenSettings.Issuer))
+        var personIdClaim = GetPersonIdClaim();
+        if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
         {
-            return CreateDialogportenDecisionRequest(user, resourceId);
+            return AltinnTokenXacmlMapper.CreateAltinnDecisionRequest(user, actionTypes, resourceId);
         }
-        XacmlJsonRequest request = new()
+        if (personIdClaim.Issuer == _dialogportenSettings.Issuer)
         {
-            AccessSubject = new List<XacmlJsonCategory>(),
-            Action = new List<XacmlJsonCategory>(),
-            Resource = new List<XacmlJsonCategory>()
-        };
-
-        var subjectCategory = XacmlMappers.CreateSubjectCategory(user);
-        request.AccessSubject.Add(subjectCategory);
-        foreach (var actionType in actionTypes)
-        {
-            request.Action.Add(XacmlMappers.CreateActionCategory(actionType));
+            return DialogTokenXacmlMapper.CreateDialogportenDecisionRequest(user, resourceId);
         }
-        var resourceCategory = XacmlMappers.CreateResourceCategory(resourceId, user);
-        request.Resource.Add(resourceCategory);
-
-        XacmlJsonRequestRoot jsonRequest = new() { Request = request };
-
-        return jsonRequest;
+        if (personIdClaim.Issuer == _idPortenSettings.Issuer)
+        {
+            return IdportenXacmlMapper.CreateIdportenDecisionRequest(user, resourceId, actionTypes, recipientOrgNo);
+        }
+        throw new SecurityTokenInvalidIssuerException();
     }
 
-    private XacmlJsonRequestRoot CreateDialogportenDecisionRequest(ClaimsPrincipal user, string resourceId)
-    {
-        XacmlJsonRequest request = new()
-        {
-            AccessSubject = new List<XacmlJsonCategory>(),
-            Action = new List<XacmlJsonCategory>(),
-            Resource = new List<XacmlJsonCategory>()
-        };
-
-        var subjectCategory = DialogportenXacmlMapper.CreateSubjectCategory(user);
-        request.AccessSubject.Add(subjectCategory);
-        request.Action.Add(DialogportenXacmlMapper.CreateActionCategory(user));
-        var resourceCategory = DialogportenXacmlMapper.CreateResourceCategory(resourceId, user);
-        request.Resource.Add(resourceCategory);
-
-        XacmlJsonRequestRoot jsonRequest = new() { Request = request };
-
-        return jsonRequest;
-
-    }
-
-    private static bool ValidateResult(XacmlJsonResponse response, ClaimsPrincipal user)
+    private bool ValidateAuthorizationResponse(XacmlJsonResponse response, ClaimsPrincipal user)
     {
         if (response.Response.IsNullOrEmpty())
         {
             return false;
         }
-        foreach (var decision in response.Response)        
+        var personIdClaim = GetPersonIdClaim();
+        if (personIdClaim?.Issuer == _idPortenSettings.Issuer)
+        {
+            return IdportenXacmlMapper.ValidateIdportenAuthorizationResponse(response, user);
+        }
+        foreach (var decision in response.Response)
         {
             var result = DecisionHelper.ValidateDecisionResult(decision, user);
             if (result == false)
@@ -152,7 +132,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         return true;
     }
 
-    private string GetActionId(ResourceAccessLevel right)
+    private static string GetActionId(ResourceAccessLevel right)
     {
         return right switch
         {
@@ -160,5 +140,19 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             ResourceAccessLevel.Write => "write",
             _ => throw new NotImplementedException()
         };
+    }
+
+    private Claim? GetPersonIdClaim()
+    {
+        var claim = _user?.Claims.FirstOrDefault(claim => claim.Type == "pid");
+        if (claim is null)
+        {
+            claim = _user?.Claims.FirstOrDefault(claim => claim.Type == "c");
+        }
+        if (claim is null)
+        {
+            return null;
+        }
+        return claim;
     }
 }

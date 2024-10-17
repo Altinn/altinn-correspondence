@@ -1,5 +1,4 @@
-using Altinn.Common.PEP.Authorization;
-using Altinn.Correspondence.API.Helpers;
+using Altinn.Correspondence.API.Auth;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Core.Options;
@@ -8,15 +7,9 @@ using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Persistence;
 using Azure.Identity;
 using Hangfire;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using System.Text.Json.Serialization;
 
@@ -70,6 +63,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.Configure<AttachmentStorageOptions>(config.GetSection(key: nameof(AttachmentStorageOptions)));
     services.Configure<AltinnOptions>(config.GetSection(key: nameof(AltinnOptions)));
     services.Configure<DialogportenSettings>(config.GetSection(key: nameof(DialogportenSettings)));
+    services.Configure<IdportenSettings>(config.GetSection(key: nameof(IdportenSettings)));
 
     services.AddControllers().AddJsonOptions(options =>
     {
@@ -88,82 +82,13 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
                               policy.AllowCredentials();
                           });
     });
-    services.AddAuthentication()
-        .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-        {
-            options.SaveToken = true;
-            options.MetadataAddress = altinnOptions.OpenIdWellKnown;
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                ValidateIssuer = true,
-                ValidateAudience = false,
-                RequireExpirationTime = true,
-                ValidateLifetime = !hostEnvironment.IsDevelopment(), // Do not validate lifetime in tests
-                ClockSkew = TimeSpan.Zero
-            };
-            options.Events = new JwtBearerEvents()
-            {
-                OnAuthenticationFailed = context => JWTBearerEventsHelper.OnAuthenticationFailed(context)
-            };
-        })
-        .AddJwtBearer(AuthorizationConstants.MaskinportenScheme, options => // To support maskinporten tokens 
-        {
-            options.SaveToken = true;
-            if (hostEnvironment.IsProduction())
-            {
-                options.MetadataAddress = "https://maskinporten.no/.well-known/oauth-authorization-server";
-            }
-            else
-            {
-                options.MetadataAddress = "https://test.maskinporten.no/.well-known/oauth-authorization-server";
-            }
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                ValidateIssuer = true,
-                ValidateAudience = false,
-                RequireExpirationTime = true,
-                ValidateLifetime = !hostEnvironment.IsDevelopment(),
-                ClockSkew = TimeSpan.Zero
-            };
-        })
-        .AddJwtBearer(AuthorizationConstants.DialogportenScheme, options =>
-        {
-            options.SaveToken = true;
-            options.MetadataAddress = "https://platform.tt02.altinn.no/dialogporten/api/v1/.well-known/oauth-authorization-server";
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                IssuerSigningKeyResolver = (_, _, _, _) => EdDsaSecurityKeysCacheService.EdDsaSecurityKeys,
-                ValidateIssuerSigningKey = true,
-                ValidateIssuer = true,
-                ValidateAudience = false,
-                RequireExpirationTime = true,
-                ValidateLifetime = !hostEnvironment.IsDevelopment(),
-                ClockSkew = TimeSpan.Zero
-            };
-        });
-    services.AddTransient<IAuthorizationHandler, ScopeAccessHandler>();
-    services.AddAuthorization(options =>
-    {
-        options.AddPolicy(AuthorizationConstants.Sender, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.SenderScope)).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
-        options.AddPolicy(AuthorizationConstants.Recipient, policy =>
-            policy.RequireScopesUnlessDialogporten(config, AuthorizationConstants.RecipientScope).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme));
-        options.AddPolicy(AuthorizationConstants.SenderOrRecipient, policy =>
-            policy.RequireScopesUnlessDialogporten(config, AuthorizationConstants.SenderScope, AuthorizationConstants.RecipientScope).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme));
-        options.AddPolicy(AuthorizationConstants.DialogportenPolicy, policy =>
-        {
-            policy.AddAuthenticationSchemes(AuthorizationConstants.DialogportenScheme).RequireAuthenticatedUser();
-        });
-        options.AddPolicy(AuthorizationConstants.Migrate, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MigrateScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
-        options.AddPolicy(AuthorizationConstants.NotificationCheck, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.NotificationCheckScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
-        options.AddPolicy("DownloadAttachment", policy =>
-        {
-            policy.RequireScopesUnlessDialogporten(config, AuthorizationConstants.SenderScope, AuthorizationConstants.RecipientScope).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme);
-        });
-    });
+    services.ConfigureAuthentication(config, hostEnvironment);
+    services.ConfigureAuthorization(config);
     services.AddEndpointsApiExplorer();
-    services.AddSwaggerGen();
+    services.AddSwaggerGen(options =>
+    {
+        options.DocumentFilter<IdportenCallbackInSwaggerFilter>();
+    });
     services.AddApplicationInsightsTelemetry();
 
     services.AddApplicationHandlers();

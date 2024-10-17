@@ -29,12 +29,14 @@ jobs:
             region: norwayeast
             environment: test
             imageTag: ${{ steps.get-version.outputs.imageTag }}
+            AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+            AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
             AZURE_NAME_PREFIX: ${{ secrets.AZURE_NAME_PREFIX }}
             AZURE_ENVIRONMENT_KEY_VAULT_NAME: ${{ secrets.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
             AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
             PLATFORM_BASE_URL: ${{ secrets.PLATFORM_BASE_URL }}
             CORRESPONDENCE_BASE_URL: ${{ secrets.CORRESPONDENCE_BASE_URL }}
-            AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-            AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
             STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
+            DIALOGPORTEN_ISSUER: ${{ secrets.DIALOGPORTEN_ISSUER }}
+            IDPORTEN_ISSUER: ${{ secrets.IDPORTEN_ISSUER }}
           

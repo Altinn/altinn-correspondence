@@ -34,6 +34,12 @@ inputs:
     required: true
   CORRESPONDENCE_BASE_URL:
     description: "Base url for callbacks to Correspondence"
+  DIALOGPORTEN_ISSUER:
+    description: "Issuer for Dialogporten integration used to support ID"
+    required: true
+  IDPORTEN_ISSUER:
+    description: "Issuer for Maskinporten integration used for IDPorten auth"
+    required: true
 
 runs:
   using: "composite"
@@ -62,6 +68,8 @@ runs:
         PLATFORM_BASE_URL: ${{ inputs.PLATFORM_BASE_URL }}
         STORAGE_ACCOUNT_NAME: ${{ inputs.STORAGE_ACCOUNT_NAME }}
         CORRESPONDENCE_BASE_URL: ${{ inputs.CORRESPONDENCE_BASE_URL }}
+        DIALOGPORTEN_ISSUER: ${{ inputs.DIALOGPORTEN_ISSUER }}
+        IDPORTEN_ISSUER: ${{ inputs.IDPORTEN_ISSUER }}
       with:
         scope: subscription
         subscriptionId: ${{ inputs.AZURE_SUBSCRIPTION_ID }}

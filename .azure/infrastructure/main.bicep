@@ -19,11 +19,15 @@ param maskinportenClientId string
 @secure()
 param platformSubscriptionKey string
 @secure()
+param accessManagementSubscriptionKey string
+@secure()
 param notificationEmail string
 @secure()
 param slackUrl string
 @secure()
-param dialogportenIssuer string
+param idportenClientId string
+@secure()
+param idportenClientSecret string
 
 @secure()
 param storageAccountName string
@@ -54,7 +58,6 @@ module environmentKeyVault '../modules/keyvault/create.bicep' = {
     test_client_id: test_client_id
   }
 }
-
 var secrets = [
   {
     name: 'maskinporten-client-id'
@@ -69,12 +72,20 @@ var secrets = [
     value: platformSubscriptionKey
   }
   {
+    name: 'access-management-subscription-key'
+    value: accessManagementSubscriptionKey
+  }
+  {
     name: 'slack-url'
     value: slackUrl
   }
   {
-    name: 'dialogporten-issuer'
-    value: dialogportenIssuer
+    name: 'idporten-client-id'
+    value: idportenClientId
+  }
+  {
+    name: 'idporten-client-secret'
+    value: idportenClientSecret
   }
 ]
 

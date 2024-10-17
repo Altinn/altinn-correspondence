@@ -176,13 +176,13 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 apiActions.Add(new ApiAction()
                 {
-                    Action = "write",
+                    Action = "read",
                     Endpoints = new List<Endpoint>()
                     {
                         new Endpoint()
                         {
                             HttpMethod = "GET",
-                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/attachment/{attachment.Id}/download"
+                            Url = GetDownloadAttachmentEndpoint(baseUrl, correspondence.Id, attachment.AttachmentId)
                         }
                     }
                 });
@@ -329,7 +329,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     {
                         ConsumerType = "Gui",
                         MediaType = "application/octet-stream",
-                        Url = GetDownloadAttachmentEndpoint(baseUrl, correspondence.Id, attachment.Id)
+                        Url = GetDownloadAttachmentEndpoint(baseUrl, correspondence.Id, attachment.AttachmentId)
                     }
                 }
             }).ToList() ?? new List<Attachment>();

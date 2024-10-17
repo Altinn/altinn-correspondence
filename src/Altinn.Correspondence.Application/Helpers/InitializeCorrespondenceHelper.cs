@@ -25,7 +25,7 @@ namespace Altinn.Correspondence.Application.Helpers
         public Error? ValidateDateConstraints(CorrespondenceEntity correspondence)
         {
             var RequestedPublishTime = correspondence.RequestedPublishTime;
-            if (correspondence.DueDateTime < DateTimeOffset.Now)
+            if (correspondence.DueDateTime < DateTimeOffset.UtcNow)
             {
                 return Errors.DueDatePriorToday;
             }
@@ -33,7 +33,7 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return Errors.DueDatePriorRequestedPublishTime;
             }
-            if (correspondence.AllowSystemDeleteAfter < DateTimeOffset.Now)
+            if (correspondence.AllowSystemDeleteAfter < DateTimeOffset.UtcNow)
             {
                 return Errors.AllowSystemDeletePriorToday;
             }
@@ -139,7 +139,7 @@ namespace Altinn.Correspondence.Application.Helpers
             var status = CorrespondenceStatus.Initialized;
             if (correspondence.Content != null && correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.Statuses.Any(s => s.Status == AttachmentStatus.Published)))
             {
-                if (_hostEnvironment.IsDevelopment() && correspondence.RequestedPublishTime < DateTime.UtcNow) status = CorrespondenceStatus.Published; // used to test on published correspondences in development
+                if (_hostEnvironment.IsDevelopment() && correspondence.RequestedPublishTime < DateTimeOffset.UtcNow) status = CorrespondenceStatus.Published; // used to test on published correspondences in development
                 else status = CorrespondenceStatus.ReadyForPublish;
             }
             return status;
