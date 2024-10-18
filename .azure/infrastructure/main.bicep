@@ -19,6 +19,8 @@ param maskinportenClientId string
 @secure()
 param platformSubscriptionKey string
 @secure()
+param accessManagementSubscriptionKey string
+@secure()
 param notificationEmail string
 @secure()
 param slackUrl string
@@ -68,6 +70,10 @@ var secrets = [
   {
     name: 'platform-subscription-key'
     value: platformSubscriptionKey
+  }
+  {
+    name: 'access-management-subscription-key'
+    value: accessManagementSubscriptionKey
   }
   {
     name: 'slack-url'

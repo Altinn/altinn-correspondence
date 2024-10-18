@@ -20,6 +20,22 @@ namespace Altinn.Correspondence.Core.Repositories
             CorrespondencesRoleType role,
             CancellationToken cancellationToken);
 
+        Task<(List<CorrespondenceEntity>, int)> GetCorrespondencesForParties(
+            int offset,
+            int limit,
+            DateTimeOffset? from,
+            DateTimeOffset? to,
+            CorrespondenceStatus? status,
+            List<string> recipientIds,
+            List<string> resourceIds,
+            string language,
+            bool includeActive,
+            bool includeArchived,
+            bool includePurged,
+            string searchString,
+            CancellationToken cancellationToken);
+
+
         Task<CorrespondenceEntity?> GetCorrespondenceById(
             Guid guid,
             bool includeStatus,
@@ -31,5 +47,6 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<List<Guid>> GetCorrespondenceIdsByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default);
         Task AddExternalReference(Guid correspondenceId, ReferenceType referenceType, string referenceValue, CancellationToken cancellationToken = default);
         Task UpdateMarkedUnread(Guid correspondenceId, bool status, CancellationToken cancellationToken);
+        Task UpdatePublished(Guid correspondenceId, DateTimeOffset published, CancellationToken cancellationToken);
     }
 }

@@ -47,4 +47,6 @@ public class GetCorrespondenceDetailsResponse
     public DateTimeOffset DueDateTime { get; set; }
 
     public Dictionary<string, string> PropertyList { get; set; } = new Dictionary<string, string>();
+    
+    public DateTimeOffset? Published { get; internal set; }
 }

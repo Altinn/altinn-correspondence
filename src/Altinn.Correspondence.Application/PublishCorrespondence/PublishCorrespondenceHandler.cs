@@ -90,6 +90,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
                 StatusChanged = DateTimeOffset.UtcNow,
                 StatusText = CorrespondenceStatus.Published.ToString()
             };
+            await _correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
             _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.CorrespondencePublished));
         }
 

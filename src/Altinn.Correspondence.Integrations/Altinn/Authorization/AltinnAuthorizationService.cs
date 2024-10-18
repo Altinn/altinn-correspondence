@@ -95,7 +95,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     private XacmlJsonRequestRoot CreateDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string? recipientOrgNo)
     {
         var personIdClaim = GetPersonIdClaim();
-        if (personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
+        if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
         {
             return AltinnTokenXacmlMapper.CreateAltinnDecisionRequest(user, actionTypes, resourceId);
         }
@@ -117,13 +117,9 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             return false;
         }
         var personIdClaim = GetPersonIdClaim();
-        if (personIdClaim.Issuer == _idPortenSettings.Issuer)
+        if (personIdClaim?.Issuer == _idPortenSettings.Issuer)
         {
             return IdportenXacmlMapper.ValidateIdportenAuthorizationResponse(response, user);
-        }
-        if (personIdClaim.Issuer == _dialogportenSettings.Issuer)
-        {
-            return DialogTokenXacmlMapper.ValidateDialogportenResult(response, user);
         }
         foreach (var decision in response.Response)
         {
@@ -146,7 +142,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         };
     }
 
-    private Claim GetPersonIdClaim()
+    private Claim? GetPersonIdClaim()
     {
         var claim = _user?.Claims.FirstOrDefault(claim => claim.Type == "pid");
         if (claim is null)
@@ -155,7 +151,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         }
         if (claim is null)
         {
-            throw new SecurityTokenMalformedException("No person id claim in token. Only AltinnTokens, DialogTokens and Idporten tokens are supported.");
+            return null;
         }
         return claim;
     }

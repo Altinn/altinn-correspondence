@@ -1,10 +1,20 @@
 using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.Configuration;
+using Altinn.Correspondence.Application.DownloadAttachment;
+using Altinn.Correspondence.Application.GetAttachmentOverview;
+using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
+using Altinn.Correspondence.Application.GetCorrespondences;
+using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.InitializeCorrespondence;
+using Altinn.Correspondence.Application.PurgeCorrespondence;
+using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
+using Altinn.Correspondence.Application.UpdateMarkAsUnread;
+using Altinn.Correspondence.Application.UploadAttachment;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
-using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +22,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Altinn.Correspondence.API.Controllers
 {
     [ApiController]
+    [ApiExplorerSettings(IgnoreApi = true)]
     [Route("correspondence/api/v1/migration")]
     [Authorize]
     public class MigrationController : Controller
@@ -62,46 +73,69 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("correspondence/{correspondenceId}")]
         public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
             Guid correspondenceId,
-            [FromServices] GetCorrespondenceOverviewHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Getting Correspondence overview for {correspondenceId}", correspondenceId.ToString());
-
-            var commandResult = await handler.Process(correspondenceId, cancellationToken);
+            // This should go through its own handler.
+            throw new NotImplementedException();
+        }
+        
+        /// <summary>
+        /// Initialize attachment for migration.
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("attachment")]
+        [Authorize(Policy = AuthorizationConstants.Migrate)]
+        public async Task<ActionResult<Guid>> MigrateAttachment(
+            InitializeAttachmentExt initializeAttachmentExt,
+            [FromServices] MigrateInitializeAttachmentHandler migrateInitializeAttachmentHandler,
+            CancellationToken cancellationToken = default
+        )
+        {
+            _logger.LogInformation("{initializeAttachmentExt.SendersReference};Initializing attachment with sendersference", initializeAttachmentExt.SendersReference);
+            var commandRequest = InitializeAttachmentMapper.MapToRequest(initializeAttachmentExt);
+            var commandResult = await migrateInitializeAttachmentHandler.Process(commandRequest, cancellationToken);
 
             return commandResult.Match(
-                data => Ok(CorrespondenceOverviewMapper.MapToExternal(data)),
+                attachmentId => Ok(attachmentId.ToString()),
                 Problem
             );
         }
         
-        /*
-        /// <summary>
-        /// Initialize a new Attachment
-        /// </summary>
-        /// <remarks>Only required if the attachment is to be shared, otherwise this is done as part of the Initialize Correspondence operation</remarks>
-        /// <returns></returns>
-        [HttpPost]
-        [Route("/attachment/")]
-        public async Task<ActionResult<Guid>> InitializeAttachment(InitializeAttachmentExt InitializeAttachmentExt, [FromServices] InitializeAttachmentHandler handler, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
-
         /// <summary>
         /// Upload attachment data to Altinn Correspondence blob storage
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        [Route("/attachment/{attachmentId}/upload")]
+        [Route("attachment/{attachmentId}/upload")]
         [Consumes("application/octet-stream")]
+        [Authorize(Policy = AuthorizationConstants.Migrate)]
         public async Task<ActionResult<AttachmentOverviewExt>> UploadAttachmentData(
+            Guid attachmentId,
+            [FromServices] MigrateUploadAttachmentHandler migrateAttachmentHandler,
+            [FromServices] GetAttachmentOverviewHandler attachmentOverviewHandler,
             CancellationToken cancellationToken = default
         )
         {
-            throw new NotImplementedException();
+            _logger.LogInformation("{attachmentId};Uploading attachment", attachmentId.ToString());
+
+            Request.EnableBuffering();
+            var uploadAttachmentResult = await migrateAttachmentHandler.Process(new UploadAttachmentRequest()
+            {
+                AttachmentId = attachmentId,
+                UploadStream = Request.Body,
+                ContentLength = Request.ContentLength ?? Request.Body.Length
+            }, cancellationToken);
+            var attachmentOverviewResult = await attachmentOverviewHandler.Process(attachmentId, cancellationToken);
+            if (!attachmentOverviewResult.TryPickT0(out var attachmentOverview, out var error))
+            {
+                return Problem(error);
+            }
+            return uploadAttachmentResult.Match(
+                attachment => Ok(AttachmentOverviewMapper.MapToExternal(attachmentOverview)),
+                Problem
+            );
         }
-        */
         
         private ActionResult Problem(Error error) => Problem(detail: error.Message, statusCode: (int)error.StatusCode);
     }

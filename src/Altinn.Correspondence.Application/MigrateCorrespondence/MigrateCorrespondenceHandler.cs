@@ -3,6 +3,7 @@ using System.Text.Encodings.Web;
 using System.Text.RegularExpressions;
 using System.Web;
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -15,7 +16,7 @@ public class MigrateCorrespondenceHandler : IHandler<MigrateCorrespondenceReques
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly InitializeCorrespondenceHelper _correspondenceHelper;
+    private readonly InitializeCorrespondenceHelper _initializeCorrespondenceHelper;
     IBackgroundJobClient _backgroundJobClient;
 
     public MigrateCorrespondenceHandler(
@@ -27,7 +28,7 @@ public class MigrateCorrespondenceHandler : IHandler<MigrateCorrespondenceReques
         _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
         _backgroundJobClient = backgroundJobClient;
-        _correspondenceHelper = initializeCorrespondenceHelper;
+        _initializeCorrespondenceHelper = initializeCorrespondenceHelper;
     }
 
     public async Task<OneOf<MigrateCorrespondenceResponse, Error>> Process(MigrateCorrespondenceRequest request, CancellationToken cancellationToken)
@@ -38,11 +39,33 @@ public class MigrateCorrespondenceHandler : IHandler<MigrateCorrespondenceReques
             return Errors.NoAccessToResource;
         }
 
-        var contentError = _correspondenceHelper.ValidateCorrespondenceContent(request.CorrespondenceEntity.Content);
+        var contentError = _initializeCorrespondenceHelper.ValidateCorrespondenceContent(request.CorrespondenceEntity.Content);
         if (contentError != null)
         {
             return contentError;
         }
+
+        // Validate that existing attachments are correct
+        var existingAttachments = await _initializeCorrespondenceHelper.GetExistingAttachments(request.ExistingAttachments);
+        if (existingAttachments.Count != request.ExistingAttachments.Count)
+        {
+            return Errors.ExistingAttachmentNotFound;
+        }
+        // Validate that existing attachments are published
+        var anyExistingAttachmentsNotPublished = existingAttachments.Any(a => a.GetLatestStatus()?.Status != AttachmentStatus.Published);
+        if (anyExistingAttachmentsNotPublished)
+        {
+            return Errors.AttachmentNotPublished;
+        }
+
+        request.CorrespondenceEntity.Content.Attachments.AddRange
+        (
+            existingAttachments.Select(a => new CorrespondenceAttachmentEntity() 
+            { 
+                Attachment = a, 
+                Created = DateTimeOffset.Now
+            })
+        );
         
         var correspondence = await _correspondenceRepository.CreateCorrespondence(request.CorrespondenceEntity, cancellationToken);
 
