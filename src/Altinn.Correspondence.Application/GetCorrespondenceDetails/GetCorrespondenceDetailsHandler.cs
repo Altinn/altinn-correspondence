@@ -62,16 +62,13 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
             }, cancellationToken);
         }
         var notificationHistory = new List<NotificationStatusResponse>();
-        if (correspondence.Notifications.Count != 0)
+        foreach (var notification in correspondence.Notifications)
         {
-            foreach (var notification in correspondence.Notifications)
+            if (notification.NotificationOrderId != null)
             {
-                if (notification.NotificationOrderId != null)
-                {
-                    var notificationSummary = await _altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString());
-                    notificationSummary.IsReminder = notification.IsReminder;
-                    notificationHistory.Add(notificationSummary);
-                }
+                var notificationSummary = await _altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString());
+                notificationSummary.IsReminder = notification.IsReminder;
+                notificationHistory.Add(notificationSummary);
             }
         }
 

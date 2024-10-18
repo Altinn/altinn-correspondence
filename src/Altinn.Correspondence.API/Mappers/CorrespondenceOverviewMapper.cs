@@ -18,6 +18,7 @@ internal static class CorrespondenceOverviewMapper
             Sender = correspondenceOverview.Sender,
             MessageSender = correspondenceOverview.MessageSender,
             Created = correspondenceOverview.Created,
+            Notifications = correspondenceOverview.Notifications,
             Recipient = correspondenceOverview.Recipient,
             Content = CorrespondenceContentMapper.MapToExternal(correspondenceOverview.Content),
             ReplyOptions = CorrespondenceReplyOptionsMapper.MapListToExternal(correspondenceOverview.ReplyOptions),

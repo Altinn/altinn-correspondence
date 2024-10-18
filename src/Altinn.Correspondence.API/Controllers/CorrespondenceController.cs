@@ -136,7 +136,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] GetCorrespondenceDetailsHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Getting Correspondence overview for {correspondenceId}", correspondenceId.ToString());
+            _logger.LogInformation("Getting Correspondence details for {correspondenceId}", correspondenceId.ToString());
 
             var commandResult = await handler.Process(correspondenceId, cancellationToken);
 

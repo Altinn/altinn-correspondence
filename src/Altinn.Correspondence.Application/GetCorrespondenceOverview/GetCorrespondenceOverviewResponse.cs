@@ -29,7 +29,7 @@ public class GetCorrespondenceOverviewResponse
 
     public List<CorrespondenceReplyOptionEntity> ReplyOptions { get; set; } = new List<CorrespondenceReplyOptionEntity>();
 
-    public List<CorrespondenceNotificationEntity> Notifications { get; set; } = new List<CorrespondenceNotificationEntity>();
+    public List<CorrespondenceNotificationOverview> Notifications { get; set; } = new List<CorrespondenceNotificationOverview>();
 
     public List<ExternalReferenceEntity> ExternalReferences { get; set; } = new List<ExternalReferenceEntity>();
 
@@ -48,4 +48,9 @@ public class GetCorrespondenceOverviewResponse
     public Dictionary<string, string> PropertyList { get; set; } = new Dictionary<string, string>();
     
     public DateTimeOffset? Published { get; set; }
+}
+
+public class CorrespondenceNotificationOverview {
+    public Guid? NotificationOrderId { get; set; }
+    public bool IsReminder { get; set; }
 }
