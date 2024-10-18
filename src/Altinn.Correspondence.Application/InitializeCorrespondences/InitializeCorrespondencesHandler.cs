@@ -8,7 +8,6 @@ using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Hangfire;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -189,7 +188,9 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             };
             correspondences.Add(correspondence);
         }
-        correspondences = await _correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
+        await _correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
+
+        var correspondenceDetails = new List<CorrespondenceDetails>();
         foreach (var correspondence in correspondences)
         {
             var dialogJob = _backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
@@ -208,30 +209,55 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             }
             _backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime);
             await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
+
+            var notificationDetails = new List<NotificationDetails>();
             if (request.Notification != null)
             {
                 var notifications = CreateNotifications(request.Notification, correspondence, notificationContents, cancellationToken);
                 foreach (var notification in notifications)
                 {
-                    var orderId = await _altinnNotificationService.CreateNotification(notification, cancellationToken);
+                    var notificationOrder = await _altinnNotificationService.CreateNotification(notification, cancellationToken);
+                    if (notificationOrder is null)
+                    {
+                        notificationDetails.Add(new NotificationDetails()
+                        {
+                            OrderId = Guid.Empty,
+                            Status = NotificationStatus.Failure
+                        });
+                        continue;
+                    }
                     var entity = new CorrespondenceNotificationEntity()
                     {
                         Created = DateTimeOffset.UtcNow,
                         NotificationChannel = request.Notification.NotificationChannel,
                         NotificationTemplate = request.Notification.NotificationTemplate,
                         CorrespondenceId = correspondence.Id,
-                        NotificationOrderId = orderId,
+                        NotificationOrderId = notificationOrder.OrderId,
                         RequestedSendTime = notification.RequestedSendTime ?? DateTimeOffset.UtcNow,
                         IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
                     };
+                    notificationDetails.Add(new NotificationDetails()
+                    {
+                        OrderId = entity.NotificationOrderId,
+                        IsReminder = entity.IsReminder,
+                        Status = notificationOrder.RecipientLookup?.Status == RecipientLookupStatus.Success ? NotificationStatus.Success : NotificationStatus.MissingContact
+                    });
                     await _correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
                     _backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime!.Value.ToString("yyyy-MM-dd HH:mm")));
                 }
             }
+            correspondenceDetails.Add(new CorrespondenceDetails()
+            {
+                CorrespondenceId = correspondence.Id,
+                Status = correspondence.GetLatestStatus().Status,
+                Recipient = correspondence.Recipient,
+                Notifications = notificationDetails
+            });
         }
+
         return new InitializeCorrespondencesResponse()
         {
-            CorrespondenceIds = correspondences.Select(c => c.Id).ToList(),
+            Correspondences = correspondenceDetails,
             AttachmentIds = correspondences.SelectMany(c => c.Content?.Attachments.Select(a => a.AttachmentId)).ToList()
         };
     }

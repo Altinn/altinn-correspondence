@@ -4,7 +4,7 @@ namespace Altinn.Correspondence.Core.Repositories;
 
 public interface IAltinnNotificationService
 {
-    Task<Guid?> CreateNotification(NotificationOrderRequest notification, CancellationToken cancellationToken = default);
+    Task<NotificationOrderRequestResponse?> CreateNotification(NotificationOrderRequest notification, CancellationToken cancellationToken = default);
 
     Task<bool> CancelNotification(string orderId, CancellationToken cancellationToken = default);
 

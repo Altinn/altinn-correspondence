@@ -57,7 +57,7 @@ namespace Altinn.Correspondence.API.Controllers
                 return commandResult.Match(
                     data => Ok(new InitializeCorrespondencesResponseExt()
                     {
-                        CorrespondenceIds = data.CorrespondenceIds,
+                        Correspondences = data.Correspondences,
                         AttachmentIds = data.AttachmentIds
                     }),
                     Problem
@@ -89,7 +89,7 @@ namespace Altinn.Correspondence.API.Controllers
             return commandResult.Match(
                 data => Ok(new InitializeCorrespondencesResponseExt()
                 {
-                    CorrespondenceIds = data.CorrespondenceIds,
+                    Correspondences = data.Correspondences,
                     AttachmentIds = data.AttachmentIds
                 }),
                 Problem
