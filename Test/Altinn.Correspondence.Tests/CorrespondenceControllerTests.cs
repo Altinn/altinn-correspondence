@@ -4,11 +4,15 @@ using Altinn.Correspondence.Application.CancelNotification;
 using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
+using Hangfire.Common;
+using Hangfire.States;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -1324,6 +1328,119 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             .Build();
         var initializeCorrespondenceResponse4 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload4, _responseSerializerOptions);
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse4.StatusCode);
+    }
+    [Fact]
+    public async Task Correspondence_WithNotification_Failed_Returns_MissingContact()
+    {
+        // Arrange
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+            .WithNotificationChannel(NotificationChannelExt.Email)
+            .Build();
+        var orderId = Guid.NewGuid();
+
+        var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+        {
+            var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            hangfireBackgroundJobClient.Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>())).Returns("1");
+            services.AddSingleton(hangfireBackgroundJobClient.Object);
+            var mockNotificationService = new Mock<IAltinnNotificationService>();
+            mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(new NotificationOrderRequestResponse()
+            {
+                OrderId = orderId,
+                RecipientLookup = new RecipientLookupResult()
+                {
+                    Status = RecipientLookupStatus.Failed,
+                    MissingContact = [],
+                    IsReserved = []
+                }
+            });
+            services.AddSingleton(mockNotificationService.Object);
+        });
+        var senderClient = testFactory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+
+        // Act
+        var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var content = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+        Assert.Equal(CorrespondenceStatus.Published, content?.Correspondences.First().Status);
+        Assert.Equal(Application.InitializeCorrespondences.NotificationStatus.MissingContact, content?.Correspondences?.First()?.Notifications?.First().Status);
+        Assert.Equal(orderId, content?.Correspondences?.First()?.Notifications?.First().OrderId);
+    }
+    [Fact]
+    public async Task Correspondence_WithNotification_Failed_Returns_Failed()
+    {
+        // Arrange
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+            .WithNotificationChannel(NotificationChannelExt.Email)
+            .Build();
+
+        var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+        {
+            var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            hangfireBackgroundJobClient.Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>())).Returns("1");
+            services.AddSingleton(hangfireBackgroundJobClient.Object);
+            var mockNotificationService = new Mock<IAltinnNotificationService>();
+            mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync((NotificationOrderRequestResponse)null);
+            services.AddSingleton(mockNotificationService.Object);
+        });
+        var senderClient = testFactory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+
+        // Act
+        var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var content = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+        Assert.Equal(CorrespondenceStatus.Published, content?.Correspondences.First().Status);
+        Assert.Equal(Application.InitializeCorrespondences.NotificationStatus.Failure, content?.Correspondences?.First()?.Notifications?.First().Status);
+        Assert.Equal(Guid.Empty, content?.Correspondences?.First()?.Notifications?.First().OrderId);
+    }
+    [Fact]
+    public async Task Correspondence_WithNotification_Success_Returns_OK()
+    {
+        // Arrange
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+            .WithNotificationChannel(NotificationChannelExt.Email)
+            .Build();
+        var orderId = Guid.NewGuid();
+
+        var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+        {
+            var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            hangfireBackgroundJobClient.Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>())).Returns("1");
+            services.AddSingleton(hangfireBackgroundJobClient.Object);
+            var mockNotificationService = new Mock<IAltinnNotificationService>();
+            mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(new NotificationOrderRequestResponse()
+            {
+                OrderId = orderId,
+                RecipientLookup = new RecipientLookupResult()
+                {
+                    Status = RecipientLookupStatus.Success,
+                    MissingContact = [],
+                    IsReserved = []
+                }
+            });
+            services.AddSingleton(mockNotificationService.Object);
+        });
+        var senderClient = testFactory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+
+        // Act
+        var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+        var content = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+        Assert.Equal(CorrespondenceStatus.Published, content?.Correspondences.First().Status);
+        Assert.Equal(Application.InitializeCorrespondences.NotificationStatus.Success, content?.Correspondences?.First()?.Notifications?.First().Status);
+        Assert.Equal(orderId, content?.Correspondences?.First()?.Notifications?.First().OrderId);
     }
 
     [Fact]
