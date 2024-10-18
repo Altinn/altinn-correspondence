@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models
@@ -57,10 +58,10 @@ namespace Altinn.Correspondence.API.Models
         public DateTimeOffset StatusChanged { get; set; }
 
         /// <summary>
-        /// A list of notification events for this correspondence
+        /// An overview of the notifications for this correspondence
         /// </summary>
         [JsonPropertyName("notifications")]
-        public List<NotificationExt> Notifications { get; set; } = new List<NotificationExt>();
+        public List<CorrespondenceNotificationOverview> Notifications { get; set; } = new List<CorrespondenceNotificationOverview>();
 
         /// <summary>
         /// Is null until the correspondence is published.

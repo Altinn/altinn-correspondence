@@ -64,6 +64,16 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
                 StatusChanged = DateTimeOffset.UtcNow
             }, cancellationToken);
         }
+        var notificationsOverview = new List<CorrespondenceNotificationOverview>();
+        foreach (var notification in correspondence.Notifications)
+        {
+            notificationsOverview.Add(new CorrespondenceNotificationOverview
+            {
+                NotificationOrderId = notification.NotificationOrderId,
+                IsReminder = notification.IsReminder
+            });
+        }
+
         var response = new GetCorrespondenceOverviewResponse
         {
             CorrespondenceId = correspondence.Id,
@@ -78,7 +88,7 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
             Created = correspondence.Created,
             Recipient = correspondence.Recipient,
             ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
-            Notifications = correspondence.Notifications ?? new List<CorrespondenceNotificationEntity>(),
+            Notifications = notificationsOverview,
             ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
             RequestedPublishTime = correspondence.RequestedPublishTime,
             IgnoreReservation = correspondence.IgnoreReservation ?? false,
