@@ -17,10 +17,14 @@ public class AltinnDevNotificationService : IAltinnNotificationService
         _logger = logger;
     }
 
-    public async Task<Guid?> CreateNotification(NotificationOrderRequest notification, CancellationToken cancellationToken = default)
+    public async Task<NotificationOrderRequestResponse?> CreateNotification(NotificationOrderRequest notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Notification for Correspondence with recipient ssn: " + notification.Recipients[0].NationalIdentityNumber + " or orgNr: " + notification.Recipients[0].OrganizationNumber);
-        return Guid.NewGuid();
+        return new NotificationOrderRequestResponse()
+        {
+            OrderId = Guid.NewGuid(),
+            RecipientLookup = new RecipientLookupResult()
+        };
     }
 
     public async Task<bool> CancelNotification(string orderId, CancellationToken cancellationToken = default)

@@ -45,7 +45,7 @@ public class NotificationTests : IClassFixture<MaskinportenWebApplicationFactory
         var initializeCorrespondenceResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         var responseContent = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
-        var correspondenceId = JsonSerializer.Deserialize<InitializeCorrespondencesResponseExt>(responseContent, _responseSerializerOptions).CorrespondenceIds.First();
+        var correspondenceId = JsonSerializer.Deserialize<InitializeCorrespondencesResponseExt>(responseContent, _responseSerializerOptions).Correspondences.First().CorrespondenceId;
 
         var response = await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/notification/check");
         var content = await response.Content.ReadAsStringAsync();
@@ -67,7 +67,7 @@ public class NotificationTests : IClassFixture<MaskinportenWebApplicationFactory
         var initializeCorrespondenceResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         var responseContent = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
-        var correspondenceId = JsonSerializer.Deserialize<InitializeCorrespondencesResponseExt>(responseContent, _responseSerializerOptions).CorrespondenceIds.First();
+        var correspondenceId = JsonSerializer.Deserialize<InitializeCorrespondencesResponseExt>(responseContent, _responseSerializerOptions).Correspondences.First().CorrespondenceId;;
 
         var recipientClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.RecipientScope));
         var markasread = await recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);

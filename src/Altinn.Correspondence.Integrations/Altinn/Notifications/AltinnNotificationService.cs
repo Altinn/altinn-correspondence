@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Models.Notifications;
-using Newtonsoft.Json;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Notifications;
 
@@ -20,7 +19,7 @@ public class AltinnNotificationService : IAltinnNotificationService
         _logger = logger;
     }
 
-    public async Task<Guid?> CreateNotification(NotificationOrderRequest notification, CancellationToken cancellationToken = default)
+    public async Task<NotificationOrderRequestResponse?> CreateNotification(NotificationOrderRequest notification, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Creating notification in Altinn Notification");
         var response = await _httpClient.PostAsJsonAsync("notifications/api/v1/orders", notification, cancellationToken);
@@ -36,13 +35,7 @@ public class AltinnNotificationService : IAltinnNotificationService
             _logger.LogError("Unexpected null or invalid json response from Notification.");
             return null;
         }
-        if (responseContent.RecipientLookup!.Status != RecipientLookupStatus.Success)
-        {
-            _logger.LogError(responseContent.RecipientLookup.Status.ToString());
-            _logger.LogError("Recipient lookup failed when ordering notification.");
-            return null;
-        }
-        return responseContent.OrderId;
+        return responseContent;
     }
 
     public async Task<bool> CancelNotification(string orderId, CancellationToken cancellationToken = default)

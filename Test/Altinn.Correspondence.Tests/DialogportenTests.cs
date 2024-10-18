@@ -81,14 +81,14 @@ public class DialogportenTests : IClassFixture<CustomWebApplicationFactory>
         var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondenceToBeMade);
         var initializedCorrespondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
         using var scope = _factory.Services.CreateScope();
-        var correspondence = await scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>().GetCorrespondenceById(initializedCorrespondence.CorrespondenceIds[0], false, false, CancellationToken.None);
+        var correspondence = await scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>().GetCorrespondenceById(initializedCorrespondence.Correspondences[0].CorrespondenceId, false, false, CancellationToken.None);
         var config = _factory.Services.GetService<IConfiguration>();
         var dialogportenSettings = new DialogportenSettings();
         config.GetSection(nameof(DialogportenSettings)).Bind(dialogportenSettings);
         var dialogTokenClient = _factory.CreateClientWithDialogportenClaims(dialogportenSettings.Issuer, ("p", DialogportenCorrespondenceMapper.GetRecipientUrn(correspondence)));
 
         // Act
-        var contentResponse = await dialogTokenClient.GetAsync("correspondence/api/v1/correspondence/" + initializedCorrespondence.CorrespondenceIds[0] + "/content");
+        var contentResponse = await dialogTokenClient.GetAsync("correspondence/api/v1/correspondence/" + initializedCorrespondence.Correspondences[0].CorrespondenceId + "/content");
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, contentResponse.StatusCode);
