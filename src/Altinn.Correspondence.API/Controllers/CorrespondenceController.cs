@@ -15,7 +15,6 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -43,7 +42,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns>CorrespondenceIds</returns>
         [HttpPost]
         [Authorize(Policy = AuthorizationConstants.Sender)]
-        public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeCorrespondences(
+        public async Task<ActionResult<InitializeCorrespondencesResponseExt>> InitializeCorrespondences(
             InitializeCorrespondencesExt request,
             [FromServices] InitializeCorrespondencesHandler handler,
             CancellationToken cancellationToken)
@@ -72,7 +71,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("upload")]
         [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
         [Authorize(Policy = AuthorizationConstants.Sender)]
-        public async Task<ActionResult<CorrespondenceOverviewExt>> UploadCorrespondences(
+        public async Task<ActionResult<InitializeCorrespondencesResponseExt>> UploadCorrespondences(
             [FromForm] InitializeCorrespondencesExt request,
             [FromForm] List<IFormFile> attachments,
             [FromServices] InitializeCorrespondencesHandler handler,
