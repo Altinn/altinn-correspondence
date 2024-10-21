@@ -372,7 +372,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence/upload", correspondence);
 
         // Assert
-        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.UnsupportedMediaType, initializeCorrespondenceResponse.StatusCode);
     }
 
     [Fact]
