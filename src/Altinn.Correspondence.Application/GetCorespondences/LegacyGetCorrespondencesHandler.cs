@@ -89,11 +89,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
         foreach (var correspondence in correspondences.Item1)
         {
-            var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken, "0192:" + userParty.OrgNumber);
-            if (hasAccess)
-            {
-                authorizedCorrespondences.Add(correspondence);
-            }
+            authorizedCorrespondences.Add(correspondence);
         }
         Console.WriteLine($"Authorized correspondences: {authorizedCorrespondences.Count}");
         List<LegacyCorrespondenceItem> correspondenceItems = new List<LegacyCorrespondenceItem>();
