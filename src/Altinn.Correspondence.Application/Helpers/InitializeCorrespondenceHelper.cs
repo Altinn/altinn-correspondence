@@ -9,19 +9,12 @@ using OneOf;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
-    public class InitializeCorrespondenceHelper
+    public class InitializeCorrespondenceHelper(IAttachmentRepository attachmentRepository, IHostEnvironment hostEnvironment, UploadHelper uploadHelper)
     {
-        private readonly IAttachmentRepository _attachmentRepository;
-        private readonly IHostEnvironment _hostEnvironment;
-        private readonly UploadHelper _uploadHelper;
+        private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
+        private readonly IHostEnvironment _hostEnvironment = hostEnvironment;
+        private readonly UploadHelper _uploadHelper = uploadHelper;
 
-        public InitializeCorrespondenceHelper(IAttachmentRepository attachmentRepository, IHostEnvironment hostEnvironment, UploadHelper uploadHelper)
-        {
-            _attachmentRepository = attachmentRepository;
-            _hostEnvironment = hostEnvironment;
-            _uploadHelper = uploadHelper;
-
-        }
         public Error? ValidateDateConstraints(CorrespondenceEntity correspondence)
         {
             var RequestedPublishTime = correspondence.RequestedPublishTime;

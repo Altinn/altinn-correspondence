@@ -7,16 +7,12 @@ using OneOf;
 
 namespace Altinn.Correspondence.Application.UploadAttachment;
 
-public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IHostEnvironment hostEnvironment, IDialogportenService dialogportenService) : IHandler<UploadAttachmentRequest, UploadAttachmentResponse>
+public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, UploadHelper uploadHelper) : IHandler<UploadAttachmentRequest, UploadAttachmentResponse>
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
     private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
-    private readonly IAttachmentStatusRepository _attachmentStatusRepository = attachmentStatusRepository;
     private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
-    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
-    private readonly IStorageRepository _storageRepository = storageRepository;
-    private readonly IHostEnvironment _hostEnvironment = hostEnvironment;
-    private readonly IDialogportenService _dialogportenService = dialogportenService;
+    private readonly UploadHelper _uploadHelper = uploadHelper;
 
     public async Task<OneOf<UploadAttachmentResponse, Error>> Process(UploadAttachmentRequest request, CancellationToken cancellationToken)
     {
@@ -39,7 +35,6 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
         {
             return Errors.InvalidUploadAttachmentStatus;
         }
-        UploadHelper uploadHelper = new UploadHelper(_correspondenceRepository, _correspondenceStatusRepository, _attachmentStatusRepository, _attachmentRepository, _storageRepository, _hostEnvironment, _dialogportenService);
 
         // Check if any correspondences are attached. 
         var correspondences = await _correspondenceRepository.GetCorrespondencesByAttachmentId(request.AttachmentId, false);
@@ -48,7 +43,7 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
             return Errors.CantUploadToExistingCorrespondence;
         }
 
-        var uploadResult = await uploadHelper.UploadAttachment(request.UploadStream, request.AttachmentId, cancellationToken);
+        var uploadResult = await _uploadHelper.UploadAttachment(request.UploadStream, request.AttachmentId, cancellationToken);
 
         return uploadResult.Match<OneOf<UploadAttachmentResponse, Error>>(
             data => { return data; },
