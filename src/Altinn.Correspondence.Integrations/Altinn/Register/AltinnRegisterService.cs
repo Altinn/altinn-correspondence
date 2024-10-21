@@ -25,7 +25,7 @@ public class AltinnRegisterService : IAltinnRegisterService
     public async Task<string?> LookUpPartyId(string identificationId, CancellationToken cancellationToken = default)
     {
         var party = await LookUpFullParty(identificationId, cancellationToken);
-        return party.PartyId.ToString();
+        return party?.PartyId.ToString();
     }
 
     public async Task<string?> LookUpName(string identificationId, CancellationToken cancellationToken = default)
