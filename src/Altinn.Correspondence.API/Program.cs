@@ -20,8 +20,9 @@ static void BuildAndRun(string[] args)
     var builder = WebApplication.CreateBuilder(args);
 
     builder.Configuration
-        .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-        .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", true, true);
+        .AddJsonFile("appsettings.json", true, true)
+        .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", true, true)
+        .AddJsonFile("appsettings.local.json", true, true);
     ConfigureServices(builder.Services, builder.Configuration, builder.Environment);
 
     var app = builder.Build();
@@ -93,7 +94,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
 
     services.AddApplicationHandlers();
     services.AddPersistence(config);
-    services.AddIntegrations(config, hostEnvironment);
+    services.AddIntegrations(config);
 
     services.AddHttpClient();
     services.AddProblemDetails();
