@@ -69,7 +69,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         {
             Console.WriteLine($"Recipient: {recipient}");
         }
-        var parties = await _altinnAccessManagementService.GetAutorizedParties(userParty, cancellationToken);
+        /*var parties = await _altinnAccessManagementService.GetAutorizedParties(userParty, cancellationToken);
         var authorizedResources = new List<string>();
         List<string> recipientIds = new List<string>();
         foreach (var party in parties)
@@ -77,6 +77,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
             if (party.Resources != null) authorizedResources.AddRange(party.Resources);
         }
         authorizedResources = authorizedResources.Distinct().ToList();
+        */
         List<string> resourcesToSearch = new List<string>();
 
         // Get all correspondences owned by Recipients
@@ -99,8 +100,15 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         var resourceOwners = new List<Tuple<string, string>>();
         foreach (var orgNr in correspondences.Item1.Select(c => c.Sender).Distinct().ToList())
         {
-            var resourceOwnerParty = await _altinnRegisterService.LookUpName(orgNr, cancellationToken);
-            resourceOwners.Add(new Tuple<string, string>(orgNr, resourceOwnerParty));
+            try
+            {
+                var resourceOwnerParty = await _altinnRegisterService.LookUpName(orgNr, cancellationToken);
+                resourceOwners.Add(new Tuple<string, string>(orgNr, resourceOwnerParty));
+            }
+            catch (Exception e)
+            {
+                resourceOwners.Add(new Tuple<string, string>(orgNr, "Temporary name"));
+            }
         }
         foreach (var correspondence in authorizedCorrespondences)
         {
