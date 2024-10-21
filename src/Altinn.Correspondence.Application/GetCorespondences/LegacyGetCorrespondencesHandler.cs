@@ -69,14 +69,6 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         {
             Console.WriteLine($"Recipient: {recipient}");
         }
-        var parties = await _altinnAccessManagementService.GetAutorizedParties(userParty, cancellationToken);
-        var authorizedResources = new List<string>();
-        List<string> recipientIds = new List<string>();
-        foreach (var party in parties)
-        {
-            if (party.Resources != null) authorizedResources.AddRange(party.Resources);
-        }
-        authorizedResources = authorizedResources.Distinct().ToList();
 
         List<string> resourcesToSearch = new List<string>();
 
