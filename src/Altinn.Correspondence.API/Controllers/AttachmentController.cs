@@ -26,6 +26,8 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <remarks>Only required if the attachment is to be shared, otherwise this is done as part of the Initialize Correspondence operation</remarks>
     /// <returns></returns>
     [HttpPost]
+    [Consumes("application/json")]
+    [Produces("application/json")]
     [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<Guid>> InitializeAttachment(InitializeAttachmentExt InitializeAttachmentExt, [FromServices] InitializeAttachmentHandler handler, CancellationToken cancellationToken)
     {
@@ -44,6 +46,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// </summary>
     /// <returns></returns>
     [HttpPost]
+    [Produces("application/json")]
     [Route("{attachmentId}/upload")]
     [Consumes("application/octet-stream")]
     [Authorize(Policy = AuthorizationConstants.Sender)]
@@ -80,6 +83,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <returns>AttachmentOverviewExt</returns>
     [HttpGet]
     [Route("{attachmentId}")]
+    [Produces("application/json")]
     [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<AttachmentOverviewExt>> GetAttachmentOverview(
         Guid attachmentId,
@@ -101,6 +105,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// </summary>
     /// <returns></returns>
     [HttpGet]
+    [Produces("application/json")]
     [Route("{attachmentId}/details")]
     [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<AttachmentDetailsExt>> GetAttachmentDetails(
@@ -128,6 +133,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <returns></returns>
     [HttpDelete]
     [Route("{attachmentId}")]
+    [Produces("application/json")]
     [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<AttachmentOverviewExt>> DeleteAttachment(
         Guid attachmentId,
