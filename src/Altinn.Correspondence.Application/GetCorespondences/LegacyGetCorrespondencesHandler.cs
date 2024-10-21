@@ -69,15 +69,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         {
             Console.WriteLine($"Recipient: {recipient}");
         }
-        /*var parties = await _altinnAccessManagementService.GetAutorizedParties(userParty, cancellationToken);
-        var authorizedResources = new List<string>();
-        List<string> recipientIds = new List<string>();
-        foreach (var party in parties)
-        {
-            if (party.Resources != null) authorizedResources.AddRange(party.Resources);
-        }
-        authorizedResources = authorizedResources.Distinct().ToList();
-        */
+
         List<string> resourcesToSearch = new List<string>();
 
         // Get all correspondences owned by Recipients
@@ -87,15 +79,6 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
 
         var resourceIds = correspondences.Item1.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
-        foreach (var correspondence in correspondences.Item1)
-        {
-            var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken, "0192:" + userParty.OrgNumber);
-            if (hasAccess)
-            {
-                authorizedCorrespondences.Add(correspondence);
-            }
-        }
-        Console.WriteLine($"Authorized correspondences: {authorizedCorrespondences.Count}");
         List<LegacyCorrespondenceItem> correspondenceItems = new List<LegacyCorrespondenceItem>();
         var resourceOwners = new List<Tuple<string, string>>();
         foreach (var orgNr in correspondences.Item1.Select(c => c.Sender).Distinct().ToList())
@@ -110,7 +93,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                 resourceOwners.Add(new Tuple<string, string>(orgNr, "Temporary name"));
             }
         }
-        foreach (var correspondence in authorizedCorrespondences)
+        foreach (var correspondence in correspondences.Item1)
         {
 
             correspondenceItems.Add(
