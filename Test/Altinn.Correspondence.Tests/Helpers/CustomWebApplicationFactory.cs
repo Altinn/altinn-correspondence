@@ -1,5 +1,7 @@
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Integrations.Altinn.Events;
 using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Hangfire.Common;
@@ -35,6 +37,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>(), It.IsAny<string?>())).ReturnsAsync(true);
             altinnAuthorizationService.Setup(x => x.CheckMigrationAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
             services.AddSingleton(altinnAuthorizationService.Object);
+            services.AddSingleton<IEventBus, ConsoleLogEventBus>();
         });
     }
     public HttpClient CreateClientWithAddedClaims(params (string type, string value)[] claims)
