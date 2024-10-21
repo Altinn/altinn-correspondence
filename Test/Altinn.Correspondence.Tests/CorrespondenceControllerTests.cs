@@ -361,7 +361,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
-    public async Task UploadCorrespondence_WithoutAttachments_ReturnsBadRequest()
+    public async Task UploadCorrespondence_WithoutAttachments_ReturnsUnsupportedMediaType()
     {
         // Arrange
         var correspondence = new CorrespondenceBuilder()
