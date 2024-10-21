@@ -35,7 +35,7 @@ namespace Altinn.Correspondence.Application.Helpers
             if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(recipientId);
             if (_claims.Any(c => c.Issuer == _idportenSettings.Issuer)) return true; // Idporten tokens are always recipients, verified by altinn authorization
             if (GetUserID() != recipientId) return false;
-            if (!GetUserScope().Any(scope => scope.Value == AuthorizationConstants.RecipientScope)) return false;
+            if (!GetUserScope().Any(scope => scope == AuthorizationConstants.RecipientScope)) return false;
             return true;
         }
         public bool IsSender(string senderId)
@@ -43,7 +43,7 @@ namespace Altinn.Correspondence.Application.Helpers
             if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(senderId);
             if (_claims.Any(c => c.Issuer == _idportenSettings.Issuer)) return false; 
             if (GetUserID() != senderId) return false;
-            if (!GetUserScope().Any(scope=> scope.Value == AuthorizationConstants.SenderScope)) return false;
+            if (!GetUserScope().Any(scope=> scope == AuthorizationConstants.SenderScope)) return false;
             return true;
         }
         private bool MatchesDialogTokenOrganization(string organizationId)
@@ -69,9 +69,10 @@ namespace Altinn.Correspondence.Application.Helpers
         {
             return _claims.FirstOrDefault(c => c.Type == _IdProperty)?.Value;
         }
-        private IEnumerable<Claim> GetUserScope()
+        private IEnumerable<string> GetUserScope()
         {
-            var scopes = _claims.Where(c => c.Type == _scopeClaim) ?? [];
+            var scopeClaims = _claims.Where(c => c.Type == _scopeClaim) ?? [];
+            var scopes = scopeClaims.SelectMany(c => c.Value.Split(" "));
             return scopes;
         }
     }
