@@ -45,8 +45,9 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     public async Task<bool> CheckUserAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, string? recipientOrgNo = null)
     {
         var user = _httpContextAccessor.HttpContext?.User;
-        if (_hostEnvironment.IsDevelopment())
+        if (_httpClient.BaseAddress is null) 
         {
+            _logger.LogWarning("Authorization service disabled");
             return true;
         }
         var serviceOwnerId = await _resourceRepository.GetServiceOwnerOfResource(resourceId, cancellationToken);
