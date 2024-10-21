@@ -3,7 +3,7 @@ using Altinn.Correspondence.Core.Services.Enums;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten
 {
-    internal class DialogportenDevService : IDialogportenService
+    public class DialogportenDevService : IDialogportenService
     {
         public Task<string> CreateCorrespondenceDialog(Guid correspondenceId)
         {

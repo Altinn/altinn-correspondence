@@ -1,7 +1,10 @@
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Altinn.Correspondence.Integrations.Altinn.Events;
+using Altinn.Correspondence.Integrations.Altinn.Notifications;
+using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Hangfire.Common;
@@ -11,6 +14,7 @@ using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Security.Claims;
@@ -22,6 +26,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)
     {
+        builder.UseConfiguration(new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json")
+            .AddJsonFile("appsettings.Development.json")
+            .Build());
         // Overwrite registrations from Program.cs
         builder.ConfigureTestServices((services) =>
         {
@@ -33,11 +41,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 It.IsAny<Job>(), 
                 It.IsAny<IState>())).Returns("1"); 
             services.AddSingleton(HangfireBackgroundJobClient.Object);
-            var altinnAuthorizationService = new Mock<IAltinnAuthorizationService>();
-            altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>(), It.IsAny<string?>())).ReturnsAsync(true);
-            altinnAuthorizationService.Setup(x => x.CheckMigrationAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
-            services.AddSingleton(altinnAuthorizationService.Object);
-            services.AddSingleton<IEventBus, ConsoleLogEventBus>();
+            services.AddScoped<IEventBus, ConsoleLogEventBus>();
+            services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
+            services.AddScoped<IDialogportenService, DialogportenDevService>();
+            services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationDevService>();
         });
     }
     public HttpClient CreateClientWithAddedClaims(params (string type, string value)[] claims)
