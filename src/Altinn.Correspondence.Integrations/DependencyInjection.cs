@@ -4,7 +4,7 @@ using Altinn.ApiClients.Maskinporten.Services;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Integrations.Altinn.AccessManangement;
+using Altinn.Correspondence.Integrations.Altinn.AccessManagement;
 using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Altinn.Correspondence.Integrations.Altinn.Events;
 using Altinn.Correspondence.Integrations.Altinn.Notifications;

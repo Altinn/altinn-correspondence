@@ -11,7 +11,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json;
 using Altinn.Correspondence.Core.Models.Entities;
 
-namespace Altinn.Correspondence.Integrations.Altinn.AccessManangement;
+namespace Altinn.Correspondence.Integrations.Altinn.AccessManagement;
 
 public class AltinnAccessManagementService : IAltinnAccessManagementService
 {
@@ -20,7 +20,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
 
     public AltinnAccessManagementService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, IHttpContextAccessor httpContextAccessor, IResourceRightsService resourceRepository, IHostEnvironment hostEnvironment, ILogger<AltinnAccessManagementService> logger)
     {
-        httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.AccessManangementSubscriptionKey);
+        httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.AccessManagementSubscriptionKey);
         _httpClient = httpClient;
         _logger = logger;
     }
