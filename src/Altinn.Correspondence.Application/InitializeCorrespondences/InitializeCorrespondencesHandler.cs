@@ -297,7 +297,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             },
         },
             ResourceId = correspondence.ResourceId,
-            RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime  <= DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(5) : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
+            RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(2) : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(2),
             SendersReference = correspondence.SendersReference,
             NotificationChannel = notification.NotificationChannel,
             EmailTemplate = new EmailTemplate
@@ -326,7 +326,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                     },
                 },
                 ResourceId = correspondence.ResourceId,
-                RequestedSendTime = _hostEnvironment.IsProduction() ? notificationOrder.RequestedSendTime.Value.AddDays(7) : notificationOrder.RequestedSendTime.Value.AddHours(1),                
+                RequestedSendTime = _hostEnvironment.IsProduction() ? notificationOrder.RequestedSendTime.Value.AddDays(7) : notificationOrder.RequestedSendTime.Value.AddMinutes(3),
                 ConditionEndpoint = CreateConditonEndpoint(correspondence.Id.ToString()),
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,
