@@ -1,15 +1,13 @@
-﻿using System.Net.Http.Json;
-using Altinn.Correspondence.Repositories;
+﻿using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Text.Json.Serialization;
+using System.Net.Http.Json;
 using System.Text.Json;
-using Altinn.Correspondence.Core.Models.Entities;
+using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.Integrations.Altinn.AccessManagement;
 
@@ -18,7 +16,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
     private readonly HttpClient _httpClient;
     private readonly ILogger<AltinnAccessManagementService> _logger;
 
-    public AltinnAccessManagementService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, IHttpContextAccessor httpContextAccessor, IResourceRightsService resourceRepository, IHostEnvironment hostEnvironment, ILogger<AltinnAccessManagementService> logger)
+    public AltinnAccessManagementService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnAccessManagementService> logger)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.AccessManagementSubscriptionKey);
         _httpClient = httpClient;
