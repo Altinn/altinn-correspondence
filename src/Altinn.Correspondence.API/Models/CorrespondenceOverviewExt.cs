@@ -62,11 +62,5 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("notifications")]
         public List<CorrespondenceNotificationOverview> Notifications { get; set; } = new List<CorrespondenceNotificationOverview>();
-
-        /// <summary>
-        /// Is null until the correspondence is published.
-        /// </summary>
-        [JsonPropertyName("Published")]
-        public DateTimeOffset? Published { get; set; }
     }
 }

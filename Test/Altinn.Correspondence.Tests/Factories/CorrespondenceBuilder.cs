@@ -101,9 +101,9 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.Content!.Attachments = attachmentMetaData;
             return this;
         }
-        public CorrespondenceBuilder WithExistingAttachments(List<string> attachmentIds)
+        public CorrespondenceBuilder WithExistingAttachments(List<Guid> attachmentIds)
         {
-            _correspondence.ExistingAttachments = attachmentIds.Select(Guid.Parse).ToList();
+            _correspondence.ExistingAttachments = attachmentIds;
             return this;
         }
         public CorrespondenceBuilder WithSender(string sender)

@@ -1,5 +1,4 @@
 using Altinn.Correspondence.Application.InitializeCorrespondences;
-using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.API.Models;
 

@@ -15,7 +15,6 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -42,8 +41,10 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>CorrespondenceIds</returns>
         [HttpPost]
+        [Consumes("application/json")]
+        [Produces("application/json")]
         [Authorize(Policy = AuthorizationConstants.Sender)]
-        public async Task<ActionResult<CorrespondenceOverviewExt>> InitializeCorrespondences(
+        public async Task<ActionResult<InitializeCorrespondencesResponseExt>> InitializeCorrespondences(
             InitializeCorrespondencesExt request,
             [FromServices] InitializeCorrespondencesHandler handler,
             CancellationToken cancellationToken)
@@ -70,9 +71,11 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns>CorrespondenceIds/returns>
         [HttpPost]
         [Route("upload")]
+        [Consumes("multipart/form-data")]
+        [Produces("application/json")]
         [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
         [Authorize(Policy = AuthorizationConstants.Sender)]
-        public async Task<ActionResult<CorrespondenceOverviewExt>> UploadCorrespondences(
+        public async Task<ActionResult<InitializeCorrespondencesResponseExt>> UploadCorrespondences(
             [FromForm] InitializeCorrespondencesExt request,
             [FromForm] List<IFormFile> attachments,
             [FromServices] InitializeCorrespondencesHandler handler,
@@ -105,6 +108,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{correspondenceId}")]
+        [Produces("application/json")]
         [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
             Guid correspondenceId,
@@ -129,6 +133,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>Detailed information about the correspondence with current status and status history</returns>
         [HttpGet]
+        [Produces("application/json")]
         [Route("{correspondenceId}/details")]
         [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         public async Task<ActionResult<CorrespondenceDetailsExt>> GetCorrespondenceDetails(
@@ -180,6 +185,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>A list of Correspondence ids and pagination metadata</returns>
         [HttpGet]
+        [Produces("application/json")]
         [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         public async Task<ActionResult<CorrespondencesExt>> GetCorrespondences(
             [FromQuery] string resourceId,

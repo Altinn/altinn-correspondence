@@ -24,31 +24,31 @@ namespace Altinn.Correspondence.Tests.Helpers
             };
             return attachmentData;
         }
-        public static async Task<string> GetInitializedAttachment(HttpClient client, JsonSerializerOptions responseSerializerOptions)
+        public static async Task<Guid> GetInitializedAttachment(HttpClient client, JsonSerializerOptions responseSerializerOptions)
         {
             var attachment = new AttachmentBuilder().CreateAttachment().Build();
             var initializeAttachmentResponse = await client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
             Assert.Equal(HttpStatusCode.OK, initializeAttachmentResponse.StatusCode);
-            var attachmentId = await initializeAttachmentResponse.Content.ReadAsStringAsync();
+            var attachmentId = await initializeAttachmentResponse.Content.ReadFromJsonAsync<Guid>();
             var attachmentOverview = await (await client.GetAsync($"correspondence/api/v1/attachment/{attachmentId}")).Content.ReadFromJsonAsync<AttachmentOverviewExt>(responseSerializerOptions);
             Assert.Equal(AttachmentStatusExt.Initialized, attachmentOverview?.Status);
             return attachmentId;
         }
-        public async static Task<string> GetPublishedAttachment(HttpClient client, JsonSerializerOptions responseSerializerOptions)
+        public async static Task<Guid> GetPublishedAttachment(HttpClient client, JsonSerializerOptions responseSerializerOptions)
         {
             var attachment = new AttachmentBuilder().CreateAttachment().Build();
             var initializeAttachmentResponse = await client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
             Assert.Equal(HttpStatusCode.OK, initializeAttachmentResponse.StatusCode);
-            var attachmentId = await initializeAttachmentResponse.Content.ReadAsStringAsync();
+            var attachmentId = await initializeAttachmentResponse.Content.ReadFromJsonAsync<Guid>();
             var uploadResponse = await UploadAttachment(attachmentId, client);
             Assert.Equal(HttpStatusCode.OK, uploadResponse.StatusCode);
             var attachmentOverview = await (await client.GetAsync($"correspondence/api/v1/attachment/{attachmentId}")).Content.ReadFromJsonAsync<AttachmentOverviewExt>(responseSerializerOptions);
             Assert.Equal(AttachmentStatusExt.Published, attachmentOverview?.Status);
             return attachmentId;
         }
-        public async static Task<HttpResponseMessage> UploadAttachment(string? attachmentId, HttpClient client, ByteArrayContent? originalAttachmentData = null)
+        public async static Task<HttpResponseMessage> UploadAttachment(Guid? attachmentId, HttpClient client, ByteArrayContent? originalAttachmentData = null)
         {
-            if (attachmentId == null)
+            if (attachmentId is null)
             {
                 Assert.Fail("AttachmentId is null");
             }

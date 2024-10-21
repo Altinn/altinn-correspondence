@@ -92,7 +92,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments([Guid.NewGuid().ToString()])
+            .WithExistingAttachments([Guid.NewGuid()])
             .Build();
 
         // Act
@@ -361,7 +361,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
-    public async Task UploadCorrespondence_WithoutAttachments_ReturnsBadRequest()
+    public async Task UploadCorrespondence_WithoutAttachments_ReturnsUnsupportedMediaType()
     {
         // Arrange
         var correspondence = new CorrespondenceBuilder()
@@ -372,7 +372,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence/upload", correspondence);
 
         // Assert
-        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.UnsupportedMediaType, initializeCorrespondenceResponse.StatusCode);
     }
 
     [Fact]
@@ -449,7 +449,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
-        var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={1}&offset={0}&limit={10}&status={0}&role={"sender"}");
+        var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={1}&offset={0}&limit={10}&status={0}&role={"recipientandsender"}");
         Assert.True(correspondenceList?.Pagination.TotalItems > 0);
     }
 
@@ -933,7 +933,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
-        Assert.Equal(attachmentId, response?.AttachmentIds?.FirstOrDefault().ToString());
+        Assert.Equal(attachmentId, response?.AttachmentIds?.FirstOrDefault());
     }
 
     [Fact]

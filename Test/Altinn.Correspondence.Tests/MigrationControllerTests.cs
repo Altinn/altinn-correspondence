@@ -186,7 +186,7 @@ public class MigrationControllerTests : IClassFixture<MaskinportenWebApplication
         StreamContent content2 = new(memoryStream2);
         var uploadResponse2 = await _client.PostAsync($"correspondence/api/v1/migration/attachment/{attachmentId2}/upload", content2);
         
-        InitializeCorrespondencesExt initializeCorrespondencesExt = new CorrespondenceBuilder().CreateCorrespondence().WithExistingAttachments([attachmentIdString, attachmentIdString2]).Build();
+        InitializeCorrespondencesExt initializeCorrespondencesExt = new CorrespondenceBuilder().CreateCorrespondence().WithExistingAttachments([attachmentId, attachmentId2]).Build();
         initializeCorrespondencesExt.Correspondence.SendersReference = "test 2024 10 09 09 45";
         MigrateCorrespondenceExt migrateCorrespondenceExt = new() 
         {
