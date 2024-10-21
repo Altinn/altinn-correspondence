@@ -97,7 +97,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     [Fact]
     public async Task UploadAttachmentData_WhenAttachmentDoesNotExist_ReturnsNotFound()
     {
-        var uploadResponse = await AttachmentHelper.UploadAttachment("00000000-0100-0000-0000-000000000000", _senderClient);
+        var uploadResponse = await AttachmentHelper.UploadAttachment(Guid.Parse("00000000-0100-0000-0000-000000000000"), _senderClient);
         Assert.Equal(HttpStatusCode.NotFound, uploadResponse.StatusCode);
     }
 
@@ -174,7 +174,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         // Act
         var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
         initializeResponse.EnsureSuccessStatusCode();
-        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
+        var attachmentId = await initializeResponse.Content.ReadFromJsonAsync<Guid>();
         var content = new ByteArrayContent(byteData);
         var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _senderClient, content);
 
@@ -195,12 +195,12 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
 
         var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
         initializeResponse.EnsureSuccessStatusCode();
-        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
+        var attachmentId = await initializeResponse.Content.ReadFromJsonAsync<Guid>();
 
         // Act
         var modifiedByteData = Encoding.UTF8.GetBytes("This is NOT the contents of the uploaded file");
         var modifiedContent = new ByteArrayContent(modifiedByteData);
-        var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _senderClient);
+        var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _senderClient, modifiedContent);
 
         // Assert
         Assert.False(uploadResponse.IsSuccessStatusCode);
@@ -244,7 +244,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         // Act
         var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
         initializeResponse.EnsureSuccessStatusCode();
-        var attachmentId = await initializeResponse.Content.ReadAsStringAsync();
+        var attachmentId = await initializeResponse.Content.ReadFromJsonAsync<Guid>();
         var prevOverview = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
         Assert.NotEmpty(prevOverview.Checksum);
 
@@ -252,6 +252,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var attachmentOverview = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
 
         // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, uploadResponse.StatusCode);
         Assert.NotEmpty(attachmentOverview.Checksum);
         Assert.Equal(prevOverview.Checksum, attachmentOverview.Checksum);
     }
@@ -381,9 +382,4 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         // Assert 
         Assert.Equal(HttpStatusCode.Forbidden, deleteResponse.StatusCode);
     }
-    private async Task<HttpResponseMessage> UploadAttachment(string? attachmentId, ByteArrayContent? originalAttachmentData = null)
-    {
-        return await AttachmentHelper.UploadAttachment(attachmentId, _senderClient, originalAttachmentData);
-    }
-
 }

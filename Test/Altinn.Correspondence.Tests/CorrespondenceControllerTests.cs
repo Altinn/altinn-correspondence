@@ -92,7 +92,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments([Guid.NewGuid().ToString()])
+            .WithExistingAttachments([Guid.NewGuid()])
             .Build();
 
         // Act
@@ -933,7 +933,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
-        Assert.Equal(attachmentId, response?.AttachmentIds?.FirstOrDefault().ToString());
+        Assert.Equal(attachmentId, response?.AttachmentIds?.FirstOrDefault());
     }
 
     [Fact]
