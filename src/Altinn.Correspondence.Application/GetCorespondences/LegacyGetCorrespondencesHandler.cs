@@ -87,11 +87,6 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
 
         var resourceIds = correspondences.Item1.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
-        foreach (var correspondence in correspondences.Item1)
-        {
-            authorizedCorrespondences.Add(correspondence);
-        }
-        Console.WriteLine($"Authorized correspondences: {authorizedCorrespondences.Count}");
         List<LegacyCorrespondenceItem> correspondenceItems = new List<LegacyCorrespondenceItem>();
         var resourceOwners = new List<Tuple<string, string>>();
         foreach (var orgNr in correspondences.Item1.Select(c => c.Sender).Distinct().ToList())
@@ -106,7 +101,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                 resourceOwners.Add(new Tuple<string, string>(orgNr, "Temporary name"));
             }
         }
-        foreach (var correspondence in authorizedCorrespondences)
+        foreach (var correspondence in correspondences.Item1)
         {
 
             correspondenceItems.Add(
