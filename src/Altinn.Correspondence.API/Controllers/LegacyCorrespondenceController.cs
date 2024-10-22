@@ -23,7 +23,7 @@ namespace Altinn.Correspondence.API.Controllers
     /// As such it overrides some standad authentication mechanisms
     /// </summary>
     [ApiController]
-    [Route("correspondence/api/legacy/v1/correspondence")]
+    [Route("correspondence/api/v1/legacy/correspondence")]
     [Authorize(Policy = AuthorizationConstants.Legacy)]
     public class LegacyCorrespondenceController : Controller
     {
