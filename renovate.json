@@ -1,6 +1,21 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "local>Altinn/renovate-config"
+    "config:base"
+  ],
+  "labels": [
+    "kind/dependencies"
+  ],
+  "schedule": [
+    "before 7am on Monday",
+    "before 7am on Friday"
+  ],
+  "packageRules": [
+    {
+      "fileMatch": [
+        "\\.bicep$"
+      ],
+      "enabled": false
+    }
   ]
 }
