@@ -22,6 +22,8 @@ namespace Altinn.Correspondence.API.Auth
             config.GetSection(nameof(IdportenSettings)).Bind(idPortenSettings);
             var dialogportenSettings = new DialogportenSettings();
             config.GetSection(nameof(DialogportenSettings)).Bind(dialogportenSettings);
+            var generalSettings = new GeneralSettings();
+            config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
             services.AddDistributedMemoryCache();
             services.AddTransient<IdportenTokenValidator>();
             services
@@ -100,7 +102,7 @@ namespace Altinn.Correspondence.API.Auth
                     {
                         OnRedirectToIdentityProvider = context =>
                         {
-                            context.ProtocolMessage.RedirectUri = $"{dialogportenSettings.CorrespondenceBaseUrl.TrimEnd('/')}{options.CallbackPath}";
+                            context.ProtocolMessage.RedirectUri = $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{options.CallbackPath}";
                             return Task.CompletedTask;
                         },
                         OnTokenValidated = async context =>
@@ -112,7 +114,7 @@ namespace Altinn.Correspondence.API.Auth
                                 {
                                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
                                 });
-                            context.Properties.RedirectUri = CascadeAuthenticationHandler.AppendSessionToUrl($"{dialogportenSettings.CorrespondenceBaseUrl.TrimEnd('/')}{context.Properties.RedirectUri}", sessionId);
+                            context.Properties.RedirectUri = CascadeAuthenticationHandler.AppendSessionToUrl($"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{context.Properties.RedirectUri}", sessionId);
                         }
                     };
                 });

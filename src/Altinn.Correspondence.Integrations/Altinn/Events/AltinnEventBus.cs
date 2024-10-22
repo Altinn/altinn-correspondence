@@ -1,30 +1,25 @@
-﻿using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.RegularExpressions;
-using Altinn.Correspondence.Core.Options;
-using Altinn.Correspondence.Core.Repositories;
+﻿using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Altinn.Events.Helpers;
-using Altinn.Correspondence.Repositories;
-
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Events;
 public class AltinnEventBus : IEventBus
 {
-    private readonly AltinnOptions _altinnOptions;
+    private readonly GeneralSettings _generalSettings;
     private readonly HttpClient _httpClient;
     private readonly ILogger<AltinnEventBus> _logger;
-    private readonly IResourceRightsService _altinnResourceRightsService;
     private readonly IAltinnRegisterService _altinnRegisterService;
 
-    public AltinnEventBus(HttpClient httpClient, IAltinnRegisterService altinnRegisterService, IResourceRightsService altinnResourceRightsService, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnEventBus> logger)
+    public AltinnEventBus(HttpClient httpClient, IAltinnRegisterService altinnRegisterService, IOptions<GeneralSettings> generalSettings, ILogger<AltinnEventBus> logger)
     {
         _httpClient = httpClient;
-        _altinnOptions = altinnOptions.Value;
-        _altinnResourceRightsService = altinnResourceRightsService;
+        _generalSettings = generalSettings.Value;
         _altinnRegisterService = altinnRegisterService;
         _logger = logger;
     }
@@ -66,7 +61,7 @@ public class AltinnEventBus : IEventBus
             Resource = "urn:altinn:resource:" + resourceId,
             ResourceInstance = itemId,
             Type = "no.altinn.correspondence." + type.ToString().ToLowerInvariant(),
-            Source = _altinnOptions.PlatformGatewayUrl + "correspondence/api/v1/" + eventSource,
+            Source = _generalSettings.CorrespondenceBaseUrl.TrimEnd('/') + "/correspondence/api/v1/" + eventSource,
             Subject = !string.IsNullOrWhiteSpace(partyId) ? "/party/" + partyId : null,
             AlternativeSubject = alternativeSubjectFormated
         };

@@ -20,7 +20,6 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly IAltinnNotificationService _altinnNotificationService;
-    private readonly IOptions<AltinnOptions> _altinnOptions;
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceNotificationRepository _correspondenceNotificationRepository;
     private readonly INotificationTemplateRepository _notificationTemplateRepository;
@@ -30,10 +29,10 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
     private readonly IDialogportenService _dialogportenService;
     private readonly UserClaimsHelper _userClaimsHelper;
     private readonly IHostEnvironment _hostEnvironment;
+    private readonly GeneralSettings _generalSettings;
 
-    public InitializeCorrespondencesHandler(IOptions<AltinnOptions> altinnOptions, InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceNotificationRepository correspondenceNotificationRepository, INotificationTemplateRepository notificationTemplateRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient, UserClaimsHelper userClaimsHelper, IDialogportenService dialogportenService, IHostEnvironment hostEnvironment)
+    public InitializeCorrespondencesHandler(InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceNotificationRepository correspondenceNotificationRepository, INotificationTemplateRepository notificationTemplateRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient, UserClaimsHelper userClaimsHelper, IDialogportenService dialogportenService, IHostEnvironment hostEnvironment, IOptions<GeneralSettings> generalSettings)
     {
-        _altinnOptions = altinnOptions;
         _initializeCorrespondenceHelper = initializeCorrespondenceHelper;
         _altinnAuthorizationService = altinnAuthorizationService;
         _altinnNotificationService = altinnNotificationService;
@@ -45,6 +44,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         _dialogportenService = dialogportenService;
         _userClaimsHelper = userClaimsHelper;
         _hostEnvironment = hostEnvironment;
+        _generalSettings = generalSettings.Value;
     }
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
@@ -364,7 +364,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
     }
     private Uri CreateConditonEndpoint(string correspondenceId)
     {
-        return new Uri($"{_altinnOptions.Value.PlatformGatewayUrl}correspondence/api/v1/correspondence/{correspondenceId}/notification/check");
+        return new Uri($"{_generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondenceId}/notification/check");
     }
     private string CreateMessageFromToken(string message, string? token = "")
     {

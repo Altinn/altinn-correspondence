@@ -16,7 +16,7 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
     private readonly IAuthenticationSchemeProvider _schemeProvider;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IDistributedCache _cache;
-    private readonly DialogportenSettings _dialogportenSettings;
+    private readonly GeneralSettings _generalSettings;
     private readonly IdportenTokenValidator _tokenValidator;
 
     public CascadeAuthenticationHandler(
@@ -26,13 +26,13 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
         ISystemClock clock,
         IAuthenticationSchemeProvider schemeProvider,
         IHttpContextAccessor httpContextAccessor,
-        IOptions<DialogportenSettings> dialogportenSettings,
+        IOptions<GeneralSettings> generalSettings,
         IdportenTokenValidator tokenValidator,
         IDistributedCache cache)
         : base(options, logger, encoder, clock)
     {
         _httpContextAccessor = httpContextAccessor;
-        _dialogportenSettings = dialogportenSettings.Value;
+        _generalSettings = generalSettings.Value;
         _schemeProvider = schemeProvider;
         _tokenValidator = tokenValidator;
         _cache = cache;
@@ -109,7 +109,7 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
         });
 
         var redirectUrl = properties?.Items["endpoint"] ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
-        redirectUrl = AppendSessionToUrl($"{_dialogportenSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}", sessionId);
+        redirectUrl = AppendSessionToUrl($"{_generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}", sessionId);
         Response.Redirect(redirectUrl);
     }
 

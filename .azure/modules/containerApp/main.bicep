@@ -71,9 +71,9 @@ var containerAppEnvVars = [
     value: 'true'
   }
   { name: 'MaskinportenSettings__EncodedJwk', secretRef: 'maskinporten-jwk' }
+  { name: 'GeneralSettings__CorrespondenceBaseUrl', value: correspondenceBaseUrl }
   { name: 'GeneralSettings__SlackUrl', secretRef: 'slack-url' }
   { name: 'DialogportenSettings__Issuer', value: dialogportenIssuer }
-  { name: 'DialogportenSettings__CorrespondenceBaseUrl', value: correspondenceBaseUrl }
   { name: 'IdportenSettings__Issuer', value: idportenIssuer }
   { name: 'IdportenSettings__ClientId', secretRef: 'idporten-client-id' }
   { name: 'IdportenSettings__ClientSecret', secretRef: 'idporten-client-secret' }
