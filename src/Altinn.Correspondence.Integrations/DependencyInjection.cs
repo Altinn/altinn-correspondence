@@ -11,7 +11,6 @@ using Altinn.Correspondence.Integrations.Altinn.Notifications;
 using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 using Altinn.Correspondence.Integrations.Dialogporten;
-using Altinn.Correspondence.Integrations.Settings;
 using Altinn.Correspondence.Integrations.Slack;
 using Altinn.Correspondence.Repositories;
 using Microsoft.Extensions.Configuration;
