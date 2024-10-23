@@ -1,4 +1,4 @@
-name: Pull Request Labels
+name: Checking label for PR
 on:
   pull_request:
     types: [opened, reopened, ready_for_review]
