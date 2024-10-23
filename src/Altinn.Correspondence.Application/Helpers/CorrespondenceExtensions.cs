@@ -10,9 +10,23 @@ public static class CorrespondenceStatusExtensions
             .OrderByDescending(s => s.StatusChanged).FirstOrDefault();
         return statusEntity;
     }
+    public static CorrespondenceStatusEntity? GetLatestStatusWithoutPurged(this CorrespondenceEntity correspondence)
+    {
+        var statusEntity = correspondence.Statuses
+            .Where(s => !s.Status.IsPurged() && s.Status != CorrespondenceStatus.Fetched)
+            .OrderByDescending(s => s.StatusChanged).FirstOrDefault();
+        return statusEntity;
+    }
     public static bool IsPurged(this CorrespondenceStatus correspondenceStatus)
     {
         return correspondenceStatus == CorrespondenceStatus.PurgedByRecipient || correspondenceStatus == CorrespondenceStatus.PurgedByAltinn;
+    }
+    public static CorrespondenceStatusEntity? GetPurgedStatus(this CorrespondenceEntity correspondence)
+    {
+        var statusEntity = correspondence.Statuses
+            .Where(s => s.Status.IsPurged())
+            .OrderByDescending(s => s.StatusChanged).FirstOrDefault();
+        return statusEntity;
     }
     public static bool IsAvailableForRecipient(this CorrespondenceStatus correspondenceStatus)
     {

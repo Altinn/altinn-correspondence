@@ -95,17 +95,19 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         }
         foreach (var correspondence in correspondences.Item1)
         {
-
+            var purgedStatus = correspondence.GetPurgedStatus();
             correspondenceItems.Add(
                 new LegacyCorrespondenceItem()
                 {
                     Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId,
                     ServiceOwnerName = resourceOwners.SingleOrDefault(r => r.Item1 == correspondence.Sender)?.Item2,
                     MessageTitle = correspondence.Content.MessageTitle,
-                    Status = correspondence.GetLatestStatus().Status,
+                    Status = correspondence.GetLatestStatusWithoutPurged().Status,
                     CorrespondenceId = correspondence.Id,
                     MinimumAuthenticationlevel = 0, // Insert from response from PDP multirequest
-                    Published = correspondence.Published
+                    Published = correspondence.Published,
+                    PurgedStatus = purgedStatus?.Status,
+                    Purged = purgedStatus?.StatusChanged,
                 }
                 );
         }
