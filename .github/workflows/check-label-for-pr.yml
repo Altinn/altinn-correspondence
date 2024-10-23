@@ -22,5 +22,4 @@ jobs:
             kind/dependencies
             kind/enhancement
             kind/incident
-            kind/ignore-for-release
             kind/chore
