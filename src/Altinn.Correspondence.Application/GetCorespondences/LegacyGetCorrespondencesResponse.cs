@@ -17,6 +17,7 @@ namespace Altinn.Correspondence.Application.GetCorrespondences
         public required string MessageTitle { get; set; }
         public required string ServiceOwnerName { get; set; }
         public required CorrespondenceStatus Status { get; set; }
-        public required int MinimumAuthenticationlevel { get; set;}    
+        public required int MinimumAuthenticationlevel { get; set; }
+        public DateTimeOffset? Published { get; set; }
     }
 }
