@@ -55,5 +55,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public int? Altinn2CorrespondenceId { get; set; }
 
         public DateTimeOffset? Published { get; set; }
+
+        public required bool IsConfirmationNeeded { get; set; }
     }
 }

@@ -35,7 +35,8 @@ namespace Altinn.Correspondence.Tests.Factories
                         {"culpa_852", "2"},
                         {"anim5", "3"}
                     },
-                    IgnoreReservation = false
+                    IgnoreReservation = false,
+                    IsConfirmationNeeded = false,
                 },
                 Recipients = new List<string>(){
                     "0192:991825827",   // org number
@@ -198,10 +199,9 @@ namespace Altinn.Correspondence.Tests.Factories
                         NotificationTemplate = new Core.Models.Enums.NotificationTemplate(),
                         NotificationChannel = new Core.Models.Enums.NotificationChannel(),
                     }
-                }
+                },
+                IsConfirmationNeeded = false,
             };
         }
     }
 }
-
-

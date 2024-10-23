@@ -48,6 +48,7 @@ internal static class MigrateCorrespondenceMapper
                 MessageBody = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content.MessageBody,
                 Attachments = []
             } : null,
+            IsConfirmationNeeded = migrateCorrespondenceExt.CorrespondenceData.Correspondence.IsConfirmationNeeded,
         };
         
         return new MigrateCorrespondenceRequest()

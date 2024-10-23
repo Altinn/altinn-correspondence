@@ -48,6 +48,8 @@ public class GetCorrespondenceOverviewResponse
     public Dictionary<string, string> PropertyList { get; set; } = new Dictionary<string, string>();
     
     public DateTimeOffset? Published { get; set; }
+
+    public bool IsConfirmationNeeded { get; set; }
 }
 
 public class CorrespondenceNotificationOverview {

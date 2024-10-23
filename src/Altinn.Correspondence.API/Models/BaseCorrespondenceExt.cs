@@ -106,6 +106,12 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("Published")]
         public DateTimeOffset? Published { get; set; }
+
+        /// <summary>
+        /// Specifies whether reading the correspondence needs to be confirmed by the recipient
+        /// </summary>
+        [JsonPropertyName("IsConfirmationNeeded")]
+        public required bool IsConfirmationNeeded { get; set; }
     }
 
     [AttributeUsage(AttributeTargets.Property)]
