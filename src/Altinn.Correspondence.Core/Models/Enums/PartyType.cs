@@ -3,7 +3,7 @@
     /// <summary>
     /// Enum containing values for the different types of parties
     /// </summary>
-    public enum SimplePartyType
+    public enum PartyType
     {
         /// <summary>
         /// Party Type is Person

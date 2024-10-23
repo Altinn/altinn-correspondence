@@ -4,5 +4,5 @@ namespace Altinn.Correspondence.Core.Repositories;
 
 public interface IAltinnAccessManagementService
 {
-    Task<List<SimpleParty>> GetAutorizedParties(SimpleParty partyToRequestFor, CancellationToken cancellationToken = default);
+    Task<List<Party>> GetAuthorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default);
 }

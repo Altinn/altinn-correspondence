@@ -16,6 +16,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly IResourceRightsService _resourceRightsService;
     private readonly UserClaimsHelper _userClaimsHelper;
+    private record ResourceOwner(string OrgNumber, Party? Party);
 
 
     public LegacyGetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, IAltinnAccessManagementService altinnAccessManagement, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IAltinnRegisterService altinnRegisterService, IResourceRightsService resourceRightsService)
@@ -39,7 +40,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         {
             return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
         }
-        var userParty = await _altinnRegisterService.LookUpParty(request.OnbehalfOfPartyId, cancellationToken);
+        var userParty = await _altinnRegisterService.LookUpPartyByPartyId(request.OnbehalfOfPartyId, cancellationToken);
         if (userParty == null)
         {
             return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
@@ -53,7 +54,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         }
         foreach (int instanceOwnerPartyId in request.InstanceOwnerPartyIdList)
         {
-            var mappedInstanceOwner = await _altinnRegisterService.LookUpParty(instanceOwnerPartyId, cancellationToken);
+            var mappedInstanceOwner = await _altinnRegisterService.LookUpPartyByPartyId(instanceOwnerPartyId, cancellationToken);
             if (mappedInstanceOwner == null)
             {
                 return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
@@ -80,32 +81,39 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         var resourceIds = correspondences.Item1.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
         List<LegacyCorrespondenceItem> correspondenceItems = new List<LegacyCorrespondenceItem>();
-        var resourceOwners = new List<Tuple<string, string>>();
+
+        var resourceOwners = new List<ResourceOwner>();
         foreach (var orgNr in correspondences.Item1.Select(c => c.Sender).Distinct().ToList())
         {
             try
             {
-                var resourceOwnerParty = await _altinnRegisterService.LookUpName(orgNr, cancellationToken);
-                resourceOwners.Add(new Tuple<string, string>(orgNr, resourceOwnerParty));
+                var resourceOwnerParty = await _altinnRegisterService.LookUpPartyById(orgNr, cancellationToken);
+                resourceOwners.Add(new ResourceOwner(orgNr, resourceOwnerParty));
             }
             catch (Exception e)
             {
-                resourceOwners.Add(new Tuple<string, string>(orgNr, "Temporary name"));
+                resourceOwners.Add(new ResourceOwner(orgNr, null));
             }
         }
         foreach (var correspondence in correspondences.Item1)
         {
-
+            var purgedStatus = correspondence.GetPurgedStatus();
+            var owner = resourceOwners.SingleOrDefault(r => r.OrgNumber == correspondence.Sender)?.Party;
+            Console.WriteLine("dueDateTime: " + correspondence.Published);
             correspondenceItems.Add(
                 new LegacyCorrespondenceItem()
                 {
                     Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId,
-                    ServiceOwnerName = resourceOwners.SingleOrDefault(r => r.Item1 == correspondence.Sender)?.Item2,
+                    ServiceOwnerName = owner.Name,
+                    InstanceOwnerPartyId = owner.PartyId,
                     MessageTitle = correspondence.Content.MessageTitle,
-                    Status = correspondence.GetLatestStatus().Status,
+                    Status = correspondence.GetLatestStatusWithoutPurged().Status,
                     CorrespondenceId = correspondence.Id,
                     MinimumAuthenticationlevel = 0, // Insert from response from PDP multirequest
-                    Published = correspondence.Published
+                    Published = correspondence.Published,
+                    PurgedStatus = purgedStatus?.Status,
+                    Purged = purgedStatus?.StatusChanged,
+                    DueDate = correspondence.DueDateTime
                 }
                 );
         }

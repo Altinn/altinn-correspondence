@@ -7,5 +7,6 @@ public interface IAltinnRegisterService
     Task<string?> LookUpPartyId(string identificationId, CancellationToken cancellationToken);
     Task<string?> LookUpName(string identificationId, CancellationToken cancellationToken);
 
-    Task<SimpleParty?> LookUpParty(int partyId, CancellationToken cancellationToken);
+    Task<Party?> LookUpPartyByPartyId(int partyId, CancellationToken cancellationToken);
+    Task<Party?> LookUpPartyById(string identificationId, CancellationToken cancellationToken);
 }
