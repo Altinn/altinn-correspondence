@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
@@ -43,7 +44,8 @@ namespace Altinn.Correspondence.API.Auth
                     };
                     options.Events = new JwtBearerEvents()
                     {
-                        OnAuthenticationFailed = context => JWTBearerEventsHelper.OnAuthenticationFailed(context)
+                        OnAuthenticationFailed = AltinnTokenEventsHelper.OnAuthenticationFailed,
+                        OnChallenge = AltinnTokenEventsHelper.OnChallenge
                     };
                 })
                 .AddJwtBearer(AuthorizationConstants.MaskinportenScheme, options => // To support maskinporten tokens 
