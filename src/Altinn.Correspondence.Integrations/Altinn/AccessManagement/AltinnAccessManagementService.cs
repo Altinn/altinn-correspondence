@@ -23,7 +23,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         _logger = logger;
     }
 
-    public async Task<List<SimpleParty>> GetAutorizedParties(SimpleParty partyToRequestFor, CancellationToken cancellationToken = default)
+    public async Task<List<Party>> GetAutorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default)
     {
         AuthorizedPartiesRequest request = new(partyToRequestFor);
         JsonSerializerOptions serializerOptions = new()
@@ -46,15 +46,23 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             throw new Exception("Unexpected null or invalid json response from Authorization GetAuthorizedParties.");
         }
 
-        return responseContent.Select(p => new SimpleParty(p.partyId, p.partyUuid, GetType(p.type), p.organizationNumber, p.personId, p.authorizedResources)).ToList();
+        return responseContent.Select(p => new Party
+        {
+            PartyId = p.partyId,
+            PartyUuid = p.partyUuid,
+            OrgNumber = p.organizationNumber,
+            SSN = p.personId,
+            Resources = p.authorizedResources,
+            PartyTypeName = GetType(p.type)
+        }).ToList();
     }
-    public SimplePartyType GetType(string type)
+    public PartyType GetType(string type)
     {
         return type switch
         {
-            "Person" => SimplePartyType.Person,
-            "Organization" => SimplePartyType.Organization,
-            "SelfIdentified" => SimplePartyType.SelfIdentified,
+            "Person" => PartyType.Person,
+            "Organization" => PartyType.Organization,
+            "SelfIdentified" => PartyType.SelfIdentified,
             _ => throw new NotImplementedException()
         };
     }
@@ -64,9 +72,9 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         public string Type { get; init; }
         public string Value { get; init; }
 
-        public AuthorizedPartiesRequest(SimpleParty party)
+        public AuthorizedPartiesRequest(Party party)
         {
-            if (party.PartyTypeName == SimplePartyType.Person)
+            if (party.PartyTypeName == PartyType.Person)
             {
                 Type = "urn:altinn:person:identifier-no";
                 Value = party.SSN;

@@ -1,13 +1,11 @@
 ﻿using System.Net.Http.Json;
 using System.Text.RegularExpressions;
-using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Platform.Register.Models;
-
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Party = Altinn.Correspondence.Core.Models.Entities.Party;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Register;
 public class AltinnRegisterService : IAltinnRegisterService
@@ -24,17 +22,17 @@ public class AltinnRegisterService : IAltinnRegisterService
 
     public async Task<string?> LookUpPartyId(string identificationId, CancellationToken cancellationToken = default)
     {
-        var party = await LookUpFullParty(identificationId, cancellationToken);
+        var party = await LookUpPartyById(identificationId, cancellationToken);
         return party?.PartyId.ToString();
     }
 
     public async Task<string?> LookUpName(string identificationId, CancellationToken cancellationToken = default)
     {
-        var party = await LookUpFullParty(identificationId, cancellationToken);
+        var party = await LookUpPartyById(identificationId, cancellationToken);
         return party.Name;
     }
 
-    public async Task<SimpleParty?> LookUpParty(int partyId, CancellationToken cancellationToken = default)
+    public async Task<Party?> LookUpPartyByPartyId(int partyId, CancellationToken cancellationToken = default)
     {
         if (partyId <= 0)
         {
@@ -55,9 +53,9 @@ public class AltinnRegisterService : IAltinnRegisterService
             return null;
         }
 
-        return new SimpleParty(party.PartyId, party.PartyUuid, (SimplePartyType)party.PartyTypeName, party.OrgNumber, party.SSN);
+        return party;
     }
-    private async Task<Party> LookUpFullParty(string identificationId, CancellationToken cancellationToken = default)
+    public async Task<Party> LookUpPartyById(string identificationId, CancellationToken cancellationToken = default)
     {
         var organizationWithPrefixFormat = new Regex(@"^\d{4}:\d{9}$");
         var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
