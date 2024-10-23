@@ -327,7 +327,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 },
                 ResourceId = correspondence.ResourceId,
                 RequestedSendTime = _hostEnvironment.IsProduction() ? notificationOrder.RequestedSendTime.Value.AddDays(7) : notificationOrder.RequestedSendTime.Value.AddHours(1),
-                ConditionEndpoint = CreateConditonEndpoint(correspondence.Id.ToString()),
+                ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString()),
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,
                 EmailTemplate = new EmailTemplate
@@ -370,7 +370,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             return null;
         }
-        return conditionEndpoint;    
+        return conditionEndpoint;
     }
 
     private string CreateMessageFromToken(string message, string? token = "")
