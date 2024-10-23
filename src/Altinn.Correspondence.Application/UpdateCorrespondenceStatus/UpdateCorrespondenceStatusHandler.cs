@@ -53,7 +53,7 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             return Errors.LatestStatusIsNull;
         }
-        if ((request.Status == CorrespondenceStatus.Confirmed || request.Status == CorrespondenceStatus.Read) && !currentStatus!.Status.IsAvailableForRecipient())
+        if (!currentStatus.Status.IsAvailableForRecipient())
         {
             return Errors.CorrespondenceNotFound;
         }
