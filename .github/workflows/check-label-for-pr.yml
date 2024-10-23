@@ -1,0 +1,27 @@
+name: Pull Request Labels
+on:
+  pull_request:
+    types: [opened, reopened]
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: mheap/github-action-required-labels@v5
+        with:
+          mode: minimum
+          count: 1
+          labels: |
+            kind/breaking-change
+            kind/feature
+            kind/feature-request
+            kind/bug
+            kind/other
+            kind/user-story
+            kind/dependencies
+            kind/enhancement
+            kind/incident
+            kind/ignore-for-release
+            kind/chore
