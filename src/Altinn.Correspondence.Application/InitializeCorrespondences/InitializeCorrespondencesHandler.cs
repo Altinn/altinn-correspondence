@@ -327,7 +327,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 },
                 ResourceId = correspondence.ResourceId,
                 RequestedSendTime = _hostEnvironment.IsProduction() ? notificationOrder.RequestedSendTime.Value.AddDays(7) : notificationOrder.RequestedSendTime.Value.AddHours(1),                
-                ConditionEndpoint = CreateConditonEndpoint(correspondence.Id.ToString()),
+                ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString()),
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,
                 EmailTemplate = new EmailTemplate
@@ -363,7 +363,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         return content;
     }
 
-    private Uri? CreateConditonEndpoint(string correspondenceId)
+    private Uri? CreateConditionEndpoint(string correspondenceId)
     {
         var conditionEndpoint = new Uri($"{_generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondenceId}/notification/check");
         if (conditionEndpoint.Host == "localhost")
