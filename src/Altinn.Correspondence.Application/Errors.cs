@@ -45,6 +45,6 @@ public static class Errors
     public static Error MissingPrefferedNotificationContent = new Error(37, "Email body, subject and SMS body must be provided when sending preferred notifications", HttpStatusCode.BadRequest);
     public static Error MissingPrefferedReminderNotificationContent = new Error(38, $"Reminder email body, subject and SMS body must be provided when sending reminder preferred notifications", HttpStatusCode.BadRequest);
     public static Error AttachmentNotPublished = new Error(39, "Attachment is not published", HttpStatusCode.BadRequest);
-    public static Error CorrespondenceNotConfirmed = new Error(40, "Cannot archive or delete a correspondence which has not been confirmed when confirmation is required", HttpStatusCode.BadRequest);
-    public static Error LegacyNotAccessToOwner(int partyId) { return new Error(41, $"User does not have access to party with partyId {partyId}", HttpStatusCode.Unauthorized); }
+    public static Error LegacyNotAccessToOwner(int partyId) { return new Error(40, $"User does not have access to party with partyId {partyId}", HttpStatusCode.Unauthorized); }
+    public static Error CorrespondenceNotConfirmed = new Error(41, "Cannot archive or delete a correspondence which has not been confirmed when confirmation is required", HttpStatusCode.BadRequest);
 }
