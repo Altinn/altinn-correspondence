@@ -69,6 +69,10 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             return request.CorrespondenceId;
         }
+        if (request.Status == CorrespondenceStatus.Archived && correspondence.IsConfirmationNeeded && !correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
+        {
+            return Errors.CorrespondenceNotConfirmed;
+        }
 
         await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
         {

@@ -49,7 +49,7 @@ namespace Altinn.Correspondence.Application.CorrespondenceDueDate
                 await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
                 await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
             }
-            if (!correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed)) // TODO: add logic to only check if confirmation is required
+            if (correspondence.IsConfirmationNeeded && !correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
             {
                 await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
                 await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);

@@ -87,6 +87,10 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
             {
                 return Errors.CorrespondenceNotFound;
             }
+            if (correspondence.IsConfirmationNeeded && !correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
+            {
+                return Errors.CorrespondenceNotConfirmed;
+            }
             newStatus = new CorrespondenceStatusEntity()
             {
                 CorrespondenceId = correspondenceId,
