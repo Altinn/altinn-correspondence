@@ -23,7 +23,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         _logger = logger;
     }
 
-    public async Task<List<Party>> GetAutorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default)
+    public async Task<List<Party>> GetAuthorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default)
     {
         AuthorizedPartiesRequest request = new(partyToRequestFor);
         JsonSerializerOptions serializerOptions = new()
