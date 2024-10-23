@@ -16,6 +16,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly IResourceRightsService _resourceRightsService;
     private readonly UserClaimsHelper _userClaimsHelper;
+    private record ResourceOwner(string OrgNumber, Party? Party);
 
 
     public LegacyGetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, IAltinnAccessManagementService altinnAccessManagement, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IAltinnRegisterService altinnRegisterService, IResourceRightsService resourceRightsService)
@@ -80,23 +81,24 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         var resourceIds = correspondences.Item1.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
         List<LegacyCorrespondenceItem> correspondenceItems = new List<LegacyCorrespondenceItem>();
-        var resourceOwners = new List<Tuple<string, Party?>>();
+
+        var resourceOwners = new List<ResourceOwner>();
         foreach (var orgNr in correspondences.Item1.Select(c => c.Sender).Distinct().ToList())
         {
             try
             {
                 var resourceOwnerParty = await _altinnRegisterService.LookUpPartyById(orgNr, cancellationToken);
-                resourceOwners.Add(new Tuple<string, Party?>(orgNr, resourceOwnerParty));
+                resourceOwners.Add(new ResourceOwner(orgNr, resourceOwnerParty));
             }
             catch (Exception e)
             {
-                resourceOwners.Add(new Tuple<string, Party?>(orgNr, null));
+                resourceOwners.Add(new ResourceOwner(orgNr, null));
             }
         }
         foreach (var correspondence in correspondences.Item1)
         {
             var purgedStatus = correspondence.GetPurgedStatus();
-            var owner = resourceOwners.SingleOrDefault(r => r.Item1 == correspondence.Sender)?.Item2;
+            var owner = resourceOwners.SingleOrDefault(r => r.OrgNumber == correspondence.Sender)?.Party;
             Console.WriteLine("dueDateTime: " + correspondence.Published);
             correspondenceItems.Add(
                 new LegacyCorrespondenceItem()
