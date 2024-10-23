@@ -1,6 +1,6 @@
 ﻿namespace Altinn.Correspondence.API.Auth
 {
-    public class MaskinportenSecurityTokenException : Exception
+    public sealed class MaskinportenSecurityTokenException : Exception
     {
     }
 }
