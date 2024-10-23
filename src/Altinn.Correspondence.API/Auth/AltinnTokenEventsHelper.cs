@@ -11,7 +11,7 @@ namespace Altinn.Correspondence.API.Auth
             if (context.Exception is SecurityTokenInvalidIssuerException)
             {
                 var issuer = ((SecurityTokenInvalidIssuerException)context.Exception).InvalidIssuer;
-                if (issuer.ToString().Contains("maskinporten.no"))
+                if (issuer?.ToString().Contains("maskinporten.no") ?? false)
                 {
                     context.Exception = new MaskinportenSecurityTokenException();
                 }
