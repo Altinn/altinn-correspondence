@@ -19,7 +19,7 @@ namespace Altinn.Correspondence.API.Auth
             return Task.CompletedTask;
         }
 
-        public static Task OnChallenge(JwtBearerChallengeContext context)
+        public static async Task OnChallenge(JwtBearerChallengeContext context)
         {
             if (context.AuthenticateFailure != null && context.AuthenticateFailure is MaskinportenSecurityTokenException)
             {
@@ -27,14 +27,13 @@ namespace Altinn.Correspondence.API.Auth
                 context.Response.Headers.Append("WWW-Authenticate", context.Options.Challenge + " error=\"invalid_token\"");
                 context.Response.ContentType = "application/problem+json";
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                context.Response.WriteAsJsonAsync(new ProblemDetails()
+                await context.Response.WriteAsJsonAsync(new ProblemDetails()
                 {
                     Status = StatusCodes.Status403Forbidden,
                     Title = "IDX10205: Issuer validation failed",
                     Detail = "Maskinporten token is not valid. Exchange to Altinn token and try again. Read more at https://docs.altinn.studio/api/scenarios/authentication/#maskinporten-jwt-access-token-input"
                 });
             }
-            return Task.CompletedTask;
         }
     }
 }
