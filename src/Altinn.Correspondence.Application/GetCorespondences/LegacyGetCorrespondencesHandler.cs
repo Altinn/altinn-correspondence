@@ -45,30 +45,27 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         {
             return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
         }
-        Console.WriteLine($"UserParty: {userParty.OrgNumber}");
         var recipients = new List<string>();
-        if (request.InstanceOwnerPartyIdList == null || request.InstanceOwnerPartyIdList.Length == 0)
+        if (request.InstanceOwnerPartyIdList != null && request.InstanceOwnerPartyIdList.Length > 0)
         {
-            if (userParty.OrgNumber != null) recipients.Add("0192:" + userParty.OrgNumber);
-            else if (userParty.SSN != null) recipients.Add(userParty.SSN);
+            var authorizedParties = await _altinnAccessManagementService.GetAuthorizedParties(userParty, cancellationToken);
+            foreach (var auth in authorizedParties)
+                foreach (int instanceOwnerPartyId in request.InstanceOwnerPartyIdList)
+                {
+                    var mappedInstanceOwner = authorizedParties.SingleOrDefault(c => c.PartyId == instanceOwnerPartyId);
+                    if (mappedInstanceOwner == null)
+                    {
+                        return Errors.LegacyNotAccessToOwner(instanceOwnerPartyId);
+                    }
+                    if (mappedInstanceOwner.OrgNumber != null)
+                        recipients.Add("0192:" + mappedInstanceOwner.OrgNumber);
+                    else if (mappedInstanceOwner.SSN != null)
+                        recipients.Add(mappedInstanceOwner.SSN);
+                }
         }
-        foreach (int instanceOwnerPartyId in request.InstanceOwnerPartyIdList)
+        else
         {
-            var mappedInstanceOwner = await _altinnRegisterService.LookUpPartyByPartyId(instanceOwnerPartyId, cancellationToken);
-            if (mappedInstanceOwner == null)
-            {
-                return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
-            }
-            if (mappedInstanceOwner.OrgNumber != null)
-                recipients.Add("0192:" + mappedInstanceOwner.OrgNumber);
-            else if (mappedInstanceOwner.SSN != null)
-                recipients.Add(mappedInstanceOwner.SSN);
-        }
-        Console.WriteLine($"Recipients: {recipients.Count}");
-
-        foreach (var recipient in recipients)
-        {
-            Console.WriteLine($"Recipient: {recipient}");
+            recipients.Add(userParty.SSN ?? "0192:" + userParty.OrgNumber);
         }
 
         List<string> resourcesToSearch = new List<string>();
