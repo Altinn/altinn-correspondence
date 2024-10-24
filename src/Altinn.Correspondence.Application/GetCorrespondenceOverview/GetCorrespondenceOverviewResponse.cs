@@ -43,7 +43,7 @@ public class GetCorrespondenceOverviewResponse
 
     public DateTimeOffset? AllowSystemDeleteAfter { get; set; }
 
-    public DateTimeOffset DueDateTime { get; set; }
+    public DateTimeOffset? DueDateTime { get; set; }
 
     public Dictionary<string, string> PropertyList { get; set; } = new Dictionary<string, string>();
     

@@ -207,7 +207,10 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 _backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), publishTime);
 
             }
-            _backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime);
+            if (correspondence.DueDateTime is not null)
+            {
+                _backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
+            }
             await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
 
             var notificationDetails = new List<NotificationDetails>();

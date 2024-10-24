@@ -31,7 +31,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         public DateTimeOffset? AllowSystemDeleteAfter { get; set; }
 
-        public DateTimeOffset DueDateTime { get; set; }
+        public DateTimeOffset? DueDateTime { get; set; }
 
         public List<ExternalReferenceEntity> ExternalReferences { get; set; } = new List<ExternalReferenceEntity>();
 
