@@ -44,7 +44,7 @@ namespace Altinn.Correspondence.Application.CorrespondenceDueDate
                 throw new Exception($"Correspondence {correspondenceId} failed to publish");
             }
 
-            if (!correspondence.Statuses.Any(s => s.Status != CorrespondenceStatus.Read))
+            if (!correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Read))
             {
                 await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
                 await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
