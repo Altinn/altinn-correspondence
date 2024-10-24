@@ -100,6 +100,6 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         public bool onlyHierarchyElementWithNoAccess { get; set; }
         public List<string> authorizedResources { get; set; }
         public List<string> authorizedRoles { get; set; }
-        public List<string> subunits { get; set; }
+        public List<AuthroizedPartiesResponse> subunits { get; set; }
     }
 }
