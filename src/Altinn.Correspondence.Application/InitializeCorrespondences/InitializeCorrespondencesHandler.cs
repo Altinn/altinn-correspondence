@@ -185,6 +185,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 Created = request.Correspondence.Created,
                 ExternalReferences = request.Correspondence.ExternalReferences,
                 Published = status == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
+                IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
             };
             correspondences.Add(correspondence);
         }

@@ -30,7 +30,8 @@ internal static class CorrespondenceOverviewMapper
             DueDateTime = correspondenceOverview.DueDateTime,
             PropertyList = correspondenceOverview.PropertyList,
             IgnoreReservation = correspondenceOverview.IgnoreReservation,
-            Published = correspondenceOverview.Published
+            Published = correspondenceOverview.Published,
+            IsConfirmationNeeded = correspondenceOverview.IsConfirmationNeeded,
         };
         return Correspondence;
     }

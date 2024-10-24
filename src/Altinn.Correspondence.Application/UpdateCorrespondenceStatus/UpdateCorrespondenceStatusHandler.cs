@@ -53,7 +53,7 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             return Errors.LatestStatusIsNull;
         }
-        if ((request.Status == CorrespondenceStatus.Confirmed || request.Status == CorrespondenceStatus.Read) && !currentStatus!.Status.IsAvailableForRecipient())
+        if (!currentStatus.Status.IsAvailableForRecipient())
         {
             return Errors.CorrespondenceNotFound;
         }
@@ -68,6 +68,10 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         if (currentStatus?.Status >= request.Status)
         {
             return request.CorrespondenceId;
+        }
+        if (request.Status == CorrespondenceStatus.Archived && correspondence.IsConfirmationNeeded && !correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
+        {
+            return Errors.CorrespondenceNotConfirmed;
         }
 
         await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity

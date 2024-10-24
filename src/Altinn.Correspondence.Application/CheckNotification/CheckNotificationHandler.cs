@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
@@ -24,7 +25,7 @@ public class CheckNotificationHandler : IHandler<Guid, CheckNotificationResponse
             response.SendNotification = false;
             return response;
         }
-        if (correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Read))
+        if (correspondence.StatusHasBeen(CorrespondenceStatus.Read))
         {
             response.SendNotification = false;
         }

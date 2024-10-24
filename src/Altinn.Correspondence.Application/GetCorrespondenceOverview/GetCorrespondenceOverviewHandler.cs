@@ -94,7 +94,8 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
             IgnoreReservation = correspondence.IgnoreReservation ?? false,
             MarkedUnread = correspondence.MarkedUnread,
             AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
-            Published = correspondence.Published
+            Published = correspondence.Published,
+            IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
         };
         return response;
     }

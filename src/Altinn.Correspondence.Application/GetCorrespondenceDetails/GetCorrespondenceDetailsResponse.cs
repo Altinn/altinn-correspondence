@@ -49,4 +49,6 @@ public class GetCorrespondenceDetailsResponse
     public Dictionary<string, string> PropertyList { get; set; } = new Dictionary<string, string>();
     
     public DateTimeOffset? Published { get; internal set; }
+
+    public bool IsConfirmationNeeded { get; set; }
 }

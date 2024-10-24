@@ -31,7 +31,8 @@ internal static class CorrespondenceDetailsMapper
             AllowSystemDeleteAfter = correspondenceDetails.AllowSystemDeleteAfter,
             DueDateTime = correspondenceDetails.DueDateTime,
             PropertyList = correspondenceDetails.PropertyList,
-            Published = correspondenceDetails.Published
+            Published = correspondenceDetails.Published,
+            IsConfirmationNeeded = correspondenceDetails.IsConfirmationNeeded,
         };
         return Correspondence;
     }
