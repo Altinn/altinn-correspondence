@@ -28,8 +28,6 @@ namespace Altinn.Correspondence.Tests.Factories
                         MessageBody = "# test body /n __test__ /n **test**/n [test](www.test.no) /n ![test](www.test.no) /n ```test``` /n > test /n - test /n 1. test /n 1. test /n [x] test /n [ ] test /n ## test /n ### test /n #### test /n ##### test /n ###### test /n + test list /n - test list /n * list element",
                     },
                     RequestedPublishTime = DateTimeOffset.UtcNow,
-                    DueDateTime = DateTimeOffset.UtcNow.AddDays(2),
-                    AllowSystemDeleteAfter = DateTimeOffset.UtcNow.AddDays(3),
                     PropertyList = new Dictionary<string, string>(){
                         {"deserunt_12", "1"},
                         {"culpa_852", "2"},
@@ -203,5 +201,3 @@ namespace Altinn.Correspondence.Tests.Factories
         }
     }
 }
-
-
