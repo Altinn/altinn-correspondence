@@ -87,7 +87,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
             {
                 return Errors.CorrespondenceNotFound;
             }
-            if (correspondence.IsConfirmationNeeded && !correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
+            if (correspondence.IsConfirmationNeeded && !correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
             {
                 return Errors.CorrespondenceNotConfirmed;
             }
@@ -114,7 +114,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
         foreach (var attachment in attachments)
         {
             var canBeDeleted = await _attachmentRepository.CanAttachmentBeDeleted(attachment.Id, cancellationToken);
-            if (!canBeDeleted || attachment.Statuses.Any(status => status.Status == AttachmentStatus.Purged))
+            if (!canBeDeleted || attachment.StatusHasBeen(AttachmentStatus.Purged))
             {
                 continue;
             }

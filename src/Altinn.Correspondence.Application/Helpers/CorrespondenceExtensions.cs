@@ -45,5 +45,8 @@ public static class CorrespondenceStatusExtensions
         ];
         return validStatuses.Contains(correspondenceStatus);
     }
-
+    public static bool StatusHasBeen(this CorrespondenceEntity correspondence, CorrespondenceStatus status)
+    {
+        return correspondence.Statuses.Any(s => s.Status == status);
+    }
 }

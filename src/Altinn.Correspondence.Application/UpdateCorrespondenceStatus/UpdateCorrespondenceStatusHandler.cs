@@ -69,7 +69,7 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             return request.CorrespondenceId;
         }
-        if (request.Status == CorrespondenceStatus.Archived && correspondence.IsConfirmationNeeded && !correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
+        if (request.Status == CorrespondenceStatus.Archived && correspondence.IsConfirmationNeeded && !correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
         {
             return Errors.CorrespondenceNotConfirmed;
         }

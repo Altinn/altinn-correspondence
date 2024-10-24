@@ -32,7 +32,7 @@ public class MigrateUploadAttachmentHandler(IAltinnAuthorizationService altinnAu
         {
             return Errors.InvalidFileSize;
         }
-        if (attachment.Statuses.Any(status => status.Status == AttachmentStatus.UploadProcessing))
+        if (attachment.StatusHasBeen(AttachmentStatus.UploadProcessing))
         {
             return Errors.InvalidUploadAttachmentStatus;
         }

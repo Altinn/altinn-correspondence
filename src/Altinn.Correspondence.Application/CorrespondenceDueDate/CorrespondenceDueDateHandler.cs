@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -35,21 +36,21 @@ namespace Altinn.Correspondence.Application.CorrespondenceDueDate
             {
                 throw new Exception("Correspondence " + correspondenceId + " not found for exipired due date");
             }
-            else if (correspondence.Content == null || !correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Published))
+            else if (correspondence.Content == null || !correspondence.StatusHasBeen(CorrespondenceStatus.Published))
             {
                 throw new Exception($"Correspondence {correspondenceId} was never published");
             }
-            else if (correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Failed))
+            else if (correspondence.StatusHasBeen(CorrespondenceStatus.Failed))
             {
                 throw new Exception($"Correspondence {correspondenceId} failed to publish");
             }
 
-            if (!correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Read))
+            if (!correspondence.StatusHasBeen(CorrespondenceStatus.Read))
             {
                 await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
                 await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
             }
-            if (correspondence.IsConfirmationNeeded && !correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
+            if (correspondence.IsConfirmationNeeded && !correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
             {
                 await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
                 await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
