@@ -18,25 +18,31 @@ namespace Altinn.Correspondence.Application.Helpers
         public Error? ValidateDateConstraints(CorrespondenceEntity correspondence)
         {
             var RequestedPublishTime = correspondence.RequestedPublishTime;
-            if (correspondence.DueDateTime < DateTimeOffset.UtcNow)
+            if (correspondence.DueDateTime is not null)
             {
-                return Errors.DueDatePriorToday;
+                if (correspondence.DueDateTime < DateTimeOffset.UtcNow)
+                {
+                    return Errors.DueDatePriorToday;
+                }
+                if (correspondence.DueDateTime < RequestedPublishTime)
+                {
+                    return Errors.DueDatePriorRequestedPublishTime;
+                }
             }
-            if (correspondence.DueDateTime < RequestedPublishTime)
+            if (correspondence.AllowSystemDeleteAfter is not null)
             {
-                return Errors.DueDatePriorRequestedPublishTime;
-            }
-            if (correspondence.AllowSystemDeleteAfter < DateTimeOffset.UtcNow)
-            {
-                return Errors.AllowSystemDeletePriorToday;
-            }
-            if (correspondence.AllowSystemDeleteAfter < RequestedPublishTime)
-            {
-                return Errors.AllowSystemDeletePriorRequestedPublishTime;
-            }
-            if (correspondence.AllowSystemDeleteAfter < correspondence.DueDateTime)
-            {
-                return Errors.AllowSystemDeletePriorDueDate;
+                if (correspondence.AllowSystemDeleteAfter < DateTimeOffset.UtcNow)
+                {
+                    return Errors.AllowSystemDeletePriorToday;
+                }
+                if (correspondence.AllowSystemDeleteAfter < RequestedPublishTime)
+                {
+                    return Errors.AllowSystemDeletePriorRequestedPublishTime;
+                }
+                if (correspondence.DueDateTime is not null && correspondence.AllowSystemDeleteAfter < correspondence.DueDateTime)
+                {
+                    return Errors.AllowSystemDeletePriorDueDate;
+                }
             }
             return null;
         }

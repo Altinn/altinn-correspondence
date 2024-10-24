@@ -64,7 +64,7 @@ namespace Altinn.Correspondence.API.Models
         /// Gets or sets a date and time for when the recipient must reply.
         /// </summary>
         [JsonPropertyName("dueDateTime")]
-        public DateTimeOffset DueDateTime { get; set; }
+        public DateTimeOffset? DueDateTime { get; set; }
 
         /// <summary>
         /// Gets or sets an list of references Senders can use this field to tell the recipient that the correspondence is related to the referenced item(s)
