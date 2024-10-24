@@ -322,6 +322,21 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
+    public async Task InitializeCorrespondence_With_RequestedPublishTime_Null()
+    {
+    // Arrange
+        var correspondence = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithRequestedPublishTime(null)
+            .Build();
+
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+    }
+    
+    [Fact]
     public async Task UploadCorrespondence_Gives_Ok()
     {
         // Arrange
@@ -922,6 +937,48 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
+    public async Task UpdateCorrespondenceStatus_ToArchived_WithoutConfirmation_WhenConfirmationNeeded_ReturnsBadRequest()
+    {
+        //  Arrange
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithConfirmationNeeded()
+            .Build();
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+        Assert.Equal(CorrespondenceStatus.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
+        var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
+
+        //  Act
+        var archiveResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/archive", null);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, archiveResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateCorrespondenceStatus_ToArchived_WithConfirmation_WhenConfirmationNeeded_GivesOk()
+    {
+        //  Arrange
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithConfirmationNeeded()
+            .Build();
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+        Assert.Equal(CorrespondenceStatus.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
+        var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
+
+        //  Act
+        var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
+        Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
+        var archiveResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/archive", null);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, archiveResponse.StatusCode);
+    }
+
+    [Fact]
     public async Task Correspondence_with_dataLocationUrl_Reuses_Attachment()
     {
         var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
@@ -1057,6 +1114,48 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Equal(HttpStatusCode.OK, recipientResponse.StatusCode);
         var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}", _responseSerializerOptions);
         Assert.Equal(overview?.Status, CorrespondenceStatusExt.PurgedByRecipient);
+    }
+
+    [Fact]
+    public async Task Delete_Published_Correspondence_WithoutConfirmation_WhenConfirmationNeeded_ReturnsBadRequest()
+    {
+        //  Arrange
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithConfirmationNeeded()
+            .Build();
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+        Assert.Equal(CorrespondenceStatus.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
+        var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
+
+        //  Act
+        var deleteResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Delete_Published_Correspondence_WithConfirmation_WhenConfirmationNeeded_Gives_OK()
+    {
+        //  Arrange
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithConfirmationNeeded()
+            .Build();
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+        Assert.Equal(CorrespondenceStatus.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
+        var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
+
+        //  Act
+        var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
+        Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
+        var deleteResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
     }
 
     [Fact]
@@ -1475,21 +1574,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
 
         // Assert
         slackClientMock.Verify(client => client.Post(It.IsAny<SlackMessage>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task InitializeCorrespondence_With_RequestedPublishTime_Null()
-    {
-    // Arrange
-        var correspondence = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .WithRequestedPublishTime(null)
-            .Build();
-
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
-
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
     }
 
     private MultipartFormDataContent CorrespondenceToFormData(BaseCorrespondenceExt correspondence)
