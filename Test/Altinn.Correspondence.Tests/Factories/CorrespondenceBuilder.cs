@@ -205,7 +205,6 @@ namespace Altinn.Correspondence.Tests.Factories
                         NotificationChannel = new Core.Models.Enums.NotificationChannel(),
                     }
                 },
-                IsConfirmationNeeded = false,
             };
         }
     }

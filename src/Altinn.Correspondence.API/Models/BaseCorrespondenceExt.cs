@@ -111,7 +111,7 @@ namespace Altinn.Correspondence.API.Models
         /// Specifies whether reading the correspondence needs to be confirmed by the recipient
         /// </summary>
         [JsonPropertyName("IsConfirmationNeeded")]
-        public required bool IsConfirmationNeeded { get; set; }
+        public bool IsConfirmationNeeded { get; set; }
     }
 
     [AttributeUsage(AttributeTargets.Property)]

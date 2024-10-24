@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241023120645_AddedIsConfirmationNeeded")]
+    [Migration("20241024103535_AddedIsConfirmationNeeded")]
     partial class AddedIsConfirmationNeeded
     {
         /// <inheritdoc />
