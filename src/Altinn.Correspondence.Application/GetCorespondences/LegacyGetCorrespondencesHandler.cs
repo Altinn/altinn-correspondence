@@ -41,7 +41,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
             return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
         }
         var userParty = await _altinnRegisterService.LookUpPartyByPartyId(request.OnbehalfOfPartyId, cancellationToken);
-        if (userParty == null)
+        if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
         {
             return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
         }
@@ -49,19 +49,18 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         if (request.InstanceOwnerPartyIdList != null && request.InstanceOwnerPartyIdList.Length > 0)
         {
             var authorizedParties = await _altinnAccessManagementService.GetAuthorizedParties(userParty, cancellationToken);
-            foreach (var auth in authorizedParties)
-                foreach (int instanceOwnerPartyId in request.InstanceOwnerPartyIdList)
+            var authorizedPartiesDict = authorizedParties.ToDictionary(c => c.PartyId);
+            foreach (int instanceOwnerPartyId in request.InstanceOwnerPartyIdList)
+            {
+                if (!authorizedPartiesDict.TryGetValue(instanceOwnerPartyId, out var mappedInstanceOwner))
                 {
-                    var mappedInstanceOwner = authorizedParties.SingleOrDefault(c => c.PartyId == instanceOwnerPartyId);
-                    if (mappedInstanceOwner == null)
-                    {
-                        return Errors.LegacyNotAccessToOwner(instanceOwnerPartyId);
-                    }
-                    if (mappedInstanceOwner.OrgNumber != null)
-                        recipients.Add("0192:" + mappedInstanceOwner.OrgNumber);
-                    else if (mappedInstanceOwner.SSN != null)
-                        recipients.Add(mappedInstanceOwner.SSN);
+                    return Errors.LegacyNotAccessToOwner(instanceOwnerPartyId);
                 }
+                if (mappedInstanceOwner.OrgNumber != null)
+                    recipients.Add("0192:" + mappedInstanceOwner.OrgNumber);
+                else if (mappedInstanceOwner.SSN != null)
+                    recipients.Add(mappedInstanceOwner.SSN);
+            }
         }
         else
         {
