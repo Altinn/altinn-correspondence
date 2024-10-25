@@ -63,6 +63,10 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             return Errors.DuplicateRecipients;
         }
+        if (request.Correspondence.IsConfirmationNeeded && request.Correspondence.DueDateTime is null)
+        {
+            return Errors.DueDateRequired;
+        }
         var dateError = _initializeCorrespondenceHelper.ValidateDateConstraints(request.Correspondence);
         if (dateError != null)
         {

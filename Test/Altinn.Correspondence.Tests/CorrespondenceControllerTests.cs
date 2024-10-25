@@ -322,6 +322,22 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
+    public async Task InitializeCorrespondence_WithConfirmationNeeded_Without_DueDate_Returns_BadRequest()
+    {
+        // Arrange
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithConfirmationNeeded()
+            .Build();
+
+        // Act
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+
+    [Fact]
     public async Task InitializeCorrespondence_With_RequestedPublishTime_Null()
     {
     // Arrange
@@ -942,6 +958,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         //  Arrange
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
+            .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(1))
             .WithConfirmationNeeded()
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
@@ -962,6 +979,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         //  Arrange
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
+            .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(1))
             .WithConfirmationNeeded()
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
@@ -1122,6 +1140,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         //  Arrange
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
+            .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(1))
             .WithConfirmationNeeded()
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
@@ -1142,6 +1161,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         //  Arrange
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
+            .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(1))
             .WithConfirmationNeeded()
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
