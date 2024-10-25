@@ -57,19 +57,47 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
-    public async Task InitializeCorrespondence_WithInvalidLanguageCode_ReturnsBadRequest()
+    public async Task InitializeCorrespondence_WithCorrectLanguageCode_ReturnsOK()
     {
         // Arrange
-        var correspondence = new CorrespondenceBuilder()
+        var payload1 = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithLanguageCode("nu")
+            .WithLanguageCode("nN")
+            .Build();
+        var payload2 = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithLanguageCode("EN")
             .Build();
 
         // Act
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        var response1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload1);
+        var response2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload2);
 
         // Assert
-        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response1.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
+    }
+
+    [Fact]
+    public async Task InitializeCorrespondence_WithInvalidLanguageCode_ReturnsBadRequest()
+    {
+        // Arrange
+        var payload1 = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithLanguageCode("nu")
+            .Build();
+        var payload2 = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithLanguageCode(null)
+            .Build();
+
+        // Act
+        var response1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload1);
+        var response2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload2);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response1.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, response2.StatusCode);
     }
 
     [Fact]

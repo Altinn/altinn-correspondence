@@ -54,7 +54,7 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.Content = content;
             return this;
         }
-        public CorrespondenceBuilder WithLanguageCode(string languageCode)
+        public CorrespondenceBuilder WithLanguageCode(string? languageCode)
         {
             _correspondence.Correspondence.Content.Language = languageCode;
             return this;

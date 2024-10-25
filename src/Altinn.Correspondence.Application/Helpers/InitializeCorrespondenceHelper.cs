@@ -86,7 +86,7 @@ namespace Altinn.Correspondence.Application.Helpers
         private static bool IsLanguageValid(string language)
         {
             List<string> supportedLanguages = ["nb", "nn", "en"];
-            return supportedLanguages.Contains(language);
+            return supportedLanguages.Contains(language.ToLower());
         }
         public Error? ValidateNotification(NotificationRequest notification)
         {
