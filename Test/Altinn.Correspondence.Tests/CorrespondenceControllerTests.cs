@@ -90,14 +90,20 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             .CreateCorrespondence()
             .WithLanguageCode(null)
             .Build();
+        var payload3 = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithLanguageCode("")
+            .Build();
 
         // Act
         var response1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload1);
         var response2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload2);
+        var response3 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload3);
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response1.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, response2.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, response3.StatusCode);
     }
 
     [Fact]
