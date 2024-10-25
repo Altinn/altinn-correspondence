@@ -95,7 +95,6 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         {
             var purgedStatus = correspondence.GetPurgedStatus();
             var owner = resourceOwners.SingleOrDefault(r => r.OrgNumber == correspondence.Sender)?.Party;
-            Console.WriteLine("dueDateTime: " + correspondence.Published);
             correspondenceItems.Add(
                 new LegacyCorrespondenceItem()
                 {
@@ -109,7 +108,8 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                     Published = correspondence.Published,
                     PurgedStatus = purgedStatus?.Status,
                     Purged = purgedStatus?.StatusChanged,
-                    DueDate = correspondence.DueDateTime
+                    DueDate = correspondence.DueDateTime,
+                    Archived = correspondence.Statuses.Find(s => s.Status == CorrespondenceStatus.Archived)?.StatusChanged,
                 }
                 );
         }
@@ -127,10 +127,6 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         return response;
     }
 }
-// Get Authorized Parties
-//   https://docs.altinn.studio/api/accessmanagement/resourceowneropenapi/#/Authorized%20Parties/post_resourceowner_authorizedparties
-//   https://github.com/Altinn/altinn-resource-registry/blob/main/src/Altinn.ResourceRegistry/Controllers/ResourceController.cs#L258
-
 
 // TODO: Get All Resources these parties can access. I do think these resources is included in authorized parties response
 //   <https://docs.altinn.studio/api/resourceregistry/spec/#/Resource/post_resource_bysubjects>

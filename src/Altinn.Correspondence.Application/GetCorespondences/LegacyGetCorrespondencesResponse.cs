@@ -23,5 +23,6 @@ namespace Altinn.Correspondence.Application.GetCorrespondences
         public DateTimeOffset? Purged { get; set; }
         public int InstanceOwnerPartyId { get; set; }
         public DateTimeOffset? DueDate { get; set; }
+        public DateTimeOffset? Archived { get; set; }
     }
 }
