@@ -109,7 +109,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                     PurgedStatus = purgedStatus?.Status,
                     Purged = purgedStatus?.StatusChanged,
                     DueDate = correspondence.DueDateTime,
-                    Archived = correspondence.Statuses.Find(s => s.Status == CorrespondenceStatus.Archived)?.StatusChanged,
+                    Archived = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Archived)?.StatusChanged,
                 }
                 );
         }
