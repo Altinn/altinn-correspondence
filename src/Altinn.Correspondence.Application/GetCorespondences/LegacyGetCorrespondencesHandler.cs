@@ -64,7 +64,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         }
         else
         {
-            recipients.Add(userParty.SSN ?? "0192:" + userParty.OrgNumber);
+            recipients.Add(string.IsNullOrEmpty(userParty.SSN) ? "0192:" + userParty.OrgNumber : userParty.SSN);
         }
 
         List<string> resourcesToSearch = new List<string>();
