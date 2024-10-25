@@ -76,7 +76,17 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return Errors.MessageSummaryIsNotMarkdown;
             }
+            if (!IsLanguageValid(content.Language))
+            {
+                return Errors.InvalidLanguage;
+            }
+
             return null;
+        }
+        private static bool IsLanguageValid(string language)
+        {
+            List<string> supportedLanguages = ["nb", "nn", "en"];
+            return supportedLanguages.Contains(language);
         }
         public Error? ValidateNotification(NotificationRequest notification)
         {
