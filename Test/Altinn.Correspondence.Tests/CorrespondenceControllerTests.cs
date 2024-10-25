@@ -327,7 +327,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Arrange
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithConfirmationNeeded()
+            .WithConfirmationNeeded(true)
             .Build();
 
         // Act
@@ -959,7 +959,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(1))
-            .WithConfirmationNeeded()
+            .WithConfirmationNeeded(true)
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
@@ -980,7 +980,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(1))
-            .WithConfirmationNeeded()
+            .WithConfirmationNeeded(true)
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
@@ -1141,7 +1141,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(1))
-            .WithConfirmationNeeded()
+            .WithConfirmationNeeded(true)
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
@@ -1162,7 +1162,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(1))
-            .WithConfirmationNeeded()
+            .WithConfirmationNeeded(true)
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);

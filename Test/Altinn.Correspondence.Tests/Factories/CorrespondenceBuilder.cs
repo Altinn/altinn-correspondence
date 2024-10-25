@@ -130,9 +130,9 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.AllowSystemDeleteAfter = dueDateTime;
             return this;
         }
-        public CorrespondenceBuilder WithConfirmationNeeded()
+        public CorrespondenceBuilder WithConfirmationNeeded(bool confirmationNeeded)
         {
-            _correspondence.Correspondence.IsConfirmationNeeded = true;
+            _correspondence.Correspondence.IsConfirmationNeeded = confirmationNeeded;
             return this;
         }
         public CorrespondenceBuilder WithNotificationTemplate(NotificationTemplateExt notificationTemplate)
