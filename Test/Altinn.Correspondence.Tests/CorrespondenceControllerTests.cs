@@ -55,22 +55,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
     }
-    
-    [Fact]
-    public async Task InitializeCorrespondence_WithoutContent_ReturnsBadRequest()
-    {
-        // Arrange
-        var correspondence = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .WithCorrespondenceContent(null)
-            .Build();
-
-        // Act
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
-
-        // Assert
-        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-    }
 
     [Fact]
     public async Task InitializeCorrespondence_WithExistingAttachmentsPublished_ReturnsOK()
@@ -133,6 +117,53 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+    
+    [Fact]
+    public async Task InitializeCorrespondence_WithoutContent_ReturnsBadRequest()
+    {
+        // Arrange
+        var correspondence = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithCorrespondenceContent(null)
+            .Build();
+
+        // Act
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
+    
+    [Fact]
+    public async Task InitializeCorrespondence_WithEmptyMessageFields_ReturnsBadRequest()
+    {
+        // Arrange
+        var payload1 = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithMessageTitle("")
+            .Build();
+
+        var payload2 = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithMessageSummary("")
+            .Build();
+        
+        var payload3 = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithMessageBody("")
+            .Build();
+
+        // Act
+        var response1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload1);
+        var response2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload2);
+        var response3 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload3);
+
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response1.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, response2.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, response3.StatusCode);
     }
 
     [Fact]

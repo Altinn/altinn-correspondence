@@ -52,13 +52,25 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return Errors.MissingContent;
             }
+            if (string.IsNullOrWhiteSpace(content.MessageTitle))
+            {
+                return Errors.MessageTitleEmpty;
+            }
             if (!TextValidation.ValidatePlainText(content.MessageTitle))
             {
                 return Errors.MessageTitleIsNotPlainText;
             }
+            if (string.IsNullOrWhiteSpace(content.MessageBody))
+            {
+                return Errors.MessageBodyEmpty;
+            }
             if (!TextValidation.ValidateMarkdown(content.MessageBody))
             {
                 return Errors.MessageBodyIsNotMarkdown;
+            }
+            if (string.IsNullOrWhiteSpace(content.MessageSummary))
+            {
+                return Errors.MessageSummaryEmpty;
             }
             if (!TextValidation.ValidateMarkdown(content.MessageSummary))
             {
