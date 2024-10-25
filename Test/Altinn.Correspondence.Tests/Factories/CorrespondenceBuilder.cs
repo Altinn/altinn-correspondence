@@ -49,19 +49,24 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.ResourceId = resourceId;
             return this;
         }
+        public CorrespondenceBuilder WithCorrespondenceContent(InitializeCorrespondenceContentExt? content)
+        {
+            _correspondence.Correspondence.Content = content;
+            return this;
+        }
         public CorrespondenceBuilder WithMessageTitle(string title)
         {
-            _correspondence.Correspondence.Content!.MessageTitle = title;
+            _correspondence.Correspondence.Content.MessageTitle = title;
             return this;
         }
         public CorrespondenceBuilder WithMessageBody(string? messageBody)
         {
-            _correspondence.Correspondence.Content!.MessageBody = messageBody;
+            _correspondence.Correspondence.Content.MessageBody = messageBody;
             return this;
         }
         public CorrespondenceBuilder WithMessageSummary(string? messageBody)
         {
-            _correspondence.Correspondence.Content!.MessageSummary = messageBody;
+            _correspondence.Correspondence.Content.MessageSummary = messageBody;
             return this;
         }
         public CorrespondenceBuilder WithAttachments()

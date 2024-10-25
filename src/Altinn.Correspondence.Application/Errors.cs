@@ -48,4 +48,8 @@ public static class Errors
     public static Error LegacyNotAccessToOwner(int partyId) { return new Error(40, $"User does not have access to party with partyId {partyId}", HttpStatusCode.Unauthorized); }
     public static Error CorrespondenceNotConfirmed = new Error(41, "Cannot archive or delete a correspondence which has not been confirmed when confirmation is required", HttpStatusCode.BadRequest);
     public static Error DueDateRequired = new Error(42, "DueDateTime is required when confirmation is needed", HttpStatusCode.BadRequest);
+    public static Error MissingContent = new Error(43, "The Content field must be provided for the correspondence", HttpStatusCode.BadRequest);
+    public static Error MessageTitleEmpty = new Error(44, "Message title cannot be empty", HttpStatusCode.BadRequest);
+    public static Error MessageBodyEmpty = new Error(45, "Message body cannot be empty", HttpStatusCode.BadRequest);
+    public static Error MessageSummaryEmpty = new Error(46, "Message summary cannot be empty", HttpStatusCode.BadRequest);
 }
