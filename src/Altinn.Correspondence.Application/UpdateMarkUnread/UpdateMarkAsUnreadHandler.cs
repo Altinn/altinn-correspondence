@@ -34,7 +34,7 @@ public class UpdateMarkAsUnreadHandler : IHandler<Guid, Guid>
         }
 
         var currentStatus = correspondence.GetLatestStatus();
-        if (!correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Read))
+        if (!correspondence.StatusHasBeen(CorrespondenceStatus.Read))
         {
             return Errors.CorrespondenceHasNotBeenRead;
         }

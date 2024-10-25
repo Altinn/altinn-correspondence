@@ -33,7 +33,8 @@ namespace Altinn.Correspondence.Tests.Factories
                         {"culpa_852", "2"},
                         {"anim5", "3"}
                     },
-                    IgnoreReservation = false
+                    IgnoreReservation = false,
+                    IsConfirmationNeeded = false,
                 },
                 Recipients = new List<string>(){
                     "0192:991825827",   // org number
@@ -129,6 +130,11 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.AllowSystemDeleteAfter = dueDateTime;
             return this;
         }
+        public CorrespondenceBuilder WithConfirmationNeeded(bool confirmationNeeded)
+        {
+            _correspondence.Correspondence.IsConfirmationNeeded = confirmationNeeded;
+            return this;
+        }
         public CorrespondenceBuilder WithNotificationTemplate(NotificationTemplateExt notificationTemplate)
         {
             _correspondence.Correspondence.Notification ??= new InitializeCorrespondenceNotificationExt()
@@ -196,7 +202,7 @@ namespace Altinn.Correspondence.Tests.Factories
                         NotificationTemplate = new Core.Models.Enums.NotificationTemplate(),
                         NotificationChannel = new Core.Models.Enums.NotificationChannel(),
                     }
-                }
+                },
             };
         }
     }

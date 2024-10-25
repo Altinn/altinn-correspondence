@@ -63,6 +63,10 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         {
             return Errors.DuplicateRecipients;
         }
+        if (request.Correspondence.IsConfirmationNeeded && request.Correspondence.DueDateTime is null)
+        {
+            return Errors.DueDateRequired;
+        }
         var dateError = _initializeCorrespondenceHelper.ValidateDateConstraints(request.Correspondence);
         if (dateError != null)
         {
@@ -185,6 +189,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                 Created = request.Correspondence.Created,
                 ExternalReferences = request.Correspondence.ExternalReferences,
                 Published = status == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
+                IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
             };
             correspondences.Add(correspondence);
         }

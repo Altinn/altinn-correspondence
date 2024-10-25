@@ -30,7 +30,7 @@ public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizat
         {
             return Errors.NoAccessToResource;
         }
-        if (attachment.Statuses.Any(status => status.Status == AttachmentStatus.Purged))
+        if (attachment.StatusHasBeen(AttachmentStatus.Purged))
         {
             return Errors.InvalidPurgeAttachmentStatus;
         }

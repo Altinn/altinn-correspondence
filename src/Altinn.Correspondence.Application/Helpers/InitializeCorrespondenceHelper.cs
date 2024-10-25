@@ -136,7 +136,7 @@ namespace Altinn.Correspondence.Application.Helpers
         public CorrespondenceStatus GetInitializeCorrespondenceStatus(CorrespondenceEntity correspondence)
         {
             var status = CorrespondenceStatus.Initialized;
-            if (correspondence.Content != null && correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.Statuses.Any(s => s.Status == AttachmentStatus.Published)))
+            if (correspondence.Content != null && correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.StatusHasBeen(AttachmentStatus.Published)))
             {
                 if (_hostEnvironment.IsDevelopment() && correspondence.RequestedPublishTime < DateTimeOffset.UtcNow) status = CorrespondenceStatus.Published; // used to test on published correspondences in development
                 else status = CorrespondenceStatus.ReadyForPublish;
