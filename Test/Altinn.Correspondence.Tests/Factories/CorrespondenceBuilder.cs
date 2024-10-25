@@ -49,6 +49,11 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.ResourceId = resourceId;
             return this;
         }
+        public CorrespondenceBuilder WithCorrespondenceContent(InitializeCorrespondenceContentExt? content)
+        {
+            _correspondence.Correspondence.Content = content;
+            return this;
+        }
         public CorrespondenceBuilder WithMessageTitle(string title)
         {
             _correspondence.Correspondence.Content!.MessageTitle = title;

@@ -55,6 +55,22 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
     }
+    
+    [Fact]
+    public async Task InitializeCorrespondence_WithoutContent_ReturnsBadRequest()
+    {
+        // Arrange
+        var correspondence = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithCorrespondenceContent(null)
+            .Build();
+
+        // Act
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+    }
 
     [Fact]
     public async Task InitializeCorrespondence_WithExistingAttachmentsPublished_ReturnsOK()

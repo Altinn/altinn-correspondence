@@ -46,17 +46,21 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             return null;
         }
-        public Error? ValidateCorrespondenceContent(CorrespondenceContentEntity content)
+        public Error? ValidateCorrespondenceContent(CorrespondenceContentEntity? content)
         {
-            if (!TextValidation.ValidatePlainText(content?.MessageTitle))
+            if (content == null)
+            {
+                return Errors.MissingContent;
+            }
+            if (!TextValidation.ValidatePlainText(content.MessageTitle))
             {
                 return Errors.MessageTitleIsNotPlainText;
             }
-            if (!TextValidation.ValidateMarkdown(content?.MessageBody))
+            if (!TextValidation.ValidateMarkdown(content.MessageBody))
             {
                 return Errors.MessageBodyIsNotMarkdown;
             }
-            if (!TextValidation.ValidateMarkdown(content?.MessageSummary))
+            if (!TextValidation.ValidateMarkdown(content.MessageSummary))
             {
                 return Errors.MessageSummaryIsNotMarkdown;
             }
