@@ -24,5 +24,6 @@ namespace Altinn.Correspondence.Application.GetCorrespondences
         public int InstanceOwnerPartyId { get; set; }
         public DateTimeOffset? DueDate { get; set; }
         public DateTimeOffset? Archived { get; set; }
+        public string? MessageSender { get; set; }
     }
 }
