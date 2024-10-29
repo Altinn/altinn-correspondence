@@ -44,7 +44,7 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpGet]
         [Route("{correspondenceId}/overview")]
         [ApiExplorerSettings(IgnoreApi = true)]
-        public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceDetails(
+        public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
             Guid correspondenceId,
             [FromQuery] int onBehalfOfPartyId,
             [FromServices] LegacyGetCorrespondenceOverviewHandler handler,
