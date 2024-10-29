@@ -4,6 +4,7 @@ using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
+using Altinn.Correspondence.Application.GetCorrespondenceHistory;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
@@ -62,6 +63,32 @@ namespace Altinn.Correspondence.API.Controllers
 
             return commandResult.Match(
                 data => Ok(CorrespondenceOverviewMapper.MapToExternal(data)),
+                Problem
+            );
+        }
+
+        /// <summary>
+        /// Get status history for the Correspondence, as well as notification statuses, if available
+        /// </summary>
+        [HttpGet]
+        [Route("{correspondenceId}/history")]
+        [ApiExplorerSettings(IgnoreApi = true)]
+        public async Task<ActionResult<LegacyGetCorrespondenceHistoryResponse>> GetCorrespondenceHistory( // TODO: Should this be LegacyCorrespondenceHistoryExt? 
+            Guid correspondenceId,
+            [FromQuery] string onBehalfOfPartyId,
+            [FromServices] LegacyGetCorrespondenceHistoryHandler handler,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Getting Correspondence history for {correspondenceId}", correspondenceId.ToString());
+
+            var commandResult = await handler.Process(new LegacyGetCorrespondenceHistoryRequest
+            {
+                CorrespondenceId = correspondenceId,
+                OnBehalfOfPartyId = onBehalfOfPartyId
+            }, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
                 Problem
             );
         }
