@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using OneOf;
@@ -57,38 +58,19 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<LegacyGetCorrespon
         var notificationHistory = new List<LegacyCorrespondenceStatus>();
         foreach (var notification in correspondence.Notifications)
         {
-            if (notification.NotificationOrderId != null)
+            if (string.IsNullOrEmpty(notification.NotificationOrderId.ToString())) continue;
+
+            var notificationDetails = await _altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString(), cancellationToken);
+
+            if (notificationDetails?.NotificationsStatusDetails is null) continue;
+
+            if (notificationDetails.NotificationsStatusDetails.Sms is not null)
             {
-                var notificationDetails = await _altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString());
-                if (notificationDetails.NotificationsStatusDetails is null) continue;
-                if (notificationDetails.NotificationsStatusDetails.Sms is not null)
-                {
-                    notificationHistory.Add(new LegacyCorrespondenceStatus
-                    {
-                        Status = notificationDetails.NotificationsStatusDetails.Sms.SendStatus.Status,
-                        StatusChanged = notificationDetails.NotificationsStatusDetails.Sms.SendStatus.LastUpdate,
-                        StatusText = $"[{(notification.IsReminder ? "Reminder" : "Notification")}] {notificationDetails.NotificationsStatusDetails.Sms.SendStatus.StatusDescription}",
-                        User = new LegacyUser
-                        {
-                            PartyId = senderParty.PartyId.ToString(),
-                            AuthenticationLevel = 0, // TODO: Get authentication level
-                        },
-                    });
-                }
-                if (notificationDetails.NotificationsStatusDetails.Email is not null)
-                {
-                    notificationHistory.Add(new LegacyCorrespondenceStatus
-                    {
-                        Status = notificationDetails.NotificationsStatusDetails.Email.SendStatus.Status,
-                        StatusChanged = notificationDetails.NotificationsStatusDetails.Email.SendStatus.LastUpdate,
-                        StatusText = $"[{(notification.IsReminder ? "Reminder" : "Notification")}] {notificationDetails.NotificationsStatusDetails.Email.SendStatus.StatusDescription}",
-                        User = new LegacyUser
-                        {
-                            PartyId = senderParty.PartyId.ToString(),
-                            AuthenticationLevel = 0, // TODO: Get authentication level
-                        },
-                    });
-                }
+                notificationHistory.Add(GetNotificationStatus(notificationDetails.NotificationsStatusDetails.Sms.SendStatus, notification.IsReminder, senderParty.PartyId.ToString()));
+            }
+            if (notificationDetails.NotificationsStatusDetails.Email is not null)
+            {
+                notificationHistory.Add(GetNotificationStatus(notificationDetails.NotificationsStatusDetails.Email.SendStatus, notification.IsReminder, senderParty.PartyId.ToString()));
             }
         }
 
@@ -100,4 +82,18 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<LegacyGetCorrespon
         return legacyHistory;
     }
 
+    private static LegacyCorrespondenceStatus GetNotificationStatus(StatusExt sendStatus, bool isReminder, string partyId)
+    {
+        return new LegacyCorrespondenceStatus
+        {
+            Status = sendStatus.Status,
+            StatusChanged = sendStatus.LastUpdate,
+            StatusText = $"[{(isReminder ? "Reminder" : "Notification")}] {sendStatus.StatusDescription}",
+            User = new LegacyUser
+            {
+                PartyId = partyId,
+                AuthenticationLevel = 0, // TODO: Get authentication level
+            },
+        };
+    }
 }
