@@ -43,20 +43,11 @@ public static class DependencyInjection
         services.AddScoped<PurgeCorrespondenceHandler>();
         services.AddScoped<UpdateMarkAsUnreadHandler>();
         services.AddScoped<MigrateCorrespondenceHandler>();
-        services.AddScoped<LegacyGetCorrespondencesHandler>();
-        services.AddScoped<LegacyGetCorrespondenceOverviewHandler>();
         services.AddScoped<CheckNotificationHandler>();
-        services.AddScoped<MigrateInitializeAttachmentHandler>();
-        services.AddScoped<MigrateUploadAttachmentHandler>();
-        services.AddScoped<MigrateCorrespondenceHandler>();
 
         // Integrations
         services.AddScoped<MalwareScanResultHandler>();
         services.AddScoped<CheckNotificationHandler>();
-
-        // Legacy
-        services.AddScoped<LegacyGetCorrespondencesHandler>();
-        services.AddScoped<LegacyGetCorrespondenceHistoryHandler>();
 
         // Helpers
         services.AddScoped<UploadHelper>();
@@ -64,5 +55,14 @@ public static class DependencyInjection
         services.AddScoped<PublishCorrespondenceHandler>();
         services.AddScoped<InitializeCorrespondenceHelper>();
         services.AddScoped<DownloadCorrespondenceAttachmentHandler>();
+
+        // Legacy
+        services.AddScoped<LegacyGetCorrespondencesHandler>();
+        services.AddScoped<LegacyGetCorrespondenceOverviewHandler>();
+
+        // Migration
+        services.AddScoped<MigrateInitializeAttachmentHandler>();
+        services.AddScoped<MigrateUploadAttachmentHandler>();
+        services.AddScoped<MigrateCorrespondenceHandler>();
     }
 }
