@@ -50,7 +50,6 @@ public class GetAttachmentOverviewHandler : IHandler<Guid, GetAttachmentOverview
             CorrespondenceIds = correspondenceIds,
             FileName = attachment.FileName,
             Sender = attachment.Sender,
-            RestrictionName = attachment.RestrictionName,
         };
         return response;
     }
