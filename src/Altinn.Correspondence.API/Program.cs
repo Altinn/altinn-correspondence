@@ -6,6 +6,7 @@ using Altinn.Correspondence.Integrations;
 using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Persistence;
 using Azure.Identity;
+using Altinn.Correspondence.Helpers;
 using Hangfire;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -26,6 +27,8 @@ static void BuildAndRun(string[] args)
     ConfigureServices(builder.Services, builder.Configuration, builder.Environment);
 
     var app = builder.Build();
+
+    app.UseExceptionHandler();
 
     if (app.Environment.IsDevelopment())
     {
@@ -73,6 +76,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     });
     var altinnOptions = new AltinnOptions();
     config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
+    services.AddExceptionHandler<SlackExceptionNotification>();
     services.AddCors(options =>
     {
         options.AddPolicy(name: AuthorizationConstants.ArbeidsflateCors,
