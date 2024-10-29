@@ -53,4 +53,5 @@ public static class Errors
     public static Error MessageBodyEmpty = new Error(45, "Message body cannot be empty", HttpStatusCode.BadRequest);
     public static Error MessageSummaryEmpty = new Error(46, "Message summary cannot be empty", HttpStatusCode.BadRequest);
     public static Error InvalidLanguage = new Error(47, "Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)", HttpStatusCode.BadRequest);
+    public static Error LegacyNoAccessToCorrespondence = new Error(48, "User does not have access to the correspondence", HttpStatusCode.Unauthorized);
 }
