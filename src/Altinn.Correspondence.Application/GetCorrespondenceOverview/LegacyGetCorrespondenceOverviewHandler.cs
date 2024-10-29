@@ -14,7 +14,7 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
     private readonly IAltinnAccessManagementService _altinnAccessManagementService;
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly IAltinnRegisterService _altinnRegisterService;
-    private readonly ICorrespondenceRepository _CorrespondenceRepository;
+    private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly UserClaimsHelper _userClaimsHelper;
     private readonly ILogger<LegacyGetCorrespondenceOverviewHandler> _logger;
@@ -24,7 +24,7 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
         _altinnAccessManagementService = altinnAccessManagementService;
         _altinnAuthorizationService = altinnAuthorizationService;
         _altinnRegisterService = altinnRegisterService;
-        _CorrespondenceRepository = CorrespondenceRepository;
+        _correspondenceRepository = CorrespondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
         _userClaimsHelper = userClaimsHelper;
         _logger = logger;
@@ -32,10 +32,6 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
 
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(LegacyGetCorrespondenceOverviewRequest request, CancellationToken cancellationToken)
     {
-
-        var partyId = await _altinnRegisterService.LookUpPartyId("04825899710", cancellationToken);
-        Console.WriteLine(partyId);
-
         if (request.PartyId == 0 || request.PartyId == int.MinValue)
         {
             return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
@@ -46,7 +42,7 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
         {
             return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
         }
-        var correspondence = await _CorrespondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
@@ -74,22 +70,32 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
             _logger.LogWarning("Rejected because correspondence not available for recipient in current state.");
             return Errors.CorrespondenceNotFound;
         }
-        await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+        try
         {
-            CorrespondenceId = correspondence.Id,
-            Status = CorrespondenceStatus.Fetched,
-            StatusText = CorrespondenceStatus.Fetched.ToString(),
-            StatusChanged = DateTimeOffset.UtcNow
-        }, cancellationToken);
+            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+            {
+                CorrespondenceId = correspondence.Id,
+                Status = CorrespondenceStatus.Fetched,
+                StatusText = CorrespondenceStatus.Fetched.ToString(),
+                StatusChanged = DateTimeOffset.UtcNow
+            }, cancellationToken);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error when adding status to correspondence");
+        }
 
         var notificationsOverview = new List<CorrespondenceNotificationOverview>();
-        foreach (var notification in correspondence.Notifications)
+        if (correspondence.Notifications != null)
         {
-            notificationsOverview.Add(new CorrespondenceNotificationOverview
+            foreach (var notification in correspondence.Notifications)
             {
-                NotificationOrderId = notification.NotificationOrderId,
-                IsReminder = notification.IsReminder
-            });
+                notificationsOverview.Add(new CorrespondenceNotificationOverview
+                {
+                    NotificationOrderId = notification.NotificationOrderId,
+                    IsReminder = notification.IsReminder
+                });
+            }
         }
 
         var response = new GetCorrespondenceOverviewResponse
