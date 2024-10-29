@@ -35,27 +35,33 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Get more detailed information about the Correspondence and its current status as well as noticiation statuses, if available
+        /// Get an overview of the Correspondence and its current status
         /// </summary>
         /// <remarks>
-        /// Meant for Senders that want a complete overview of the status and history of the Correspondence, but also available for Receivers
+        /// Provides a summary for Receivers
         /// </remarks>
-        /// <returns>Detailed information about the correspondence with current status and status history</returns>
+        /// <returns>Overview information about the correspondence</returns>
         [HttpGet]
-        [Route("{correspondenceId}/details")]
+        [Route("{correspondenceId}/overview")]
         [ApiExplorerSettings(IgnoreApi = true)]
-        public async Task<ActionResult<CorrespondenceDetailsExt>> GetCorrespondenceDetails(
+        public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
             Guid correspondenceId,
-            [FromQuery] string onBehalfOfPartyId,
-            [FromServices] GetCorrespondenceDetailsHandler handler,
+            [FromQuery] int onBehalfOfPartyId,
+            [FromServices] LegacyGetCorrespondenceOverviewHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Getting Correspondence overview for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(correspondenceId, cancellationToken);
+            var request = new LegacyGetCorrespondenceOverviewRequest
+            {
+                CorrespondenceId = correspondenceId,
+                PartyId = onBehalfOfPartyId
+            };
+
+            var commandResult = await handler.Process(request, cancellationToken);
 
             return commandResult.Match(
-                data => Ok(CorrespondenceDetailsMapper.MapToExternal(data)),
+                data => Ok(CorrespondenceOverviewMapper.MapToExternal(data)),
                 Problem
             );
         }

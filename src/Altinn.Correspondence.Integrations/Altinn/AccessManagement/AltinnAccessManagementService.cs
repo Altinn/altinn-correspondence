@@ -32,7 +32,6 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
         };
         var response = await _httpClient.PostAsJsonAsync("/accessmanagement/api/v1/resourceowner/authorizedparties?includeAltinn2=true", request, serializerOptions, cancellationToken: cancellationToken);
-
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError(await response.Content.ReadAsStringAsync(cancellationToken));
