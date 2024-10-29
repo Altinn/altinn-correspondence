@@ -42,20 +42,26 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>Detailed information about the correspondence with current status and status history</returns>
         [HttpGet]
-        [Route("{correspondenceId}/details")]
+        [Route("{correspondenceId}/overview")]
         [ApiExplorerSettings(IgnoreApi = true)]
-        public async Task<ActionResult<CorrespondenceDetailsExt>> GetCorrespondenceDetails(
+        public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceDetails(
             Guid correspondenceId,
-            [FromQuery] string onBehalfOfPartyId,
-            [FromServices] GetCorrespondenceDetailsHandler handler,
+            [FromQuery] int onBehalfOfPartyId,
+            [FromServices] LegacyGetCorrespondenceOverviewHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Getting Correspondence overview for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(correspondenceId, cancellationToken);
+            var request = new LegacyGetCorrespondenceOverviewRequest
+            {
+                CorrespondenceId = correspondenceId,
+                PartyId = onBehalfOfPartyId
+            };
+
+            var commandResult = await handler.Process(request, cancellationToken);
 
             return commandResult.Match(
-                data => Ok(CorrespondenceDetailsMapper.MapToExternal(data)),
+                data => Ok(CorrespondenceOverviewMapper.MapToExternal(data)),
                 Problem
             );
         }
