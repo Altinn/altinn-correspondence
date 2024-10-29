@@ -35,12 +35,12 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Get more detailed information about the Correspondence and its current status as well as noticiation statuses, if available
+        /// Get an overview of the Correspondence and its current status
         /// </summary>
         /// <remarks>
-        /// Meant for Senders that want a complete overview of the status and history of the Correspondence, but also available for Receivers
+        /// Provides a summary for Receivers
         /// </remarks>
-        /// <returns>Detailed information about the correspondence with current status and status history</returns>
+        /// <returns>Overview information about the correspondence</returns>
         [HttpGet]
         [Route("{correspondenceId}/overview")]
         [ApiExplorerSettings(IgnoreApi = true)]
