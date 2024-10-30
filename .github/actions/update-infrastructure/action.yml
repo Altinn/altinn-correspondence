@@ -39,9 +39,6 @@ inputs:
   PLATFORM_SUBSCRIPTION_KEY:
     description: "Subscription key for platform"
     required: true
-  NOTIFICATION_EMAIL:
-    description: "Email for notifications"
-    required: true
   ACCESS_MANAGEMENT_SUBSCRIPTION_KEY:
     description: "Subscription key for access management"
     required: true
@@ -103,7 +100,6 @@ runs:
         MASKINPORTEN_JWK: ${{ inputs.MASKINPORTEN_JWK }}
         MASKINPORTEN_CLIENT_ID: ${{ inputs.MASKINPORTEN_CLIENT_ID }}
         PLATFORM_SUBSCRIPTION_KEY: ${{ inputs.PLATFORM_SUBSCRIPTION_KEY }}
-        NOTIFICATION_EMAIL: ${{ inputs.NOTIFICATION_EMAIL }}
         ACCESS_MANAGEMENT_SUBSCRIPTION_KEY: ${{ inputs.ACCESS_MANAGEMENT_SUBSCRIPTION_KEY }}
         SLACK_URL: ${{ inputs.SLACK_URL }}
         DIALOGPORTEN_ISSUER: ${{ inputs.DIALOGPORTEN_ISSUER }}
