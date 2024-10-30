@@ -1727,7 +1727,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             new { Key = $"correspondence.content.Attachments[{index}].DataType", Value = attachment.DataType },
             new { Key = $"correspondence.content.Attachments[{index}].Name", Value = attachment.Name },
             new { Key = $"correspondence.content.Attachments[{index}].FileName", Value = attachment.FileName ?? "" },
-            new { Key = $"correspondence.content.Attachments[{index}].RestrictionName", Value = attachment.RestrictionName },
             new { Key = $"correspondence.content.Attachments[{index}].SendersReference", Value = attachment.SendersReference },
             new { Key = $"correspondence.content.Attachments[{index}].IsEncrypted", Value = attachment.IsEncrypted.ToString() }
         }).SelectMany(x => x).ToList()

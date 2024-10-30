@@ -48,7 +48,6 @@ public class GetAttachmentDetailsHandler : IHandler<Guid, GetAttachmentDetailsRe
             CorrespondenceIds = correspondenceIds,
             FileName = attachment.FileName,
             Sender = attachment.Sender,
-            RestrictionName = attachment.RestrictionName,
             IsEncrypted = attachment.IsEncrypted,
             Checksum = attachment.Checksum,
         };
