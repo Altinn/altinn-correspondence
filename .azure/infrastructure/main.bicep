@@ -21,8 +21,6 @@ param platformSubscriptionKey string
 @secure()
 param accessManagementSubscriptionKey string
 @secure()
-param notificationEmail string
-@secure()
 param slackUrl string
 @secure()
 param idportenClientId string
