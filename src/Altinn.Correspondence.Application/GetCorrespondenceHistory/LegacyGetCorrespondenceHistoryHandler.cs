@@ -66,11 +66,19 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<LegacyGetCorrespon
 
             if (notificationDetails.NotificationsStatusDetails.Sms is not null)
             {
-                notificationHistory.Add(GetNotificationStatus(notificationDetails.NotificationsStatusDetails.Sms.SendStatus, notification.IsReminder, senderParty.PartyId.ToString()));
+                notificationHistory.Add(GetNotificationStatus(
+                    notificationDetails.NotificationsStatusDetails.Sms.SendStatus,
+                    notificationDetails.NotificationsStatusDetails.Sms.Recipient,
+                    notification.IsReminder,
+                    senderParty.PartyId.ToString()));
             }
             if (notificationDetails.NotificationsStatusDetails.Email is not null)
             {
-                notificationHistory.Add(GetNotificationStatus(notificationDetails.NotificationsStatusDetails.Email.SendStatus, notification.IsReminder, senderParty.PartyId.ToString()));
+                notificationHistory.Add(GetNotificationStatus(
+                    notificationDetails.NotificationsStatusDetails.Email.SendStatus,
+                    notificationDetails.NotificationsStatusDetails.Email.Recipient,
+                    notification.IsReminder,
+                    senderParty.PartyId.ToString()));
             }
         }
 
@@ -82,7 +90,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<LegacyGetCorrespon
         return legacyHistory;
     }
 
-    private static LegacyCorrespondenceStatus GetNotificationStatus(StatusExt sendStatus, bool isReminder, string partyId)
+    private static LegacyCorrespondenceStatus GetNotificationStatus(StatusExt sendStatus, Recipient recipient, bool isReminder, string partyId)
     {
         return new LegacyCorrespondenceStatus
         {
@@ -93,6 +101,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<LegacyGetCorrespon
             {
                 PartyId = partyId,
                 AuthenticationLevel = 0, // TODO: Get authentication level
+                Recipient = recipient
             },
         };
     }
