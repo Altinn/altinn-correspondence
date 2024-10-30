@@ -4,7 +4,6 @@ param namePrefix string
 @secure()
 param keyVaultName string
 param storageAccountName string
-@secure()
 
 resource log_analytics_workspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: '${namePrefix}-log'
