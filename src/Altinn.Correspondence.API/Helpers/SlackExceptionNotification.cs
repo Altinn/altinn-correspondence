@@ -48,6 +48,7 @@ public class SlackExceptionNotification : IExceptionHandler
     {
         return $":warning: *Unhandled Exception*\n" +
                $"*Environment:* {_hostEnvironment.EnvironmentName}\n" +
+               $"*System:* Correspondence\n" +
                $"*Type:* {exception.GetType().Name}\n" +
                $"*Message:* {exception.Message}\n" +
                $"*Path:* {context.Request.Path}\n" +
