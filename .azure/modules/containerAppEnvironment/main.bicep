@@ -4,8 +4,6 @@ param namePrefix string
 @secure()
 param keyVaultName string
 param storageAccountName string
-@secure()
-param emailReceiver string
 
 resource log_analytics_workspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: '${namePrefix}-log'
@@ -89,56 +87,6 @@ module storageAccountConnectionStringSecret '../keyvault/upsertSecret.bicep' = {
   }
 }
 
-resource application_insights_action 'Microsoft.Insights/actionGroups@2023-01-01' = if (emailReceiver != null && emailReceiver != '') {
-  name: '${namePrefix}-action'
-  location: 'global' // action group locations is limited, change to use location variable when new locations is added
-  dependsOn: [application_insights, containerAppEnvironment]
-  properties: {
-    groupShortName: 'corr-alert'
-    enabled: true
-    emailReceivers: [
-      {
-        name: 'emailReceiverForAlert'
-        emailAddress: emailReceiver
-      }
-    ]
-  }
-}
 
-resource exceptionOccuredAlertRule 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = if (emailReceiver != null && emailReceiver != '') {
-  name: '${namePrefix}-500-exception-occured'
-  location: location
-  properties: {
-    description: 'Alert for 500 errors in correspondence'
-    enabled: true
-    severity: 1
-    evaluationFrequency: 'PT5M'
-    windowSize: 'PT5M'
-    scopes: [log_analytics_workspace.id]
-    autoMitigate: false
-    targetResourceTypes: [
-      'microsoft.insights/components'
-    ]
-    criteria: {
-      allOf: [
-        {
-          query: 'AppExceptions | where Properties.StatusCode startswith "5" '
-          operator: 'GreaterThan'
-          threshold: 0
-          timeAggregation: 'Count'
-          failingPeriods: {
-            numberOfEvaluationPeriods: 1
-            minFailingPeriodsToAlert: 1
-          }
-        }
-      ]
-    }
-    actions: {
-      actionGroups: [
-        application_insights_action.id
-      ]
-    }
-  }
-}
 
 output containerAppEnvironmentId string = containerAppEnvironment.id

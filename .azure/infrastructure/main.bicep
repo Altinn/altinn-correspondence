@@ -21,8 +21,6 @@ param platformSubscriptionKey string
 @secure()
 param accessManagementSubscriptionKey string
 @secure()
-param notificationEmail string
-@secure()
 param slackUrl string
 @secure()
 param idportenClientId string
@@ -146,7 +144,6 @@ module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
     location: location
     namePrefix: namePrefix
     storageAccountName: storageAccountName
-    emailReceiver: notificationEmail
   }
 }
 output resourceGroupName string = resourceGroup.name
