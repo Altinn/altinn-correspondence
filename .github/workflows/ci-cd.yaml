@@ -12,8 +12,25 @@ jobs:
     name: QA	
     uses: ./.github/workflows/test-application.yml	
 
+  build:
+    name: Build and Publish Artifact
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Application
+        run: dotnet build
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: correspondence-artifact
+          path: ./build
+
   deploy-test:
     name: Internal test
+    needs: build
     uses: ./.github/workflows/deploy-to-environment.yml
     if: always() && !failure() && !cancelled() 
     permissions: 
@@ -66,7 +83,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: release
+      - name: Release
         if: (!failure() && !cancelled())
         uses: ./.github/actions/release-to-git
         with:
