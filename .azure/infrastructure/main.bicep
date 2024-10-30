@@ -146,7 +146,6 @@ module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
     location: location
     namePrefix: namePrefix
     storageAccountName: storageAccountName
-    emailReceiver: notificationEmail
   }
 }
 output resourceGroupName string = resourceGroup.name
