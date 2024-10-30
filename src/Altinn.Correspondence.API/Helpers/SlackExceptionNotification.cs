@@ -4,30 +4,56 @@ using Slack.Webhooks;
 namespace Altinn.Correspondence.Helpers;
 public class SlackExceptionNotification : IExceptionHandler
 {
-    private readonly ILogger<SlackExceptionNotification> logger;
+    private readonly ILogger<SlackExceptionNotification> _logger;
     private readonly ISlackClient _slackClient;
     private const string TestChannel = "#test-varslinger";
+    private readonly IHostEnvironment _hostEnvironment;
 
-    public SlackExceptionNotification(ILogger<SlackExceptionNotification> logger, ISlackClient slackClient)
+    public SlackExceptionNotification(ILogger<SlackExceptionNotification> logger, ISlackClient slackClient, IHostEnvironment hostEnvironment)
     {
-        this.logger = logger;
+        _logger = logger;
         _slackClient = slackClient;
+        _hostEnvironment = hostEnvironment;
+
     }
     public ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,
         CancellationToken cancellationToken)
     {
-        var exceptionMessage = "Error with status code 500 detected:\n" + exception.StackTrace;
+        var exceptionMessage = FormatExceptionMessage(exception, httpContext);
 
-        logger.LogError(
-            "Error Message: {exceptionMessage}, Time of occurrence {time}",
-            exceptionMessage, DateTime.UtcNow);
+        _logger.LogError(
+            exception,
+            "Unhandled exception occurred. Type: {ExceptionType}, Message: {Message}, Path: {Path}",
+            exception.GetType().Name,
+            exception.Message,
+            httpContext.Request.Path);
         
-        SendSlackNotificationWithMessage(exceptionMessage);
+        try
+        {
+            SendSlackNotificationWithMessage(exceptionMessage);
+        }
+        catch (Exception slackEx)
+        {
+            _logger.LogError(
+                slackEx,
+                "Failed to send Slack notification");
+        }
+
         return ValueTask.FromResult(false);
     }
 
+    private string FormatExceptionMessage(Exception exception, HttpContext context)
+    {
+        return $":warning: *Unhandled Exception*\n" +
+               $"*Environment:* {_hostEnvironment.EnvironmentName}\n" +
+               $"*Type:* {exception.GetType().Name}\n" +
+               $"*Message:* {exception.Message}\n" +
+               $"*Path:* {context.Request.Path}\n" +
+               $"*Time:* {DateTime.UtcNow:u}\n" +
+               $"*Stacktrace:* \n{exception.StackTrace}";
+    }
     private void SendSlackNotificationWithMessage(string message)
     {
         var slackMessage = new SlackMessage
