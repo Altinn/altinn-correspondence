@@ -7,7 +7,6 @@ on:
     - "Test/**" # ignore changes to tests
 
 jobs:
-
   test:	
     name: QA	
     uses: ./.github/workflows/test-application.yml	
@@ -43,21 +42,23 @@ jobs:
 
   deploy-test:
     name: Internal test
+    runs-on: ubuntu-latest
     needs: [get-version, publish]
-    uses: ./.github/workflows/deploy-to-environment.yml
     if: always() && !failure() && !cancelled() 
     permissions: 
       id-token: write
       contents: read
       packages: write
-    secrets: inherit
-    with:
-      environment: test
-      imageTag: ${{ needs.get-version.outputs.imageTag }}
+    steps:
+      - name: Deploy to environment
+        uses: ./.github/actions/deploy-to-environment
+        with:
+          environment: test
+          imageTag: ${{ needs.get-version.outputs.imageTag }}
 
   deploy-staging:
     name: Internal staging
-    uses: ./.github/workflows/deploy-to-environment.yml
+    runs-on: ubuntu-latest
     if: always() && !failure() && !cancelled() 
     needs: [ 
       get-version,
@@ -67,27 +68,31 @@ jobs:
       id-token: write
       contents: read
       packages: write
-    secrets: inherit
-    with:
-      environment: staging
-      imageTag: ${{ needs.get-version.outputs.imageTag }}
+    steps:       
+      - name: Deploy to environment
+        uses: ./.github/actions/deploy-to-environment
+        with:
+          environment: staging
+          imageTag: ${{ needs.get-version.outputs.imageTag }}
 
   deploy-production:
     name: Production
+    runs-on: ubuntu-latest
     needs: [
       get-version,
       deploy-staging,
     ]
-    uses: ./.github/workflows/deploy-to-environment.yml
     if: (!failure() && !cancelled())
     permissions: 
       id-token: write
       contents: read
       packages: write
-    secrets: inherit
-    with:
-      environment: production
-      imageTag: ${{ needs.get-version.outputs.imageTag }}
+    steps:       
+      - name: Deploy to environment
+        uses: ./.github/actions/deploy-to-environment
+        with:
+          environment: production
+          imageTag: ${{ needs.get-version.outputs.imageTag }}
 
   release-to-git:  
     name: Release to git
