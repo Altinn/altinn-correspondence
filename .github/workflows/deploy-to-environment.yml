@@ -11,10 +11,15 @@ on:
     inputs:
       environment:
         type: choice
+        description: "Environment to deploy to"
         options:
           - test
           - staging
           - production
+      imageTag:
+        type: string
+        description: "Docker image tag to deploy"
+        required: true
 
 jobs:
   deploy:
