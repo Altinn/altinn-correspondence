@@ -79,4 +79,3 @@ jobs:
         PLATFORM_BASE_URL: ${{ secrets.PLATFORM_BASE_URL }}
         PLATFORM_SUBSCRIPTION_KEY: ${{ secrets.PLATFORM_SUBSCRIPTION_KEY }}
         SLACK_URL: ${{ secrets.SLACK_URL }}
-        STORAGE_ACCOUNT_NAME: ${{ secrets.STORAGE_ACCOUNT_NAME }}

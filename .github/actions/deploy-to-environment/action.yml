@@ -63,9 +63,6 @@ inputs:
   SLACK_URL:
     description: "Slack URL"
     required: true
-  STORAGE_ACCOUNT_NAME:
-    description: "Storage Account Name"
-    required: true
 
 runs:
   using: "composite"
