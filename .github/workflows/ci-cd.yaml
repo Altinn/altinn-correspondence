@@ -77,7 +77,7 @@ jobs:
     needs: [
       get-version,
       deploy-staging,
-      ]
+    ]
     uses: ./.github/workflows/deploy-to-environment.yml
     if: (!failure() && !cancelled())
     permissions: 
