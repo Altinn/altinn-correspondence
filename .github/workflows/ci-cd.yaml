@@ -12,25 +12,38 @@ jobs:
     name: QA	
     uses: ./.github/workflows/test-application.yml	
 
-  build:
-    name: Build and Publish Artifact
+  get-version: 
+    name: Get version
     runs-on: ubuntu-latest
+    outputs:
+      imageTag: ${{ steps.get-version.outputs.imageTag }}
+    permissions: 
+      contents: read
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - name: "Get current version"
+        uses: ./.github/actions/get-current-version
+        id: get-version
 
-      - name: Build Application
-        run: dotnet build
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v2
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    needs: [get-version]
+    permissions: 
+      packages: write
+      contents: read
+    steps:        
+      - uses: actions/checkout@v4
+      - name: "Publish image"
+        uses: ./.github/actions/publish-image
         with:
-          name: correspondence-artifact
-          path: ./build
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          dockerImageBaseName: ghcr.io/altinn/altinn-correspondence
+          imageTag: ${{ needs.get-version.outputs.imageTag }}
 
   deploy-test:
     name: Internal test
-    needs: build
+    needs: [get-version, publish]
     uses: ./.github/workflows/deploy-to-environment.yml
     if: always() && !failure() && !cancelled() 
     permissions: 
@@ -40,12 +53,14 @@ jobs:
     secrets: inherit
     with:
       environment: test
+      imageTag: ${{ needs.get-version.outputs.imageTag }}
 
   deploy-staging:
     name: Internal staging
     uses: ./.github/workflows/deploy-to-environment.yml
     if: always() && !failure() && !cancelled() 
     needs: [ 
+      get-version,
       deploy-test
     ]
     permissions: 
@@ -55,12 +70,14 @@ jobs:
     secrets: inherit
     with:
       environment: staging
+      imageTag: ${{ needs.get-version.outputs.imageTag }}
 
   deploy-production:
     name: Production
     needs: [
+      get-version,
       deploy-staging,
-    ]
+      ]
     uses: ./.github/workflows/deploy-to-environment.yml
     if: (!failure() && !cancelled())
     permissions: 
@@ -70,6 +87,7 @@ jobs:
     secrets: inherit
     with:
       environment: production
+      imageTag: ${{ needs.get-version.outputs.imageTag }}
 
   release-to-git:  
     name: Release to git
@@ -82,7 +100,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Release
         if: (!failure() && !cancelled())
         uses: ./.github/actions/release-to-git
