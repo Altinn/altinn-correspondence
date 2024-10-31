@@ -1,8 +1,6 @@
 name: Deploy to environment
 
 on:
-  push:
-    branches: [ fix/upload-and-download-artifact-for-publishing ]  # Trigger only on this branch
   workflow_call:
     inputs:
       environment:

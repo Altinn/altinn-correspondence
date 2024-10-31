@@ -1,9 +1,6 @@
 name: Publish test branch
 
 on:
-  push:
-    branches: [ fix/upload-and-download-artifact-for-publishing ]  # Trigger only on this branch
-
   workflow_dispatch:
 
 jobs:
