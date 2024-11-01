@@ -82,7 +82,6 @@ namespace Altinn.Correspondence.API.Controllers
             CancellationToken cancellationToken)
         {
 
-            throw new NotImplementedException();
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
             _logger.LogInformation("Insert correspondences with attachment data");
 
