@@ -81,6 +81,8 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] InitializeCorrespondencesHandler handler,
             CancellationToken cancellationToken)
         {
+
+            throw new NotImplementedException();
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
             _logger.LogInformation("Insert correspondences with attachment data");
 
@@ -88,15 +90,16 @@ namespace Altinn.Correspondence.API.Controllers
 
             var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, attachments, request.ExistingAttachments, true);
             var commandResult = await handler.Process(commandRequest, cancellationToken);
+            return Problem("An unexpected error occurred.", statusCode: 500);
 
-            return commandResult.Match(
-                data => Ok(new InitializeCorrespondencesResponseExt()
-                {
-                    Correspondences = data.Correspondences,
-                    AttachmentIds = data.AttachmentIds
-                }),
-                Problem
-            );
+            // return commandResult.Match(
+            //     data => Ok(new InitializeCorrespondencesResponseExt()
+            //     {
+            //         Correspondences = data.Correspondences,
+            //         AttachmentIds = data.AttachmentIds
+            //     }),
+            //     Problem
+            // );
         }
 
         /// <summary>
