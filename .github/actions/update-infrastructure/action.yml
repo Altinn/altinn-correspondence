@@ -1,7 +1,4 @@
 name: Update infrastructure
-permissions:
-  id-token: write
-  contents: read
 description: "Update the infrastructure to the version given by git ref"
 
 inputs:
