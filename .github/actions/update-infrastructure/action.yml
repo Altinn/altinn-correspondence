@@ -72,9 +72,6 @@ runs:
 
     - name: OIDC Login to Azure Public Cloud
       uses: azure/login@v2
-      permissions:
-        id-token: write
-        contents: read
       with:
         client-id: ${{ inputs.AZURE_CLIENT_ID }}
         tenant-id: ${{ inputs.AZURE_TENANT_ID }}

@@ -75,8 +75,6 @@ runs:
 
     - name: Update infrastructure
       uses: ./.github/actions/update-infrastructure
-      permissions:
-        id-token: write
       with:
         region: "norwayeast"
         environment: ${{ inputs.environment }}
