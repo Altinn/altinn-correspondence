@@ -51,7 +51,7 @@ public class LegacyDownloadCorrespondenceAttachmentHandler : IHandler<DownloadCo
         var attachmentStream = await _storageRepository.DownloadAttachment(attachment.Id, cancellationToken);
         _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, DialogportenActorType.Recipient, DialogportenTextType.DownloadStarted, attachment.FileName ?? attachment.Name));
         return new DownloadCorrespondenceAttachmentResponse(){
-            FileName = attachment.FileName,
+            FileName = attachment.FileName ?? attachment.Name,
             Stream = attachmentStream
         };
     }
