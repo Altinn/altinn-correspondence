@@ -1,5 +1,7 @@
 name: Update infrastructure
-
+permissions:
+  id-token: write
+  contents: read
 description: "Update the infrastructure to the version given by git ref"
 
 inputs:
@@ -70,10 +72,14 @@ runs:
 
     - name: OIDC Login to Azure Public Cloud
       uses: azure/login@v2
+      permissions:
+        id-token: write
+        contents: read
       with:
         client-id: ${{ inputs.AZURE_CLIENT_ID }}
         tenant-id: ${{ inputs.AZURE_TENANT_ID }}
         subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+        auth-type: OIDC
 
     - name: Generate postgresql password
       id: pwd-generator

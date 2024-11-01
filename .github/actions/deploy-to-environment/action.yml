@@ -1,6 +1,9 @@
 # File: .github/actions/deploy-to-environment/action.yml
 name: "Deploy to Environment"
 description: "Deploy application to a specified environment"
+permissions:
+  id-token: write
+  contents: read
 
 inputs:
   environment:
@@ -72,6 +75,8 @@ runs:
 
     - name: Update infrastructure
       uses: ./.github/actions/update-infrastructure
+      permissions:
+        id-token: write
       with:
         region: "norwayeast"
         environment: ${{ inputs.environment }}
