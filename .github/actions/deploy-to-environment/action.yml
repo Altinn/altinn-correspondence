@@ -1,0 +1,123 @@
+# File: .github/actions/deploy-to-environment/action.yml
+name: "Deploy to Environment"
+description: "Deploy application to a specified environment"
+permissions:
+  id-token: write
+  contents: read
+
+inputs:
+  environment:
+    description: "Environment to deploy to (e.g., test, staging, production)"
+    required: true
+  imageTag:
+    description: "Docker image tag to deploy"
+    required: true
+  ACCESS_MANAGEMENT_SUBSCRIPTION_KEY:
+    description: "Access Management Subscription Key"
+    required: true
+  AZURE_CLIENT_ID:
+    description: "Azure Client ID"
+    required: true
+  AZURE_ENVIRONMENT_KEY_VAULT_NAME:
+    description: "Azure Environment Key Vault Name"
+    required: true
+  AZURE_NAME_PREFIX:
+    description: "Azure Name Prefix"
+    required: true
+  AZURE_STORAGE_ACCOUNT_NAME:
+    description: "Azure Storage Account Name"
+    required: true
+  AZURE_SUBSCRIPTION_ID:
+    description: "Azure Subscription ID"
+    required: true
+  AZURE_TENANT_ID:
+    description: "Azure Tenant ID"
+    required: true
+  AZURE_TEST_ACCESS_CLIENT_ID:
+    description: "Azure Test Access Client ID"
+    required: true
+  CORRESPONDENCE_BASE_URL:
+    description: "Correspondence Base URL"
+    required: true
+  DIALOGPORTEN_ISSUER:
+    description: "Dialogporten Issuer"
+    required: true
+  IDPORTEN_CLIENT_ID:
+    description: "IDPorten Client ID"
+    required: true
+  IDPORTEN_CLIENT_SECRET:
+    description: "IDPorten Client Secret"
+    required: true
+  IDPORTEN_ISSUER:
+    description: "IDPorten Issuer"
+    required: true
+  MASKINPORTEN_CLIENT_ID:
+    description: "Maskinporten Client ID"
+    required: true
+  MASKINPORTEN_JWK:
+    description: "Maskinporten JWK"
+    required: true
+  PLATFORM_BASE_URL:
+    description: "Platform Base URL"
+    required: true
+  PLATFORM_SUBSCRIPTION_KEY:
+    description: "Platform Subscription Key"
+    required: true
+  SLACK_URL:
+    description: "Slack URL"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Update infrastructure
+      uses: ./.github/actions/update-infrastructure
+      with:
+        region: "norwayeast"
+        environment: ${{ inputs.environment }}
+        ACCESS_MANAGEMENT_SUBSCRIPTION_KEY: ${{ inputs.ACCESS_MANAGEMENT_SUBSCRIPTION_KEY }}
+        AZURE_CLIENT_ID: ${{ inputs.AZURE_CLIENT_ID }}
+        AZURE_ENVIRONMENT_KEY_VAULT_NAME: ${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
+        AZURE_NAME_PREFIX: ${{ inputs.AZURE_NAME_PREFIX }}
+        AZURE_STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}
+        AZURE_SUBSCRIPTION_ID: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+        AZURE_TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
+        AZURE_TEST_ACCESS_CLIENT_ID: ${{ inputs.AZURE_TEST_ACCESS_CLIENT_ID }}
+        IDPORTEN_CLIENT_ID: ${{ inputs.IDPORTEN_CLIENT_ID }}
+        IDPORTEN_CLIENT_SECRET: ${{ inputs.IDPORTEN_CLIENT_SECRET }}
+        MASKINPORTEN_CLIENT_ID: ${{ inputs.MASKINPORTEN_CLIENT_ID }}
+        MASKINPORTEN_JWK: ${{ inputs.MASKINPORTEN_JWK }}
+        PLATFORM_SUBSCRIPTION_KEY: ${{ inputs.PLATFORM_SUBSCRIPTION_KEY }}
+        SLACK_URL: ${{ inputs.SLACK_URL }}
+
+    - name: Migrate database
+      uses: ./.github/actions/migrate-database
+      with:
+        region: "norwayeast"
+        environment: ${{ inputs.environment }}
+        AZURE_CLIENT_ID: ${{ inputs.AZURE_CLIENT_ID }}
+        AZURE_ENVIRONMENT_KEY_VAULT_NAME: ${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
+        AZURE_NAME_PREFIX: ${{ inputs.AZURE_NAME_PREFIX }}
+        AZURE_STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}
+        AZURE_SUBSCRIPTION_ID: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+        AZURE_TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
+
+    - name: Release version
+      uses: ./.github/actions/release-version
+      with:
+        region: "norwayeast"
+        environment: ${{ inputs.environment }}
+        imageTag: ${{ inputs.imageTag }}
+        AZURE_CLIENT_ID: ${{ inputs.AZURE_CLIENT_ID }}
+        AZURE_ENVIRONMENT_KEY_VAULT_NAME: ${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
+        AZURE_NAME_PREFIX: ${{ inputs.AZURE_NAME_PREFIX }}
+        AZURE_SUBSCRIPTION_ID: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+        AZURE_TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
+        CORRESPONDENCE_BASE_URL: ${{ inputs.CORRESPONDENCE_BASE_URL }}
+        DIALOGPORTEN_ISSUER: ${{ inputs.DIALOGPORTEN_ISSUER }}
+        IDPORTEN_ISSUER: ${{ inputs.IDPORTEN_ISSUER }}
+        PLATFORM_BASE_URL: ${{ inputs.PLATFORM_BASE_URL }}
+        STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}

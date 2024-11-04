@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Primitives;
 
+namespace Altinn.Correspondence.Helpers;
 public class SecurityHeadersMiddleware
 {
     private readonly RequestDelegate _next;

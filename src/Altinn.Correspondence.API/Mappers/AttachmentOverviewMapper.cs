@@ -15,7 +15,6 @@ internal static class AttachmentOverviewMapper
             Sender = attachmentOverview.Sender,
             Name = attachmentOverview.Name,
             FileName = attachmentOverview.FileName,
-            RestrictionName = attachmentOverview.RestrictionName,
             Status = (AttachmentStatusExt)attachmentOverview.Status,
             StatusText = attachmentOverview.StatusText,
             Checksum = attachmentOverview.Checksum,

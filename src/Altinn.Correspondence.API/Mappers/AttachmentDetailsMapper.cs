@@ -18,7 +18,6 @@ internal static class AttachmentDetailsMapper
             FileName = AttachmentDetails.FileName,
             Name = AttachmentDetails.Name,
             Sender = AttachmentDetails.Sender,
-            RestrictionName = AttachmentDetails.RestrictionName,
             StatusText = AttachmentDetails.StatusText,
             StatusChanged = AttachmentDetails.StatusChanged,
             DataType = AttachmentDetails.DataType,

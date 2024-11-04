@@ -17,7 +17,6 @@ internal static class InitializeCorrespondenceAttachmentMapper
                 Created = DateTimeOffset.UtcNow,
                 FileName = initializeAttachmentExt.FileName,
                 Name = initializeAttachmentExt.Name,
-                RestrictionName = initializeAttachmentExt.RestrictionName,
                 ResourceId = resourceId,
                 Sender = sender,
                 SendersReference = initializeAttachmentExt.SendersReference,

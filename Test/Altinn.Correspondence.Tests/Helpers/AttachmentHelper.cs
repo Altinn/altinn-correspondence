@@ -16,7 +16,6 @@ namespace Altinn.Correspondence.Tests.Helpers
             {
                 DataType = existingAttachmentData?.DataType ?? "txt",
                 Name = existingAttachmentData?.Name ?? fileName,
-                RestrictionName = existingAttachmentData?.RestrictionName ?? "testFile3",
                 SendersReference = existingAttachmentData?.SendersReference ?? "1234",
                 FileName = existingAttachmentData?.FileName ?? fileName,
                 IsEncrypted = existingAttachmentData?.IsEncrypted ?? false,

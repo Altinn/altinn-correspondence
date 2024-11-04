@@ -81,7 +81,6 @@ namespace Altinn.Correspondence.Tests.Factories
                 {
                     DataType = "html",
                     Name = "2",
-                    RestrictionName = "testFile2",
                     SendersReference = "1234",
                     FileName = "test-fil2e",
                     IsEncrypted = false,
