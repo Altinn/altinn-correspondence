@@ -1,5 +1,4 @@
 name: Update infrastructure
-
 description: "Update the infrastructure to the version given by git ref"
 
 inputs:
