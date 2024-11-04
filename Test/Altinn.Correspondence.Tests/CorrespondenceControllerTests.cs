@@ -1055,7 +1055,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
     
     [Fact]
-    public async Task UpdateCorrespondenceStatus_ToRead_WithoutFetched_ReturnsBadRequest()
+    public async Task UpdateCorrespondenceStatus_MarkAsRead_WithoutFetched_ReturnsBadRequest()
     {
         //  Arrange
         var payload = new CorrespondenceBuilder()
