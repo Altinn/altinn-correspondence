@@ -45,37 +45,31 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     public async Task<bool> CheckUserAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, string? recipientOrgNo = null)
     {
         var user = _httpContextAccessor.HttpContext?.User;
-        if (_httpClient.BaseAddress is null) 
-        {
-            _logger.LogWarning("Authorization service disabled");
-            return true;
-        }
-        var serviceOwnerId = await _resourceRepository.GetServiceOwnerOfResource(resourceId, cancellationToken);
-        if (string.IsNullOrWhiteSpace(serviceOwnerId))
-        {
-            _logger.LogWarning("Service owner not found for resource");
-            return false;
-        }
-        if (user is null)
-        {
-            _logger.LogError("Unexpected null value. User was null when checking access to resource");
-            return false;
-        }
-        var actionIds = rights.Select(GetActionId).ToList();
-        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, actionIds, resourceId, recipientOrgNo);
-        var response = await _httpClient.PostAsJsonAsync("authorization/api/v1/authorize", jsonRequest, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            return false;
-        }
-        var responseContent = await response.Content.ReadFromJsonAsync<XacmlJsonResponse>(cancellationToken: cancellationToken);
-        if (responseContent is null)
-        {
-            _logger.LogError("Unexpected null or invalid json response from Authorization.");
-            return false;
-        }
+        var validation = await ValidateCheckUserAccess(user, resourceId, cancellationToken);
+        if (validation != null) return (bool)validation;
+        var responseContent = await CheckUserAccess(user, rights, resourceId, recipientOrgNo, cancellationToken);
+        if (responseContent is null) return false;
+
         var validationResult = ValidateAuthorizationResponse(responseContent, user);
         return validationResult;
+    }
+
+
+    public async Task<int?> CheckUserAccessAndGetMinimumAuthLevel(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, string? recipientOrgNo = null)
+    {
+        var user = _httpContextAccessor.HttpContext?.User;
+        var validation = await ValidateCheckUserAccess(user, resourceId, cancellationToken);
+        if (validation != null) return (bool)validation ? 3 : null;
+        var responseContent = await CheckUserAccess(user, rights, resourceId, recipientOrgNo, cancellationToken);
+        if (responseContent is null) return null;
+
+        var validationResult = ValidateAuthorizationResponse(responseContent, user);
+        if (!validationResult)
+        {
+            return null;
+        }
+        int? minLevel = IdportenXacmlMapper.GetMinimumAuthLevel(responseContent, user);
+        return minLevel;
     }
 
     public async Task<bool> CheckMigrationAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
@@ -91,6 +85,44 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         }
 
         return true;
+    }
+    private async Task<bool?> ValidateCheckUserAccess(ClaimsPrincipal user, string resourceId, CancellationToken cancellationToken)
+    {
+        if (_httpClient.BaseAddress is null)
+        {
+            _logger.LogWarning("Authorization service disabled");
+            return true;
+        }
+        var serviceOwnerId = await _resourceRepository.GetServiceOwnerOfResource(resourceId, cancellationToken);
+        if (string.IsNullOrWhiteSpace(serviceOwnerId))
+        {
+            _logger.LogWarning("Service owner not found for resource");
+            return false;
+        }
+        if (user is null)
+        {
+            _logger.LogError("Unexpected null value. User was null when checking access to resource");
+            return false;
+        }
+        return null;
+    }
+
+    private async Task<XacmlJsonResponse?> CheckUserAccess(ClaimsPrincipal user, List<ResourceAccessLevel> rights, string resourceId, string? recipientOrgNo, CancellationToken cancellationToken)
+    {
+        var actionIds = rights.Select(GetActionId).ToList();
+        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, actionIds, resourceId, recipientOrgNo);
+        var response = await _httpClient.PostAsJsonAsync("authorization/api/v1/authorize", jsonRequest, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+        var responseContent = await response.Content.ReadFromJsonAsync<XacmlJsonResponse>(cancellationToken: cancellationToken);
+        if (responseContent is null)
+        {
+            _logger.LogError("Unexpected null or invalid json response from Authorization.");
+            return null;
+        }
+        return responseContent;
     }
 
     private XacmlJsonRequestRoot CreateDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string? recipientOrgNo)

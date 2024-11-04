@@ -9,7 +9,7 @@ using OneOf;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceOverview;
 
-public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespondenceOverviewRequest, GetCorrespondenceOverviewResponse>
+public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespondenceOverviewRequest, LegacyGetCorrespondenceOverviewResponse>
 {
     private readonly IAltinnAccessManagementService _altinnAccessManagementService;
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
@@ -30,7 +30,7 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
         _logger = logger;
     }
 
-    public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(LegacyGetCorrespondenceOverviewRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<LegacyGetCorrespondenceOverviewResponse, Error>> Process(LegacyGetCorrespondenceOverviewRequest request, CancellationToken cancellationToken)
     {
         if (request.PartyId == 0 || request.PartyId == int.MinValue)
         {
@@ -48,6 +48,11 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
             return Errors.CorrespondenceNotFound;
         }
 
+        var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken);
+        if (minimumAuthLevel == null)
+        {
+            return Errors.LegacyNoAccessToCorrespondence;
+        }
         var recipients = new List<string>();
         if (correspondence.Recipient != userParty.SSN && correspondence.Recipient != ("0192:" + userParty.OrgNumber))
         {
@@ -98,7 +103,7 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
             }
         }
 
-        var response = new GetCorrespondenceOverviewResponse
+        var response = new LegacyGetCorrespondenceOverviewResponse
         {
             CorrespondenceId = correspondence.Id,
             Content = correspondence.Content,
@@ -120,6 +125,12 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
             AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
             Published = correspondence.Published,
             IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
+            MinimumAuthenticationlevel = (int)minimumAuthLevel,
+            AuthorizedForSign = true,
+            DueDateTime = correspondence.DueDateTime,
+            AllowDelete = true,
+            Archived = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Archived)?.StatusChanged,
+            PropertyList = correspondence.PropertyList ?? new Dictionary<string, string>()
         };
         return response;
     }
