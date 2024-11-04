@@ -39,8 +39,7 @@ public class NotificationTests : IClassFixture<MaskinportenWebApplicationFactory
     [Fact]
     public async Task CheckNotification_For_Correspondence_With_Unread_Status_Gives_True()
     {
-        var factory = _factory;
-        var client = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+        var client = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
         var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var initializeCorrespondenceResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
@@ -57,8 +56,7 @@ public class NotificationTests : IClassFixture<MaskinportenWebApplicationFactory
     [Fact]
     public async Task CheckNotification_For_Correspondence_With_Read_Status_Gives_False()
     {
-        var factory = new CustomWebApplicationFactory();
-        var client = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+        var client = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
         var correspondence = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithRequestedPublishTime(DateTime.UtcNow.AddHours(-1))
@@ -69,7 +67,7 @@ public class NotificationTests : IClassFixture<MaskinportenWebApplicationFactory
         var responseContent = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
         var correspondenceId = JsonSerializer.Deserialize<InitializeCorrespondencesResponseExt>(responseContent, _responseSerializerOptions).Correspondences.First().CorrespondenceId;;
 
-        var recipientClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.RecipientScope));
+        var recipientClient = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.RecipientScope));
         var fetchResponse = await recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}"); // Fetch in order to read
         fetchResponse.EnsureSuccessStatusCode();
         var markasread = await recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
