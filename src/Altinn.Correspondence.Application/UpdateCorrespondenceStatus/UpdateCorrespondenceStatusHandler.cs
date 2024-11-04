@@ -92,7 +92,7 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             return Errors.ConfirmBeforeFetched;
         }
-        if (request.Status == CorrespondenceStatus.Archived && correspondence.IsConfirmationNeeded && !correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
+        if (request.Status == CorrespondenceStatus.Archived && correspondence.IsConfirmationNeeded is true && !correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
         {
             return Errors.ArchiveBeforeConfirmed;
         }
