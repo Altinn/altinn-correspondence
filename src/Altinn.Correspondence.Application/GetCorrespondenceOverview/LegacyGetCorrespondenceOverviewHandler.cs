@@ -34,20 +34,19 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
     {
         if (request.PartyId == 0 || request.PartyId == int.MinValue)
         {
-            return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
+            return Errors.InvalidPartyId;
         }
 
         var userParty = await _altinnRegisterService.LookUpPartyByPartyId(request.PartyId, cancellationToken);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
         {
-            return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
+            return Errors.CouldNotFindOrgNo;
         }
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
         }
-
         var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken);
         if (minimumAuthLevel == null)
         {
@@ -69,7 +68,6 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
             _logger.LogWarning("Latest status not found for correspondence");
             return Errors.CorrespondenceNotFound;
         }
-
         if (!latestStatus.Status.IsAvailableForRecipient())
         {
             _logger.LogWarning("Rejected because correspondence not available for recipient in current state.");
