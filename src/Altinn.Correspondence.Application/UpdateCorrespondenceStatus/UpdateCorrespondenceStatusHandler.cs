@@ -4,7 +4,6 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Hangfire;
 using OneOf;
 
@@ -65,13 +64,10 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             await _correspondenceRepository.UpdateMarkedUnread(request.CorrespondenceId, false, cancellationToken);
         }
-        if (currentStatus?.Status >= request.Status)
+        var updateError = ValidateUpdateRequest(request, correspondence);
+        if (updateError is not null)
         {
-            return request.CorrespondenceId;
-        }
-        if (request.Status == CorrespondenceStatus.Archived && correspondence.IsConfirmationNeeded && !correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
-        {
-            return Errors.CorrespondenceNotConfirmed;
+            return updateError;
         }
 
         await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
@@ -84,6 +80,23 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         _backgroundJobClient.Enqueue(() => ReportActivityToDialogporten(request.CorrespondenceId, DialogportenActorType.Recipient, request.Status));
         await PublishEvent(correspondence, request.Status, cancellationToken);
         return request.CorrespondenceId;
+    }
+
+    private static Error? ValidateUpdateRequest(UpdateCorrespondenceStatusRequest request, CorrespondenceEntity correspondence)
+    {
+        if (request.Status == CorrespondenceStatus.Read && !correspondence.StatusHasBeen(CorrespondenceStatus.Fetched))
+        {
+            return Errors.ReadBeforeFetched;
+        }
+        if (request.Status == CorrespondenceStatus.Confirmed && !correspondence.StatusHasBeen(CorrespondenceStatus.Fetched))
+        {
+            return Errors.ConfirmBeforeFetched;
+        }
+        if (request.Status == CorrespondenceStatus.Archived && correspondence.IsConfirmationNeeded && !correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
+        {
+            return Errors.ArchiveBeforeConfirmed;
+        }
+        return null;
     }
 
     private async Task PublishEvent(CorrespondenceEntity correspondence, CorrespondenceStatus status, CancellationToken cancellationToken)
