@@ -30,7 +30,9 @@ namespace Altinn.Correspondence.Application.Helpers
         public int? GetPartyId()
         {
             var partyId = _claims.FirstOrDefault(c => c.Type == _partyIdClaim)?.Value;
-            return int.TryParse(partyId, out int id) ? id : null;
+            if (partyId is null) return null;
+            if (int.TryParse(partyId, out int id)) return id;
+            return null;
         }
         public bool IsAffiliatedWithCorrespondence(string recipientId, string senderId)
         {

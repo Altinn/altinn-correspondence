@@ -12,20 +12,17 @@ namespace Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 public class LegacyDownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespondenceAttachmentRequest, DownloadCorrespondenceAttachmentResponse>
 {
     private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly IStorageRepository _storageRepository;
     private readonly IAttachmentRepository _attachmentRepository;
     private readonly IAltinnRegisterService _altinnRegisterService;
     private readonly UserClaimsHelper _userClaimsHelper;
     private readonly IBackgroundJobClient _backgroundJobClient;
 
-    public LegacyDownloadCorrespondenceAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IStorageRepository storageRepository, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IBackgroundJobClient backgroundJobClient, IAltinnRegisterService altinnRegisterService)
+    public LegacyDownloadCorrespondenceAttachmentHandler(IStorageRepository storageRepository, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IBackgroundJobClient backgroundJobClient, IAltinnRegisterService altinnRegisterService)
     {
         _correspondenceRepository = correspondenceRepository;
-        _altinnAuthorizationService = altinnAuthorizationService;
         _storageRepository = storageRepository;
         _attachmentRepository = attachmentRepository;
-        _altinnAuthorizationService = altinnAuthorizationService;
         _altinnRegisterService = altinnRegisterService;
         _userClaimsHelper = userClaimsHelper;
         _backgroundJobClient = backgroundJobClient;
