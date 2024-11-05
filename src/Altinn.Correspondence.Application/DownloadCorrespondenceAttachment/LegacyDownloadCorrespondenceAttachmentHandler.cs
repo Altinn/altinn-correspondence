@@ -1,9 +1,11 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
 using OneOf;
+using ReverseMarkdown.Converters;
 
 namespace Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 
@@ -13,21 +15,35 @@ public class LegacyDownloadCorrespondenceAttachmentHandler : IHandler<DownloadCo
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly IStorageRepository _storageRepository;
     private readonly IAttachmentRepository _attachmentRepository;
+    private readonly IAltinnRegisterService _altinnRegisterService;
     private readonly UserClaimsHelper _userClaimsHelper;
     private readonly IBackgroundJobClient _backgroundJobClient;
 
-    public LegacyDownloadCorrespondenceAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IStorageRepository storageRepository, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IBackgroundJobClient backgroundJobClient)
+    public LegacyDownloadCorrespondenceAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IStorageRepository storageRepository, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IBackgroundJobClient backgroundJobClient, IAltinnRegisterService altinnRegisterService)
     {
         _correspondenceRepository = correspondenceRepository;
         _altinnAuthorizationService = altinnAuthorizationService;
         _storageRepository = storageRepository;
         _attachmentRepository = attachmentRepository;
+        _altinnAuthorizationService = altinnAuthorizationService;
+        _altinnRegisterService = altinnRegisterService;
         _userClaimsHelper = userClaimsHelper;
         _backgroundJobClient = backgroundJobClient;
     }
 
     public async Task<OneOf<DownloadCorrespondenceAttachmentResponse, Error>> Process(DownloadCorrespondenceAttachmentRequest request, CancellationToken cancellationToken)
     {
+        var partyId = _userClaimsHelper.GetPartyId();
+        if (partyId is null)
+        {
+            return Errors.InvalidPartyId;
+        }
+        var party = await _altinnRegisterService.LookUpPartyByPartyId(partyId.Value, cancellationToken); 
+        if (party is null || (string.IsNullOrEmpty(party.SSN) && string.IsNullOrEmpty(party.OrgNumber)))
+        {
+            return Errors.CouldNotFindOrgNo;
+        }
+
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, cancellationToken);
         if (correspondence is null)
         {
@@ -38,7 +54,7 @@ public class LegacyDownloadCorrespondenceAttachmentHandler : IHandler<DownloadCo
         {
             return Errors.AttachmentNotFound;
         }
-        bool isRecipient = true; // TODO: Authorize user has claims to download attachment
+        bool isRecipient = correspondence.Recipient == party.OrgNumber || correspondence.Recipient == party.SSN;
         if (!isRecipient)
         {
             return Errors.CorrespondenceNotFound;
