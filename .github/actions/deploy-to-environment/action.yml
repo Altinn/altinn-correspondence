@@ -1,9 +1,6 @@
 # File: .github/actions/deploy-to-environment/action.yml
 name: "Deploy to Environment"
 description: "Deploy application to a specified environment"
-permissions:
-  id-token: write
-  contents: read
 
 inputs:
   environment:
