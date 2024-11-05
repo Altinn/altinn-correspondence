@@ -108,8 +108,9 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                     Published = correspondence.Published,
                     PurgedStatus = purgedStatus?.Status,
                     Purged = purgedStatus?.StatusChanged,
-                    DueDate = correspondence.DueDateTime,
+                    DueDateTime = correspondence.DueDateTime,
                     Archived = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Archived)?.StatusChanged,
+                    Confirmed = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Confirmed)?.StatusChanged,
                     MessageSender = correspondence.MessageSender
                 }
                 );
