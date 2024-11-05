@@ -89,7 +89,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
             }
             if (correspondence.IsConfirmationNeeded && !correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
             {
-                return Errors.CorrespondenceNotConfirmed;
+                return Errors.ArchiveBeforeConfirmed;
             }
             newStatus = new CorrespondenceStatusEntity()
             {
