@@ -38,5 +38,45 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("archived")]
         public DateTimeOffset? Archived { get; set; }
+
+        /// <summary>
+        /// Gets or sets the language of the correspondence, specified according to ISO 639-1 
+        /// </summary>
+        [JsonPropertyName("language")]
+        [ISO6391]
+        public required string Language { get; set; }
+
+        /// <summary>
+        /// Gets or sets the correspondence message title. Subject.
+        /// </summary>
+        /// <remarks>
+        /// TODO: Length restriction?
+        /// </remarks>
+        [JsonPropertyName("messageTitle")]
+        public required string MessageTitle { get; set; }
+
+        /// <summary>
+        /// Gets or sets a summary text of the correspondence.
+        /// </summary>
+        /// <remarks>
+        /// TODO: Length restriction?
+        /// </remarks>
+        [JsonPropertyName("messageSummary")]
+        public required string MessageSummary { get; set; }
+
+        /// <summary>
+        /// Gets or sets the main body of the correspondence.
+        /// </summary>
+        [JsonPropertyName("messageBody")]
+        public required string MessageBody { get; set; }
+
+        [JsonPropertyName("attachments")]
+        public required new List<CorrespondenceAttachmentExt> Attachments { get; set; }
+
+        /// <summary>
+        /// Instance owner party id
+        /// </summary>
+        [JsonPropertyName("instanceOwnerPartyId")]
+        public int InstanceOwnerPartyId { get; set; }
     }
 }

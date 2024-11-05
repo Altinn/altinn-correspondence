@@ -16,7 +16,6 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
     private readonly IAltinnRegisterService _altinnRegisterService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
-    private readonly UserClaimsHelper _userClaimsHelper;
     private readonly ILogger<LegacyGetCorrespondenceOverviewHandler> _logger;
 
     public LegacyGetCorrespondenceOverviewHandler(IAltinnAccessManagementService altinnAccessManagementService, IAltinnAuthorizationService altinnAuthorizationService, IAltinnRegisterService altinnRegisterService, ICorrespondenceRepository CorrespondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, UserClaimsHelper userClaimsHelper, ILogger<LegacyGetCorrespondenceOverviewHandler> logger)
@@ -26,7 +25,6 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
         _altinnRegisterService = altinnRegisterService;
         _correspondenceRepository = CorrespondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
-        _userClaimsHelper = userClaimsHelper;
         _logger = logger;
     }
 
@@ -100,18 +98,26 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
                 });
             }
         }
-
+        var resourceOwnerParty = await _altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
+        if (resourceOwnerParty == null)
+        {
+            return Errors.CouldNotFindOrgNo;
+        }
         var response = new LegacyGetCorrespondenceOverviewResponse
         {
             CorrespondenceId = correspondence.Id,
-            Content = correspondence.Content,
+            Attachments = correspondence.Content!.Attachments ?? new List<CorrespondenceAttachmentEntity>(),
+            Language = correspondence.Content!.Language,
+            MessageTitle = correspondence.Content!.MessageTitle,
+            MessageSummary = correspondence.Content!.MessageSummary,
+            MessageBody = correspondence.Content!.MessageBody,
             Status = latestStatus.Status,
             StatusText = latestStatus.StatusText,
             StatusChanged = latestStatus.StatusChanged,
             ResourceId = correspondence.ResourceId,
             Sender = correspondence.Sender,
             SendersReference = correspondence.SendersReference,
-            MessageSender = correspondence.MessageSender ?? string.Empty,
+            MessageSender = String.IsNullOrWhiteSpace(correspondence.MessageSender) ? resourceOwnerParty.Name : correspondence.MessageSender,
             Created = correspondence.Created,
             Recipient = correspondence.Recipient,
             ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
@@ -124,11 +130,14 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
             Published = correspondence.Published,
             IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
             MinimumAuthenticationLevel = (int)minimumAuthLevel,
+            AuthorizedForWrite = true,
             AuthorizedForSign = true,
             DueDateTime = correspondence.DueDateTime,
             AllowDelete = true,
             Archived = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Archived)?.StatusChanged,
-            PropertyList = correspondence.PropertyList ?? new Dictionary<string, string>()
+            Confirmed = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Confirmed)?.StatusChanged,
+            PropertyList = correspondence.PropertyList ?? new Dictionary<string, string>(),
+            InstanceOwnerPartyId = resourceOwnerParty.PartyId
         };
         return response;
     }

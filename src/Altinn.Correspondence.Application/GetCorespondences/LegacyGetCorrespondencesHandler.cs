@@ -6,6 +6,8 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Repositories;
 using OneOf;
 
+using Microsoft.Extensions.Logging;
+
 namespace Altinn.Correspondence.Application.GetCorrespondences;
 
 public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondencesRequest, LegacyGetCorrespondencesResponse>
@@ -16,10 +18,11 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly IResourceRightsService _resourceRightsService;
     private readonly UserClaimsHelper _userClaimsHelper;
+    private readonly ILogger<LegacyGetCorrespondencesHandler> _logger;
     private record ResourceOwner(string OrgNumber, Party? Party);
 
 
-    public LegacyGetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, IAltinnAccessManagementService altinnAccessManagement, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IAltinnRegisterService altinnRegisterService, IResourceRightsService resourceRightsService)
+    public LegacyGetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, IAltinnAccessManagementService altinnAccessManagement, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IAltinnRegisterService altinnRegisterService, IResourceRightsService resourceRightsService, ILogger<LegacyGetCorrespondencesHandler> logger)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _altinnAccessManagementService = altinnAccessManagement;
@@ -27,6 +30,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         _userClaimsHelper = userClaimsHelper;
         _altinnRegisterService = altinnRegisterService;
         _resourceRightsService = resourceRightsService;
+        _logger = logger;
     }
 
     public async Task<OneOf<LegacyGetCorrespondencesResponse, Error>> Process(LegacyGetCorrespondencesRequest request, CancellationToken cancellationToken)
@@ -79,6 +83,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         List<LegacyCorrespondenceItem> correspondenceItems = new List<LegacyCorrespondenceItem>();
 
         var resourceOwners = new List<ResourceOwner>();
+
         foreach (var orgNr in correspondences.Item1.Select(c => c.Sender).Distinct().ToList())
         {
             try
@@ -91,16 +96,31 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                 resourceOwners.Add(new ResourceOwner(orgNr, null));
             }
         }
+        var recipientDetails = new List<ResourceOwner>();
+        foreach (var orgNr in correspondences.Item1.Select(c => c.Recipient).Distinct().ToList())
+        {
+            try
+            {
+                var recipientParty = await _altinnRegisterService.LookUpPartyById(orgNr, cancellationToken);
+                recipientDetails.Add(new ResourceOwner(orgNr, recipientParty));
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Failed to lookup recipient party for orgNr: {OrgNr}", orgNr);
+                recipientDetails.Add(new ResourceOwner(orgNr, null));
+            }
+        }
         foreach (var correspondence in correspondences.Item1)
         {
             var purgedStatus = correspondence.GetPurgedStatus();
             var owner = resourceOwners.SingleOrDefault(r => r.OrgNumber == correspondence.Sender)?.Party;
+            var recipient = recipientDetails.SingleOrDefault(r => r.OrgNumber == correspondence.Recipient)?.Party;
             correspondenceItems.Add(
                 new LegacyCorrespondenceItem()
                 {
                     Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId,
                     ServiceOwnerName = owner.Name,
-                    InstanceOwnerPartyId = owner.PartyId,
+                    InstanceOwnerPartyId = recipient?.PartyId ?? 0,
                     MessageTitle = correspondence.Content.MessageTitle,
                     Status = correspondence.GetLatestStatusWithoutPurged().Status,
                     CorrespondenceId = correspondence.Id,
@@ -108,8 +128,9 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                     Published = correspondence.Published,
                     PurgedStatus = purgedStatus?.Status,
                     Purged = purgedStatus?.StatusChanged,
-                    DueDate = correspondence.DueDateTime,
+                    DueDateTime = correspondence.DueDateTime,
                     Archived = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Archived)?.StatusChanged,
+                    Confirmed = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Confirmed)?.StatusChanged,
                     MessageSender = correspondence.MessageSender
                 }
                 );
