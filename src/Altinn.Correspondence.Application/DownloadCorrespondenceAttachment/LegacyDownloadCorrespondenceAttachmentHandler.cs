@@ -1,11 +1,9 @@
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
 using OneOf;
-using ReverseMarkdown.Converters;
 
 namespace Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 
