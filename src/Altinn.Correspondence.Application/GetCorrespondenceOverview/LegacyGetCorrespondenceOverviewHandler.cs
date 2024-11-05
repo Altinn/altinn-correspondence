@@ -126,6 +126,7 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
             DueDateTime = correspondence.DueDateTime,
             AllowDelete = true,
             Archived = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Archived)?.StatusChanged,
+            Confirmed = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Confirmed)?.StatusChanged,
             PropertyList = correspondence.PropertyList ?? new Dictionary<string, string>()
         };
         return response;

@@ -9,6 +9,7 @@ public class LegacyGetCorrespondenceOverviewResponse : GetCorrespondenceOverview
     public bool AuthorizedForWrite { get; set; }
     public bool AuthorizedForSign { get; set; }
     public DateTimeOffset? Archived { get; set; }
+    public DateTimeOffset? Confirmed { get; set; }
     public int MinimumAuthenticationLevel { get; set; }
 }
 
