@@ -47,7 +47,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         var user = _httpContextAccessor.HttpContext?.User;
         var validation = await ValidateCheckUserAccess(user, resourceId, cancellationToken);
         if (validation != null) return (bool)validation;
-        var responseContent = await CheckUserAccess(user, rights, resourceId, recipientOrgNo, cancellationToken);
+        var responseContent = await AuthorizeRequest(user, rights, resourceId, recipientOrgNo, cancellationToken);
         if (responseContent is null) return false;
 
         var validationResult = ValidateAuthorizationResponse(responseContent, user);
@@ -60,7 +60,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         var user = _httpContextAccessor.HttpContext?.User;
         var validation = await ValidateCheckUserAccess(user, resourceId, cancellationToken);
         if (validation != null) return (bool)validation ? 3 : null;
-        var responseContent = await CheckUserAccess(user, rights, resourceId, recipientOrgNo, cancellationToken);
+        var responseContent = await AuthorizeRequest(user, rights, resourceId, recipientOrgNo, cancellationToken);
         if (responseContent is null) return null;
 
         var validationResult = ValidateAuthorizationResponse(responseContent, user);
@@ -107,7 +107,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         return null;
     }
 
-    private async Task<XacmlJsonResponse?> CheckUserAccess(ClaimsPrincipal user, List<ResourceAccessLevel> rights, string resourceId, string? recipientOrgNo, CancellationToken cancellationToken)
+    private async Task<XacmlJsonResponse?> AuthorizeRequest(ClaimsPrincipal user, List<ResourceAccessLevel> rights, string resourceId, string? recipientOrgNo, CancellationToken cancellationToken)
     {
         var actionIds = rights.Select(GetActionId).ToList();
         XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, actionIds, resourceId, recipientOrgNo);
