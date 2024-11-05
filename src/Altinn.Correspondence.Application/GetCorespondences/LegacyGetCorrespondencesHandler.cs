@@ -104,7 +104,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                     MessageTitle = correspondence.Content.MessageTitle,
                     Status = correspondence.GetLatestStatusWithoutPurged().Status,
                     CorrespondenceId = correspondence.Id,
-                    MinimumAuthenticationlevel = 0, // Insert from response from PDP multirequest
+                    MinimumAuthenticationLevel = 0, // Insert from response from PDP multirequest
                     Published = correspondence.Published,
                     PurgedStatus = purgedStatus?.Status,
                     Purged = purgedStatus?.StatusChanged,

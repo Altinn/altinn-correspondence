@@ -54,6 +54,7 @@ public static class Errors
     public static Error MessageSummaryEmpty = new Error(46, "Message summary cannot be empty", HttpStatusCode.BadRequest);
     public static Error InvalidLanguage = new Error(47, "Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)", HttpStatusCode.BadRequest);
     public static Error LegacyNoAccessToCorrespondence = new Error(48, "User does not have access to the correspondence", HttpStatusCode.Unauthorized);
-    public static Error ConfirmBeforeFetched = new Error(49, "Correspondence must be fetched before it can be confirmed", HttpStatusCode.BadRequest);
-    public static Error ReadBeforeFetched = new Error(50, "Correspondence must be fetched before it can be read", HttpStatusCode.BadRequest);
+    public static Error InvalidPartyId = new Error(49, "Invalid partyId", HttpStatusCode.BadRequest);
+    public static Error ConfirmBeforeFetched = new Error(50, "Correspondence must be fetched before it can be confirmed", HttpStatusCode.BadRequest);
+    public static Error ReadBeforeFetched = new Error(51, "Correspondence must be fetched before it can be read", HttpStatusCode.BadRequest);
 }

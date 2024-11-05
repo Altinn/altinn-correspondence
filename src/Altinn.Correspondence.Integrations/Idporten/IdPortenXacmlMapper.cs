@@ -128,6 +128,34 @@ namespace Altinn.Correspondence.Integrations.Idporten
 
             return true;
         }
+        public static int? GetMinimumAuthLevel(XacmlJsonResponse response, ClaimsPrincipal user)
+        {
+            int? minimumAuthLevel = null;
+            foreach (var result in response.Response)
+            {
+                if (!result.Decision.Equals(XacmlContextDecision.Permit.ToString()))
+                {
+                    return null;
+                }
+
+                if (result.Obligations != null)
+                {
+                    List<XacmlJsonObligationOrAdvice> obligations = result.Obligations;
+                    XacmlJsonAttributeAssignment? obligation = GetObligation("urn:altinn:minimum-authenticationlevel", obligations);
+                    if (obligation != null)
+                    {
+                        if (!int.TryParse(obligation.Value, out int currentLevel))
+                        {
+                            continue;
+                        }
+                        minimumAuthLevel = minimumAuthLevel.HasValue ? Math.Min(minimumAuthLevel.Value, currentLevel) : currentLevel;
+                    }
+                }
+            }
+
+            return minimumAuthLevel;
+        }
+
 
         private static XacmlJsonAttributeAssignment? GetObligation(string category, List<XacmlJsonObligationOrAdvice> obligations)
         {

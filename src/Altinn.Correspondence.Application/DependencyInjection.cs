@@ -43,6 +43,7 @@ public static class DependencyInjection
         services.AddScoped<UpdateCorrespondenceStatusHandler>();
         services.AddScoped<DownloadCorrespondenceAttachmentHandler>();
         services.AddScoped<PurgeCorrespondenceHandler>();
+        services.AddScoped<MigrateCorrespondenceHandler>();
 
         // Integrations
         services.AddScoped<MalwareScanResultHandler>();
