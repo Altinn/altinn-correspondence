@@ -43,8 +43,9 @@ jobs:
   deploy-test:
     name: Internal test
     runs-on: ubuntu-latest
-    needs: [get-version, publish]
+    environment: test
     if: always() && !failure() && !cancelled() 
+    needs: [get-version, publish]
     permissions: 
       id-token: write
       contents: read
@@ -80,6 +81,7 @@ jobs:
   deploy-staging:
     name: Internal staging
     runs-on: ubuntu-latest
+    environment: staging
     if: always() && !failure() && !cancelled() 
     needs: [ 
       get-version,
@@ -120,11 +122,12 @@ jobs:
   deploy-production:
     name: Production
     runs-on: ubuntu-latest
+    environment: production
+    if: (!failure() && !cancelled())
     needs: [
       get-version,
       deploy-staging,
     ]
-    if: (!failure() && !cancelled())
     permissions: 
       id-token: write
       contents: read
