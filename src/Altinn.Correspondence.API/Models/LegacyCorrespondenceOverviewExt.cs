@@ -67,6 +67,7 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Gets or sets the main body of the correspondence.
         /// </summary>
+        [JsonPropertyName("messageBody")]
         public required string MessageBody { get; set; }
 
         [JsonPropertyName("attachments")]
