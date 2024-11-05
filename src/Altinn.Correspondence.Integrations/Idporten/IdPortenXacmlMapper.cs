@@ -144,14 +144,11 @@ namespace Altinn.Correspondence.Integrations.Idporten
                     XacmlJsonAttributeAssignment? obligation = GetObligation("urn:altinn:minimum-authenticationlevel", obligations);
                     if (obligation != null)
                     {
-                        if (minimumAuthLevel == null)
+                        if (!int.TryParse(obligation.Value, out int currentLevel))
                         {
-                            minimumAuthLevel = Convert.ToInt32(obligation.Value);
+                            continue;
                         }
-                        else if (minimumAuthLevel > Convert.ToInt32(obligation.Value))
-                        {
-                            minimumAuthLevel = Convert.ToInt32(obligation.Value);
-                        }
+                        minimumAuthLevel = minimumAuthLevel.HasValue ? Math.Min(minimumAuthLevel.Value, currentLevel) : currentLevel;
                     }
                 }
             }
