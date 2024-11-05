@@ -11,5 +11,6 @@ public class LegacyGetCorrespondenceOverviewResponse : GetCorrespondenceOverview
     public DateTimeOffset? Archived { get; set; }
     public DateTimeOffset? Confirmed { get; set; }
     public int MinimumAuthenticationLevel { get; set; }
+    public int InstanceOwnerPartyId { get; set; }
 }
 

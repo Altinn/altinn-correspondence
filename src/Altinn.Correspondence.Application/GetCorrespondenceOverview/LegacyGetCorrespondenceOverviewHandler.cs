@@ -98,7 +98,11 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
                 });
             }
         }
-
+        var resourceOwnerParty = await _altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
+        if (resourceOwnerParty == null)
+        {
+            return Errors.CouldNotFindOrgNo;
+        }
         var response = new LegacyGetCorrespondenceOverviewResponse
         {
             CorrespondenceId = correspondence.Id,
@@ -109,7 +113,7 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
             ResourceId = correspondence.ResourceId,
             Sender = correspondence.Sender,
             SendersReference = correspondence.SendersReference,
-            MessageSender = correspondence.MessageSender ?? string.Empty,
+            MessageSender = String.IsNullOrWhiteSpace(correspondence.MessageSender) ? resourceOwnerParty.Name : correspondence.MessageSender,
             Created = correspondence.Created,
             Recipient = correspondence.Recipient,
             ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
@@ -127,7 +131,8 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
             AllowDelete = true,
             Archived = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Archived)?.StatusChanged,
             Confirmed = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Confirmed)?.StatusChanged,
-            PropertyList = correspondence.PropertyList ?? new Dictionary<string, string>()
+            PropertyList = correspondence.PropertyList ?? new Dictionary<string, string>(),
+            InstanceOwnerPartyId = resourceOwnerParty.PartyId
         };
         return response;
     }

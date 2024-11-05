@@ -79,6 +79,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         List<LegacyCorrespondenceItem> correspondenceItems = new List<LegacyCorrespondenceItem>();
 
         var resourceOwners = new List<ResourceOwner>();
+
         foreach (var orgNr in correspondences.Item1.Select(c => c.Sender).Distinct().ToList())
         {
             try
@@ -91,16 +92,30 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                 resourceOwners.Add(new ResourceOwner(orgNr, null));
             }
         }
+        var recipientDetails = new List<ResourceOwner>();
+        foreach (var orgNr in correspondences.Item1.Select(c => c.Recipient).Distinct().ToList())
+        {
+            try
+            {
+                var recipientParty = await _altinnRegisterService.LookUpPartyById(orgNr, cancellationToken);
+                recipientDetails.Add(new ResourceOwner(orgNr, recipientParty));
+            }
+            catch (Exception e)
+            {
+                recipientDetails.Add(new ResourceOwner(orgNr, null));
+            }
+        }
         foreach (var correspondence in correspondences.Item1)
         {
             var purgedStatus = correspondence.GetPurgedStatus();
             var owner = resourceOwners.SingleOrDefault(r => r.OrgNumber == correspondence.Sender)?.Party;
+            var recipient = recipientDetails.SingleOrDefault(r => r.OrgNumber == correspondence.Recipient)?.Party;
             correspondenceItems.Add(
                 new LegacyCorrespondenceItem()
                 {
                     Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId,
                     ServiceOwnerName = owner.Name,
-                    InstanceOwnerPartyId = owner.PartyId,
+                    InstanceOwnerPartyId = recipient.PartyId,
                     MessageTitle = correspondence.Content.MessageTitle,
                     Status = correspondence.GetLatestStatusWithoutPurged().Status,
                     CorrespondenceId = correspondence.Id,
