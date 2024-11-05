@@ -106,7 +106,7 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
         var response = new LegacyGetCorrespondenceOverviewResponse
         {
             CorrespondenceId = correspondence.Id,
-            Content = correspondence.Content,
+            Attachments = correspondence.Content.Attachments ?? new List<CorrespondenceAttachmentEntity>(),
             Status = latestStatus.Status,
             StatusText = latestStatus.StatusText,
             StatusChanged = latestStatus.StatusChanged,
