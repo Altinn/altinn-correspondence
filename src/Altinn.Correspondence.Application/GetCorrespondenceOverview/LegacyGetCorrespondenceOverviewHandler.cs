@@ -106,7 +106,11 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
         var response = new LegacyGetCorrespondenceOverviewResponse
         {
             CorrespondenceId = correspondence.Id,
-            Attachments = correspondence.Content.Attachments ?? new List<CorrespondenceAttachmentEntity>(),
+            Attachments = correspondence.Content!.Attachments ?? new List<CorrespondenceAttachmentEntity>(),
+            Language = correspondence.Content!.Language,
+            MessageTitle = correspondence.Content!.MessageTitle,
+            MessageSummary = correspondence.Content!.MessageSummary,
+            MessageBody = correspondence.Content!.MessageBody,
             Status = latestStatus.Status,
             StatusText = latestStatus.StatusText,
             StatusChanged = latestStatus.StatusChanged,
@@ -126,6 +130,7 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
             Published = correspondence.Published,
             IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
             MinimumAuthenticationLevel = (int)minimumAuthLevel,
+            AuthorizedForWrite = true,
             AuthorizedForSign = true,
             DueDateTime = correspondence.DueDateTime,
             AllowDelete = true,
