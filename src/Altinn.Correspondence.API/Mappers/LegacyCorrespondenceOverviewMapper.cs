@@ -34,7 +34,7 @@ internal static class LegacyCorrespondenceOverviewMapper
             IsConfirmationNeeded = correspondenceOverview.IsConfirmationNeeded,
             AllowDelete = correspondenceOverview.AllowDelete,
             Archived = correspondenceOverview.Archived,
-            MinimumAuthenticationlevel = correspondenceOverview.MinimumAuthenticationlevel,
+            MinimumAuthenticationLevel = correspondenceOverview.MinimumAuthenticationLevel,
             AuthorizedForSign = correspondenceOverview.AuthorizedForSign,
         };
         return Correspondence;

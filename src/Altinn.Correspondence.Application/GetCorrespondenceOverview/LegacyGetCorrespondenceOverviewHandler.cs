@@ -123,7 +123,7 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
             AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
             Published = correspondence.Published,
             IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
-            MinimumAuthenticationlevel = (int)minimumAuthLevel,
+            MinimumAuthenticationLevel = (int)minimumAuthLevel,
             AuthorizedForSign = true,
             DueDateTime = correspondence.DueDateTime,
             AllowDelete = true,
