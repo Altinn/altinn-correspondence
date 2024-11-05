@@ -16,7 +16,6 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
     private readonly IAltinnRegisterService _altinnRegisterService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
-    private readonly UserClaimsHelper _userClaimsHelper;
     private readonly ILogger<LegacyGetCorrespondenceOverviewHandler> _logger;
 
     public LegacyGetCorrespondenceOverviewHandler(IAltinnAccessManagementService altinnAccessManagementService, IAltinnAuthorizationService altinnAuthorizationService, IAltinnRegisterService altinnRegisterService, ICorrespondenceRepository CorrespondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, UserClaimsHelper userClaimsHelper, ILogger<LegacyGetCorrespondenceOverviewHandler> logger)
@@ -26,7 +25,6 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
         _altinnRegisterService = altinnRegisterService;
         _correspondenceRepository = CorrespondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
-        _userClaimsHelper = userClaimsHelper;
         _logger = logger;
     }
 
