@@ -869,7 +869,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
 
         // Assert
         var response = await getCorrespondenceOverviewResponse.Content.ReadFromJsonAsync<CorrespondenceOverviewExt>(_responseSerializerOptions);
-        Assert.Equal(response.Status, CorrespondenceStatusExt.Published); // Status is not changed to fetched
+        Assert.Equal(CorrespondenceStatusExt.Published, response.Status); // Status is not changed to fetched
         var actual = await (await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.Correspondences.FirstOrDefault().CorrespondenceId}/details")).Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
 
         var expectedFetchedStatuses = 1;
@@ -894,7 +894,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var getCorrespondenceDetailsResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.Correspondences.FirstOrDefault().CorrespondenceId}/details");
         var detailsResponse = await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
         Assert.DoesNotContain(detailsResponse.StatusHistory, item => item.Status == CorrespondenceStatusExt.Fetched); // Fetched is not added to the list
-        Assert.Equal(response.Status, CorrespondenceStatusExt.Published);
+        Assert.Equal(CorrespondenceStatusExt.Published, response.Status);
     }
 
     [Fact]
@@ -969,7 +969,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var expectedFetchedStatuses = 1;
         Assert.Equal(response.StatusHistory.Where(s => s.Status == CorrespondenceStatusExt.Fetched).Count(), expectedFetchedStatuses);
         Assert.Contains(response.StatusHistory, item => item.Status == CorrespondenceStatusExt.Published);
-        Assert.Equal(response.Status, CorrespondenceStatusExt.Published);
+        Assert.Equal(CorrespondenceStatusExt.Published, response.Status);
     }
 
     [Fact]
@@ -988,11 +988,11 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         var response = await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
         Assert.DoesNotContain(response.StatusHistory, item => item.Status == CorrespondenceStatusExt.Fetched);
-        Assert.Equal(response.Status, CorrespondenceStatusExt.Published);
+        Assert.Equal(CorrespondenceStatusExt.Published, response.Status);
     }
 
     [Fact]
-    public async Task MarkActions_CorrespondenceNotExists_ReturnNotFound()
+    public async Task UpdateCorrespondenceStatus_CorrespondenceNotExists_Return404()
     {
         var readResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/00000000-0100-0000-0000-000000000000/markasread", null);
         Assert.Equal(HttpStatusCode.NotFound, readResponse.StatusCode);
@@ -1005,8 +1005,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
-    public async Task ReceiverMarkActions_CorrespondenceNotPublished_Return404()
+    public async Task UpdateCorrespondenceStatus_CorrespondenceNotPublished_Return404()
     {
+        // Arrange
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
@@ -1014,39 +1015,102 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
         Assert.NotNull(correspondenceResponse);
-        var readResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceResponse?.Correspondences.FirstOrDefault().CorrespondenceId}/markasread", null);
+        var correspondenceId = correspondenceResponse?.Correspondences.FirstOrDefault()?.CorrespondenceId;
+
+        // Act and Assert
+        var readResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
         Assert.Equal(HttpStatusCode.NotFound, readResponse.StatusCode);
 
-        var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceResponse?.Correspondences.FirstOrDefault().CorrespondenceId}/confirm", null);
+        // Act and Assert
+        var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
         Assert.Equal(HttpStatusCode.NotFound, confirmResponse.StatusCode);
     }
 
     [Fact]
-    public async Task ReceiverMarkActions_CorrespondencePublished_ReturnOk()
+    public async Task UpdateCorrespondenceStatus_CorrespondencePublished_ReturnOk()
     {
-        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        // Arrange
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithExistingAttachments([attachmentId])
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
-        Assert.NotNull(response);
+        Assert.Equal(CorrespondenceStatus.Published, response?.Correspondences.FirstOrDefault()?.Status);
+        var correspondenceId = response?.Correspondences.FirstOrDefault()?.CorrespondenceId;
 
-        var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{response.Correspondences.FirstOrDefault().CorrespondenceId}", _responseSerializerOptions);
-        Assert.True(overview?.Status == CorrespondenceStatusExt.Published);
-        Assert.NotNull(payload);
-        var readResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{response.Correspondences.FirstOrDefault().CorrespondenceId}/markasread", null);
+        // Act
+        var fetchResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}"); // Fetch in order to be able to Read
+        Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
+
+        var readResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
         readResponse.EnsureSuccessStatusCode();
 
-        var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{response.Correspondences.FirstOrDefault().CorrespondenceId}/confirm", null);
-        confirmResponse.EnsureSuccessStatusCode();
-
-        var markAsUnreadResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{response.Correspondences.FirstOrDefault().CorrespondenceId}/markasunread", null);
+        var markAsUnreadResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasunread", null);
         markAsUnreadResponse.EnsureSuccessStatusCode();
-        overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{response.Correspondences.FirstOrDefault().CorrespondenceId}", _responseSerializerOptions);
-        Assert.True(overview?.MarkedUnread == true);
+
+        // Assert
+        var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceId}", _responseSerializerOptions);
+        Assert.True(overview?.MarkedUnread);
+    }
+    
+    [Fact]
+    public async Task UpdateCorrespondenceStatus_MarkAsRead_WithoutFetched_ReturnsBadRequest()
+    {
+        //  Arrange
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .Build();
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+        Assert.Equal(CorrespondenceStatus.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
+        var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
+
+        //  Act
+        var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, confirmResponse.StatusCode);
+    }
+    
+    [Fact]
+    public async Task UpdateCorrespondenceStatus_ToConfirmed_WithoutFetched_ReturnsBadRequest()
+    {
+        //  Arrange
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .Build();
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+        Assert.Equal(CorrespondenceStatus.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
+        var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
+
+        //  Act
+        var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, confirmResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateCorrespondenceStatus_ToConfirmed_WhenCorrespondenceIsFetched_GivesOk()
+    {
+        //  Arrange
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .Build();
+        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+        Assert.Equal(CorrespondenceStatus.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
+        var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
+
+        //  Act
+        var fetchResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+        Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
+        var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
     }
 
     [Fact]
@@ -1085,7 +1149,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
 
         //  Act
-        var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
+        var fetchResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}"); // Fetch in order to be able to Confirm
+        Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
+        var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null); // Update to Confirmed in order to be able to Archive
         Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
         var archiveResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/archive", null);
 
@@ -1267,7 +1333,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
 
         //  Act
-        var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
+        var fetchResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}"); // Fetch in order to be able to confirm
+        Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
+        var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null); // Confirm in order to be able to delete
         Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
         var deleteResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
 

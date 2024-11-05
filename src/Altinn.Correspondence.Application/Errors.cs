@@ -46,7 +46,7 @@ public static class Errors
     public static Error MissingPrefferedReminderNotificationContent = new Error(38, $"Reminder email body, subject and SMS body must be provided when sending reminder preferred notifications", HttpStatusCode.BadRequest);
     public static Error AttachmentNotPublished = new Error(39, "Attachment is not published", HttpStatusCode.BadRequest);
     public static Error LegacyNotAccessToOwner(int partyId) { return new Error(40, $"User does not have access to party with partyId {partyId}", HttpStatusCode.Unauthorized); }
-    public static Error CorrespondenceNotConfirmed = new Error(41, "Cannot archive or delete a correspondence which has not been confirmed when confirmation is required", HttpStatusCode.BadRequest);
+    public static Error ArchiveBeforeConfirmed = new Error(41, "Cannot archive or delete a correspondence which has not been confirmed when confirmation is required", HttpStatusCode.BadRequest);
     public static Error DueDateRequired = new Error(42, "DueDateTime is required when confirmation is needed", HttpStatusCode.BadRequest);
     public static Error MissingContent = new Error(43, "The Content field must be provided for the correspondence", HttpStatusCode.BadRequest);
     public static Error MessageTitleEmpty = new Error(44, "Message title cannot be empty", HttpStatusCode.BadRequest);
@@ -55,4 +55,6 @@ public static class Errors
     public static Error InvalidLanguage = new Error(47, "Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)", HttpStatusCode.BadRequest);
     public static Error LegacyNoAccessToCorrespondence = new Error(48, "User does not have access to the correspondence", HttpStatusCode.Unauthorized);
     public static Error InvalidPartyId = new Error(49, "Invalid partyId", HttpStatusCode.BadRequest);
+    public static Error ConfirmBeforeFetched = new Error(50, "Correspondence must be fetched before it can be confirmed", HttpStatusCode.BadRequest);
+    public static Error ReadBeforeFetched = new Error(51, "Correspondence must be fetched before it can be read", HttpStatusCode.BadRequest);
 }
