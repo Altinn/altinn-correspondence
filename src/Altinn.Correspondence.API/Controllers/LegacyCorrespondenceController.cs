@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.Configuration;
@@ -60,9 +60,8 @@ namespace Altinn.Correspondence.API.Controllers
             };
 
             var commandResult = await handler.Process(request, cancellationToken);
-
             return commandResult.Match(
-                data => Ok(CorrespondenceOverviewMapper.MapToExternal(data)),
+                data => Ok(LegacyCorrespondenceOverviewMapper.MapToExternal(data)),
                 Problem
             );
         }

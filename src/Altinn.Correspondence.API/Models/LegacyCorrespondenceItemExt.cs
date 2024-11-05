@@ -40,6 +40,6 @@ namespace Altinn.Correspondence.API.Models
         /// The minumum authentication level required to view this correspondence
         /// </summary>
         [JsonPropertyName("minimumAuthenticationlevel")]
-        public required int MinimumAuthenticationlevel { get; set; }
+        public required int MinimumAuthenticationLevel { get; set; }
     }
 }
