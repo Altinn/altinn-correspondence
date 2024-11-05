@@ -6,6 +6,8 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Repositories;
 using OneOf;
 
+using Microsoft.Extensions.Logging;
+
 namespace Altinn.Correspondence.Application.GetCorrespondences;
 
 public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondencesRequest, LegacyGetCorrespondencesResponse>
@@ -16,10 +18,11 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly IResourceRightsService _resourceRightsService;
     private readonly UserClaimsHelper _userClaimsHelper;
+    private readonly ILogger<LegacyGetCorrespondencesHandler> _logger;
     private record ResourceOwner(string OrgNumber, Party? Party);
 
 
-    public LegacyGetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, IAltinnAccessManagementService altinnAccessManagement, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IAltinnRegisterService altinnRegisterService, IResourceRightsService resourceRightsService)
+    public LegacyGetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, IAltinnAccessManagementService altinnAccessManagement, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IAltinnRegisterService altinnRegisterService, IResourceRightsService resourceRightsService, ILogger<LegacyGetCorrespondencesHandler> logger)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _altinnAccessManagementService = altinnAccessManagement;
@@ -27,6 +30,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         _userClaimsHelper = userClaimsHelper;
         _altinnRegisterService = altinnRegisterService;
         _resourceRightsService = resourceRightsService;
+        _logger = logger;
     }
 
     public async Task<OneOf<LegacyGetCorrespondencesResponse, Error>> Process(LegacyGetCorrespondencesRequest request, CancellationToken cancellationToken)
@@ -102,6 +106,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
             }
             catch (Exception e)
             {
+                _logger.LogError(e, "Failed to lookup recipient party for orgNr: {OrgNr}", orgNr);
                 recipientDetails.Add(new ResourceOwner(orgNr, null));
             }
         }
@@ -115,7 +120,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                 {
                     Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId,
                     ServiceOwnerName = owner.Name,
-                    InstanceOwnerPartyId = recipient.PartyId,
+                    InstanceOwnerPartyId = recipient?.PartyId ?? 0,
                     MessageTitle = correspondence.Content.MessageTitle,
                     Status = correspondence.GetLatestStatusWithoutPurged().Status,
                     CorrespondenceId = correspondence.Id,
