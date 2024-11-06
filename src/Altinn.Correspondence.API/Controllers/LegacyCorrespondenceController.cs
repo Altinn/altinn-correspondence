@@ -40,19 +40,12 @@ namespace Altinn.Correspondence.API.Controllers
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
             Guid correspondenceId,
-            [FromQuery] int onBehalfOfPartyId,
             [FromServices] LegacyGetCorrespondenceOverviewHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Getting Correspondence overview for {correspondenceId}", correspondenceId.ToString());
 
-            var request = new LegacyGetCorrespondenceOverviewRequest
-            {
-                CorrespondenceId = correspondenceId,
-                PartyId = onBehalfOfPartyId
-            };
-
-            var commandResult = await handler.Process(request, cancellationToken);
+            var commandResult = await handler.Process(correspondenceId, cancellationToken);
             return commandResult.Match(
                 data => Ok(LegacyCorrespondenceOverviewMapper.MapToExternal(data)),
                 Problem

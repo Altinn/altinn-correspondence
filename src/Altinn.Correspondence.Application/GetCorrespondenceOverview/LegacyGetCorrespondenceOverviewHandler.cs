@@ -3,13 +3,12 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Microsoft.Extensions.Logging;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceOverview;
 
-public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespondenceOverviewRequest, LegacyGetCorrespondenceOverviewResponse>
+public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCorrespondenceOverviewResponse>
 {
     private readonly IAltinnAccessManagementService _altinnAccessManagementService;
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
@@ -17,6 +16,8 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly ILogger<LegacyGetCorrespondenceOverviewHandler> _logger;
+    private readonly UserClaimsHelper _userClaimsHelper;
+
 
     public LegacyGetCorrespondenceOverviewHandler(IAltinnAccessManagementService altinnAccessManagementService, IAltinnAuthorizationService altinnAuthorizationService, IAltinnRegisterService altinnRegisterService, ICorrespondenceRepository CorrespondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, UserClaimsHelper userClaimsHelper, ILogger<LegacyGetCorrespondenceOverviewHandler> logger)
     {
@@ -26,30 +27,31 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<LegacyGetCorrespo
         _correspondenceRepository = CorrespondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
         _logger = logger;
+        _userClaimsHelper = userClaimsHelper;
     }
 
-    public async Task<OneOf<LegacyGetCorrespondenceOverviewResponse, Error>> Process(LegacyGetCorrespondenceOverviewRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<LegacyGetCorrespondenceOverviewResponse, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
     {
-        if (request.PartyId == 0 || request.PartyId == int.MinValue)
+        if (_userClaimsHelper.GetPartyId() is not int partyId)
         {
-            return Errors.InvalidPartyId;
+            return Errors.NoAccessToResource;
         }
-
-        var userParty = await _altinnRegisterService.LookUpPartyByPartyId(request.PartyId, cancellationToken);
+        var userParty = await _altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
         {
             return Errors.CouldNotFindOrgNo;
         }
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
         }
-        var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken);
+        /*var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken);
         if (minimumAuthLevel == null)
         {
             return Errors.LegacyNoAccessToCorrespondence;
-        }
+        } */
+        var minimumAuthLevel = 2;
         var recipients = new List<string>();
         if (correspondence.Recipient != userParty.SSN && correspondence.Recipient != ("0192:" + userParty.OrgNumber))
         {
