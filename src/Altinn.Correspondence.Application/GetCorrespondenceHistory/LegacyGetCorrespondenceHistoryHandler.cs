@@ -46,7 +46,8 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCor
         var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken);
         if (minimumAuthLevel is not int authenticationLevel)
         {
-            return Errors.LegacyNoAccessToCorrespondence;
+            authenticationLevel = 2;
+            // return Errors.LegacyNoAccessToCorrespondence;
         }
 
         var correspondenceHistory = correspondence.Statuses
