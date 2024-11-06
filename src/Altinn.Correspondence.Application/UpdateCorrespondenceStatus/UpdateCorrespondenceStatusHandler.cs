@@ -64,7 +64,8 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             await _correspondenceRepository.UpdateMarkedUnread(request.CorrespondenceId, false, cancellationToken);
         }
-        var updateError = ValidateUpdateRequest(request, correspondence);
+        var updateStatusHelper = new UpdateCorrespondenceStatusHelper();
+        var updateError = updateStatusHelper.ValidateUpdateRequest(request, correspondence);
         if (updateError is not null)
         {
             return updateError;
@@ -78,37 +79,8 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
             StatusText = request.Status.ToString(),
         }, cancellationToken);
         _backgroundJobClient.Enqueue(() => ReportActivityToDialogporten(request.CorrespondenceId, DialogportenActorType.Recipient, request.Status));
-        await PublishEvent(correspondence, request.Status, cancellationToken);
+        await updateStatusHelper.PublishEvent(_eventBus, correspondence, request.Status, cancellationToken);
         return request.CorrespondenceId;
-    }
-
-    private static Error? ValidateUpdateRequest(UpdateCorrespondenceStatusRequest request, CorrespondenceEntity correspondence)
-    {
-        if (request.Status == CorrespondenceStatus.Read && !correspondence.StatusHasBeen(CorrespondenceStatus.Fetched))
-        {
-            return Errors.ReadBeforeFetched;
-        }
-        if (request.Status == CorrespondenceStatus.Confirmed && !correspondence.StatusHasBeen(CorrespondenceStatus.Fetched))
-        {
-            return Errors.ConfirmBeforeFetched;
-        }
-        if (request.Status == CorrespondenceStatus.Archived && correspondence.IsConfirmationNeeded is true && !correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
-        {
-            return Errors.ArchiveBeforeConfirmed;
-        }
-        return null;
-    }
-
-    private async Task PublishEvent(CorrespondenceEntity correspondence, CorrespondenceStatus status, CancellationToken cancellationToken)
-    {
-        if (status == CorrespondenceStatus.Confirmed)
-        {
-            await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
-        }
-        else if (status == CorrespondenceStatus.Read)
-        {
-            await _eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
-        }
     }
 
     // Must be public to be run by Hangfire
