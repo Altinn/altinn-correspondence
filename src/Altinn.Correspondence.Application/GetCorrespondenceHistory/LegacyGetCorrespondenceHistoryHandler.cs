@@ -29,7 +29,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<LegacyGetCorrespon
             return Errors.CorrespondenceNotFound;
         }
 
-        var recipientParty = await _altinnRegisterService.LookUpPartyById(request.OnBehalfOfPartyId, cancellationToken);
+        var recipientParty = await _altinnRegisterService.LookUpPartyByPartyId(request.OnBehalfOfPartyId, cancellationToken);
         if (recipientParty == null || (string.IsNullOrEmpty(recipientParty.SSN) && string.IsNullOrEmpty(recipientParty.OrgNumber)))
         {
             return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
