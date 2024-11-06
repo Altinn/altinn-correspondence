@@ -12,7 +12,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCor
     private readonly IAltinnNotificationService _altinnNotificationService;
     private readonly IAltinnRegisterService _altinnRegisterService;
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private UserClaimsHelper _userClaimsHelper;
+    private readonly UserClaimsHelper _userClaimsHelper;
 
     public LegacyGetCorrespondenceHistoryHandler(ICorrespondenceRepository correspondenceRepository, IAltinnNotificationService altinnNotificationService, IAltinnRegisterService altinnRegisterService, IAltinnAuthorizationService altinnAuthorizationService, UserClaimsHelper userClaimsHelper)
     {
@@ -24,12 +24,11 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCor
     }
     public async Task<OneOf<LegacyGetCorrespondenceHistoryResponse, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
     {
-        var partyId = _userClaimsHelper.GetPartyId();
-        if (partyId is null)
+        if (_userClaimsHelper.GetPartyId() is not int partyId)
         {
             return Errors.InvalidPartyId;
         }
-        var recipientParty = await _altinnRegisterService.LookUpPartyByPartyId(partyId.Value, cancellationToken);
+        var recipientParty = await _altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (recipientParty == null || (string.IsNullOrEmpty(recipientParty.SSN) && string.IsNullOrEmpty(recipientParty.OrgNumber)))
         {
             return Errors.CouldNotFindOrgNo;
