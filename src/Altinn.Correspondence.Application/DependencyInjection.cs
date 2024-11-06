@@ -53,6 +53,7 @@ public static class DependencyInjection
         services.AddScoped<UploadHelper>();
         services.AddScoped<UserClaimsHelper>();
         services.AddScoped<InitializeCorrespondenceHelper>();
+        services.AddScoped<UpdateCorrespondenceStatusHelper>();
 
         // Legacy
         services.AddScoped<LegacyGetCorrespondencesHandler>();
