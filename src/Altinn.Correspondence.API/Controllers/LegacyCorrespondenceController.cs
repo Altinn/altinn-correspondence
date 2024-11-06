@@ -67,17 +67,12 @@ namespace Altinn.Correspondence.API.Controllers
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<ActionResult<LegacyGetCorrespondenceHistoryResponse>> GetCorrespondenceHistory( // TODO: Should this be LegacyCorrespondenceHistoryExt? 
             Guid correspondenceId,
-            [FromQuery] int onBehalfOfPartyId,
             [FromServices] LegacyGetCorrespondenceHistoryHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Getting Correspondence history for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(new LegacyGetCorrespondenceHistoryRequest
-            {
-                CorrespondenceId = correspondenceId,
-                OnBehalfOfPartyId = onBehalfOfPartyId
-            }, cancellationToken);
+            var commandResult = await handler.Process(correspondenceId, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(data),

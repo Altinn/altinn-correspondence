@@ -1,44 +1,53 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceHistory;
-public class LegacyGetCorrespondenceHistoryHandler : IHandler<LegacyGetCorrespondenceHistoryRequest, LegacyGetCorrespondenceHistoryResponse>
+public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCorrespondenceHistoryResponse>
 {
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly IAltinnNotificationService _altinnNotificationService;
     private readonly IAltinnRegisterService _altinnRegisterService;
-    public LegacyGetCorrespondenceHistoryHandler(ICorrespondenceRepository correspondenceRepository, IAltinnNotificationService altinnNotificationService, IAltinnRegisterService altinnRegisterService)
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
+    private UserClaimsHelper _userClaimsHelper;
+
+    public LegacyGetCorrespondenceHistoryHandler(ICorrespondenceRepository correspondenceRepository, IAltinnNotificationService altinnNotificationService, IAltinnRegisterService altinnRegisterService, IAltinnAuthorizationService altinnAuthorizationService, UserClaimsHelper userClaimsHelper)
     {
         _correspondenceRepository = correspondenceRepository;
         _altinnNotificationService = altinnNotificationService;
         _altinnRegisterService = altinnRegisterService;
+        _altinnAuthorizationService = altinnAuthorizationService;
+        _userClaimsHelper = userClaimsHelper;
     }
-    public async Task<OneOf<LegacyGetCorrespondenceHistoryResponse, Error>> Process(LegacyGetCorrespondenceHistoryRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<LegacyGetCorrespondenceHistoryResponse, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
     {
-        var hasAccess = true; // TODO: Authorize user
-        if (!hasAccess)
+        var partyId = _userClaimsHelper.GetPartyId();
+        if (partyId is null)
         {
-            return Errors.NoAccessToResource;
+            return Errors.InvalidPartyId;
         }
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
+        var recipientParty = await _altinnRegisterService.LookUpPartyByPartyId(partyId.Value, cancellationToken);
+        if (recipientParty == null || (string.IsNullOrEmpty(recipientParty.SSN) && string.IsNullOrEmpty(recipientParty.OrgNumber)))
+        {
+            return Errors.CouldNotFindOrgNo;
+        }
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
         if (correspondence is null)
         {
             return Errors.CorrespondenceNotFound;
         }
-
-        var recipientParty = await _altinnRegisterService.LookUpPartyByPartyId(request.OnBehalfOfPartyId, cancellationToken);
-        if (recipientParty == null || (string.IsNullOrEmpty(recipientParty.SSN) && string.IsNullOrEmpty(recipientParty.OrgNumber)))
-        {
-            return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
-        }
-
         var senderParty = await _altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
         if (senderParty == null || (string.IsNullOrEmpty(senderParty.SSN) && string.IsNullOrEmpty(senderParty.OrgNumber)))
         {
-            return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
+            return Errors.CouldNotFindOrgNo;
+        }
+        var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken);
+        if (minimumAuthLevel is not int authenticationLevel)
+        {
+            return Errors.LegacyNoAccessToCorrespondence;
         }
 
         var correspondenceHistory = correspondence.Statuses
@@ -51,7 +60,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<LegacyGetCorrespon
                 User = new LegacyUser
                 {
                     PartyId = recipientParty.PartyId.ToString(),
-                    AuthenticationLevel = 0, // TODO: Get authentication level
+                    AuthenticationLevel = authenticationLevel
                 },
             }).ToList();
 
@@ -70,7 +79,8 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<LegacyGetCorrespon
                     notificationDetails.NotificationsStatusDetails.Sms.SendStatus,
                     notificationDetails.NotificationsStatusDetails.Sms.Recipient,
                     notification.IsReminder,
-                    senderParty.PartyId.ToString()));
+                    senderParty.PartyId.ToString(),
+                    authenticationLevel));
             }
             if (notificationDetails.NotificationsStatusDetails.Email is not null)
             {
@@ -78,7 +88,8 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<LegacyGetCorrespon
                     notificationDetails.NotificationsStatusDetails.Email.SendStatus,
                     notificationDetails.NotificationsStatusDetails.Email.Recipient,
                     notification.IsReminder,
-                    senderParty.PartyId.ToString()));
+                    senderParty.PartyId.ToString(),
+                    authenticationLevel));
             }
         }
 
@@ -90,7 +101,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<LegacyGetCorrespon
         return legacyHistory;
     }
 
-    private static LegacyCorrespondenceStatus GetNotificationStatus(StatusExt sendStatus, Recipient recipient, bool isReminder, string partyId)
+    private static LegacyCorrespondenceStatus GetNotificationStatus(StatusExt sendStatus, Recipient recipient, bool isReminder, string partyId, int authenticationLevel)
     {
         return new LegacyCorrespondenceStatus
         {
@@ -100,7 +111,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<LegacyGetCorrespon
             User = new LegacyUser
             {
                 PartyId = partyId,
-                AuthenticationLevel = 0, // TODO: Get authentication level
+                AuthenticationLevel = authenticationLevel,
                 Recipient = recipient
             },
         };
