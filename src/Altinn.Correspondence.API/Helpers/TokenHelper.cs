@@ -13,7 +13,7 @@ namespace Altinn.Correspondence.API.Helpers
                 bool isAltinnToken = context.User.HasClaim(c => c.Issuer == $"{altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/");
                 if (isAltinnToken)
                 {
-                    return context.User.HasClaim(c => c.Type == "scope" && scopes.Contains(c.Value));
+                    return context.User.HasClaim(c => c.Type == "scope" && scopes.Intersect(c.Value.Split(' ')).Any());
                 }
                 return true;            
             });
