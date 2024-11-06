@@ -40,6 +40,12 @@ namespace Altinn.Correspondence.API.Models
         public DateTimeOffset? Archived { get; set; }
 
         /// <summary>
+        /// The date the correspondence was confirmed
+        /// </summary>
+        [JsonPropertyName("confirmed")]
+        public DateTimeOffset? Confirmed { get; set; }
+
+        /// <summary>
         /// Gets or sets the language of the correspondence, specified according to ISO 639-1 
         /// </summary>
         [JsonPropertyName("language")]

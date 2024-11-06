@@ -39,6 +39,7 @@ internal static class LegacyCorrespondenceOverviewMapper
             IsConfirmationNeeded = correspondenceOverview.IsConfirmationNeeded,
             AllowDelete = correspondenceOverview.AllowDelete,
             Archived = correspondenceOverview.Archived,
+            Confirmed = correspondenceOverview.Confirmed,
             MinimumAuthenticationLevel = correspondenceOverview.MinimumAuthenticationLevel,
             AuthorizedForSign = correspondenceOverview.AuthorizedForSign,
             InstanceOwnerPartyId = correspondenceOverview.InstanceOwnerPartyId
