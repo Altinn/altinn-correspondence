@@ -49,7 +49,7 @@ public class LegacyDownloadCorrespondenceAttachmentHandler : IHandler<DownloadCo
         {
             return Errors.AttachmentNotFound;
         }
-        bool isRecipient = correspondence.Recipient == party.OrgNumber || correspondence.Recipient == party.SSN;
+        bool isRecipient = correspondence.Recipient == ("0192:"+party.OrgNumber) || correspondence.Recipient == party.SSN;
         if (!isRecipient)
         {
             return Errors.CorrespondenceNotFound;
