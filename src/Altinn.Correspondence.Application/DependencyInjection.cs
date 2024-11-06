@@ -59,6 +59,7 @@ public static class DependencyInjection
         services.AddScoped<LegacyGetCorrespondenceOverviewHandler>();
         services.AddScoped<LegacyGetCorrespondenceHistoryHandler>();
         services.AddScoped<LegacyDownloadCorrespondenceAttachmentHandler>();
+        services.AddScoped<LegacyUpdateCorrespondenceStatusHandler>();
 
         // Migration
         services.AddScoped<MigrateInitializeAttachmentHandler>();
