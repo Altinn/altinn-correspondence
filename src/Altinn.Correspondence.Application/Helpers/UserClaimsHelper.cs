@@ -18,6 +18,7 @@ namespace Altinn.Correspondence.Application.Helpers
         private const string _consumerClaim = "consumer";
         private const string _IdProperty = "ID";
         private const string _dialogportenOrgClaim = "p";
+        private const string _partyIdClaim = "urn:altinn:partyid";
 
         public UserClaimsHelper(IHttpContextAccessor httpContextAccessor, IOptions<DialogportenSettings> dialogportenSettings, IOptions<IdportenSettings> idportenSettings)
         {
@@ -25,6 +26,13 @@ namespace Altinn.Correspondence.Application.Helpers
             _claims = _user.Claims ?? [];
             _dialogportenSettings = dialogportenSettings.Value;
             _idportenSettings = idportenSettings.Value;
+        }
+        public int? GetPartyId()
+        {
+            var partyId = _claims.FirstOrDefault(c => c.Type == _partyIdClaim)?.Value;
+            if (partyId is null) return null;
+            if (int.TryParse(partyId, out int id)) return id;
+            return null;
         }
         public bool IsAffiliatedWithCorrespondence(string recipientId, string senderId)
         {

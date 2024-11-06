@@ -1,18 +1,11 @@
+using System.Runtime.CompilerServices;
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
-using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceHistory;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
-using Altinn.Correspondence.Application.InitializeCorrespondences;
-using Altinn.Correspondence.Application.PurgeCorrespondence;
-using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
-using Altinn.Correspondence.Application.UpdateMarkAsUnread;
-using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -111,6 +104,30 @@ namespace Altinn.Correspondence.API.Controllers
 
             return commandResult.Match(
                 data => Ok(data),
+                Problem
+            );
+        }
+
+        /// <summary>
+        /// Download an attachment from a Correspondence
+        /// </summary>
+        [HttpGet]
+        [Route("{correspondenceId}/attachment/{attachmentId}/download")]
+        [ApiExplorerSettings(IgnoreApi = true)]
+        public async Task<ActionResult> DownloadCorrespondenceAttachment(
+            Guid correspondenceId,
+            Guid attachmentId,
+            [FromServices] LegacyDownloadCorrespondenceAttachmentHandler handler,
+            CancellationToken cancellationToken)
+        {
+            var commandResult = await handler.Process(new DownloadCorrespondenceAttachmentRequest()
+            {
+                CorrespondenceId = correspondenceId,
+                AttachmentId = attachmentId
+            }, cancellationToken);
+
+            return commandResult.Match<ActionResult>(
+                result => File(result.Stream, "application/octet-stream", result.FileName),
                 Problem
             );
         }
