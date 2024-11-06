@@ -12,13 +12,21 @@ public class LegacyUpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespond
     private readonly IAltinnRegisterService _altinnRegisterService;
     private readonly IEventBus _eventBus;
     private readonly UserClaimsHelper _userClaimsHelper;
-    public LegacyUpdateCorrespondenceStatusHandler(ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IAltinnRegisterService altinnRegisterService, IEventBus eventBus, UserClaimsHelper userClaimsHelper)
+    private readonly UpdateCorrespondenceStatusHelper _updateCorrespondenceStatusHelper;
+    public LegacyUpdateCorrespondenceStatusHandler(
+        ICorrespondenceRepository correspondenceRepository,
+        ICorrespondenceStatusRepository correspondenceStatusRepository,
+        IAltinnRegisterService altinnRegisterService,
+        IEventBus eventBus,
+        UserClaimsHelper userClaimsHelper,
+        UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper)
     {
         _correspondenceRepository = correspondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
         _altinnRegisterService = altinnRegisterService;
         _eventBus = eventBus;
         _userClaimsHelper = userClaimsHelper;
+        _updateCorrespondenceStatusHelper = updateCorrespondenceStatusHelper;
     }
     public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusRequest request, CancellationToken cancellationToken)
     {
@@ -51,8 +59,7 @@ public class LegacyUpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespond
             return Errors.CorrespondenceNotFound;
         }
         // TODO: Implement logic for markasread and markasunread
-        var updateStatusHelper = new UpdateCorrespondenceStatusHelper();
-        var updateError = updateStatusHelper.ValidateUpdateRequest(request, correspondence);
+        var updateError = _updateCorrespondenceStatusHelper.ValidateUpdateRequest(request, correspondence);
         if (updateError is not null)
         {
             return updateError;
@@ -66,7 +73,7 @@ public class LegacyUpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespond
             StatusText = request.Status.ToString(),
         }, cancellationToken);
 
-        await updateStatusHelper.PublishEvent(_eventBus, correspondence, request.Status, cancellationToken);
+        await _updateCorrespondenceStatusHelper.PublishEvent(_eventBus, correspondence, request.Status, cancellationToken);
         return request.CorrespondenceId;
     }
 }
