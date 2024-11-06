@@ -18,8 +18,17 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
     private readonly IDialogportenService _dialogportenService;
     private readonly UserClaimsHelper _userClaimsHelper;
     private readonly IBackgroundJobClient _backgroundJobClient;
+    private readonly UpdateCorrespondenceStatusHelper _updateCorrespondenceStatusHelper;
 
-    public UpdateCorrespondenceStatusHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IEventBus eventBus, IDialogportenService dialogportenService, UserClaimsHelper userClaimsHelper, IBackgroundJobClient backgroundJobClient)
+    public UpdateCorrespondenceStatusHandler(
+        IAltinnAuthorizationService altinnAuthorizationService,
+        ICorrespondenceRepository correspondenceRepository,
+        ICorrespondenceStatusRepository correspondenceStatusRepository,
+        IEventBus eventBus,
+        IDialogportenService dialogportenService,
+        UserClaimsHelper userClaimsHelper,
+        IBackgroundJobClient backgroundJobClient,
+        UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
@@ -28,6 +37,7 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         _dialogportenService = dialogportenService;
         _userClaimsHelper = userClaimsHelper;
         _backgroundJobClient = backgroundJobClient;
+        _updateCorrespondenceStatusHelper = updateCorrespondenceStatusHelper;
     }
 
     public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusRequest request, CancellationToken cancellationToken)
@@ -64,8 +74,7 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             await _correspondenceRepository.UpdateMarkedUnread(request.CorrespondenceId, false, cancellationToken);
         }
-        var updateStatusHelper = new UpdateCorrespondenceStatusHelper();
-        var updateError = updateStatusHelper.ValidateUpdateRequest(request, correspondence);
+        var updateError = _updateCorrespondenceStatusHelper.ValidateUpdateRequest(request, correspondence);
         if (updateError is not null)
         {
             return updateError;
@@ -79,7 +88,7 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
             StatusText = request.Status.ToString(),
         }, cancellationToken);
         _backgroundJobClient.Enqueue(() => ReportActivityToDialogporten(request.CorrespondenceId, DialogportenActorType.Recipient, request.Status));
-        await updateStatusHelper.PublishEvent(_eventBus, correspondence, request.Status, cancellationToken);
+        await _updateCorrespondenceStatusHelper.PublishEvent(_eventBus, correspondence, request.Status, cancellationToken);
         return request.CorrespondenceId;
     }
 
