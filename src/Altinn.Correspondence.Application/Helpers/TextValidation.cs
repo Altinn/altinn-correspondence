@@ -7,6 +7,13 @@ namespace Altinn.Correspondence.Application.Helpers;
 
 public class TextValidation
 {
+    public static string ConvertToHtml(string markdown)
+    {
+        var pipleline = new MarkdownPipelineBuilder().UseAdvancedExtensions().UseYamlFrontMatter().Build();
+        var html = Markdown.ToHtml(markdown, pipleline).Replace("\n", "");
+        return html;
+    }
+
     public static bool ValidatePlainText(string text)
     {
         var converter = new ReverseMarkdown.Converter();
