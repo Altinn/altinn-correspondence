@@ -33,6 +33,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCor
         {
             return Errors.CouldNotFindOrgNo;
         }
+        // TODO: Authorize party
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
         if (correspondence is null)
         {
@@ -46,7 +47,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCor
         var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken);
         if (minimumAuthLevel is not int authenticationLevel)
         {
-            authenticationLevel = 2;
+            authenticationLevel = 2; // TODO: Remove when authorization is implemented
             // return Errors.LegacyNoAccessToCorrespondence;
         }
 
