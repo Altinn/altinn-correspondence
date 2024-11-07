@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.Configuration;
