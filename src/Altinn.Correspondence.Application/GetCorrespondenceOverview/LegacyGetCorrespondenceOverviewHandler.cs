@@ -3,6 +3,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Markdig;
 using Microsoft.Extensions.Logging;
 using OneOf;
 
@@ -111,8 +112,8 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
             Attachments = correspondence.Content!.Attachments ?? new List<CorrespondenceAttachmentEntity>(),
             Language = correspondence.Content!.Language,
             MessageTitle = correspondence.Content!.MessageTitle,
-            MessageSummary = correspondence.Content!.MessageSummary,
-            MessageBody = correspondence.Content!.MessageBody,
+            MessageSummary = ConvertToHtml(correspondence.Content!.MessageSummary),
+            MessageBody = ConvertToHtml(correspondence.Content!.MessageBody),
             Status = latestStatus.Status,
             StatusText = latestStatus.StatusText,
             StatusChanged = latestStatus.StatusChanged,
@@ -142,5 +143,12 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
             InstanceOwnerPartyId = resourceOwnerParty.PartyId
         };
         return response;
+    }
+
+    public string ConvertToHtml(string markdown)
+    {
+        var pipleline = new MarkdownPipelineBuilder().UseAdvancedExtensions().UseYamlFrontMatter().Build();
+        var html = Markdown.ToHtml(markdown, pipleline).Replace("\n", "");
+        return html;
     }
 }
