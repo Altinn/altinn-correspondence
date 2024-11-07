@@ -38,7 +38,7 @@ public class LegacyDownloadCorrespondenceAttachmentHandler : IHandler<DownloadCo
         {
             return Errors.CouldNotFindOrgNo;
         }
-
+        // TODO: Authorize party
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, cancellationToken);
         if (correspondence is null)
         {
@@ -48,11 +48,6 @@ public class LegacyDownloadCorrespondenceAttachmentHandler : IHandler<DownloadCo
         if (attachment is null)
         {
             return Errors.AttachmentNotFound;
-        }
-        bool isRecipient = correspondence.Recipient == ("0192:"+party.OrgNumber) || correspondence.Recipient == party.SSN;
-        if (!isRecipient)
-        {
-            return Errors.CorrespondenceNotFound;
         }
         var latestStatus = correspondence.GetLatestStatus();
         if (!latestStatus.Status.IsAvailableForRecipient())
