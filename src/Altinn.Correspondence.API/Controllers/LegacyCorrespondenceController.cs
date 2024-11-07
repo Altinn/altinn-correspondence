@@ -6,6 +6,8 @@ using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 using Altinn.Correspondence.Application.GetCorrespondenceHistory;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
+using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -120,6 +122,60 @@ namespace Altinn.Correspondence.API.Controllers
             );
         }
 
+        /// Mark Correspondence found by ID as confirmed
+        /// </summary>
+        /// <remarks>
+        /// Meant for Receivers
+        /// </remarks>
+        /// <returns>StatusId</returns>
+        [HttpPost]
+        [Route("{correspondenceId}/confirm")]
+        public async Task<ActionResult> Confirm(
+            Guid correspondenceId,
+            [FromServices] LegacyUpdateCorrespondenceStatusHandler handler,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Marking Correspondence as confirmed for {correspondenceId}", correspondenceId.ToString());
+
+            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
+            {
+                CorrespondenceId = correspondenceId,
+                Status = CorrespondenceStatus.Confirmed
+            }, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
+                Problem
+            );
+        }
+
+        /// <summary>
+        /// Mark Correspondence found by ID as archived
+        /// </summary>
+        /// <remarks>
+        /// Meant for Receivers
+        /// </remarks>
+        /// <returns>StatusId</returns>
+        [HttpPost]
+        [Route("{correspondenceId}/archive")]
+        public async Task<ActionResult> Archive(
+            Guid correspondenceId,
+            [FromServices] LegacyUpdateCorrespondenceStatusHandler handler,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Archiving Correspondence with id: {correspondenceId}", correspondenceId.ToString());
+
+            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
+            {
+                CorrespondenceId = correspondenceId,
+                Status = CorrespondenceStatus.Archived
+            }, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
+                Problem
+            );
+        }
         private ActionResult Problem(Error error) => Problem(detail: error.Message, statusCode: (int)error.StatusCode);
     }
 }
