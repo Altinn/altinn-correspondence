@@ -25,7 +25,8 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
         _factory = factory;
         _serializerOptions = new JsonSerializerOptions
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
         };
         _serializerOptions.Converters.Add(new JsonStringEnumConverter());
 
