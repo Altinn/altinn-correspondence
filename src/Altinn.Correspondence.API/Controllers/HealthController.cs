@@ -4,6 +4,7 @@ namespace Altinn.Correspondence.Controllers
 {
     [ApiController]
     [Route("health")]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public class HealthController(ApplicationDbContext dbContext, ILogger<HealthController> logger) : ControllerBase
     {
         private readonly ApplicationDbContext _dbContext = dbContext;
