@@ -1,8 +1,12 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.Configuration;
+using Altinn.Correspondence.Application.GetCorrespondenceHistory;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Helpers;
 
@@ -55,6 +59,44 @@ public class LegacyControllerTests
         // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+    
+    [Fact]
+    public async Task LegacyGetCorrespondenceOverview_CorrespondenceNotPublished_Returns404()
+    {
+        // Arrange
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
+            .Build();
+        var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+        // Act
+        var response = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview");
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task LegacyGetCorrespondenceOverview_ShouldAddFetchedToStatusHistory()
+    {
+        // Arrange
+        var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+        var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+
+        // Act
+        var overviewResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview");
+        Assert.Equal(HttpStatusCode.OK, overviewResponse.StatusCode);
+        var overviewContent = await overviewResponse.Content.ReadFromJsonAsync<LegacyCorrespondenceOverviewExt>(_serializerOptions);
+        Assert.NotNull(overviewContent);
+        Assert.NotEqual(CorrespondenceStatusExt.Fetched, overviewContent.Status);
+        
+
+        // Assert
+        var historyResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/history");
+        Assert.Equal(HttpStatusCode.OK, historyResponse.StatusCode);
+        var historyData = await historyResponse.Content.ReadFromJsonAsync<LegacyGetCorrespondenceHistoryResponse>();
+        Assert.NotNull(historyData);
+        Assert.Contains(historyData.History, status => status.Status.Contains(CorrespondenceStatus.Fetched.ToString()));
+    }
 
     [Fact]
     public async Task LegacyGetCorrespondenceHistory_WithValidRequest_ReturnsOk()
@@ -79,6 +121,21 @@ public class LegacyControllerTests
         var response = await client.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/history");
         // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateCorrespondenceStatus_ReturnOk()
+    {
+        // Arrange
+        var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+        var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+        Assert.Equal(CorrespondenceStatusExt.Published, correspondence.Status);
+
+        // Act
+        var archiveResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/archive", null);
+        
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, archiveResponse.StatusCode);
     }
 
     [Fact]
@@ -159,14 +216,11 @@ public class LegacyControllerTests
     public async Task UpdateCorrespondenceStatus_ToConfirmed_WithoutFetched_ReturnsBadRequest()
     {
         //  Arrange
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
-        var correspondenceId = correspondence.CorrespondenceId;
 
         //  Act
-        var confirmResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondenceId}/confirm", null);
+        var confirmResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/confirm", null);
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, confirmResponse.StatusCode);
@@ -176,16 +230,13 @@ public class LegacyControllerTests
     public async Task UpdateCorrespondenceStatus_ToConfirmed_WhenCorrespondenceIsFetched_GivesOk()
     {
         //  Arrange
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+        var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
-        var correspondenceId = correspondence.CorrespondenceId;
 
         //  Act
-        var fetchResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondenceId}/overview");
+        var fetchResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview");
         Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
-        var confirmResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondenceId}/confirm", null);
+        var confirmResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/confirm", null);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
