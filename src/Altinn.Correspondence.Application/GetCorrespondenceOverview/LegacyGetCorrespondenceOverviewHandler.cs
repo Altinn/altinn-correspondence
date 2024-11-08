@@ -34,7 +34,7 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
     {
         if (_userClaimsHelper.GetPartyId() is not int partyId)
         {
-            return Errors.NoAccessToResource;
+            return Errors.InvalidPartyId;
         }
         var userParty = await _altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
