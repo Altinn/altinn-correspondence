@@ -21,12 +21,6 @@ namespace Altinn.Correspondence.API.Models
         public int Limit { get; set; }
 
         /// <summary>
-        /// PartyId of the end user performing the search
-        /// </summary>
-        [JsonPropertyName("onbehalfOfPartyId")]
-        public required int OnbehalfOfPartyId { get; set; }
-
-        /// <summary>
         /// A list of the parties/recipients that own the Correspondence instances
         /// </summary>
         [JsonPropertyName("instanceOwnerPartyIdList")]

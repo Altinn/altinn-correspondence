@@ -33,22 +33,20 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCor
         {
             return Errors.CouldNotFindOrgNo;
         }
-        // TODO: Authorize party
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
         if (correspondence is null)
         {
             return Errors.CorrespondenceNotFound;
         }
+        var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(recipientParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
+        if (minimumAuthLevel is null)
+        {
+            return Errors.LegacyNoAccessToCorrespondence;
+        }
         var senderParty = await _altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
         if (senderParty == null || (string.IsNullOrEmpty(senderParty.SSN) && string.IsNullOrEmpty(senderParty.OrgNumber)))
         {
             return Errors.CouldNotFindOrgNo;
-        }
-        var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(recipientParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
-        if (minimumAuthLevel is not int authenticationLevel)
-        {
-            authenticationLevel = 2; // TODO: Remove when authorization is implemented
-            // return Errors.LegacyNoAccessToCorrespondence;
         }
 
         var correspondenceHistory = correspondence.Statuses
@@ -61,7 +59,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCor
                 User = new LegacyUser
                 {
                     PartyId = recipientParty.PartyId.ToString(),
-                    AuthenticationLevel = authenticationLevel
+                    AuthenticationLevel = (int)minimumAuthLevel
                 },
             }).ToList();
 
@@ -81,7 +79,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCor
                     notificationDetails.NotificationsStatusDetails.Sms.Recipient,
                     notification.IsReminder,
                     senderParty.PartyId.ToString(),
-                    authenticationLevel));
+                    (int)minimumAuthLevel));
             }
             if (notificationDetails.NotificationsStatusDetails.Email is not null)
             {
@@ -90,7 +88,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCor
                     notificationDetails.NotificationsStatusDetails.Email.Recipient,
                     notification.IsReminder,
                     senderParty.PartyId.ToString(),
-                    authenticationLevel));
+                    (int)minimumAuthLevel));
             }
         }
 

@@ -38,16 +38,14 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         var limit = request.Limit == 0 ? 50 : request.Limit;
         DateTimeOffset? to = request.To != null ? ((DateTimeOffset)request.To).ToUniversalTime() : null;
         DateTimeOffset? from = request.From != null ? ((DateTimeOffset)request.From).ToUniversalTime() : null;
-
-        // Verify and map partyId for user
-        if (request.OnbehalfOfPartyId == 0 || request.OnbehalfOfPartyId == int.MinValue)
+        if (_userClaimsHelper.GetPartyId() is not int partyId)
         {
-            return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
+            return Errors.InvalidPartyId;
         }
-        var userParty = await _altinnRegisterService.LookUpPartyByPartyId(request.OnbehalfOfPartyId, cancellationToken);
+        var userParty = await _altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
         {
-            return Errors.CouldNotFindOrgNo; // TODO: Update to better error message
+            return Errors.CouldNotFindOrgNo;
         }
         var recipients = new List<string>();
         if (request.InstanceOwnerPartyIdList != null && request.InstanceOwnerPartyIdList.Length > 0)
@@ -68,15 +66,14 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         }
         else
         {
-            recipients.Add(string.IsNullOrEmpty(userParty.SSN) ? "0192:" + userParty.OrgNumber : userParty.SSN);
+            if (!string.IsNullOrEmpty(userParty.SSN)) recipients.Add(userParty.SSN);
+            if (!string.IsNullOrEmpty(userParty.OrgNumber)) recipients.Add("0192:" + userParty.OrgNumber);
         }
 
         List<string> resourcesToSearch = new List<string>();
 
         // Get all correspondences owned by Recipients
         var correspondences = await _correspondenceRepository.GetCorrespondencesForParties(request.Offset, limit, from, to, request.Status, recipients, resourcesToSearch, request.Language, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken);
-
-        Console.WriteLine($"Found {correspondences.Item1.Count} correspondences");
 
         var resourceIds = correspondences.Item1.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
@@ -112,6 +109,11 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         }
         foreach (var correspondence in correspondences.Item1)
         {
+            var minAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
+            if (minAuthLevel == null)
+            {
+                continue;
+            }
             var purgedStatus = correspondence.GetPurgedStatus();
             var owner = resourceOwners.SingleOrDefault(r => r.OrgNumber == correspondence.Sender)?.Party;
             var recipient = recipientDetails.SingleOrDefault(r => r.OrgNumber == correspondence.Recipient)?.Party;
@@ -124,7 +126,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                     MessageTitle = correspondence.Content.MessageTitle,
                     Status = correspondence.GetLatestStatusWithoutPurged().Status,
                     CorrespondenceId = correspondence.Id,
-                    MinimumAuthenticationLevel = 0, // Insert from response from PDP multirequest
+                    MinimumAuthenticationLevel = (int)minAuthLevel,
                     Published = correspondence.Published,
                     PurgedStatus = purgedStatus?.Status,
                     Purged = purgedStatus?.StatusChanged,
@@ -135,7 +137,6 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                 }
                 );
         }
-        Console.WriteLine($"Finished correspondences: {correspondenceItems.Count}");
         var response = new LegacyGetCorrespondencesResponse
         {
             Items = correspondenceItems,
@@ -149,13 +150,3 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         return response;
     }
 }
-
-// TODO: Get All Resources these parties can access. I do think these resources is included in authorized parties response
-//   <https://docs.altinn.studio/api/resourceregistry/spec/#/Resource/post_resource_bysubjects>
-//   https://digdir.slack.com/archives/D07CXBW9AJH/p1727966248268839?thread_ts=1727960943.538609&cid=D07CXBW9AJH
-
-// TODO: Authorize each correspondence using multirequests
-//  https://docs.altinn.studio/authorization/guides/xacml/#request-for-multiple-decisions
-//  https://docs.altinn.studio/api/authorization/spec/#/Decision/post_authorize
-//   Filter out where authorization failed
-//   Enrich with minimum authentication level where successfull
