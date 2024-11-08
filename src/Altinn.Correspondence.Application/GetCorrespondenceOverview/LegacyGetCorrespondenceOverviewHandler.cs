@@ -51,15 +51,6 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
         {
             return Errors.LegacyNoAccessToCorrespondence;
         }
-        if (correspondence.Recipient != userParty.SSN && correspondence.Recipient != ("0192:" + userParty.OrgNumber))
-        {
-            var authorizedParties = await _altinnAccessManagementService.GetAuthorizedParties(userParty, cancellationToken);
-            var isAuthorized = authorizedParties.Any(p => ("0192:" + p.OrgNumber) == correspondence.Recipient || p.SSN == correspondence.Recipient);
-            if (!isAuthorized)
-            {
-                return Errors.LegacyNoAccessToCorrespondence;
-            }
-        }
         var latestStatus = correspondence.GetLatestStatus();
         if (latestStatus == null)
         {
