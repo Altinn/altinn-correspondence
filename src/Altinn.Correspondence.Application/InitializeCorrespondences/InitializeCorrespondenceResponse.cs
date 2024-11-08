@@ -4,24 +4,24 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
 public class InitializeCorrespondencesResponse
 {
-    public List<CorrespondenceDetails> Correspondences { get; set; }
+    public List<InitializedCorrespondences> Correspondences { get; set; }
     public List<Guid> AttachmentIds { get; set; }
 }
 
-public class CorrespondenceDetails
+public class InitializedCorrespondences
 {
     public Guid CorrespondenceId { get; set; }
     public CorrespondenceStatus Status { get; set; }
     public required string Recipient { get; set; }
-    public List<NotificationDetails>? Notifications { get; set; }
+    public List<InitializedCorrespondencesNotifications>? Notifications { get; set; }
 }
-public class NotificationDetails
+public class InitializedCorrespondencesNotifications
 {
     public Guid? OrderId { get; set; }
     public bool? IsReminder { get; set; }
-    public NotificationStatus Status { get; set; }
+    public InitializedNotificationStatus Status { get; set; }
 }
-public enum NotificationStatus 
+public enum InitializedNotificationStatus 
 {
     Success,
     MissingContact,

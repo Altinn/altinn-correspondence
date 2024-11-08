@@ -636,7 +636,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadResourceB);
         Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
 
-        int status = (int)CorrespondenceStatus.Published;
+        int status = (int)CorrespondenceStatusExt.Published;
         var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceA}&offset={0}&limit={10}&status={status}&role={"recipientandsender"}");
         Assert.Equal(correspondenceList?.Pagination.TotalItems, payloadResourceA.Recipients.Count);
     }
@@ -1053,7 +1053,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
         var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
-        Assert.Equal(CorrespondenceStatus.Published, response?.Correspondences.FirstOrDefault()?.Status);
+        Assert.Equal(CorrespondenceStatusExt.Published, response?.Correspondences.FirstOrDefault()?.Status);
         var correspondenceId = response?.Correspondences.FirstOrDefault()?.CorrespondenceId;
 
         // Act
@@ -1080,7 +1080,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-        Assert.Equal(CorrespondenceStatus.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
+        Assert.Equal(CorrespondenceStatusExt.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
         var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
 
         //  Act
@@ -1099,7 +1099,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-        Assert.Equal(CorrespondenceStatus.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
+        Assert.Equal(CorrespondenceStatusExt.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
         var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
 
         //  Act
@@ -1118,7 +1118,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-        Assert.Equal(CorrespondenceStatus.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
+        Assert.Equal(CorrespondenceStatusExt.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
         var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
 
         //  Act
@@ -1141,7 +1141,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-        Assert.Equal(CorrespondenceStatus.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
+        Assert.Equal(CorrespondenceStatusExt.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
         var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
 
         //  Act
@@ -1162,7 +1162,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-        Assert.Equal(CorrespondenceStatus.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
+        Assert.Equal(CorrespondenceStatusExt.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
         var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
 
         //  Act
@@ -1325,7 +1325,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-        Assert.Equal(CorrespondenceStatus.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
+        Assert.Equal(CorrespondenceStatusExt.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
         var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
 
         //  Act
@@ -1346,7 +1346,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             .Build();
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
         var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-        Assert.Equal(CorrespondenceStatus.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
+        Assert.Equal(CorrespondenceStatusExt.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
         var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
 
         //  Act
@@ -1667,8 +1667,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
-        Assert.Equal(CorrespondenceStatus.Published, content?.Correspondences.First().Status);
-        Assert.Equal(Application.InitializeCorrespondences.NotificationStatus.MissingContact, content?.Correspondences?.First()?.Notifications?.First().Status);
+        Assert.Equal(CorrespondenceStatusExt.Published, content?.Correspondences.First().Status);
+        Assert.Equal(InitializedNotificationStatusExt.MissingContact, content?.Correspondences?.First()?.Notifications?.First().Status);
         Assert.Equal(orderId, content?.Correspondences?.First()?.Notifications?.First().OrderId);
     }
     [Fact]
@@ -1698,8 +1698,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
-        Assert.Equal(CorrespondenceStatus.Published, content?.Correspondences.First().Status);
-        Assert.Equal(Application.InitializeCorrespondences.NotificationStatus.Failure, content?.Correspondences?.First()?.Notifications?.First().Status);
+        Assert.Equal(CorrespondenceStatusExt.Published, content?.Correspondences.First().Status);
+        Assert.Equal(InitializedNotificationStatusExt.Failure, content?.Correspondences?.First()?.Notifications?.First().Status);
         Assert.Equal(Guid.Empty, content?.Correspondences?.First()?.Notifications?.First().OrderId);
     }
     [Fact]
@@ -1739,8 +1739,8 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
-        Assert.Equal(CorrespondenceStatus.Published, content?.Correspondences.First().Status);
-        Assert.Equal(Application.InitializeCorrespondences.NotificationStatus.Success, content?.Correspondences?.First()?.Notifications?.First().Status);
+        Assert.Equal(CorrespondenceStatusExt.Published, content?.Correspondences.First().Status);
+        Assert.Equal(InitializedNotificationStatusExt.Success, content?.Correspondences?.First()?.Notifications?.First().Status);
         Assert.Equal(orderId, content?.Correspondences?.First()?.Notifications?.First().OrderId);
     }
 
