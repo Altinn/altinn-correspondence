@@ -18,6 +18,7 @@ namespace Altinn.Correspondence.API.Controllers
     /// As such it overrides some standad authentication mechanisms
     /// </summary>
     [ApiController]
+    [ApiExplorerSettings(IgnoreApi = true)]
     [Route("correspondence/api/v1/legacy/correspondence")]
     [Authorize(Policy = AuthorizationConstants.Legacy)]
     public class LegacyCorrespondenceController : Controller
@@ -38,7 +39,6 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns>Overview information about the correspondence</returns>
         [HttpGet]
         [Route("{correspondenceId}/overview")]
-        [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
             Guid correspondenceId,
             [FromServices] LegacyGetCorrespondenceOverviewHandler handler,
@@ -58,7 +58,6 @@ namespace Altinn.Correspondence.API.Controllers
         /// </summary>
         [HttpGet]
         [Route("{correspondenceId}/history")]
-        [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<ActionResult<LegacyGetCorrespondenceHistoryResponse>> GetCorrespondenceHistory( // TODO: Should this be LegacyCorrespondenceHistoryExt? 
             Guid correspondenceId,
             [FromServices] LegacyGetCorrespondenceHistoryHandler handler,
@@ -79,7 +78,6 @@ namespace Altinn.Correspondence.API.Controllers
         /// </summary>
         /// <returns>A list of overall Correspondence data and pagination metadata</returns>
         [HttpPost]
-        [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<ActionResult<CorrespondencesExt>> GetCorrespondences(
             LegacyGetCorrespondencesRequestExt request,
             [FromServices] LegacyGetCorrespondencesHandler handler,
@@ -102,7 +100,6 @@ namespace Altinn.Correspondence.API.Controllers
         /// </summary>
         [HttpGet]
         [Route("{correspondenceId}/attachment/{attachmentId}/download")]
-        [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<ActionResult> DownloadCorrespondenceAttachment(
             Guid correspondenceId,
             Guid attachmentId,
