@@ -61,7 +61,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     {
         var user = _httpContextAccessor.HttpContext?.User;
         var validation = await ValidateCheckUserAccess(user, resourceId, cancellationToken);
-        if (validation != null) return null;
+        if (validation != null) return (bool)validation ? 3 : null;
         var actionIds = rights.Select(GetActionId).ToList();
         var orgnr = recipientOrgNo.Split(":")[1];
         XacmlJsonRequestRoot jsonRequest = CreateDecisionRequestForLegacy(user, ssn, actionIds, resourceId, orgnr);
