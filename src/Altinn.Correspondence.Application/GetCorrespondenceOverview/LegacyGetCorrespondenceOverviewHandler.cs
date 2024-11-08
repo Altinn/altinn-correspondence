@@ -46,12 +46,11 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
         {
             return Errors.CorrespondenceNotFound;
         }
-        /*var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken);
+        var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
         if (minimumAuthLevel == null)
         {
             return Errors.LegacyNoAccessToCorrespondence;
-        } */
-        var minimumAuthLevel = 2;
+        }
         var recipients = new List<string>();
         if (correspondence.Recipient != userParty.SSN && correspondence.Recipient != ("0192:" + userParty.OrgNumber))
         {
