@@ -11,8 +11,6 @@ public class InitializeCorrespondencesRequest
 
     public NotificationRequest? Notification { get; set; }
 
-    public bool IsUploadRequest { get; set; }
-
     public List<Guid> ExistingAttachments { get; set; }
 
     public List<string> Recipients { get; set; }
