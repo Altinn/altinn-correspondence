@@ -34,7 +34,7 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
     {
         if (_userClaimsHelper.GetPartyId() is not int partyId)
         {
-            return Errors.NoAccessToResource;
+            return Errors.InvalidPartyId;
         }
         var userParty = await _altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
@@ -51,7 +51,6 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
         {
             return Errors.LegacyNoAccessToCorrespondence;
         }
-        var recipients = new List<string>();
         if (correspondence.Recipient != userParty.SSN && correspondence.Recipient != ("0192:" + userParty.OrgNumber))
         {
             var authorizedParties = await _altinnAccessManagementService.GetAuthorizedParties(userParty, cancellationToken);

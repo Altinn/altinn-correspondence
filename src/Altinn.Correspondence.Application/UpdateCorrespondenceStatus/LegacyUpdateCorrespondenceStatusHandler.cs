@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using OneOf;
@@ -9,6 +10,7 @@ public class LegacyUpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespond
 {
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly IAltinnRegisterService _altinnRegisterService;
     private readonly IEventBus _eventBus;
     private readonly UserClaimsHelper _userClaimsHelper;
@@ -16,6 +18,7 @@ public class LegacyUpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespond
     public LegacyUpdateCorrespondenceStatusHandler(
         ICorrespondenceRepository correspondenceRepository,
         ICorrespondenceStatusRepository correspondenceStatusRepository,
+        IAltinnAuthorizationService altinnAuthorizationService,
         IAltinnRegisterService altinnRegisterService,
         IEventBus eventBus,
         UserClaimsHelper userClaimsHelper,
@@ -23,6 +26,7 @@ public class LegacyUpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespond
     {
         _correspondenceRepository = correspondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
+        _altinnAuthorizationService = altinnAuthorizationService;
         _altinnRegisterService = altinnRegisterService;
         _eventBus = eventBus;
         _userClaimsHelper = userClaimsHelper;
@@ -39,11 +43,15 @@ public class LegacyUpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespond
         {
             return Errors.CouldNotFindOrgNo;
         }
-        // TODO: Authorize party
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, cancellationToken);
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
+        }
+        var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(party.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
+        if (minimumAuthLevel == null)
+        {
+            return Errors.LegacyNoAccessToCorrespondence;
         }
         var currentStatus = correspondence.GetLatestStatus();
         if (currentStatus is null)
