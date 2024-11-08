@@ -40,7 +40,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         DateTimeOffset? from = request.From != null ? ((DateTimeOffset)request.From).ToUniversalTime() : null;
         if (_userClaimsHelper.GetPartyId() is not int partyId)
         {
-            return Errors.NoAccessToResource;
+            return Errors.InvalidPartyId;
         }
         var userParty = await _altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
