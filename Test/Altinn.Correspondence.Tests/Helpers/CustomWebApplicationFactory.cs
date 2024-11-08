@@ -1,9 +1,10 @@
-using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Integrations.Altinn.AccessManagement;
 using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Altinn.Correspondence.Integrations.Altinn.Events;
 using Altinn.Correspondence.Integrations.Altinn.Notifications;
+using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
@@ -45,6 +46,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
             services.AddScoped<IDialogportenService, DialogportenDevService>();
             services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationDevService>();
+            services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
+            services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
         });
     }
     public HttpClient CreateClientWithAddedClaims(params (string type, string value)[] claims)
