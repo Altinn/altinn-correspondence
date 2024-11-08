@@ -49,20 +49,16 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] InitializeCorrespondencesHandler handler,
             CancellationToken cancellationToken)
         {
-                LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
-                _logger.LogInformation("Initialize correspondences");
+            LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
+            _logger.LogInformation("Initialize correspondences");
 
-                var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, null, request.ExistingAttachments, false);
-                var commandResult = await handler.Process(commandRequest, cancellationToken);
+            var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, null, request.ExistingAttachments, false);
+            var commandResult = await handler.Process(commandRequest, cancellationToken);
 
-                return commandResult.Match(
-                    data => Ok(new InitializeCorrespondencesResponseExt()
-                    {
-                        Correspondences = data.Correspondences,
-                        AttachmentIds = data.AttachmentIds
-                    }),
-                    Problem
-                );
+            return commandResult.Match(
+                data => Ok(InitializeCorrespondencesMapper.MapToExternal(data)),
+                Problem
+            );
         }
 
         /// <summary>
@@ -90,11 +86,7 @@ namespace Altinn.Correspondence.API.Controllers
             var commandResult = await handler.Process(commandRequest, cancellationToken);
 
             return commandResult.Match(
-                data => Ok(new InitializeCorrespondencesResponseExt()
-                {
-                    Correspondences = data.Correspondences,
-                    AttachmentIds = data.AttachmentIds
-                }),
+                data => Ok(InitializeCorrespondencesMapper.MapToExternal(data)),
                 Problem
             );
         }

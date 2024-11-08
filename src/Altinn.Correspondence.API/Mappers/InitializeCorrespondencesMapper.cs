@@ -1,4 +1,5 @@
 using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Core.Models.Entities;
 
@@ -44,6 +45,25 @@ internal static class InitializeCorrespondencesMapper
             ExistingAttachments = existingAttachments ?? new List<Guid>(),
             Recipients = Recipients,
             Notification = initializeCorrespondenceExt.Notification != null ? InitializeCorrespondenceNotificationMapper.MapToRequest(initializeCorrespondenceExt.Notification) : null
+        };
+    }
+    internal static InitializeCorrespondencesResponseExt MapToExternal(InitializeCorrespondencesResponse response)
+    {
+        return new InitializeCorrespondencesResponseExt
+        {
+            Correspondences = response.Correspondences.Select(correspondence => new InitializedCorrespondencesExt
+            {
+                CorrespondenceId = correspondence.CorrespondenceId,
+                Status = (CorrespondenceStatusExt)correspondence.Status,
+                Recipient = correspondence.Recipient,
+                Notifications = correspondence.Notifications?.Select(notification => new InitializedCorrespondencesNotificationsExt
+                {
+                    OrderId = notification.OrderId,
+                    IsReminder = notification.IsReminder,
+                    Status = (InitializedNotificationStatusExt)notification.Status
+                }).ToList()
+            }).ToList(),
+            AttachmentIds = response.AttachmentIds
         };
     }
 }
