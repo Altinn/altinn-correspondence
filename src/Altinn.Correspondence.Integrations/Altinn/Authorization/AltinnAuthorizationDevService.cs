@@ -15,7 +15,7 @@ namespace Altinn.Correspondence.Integrations.Altinn.Authorization
             return Task.FromResult(true);
         }
 
-        public Task<int?> CheckUserAccessAndGetMinimumAuthLevel(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, string? recipientOrgNo = null)
+        public Task<int?> CheckUserAccessAndGetMinimumAuthLevel(string ssn, string resourceId, List<ResourceAccessLevel> rights, string recipientOrgNo, CancellationToken cancellationToken = default)
         {
             return Task.FromResult((int?)3);
         }

@@ -47,7 +47,9 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         var user = _httpContextAccessor.HttpContext?.User;
         var validation = await ValidateCheckUserAccess(user, resourceId, cancellationToken);
         if (validation != null) return (bool)validation;
-        var responseContent = await AuthorizeRequest(user, rights, resourceId, recipientOrgNo, cancellationToken);
+        var actionIds = rights.Select(GetActionId).ToList();
+        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, actionIds, resourceId, recipientOrgNo);
+        var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
         if (responseContent is null) return false;
 
         var validationResult = ValidateAuthorizationResponse(responseContent, user);
@@ -55,12 +57,15 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     }
 
 
-    public async Task<int?> CheckUserAccessAndGetMinimumAuthLevel(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, string? recipientOrgNo = null)
+    public async Task<int?> CheckUserAccessAndGetMinimumAuthLevel(string ssn, string resourceId, List<ResourceAccessLevel> rights, string recipientOrgNo, CancellationToken cancellationToken = default)
     {
         var user = _httpContextAccessor.HttpContext?.User;
         var validation = await ValidateCheckUserAccess(user, resourceId, cancellationToken);
         if (validation != null) return (bool)validation ? 3 : null;
-        var responseContent = await AuthorizeRequest(user, rights, resourceId, recipientOrgNo, cancellationToken);
+        var actionIds = rights.Select(GetActionId).ToList();
+        var orgnr = recipientOrgNo.Split(":")[1];
+        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequestForLegacy(user, ssn, actionIds, resourceId, orgnr);
+        var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
         if (responseContent is null) return null;
 
         var validationResult = ValidateAuthorizationResponse(responseContent, user);
@@ -107,10 +112,8 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         return null;
     }
 
-    private async Task<XacmlJsonResponse?> AuthorizeRequest(ClaimsPrincipal user, List<ResourceAccessLevel> rights, string resourceId, string? recipientOrgNo, CancellationToken cancellationToken)
+    private async Task<XacmlJsonResponse?> AuthorizeRequest(XacmlJsonRequestRoot jsonRequest, CancellationToken cancellationToken)
     {
-        var actionIds = rights.Select(GetActionId).ToList();
-        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, actionIds, resourceId, recipientOrgNo);
         var response = await _httpClient.PostAsJsonAsync("authorization/api/v1/authorize", jsonRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -142,6 +145,17 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         }
         throw new SecurityTokenInvalidIssuerException();
     }
+
+    private XacmlJsonRequestRoot CreateDecisionRequestForLegacy(ClaimsPrincipal user, string ssn, List<string> actionTypes, string resourceId, string recipientOrgNo)
+    {
+        var personIdClaim = GetPersonIdClaim();
+        if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
+        {
+            return AltinnTokenXacmlMapper.CreateAltinnDecisionRequestForLegacy(user, ssn, actionTypes, resourceId, recipientOrgNo);
+        }
+        throw new SecurityTokenInvalidIssuerException();
+    }
+
 
     private bool ValidateAuthorizationResponse(XacmlJsonResponse response, ClaimsPrincipal user)
     {
