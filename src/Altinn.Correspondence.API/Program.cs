@@ -91,10 +91,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.ConfigureAuthentication(config, hostEnvironment);
     services.ConfigureAuthorization(config);
     services.AddEndpointsApiExplorer();
-    services.AddSwaggerGen(options =>
-    {
-        options.DocumentFilter<IdportenCallbackInSwaggerFilter>();
-    });
+    services.AddSwaggerGen();
     services.AddApplicationInsightsTelemetry();
 
     services.AddApplicationHandlers();
