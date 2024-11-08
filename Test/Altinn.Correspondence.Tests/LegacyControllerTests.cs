@@ -11,7 +11,7 @@ using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Helpers;
 
 namespace Altinn.Correspondence.Tests;
-public class LegacyControllerTests
+public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly CustomWebApplicationFactory _factory;
     private readonly JsonSerializerOptions _serializerOptions;
@@ -20,9 +20,9 @@ public class LegacyControllerTests
     private readonly string _partyIdClaim = "urn:altinn:partyid";
     private readonly string _digdirPartyId = "50167512";
 
-    public LegacyControllerTests()
+    public LegacyControllerTests(CustomWebApplicationFactory factory)
     {
-        _factory = new CustomWebApplicationFactory();
+        _factory = factory;
         _serializerOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
