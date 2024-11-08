@@ -51,7 +51,6 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
         {
             return Errors.LegacyNoAccessToCorrespondence;
         }
-        var recipients = new List<string>();
         if (correspondence.Recipient != userParty.SSN && correspondence.Recipient != ("0192:" + userParty.OrgNumber))
         {
             var authorizedParties = await _altinnAccessManagementService.GetAuthorizedParties(userParty, cancellationToken);

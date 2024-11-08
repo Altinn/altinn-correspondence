@@ -16,7 +16,6 @@ internal static class LegacyGetCorrespondencesMapper
             IncludeArchived = requestExt.IncludeArchived,
             IncludeDeleted = requestExt.IncludeDeleted,
             InstanceOwnerPartyIdList = requestExt.InstanceOwnerPartyIdList,
-            OnbehalfOfPartyId = requestExt.OnbehalfOfPartyId,
             Offset = requestExt.Offset,
             Limit = requestExt.Limit,
             Language = requestExt.Language,

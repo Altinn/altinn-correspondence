@@ -7,8 +7,6 @@ public class LegacyGetCorrespondencesRequest
 {
     public required int[] InstanceOwnerPartyIdList { get; set; }
 
-    public required int OnbehalfOfPartyId { get; set; }
-
     public int Offset { get; set; }
 
     public int Limit { get; set; }
