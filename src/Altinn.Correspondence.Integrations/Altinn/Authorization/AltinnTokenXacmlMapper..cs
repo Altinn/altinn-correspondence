@@ -74,9 +74,13 @@ public static class AltinnTokenXacmlMapper
 
         resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceId, resourceId, DefaultType, DefaultIssuer));
         var claim = user.Claims.FirstOrDefault(claim => IsClientOrgNo(claim.Type));
-        if (claim is not null || legacy)
+        if (legacy && orgNr is not null)
         {
-            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(OrgNumberAttributeId, orgNr ?? claim.Value, DefaultType, DefaultIssuer));
+            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(OrgNumberAttributeId, orgNr, DefaultType, DefaultIssuer));
+        }
+        else if (claim is not null)
+        {
+            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(OrgNumberAttributeId, claim.Value, DefaultType, DefaultIssuer));
         }
 
         return resourceCategory;
