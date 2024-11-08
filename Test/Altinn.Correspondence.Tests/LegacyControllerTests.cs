@@ -6,9 +6,13 @@ using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Application.GetCorrespondenceHistory;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Helpers;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
 
 namespace Altinn.Correspondence.Tests;
 public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
@@ -56,10 +60,18 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
         // Arrange
         var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
-        var client = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.LegacyScope), (_partyIdClaim, "123"));
+        var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
+        {
+            var mockRegisterService = new Mock<IAltinnRegisterService>();
+            mockRegisterService
+                .Setup(service => service.LookUpPartyByPartyId(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Party)null);
+            services.AddSingleton(mockRegisterService.Object);
+        });
+        var failClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.LegacyScope), (_partyIdClaim, "123"));
 
         // Act
-        var response = await client.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview");
+        var response = await failClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview");
 
         // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -148,10 +160,18 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
         // Arrange
         var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
-        var client = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.LegacyScope), (_partyIdClaim, "123"));
+        var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
+        {
+            var mockRegisterService = new Mock<IAltinnRegisterService>();
+            mockRegisterService
+                .Setup(service => service.LookUpPartyByPartyId(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Party)null);
+            services.AddSingleton(mockRegisterService.Object);
+        });
+        var failClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.LegacyScope), (_partyIdClaim, "123"));
 
         // Act
-        var response = await client.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/history");
+        var response = await failClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/history");
 
         // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
