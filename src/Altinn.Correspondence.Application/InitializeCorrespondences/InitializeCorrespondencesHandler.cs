@@ -195,7 +195,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         }
         await _correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
 
-        var correspondenceDetails = new List<InializedCorrespondences>();
+        var initializedCorrespondences = new List<InitializedCorrespondences>();
         foreach (var correspondence in correspondences)
         {
             var dialogJob = _backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
@@ -254,7 +254,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
                     _backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime!.Value.ToString("yyyy-MM-dd HH:mm")));
                 }
             }
-            correspondenceDetails.Add(new InializedCorrespondences()
+            initializedCorrespondences.Add(new InitializedCorrespondences()
             {
                 CorrespondenceId = correspondence.Id,
                 Status = correspondence.GetLatestStatus().Status,
@@ -265,7 +265,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
 
         return new InitializeCorrespondencesResponse()
         {
-            Correspondences = correspondenceDetails,
+            Correspondences = initializedCorrespondences,
             AttachmentIds = correspondences.SelectMany(c => c.Content?.Attachments.Select(a => a.AttachmentId)).ToList()
         };
     }

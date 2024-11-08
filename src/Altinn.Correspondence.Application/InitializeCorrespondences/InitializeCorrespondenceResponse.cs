@@ -4,11 +4,11 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
 public class InitializeCorrespondencesResponse
 {
-    public List<InializedCorrespondences> Correspondences { get; set; }
+    public List<InitializedCorrespondences> Correspondences { get; set; }
     public List<Guid> AttachmentIds { get; set; }
 }
 
-public class InializedCorrespondences
+public class InitializedCorrespondences
 {
     public Guid CorrespondenceId { get; set; }
     public CorrespondenceStatus Status { get; set; }
