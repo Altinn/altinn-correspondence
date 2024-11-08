@@ -492,9 +492,6 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     public async Task UploadCorrespondenceWithoutAttachments_Gives_Ok()
     {
         // Arrange
-        using var stream = File.OpenRead("./Data/Markdown.text");
-        var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
-        var attachmentData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
         var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .Build();
@@ -503,6 +500,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
 
         // Act
         var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+
         // Assert
         Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
     }
