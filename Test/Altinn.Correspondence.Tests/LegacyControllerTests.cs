@@ -213,9 +213,9 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
         var archiveResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{randomCorrespondenceId}/archive", null);
         Assert.Equal(HttpStatusCode.NotFound, archiveResponse.StatusCode);
 
-        // TODO: Missing markasread implementation
-        // var readResponse = await _client.PostAsync($"correspondence/api/v1/legacy/correspondence/{randomCorrespondenceId}/markasread", null);
-        // Assert.Equal(HttpStatusCode.NotFound, readResponse.StatusCode);
+        // Act and Assert
+        var readResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{randomCorrespondenceId}/markasread", null);
+        Assert.Equal(HttpStatusCode.NotFound, readResponse.StatusCode);
     }
 
     [Fact]
@@ -254,7 +254,6 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, archiveResponse.StatusCode);
     }
     
-    /* TODO: Implement markasread
     [Fact]
     public async Task UpdateCorrespondenceStatus_MarkAsRead_WithoutFetched_ReturnsBadRequest()
     {
@@ -271,7 +270,6 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, readResponse.StatusCode);
     }
-    */
     
     [Fact]
     public async Task UpdateCorrespondenceStatus_ToConfirmed_WithoutFetched_ReturnsBadRequest()

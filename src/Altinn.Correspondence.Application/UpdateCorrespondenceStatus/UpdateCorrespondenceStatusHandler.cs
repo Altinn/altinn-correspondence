@@ -57,27 +57,19 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             return Errors.CorrespondenceNotFound;
         }
-        var currentStatus = correspondence.GetLatestStatus();
-        if (currentStatus is null)
+        var currentStatusError = _updateCorrespondenceStatusHelper.ValidateCurrentStatus(correspondence);
+        if (currentStatusError is not null)
         {
-            return Errors.LatestStatusIsNull;
-        }
-        if (!currentStatus.Status.IsAvailableForRecipient())
-        {
-            return Errors.CorrespondenceNotFound;
-        }
-        if (currentStatus!.Status.IsPurged())
-        {
-            return Errors.CorrespondencePurged;
-        }
-        if (request.Status == CorrespondenceStatus.Read && correspondence.MarkedUnread == true)
-        {
-            await _correspondenceRepository.UpdateMarkedUnread(request.CorrespondenceId, false, cancellationToken);
+            return currentStatusError;
         }
         var updateError = _updateCorrespondenceStatusHelper.ValidateUpdateRequest(request, correspondence);
         if (updateError is not null)
         {
             return updateError;
+        }
+        if (request.Status == CorrespondenceStatus.Read && correspondence.MarkedUnread == true)
+        {
+            await _correspondenceRepository.UpdateMarkedUnread(request.CorrespondenceId, false, cancellationToken);
         }
 
         await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity

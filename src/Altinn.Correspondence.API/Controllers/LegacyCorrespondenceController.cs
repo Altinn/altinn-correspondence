@@ -118,6 +118,34 @@ namespace Altinn.Correspondence.API.Controllers
             );
         }
 
+        /// <summary>
+        /// Mark Correspondence found by ID as read
+        /// </summary>
+        /// <remarks>
+        /// Meant for Receivers
+        /// </remarks>
+        /// <returns>StatusId</returns>
+        [HttpPost]
+        [Route("{correspondenceId}/markasread")]
+        public async Task<ActionResult> MarkAsRead(
+            Guid correspondenceId,
+            [FromServices] LegacyUpdateCorrespondenceStatusHandler handler,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Marking Correspondence as read for {correspondenceId}", correspondenceId.ToString());
+
+            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
+            {
+                CorrespondenceId = correspondenceId,
+                Status = CorrespondenceStatus.Read
+            }, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
+                Problem
+            );
+        }
+
         /// Mark Correspondence found by ID as confirmed
         /// </summary>
         /// <remarks>

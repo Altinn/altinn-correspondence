@@ -53,16 +53,11 @@ public class LegacyUpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespond
         {
             return Errors.LegacyNoAccessToCorrespondence;
         }
-        var currentStatus = correspondence.GetLatestStatus();
-        if (currentStatus is null)
+        var currentStatusError = _updateCorrespondenceStatusHelper.ValidateCurrentStatus(correspondence);
+        if (currentStatusError is not null)
         {
-            return Errors.LatestStatusIsNull;
+            return currentStatusError;
         }
-        if (!currentStatus.Status.IsAvailableForRecipient())
-        {
-            return Errors.CorrespondenceNotFound;
-        }
-        // TODO: Implement logic for markasread and markasunread
         var updateError = _updateCorrespondenceStatusHelper.ValidateUpdateRequest(request, correspondence);
         if (updateError is not null)
         {
