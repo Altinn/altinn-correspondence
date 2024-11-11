@@ -950,16 +950,6 @@
 									"type": "text"
 								},
 								{
-									"key": "Correspondence.content.attachments[0].RestrictionName",
-									"value": "1234",
-									"type": "text"
-								},
-								{
-									"key": "Correspondence.content.attachments[0].Sender",
-									"value": "0192:{{senderOrgNo}}",
-									"type": "text"
-								},
-								{
 									"key": "Correspondence.content.attachments[0].SendersReference",
 									"value": "1234",
 									"type": "text"
@@ -1037,11 +1027,6 @@
 								{
 									"key": "Correspondence.notification.notificationTemplate",
 									"value": "1",
-									"type": "text"
-								},
-								{
-									"key": "Correspondence.notification.notificationChannel",
-									"value": "2",
 									"type": "text"
 								},
 								{
