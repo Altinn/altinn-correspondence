@@ -24,16 +24,15 @@ public static class DependencyInjection
     {
         var maskinportenSettings = new MaskinportenSettings();
         config.GetSection(nameof(MaskinportenSettings)).Bind(maskinportenSettings);
-        services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationService>();
         services.AddScoped<IResourceRightsService, ResourceRightsService>();
-        services.AddScoped<IAltinnRegisterService, AltinnRegisterService>();
-        services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementService>();
         if (string.IsNullOrWhiteSpace(maskinportenSettings.ClientId))
         {
             services.AddScoped<IEventBus, ConsoleLogEventBus>();
             services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
             services.AddScoped<IDialogportenService, DialogportenDevService>();
             services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationDevService>();
+            services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
+            services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
         } 
         else
         {
