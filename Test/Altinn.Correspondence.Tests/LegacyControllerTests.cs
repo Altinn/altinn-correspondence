@@ -55,26 +55,18 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task LegacyGetCorrespondenceOverview_InvalidPartyId_ReturnsUnauthorized()
+    public async Task LegacyGetCorrespondenceOverview_InvalidPartyId_ReturnsBadRequest()
     {
         // Arrange
         var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
-        var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
-        {
-            var mockRegisterService = new Mock<IAltinnRegisterService>();
-            mockRegisterService
-                .Setup(service => service.LookUpPartyByPartyId(It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((Party)null);
-            services.AddSingleton(mockRegisterService.Object);
-        });
-        var failClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.LegacyScope), (_partyIdClaim, "123"));
+        var failClient = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.LegacyScope), (_partyIdClaim, "123abc"));
 
         // Act
         var response = await failClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview");
 
         // Assert
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
     
     [Fact]
