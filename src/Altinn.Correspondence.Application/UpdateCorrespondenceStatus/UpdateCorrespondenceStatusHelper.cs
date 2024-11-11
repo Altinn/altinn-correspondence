@@ -7,6 +7,29 @@ using Altinn.Correspondence.Core.Services.Enums;
 namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 public class UpdateCorrespondenceStatusHelper
 {
+
+    /// <summary>
+    /// Validates if the current status of the correspondence allows for status updates.
+    /// </summary>
+    /// <param name="correspondence">The correspondence entity to validate</param>
+    /// <returns></returns>
+    public Error? ValidateCurrentStatus(CorrespondenceEntity correspondence)
+    {
+        var currentStatus = correspondence.GetLatestStatus();
+        if (currentStatus is null)
+        {
+            return Errors.LatestStatusIsNull;
+        }
+        if (!currentStatus.Status.IsAvailableForRecipient())
+        {
+            return Errors.CorrespondenceNotFound;
+        }
+        if (currentStatus!.Status.IsPurged())
+        {
+            return Errors.CorrespondencePurged;
+        }
+        return null;
+    }
     /// <summary>
     /// Validates if the requested status update is allowed based on the current correspondence state.
     /// </summary>
