@@ -6,12 +6,11 @@ using Altinn.Correspondence.Core.Services;
 namespace Altinn.Correspondence.Integrations.Altinn.Register;
 public class AltinnRegisterDevService : IAltinnRegisterService
 {
+    private const string _identificationIDPattern = @"^(?:\d{11}|\d{9}|\d{4}:\d{9})$";
+    private static readonly Regex IdentificationIDRegex = new(_identificationIDPattern);
     public Task<string?> LookUpPartyId(string identificationId, CancellationToken cancellationToken)
     {
-        var combinedPattern = @"^(?:\d{11}|\d{9}|\d{4}:\d{9})$";
-        var regex = new Regex(combinedPattern);
-
-        if (regex.IsMatch(identificationId))
+        if (IdentificationIDRegex.IsMatch(identificationId))
         {
             return Task.FromResult<string?>("50167512");
         }
@@ -19,10 +18,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
     }
     public Task<string?> LookUpName(string identificationId, CancellationToken cancellationToken)
     {
-        var combinedPattern = @"^(?:\d{11}|\d{9}|\d{4}:\d{9})$";
-        var regex = new Regex(combinedPattern);
-
-        if (regex.IsMatch(identificationId))
+        if (IdentificationIDRegex.IsMatch(identificationId))
         {
             return Task.FromResult<string?>("Digitaliseringsdirektoratet");
         }
@@ -31,10 +27,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
 
     public Task<Party?> LookUpPartyById(string identificationId, CancellationToken cancellationToken)
     {
-        var combinedPattern = @"^(?:\d{11}|\d{9}|\d{4}:\d{9})$";
-        var regex = new Regex(combinedPattern);
-
-        if (regex.IsMatch(identificationId))
+        if (IdentificationIDRegex.IsMatch(identificationId))
         {
             return Task.FromResult<Party?>(new Party
             {
