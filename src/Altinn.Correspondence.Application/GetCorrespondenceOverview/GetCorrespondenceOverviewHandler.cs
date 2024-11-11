@@ -92,7 +92,6 @@ public class GetCorrespondenceOverviewHandler : IHandler<Guid, GetCorrespondence
             ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
             RequestedPublishTime = correspondence.RequestedPublishTime,
             IgnoreReservation = correspondence.IgnoreReservation ?? false,
-            MarkedUnread = correspondence.MarkedUnread,
             AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
             Published = correspondence.Published,
             IsConfirmationNeeded = correspondence.IsConfirmationNeeded,

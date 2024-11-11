@@ -27,7 +27,6 @@ internal static class CorrespondenceDetailsMapper
             ResourceId = correspondenceDetails.ResourceId.ToString(),
             RequestedPublishTime = correspondenceDetails.RequestedPublishTime,
             IgnoreReservation = correspondenceDetails.IgnoreReservation,
-            MarkedUnread = correspondenceDetails.MarkedUnread,
             AllowSystemDeleteAfter = correspondenceDetails.AllowSystemDeleteAfter,
             DueDateTime = correspondenceDetails.DueDateTime,
             PropertyList = correspondenceDetails.PropertyList,

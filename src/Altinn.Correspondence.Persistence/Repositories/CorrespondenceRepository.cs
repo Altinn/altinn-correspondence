@@ -112,15 +112,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             .Select(c => c.Id).ToListAsync(cancellationToken);
             return correspondenceIds;
         }
-        public async Task UpdateMarkedUnread(Guid correspondenceId, bool status, CancellationToken cancellationToken)
-        {
-            var correspondence = await _context.Correspondences.SingleOrDefaultAsync(c => c.Id == correspondenceId, cancellationToken);
-            if (correspondence != null)
-            {
-                correspondence.MarkedUnread = status;
-                await _context.SaveChangesAsync(cancellationToken);
-            }
-        }
         public async Task UpdatePublished(Guid correspondenceId, DateTimeOffset published, CancellationToken cancellationToken)
         {
             var correspondence = await _context.Correspondences.SingleOrDefaultAsync(c => c.Id == correspondenceId, cancellationToken);

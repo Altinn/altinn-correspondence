@@ -39,8 +39,6 @@ public class GetCorrespondenceOverviewResponse
 
     public bool IgnoreReservation { get; set; }
 
-    public bool? MarkedUnread { get; set; }
-
     public DateTimeOffset? AllowSystemDeleteAfter { get; set; }
 
     public DateTimeOffset? DueDateTime { get; set; }
