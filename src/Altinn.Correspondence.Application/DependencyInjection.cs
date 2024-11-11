@@ -15,7 +15,6 @@ using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Application.PurgeAttachment;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
-using Altinn.Correspondence.Application.UpdateMarkAsUnread;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -39,7 +38,6 @@ public static class DependencyInjection
         services.AddScoped<GetCorrespondencesHandler>();
         services.AddScoped<GetCorrespondenceDetailsHandler>();
         services.AddScoped<GetCorrespondenceOverviewHandler>();
-        services.AddScoped<UpdateMarkAsUnreadHandler>();
         services.AddScoped<UpdateCorrespondenceStatusHandler>();
         services.AddScoped<DownloadCorrespondenceAttachmentHandler>();
         services.AddScoped<PurgeCorrespondenceHandler>();
