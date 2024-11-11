@@ -121,6 +121,21 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
+    public async Task LegacyGetCorrespondenceHistory_InvalidPartyId_ReturnsBadRequest()
+    {
+        // Arrange
+        var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+        var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+        var failClient = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.LegacyScope), (_partyIdClaim, "123abc"));
+
+        // Act
+        var response = await failClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/history");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task LegacyGetCorrespondenceHistory_WithCorrespondenceActions_IncludesStatuses()
     {
         // Arrange
