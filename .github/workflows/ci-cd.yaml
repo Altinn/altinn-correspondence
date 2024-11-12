@@ -85,7 +85,8 @@ jobs:
     if: always() && !failure() && !cancelled() 
     needs: [ 
       get-version,
-      deploy-test
+      deploy-test,
+      test
     ]
     permissions: 
       id-token: write
