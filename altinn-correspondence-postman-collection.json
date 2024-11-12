@@ -1030,6 +1030,11 @@
 									"type": "text"
 								},
 								{
+									"key": "Correspondence.notification.notificationChannel",
+									"value": "2",
+									"type": "text"
+								},
+								{
 									"key": "Correspondence.notification.SendReminder",
 									"value": "true",
 									"type": "text"
