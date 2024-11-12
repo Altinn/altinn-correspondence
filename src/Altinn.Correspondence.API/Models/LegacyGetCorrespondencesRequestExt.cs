@@ -84,13 +84,13 @@ namespace Altinn.Correspondence.API.Models
         public ValidateNotFutureDateAttribute()
         {
         }
-        public override bool IsValid(object? value)
+        protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
         {
-            if (value == null)
+            if (value == null || (DateTimeOffset)value <= DateTimeOffset.UtcNow)
             {
-                return true;
+                return ValidationResult.Success;
             }
-            return (DateTimeOffset)value <= DateTimeOffset.UtcNow;
+            return new ValidationResult("From date cannot be in the future");
         }
     }
 }
