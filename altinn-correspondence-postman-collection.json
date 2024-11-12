@@ -848,16 +848,6 @@
 									"type": "text"
 								},
 								{
-									"key": "Correspondence.content.attachments[0].RestrictionName",
-									"value": "1234",
-									"type": "text"
-								},
-								{
-									"key": "Correspondence.content.attachments[0].Sender",
-									"value": "0192:{{senderOrgNo}}",
-									"type": "text"
-								},
-								{
 									"key": "Correspondence.content.attachments[0].SendersReference",
 									"value": "1234",
 									"type": "text"
