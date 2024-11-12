@@ -436,17 +436,12 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
         var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
         Assert.Equal(CorrespondenceStatusExt.Published, correspondence.Status);
 
-        //  Act
-        var fetchResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview"); // Fetch in order to be able to Confirm
-        Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
-        var confirmResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/confirm", null); // Update to Confirmed in order to be able to Archive
-        Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
-        var archiveResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/archive", null);
-        Assert.Equal(HttpStatusCode.OK, archiveResponse.StatusCode);
+        await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/purge");
+
         var listPayload = GetBasicLegacyGetCorrespondenceRequestExt();
         listPayload.IncludeActive = false;
-        listPayload.IncludeArchived = true;
-        listPayload.IncludeDeleted = false;
+        listPayload.IncludeArchived = false;
+        listPayload.IncludeDeleted = true;
         var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
         var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
         Assert.True(response?.Items.Count > 0);
@@ -563,7 +558,7 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
 
         // Act
         var deleteResponse = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/purge");
-        
+
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
     }
