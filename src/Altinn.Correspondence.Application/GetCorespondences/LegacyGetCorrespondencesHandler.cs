@@ -38,6 +38,11 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         var limit = request.Limit == 0 ? 50 : request.Limit;
         DateTimeOffset? to = request.To != null ? ((DateTimeOffset)request.To).ToUniversalTime() : null;
         DateTimeOffset? from = request.From != null ? ((DateTimeOffset)request.From).ToUniversalTime() : null;
+
+        if (from != null && to != null && from > to)
+        {
+            return Errors.InvalidDateRange;
+        }
         if (_userClaimsHelper.GetPartyId() is not int partyId)
         {
             return Errors.InvalidPartyId;
@@ -69,7 +74,6 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
             if (!string.IsNullOrEmpty(userParty.SSN)) recipients.Add(userParty.SSN);
             if (!string.IsNullOrEmpty(userParty.OrgNumber)) recipients.Add("0192:" + userParty.OrgNumber);
         }
-
         List<string> resourcesToSearch = new List<string>();
 
         // Get all correspondences owned by Recipients

@@ -1,4 +1,5 @@
 using Altinn.Correspondence.API.Models.Enums;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models
@@ -48,6 +49,7 @@ namespace Altinn.Correspondence.API.Models
         /// If the seach should filter by published date - from
         /// </summary>
         [JsonPropertyName("from")]
+        [ValidateNotFutureDate]
         public DateTimeOffset? From { get; set; }
 
         /// <summary>
@@ -74,5 +76,21 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("status")]
         public CorrespondenceStatusExt? Status { get; set; }
+    }
+
+    [AttributeUsage(AttributeTargets.Property)]
+    internal class ValidateNotFutureDateAttribute : ValidationAttribute
+    {
+        public ValidateNotFutureDateAttribute()
+        {
+        }
+        public override bool IsValid(object? value)
+        {
+            if (value == null)
+            {
+                return true;
+            }
+            return (DateTimeOffset)value <= DateTimeOffset.UtcNow;
+        }
     }
 }

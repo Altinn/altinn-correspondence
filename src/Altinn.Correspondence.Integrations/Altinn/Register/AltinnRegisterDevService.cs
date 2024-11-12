@@ -32,7 +32,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
             return Task.FromResult<Party?>(new Party
             {
                 PartyId = 50167512,
-                OrgNumber = "0192:991825827",
+                OrgNumber = "991825827",
                 SSN = "",
                 Resources = new List<string>(),
                 PartyTypeName = PartyType.Organization,
@@ -48,7 +48,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
         var party = new Party
         {
             PartyId = 50167512,
-            OrgNumber = "0192:991825827",
+            OrgNumber = "991825827",
             SSN = "",
             Resources = new List<string>(),
             PartyTypeName = PartyType.Organization,
