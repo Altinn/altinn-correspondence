@@ -3,10 +3,18 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Hangfire;
 
 namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 public class UpdateCorrespondenceStatusHelper
 {
+    private readonly IDialogportenService _dialogportenService;
+    private readonly IBackgroundJobClient _backgroundJobClient;
+    public UpdateCorrespondenceStatusHelper(IDialogportenService dialogportenService, IBackgroundJobClient backgroundJobClient)
+    {
+        _dialogportenService = dialogportenService;
+        _backgroundJobClient = backgroundJobClient;
+    }
 
     /// <summary>
     /// Validates if the current status of the correspondence allows for status updates.
@@ -71,5 +79,23 @@ public class UpdateCorrespondenceStatusHelper
         {
             await eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         }
+    }
+    /// <summary>
+    /// Reports activity to Dialogporten based on the correspondence status update.
+    /// </summary>
+    /// <param name="correspondenceId"></param>
+    /// <param name="status"></param>
+    // Must be public to be run by Hangfire
+    public void ReportActivityToDialogporten(Guid correspondenceId, CorrespondenceStatus status)
+    {
+        if (status == CorrespondenceStatus.Confirmed)
+        {
+            _backgroundJobClient.Enqueue(() => _dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondenceConfirmed));
+        }
+        else if (status == CorrespondenceStatus.Archived)
+        {
+            _backgroundJobClient.Enqueue(() => _dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondenceArchived));
+        }
+        return;
     }
 }

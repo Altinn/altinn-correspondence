@@ -15,9 +15,7 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IEventBus _eventBus;
-    private readonly IDialogportenService _dialogportenService;
     private readonly UserClaimsHelper _userClaimsHelper;
-    private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly UpdateCorrespondenceStatusHelper _updateCorrespondenceStatusHelper;
 
     public UpdateCorrespondenceStatusHandler(
@@ -25,18 +23,14 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         ICorrespondenceRepository correspondenceRepository,
         ICorrespondenceStatusRepository correspondenceStatusRepository,
         IEventBus eventBus,
-        IDialogportenService dialogportenService,
         UserClaimsHelper userClaimsHelper,
-        IBackgroundJobClient backgroundJobClient,
         UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _correspondenceRepository = correspondenceRepository;
         _correspondenceStatusRepository = correspondenceStatusRepository;
         _eventBus = eventBus;
-        _dialogportenService = dialogportenService;
         _userClaimsHelper = userClaimsHelper;
-        _backgroundJobClient = backgroundJobClient;
         _updateCorrespondenceStatusHelper = updateCorrespondenceStatusHelper;
     }
 
@@ -74,16 +68,8 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
             StatusChanged = DateTimeOffset.UtcNow,
             StatusText = request.Status.ToString(),
         }, cancellationToken);
-        _backgroundJobClient.Enqueue(() => ReportActivityToDialogporten(request.CorrespondenceId, DialogportenActorType.Recipient, request.Status));
+        _updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
         await _updateCorrespondenceStatusHelper.PublishEvent(_eventBus, correspondence, request.Status, cancellationToken);
         return request.CorrespondenceId;
     }
-
-    // Must be public to be run by Hangfire
-    public Task ReportActivityToDialogporten(Guid correspondenceId, DialogportenActorType dialogportenActorType, CorrespondenceStatus status) => status switch
-    {
-        CorrespondenceStatus.Confirmed => _dialogportenService.CreateInformationActivity(correspondenceId, dialogportenActorType, DialogportenTextType.CorrespondenceConfirmed),
-        CorrespondenceStatus.Archived => _dialogportenService.CreateInformationActivity(correspondenceId, dialogportenActorType, DialogportenTextType.CorrespondenceArchived),
-        _ => Task.CompletedTask
-    };
 }
