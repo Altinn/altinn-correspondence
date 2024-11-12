@@ -52,6 +52,7 @@ public static class DependencyInjection
         services.AddScoped<UserClaimsHelper>();
         services.AddScoped<InitializeCorrespondenceHelper>();
         services.AddScoped<UpdateCorrespondenceStatusHelper>();
+        services.AddScoped<PurgeCorrespondenceHelper>();
 
         // Legacy
         services.AddScoped<LegacyGetCorrespondencesHandler>();
@@ -59,6 +60,7 @@ public static class DependencyInjection
         services.AddScoped<LegacyGetCorrespondenceHistoryHandler>();
         services.AddScoped<LegacyDownloadCorrespondenceAttachmentHandler>();
         services.AddScoped<LegacyUpdateCorrespondenceStatusHandler>();
+        services.AddScoped<LegacyPurgeCorrespondenceHandler>();
 
         // Migration
         services.AddScoped<MigrateInitializeAttachmentHandler>();
