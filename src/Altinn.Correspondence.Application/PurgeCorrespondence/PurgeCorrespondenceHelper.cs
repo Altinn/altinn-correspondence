@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.CancelNotification;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -9,6 +10,17 @@ using Hangfire;
 namespace Altinn.Correspondence.Application.PurgeCorrespondence;
 public class PurgeCorrespondenceHelper
 {
+    private readonly IAttachmentRepository _attachmentRepository;
+    private readonly IStorageRepository _storageRepository;
+    private readonly IAttachmentStatusRepository _attachmentStatusRepository;
+    private readonly IBackgroundJobClient _backgroundJobClient;
+    public PurgeCorrespondenceHelper(IAttachmentRepository attachmentRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, IBackgroundJobClient backgroundJobClient)
+    {
+        _attachmentRepository = attachmentRepository;
+        _storageRepository = storageRepository;
+        _attachmentStatusRepository = attachmentStatusRepository;
+        _backgroundJobClient = backgroundJobClient;
+    }
     public Error? ValidateCurrentStatus(CorrespondenceEntity correspondence)
     {
         if (correspondence.Statuses is not null && correspondence.Statuses.Any(status => status.Status.IsPurged()))
@@ -47,18 +59,18 @@ public class PurgeCorrespondenceHelper
         }
         return null;
     }
-    public async Task CheckAndPurgeAttachments(Guid correspondenceId, IAttachmentRepository attachmentRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, CancellationToken cancellationToken)
+    public async Task CheckAndPurgeAttachments(Guid correspondenceId, CancellationToken cancellationToken)
     {
-        var attachments = await attachmentRepository.GetAttachmentsByCorrespondence(correspondenceId, cancellationToken);
+        var attachments = await _attachmentRepository.GetAttachmentsByCorrespondence(correspondenceId, cancellationToken);
         foreach (var attachment in attachments)
         {
-            var canBeDeleted = await attachmentRepository.CanAttachmentBeDeleted(attachment.Id, cancellationToken);
+            var canBeDeleted = await _attachmentRepository.CanAttachmentBeDeleted(attachment.Id, cancellationToken);
             if (!canBeDeleted || attachment.StatusHasBeen(AttachmentStatus.Purged))
             {
                 continue;
             }
 
-            await storageRepository.PurgeAttachment(attachment.Id, cancellationToken);
+            await _storageRepository.PurgeAttachment(attachment.Id, cancellationToken);
             var attachmentStatus = new AttachmentStatusEntity
             {
                 AttachmentId = attachment.Id,
@@ -66,18 +78,22 @@ public class PurgeCorrespondenceHelper
                 StatusChanged = DateTimeOffset.UtcNow,
                 StatusText = AttachmentStatus.Purged.ToString()
             };
-            await attachmentStatusRepository.AddAttachmentStatus(attachmentStatus, cancellationToken);
+            await _attachmentStatusRepository.AddAttachmentStatus(attachmentStatus, cancellationToken);
         }
     }
-    public void CreateInformationActivityDialogporten(bool isSender, Guid correspondenceId, IBackgroundJobClient backgroundJobClient)
+    public void CreateInformationActivityDialogporten(bool isSender, Guid correspondenceId)
     {
         if (isSender)
         {
-            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Sender, DialogportenTextType.CorrespondencePurged, "avsender"));
+            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Sender, DialogportenTextType.CorrespondencePurged, "avsender"));
         }
         else
         {
-            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondencePurged, "mottaker"));
+            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondencePurged, "mottaker"));
         }
+    }
+    public void CancelNotification(Guid correspondenceId, CancellationToken cancellationToken)
+    {
+        _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, cancellationToken));
     }
 }
