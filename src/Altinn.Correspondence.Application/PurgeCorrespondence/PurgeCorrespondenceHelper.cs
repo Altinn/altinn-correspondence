@@ -81,7 +81,7 @@ public class PurgeCorrespondenceHelper
             await _attachmentStatusRepository.AddAttachmentStatus(attachmentStatus, cancellationToken);
         }
     }
-    public void CreateInformationActivityDialogporten(bool isSender, Guid correspondenceId)
+    public void ReportActivityToDialogporten(bool isSender, Guid correspondenceId)
     {
         if (isSender)
         {

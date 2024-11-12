@@ -90,7 +90,7 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
 
         await _eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         await _purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondenceId, cancellationToken);
-        _purgeCorrespondenceHelper.CreateInformationActivityDialogporten(isSender, correspondenceId);
+        _purgeCorrespondenceHelper.ReportActivityToDialogporten(isSender, correspondenceId);
         _purgeCorrespondenceHelper.CancelNotification(correspondenceId, cancellationToken);
         return correspondenceId;
     }
