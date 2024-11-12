@@ -22,7 +22,7 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
     private readonly HttpClient _legacyClient;
     private readonly HttpClient _senderClient;
     private readonly string _partyIdClaim = "urn:altinn:partyid";
-    private readonly string _digdirPartyId = "50167512";
+    private readonly int _digdirPartyId = 50167512;
 
     public LegacyControllerTests(CustomWebApplicationFactory factory)
     {
@@ -37,7 +37,7 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
         _senderClient = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
         _legacyClient = _factory.CreateClientWithAddedClaims(
             ("scope", AuthorizationConstants.LegacyScope),
-            (_partyIdClaim, _digdirPartyId));
+            (_partyIdClaim, _digdirPartyId.ToString()));
     }
 
     [Fact]
@@ -154,7 +154,7 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
         Assert.NotNull(content);
         Assert.Equal(content.NeedsConfirm, payload.Correspondence.IsConfirmationNeeded);
         Assert.All(content.History, status => Assert.True(status.User.AuthenticationLevel > 0));
-        Assert.Contains(content.History, status => status.User.PartyId.ToString() == _digdirPartyId);
+        Assert.Contains(content.History, status => status.User.PartyId == _digdirPartyId);
         Assert.Contains(content.History, status => status.Status.Contains(CorrespondenceStatus.Published.ToString()));
         Assert.Contains(content.History, status => status.Status.Contains(CorrespondenceStatus.Fetched.ToString()));
         Assert.Contains(content.History, status => status.Status.Contains(CorrespondenceStatus.Confirmed.ToString()));
