@@ -360,7 +360,43 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task Delete_ReadyForPublish_Correspondence_ReturnsNotFound()
+    public async Task Delete_Correspondence_InvalidParyId_Gives()
+    {
+        // Arrange
+        var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+        var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+        var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
+        {
+            var mockRegisterService = new Mock<IAltinnRegisterService>();
+            mockRegisterService
+                .Setup(service => service.LookUpPartyByPartyId(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Party)null);
+            services.AddSingleton(mockRegisterService.Object);
+        });
+        var failClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.LegacyScope), (_partyIdClaim, "123"));
+
+        // Act
+        var deleteResponse = await failClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/purge");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Delete_NonExistent_Correspondence_Returns404()
+    {
+        // Arrange
+        Guid randomCorrespondenceId = Guid.NewGuid();
+
+        // Act
+        var deleteResponse = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{randomCorrespondenceId}/purge");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Delete_ReadyForPublish_Correspondence_Returns404()
     {
         // Arrange
         var payload = new CorrespondenceBuilder()
@@ -407,6 +443,7 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
 
         // Act
         var fetchResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview"); // Fetch in order to be able to Confirm
+        Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
         var confirmResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/confirm", null);
         Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
         var deleteResponse = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/purge");
