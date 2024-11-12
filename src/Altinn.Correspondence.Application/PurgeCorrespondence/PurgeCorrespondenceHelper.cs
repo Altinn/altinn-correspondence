@@ -11,7 +11,7 @@ public class PurgeCorrespondenceHelper
 {
     public Error? ValidateCurrentStatus(CorrespondenceEntity correspondence)
     {
-        if (correspondence.Statuses.Any(status => status.Status.IsPurged()))
+        if (correspondence.Statuses is not null && correspondence.Statuses.Any(status => status.Status.IsPurged()))
         {
             return Errors.CorrespondenceAlreadyPurged;
         }
