@@ -89,6 +89,7 @@ public class LegacyPurgeCorrespondenceHandler : IHandler<Guid, Guid>
 
         await _eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         await _purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondenceId, _attachmentRepository, _storageRepository, _attachmentStatusRepository, cancellationToken);
+        _purgeCorrespondenceHelper.CreateInformationActivityDialogporten(isSender: false, correspondenceId, _backgroundJobClient);
         _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, cancellationToken));
         return correspondenceId;
     }

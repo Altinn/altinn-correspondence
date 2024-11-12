@@ -2,6 +2,9 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
+using Hangfire;
 
 namespace Altinn.Correspondence.Application.PurgeCorrespondence;
 public class PurgeCorrespondenceHelper
@@ -64,6 +67,17 @@ public class PurgeCorrespondenceHelper
                 StatusText = AttachmentStatus.Purged.ToString()
             };
             await attachmentStatusRepository.AddAttachmentStatus(attachmentStatus, cancellationToken);
+        }
+    }
+    public void CreateInformationActivityDialogporten(bool isSender, Guid correspondenceId, IBackgroundJobClient backgroundJobClient)
+    {
+        if (isSender)
+        {
+            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Sender, DialogportenTextType.CorrespondencePurged, "avsender"));
+        }
+        else
+        {
+            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondencePurged, "mottaker"));
         }
     }
 }

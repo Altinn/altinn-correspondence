@@ -7,7 +7,6 @@ using Altinn.Correspondence.Core.Services.Enums;
 using OneOf;
 using Hangfire;
 using Altinn.Correspondence.Application.CancelNotification;
-using Altinn.Correspondence.Integrations.Altinn.Authorization;
 
 namespace Altinn.Correspondence.Application.PurgeCorrespondence;
 
@@ -59,44 +58,42 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
         {
             return currentStatusError;
         }
-
-        var newStatus = new CorrespondenceStatusEntity();
-
-        if (_userClaimsHelper.IsSender(correspondence.Sender))
+        bool isSender = _userClaimsHelper.IsSender(correspondence.Sender);
+        bool isRecipient = _userClaimsHelper.IsRecipient(correspondence.Recipient);
+        if (isSender)
         {
             var senderRecipientPurgeError = _purgeCorrespondenceHelper.ValidatePurgeRequestSender(correspondence);
             if (senderRecipientPurgeError is not null)
             {
                 return senderRecipientPurgeError;
             }
-            newStatus = new CorrespondenceStatusEntity()
+            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity()
             {
                 CorrespondenceId = correspondenceId,
                 Status = CorrespondenceStatus.PurgedByAltinn,
                 StatusChanged = DateTimeOffset.UtcNow,
                 StatusText = CorrespondenceStatus.PurgedByAltinn.ToString()
-            };
+            }, cancellationToken);
         }
-        else if (_userClaimsHelper.IsRecipient(correspondence.Recipient))
+        else if (isRecipient)
         {
             var recipientPurgeError = _purgeCorrespondenceHelper.ValidatePurgeRequestRecipient(correspondence);
             if (recipientPurgeError is not null)
             {
                 return recipientPurgeError;
             }
-            newStatus = new CorrespondenceStatusEntity()
+            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity()
             {
                 CorrespondenceId = correspondenceId,
                 Status = CorrespondenceStatus.PurgedByRecipient,
                 StatusChanged = DateTimeOffset.UtcNow,
                 StatusText = CorrespondenceStatus.PurgedByRecipient.ToString()
-            };
+            }, cancellationToken);
         }
 
-        await _correspondenceStatusRepository.AddCorrespondenceStatus(newStatus, cancellationToken);
         await _eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken);
         await _purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondenceId, _attachmentRepository, _storageRepository, _attachmentStatusRepository, cancellationToken);
-        _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, newStatus.Status == CorrespondenceStatus.PurgedByRecipient ? DialogportenActorType.Recipient : DialogportenActorType.Sender, DialogportenTextType.CorrespondencePurged, newStatus.Status == CorrespondenceStatus.PurgedByRecipient ? "mottaker" : "avsender"));
+        _purgeCorrespondenceHelper.CreateInformationActivityDialogporten(isSender, correspondenceId, _backgroundJobClient);
         _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, cancellationToken));
         return correspondenceId;
     }
