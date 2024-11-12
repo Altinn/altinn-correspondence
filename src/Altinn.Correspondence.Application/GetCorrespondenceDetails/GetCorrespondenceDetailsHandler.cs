@@ -91,7 +91,6 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
             ResourceId = correspondence.ResourceId,
             RequestedPublishTime = correspondence.RequestedPublishTime,
             IgnoreReservation = correspondence.IgnoreReservation ?? false,
-            MarkedUnread = correspondence.MarkedUnread,
             AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
             DueDateTime = correspondence.DueDateTime,
             PropertyList = correspondence.PropertyList,

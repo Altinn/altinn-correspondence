@@ -67,11 +67,6 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             return updateError;
         }
-        if (request.Status == CorrespondenceStatus.Read && correspondence.MarkedUnread == true)
-        {
-            await _correspondenceRepository.UpdateMarkedUnread(request.CorrespondenceId, false, cancellationToken);
-        }
-
         await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
         {
             CorrespondenceId = request.CorrespondenceId,

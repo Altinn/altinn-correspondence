@@ -45,8 +45,6 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         public bool? IgnoreReservation { get; set; }
 
-        public bool? MarkedUnread { get; set; }
-
         public required List<CorrespondenceStatusEntity> Statuses { get; set; }
 
         [Required]

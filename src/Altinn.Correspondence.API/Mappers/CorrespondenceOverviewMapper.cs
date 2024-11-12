@@ -25,7 +25,6 @@ internal static class CorrespondenceOverviewMapper
             ExternalReferences = ExternalReferenceMapper.MapListToExternal(correspondenceOverview.ExternalReferences),
             ResourceId = correspondenceOverview.ResourceId.ToString(),
             RequestedPublishTime = correspondenceOverview.RequestedPublishTime,
-            MarkedUnread = correspondenceOverview.MarkedUnread,
             AllowSystemDeleteAfter = correspondenceOverview.AllowSystemDeleteAfter,
             DueDateTime = correspondenceOverview.DueDateTime,
             PropertyList = correspondenceOverview.PropertyList,

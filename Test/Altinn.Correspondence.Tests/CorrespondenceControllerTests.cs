@@ -3,7 +3,6 @@ using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.CancelNotification;
 using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Application.GetCorrespondences;
-using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Factories;
@@ -1063,12 +1062,9 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var readResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
         readResponse.EnsureSuccessStatusCode();
 
-        var markAsUnreadResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasunread", null);
-        markAsUnreadResponse.EnsureSuccessStatusCode();
-
         // Assert
         var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceId}", _responseSerializerOptions);
-        Assert.True(overview?.MarkedUnread);
+        Assert.Equal(CorrespondenceStatusExt.Read, overview?.Status);
     }
     
     [Fact]

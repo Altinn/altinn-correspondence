@@ -10,7 +10,6 @@ using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
-using Altinn.Correspondence.Application.UpdateMarkAsUnread;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
@@ -234,31 +233,6 @@ namespace Altinn.Correspondence.API.Controllers
 
             return commandResult.Match(
                 data => Ok(data),
-                Problem
-            );
-        }
-
-        /// <summary>
-        /// Mark Correspondence found by ID as unread
-        /// </summary>
-        /// <remarks>
-        /// Meant for Receivers
-        /// </remarks>
-        /// <returns>OK</returns>
-        [HttpPost]
-        [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [Route("{correspondenceId}/markasunread")]
-        public async Task<ActionResult> MarkAsUnread(
-            Guid correspondenceId,
-            [FromServices] UpdateMarkAsUnreadHandler handler,
-            CancellationToken cancellationToken)
-        {
-            _logger.LogInformation("Marking Correspondence as unread for {correspondenceId}", correspondenceId.ToString());
-
-            var commandResult = await handler.Process(correspondenceId, cancellationToken);
-
-            return commandResult.Match(
-                data => Ok(null),
                 Problem
             );
         }
