@@ -155,7 +155,7 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
         Assert.NotNull(content);
         Assert.Equal(content.NeedsConfirm, payload.Correspondence.IsConfirmationNeeded);
         Assert.All(content.History, status => Assert.True(status.User.AuthenticationLevel > 0));
-        Assert.Contains(content.History, status => status.User.PartyId == _digdirPartyId.ToString());
+        Assert.Contains(content.History, status => status.User.PartyId == _digdirPartyId);
         Assert.Contains(content.History, status => status.Status.Contains(CorrespondenceStatus.Published.ToString()));
         Assert.Contains(content.History, status => status.Status.Contains(CorrespondenceStatus.Fetched.ToString()));
         Assert.Contains(content.History, status => status.Status.Contains(CorrespondenceStatus.Confirmed.ToString()));

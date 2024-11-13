@@ -36,7 +36,7 @@ public static class Errors
     public static Error CantPurgeCorrespondenceSender = new Error(28, "Cannot delete correspondence that has been published", HttpStatusCode.BadRequest);
     public static Error CantUploadToExistingCorrespondence = new Error(29, "Cannot upload attachment to a correspondence that has been created", HttpStatusCode.BadRequest);
     public static Error LatestStatusIsNull = new Error(30, "Could not retrieve latest status for correspondence", HttpStatusCode.BadRequest);
-    public static Error InvalidSender = new Error(31, "Creator of correspondence must be the sender", HttpStatusCode.BadRequest);
+    public static Error InvalidSender = new Error(31, "Creator of correspondence or attachment must be the sender", HttpStatusCode.BadRequest);
     public static Error NotificationTemplateNotFound = new Error(32, "The requested notification template with the given language was not found", HttpStatusCode.NotFound);
     public static Error MissingEmailContent = new Error(33, "Email body and subject must be provided when sending email notifications", HttpStatusCode.BadRequest);
     public static Error MissingEmailReminderNotificationContent = new Error(34, "Reminder email body and subject must be provided when sending reminder email notifications", HttpStatusCode.BadRequest);

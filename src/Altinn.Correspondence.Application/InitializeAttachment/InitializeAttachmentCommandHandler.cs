@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -13,13 +14,15 @@ public class InitializeAttachmentHandler : IHandler<InitializeAttachmentRequest,
     private readonly IAttachmentStatusRepository _attachmentStatusRepository;
     private readonly IEventBus _eventBus;
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
+    private readonly UserClaimsHelper _userClaimsHelper;
 
-    public InitializeAttachmentHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus, IAltinnAuthorizationService altinnAuthorizationService)
+    public InitializeAttachmentHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus, IAltinnAuthorizationService altinnAuthorizationService, UserClaimsHelper userClaimsHelper)
     {
         _attachmentRepository = attachmentRepository;
         _attachmentStatusRepository = attachmentStatusRepository;
         _eventBus = eventBus;
         _altinnAuthorizationService = altinnAuthorizationService;
+        _userClaimsHelper = userClaimsHelper;
     }
 
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, CancellationToken cancellationToken)
@@ -30,6 +33,10 @@ public class InitializeAttachmentHandler : IHandler<InitializeAttachmentRequest,
             return Errors.NoAccessToResource;
         }
 
+        if (!_userClaimsHelper.IsSender(request.Attachment.Sender))
+        {
+            return Errors.InvalidSender;
+        }
         var attachment = await _attachmentRepository.InitializeAttachment(request.Attachment, cancellationToken);
         var status = new AttachmentStatusEntity
         {
