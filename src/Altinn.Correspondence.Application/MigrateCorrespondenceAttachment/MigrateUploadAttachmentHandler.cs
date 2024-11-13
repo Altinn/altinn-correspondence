@@ -44,15 +44,18 @@ public class MigrateUploadAttachmentHandler(IAltinnAuthorizationService altinnAu
         {
             return Errors.UploadFailed;
         }
-
         var savedAttachment = await _attachmentRepository.GetAttachmentById(uploadResult.AsT0.AttachmentId, true, cancellationToken);
+        if (savedAttachment == null)
+        {
+            return Errors.UploadFailed;
+        }
 
         var attachmentStatus = savedAttachment.GetLatestStatus();
         return new MigrateUploadAttachmentResponse
         {
             AttachmentId = attachment.Id,
             ResourceId = attachment.ResourceId,
-            Name = attachment.FileName,
+            Name = attachment.Name,
             Checksum = attachment.Checksum,
             Status = attachmentStatus.Status,
             StatusText = attachmentStatus.StatusText,

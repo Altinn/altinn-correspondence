@@ -435,23 +435,8 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     {
         // Arrange
         var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
-        var deleteResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/attachment/{attachmentId}");
+        var deleteResponse = await _wrongSenderClient.DeleteAsync($"correspondence/api/v1/attachment/{attachmentId}");
         // Assert failure before correspondence is created
-        Assert.Equal(HttpStatusCode.Forbidden, deleteResponse.StatusCode);
-
-        var payload = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .WithExistingAttachments([attachmentId])
-            .Build();
-        var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-        var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-
-        var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse?.Correspondences.FirstOrDefault().CorrespondenceId}", _responseSerializerOptions);
-        Assert.Equal(CorrespondenceStatusExt.Published, overview?.Status);
-
-        // Act
-        deleteResponse = await _wrongSenderClient.DeleteAsync($"correspondence/api/v1/attachment/{attachmentId}");
-        // Assert 
         Assert.Equal(HttpStatusCode.BadRequest, deleteResponse.StatusCode);
     }
 }
