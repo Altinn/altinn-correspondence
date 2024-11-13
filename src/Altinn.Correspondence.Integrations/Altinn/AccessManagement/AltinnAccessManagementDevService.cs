@@ -12,7 +12,7 @@ public class AltinnAccessManagementDevService : IAltinnAccessManagementService
         Party party = new()
         {
             PartyId = 50167512,
-            OrgNumber = "0192:991825827",
+            OrgNumber = "991825827",
             SSN = "",
             Resources = new List<string>(),
             PartyTypeName = PartyType.Organization,

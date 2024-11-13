@@ -33,6 +33,11 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
         var limit = request.Limit == 0 ? 50 : request.Limit;
         DateTimeOffset? to = request.To != null ? ((DateTimeOffset)request.To).ToUniversalTime() : null;
         DateTimeOffset? from = request.From != null ? ((DateTimeOffset)request.From).ToUniversalTime() : null;
+        if (from != null && to != null && from > to)
+        {
+            return Errors.InvalidDateRange;
+        }
+
         string? orgNo = _userClaimsHelper.GetUserID();
         if (orgNo is null)
         {

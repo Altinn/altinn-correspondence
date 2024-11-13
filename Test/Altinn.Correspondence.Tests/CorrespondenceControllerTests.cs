@@ -167,7 +167,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
-    
+
     [Fact]
     public async Task InitializeCorrespondence_WithoutContent_ReturnsBadRequest()
     {
@@ -183,7 +183,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
     }
-    
+
     [Fact]
     public async Task InitializeCorrespondence_WithEmptyMessageFields_ReturnsBadRequest()
     {
@@ -197,7 +197,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
             .CreateCorrespondence()
             .WithMessageSummary("")
             .Build();
-        
+
         var payload3 = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithMessageBody("")
@@ -436,7 +436,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task InitializeCorrespondence_With_RequestedPublishTime_Null()
     {
-    // Arrange
+        // Arrange
         var correspondence = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithRequestedPublishTime(null)
@@ -447,7 +447,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
     }
-    
+
     [Fact]
     public async Task UploadCorrespondence_Gives_Ok()
     {
@@ -818,6 +818,13 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
+    public async Task GetCorrespondences_With_Invalid_Date_Gives_BadRequest()
+    {
+        var response = await _senderClient.GetAsync($"correspondence/api/v1/correspondence?resourceId={1}&offset={0}&limit={10}&status={0}&role={"recipientandsender"}&from={DateTimeOffset.UtcNow.AddDays(1)}&to={DateTimeOffset.UtcNow}");
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task GetCorrespondenceOverview()
     {
         // Arrange
@@ -1066,7 +1073,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceId}", _responseSerializerOptions);
         Assert.Equal(CorrespondenceStatusExt.Read, overview?.Status);
     }
-    
+
     [Fact]
     public async Task UpdateCorrespondenceStatus_MarkAsRead_WithoutFetched_ReturnsBadRequest()
     {
@@ -1085,7 +1092,7 @@ public class CorrespondenceControllerTests : IClassFixture<CustomWebApplicationF
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, confirmResponse.StatusCode);
     }
-    
+
     [Fact]
     public async Task UpdateCorrespondenceStatus_ToConfirmed_WithoutFetched_ReturnsBadRequest()
     {

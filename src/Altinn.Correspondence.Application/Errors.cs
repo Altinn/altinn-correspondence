@@ -57,4 +57,5 @@ public static class Errors
     public static Error InvalidPartyId = new Error(49, "Invalid partyId", HttpStatusCode.BadRequest);
     public static Error ConfirmBeforeFetched = new Error(50, "Correspondence must be fetched before it can be confirmed", HttpStatusCode.BadRequest);
     public static Error ReadBeforeFetched = new Error(51, "Correspondence must be fetched before it can be read", HttpStatusCode.BadRequest);
+    public static Error InvalidDateRange = new Error(52, "From date cannot be after to date", HttpStatusCode.BadRequest);
 }
