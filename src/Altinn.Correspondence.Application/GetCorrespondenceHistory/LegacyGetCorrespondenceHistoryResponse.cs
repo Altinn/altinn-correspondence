@@ -17,7 +17,7 @@ public class LegacyCorrespondenceStatus
 }
 public class LegacyUser
 {
-    public string PartyId { get; set; }
+    public int PartyId { get; set; }
     public int AuthenticationLevel { get; set; }
     public Recipient Recipient { get; set; }
 }

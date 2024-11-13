@@ -22,7 +22,7 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
     private readonly HttpClient _legacyClient;
     private readonly HttpClient _senderClient;
     private readonly string _partyIdClaim = "urn:altinn:partyid";
-    private readonly string _digdirPartyId = "50167512";
+    private readonly int _digdirPartyId = 50167512;
 
     public LegacyControllerTests(CustomWebApplicationFactory factory)
     {
@@ -37,7 +37,7 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
         _senderClient = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
         _legacyClient = _factory.CreateClientWithAddedClaims(
             ("scope", AuthorizationConstants.LegacyScope),
-            (_partyIdClaim, _digdirPartyId));
+            (_partyIdClaim, _digdirPartyId.ToString()));
     }
 
     [Fact]

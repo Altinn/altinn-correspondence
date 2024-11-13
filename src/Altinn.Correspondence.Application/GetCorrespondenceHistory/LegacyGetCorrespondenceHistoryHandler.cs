@@ -58,7 +58,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCor
                 StatusText = $"[Correspondence] {s.StatusText}",
                 User = new LegacyUser
                 {
-                    PartyId = recipientParty.PartyId.ToString(),
+                    PartyId = recipientParty.PartyId,
                     AuthenticationLevel = (int)minimumAuthLevel
                 },
             }).ToList();
@@ -78,7 +78,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCor
                     notificationDetails.NotificationsStatusDetails.Sms.SendStatus,
                     notificationDetails.NotificationsStatusDetails.Sms.Recipient,
                     notification.IsReminder,
-                    senderParty.PartyId.ToString(),
+                    senderParty.PartyId,
                     (int)minimumAuthLevel));
             }
             if (notificationDetails.NotificationsStatusDetails.Email is not null)
@@ -87,7 +87,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCor
                     notificationDetails.NotificationsStatusDetails.Email.SendStatus,
                     notificationDetails.NotificationsStatusDetails.Email.Recipient,
                     notification.IsReminder,
-                    senderParty.PartyId.ToString(),
+                    senderParty.PartyId,
                     (int)minimumAuthLevel));
             }
         }
@@ -100,7 +100,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCor
         return legacyHistory;
     }
 
-    private static LegacyCorrespondenceStatus GetNotificationStatus(StatusExt sendStatus, Recipient recipient, bool isReminder, string partyId, int authenticationLevel)
+    private static LegacyCorrespondenceStatus GetNotificationStatus(StatusExt sendStatus, Recipient recipient, bool isReminder, int partyId, int authenticationLevel)
     {
         return new LegacyCorrespondenceStatus
         {

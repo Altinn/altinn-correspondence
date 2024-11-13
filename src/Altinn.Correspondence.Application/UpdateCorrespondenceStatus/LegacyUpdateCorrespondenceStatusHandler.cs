@@ -72,6 +72,7 @@ public class LegacyUpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespond
             StatusText = request.Status.ToString(),
         }, cancellationToken);
 
+        _updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
         await _updateCorrespondenceStatusHelper.PublishEvent(_eventBus, correspondence, request.Status, cancellationToken);
         return request.CorrespondenceId;
     }
