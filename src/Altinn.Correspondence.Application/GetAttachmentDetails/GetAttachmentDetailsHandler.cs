@@ -43,7 +43,7 @@ public class GetAttachmentDetailsHandler : IHandler<Guid, GetAttachmentDetailsRe
         {
             ResourceId = attachment.ResourceId,
             AttachmentId = attachment.Id,
-            Name = attachment.FileName,
+            Name = attachment.Name,
             Status = attachmentStatus.Status,
             Statuses = attachment.Statuses,
             StatusText = attachmentStatus.StatusText,
