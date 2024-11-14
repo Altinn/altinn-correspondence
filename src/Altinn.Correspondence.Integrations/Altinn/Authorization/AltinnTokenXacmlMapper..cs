@@ -3,7 +3,6 @@ using Altinn.Common.PEP.Constants;
 using Altinn.Common.PEP.Helpers;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
-using static Altinn.Authorization.ABAC.Constants.XacmlConstants;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Authorization;
 
@@ -12,61 +11,39 @@ public static class AltinnTokenXacmlMapper
     private const string DefaultIssuer = "Altinn";
     private const string DefaultType = "string";
     private const string OrgNumberAttributeId = "urn:altinn:organization:identifier-no";
+    private const string PersonAttributeId = "urn:altinn:person:identifier-no";
 
     public static XacmlJsonRequestRoot CreateAltinnDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId)
     {
-        XacmlJsonRequest request = new()
-        {
-            AccessSubject = new List<XacmlJsonCategory>(),
-            Action = new List<XacmlJsonCategory>(),
-            Resource = new List<XacmlJsonCategory>()
-        };
+        XacmlJsonRequest request = new XacmlJsonRequest();
+        request.AccessSubject = new List<XacmlJsonCategory>();
+        request.Action = new List<XacmlJsonCategory>();
+        request.Resource = new List<XacmlJsonCategory>();
 
-        var subjectCategory = CreateSubjectCategory(user);
-        request.AccessSubject.Add(subjectCategory);
-        foreach (var actionType in actionTypes)
-        {
-            request.Action.Add(CreateActionCategory(actionType));
-        }
-        var resourceCategory = CreateResourceCategory(resourceId, user);
-        request.Resource.Add(resourceCategory);
+        request.AccessSubject.Add(CreateSubjectCategory(user));
+        request.Action.AddRange(actionTypes.Select(action => DecisionHelper.CreateActionCategory(action)));
+        request.Resource.Add(CreateResourceCategory(resourceId, user));
 
         XacmlJsonRequestRoot jsonRequest = new() { Request = request };
+
         return jsonRequest;
     }
     public static XacmlJsonRequestRoot CreateAltinnDecisionRequestForLegacy(ClaimsPrincipal user, string ssn, List<string> actionTypes, string resourceId, string recipient)
     {
-        XacmlJsonRequest request = new()
-        {
-            AccessSubject = new List<XacmlJsonCategory>(),
-            Action = new List<XacmlJsonCategory>(),
-            Resource = new List<XacmlJsonCategory>()
-        };
+        XacmlJsonRequest request = new XacmlJsonRequest();
+        request.AccessSubject = new List<XacmlJsonCategory>();
+        request.Action = new List<XacmlJsonCategory>();
+        request.Resource = new List<XacmlJsonCategory>();
 
-        var subjectCategory = CreateSubjectCategoryForLegacy(user, ssn);
-        request.AccessSubject.Add(subjectCategory);
-        foreach (var actionType in actionTypes)
-        {
-            request.Action.Add(CreateActionCategory(actionType));
-        }
-        var resourceCategory = CreateResourceCategory(resourceId, user, true, recipient);
-        request.Resource.Add(resourceCategory);
-
+        request.AccessSubject.Add(CreateSubjectCategoryForLegacy(user, ssn));
+        request.Action.AddRange(actionTypes.Select(action => DecisionHelper.CreateActionCategory(action)));
+        request.Resource.Add(CreateResourceCategory(resourceId, user, true, recipient));
+    
         XacmlJsonRequestRoot jsonRequest = new() { Request = request };
+
         return jsonRequest;
     }
 
-    private static XacmlJsonCategory CreateActionCategory(string actionType, bool includeResult = false)
-    {
-        XacmlJsonCategory actionAttributes = new()
-        {
-            Attribute = new List<XacmlJsonAttribute>
-                {
-                    DecisionHelper.CreateXacmlJsonAttribute(MatchAttributeIdentifiers.ActionId, actionType, DefaultType, DefaultIssuer, includeResult)
-                }
-        };
-        return actionAttributes;
-    }
 
     private static XacmlJsonCategory CreateResourceCategory(string resourceId, ClaimsPrincipal user, bool legacy = false, string? orgNr = null)
     {
@@ -95,24 +72,24 @@ public static class AltinnTokenXacmlMapper
         {
             if (IsCamelCaseOrgnumberClaim(claim.Type))
             {
-                list.Add(CreateXacmlJsonAttribute("urn:altinn:organizationnumber", claim.Value, "string", claim.Issuer));
-                list.Add(CreateXacmlJsonAttribute(OrgNumberAttributeId, claim.Value, "string", claim.Issuer));
+                list.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumber, claim.Value, DefaultType, claim.Issuer));
+                list.Add(DecisionHelper.CreateXacmlJsonAttribute(OrgNumberAttributeId, claim.Value, DefaultType, claim.Issuer));
             }
             else if (IsScopeClaim(claim.Type))
             {
-                list.Add(CreateXacmlJsonAttribute("urn:scope", claim.Value, "string", claim.Issuer));
+                list.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.Scope, claim.Value, DefaultType, claim.Issuer));
             }
             else if (IsJtiClaim(claim.Type))
             {
-                list.Add(CreateXacmlJsonAttribute("urn:altinn:sessionid", claim.Value, "string", claim.Issuer));
+                list.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.SessionId, claim.Value, DefaultType, claim.Issuer));
             }
             else if (IsValidUrn(claim.Type))
             {
-                list.Add(CreateXacmlJsonAttribute(claim.Type, claim.Value, "string", claim.Issuer));
+                list.Add(DecisionHelper.CreateXacmlJsonAttribute(claim.Type, claim.Value, DefaultType, claim.Issuer));
             }
             else if (IsValidPid(claim.Type))
             {
-                list.Add(CreateXacmlJsonAttribute("urn:altinn:person:identifier-no", claim.Value, "string", claim.Issuer));
+                list.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, claim.Value, DefaultType, claim.Issuer));
             }
         }
         xacmlJsonCategory.Attribute = list;
@@ -125,8 +102,8 @@ public static class AltinnTokenXacmlMapper
         var claim = user.Claims.FirstOrDefault(claim => IsScopeClaim(claim.Type));
         if (claim is not null)
         {
-            list.Add(CreateXacmlJsonAttribute("urn:altinn:person:identifier-no", ssn, "string", claim.Issuer));
-            list.Add(CreateXacmlJsonAttribute("urn:scope", claim.Value, "string", claim.Issuer));
+            list.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, ssn, DefaultType, claim.Issuer));
+            list.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.Scope, claim.Value, DefaultType, claim.Issuer));
         }
         xacmlJsonCategory.Attribute = list;
         return xacmlJsonCategory;
@@ -160,16 +137,5 @@ public static class AltinnTokenXacmlMapper
     private static bool IsValidPid(string value)
     {
         return value.Equals("pid");
-    }
-
-    private static XacmlJsonAttribute CreateXacmlJsonAttribute(string attributeId, string value, string dataType, string issuer, bool includeResult = false)
-    {
-        XacmlJsonAttribute xacmlJsonAttribute = new XacmlJsonAttribute();
-        xacmlJsonAttribute.AttributeId = attributeId;
-        xacmlJsonAttribute.Value = value;
-        xacmlJsonAttribute.DataType = dataType;
-        xacmlJsonAttribute.Issuer = issuer;
-        xacmlJsonAttribute.IncludeInResult = includeResult;
-        return xacmlJsonAttribute;
     }
 }
