@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ABAC.Xacml.JsonProfile;
+using Altinn.Authorization.ABAC.Xacml.JsonProfile;
 using Altinn.Common.PEP.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
@@ -45,8 +45,11 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     public async Task<bool> CheckUserAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, string? recipientOrgNo = null)
     {
         var user = _httpContextAccessor.HttpContext?.User;
-        var validation = await ValidateCheckUserAccess(user, resourceId, cancellationToken);
-        if (validation != null) return (bool)validation;
+        var earlyAccessDecision = await EvaluateEarlyAccessConditions(user, resourceId, cancellationToken);
+        if (earlyAccessDecision is not null)
+        {
+            return earlyAccessDecision.Value;
+        }
         var actionIds = rights.Select(GetActionId).ToList();
         XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, actionIds, resourceId, recipientOrgNo);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
@@ -60,8 +63,11 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     public async Task<int?> CheckUserAccessAndGetMinimumAuthLevel(string ssn, string resourceId, List<ResourceAccessLevel> rights, string recipientOrgNo, CancellationToken cancellationToken = default)
     {
         var user = _httpContextAccessor.HttpContext?.User;
-        var validation = await ValidateCheckUserAccess(user, resourceId, cancellationToken);
-        if (validation != null) return (bool)validation ? 3 : null;
+        var earlyAccessDecision = await EvaluateEarlyAccessConditions(user, resourceId, cancellationToken);
+        if (earlyAccessDecision is not null)
+        {
+            return earlyAccessDecision.Value ? 3 : null;
+        }
         var actionIds = rights.Select(GetActionId).ToList();
         var orgnr = recipientOrgNo.Split(":")[1];
         XacmlJsonRequestRoot jsonRequest = CreateDecisionRequestForLegacy(user, ssn, actionIds, resourceId, orgnr);
@@ -91,7 +97,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
         return true;
     }
-    private async Task<bool?> ValidateCheckUserAccess(ClaimsPrincipal user, string resourceId, CancellationToken cancellationToken)
+    private async Task<bool?> EvaluateEarlyAccessConditions(ClaimsPrincipal? user, string resourceId, CancellationToken cancellationToken)
     {
         if (_httpClient.BaseAddress is null)
         {
