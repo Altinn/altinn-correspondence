@@ -41,15 +41,16 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             return Errors.CorrespondenceNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken);
+        var isRecipient = _userClaimsHelper.IsRecipient(correspondence.Recipient);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
+            correspondence.ResourceId,
+            new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
+            cancellationToken,
+            onBehalfOfIdentifier: isRecipient ? null : correspondence.Recipient,
+            correspondenceId: isRecipient ? null : request.CorrespondenceId.ToString());
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
-        }
-        var isRecipient = _userClaimsHelper.IsRecipient(correspondence.Recipient);
-        if (!isRecipient)
-        {
-            return Errors.CorrespondenceNotFound;
         }
         var currentStatusError = _updateCorrespondenceStatusHelper.ValidateCurrentStatus(correspondence);
         if (currentStatusError is not null)
