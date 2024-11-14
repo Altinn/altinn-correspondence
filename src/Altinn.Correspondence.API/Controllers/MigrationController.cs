@@ -37,8 +37,8 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("correspondence")]
         [Authorize(Policy = AuthorizationConstants.Migrate)]
         public async Task<ActionResult<CorrespondenceMigrationStatusExt>> MigrateCorrespondence(
-            MigrateCorrespondenceExt migrateCorrespondence, 
-            [FromServices] MigrateCorrespondenceHandler handler, 
+            MigrateCorrespondenceExt migrateCorrespondence,
+            [FromServices] MigrateCorrespondenceHandler handler,
             CancellationToken cancellationToken)
         {
             LogContextHelpers.EnrichLogsWithMigrateCorrespondence(migrateCorrespondence);
@@ -69,7 +69,7 @@ namespace Altinn.Correspondence.API.Controllers
             // This should go through its own handler.
             throw new NotImplementedException();
         }
-        
+
         /// <summary>
         /// Initialize attachment for migration.
         /// </summary>
@@ -92,7 +92,7 @@ namespace Altinn.Correspondence.API.Controllers
                 Problem
             );
         }
-        
+
         /// <summary>
         /// Upload attachment data to Altinn Correspondence blob storage
         /// </summary>
@@ -104,7 +104,6 @@ namespace Altinn.Correspondence.API.Controllers
         public async Task<ActionResult<AttachmentOverviewExt>> UploadAttachmentData(
             Guid attachmentId,
             [FromServices] MigrateUploadAttachmentHandler migrateAttachmentHandler,
-            [FromServices] GetAttachmentOverviewHandler attachmentOverviewHandler,
             CancellationToken cancellationToken = default
         )
         {
@@ -117,17 +116,12 @@ namespace Altinn.Correspondence.API.Controllers
                 UploadStream = Request.Body,
                 ContentLength = Request.ContentLength ?? Request.Body.Length
             }, cancellationToken);
-            var attachmentOverviewResult = await attachmentOverviewHandler.Process(attachmentId, cancellationToken);
-            if (!attachmentOverviewResult.TryPickT0(out var attachmentOverview, out var error))
-            {
-                return Problem(error);
-            }
             return uploadAttachmentResult.Match(
-                attachment => Ok(AttachmentOverviewMapper.MapToExternal(attachmentOverview)),
+                attachment => Ok(AttachmentOverviewMapper.MapMigrateToExternal(attachment)),
                 Problem
             );
         }
-        
+
         private ActionResult Problem(Error error) => Problem(detail: error.Message, statusCode: (int)error.StatusCode);
     }
 }

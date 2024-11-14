@@ -18,7 +18,7 @@ namespace Altinn.Correspondence.Tests.Factories
                 ResourceId = "1",
                 DataType = "html",
                 Name = "Test file logical name",
-                Sender = "0192:986252932",
+                Sender = "0192:991825827",
                 SendersReference = "1234",
                 FileName = "test-file",
                 IsEncrypted = false

@@ -7,12 +7,13 @@ using OneOf;
 
 namespace Altinn.Correspondence.Application.UploadAttachment;
 
-public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, UploadHelper uploadHelper) : IHandler<UploadAttachmentRequest, UploadAttachmentResponse>
+public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, UploadHelper uploadHelper, UserClaimsHelper userClaimsHelper) : IHandler<UploadAttachmentRequest, UploadAttachmentResponse>
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
     private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
     private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
     private readonly UploadHelper _uploadHelper = uploadHelper;
+    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
 
     public async Task<OneOf<UploadAttachmentResponse, Error>> Process(UploadAttachmentRequest request, CancellationToken cancellationToken)
     {
@@ -25,6 +26,10 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
+        }
+        if (!_userClaimsHelper.IsSender(attachment.Sender))
+        {
+            return Errors.InvalidSender;
         }
         var maxUploadSize = long.Parse(int.MaxValue.ToString());
         if (request.ContentLength > maxUploadSize || request.ContentLength == 0)
