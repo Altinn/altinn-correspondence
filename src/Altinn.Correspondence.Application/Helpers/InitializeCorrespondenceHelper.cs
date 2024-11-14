@@ -151,7 +151,6 @@ namespace Altinn.Correspondence.Application.Helpers
             foreach (var attachmentId in attachmentIds)
             {
                 var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true);
-
                 if (attachment is not null)
                 {
                     if (attachment.Sender != sender) return Errors.InvalidSenderForAttachment;
