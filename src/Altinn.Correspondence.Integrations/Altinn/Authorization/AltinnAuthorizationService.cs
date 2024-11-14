@@ -168,6 +168,10 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         {
             return IdportenXacmlMapper.ValidateIdportenAuthorizationResponse(response, user);
         }
+        if (personIdClaim?.Issuer == _dialogportenSettings.Issuer)
+        {
+            return DialogTokenXacmlMapper.ValidateDialogportenResult(response, user);
+        }
         foreach (var decision in response.Response)
         {
             var result = DecisionHelper.ValidateDecisionResult(decision, user);
