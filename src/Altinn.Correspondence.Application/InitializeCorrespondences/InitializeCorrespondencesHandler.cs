@@ -82,7 +82,9 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         var uploadAttachmentMetadata = request.Correspondence.Content.Attachments;
 
         // Validate that existing attachments are correct
-        var existingAttachments = await _initializeCorrespondenceHelper.GetExistingAttachments(existingAttachmentIds);
+        var getExistingAttachments = await _initializeCorrespondenceHelper.GetExistingAttachments(existingAttachmentIds, request.Correspondence.Sender);
+        if (getExistingAttachments.IsT1) return getExistingAttachments.AsT1;
+        var existingAttachments = getExistingAttachments.AsT0;
         if (existingAttachments.Count != existingAttachmentIds.Count)
         {
             return Errors.ExistingAttachmentNotFound;

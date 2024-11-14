@@ -145,14 +145,16 @@ namespace Altinn.Correspondence.Application.Helpers
         /// If the attachment is not found in the database, it is not included in the returned list
         /// </remarks>
         /// <returns>A list of the attachments found</returns>
-        public async Task<List<AttachmentEntity>> GetExistingAttachments(List<Guid> attachmentIds)
+        public async Task<OneOf<List<AttachmentEntity>, Error>> GetExistingAttachments(List<Guid> attachmentIds, string sender)
         {
             var attachments = new List<AttachmentEntity>();
             foreach (var attachmentId in attachmentIds)
             {
                 var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true);
+
                 if (attachment is not null)
                 {
+                    if (attachment.Sender != sender) return Errors.InvalidSenderForAttachment;
                     attachments.Add(attachment);
                 }
             }
