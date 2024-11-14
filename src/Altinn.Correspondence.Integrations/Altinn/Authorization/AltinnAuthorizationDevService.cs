@@ -10,7 +10,7 @@ namespace Altinn.Correspondence.Integrations.Altinn.Authorization
             return Task.FromResult(true);
         }
 
-        public Task<bool> CheckUserAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, string? recipientOrgNo = null)
+        public Task<bool> CheckUserAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, string? recipientOrgNo = null, string? correspondenceId = null)
         {
             return Task.FromResult(true);
         }
