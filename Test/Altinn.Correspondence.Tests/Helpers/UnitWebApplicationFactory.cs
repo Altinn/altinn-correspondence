@@ -31,7 +31,7 @@ namespace Altinn.Correspondence.Tests.Helpers
                                config.UseMemoryStorage()
                            );
                 var altinnAuthorizationService = new Mock<IAltinnAuthorizationService>();
-                altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>(), null)).ReturnsAsync(true);
+                altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>(), It.IsAny<string>(),  It.IsAny<string>())).ReturnsAsync(true);
                 services.AddSingleton(altinnAuthorizationService.Object);
                 if (_customServices is not null)
                     _customServices(services);
