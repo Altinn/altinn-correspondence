@@ -136,6 +136,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     XacmlJsonAttributeAssignment obligation = GetObligation("urn:altinn:minimum-authenticationlevel", obligations);
                     if (obligation != null)
                     {
+                        return true; // Temp hotfix pending fix in Dialogporten https://github.com/digdir/dialogporten/issues/1458
                         string value = obligation.Value;
                         string value2 = user.Claims.FirstOrDefault((Claim c) => c.Type.Equals("l")).Value;
                         if (Convert.ToInt32(value2) < Convert.ToInt32(value))
