@@ -72,7 +72,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             return earlyAccessDecision.Value ? 3 : null;
         }
         var actionIds = rights.Select(GetActionId).ToList();
-        var orgnr = recipientOrgNo.Split(":")[1];
+        var orgnr = GetOrgWithoutPrefix(recipientOrgNo);
         XacmlJsonRequestRoot jsonRequest = CreateDecisionRequestForLegacy(user, ssn, actionIds, resourceId, orgnr);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
         if (responseContent is null) return null;
@@ -84,6 +84,16 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         }
         int? minLevel = IdportenXacmlMapper.GetMinimumAuthLevel(responseContent, user);
         return minLevel;
+    }
+
+    private string GetOrgWithoutPrefix(string recipientOrgNo)
+    {
+        var parts = recipientOrgNo.Split(":");
+        if (parts.Length > 1)
+        {
+            return parts[1];
+        }
+        return parts[0];
     }
 
     public async Task<bool> CheckMigrationAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
@@ -176,6 +186,10 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         if (personIdClaim?.Issuer == _idPortenSettings.Issuer)
         {
             return IdportenXacmlMapper.ValidateIdportenAuthorizationResponse(response, user);
+        }
+        if (personIdClaim?.Issuer == _dialogportenSettings.Issuer)
+        {
+            return DialogTokenXacmlMapper.ValidateDialogportenResult(response, user);
         }
         foreach (var decision in response.Response)
         {

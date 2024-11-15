@@ -12,12 +12,14 @@ public class DownloadAttachmentHandler : IHandler<DownloadAttachmentRequest, Str
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly IStorageRepository _storageRepository;
     private readonly IAttachmentRepository _attachmentRepository;
+    private readonly UserClaimsHelper _userClaimsHelper;
 
-    public DownloadAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IStorageRepository storageRepository, IAttachmentRepository attachmentRepository)
+    public DownloadAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IStorageRepository storageRepository, IAttachmentRepository attachmentRepository, UserClaimsHelper userClaimsHelper)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _storageRepository = storageRepository;
         _attachmentRepository = attachmentRepository;
+        _userClaimsHelper = userClaimsHelper;
     }
 
     public async Task<OneOf<Stream, Error>> Process(DownloadAttachmentRequest request, CancellationToken cancellationToken)
@@ -31,6 +33,11 @@ public class DownloadAttachmentHandler : IHandler<DownloadAttachmentRequest, Str
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
+        }
+
+        if (!_userClaimsHelper.IsSender(attachment.Sender))
+        {
+            return Errors.InvalidSender;
         }
 
         var attachmentStream = await _storageRepository.DownloadAttachment(attachment.Id, cancellationToken);

@@ -10,12 +10,14 @@ public class GetAttachmentDetailsHandler : IHandler<Guid, GetAttachmentDetailsRe
     private readonly IAttachmentRepository _attachmentRepository;
     private readonly ICorrespondenceRepository _correspondenceRepository;
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
+    private readonly UserClaimsHelper _userClaimsHelper;
 
-    public GetAttachmentDetailsHandler(IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, IAltinnAuthorizationService altinnAuthorizationService)
+    public GetAttachmentDetailsHandler(IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, IAltinnAuthorizationService altinnAuthorizationService, UserClaimsHelper userClaimsHelper)
     {
         _attachmentRepository = attachmentRepository;
         _correspondenceRepository = correspondenceRepository;
         _altinnAuthorizationService = altinnAuthorizationService;
+        _userClaimsHelper = userClaimsHelper;
     }
 
     public async Task<OneOf<GetAttachmentDetailsResponse, Error>> Process(Guid attachmentId, CancellationToken cancellationToken)
@@ -30,6 +32,10 @@ public class GetAttachmentDetailsHandler : IHandler<Guid, GetAttachmentDetailsRe
         {
             return Errors.NoAccessToResource;
         }
+        if (!_userClaimsHelper.IsSender(attachment.Sender))
+        {
+            return Errors.InvalidSender;
+        }
         var correspondenceIds = await _correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);
         var attachmentStatus = attachment.GetLatestStatus();
 
@@ -37,7 +43,7 @@ public class GetAttachmentDetailsHandler : IHandler<Guid, GetAttachmentDetailsRe
         {
             ResourceId = attachment.ResourceId,
             AttachmentId = attachment.Id,
-            Name = attachment.FileName,
+            Name = attachment.Name,
             Status = attachmentStatus.Status,
             Statuses = attachment.Statuses,
             StatusText = attachmentStatus.StatusText,

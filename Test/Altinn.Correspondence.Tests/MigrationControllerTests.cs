@@ -145,13 +145,14 @@ public class MigrationControllerTests : IClassFixture<MaskinportenWebApplication
         string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
     }
-    
+
     [Fact]
     public async Task InitializeMigrateAttachment_InitializeAndUpload()
     {
         InitializeAttachmentExt basicAttachment = new AttachmentBuilder().CreateAttachment().Build();
 
         var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/attachment", basicAttachment);
+        Assert.True(initializeResponse.IsSuccessStatusCode, await initializeResponse.Content.ReadAsStringAsync());
         string attachmentIdstring = await initializeResponse.Content.ReadAsStringAsync();
         Guid attachmentId = Guid.Parse(attachmentIdstring);
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
@@ -160,11 +161,11 @@ public class MigrationControllerTests : IClassFixture<MaskinportenWebApplication
         var uploadResponse = await _client.PostAsync($"correspondence/api/v1/migration/attachment/{attachmentId}/upload", content);
         Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
     }
-    
+
     [Fact]
     public async Task InitializeMigrateCorrespondence_UploadBothAttachments_ThenInitializeCorrespondence()
     {
-        
+
         InitializeAttachmentExt basicAttachment = new AttachmentBuilder().CreateAttachment().Build();
 
         var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/attachment", basicAttachment);
@@ -175,7 +176,7 @@ public class MigrationControllerTests : IClassFixture<MaskinportenWebApplication
         StreamContent content = new(memoryStream);
         var uploadResponse = await _client.PostAsync($"correspondence/api/v1/migration/attachment/{attachmentId}/upload", content);
 
-        
+
         InitializeAttachmentExt basicAttachment2 = new AttachmentBuilder().CreateAttachment().Build();
 
         var initializeResponse2 = await _client.PostAsJsonAsync("correspondence/api/v1/migration/attachment", basicAttachment2);
@@ -185,17 +186,17 @@ public class MigrationControllerTests : IClassFixture<MaskinportenWebApplication
         MemoryStream memoryStream2 = new(file2);
         StreamContent content2 = new(memoryStream2);
         var uploadResponse2 = await _client.PostAsync($"correspondence/api/v1/migration/attachment/{attachmentId2}/upload", content2);
-        
+
         InitializeCorrespondencesExt initializeCorrespondencesExt = new CorrespondenceBuilder().CreateCorrespondence().WithExistingAttachments([attachmentId, attachmentId2]).Build();
         initializeCorrespondencesExt.Correspondence.SendersReference = "test 2024 10 09 09 45";
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new() 
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
             CorrespondenceData = initializeCorrespondencesExt,
             Altinn2CorrespondenceId = 12345,
-            EventHistory = [ new CorrespondenceStatusEventExt() 
+            EventHistory = [ new CorrespondenceStatusEventExt()
             {
                 Status = CorrespondenceStatusExt.Initialized, StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
-            } 
+            }
             ]
         };
 

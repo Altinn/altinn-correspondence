@@ -1,4 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.InitializeCorrespondence;
+using Altinn.Correspondence.Application.MigrateUploadAttachment;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -9,13 +11,13 @@ using OneOf;
 
 namespace Altinn.Correspondence.Application.UploadAttachment;
 
-public class MigrateUploadAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, UploadHelper uploadHelper) : IHandler<UploadAttachmentRequest, UploadAttachmentResponse>
+public class MigrateUploadAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, UploadHelper uploadHelper) : IHandler<UploadAttachmentRequest, MigrateUploadAttachmentResponse>
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
     private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
     private readonly UploadHelper _uploadHelper = uploadHelper;
 
-    public async Task<OneOf<UploadAttachmentResponse, Error>> Process(UploadAttachmentRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<MigrateUploadAttachmentResponse, Error>> Process(UploadAttachmentRequest request, CancellationToken cancellationToken)
     {
         var attachment = await _attachmentRepository.GetAttachmentById(request.AttachmentId, true, cancellationToken);
         if (attachment == null)
@@ -38,9 +40,31 @@ public class MigrateUploadAttachmentHandler(IAltinnAuthorizationService altinnAu
         }
         var uploadResult = await _uploadHelper.UploadAttachment(request.UploadStream, request.AttachmentId, cancellationToken);
 
-        return uploadResult.Match<OneOf<UploadAttachmentResponse, Error>>(
-            data => { return data; },
-            error => { return error; }
-        );
+        if (uploadResult.IsT1)
+        {
+            return Errors.UploadFailed;
+        }
+        var savedAttachment = await _attachmentRepository.GetAttachmentById(uploadResult.AsT0.AttachmentId, true, cancellationToken);
+        if (savedAttachment == null)
+        {
+            return Errors.UploadFailed;
+        }
+
+        var attachmentStatus = savedAttachment.GetLatestStatus();
+        return new MigrateUploadAttachmentResponse
+        {
+            AttachmentId = attachment.Id,
+            ResourceId = attachment.ResourceId,
+            Name = attachment.Name,
+            Checksum = attachment.Checksum,
+            Status = attachmentStatus.Status,
+            StatusText = attachmentStatus.StatusText,
+            StatusChanged = attachmentStatus.StatusChanged,
+            DataLocationType = attachment.DataLocationType,
+            DataType = attachment.DataType,
+            SendersReference = attachment.SendersReference,
+            FileName = attachment.FileName,
+            Sender = attachment.Sender,
+        };
     }
 }

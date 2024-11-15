@@ -36,7 +36,7 @@ public static class Errors
     public static Error CantPurgeCorrespondenceSender = new Error(28, "Cannot delete correspondence that has been published", HttpStatusCode.BadRequest);
     public static Error CantUploadToExistingCorrespondence = new Error(29, "Cannot upload attachment to a correspondence that has been created", HttpStatusCode.BadRequest);
     public static Error LatestStatusIsNull = new Error(30, "Could not retrieve latest status for correspondence", HttpStatusCode.BadRequest);
-    public static Error InvalidSender = new Error(31, "Creator of correspondence must be the sender", HttpStatusCode.BadRequest);
+    public static Error InvalidSender = new Error(31, "Request is only available for the sender of a given correspondence or attachment", HttpStatusCode.BadRequest);
     public static Error NotificationTemplateNotFound = new Error(32, "The requested notification template with the given language was not found", HttpStatusCode.NotFound);
     public static Error MissingEmailContent = new Error(33, "Email body and subject must be provided when sending email notifications", HttpStatusCode.BadRequest);
     public static Error MissingEmailReminderNotificationContent = new Error(34, "Reminder email body and subject must be provided when sending reminder email notifications", HttpStatusCode.BadRequest);
@@ -58,4 +58,5 @@ public static class Errors
     public static Error ConfirmBeforeFetched = new Error(50, "Correspondence must be fetched before it can be confirmed", HttpStatusCode.BadRequest);
     public static Error ReadBeforeFetched = new Error(51, "Correspondence must be fetched before it can be read", HttpStatusCode.BadRequest);
     public static Error InvalidDateRange = new Error(52, "From date cannot be after to date", HttpStatusCode.BadRequest);
+    public static Error InvalidSenderForAttachment = new Error(53, "The sender of the correspondence must be equal the sender of existing attachments", HttpStatusCode.BadRequest);
 }

@@ -8,7 +8,7 @@ using OneOf;
 
 namespace Altinn.Correspondence.Application.PurgeAttachment;
 
-public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IEventBus eventBus) : IHandler<Guid, Guid>
+public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IEventBus eventBus, UserClaimsHelper userClaimsHelper) : IHandler<Guid, Guid>
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
     private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
@@ -17,6 +17,7 @@ public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizat
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
     private readonly IStorageRepository _storageRepository = storageRepository;
     private readonly IEventBus _eventBus = eventBus;
+    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
 
     public async Task<OneOf<Guid, Error>> Process(Guid attachmentId, CancellationToken cancellationToken)
     {
@@ -24,6 +25,10 @@ public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizat
         if (attachment == null)
         {
             return Errors.AttachmentNotFound;
+        }
+        if (!_userClaimsHelper.IsSender(attachment.Sender))
+        {
+            return Errors.InvalidSender;
         }
         var hasAccess = await _altinnAuthorizationService.CheckUserAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)

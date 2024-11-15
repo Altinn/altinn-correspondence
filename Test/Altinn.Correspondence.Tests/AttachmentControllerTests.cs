@@ -17,6 +17,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _senderClient;
     private readonly HttpClient _recipientClient;
+    private readonly HttpClient _wrongSenderClient;
     private readonly JsonSerializerOptions _responseSerializerOptions;
     private readonly string _userId = "0192:991825827";
 
@@ -25,6 +26,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         _factory = factory;
         _senderClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
         _recipientClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.RecipientScope));
+        _wrongSenderClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope), ("client_orgnr", "123456789"), ("consumer", "{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"0192:123456789\"}"));
 
         _responseSerializerOptions = new JsonSerializerOptions(new JsonSerializerOptions()
         {
@@ -45,6 +47,14 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var attachment = new AttachmentBuilder().CreateAttachment().Build();
         var initializeAttachmentResponse = await _recipientClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
         Assert.Equal(HttpStatusCode.Forbidden, initializeAttachmentResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task InitializeAttachment_As_Different_Sender_As_Token_ReturnsBadRequest()
+    {
+        var attachment = new AttachmentBuilder().CreateAttachment().Build();
+        var initializeAttachmentResponse = await _wrongSenderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+        Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
     }
 
     [Fact]
@@ -81,6 +91,14 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     }
 
     [Fact]
+    public async Task GetAttachmentOverview_As_Different_sender_ReturnsBadRequest()
+    {
+        var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+        var getAttachmentOverviewResponse = await _wrongSenderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}");
+        Assert.Equal(HttpStatusCode.BadRequest, getAttachmentOverviewResponse.StatusCode);
+    }
+
+    [Fact]
     public async Task GetAttachmentDetails()
     {
         var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
@@ -94,6 +112,15 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var getAttachmentDetailsResponse = await _recipientClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}/details");
         Assert.Equal(HttpStatusCode.Forbidden, getAttachmentDetailsResponse.StatusCode);
     }
+
+    [Fact]
+    public async Task GetAttachmentDetails_As_Different_sender_ReturnsBadRequest()
+    {
+        var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+        var getAttachmentOverviewResponse = await _wrongSenderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}/details");
+        Assert.Equal(HttpStatusCode.BadRequest, getAttachmentOverviewResponse.StatusCode);
+    }
+
     [Fact]
     public async Task UploadAttachmentData_WhenAttachmentDoesNotExist_ReturnsNotFound()
     {
@@ -107,6 +134,14 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
         var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _senderClient);
         Assert.True(uploadResponse.IsSuccessStatusCode, await uploadResponse.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task UploadAttachmentData_WrongSender_Fails()
+    {
+        var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+        var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _wrongSenderClient);
+        Assert.Equal(HttpStatusCode.BadRequest, uploadResponse.StatusCode);
     }
 
     [Fact]
@@ -261,7 +296,7 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
     {
         // Arrange
         var attachment = new AttachmentBuilder().CreateAttachment().Build();
-        
+
         // Act
         var uploadResponse = await _recipientClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
 
@@ -295,6 +330,19 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         // Assert
         Assert.Equal(HttpStatusCode.Forbidden, downloadResponse.StatusCode);
         Assert.Empty(data.Result);
+    }
+    [Fact]
+    public async Task DownloadAttachment_AsWrongSender_ReturnsBadRequest()
+    {
+        // Arrange
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+
+        // Act
+        var downloadResponse = await _wrongSenderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}/download");
+        var data = downloadResponse.Content.ReadAsByteArrayAsync();
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, downloadResponse.StatusCode);
     }
     [Fact]
     public async Task DeleteAttachment_WhenAttachmentDoesNotExist_ReturnsNotFound()
@@ -381,5 +429,14 @@ public class AttachmentControllerTests : IClassFixture<CustomWebApplicationFacto
         deleteResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/attachment/{attachmentId}");
         // Assert 
         Assert.Equal(HttpStatusCode.Forbidden, deleteResponse.StatusCode);
+    }
+    [Fact]
+    public async Task DeleteAttachment_AsWrongSender_ReturnsBadRequest()
+    {
+        // Arrange
+        var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+        var deleteResponse = await _wrongSenderClient.DeleteAsync($"correspondence/api/v1/attachment/{attachmentId}");
+        // Assert failure before correspondence is created
+        Assert.Equal(HttpStatusCode.BadRequest, deleteResponse.StatusCode);
     }
 }
