@@ -53,7 +53,15 @@ public static class AltinnTokenXacmlMapper
         var claim = user.Claims.FirstOrDefault(claim => IsClientOrgNo(claim.Type));
         if (onBehalfOfIdentifier is not null)
         {
-            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(OrgNumberAttributeId, onBehalfOfIdentifier, DefaultType, DefaultIssuer));
+            if (IsOrganizationNumber(onBehalfOfIdentifier))
+            {
+                string orgNr = GetOrgNumberWithoutPrefix(onBehalfOfIdentifier);
+                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(OrgNumberAttributeId, orgNr, DefaultType, DefaultIssuer));
+            }
+            else if (IsSocialSecurityNumber(onBehalfOfIdentifier))
+            {
+                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, onBehalfOfIdentifier, DefaultType, DefaultIssuer));
+            }
         }
         else if (claim is not null)
         {
@@ -64,6 +72,27 @@ public static class AltinnTokenXacmlMapper
             resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceInstance, correspondenceId, DefaultType, DefaultIssuer));
         }
         return resourceCategory;
+    }
+    private static bool IsSocialSecurityNumber(string onBehalfOfIdentifier)
+    {
+        Regex ssnPattern = new (@"^\d{11}$");
+        return ssnPattern.IsMatch(onBehalfOfIdentifier);
+    }
+
+    private static bool IsOrganizationNumber(string onBehalfOfIdentifier)
+    {
+        Regex orgPattern = new (@"^(?:\d{9}|\d{4}:\d{9})$");
+        return orgPattern.IsMatch(onBehalfOfIdentifier);
+    }
+
+    private static string GetOrgNumberWithoutPrefix(string recipientOrgNo)
+    {
+        var parts = recipientOrgNo.Split(":");
+        if (parts.Length > 1)
+        {
+            return parts[1];
+        }
+        return parts[0];
     }
 
     private static XacmlJsonCategory CreateSubjectCategory(ClaimsPrincipal user)

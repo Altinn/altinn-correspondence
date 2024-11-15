@@ -63,7 +63,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     }
 
 
-    public async Task<int?> CheckUserAccessAndGetMinimumAuthLevel(string ssn, string resourceId, List<ResourceAccessLevel> rights, string recipientOrgNo, CancellationToken cancellationToken = default)
+    public async Task<int?> CheckUserAccessAndGetMinimumAuthLevel(string ssn, string resourceId, List<ResourceAccessLevel> rights, string onBehalfOfIndentifier, CancellationToken cancellationToken = default)
     {
         var user = _httpContextAccessor.HttpContext?.User;
         var earlyAccessDecision = await EvaluateEarlyAccessConditions(user, resourceId, cancellationToken);
@@ -72,8 +72,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             return earlyAccessDecision.Value ? 3 : null;
         }
         var actionIds = rights.Select(GetActionId).ToList();
-        var orgnr = GetOrgWithoutPrefix(recipientOrgNo);
-        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequestForLegacy(user, ssn, actionIds, resourceId, orgnr);
+        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequestForLegacy(user, ssn, actionIds, resourceId, onBehalfOfIndentifier);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
         if (responseContent is null) return null;
 
@@ -84,16 +83,6 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         }
         int? minLevel = IdportenXacmlMapper.GetMinimumAuthLevel(responseContent, user);
         return minLevel;
-    }
-
-    private string GetOrgWithoutPrefix(string recipientOrgNo)
-    {
-        var parts = recipientOrgNo.Split(":");
-        if (parts.Length > 1)
-        {
-            return parts[1];
-        }
-        return parts[0];
     }
 
     public async Task<bool> CheckMigrationAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
