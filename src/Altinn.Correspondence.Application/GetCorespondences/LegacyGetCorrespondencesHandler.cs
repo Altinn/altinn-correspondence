@@ -47,6 +47,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         {
             return Errors.InvalidPartyId;
         }
+        var minAuthLevel = _userClaimsHelper.GetMinimumAuthenticationLevel();
         var userParty = await _altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
         {
@@ -77,7 +78,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         List<string> resourcesToSearch = new List<string>();
 
         // Get all correspondences owned by Recipients
-        var correspondences = await _correspondenceRepository.GetCorrespondencesForParties(request.Offset, limit, from, to, request.Status, recipients, resourcesToSearch, request.Language, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken);
+        var correspondences = await _correspondenceRepository.GetCorrespondencesForParties(request.Offset, limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken);
 
         var resourceIds = correspondences.Item1.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
@@ -114,8 +115,8 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         var correspondenceToSubtractFromTotal = 0;
         foreach (var correspondence in correspondences.Item1)
         {
-            var minAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
-            if (minAuthLevel == null)
+            var authLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
+            if (minAuthLevel == null || (minAuthLevel != null && minAuthLevel < authLevel))
             {
                 correspondenceToSubtractFromTotal++;
                 continue;
