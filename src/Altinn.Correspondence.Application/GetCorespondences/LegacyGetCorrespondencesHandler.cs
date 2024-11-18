@@ -47,6 +47,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         {
             return Errors.InvalidPartyId;
         }
+        var minAuthLevel = _userClaimsHelper.GetMinimumAuthenticationLevel();
         var userParty = await _altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
         {
@@ -77,7 +78,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         List<string> resourcesToSearch = new List<string>();
 
         // Get all correspondences owned by Recipients
-        var correspondences = await _correspondenceRepository.GetCorrespondencesForParties(request.Offset, limit, from, to, request.Status, recipients, resourcesToSearch, request.Language, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken);
+        var correspondences = await _correspondenceRepository.GetCorrespondencesForParties(request.Offset, limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken);
 
         var resourceIds = correspondences.Item1.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
@@ -111,11 +112,13 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                 recipientDetails.Add(new ResourceOwner(orgNr, null));
             }
         }
+        var correspondenceToSubtractFromTotal = 0;
         foreach (var correspondence in correspondences.Item1)
         {
-            var minAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
-            if (minAuthLevel == null)
+            var authLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
+            if (minAuthLevel == null || minAuthLevel < authLevel)
             {
+                correspondenceToSubtractFromTotal++;
                 continue;
             }
             var purgedStatus = correspondence.GetPurgedStatus();
@@ -125,7 +128,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                 new LegacyCorrespondenceItem()
                 {
                     Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId,
-                    ServiceOwnerName = owner.Name,
+                    ServiceOwnerName = String.IsNullOrWhiteSpace(correspondence.MessageSender) ? owner!.Name : correspondence.MessageSender,
                     InstanceOwnerPartyId = recipient?.PartyId ?? 0,
                     MessageTitle = correspondence.Content.MessageTitle,
                     Status = correspondence.GetLatestStatusWithoutPurged().Status,
@@ -148,7 +151,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
             {
                 Offset = request.Offset,
                 Limit = limit,
-                TotalItems = correspondences.Item2
+                TotalItems = correspondences.Item2 - correspondenceToSubtractFromTotal
             }
         };
         return response;

@@ -12,6 +12,7 @@ public static class AltinnTokenXacmlMapper
     private const string DefaultIssuer = "Altinn";
     private const string DefaultType = "string";
     private const string OrgNumberAttributeId = "urn:altinn:organization:identifier-no";
+    private const string PersonNumberAttributeId = "urn:altinn:person:identifier-no";
 
     public static XacmlJsonRequestRoot CreateAltinnDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId)
     {
@@ -68,15 +69,21 @@ public static class AltinnTokenXacmlMapper
         return actionAttributes;
     }
 
-    private static XacmlJsonCategory CreateResourceCategory(string resourceId, ClaimsPrincipal user, bool legacy = false, string? orgNr = null)
+    private static XacmlJsonCategory CreateResourceCategory(string resourceId, ClaimsPrincipal user, bool legacy = false, string? userId = null)
     {
         XacmlJsonCategory resourceCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
 
         resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceId, resourceId, DefaultType, DefaultIssuer));
         var claim = user.Claims.FirstOrDefault(claim => IsClientOrgNo(claim.Type));
-        if (legacy && orgNr is not null)
+        if (legacy && userId is not null)
         {
-            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(OrgNumberAttributeId, orgNr, DefaultType, DefaultIssuer));
+            var personregex = new Regex(@"^\d{11}$");
+            if (personregex.Match(userId).Success)
+            {
+                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonNumberAttributeId, userId, DefaultType, DefaultIssuer));
+            }
+            else
+                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(OrgNumberAttributeId, userId, DefaultType, DefaultIssuer));
         }
         else if (claim is not null)
         {
