@@ -111,11 +111,13 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                 recipientDetails.Add(new ResourceOwner(orgNr, null));
             }
         }
+        var correspondenceToSubtractFromTotal = 0;
         foreach (var correspondence in correspondences.Item1)
         {
             var minAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
             if (minAuthLevel == null)
             {
+                correspondenceToSubtractFromTotal++;
                 continue;
             }
             var purgedStatus = correspondence.GetPurgedStatus();
@@ -148,7 +150,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
             {
                 Offset = request.Offset,
                 Limit = limit,
-                TotalItems = correspondences.Item2
+                TotalItems = correspondences.Item2 - correspondenceToSubtractFromTotal
             }
         };
         return response;
