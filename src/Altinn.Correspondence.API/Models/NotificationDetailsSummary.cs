@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Altinn.Correspondence.API.Models;
 
 /// <summary>
@@ -5,7 +7,9 @@ namespace Altinn.Correspondence.API.Models;
 /// </summary>
 public class NotificationStatusDetailsExt
 {
+    [JsonPropertyName("email")]
     public NotificationDetailsExt? Email { get; set; }
 
+    [JsonPropertyName("sms")]
     public NotificationDetailsExt? Sms { get; set; }
 }
