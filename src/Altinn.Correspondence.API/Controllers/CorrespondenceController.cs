@@ -103,12 +103,17 @@ namespace Altinn.Correspondence.API.Controllers
         [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
             Guid correspondenceId,
+            [FromQuery] string? onBehalfOf,
             [FromServices] GetCorrespondenceOverviewHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Getting Correspondence overview for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(correspondenceId, cancellationToken);
+            var commandResult = await handler.Process(new GetCorrespondenceOverviewRequest()
+            {
+                CorrespondenceId = correspondenceId,
+                OnBehalfOf = onBehalfOf
+            }, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(CorrespondenceOverviewMapper.MapToExternal(data)),
@@ -129,12 +134,17 @@ namespace Altinn.Correspondence.API.Controllers
         [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         public async Task<ActionResult<CorrespondenceDetailsExt>> GetCorrespondenceDetails(
             Guid correspondenceId,
+            [FromQuery] string? onBehalfOf,
             [FromServices] GetCorrespondenceDetailsHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Getting Correspondence details for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(correspondenceId, cancellationToken);
+            var commandResult = await handler.Process(new GetCorrespondenceDetailsRequest()
+            {
+                CorrespondenceId = correspondenceId,
+                OnBehalfOf = onBehalfOf
+            }, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(CorrespondenceDetailsMapper.MapToExternal(data)),
@@ -161,7 +171,10 @@ namespace Altinn.Correspondence.API.Controllers
         {
             _logger.LogInformation("Getting Correspondence content for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(correspondenceId, cancellationToken);
+            var commandResult = await handler.Process(new GetCorrespondenceOverviewRequest()
+            {
+                CorrespondenceId = correspondenceId
+            }, cancellationToken);
             return commandResult.Match(
                 data => Ok(data.Content.MessageBody),
                 Problem
@@ -187,6 +200,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] GetCorrespondencesHandler handler,
             [FromQuery] CorrespondenceStatusExt? status,
             [FromQuery, RequiredEnum] CorrespondencesRoleType role,
+            [FromQuery] string? onBehalfOf,
             CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Get correspondences for receiver");
@@ -200,6 +214,7 @@ namespace Altinn.Correspondence.API.Controllers
                 Offset = offset,
                 Status = status is null ? null : (CorrespondenceStatus)status,
                 Role = role,
+                OnBehalfOf = onBehalfOf
             }, cancellationToken);
 
             return commandResult.Match(
