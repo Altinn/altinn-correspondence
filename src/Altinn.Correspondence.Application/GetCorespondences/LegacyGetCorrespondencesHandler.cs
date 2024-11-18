@@ -128,7 +128,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                 new LegacyCorrespondenceItem()
                 {
                     Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId,
-                    ServiceOwnerName = owner.Name,
+                    ServiceOwnerName = String.IsNullOrWhiteSpace(correspondence.MessageSender) ? owner!.Name : correspondence.MessageSender,
                     InstanceOwnerPartyId = recipient?.PartyId ?? 0,
                     MessageTitle = correspondence.Content.MessageTitle,
                     Status = correspondence.GetLatestStatusWithoutPurged().Status,
