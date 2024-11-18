@@ -1,6 +1,7 @@
 ﻿using Altinn.Authorization.ABAC.Xacml.JsonProfile;
 using Altinn.Common.PEP.Constants;
 using Altinn.Common.PEP.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 
@@ -10,7 +11,6 @@ public static class AltinnTokenXacmlMapper
 {
     private const string DefaultIssuer = "Altinn";
     private const string DefaultType = "string";
-    private const string OrgNumberAttributeId = "urn:altinn:organization:identifier-no";
     private const string PersonAttributeId = "urn:altinn:person:identifier-no";
 
     public static XacmlJsonRequestRoot CreateAltinnDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string? onBehalfOfIdentifier, string? correspondenceId)
@@ -53,19 +53,18 @@ public static class AltinnTokenXacmlMapper
         var claim = user.Claims.FirstOrDefault(claim => IsClientOrgNo(claim.Type));
         if (onBehalfOfIdentifier is not null)
         {
-            if (IsOrganizationNumber(onBehalfOfIdentifier))
+            if (onBehalfOfIdentifier.IsOrganizationNumber())
             {
-                string orgNr = GetOrgNumberWithoutPrefix(onBehalfOfIdentifier);
-                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(OrgNumberAttributeId, orgNr, DefaultType, DefaultIssuer));
+                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumberAttribute, onBehalfOfIdentifier.GetOrgNumberWithoutPrefix(), DefaultType, DefaultIssuer));
             }
-            else if (IsSocialSecurityNumber(onBehalfOfIdentifier))
+            else if (onBehalfOfIdentifier.IsSocialSecurityNumber())
             {
                 resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, onBehalfOfIdentifier, DefaultType, DefaultIssuer));
             }
         }
         else if (claim is not null)
         {
-            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(OrgNumberAttributeId, claim.Value, DefaultType, DefaultIssuer));
+            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumberAttribute, claim.Value, DefaultType, DefaultIssuer));
         }
         if (correspondenceId is not null)
         {
@@ -73,28 +72,6 @@ public static class AltinnTokenXacmlMapper
         }
         return resourceCategory;
     }
-    private static bool IsSocialSecurityNumber(string onBehalfOfIdentifier)
-    {
-        Regex ssnPattern = new (@"^\d{11}$");
-        return ssnPattern.IsMatch(onBehalfOfIdentifier);
-    }
-
-    private static bool IsOrganizationNumber(string onBehalfOfIdentifier)
-    {
-        Regex orgPattern = new (@"^(?:\d{9}|\d{4}:\d{9})$");
-        return orgPattern.IsMatch(onBehalfOfIdentifier);
-    }
-
-    private static string GetOrgNumberWithoutPrefix(string recipientOrgNo)
-    {
-        var parts = recipientOrgNo.Split(":");
-        if (parts.Length > 1)
-        {
-            return parts[1];
-        }
-        return parts[0];
-    }
-
     private static XacmlJsonCategory CreateSubjectCategory(ClaimsPrincipal user)
     {
         XacmlJsonCategory xacmlJsonCategory = new XacmlJsonCategory();
@@ -105,7 +82,7 @@ public static class AltinnTokenXacmlMapper
             if (IsCamelCaseOrgnumberClaim(claim.Type))
             {
                 list.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumber, claim.Value, DefaultType, claim.Issuer));
-                list.Add(DecisionHelper.CreateXacmlJsonAttribute(OrgNumberAttributeId, claim.Value, DefaultType, claim.Issuer));
+                list.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumberAttribute, claim.Value, DefaultType, claim.Issuer));
             }
             else if (IsScopeClaim(claim.Type))
             {
