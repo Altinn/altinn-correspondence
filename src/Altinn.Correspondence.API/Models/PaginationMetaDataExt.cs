@@ -10,19 +10,19 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Total number of Correspondences
         /// </summary>
-        [JsonPropertyName("TotalItems")]
+        [JsonPropertyName("totalItems")]
         public int TotalItems { get; set; } = 0;
 
         /// <summary>
         /// The given page number
         /// </summary>
-        [JsonPropertyName("Page")]
+        [JsonPropertyName("page")]
         public int Page { get; set; } = 1;
 
         /// <summary>
         /// The number of pages
         /// </summary>
-        [JsonPropertyName("Pages")]
+        [JsonPropertyName("pages")]
         public int TotalPages { get; set; } = 1;
     }
 }

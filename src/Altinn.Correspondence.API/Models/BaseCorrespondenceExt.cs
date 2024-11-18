@@ -51,7 +51,7 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// When the correspondence should become visible to the recipient.
         /// </summary>
-        [JsonPropertyName("RequestedPublishTime")]
+        [JsonPropertyName("requestedPublishTime")]
         public DateTimeOffset? RequestedPublishTime { get; set; }
 
         /// <summary>
@@ -98,19 +98,19 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Specifies whether the correspondence can override reservation against digital comminication in KRR
         /// </summary>
-        [JsonPropertyName("IgnoreReservation")]
+        [JsonPropertyName("ignoreReservation")]
         public bool? IgnoreReservation { get; set; }
 
         /// <summary>
         /// Is null until the correspondence is published.
         /// </summary>
-        [JsonPropertyName("Published")]
+        [JsonPropertyName("published")]
         public DateTimeOffset? Published { get; set; }
 
         /// <summary>
         /// Specifies whether reading the correspondence needs to be confirmed by the recipient
         /// </summary>
-        [JsonPropertyName("IsConfirmationNeeded")]
+        [JsonPropertyName("isConfirmationNeeded")]
         public bool IsConfirmationNeeded { get; set; }
     }
 
