@@ -13,7 +13,7 @@ public static class AltinnTokenXacmlMapper
     private const string DefaultType = "string";
     private const string PersonAttributeId = "urn:altinn:person:identifier-no";
 
-    public static XacmlJsonRequestRoot CreateAltinnDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string? onBehalfOfIdentifier, string? correspondenceId)
+    public static XacmlJsonRequestRoot CreateAltinnDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string? onBehalfOf, string? correspondenceId)
     {
         XacmlJsonRequest request = new XacmlJsonRequest();
         request.AccessSubject = new List<XacmlJsonCategory>();
@@ -22,13 +22,13 @@ public static class AltinnTokenXacmlMapper
 
         request.AccessSubject.Add(CreateSubjectCategory(user));
         request.Action.AddRange(actionTypes.Select(action => DecisionHelper.CreateActionCategory(action)));
-        request.Resource.Add(CreateResourceCategory(resourceId, user, onBehalfOfIdentifier, correspondenceId));
+        request.Resource.Add(CreateResourceCategory(resourceId, user, onBehalfOf, correspondenceId));
 
         XacmlJsonRequestRoot jsonRequest = new() { Request = request };
 
         return jsonRequest;
     }
-    public static XacmlJsonRequestRoot CreateAltinnDecisionRequestForLegacy(ClaimsPrincipal user, string ssn, List<string> actionTypes, string resourceId, string onBehalfOfIdentifier)
+    public static XacmlJsonRequestRoot CreateAltinnDecisionRequestForLegacy(ClaimsPrincipal user, string ssn, List<string> actionTypes, string resourceId, string onBehalfOf)
     {
         XacmlJsonRequest request = new XacmlJsonRequest();
         request.AccessSubject = new List<XacmlJsonCategory>();
@@ -37,7 +37,7 @@ public static class AltinnTokenXacmlMapper
 
         request.AccessSubject.Add(CreateSubjectCategoryForLegacy(user, ssn));
         request.Action.AddRange(actionTypes.Select(action => DecisionHelper.CreateActionCategory(action)));
-        request.Resource.Add(CreateResourceCategory(resourceId, user, onBehalfOfIdentifier));
+        request.Resource.Add(CreateResourceCategory(resourceId, user, onBehalfOf));
     
         XacmlJsonRequestRoot jsonRequest = new() { Request = request };
 
@@ -45,21 +45,21 @@ public static class AltinnTokenXacmlMapper
     }
 
 
-    private static XacmlJsonCategory CreateResourceCategory(string resourceId, ClaimsPrincipal user, string? onBehalfOfIdentifier = null, string? correspondenceId = null)
+    private static XacmlJsonCategory CreateResourceCategory(string resourceId, ClaimsPrincipal user, string? onBehalfOf = null, string? correspondenceId = null)
     {
         XacmlJsonCategory resourceCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
 
         resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceId, resourceId, DefaultType, DefaultIssuer));
         var claim = user.Claims.FirstOrDefault(claim => IsClientOrgNo(claim.Type));
-        if (onBehalfOfIdentifier is not null)
+        if (onBehalfOf is not null)
         {
-            if (onBehalfOfIdentifier.IsOrganizationNumber())
+            if (onBehalfOf.IsOrganizationNumber())
             {
-                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumberAttribute, onBehalfOfIdentifier.GetOrgNumberWithoutPrefix(), DefaultType, DefaultIssuer));
+                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumberAttribute, onBehalfOf.GetOrgNumberWithoutPrefix(), DefaultType, DefaultIssuer));
             }
-            else if (onBehalfOfIdentifier.IsSocialSecurityNumber())
+            else if (onBehalfOf.IsSocialSecurityNumber())
             {
-                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, onBehalfOfIdentifier, DefaultType, DefaultIssuer));
+                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, onBehalfOf, DefaultType, DefaultIssuer));
             }
         }
         else if (claim is not null)

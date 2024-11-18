@@ -46,7 +46,7 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
             correspondence.ResourceId,
             new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
             cancellationToken,
-            onBehalfOfIdentifier: isRecipient ? null : correspondence.Recipient,
+            onBehalfOf: isRecipient ? null : correspondence.Recipient,
             correspondenceId: isRecipient ? null : request.CorrespondenceId.ToString());
         if (!hasAccess)
         {

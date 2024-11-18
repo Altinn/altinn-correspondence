@@ -45,7 +45,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     /// <summary>
     /// Checks if the user has access to the resource with the given rights
     /// </summary>
-    public async Task<bool> CheckUserAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, string? onBehalfOfIdentifier = null, string? correspondenceId = null)
+    public async Task<bool> CheckUserAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, string? onBehalfOf = null, string? correspondenceId = null)
     {
         var user = _httpContextAccessor.HttpContext?.User;
         var earlyAccessDecision = await EvaluateEarlyAccessConditions(user, resourceId, cancellationToken);
@@ -54,7 +54,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             return earlyAccessDecision.Value;
         }
         var actionIds = rights.Select(GetActionId).ToList();
-        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, actionIds, resourceId, onBehalfOfIdentifier, correspondenceId);
+        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, actionIds, resourceId, onBehalfOf, correspondenceId);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
         if (responseContent is null) return false;
 
@@ -136,12 +136,12 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         return responseContent;
     }
 
-    private XacmlJsonRequestRoot CreateDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string? onBehalfOfIdentifier, string? correspondenceId)
+    private XacmlJsonRequestRoot CreateDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string? onBehalfOf, string? correspondenceId)
     {
         var personIdClaim = GetPersonIdClaim();
         if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
         {
-            return AltinnTokenXacmlMapper.CreateAltinnDecisionRequest(user, actionTypes, resourceId, onBehalfOfIdentifier, correspondenceId);
+            return AltinnTokenXacmlMapper.CreateAltinnDecisionRequest(user, actionTypes, resourceId, onBehalfOf, correspondenceId);
         }
         if (personIdClaim.Issuer == _dialogportenSettings.Issuer)
         {
@@ -149,7 +149,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         }
         if (personIdClaim.Issuer == _idPortenSettings.Issuer)
         {
-            return IdportenXacmlMapper.CreateIdportenDecisionRequest(user, resourceId, actionTypes, onBehalfOfIdentifier);
+            return IdportenXacmlMapper.CreateIdportenDecisionRequest(user, resourceId, actionTypes, onBehalfOf);
         }
         throw new SecurityTokenInvalidIssuerException();
     }
