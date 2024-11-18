@@ -41,6 +41,7 @@ internal static class LegacyCorrespondenceOverviewMapper
             Confirmed = correspondenceOverview.Confirmed,
             MinimumAuthenticationLevel = correspondenceOverview.MinimumAuthenticationLevel,
             AuthorizedForSign = correspondenceOverview.AuthorizedForSign,
+            AuthorizedForWrite = correspondenceOverview.AuthorizedForWrite,
             InstanceOwnerPartyId = correspondenceOverview.InstanceOwnerPartyId
         };
         return Correspondence;
