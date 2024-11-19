@@ -59,10 +59,6 @@ public static class AltinnTokenXacmlMapper
             }
             else if (onBehalfOf.IsSocialSecurityNumber())
             {
-                if (orgClaim is not null)
-                {
-                    resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumberAttribute, orgClaim.Value, DefaultType, DefaultIssuer));
-                }
                 resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, onBehalfOf, DefaultType, DefaultIssuer));
             }
         }
