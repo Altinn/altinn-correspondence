@@ -270,6 +270,26 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal(HttpStatusCode.BadRequest, readResponse.StatusCode);
     }
 
+    public async Task Overview_Sets_Read_Status()
+    {
+        // Arrange
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .Build();
+        var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+        var correspondenceId = correspondence.CorrespondenceId;
+
+        // Act
+        var response = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondenceId}/overview");
+        var firstOverview = await response.Content.ReadFromJsonAsync<LegacyCorrespondenceOverviewExt>(_serializerOptions);
+        response = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondenceId}/overview");
+        var secondOverview = await response.Content.ReadFromJsonAsync<LegacyCorrespondenceOverviewExt>(_serializerOptions);
+
+        // Assert
+        Assert.Equal(CorrespondenceStatusExt.Published, firstOverview?.Status);
+        Assert.Equal(CorrespondenceStatusExt.Read, secondOverview?.Status);
+    }
+
     [Fact]
     public async Task UpdateCorrespondenceStatus_ToConfirmed_WithoutFetched_ReturnsBadRequest()
     {
