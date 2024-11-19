@@ -4,7 +4,6 @@ using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
@@ -19,6 +18,7 @@ namespace Altinn.Correspondence.Application.Helpers
         private const string _IdProperty = "ID";
         private const string _dialogportenOrgClaim = "p";
         private const string _partyIdClaim = "urn:altinn:partyid";
+        private const string _personId = "pid";
 
         public UserClaimsHelper(IHttpContextAccessor httpContextAccessor, IOptions<DialogportenSettings> dialogportenSettings, IOptions<IdportenSettings> idportenSettings)
         {
@@ -42,15 +42,17 @@ namespace Altinn.Correspondence.Application.Helpers
         {
             if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(recipientId);
             if (_claims.Any(c => c.Issuer == _idportenSettings.Issuer)) return true; // Idporten tokens are always recipients, verified by altinn authorization
-            if (GetUserID() != recipientId) return false;
+            if (GetUserID() != recipientId && GetPersonID() != recipientId) return false;
             if (!GetUserScope().Any(scope => scope == AuthorizationConstants.RecipientScope)) return false;
             return true;
         }
+
+
         public bool IsSender(string senderId)
         {
             if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(senderId);
             if (_claims.Any(c => c.Issuer == _idportenSettings.Issuer)) return false; 
-            if (GetUserID() != senderId) return false;
+            if (GetUserID() != senderId && GetPersonID() != senderId) return false;
             if (!GetUserScope().Any(scope=> scope == AuthorizationConstants.SenderScope)) return false;
             return true;
         }
@@ -72,6 +74,11 @@ namespace Altinn.Correspondence.Application.Helpers
             JsonDocument jsonDoc = JsonDocument.Parse(consumer);
             string? id = jsonDoc.RootElement.GetProperty(_IdProperty).GetString();
             return id;
+        }
+        private string? GetPersonID()
+        {
+            var pid = _claims.FirstOrDefault(c => c.Type == _personId)?.Value;
+            return pid;
         }
         private string? GetDialogportenTokenUserId()
         {
