@@ -22,6 +22,12 @@ namespace Altinn.Correspondence.API.Models
         public bool AuthorizedForSign { get; set; }
 
         /// <summary>
+        /// Indicates if the user is authorized to sign the correspondence
+        /// </summary>
+        [JsonPropertyName("authorizedForWrite")]
+        public bool AuthorizedForWrite { get; set; }
+
+        /// <summary>
         /// The due date for the correspondence
         /// </summary>
         [JsonPropertyName("dueDateTime")]
