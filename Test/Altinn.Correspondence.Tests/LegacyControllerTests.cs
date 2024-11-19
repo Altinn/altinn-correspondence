@@ -270,7 +270,8 @@ public class LegacyControllerTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal(HttpStatusCode.BadRequest, readResponse.StatusCode);
     }
 
-    public async Task Overview_Sets_Read_Status()
+    [Fact]
+    public async Task GetCorrespondenceOverview_WhenCalledTwice_TransitionsStatusFromPublishedToRead()
     {
         // Arrange
         var payload = new CorrespondenceBuilder()

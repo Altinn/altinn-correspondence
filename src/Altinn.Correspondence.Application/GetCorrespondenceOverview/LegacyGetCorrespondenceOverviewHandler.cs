@@ -98,16 +98,22 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
         {
             return Errors.CouldNotFindOrgNo;
         }
-
-        await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+        try
         {
-            CorrespondenceId = correspondence.Id,
-            Status = CorrespondenceStatus.Read,
-            StatusChanged = DateTimeOffset.UtcNow,
-            StatusText = CorrespondenceStatus.Read.ToString(),
-        }, cancellationToken);
-        _updateCorrespondenceStatusHelper.ReportActivityToDialogporten(correspondence.Id, CorrespondenceStatus.Read);
-        await _updateCorrespondenceStatusHelper.PublishEvent(_eventBus, correspondence, CorrespondenceStatus.Read, cancellationToken);
+            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+            {
+                CorrespondenceId = correspondence.Id,
+                Status = CorrespondenceStatus.Read,
+                StatusChanged = DateTimeOffset.UtcNow,
+                StatusText = CorrespondenceStatus.Read.ToString(),
+            }, cancellationToken);
+            _updateCorrespondenceStatusHelper.ReportActivityToDialogporten(correspondence.Id, CorrespondenceStatus.Read);
+            await _updateCorrespondenceStatusHelper.PublishEvent(_eventBus, correspondence, CorrespondenceStatus.Read, cancellationToken);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error when adding status to correspondence");
+        }
 
         var response = new LegacyGetCorrespondenceOverviewResponse
         {
