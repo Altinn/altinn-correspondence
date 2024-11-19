@@ -107,7 +107,6 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
                 StatusChanged = DateTimeOffset.UtcNow,
                 StatusText = CorrespondenceStatus.Read.ToString(),
             }, cancellationToken);
-            _updateCorrespondenceStatusHelper.ReportActivityToDialogporten(correspondence.Id, CorrespondenceStatus.Read);
             await _updateCorrespondenceStatusHelper.PublishEvent(_eventBus, correspondence, CorrespondenceStatus.Read, cancellationToken);
         }
         catch (Exception e)
