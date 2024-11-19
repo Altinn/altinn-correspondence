@@ -40,7 +40,7 @@ public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespo
         {
             return Errors.AttachmentNotFound;
         }
-        if (_userClaimsHelper.IsPersonallyAffiliatedWithCorrespondence(correspondence.Recipient, null)) 
+        if (!_userClaimsHelper.IsPersonallyAffiliatedWithCorrespondence(correspondence.Recipient, null)) 
         {
             var hasResourceAccess = await _altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken, correspondence.Recipient.Replace("0192:", ""));
             if (!hasResourceAccess)

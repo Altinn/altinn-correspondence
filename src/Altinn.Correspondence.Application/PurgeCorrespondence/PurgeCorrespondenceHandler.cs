@@ -46,10 +46,13 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
         {
             return Errors.CorrespondenceNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(user, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read, ResourceAccessLevel.Write }, cancellationToken);
-        if (!hasAccess)
-        {
-            return Errors.NoAccessToResource;
+        if (!_userClaimsHelper.IsPersonallyAffiliatedWithCorrespondence(correspondence.Recipient, null)) 
+        { 
+            var hasAccess = await _altinnAuthorizationService.CheckUserAccess(user, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read, ResourceAccessLevel.Write }, cancellationToken);
+            if (!hasAccess)
+            {
+                return Errors.NoAccessToResource;
+            }
         }
         var currentStatusError = _purgeCorrespondenceHelper.ValidateCurrentStatus(correspondence);
         if (currentStatusError is not null)

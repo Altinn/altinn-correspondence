@@ -52,6 +52,10 @@ namespace Altinn.Correspondence.Application.Helpers
         }   
         public bool IsAffiliatedWithCorrespondence(string recipientId, string senderId)
         {
+            if (IsPersonallyAffiliatedWithCorrespondence(recipientId, senderId)) 
+            {
+                return true;
+            }
             return IsRecipient(recipientId) || IsSender(senderId);
         }
         public bool IsRecipient(string recipientId)
