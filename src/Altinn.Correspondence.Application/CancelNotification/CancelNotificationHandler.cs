@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Security.Claims;
 using System.Threading;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
@@ -41,7 +42,7 @@ namespace Altinn.Correspondence.Application.CancelNotification
         }
 
         [AutomaticRetry(Attempts = MaxRetries)]
-        public async Task Process(PerformContext context, Guid correspondenceId, CancellationToken cancellationToken = default)
+        public async Task Process(PerformContext context, Guid correspondenceId, ClaimsPrincipal? _, CancellationToken cancellationToken = default)
         {
             var retryAttempts = context.GetJobParameter<int>(RetryCountKey);
             _logger.LogInformation("Cancelling notifications for purged correspondence. Retry attempt: {retryAttempts}", retryAttempts);

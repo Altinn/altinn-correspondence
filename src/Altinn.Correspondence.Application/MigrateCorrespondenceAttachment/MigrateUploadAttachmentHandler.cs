@@ -8,6 +8,7 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Microsoft.Extensions.Hosting;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.UploadAttachment;
 
@@ -17,7 +18,7 @@ public class MigrateUploadAttachmentHandler(IAltinnAuthorizationService altinnAu
     private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
     private readonly UploadHelper _uploadHelper = uploadHelper;
 
-    public async Task<OneOf<MigrateUploadAttachmentResponse, Error>> Process(UploadAttachmentRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<MigrateUploadAttachmentResponse, Error>> Process(UploadAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         var attachment = await _attachmentRepository.GetAttachmentById(request.AttachmentId, true, cancellationToken);
         if (attachment == null)

@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 public class LegacyUpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceStatusRequest, Guid>
@@ -32,7 +33,7 @@ public class LegacyUpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespond
         _userClaimsHelper = userClaimsHelper;
         _updateCorrespondenceStatusHelper = updateCorrespondenceStatusHelper;
     }
-    public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         if (_userClaimsHelper.GetPartyId() is not int partyId)
         {
@@ -48,7 +49,7 @@ public class LegacyUpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespond
         {
             return Errors.CorrespondenceNotFound;
         }
-        var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(party.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
+        var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, party.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
         if (minimumAuthLevel == null)
         {
             return Errors.LegacyNoAccessToCorrespondence;

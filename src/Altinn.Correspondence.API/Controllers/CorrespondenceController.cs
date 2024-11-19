@@ -52,7 +52,7 @@ namespace Altinn.Correspondence.API.Controllers
             _logger.LogInformation("Initialize correspondences");
 
             var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, null, request.ExistingAttachments);
-            var commandResult = await handler.Process(commandRequest, cancellationToken);
+            var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(InitializeCorrespondencesMapper.MapToExternal(data)),
@@ -82,7 +82,7 @@ namespace Altinn.Correspondence.API.Controllers
             Request.EnableBuffering();
 
             var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, attachments, request.ExistingAttachments);
-            var commandResult = await handler.Process(commandRequest, cancellationToken);
+            var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(InitializeCorrespondencesMapper.MapToExternal(data)),
@@ -108,7 +108,7 @@ namespace Altinn.Correspondence.API.Controllers
         {
             _logger.LogInformation("Getting Correspondence overview for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(correspondenceId, cancellationToken);
+            var commandResult = await handler.Process(correspondenceId, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(CorrespondenceOverviewMapper.MapToExternal(data)),
@@ -134,7 +134,7 @@ namespace Altinn.Correspondence.API.Controllers
         {
             _logger.LogInformation("Getting Correspondence details for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(correspondenceId, cancellationToken);
+            var commandResult = await handler.Process(correspondenceId, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(CorrespondenceDetailsMapper.MapToExternal(data)),
@@ -161,7 +161,7 @@ namespace Altinn.Correspondence.API.Controllers
         {
             _logger.LogInformation("Getting Correspondence content for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(correspondenceId, cancellationToken);
+            var commandResult = await handler.Process(correspondenceId, HttpContext.User, cancellationToken);
             return commandResult.Match(
                 data => Ok(data.Content.MessageBody),
                 Problem
@@ -200,7 +200,7 @@ namespace Altinn.Correspondence.API.Controllers
                 Offset = offset,
                 Status = status is null ? null : (CorrespondenceStatus)status,
                 Role = role,
-            }, cancellationToken);
+            }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(data),
@@ -229,7 +229,7 @@ namespace Altinn.Correspondence.API.Controllers
             {
                 CorrespondenceId = correspondenceId,
                 Status = CorrespondenceStatus.Read
-            }, cancellationToken);
+            }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(data),
@@ -259,7 +259,7 @@ namespace Altinn.Correspondence.API.Controllers
             {
                 CorrespondenceId = correspondenceId,
                 Status = CorrespondenceStatus.Confirmed
-            }, cancellationToken);
+            }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(data),
@@ -289,7 +289,7 @@ namespace Altinn.Correspondence.API.Controllers
             {
                 CorrespondenceId = correspondenceId,
                 Status = CorrespondenceStatus.Archived
-            }, cancellationToken);
+            }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(data),
@@ -314,7 +314,7 @@ namespace Altinn.Correspondence.API.Controllers
         {
             _logger.LogInformation("Purging Correspondence with id: {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(correspondenceId, cancellationToken);
+            var commandResult = await handler.Process(correspondenceId, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(data),
@@ -341,7 +341,7 @@ namespace Altinn.Correspondence.API.Controllers
             {
                 CorrespondenceId = correspondenceId,
                 AttachmentId = attachmentId
-            }, cancellationToken);
+            }, HttpContext.User, cancellationToken);
             return commandResult.Match(
                 result => File(result.Stream, "application/octet-stream", result.FileName),
                 Problem
@@ -361,7 +361,7 @@ namespace Altinn.Correspondence.API.Controllers
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Checking notification for Correspondence with id: {correspondenceId}", correspondenceId.ToString());
-            var commandResult = await handler.Process(correspondenceId, cancellationToken);
+            var commandResult = await handler.Process(correspondenceId, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(data),

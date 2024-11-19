@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.PurgeCorrespondence;
 public class LegacyPurgeCorrespondenceHandler : IHandler<Guid, Guid>
@@ -34,7 +35,7 @@ public class LegacyPurgeCorrespondenceHandler : IHandler<Guid, Guid>
         _purgeCorrespondenceHelper = purgeCorrespondenceHelper;
         _userClaimsHelper = userClaimsHelper;
     }
-    public async Task<OneOf<Guid, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
+    public async Task<OneOf<Guid, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         if (_userClaimsHelper.GetPartyId() is not int partyId)
         {
@@ -50,7 +51,7 @@ public class LegacyPurgeCorrespondenceHandler : IHandler<Guid, Guid>
         {
             return Errors.CorrespondenceNotFound;
         }
-        var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(party.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
+        var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, party.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
         if (minimumAuthLevel == null)
         {
             return Errors.LegacyNoAccessToCorrespondence;

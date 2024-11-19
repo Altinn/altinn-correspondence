@@ -3,6 +3,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondences;
 
@@ -19,9 +20,9 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
         _userClaimsHelper = userClaimsHelper;
     }
 
-    public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(request.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read, ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(user, request.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read, ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;

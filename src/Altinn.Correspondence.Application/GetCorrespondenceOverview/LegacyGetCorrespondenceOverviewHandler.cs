@@ -5,6 +5,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Logging;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceOverview;
 
@@ -30,7 +31,7 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
         _userClaimsHelper = userClaimsHelper;
     }
 
-    public async Task<OneOf<LegacyGetCorrespondenceOverviewResponse, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
+    public async Task<OneOf<LegacyGetCorrespondenceOverviewResponse, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         if (_userClaimsHelper.GetPartyId() is not int partyId)
         {
@@ -46,7 +47,7 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
         {
             return Errors.CorrespondenceNotFound;
         }
-        var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
+        var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
         if (minimumAuthLevel == null)
         {
             return Errors.LegacyNoAccessToCorrespondence;
