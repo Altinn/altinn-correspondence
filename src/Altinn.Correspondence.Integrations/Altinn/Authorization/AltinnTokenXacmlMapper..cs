@@ -50,7 +50,7 @@ public static class AltinnTokenXacmlMapper
         XacmlJsonCategory resourceCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
 
         resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceId, resourceId, DefaultType, DefaultIssuer));
-        var claim = user.Claims.FirstOrDefault(claim => IsClientOrgNo(claim.Type));
+        var orgClaim = user.Claims.FirstOrDefault(claim => IsClientOrgNo(claim.Type));
         if (onBehalfOf is not null)
         {
             if (onBehalfOf.IsOrganizationNumber())
@@ -59,12 +59,16 @@ public static class AltinnTokenXacmlMapper
             }
             else if (onBehalfOf.IsSocialSecurityNumber())
             {
+                if (orgClaim is not null)
+                {
+                    resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumberAttribute, orgClaim.Value, DefaultType, DefaultIssuer));
+                }
                 resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, onBehalfOf, DefaultType, DefaultIssuer));
             }
         }
-        else if (claim is not null)
+        else if (orgClaim is not null)
         {
-            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumberAttribute, claim.Value, DefaultType, DefaultIssuer));
+            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumberAttribute, orgClaim.Value, DefaultType, DefaultIssuer));
         }
         if (correspondenceId is not null)
         {
