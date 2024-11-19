@@ -17,6 +17,6 @@ public static class StringExtensions
     public static string GetOrgNumberWithoutPrefix(this string orgNumber)
     {
         var parts = orgNumber.Split(':');
-        return parts.Length > 1 ? parts[1] : parts[0];
+        return parts[^1];
     }
 }
