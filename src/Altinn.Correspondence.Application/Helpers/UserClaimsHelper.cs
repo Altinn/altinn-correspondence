@@ -43,6 +43,13 @@ namespace Altinn.Correspondence.Application.Helpers
             if (int.TryParse(authLevelClaim.Value, out int level)) return level;
             return 0;
         }
+
+        public bool IsPersonallyAffiliatedWithCorrespondence(string? recipientId, string? senderId)
+        {
+            var pid = GetPid();
+            if (pid is null) return false;
+            return (pid == senderId) || (pid == recipientId);
+        }   
         public bool IsAffiliatedWithCorrespondence(string recipientId, string senderId)
         {
             return IsRecipient(recipientId) || IsSender(senderId);
@@ -91,6 +98,26 @@ namespace Altinn.Correspondence.Application.Helpers
             var scopeClaims = _claims.Where(c => c.Type == _scopeClaim) ?? [];
             var scopes = scopeClaims.SelectMany(c => c.Value.Split(" "));
             return scopes;
+        }
+        private string? GetPid()
+        {
+            if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer))
+            {
+                var personidClaimValue = _claims.FirstOrDefault(c => c.Type == "p")?.Value;
+                if (!personidClaimValue.StartsWith("urn:altinn:person:identifier-no"))
+                {
+                    return null;
+                }
+                return personidClaimValue.Replace("urn:altinn:person:identifier-no:", "");
+            } 
+            else if (_claims.Any(c => c.Type == "pid"))
+            {
+                return _claims.FirstOrDefault(c => c.Type == "pid")?.Value;
+            } 
+            else
+            {
+                return null;
+            }
         }
     }
 }

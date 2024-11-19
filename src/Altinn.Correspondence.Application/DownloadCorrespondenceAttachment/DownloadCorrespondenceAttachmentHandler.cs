@@ -40,14 +40,17 @@ public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespo
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken, correspondence.Recipient.Replace("0192:", ""));
-        if (!hasAccess)
+        if (_userClaimsHelper.IsPersonallyAffiliatedWithCorrespondence(correspondence.Recipient, null)) 
         {
-            return Errors.NoAccessToResource;
-        }
-        if (!_userClaimsHelper.IsRecipient(correspondence.Recipient))
-        {
-            return Errors.CorrespondenceNotFound;
+            var hasResourceAccess = await _altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken, correspondence.Recipient.Replace("0192:", ""));
+            if (!hasResourceAccess)
+            {
+                return Errors.NoAccessToResource;
+            }
+            if (!_userClaimsHelper.IsRecipient(correspondence.Recipient))
+            {
+                return Errors.CorrespondenceNotFound;
+            }
         }
         var latestStatus = correspondence.GetLatestStatus();
         if (!latestStatus.Status.IsAvailableForRecipient())

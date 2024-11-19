@@ -33,14 +33,17 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
         {
             return Errors.CorrespondenceNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(user, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read, ResourceAccessLevel.Write }, cancellationToken);
-        if (!hasAccess)
-        {
-            return Errors.NoAccessToResource;
-        }
-        if (!_userClaimsHelper.IsAffiliatedWithCorrespondence(correspondence.Recipient, correspondence.Sender))
-        {
-            return Errors.CorrespondenceNotFound;
+        if (!_userClaimsHelper.IsPersonallyAffiliatedWithCorrespondence(null, correspondence.Sender)) 
+        { 
+            var hasResourceAccess = await _altinnAuthorizationService.CheckUserAccess(user, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read, ResourceAccessLevel.Write }, cancellationToken);
+            if (!hasResourceAccess)
+            {
+                return Errors.NoAccessToResource;
+            }
+            if (!_userClaimsHelper.IsAffiliatedWithCorrespondence(correspondence.Recipient, correspondence.Sender))
+            {
+                return Errors.CorrespondenceNotFound;
+            }
         }
         var latestStatus = correspondence.GetLatestStatus();
         if (latestStatus == null)
