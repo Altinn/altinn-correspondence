@@ -9,6 +9,7 @@ using OneOf;
 using Microsoft.Extensions.Hosting;
 using Altinn.Correspondence.Application.CancelNotification;
 using Hangfire;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
 
@@ -38,7 +39,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
     }
 
 
-    public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
+    public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Publish correspondence {correspondenceId}", correspondenceId);
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
@@ -78,7 +79,7 @@ public class PublishCorrespondenceHandler : IHandler<Guid, Task>
             eventType = AltinnEventType.CorrespondencePublishFailed;
             foreach (var notification in correspondence.Notifications)
             {
-                _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, cancellationToken));
+                _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
             }
         }
         else

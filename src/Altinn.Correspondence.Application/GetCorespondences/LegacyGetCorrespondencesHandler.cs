@@ -7,6 +7,7 @@ using Altinn.Correspondence.Repositories;
 using OneOf;
 
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondences;
 
@@ -33,7 +34,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         _logger = logger;
     }
 
-    public async Task<OneOf<LegacyGetCorrespondencesResponse, Error>> Process(LegacyGetCorrespondencesRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<LegacyGetCorrespondencesResponse, Error>> Process(LegacyGetCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         var limit = request.Limit == 0 ? 50 : request.Limit;
         DateTimeOffset? to = request.To != null ? ((DateTimeOffset)request.To).ToUniversalTime() : null;
@@ -115,7 +116,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         var correspondenceToSubtractFromTotal = 0;
         foreach (var correspondence in correspondences.Item1)
         {
-            var authLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
+            var authLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
             if (minAuthLevel == null || minAuthLevel < authLevel)
             {
                 correspondenceToSubtractFromTotal++;

@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.InitializeAttachment;
 
@@ -22,7 +23,7 @@ public class MigrateInitializeAttachmentHandler : IHandler<InitializeAttachmentR
         _altinnAuthorizationService = altinnAuthorizationService;
     }
 
-    public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         var hasAccess = await _altinnAuthorizationService.CheckMigrationAccess(request.Attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)

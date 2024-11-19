@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 
@@ -26,7 +27,7 @@ public class LegacyDownloadCorrespondenceAttachmentHandler : IHandler<DownloadCo
         _backgroundJobClient = backgroundJobClient;
     }
 
-    public async Task<OneOf<DownloadCorrespondenceAttachmentResponse, Error>> Process(DownloadCorrespondenceAttachmentRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<DownloadCorrespondenceAttachmentResponse, Error>> Process(DownloadCorrespondenceAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         var partyId = _userClaimsHelper.GetPartyId();
         if (partyId is null)

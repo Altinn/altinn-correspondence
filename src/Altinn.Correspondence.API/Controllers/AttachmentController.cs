@@ -32,7 +32,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     public async Task<ActionResult<Guid>> InitializeAttachment(InitializeAttachmentExt InitializeAttachmentExt, [FromServices] InitializeAttachmentHandler handler, CancellationToken cancellationToken)
     {
         var commandRequest = InitializeAttachmentMapper.MapToRequest(InitializeAttachmentExt);
-        var commandResult = await handler.Process(commandRequest, cancellationToken);
+        var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
         _logger.LogInformation("Initialize attachment");
 
         return commandResult.Match(
@@ -65,8 +65,8 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
             AttachmentId = attachmentId,
             UploadStream = Request.Body,
             ContentLength = Request.ContentLength ?? Request.Body.Length
-        }, cancellationToken);
-        var attachmentOverviewResult = await attachmentOverviewHandler.Process(attachmentId, cancellationToken);
+        }, HttpContext.User, cancellationToken);
+        var attachmentOverviewResult = await attachmentOverviewHandler.Process(attachmentId, HttpContext.User, cancellationToken);
         if (!attachmentOverviewResult.TryPickT0(out var attachmentOverview, out var error))
         {
             return Problem(error);
@@ -92,7 +92,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     {
         _logger.LogInformation("Get attachment overview {attachmentId}", attachmentId.ToString());
 
-        var commandResult = await handler.Process(attachmentId, cancellationToken);
+        var commandResult = await handler.Process(attachmentId, HttpContext.User, cancellationToken);
 
         return commandResult.Match(
             attachment => Ok(AttachmentOverviewMapper.MapToExternal(attachment)),
@@ -116,7 +116,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
 
         _logger.LogInformation("Get attachment details {attachmentId}", attachmentId.ToString());
 
-        var commandResult = await handler.Process(attachmentId, cancellationToken);
+        var commandResult = await handler.Process(attachmentId, HttpContext.User, cancellationToken);
 
         return commandResult.Match(
             attachment => Ok(AttachmentDetailsMapper.MapToExternal(attachment)),
@@ -142,7 +142,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     {
         _logger.LogInformation("Delete attachment {attachmentId}", attachmentId.ToString());
 
-        var commandResult = await handler.Process(attachmentId, cancellationToken);
+        var commandResult = await handler.Process(attachmentId, HttpContext.User, cancellationToken);
 
         return commandResult.Match(
             _ => Ok(null),
@@ -164,7 +164,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
         var commandResult = await handler.Process(new DownloadAttachmentRequest()
         {
             AttachmentId = attachmentId
-        }, cancellationToken);
+        }, HttpContext.User, cancellationToken);
         return commandResult.Match(
             result => File(result, "application/octet-stream"),
             Problem

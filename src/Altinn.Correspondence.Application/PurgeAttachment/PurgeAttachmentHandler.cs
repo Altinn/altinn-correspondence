@@ -5,6 +5,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.PurgeAttachment;
 
@@ -19,7 +20,7 @@ public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizat
     private readonly IEventBus _eventBus = eventBus;
     private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
 
-    public async Task<OneOf<Guid, Error>> Process(Guid attachmentId, CancellationToken cancellationToken)
+    public async Task<OneOf<Guid, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
         if (attachment == null)
@@ -30,7 +31,7 @@ public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizat
         {
             return Errors.InvalidSender;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;

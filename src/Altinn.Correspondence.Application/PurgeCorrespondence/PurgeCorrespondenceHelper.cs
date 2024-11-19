@@ -94,6 +94,6 @@ public class PurgeCorrespondenceHelper
     }
     public void CancelNotification(Guid correspondenceId, CancellationToken cancellationToken)
     {
-        _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, cancellationToken));
+        _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
     }
 }
