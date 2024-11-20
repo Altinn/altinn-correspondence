@@ -110,13 +110,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             // Arrange
             var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithExistingAttachments([attachmentId])
-                .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
-                .Build();
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-            var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var correspondenceResponse = await CreateCorrespondenceWithAttachment(attachmentId, DateTimeOffset.UtcNow.AddDays(1));
             Assert.NotNull(correspondenceResponse);
 
             // Act
@@ -139,31 +133,13 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             // Arrange
             var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
-            var payload1 = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithExistingAttachments([attachmentId])
-                .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
-                .Build();
-            var payload2 = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithExistingAttachments([attachmentId])
-                .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
-                .Build();
+            var initializeCorrespondenceResponse1 = await CreateCorrespondenceWithAttachment(attachmentId, DateTimeOffset.UtcNow.AddDays(1));
+            var initializeCorrespondenceResponse2 = await CreateCorrespondenceWithAttachment(attachmentId, DateTimeOffset.UtcNow.AddDays(1));
 
-            var initializeCorrespondenceResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload1, _responseSerializerOptions);
-            var response1 = await initializeCorrespondenceResponse1.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            initializeCorrespondenceResponse1.EnsureSuccessStatusCode();
-            Assert.NotNull(response1);
-
-            var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload2, _responseSerializerOptions);
-            var response2 = await initializeCorrespondenceResponse2.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            initializeCorrespondenceResponse2.EnsureSuccessStatusCode();
-            Assert.NotNull(response2);
-
-            var deleteResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{response1.Correspondences.FirstOrDefault().CorrespondenceId}/purge");
+            var deleteResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{initializeCorrespondenceResponse1.Correspondences.FirstOrDefault().CorrespondenceId}/purge");
             Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
 
-            var attachmentOverview = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{response1.AttachmentIds.FirstOrDefault()}", _responseSerializerOptions);
+            var attachmentOverview = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{initializeCorrespondenceResponse2.AttachmentIds.FirstOrDefault()}", _responseSerializerOptions);
             Assert.NotEqual(attachmentOverview?.Status, AttachmentStatusExt.Purged);
         }
 
@@ -172,6 +148,25 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             var deleteResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/00000000-0100-0000-0000-000000000000/purge");
             Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
+        }
+
+        private async Task<InitializeCorrespondencesResponseExt> CreateCorrespondenceWithAttachment(
+            Guid attachmentId,
+            DateTimeOffset publishTime)
+        {
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments([attachmentId])
+                .WithRequestedPublishTime(publishTime)
+                .Build();
+
+            var response = await _senderClient.PostAsJsonAsync(
+                "correspondence/api/v1/correspondence",
+                payload,
+                _responseSerializerOptions);
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
         }
     }
 }

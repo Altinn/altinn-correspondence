@@ -67,7 +67,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             int status = (int)CorrespondenceStatusExt.Published;
             var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceA}&offset={0}&limit={10}&status={status}&role={"recipientandsender"}");
-            Assert.Equal(correspondenceList?.Pagination.TotalItems, payloadResourceA.Recipients.Count);
+            Assert.Equal(payloadResourceA.Recipients.Count, correspondenceList?.Pagination.TotalItems);
         }
 
         [Fact]
@@ -150,12 +150,12 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", publishedCorrespondences);
 
             // Act
-            var responseWithInitialized = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&offset=0&limit=10&status={1}&role={"sender"}");
-            var responseWithPublished = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&offset=0&limit=10&status={2}&role={"sender"}");
+            var responseWithReadyForPublish = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&offset=0&limit=10&status={(int)CorrespondenceStatusExt.ReadyForPublish}&role={"sender"}");
+            var responseWithPublished = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&offset=0&limit=10&status={(int)CorrespondenceStatusExt.Published}&role={"sender"}");
 
             // Assert
             var expectedInitialized = initializedCorrespondence.Recipients.Count;
-            Assert.Equal(expectedInitialized, responseWithInitialized?.Pagination.TotalItems);
+            Assert.Equal(expectedInitialized, responseWithReadyForPublish?.Pagination.TotalItems);
             var expectedPublished = publishedCorrespondences.Recipients.Count;
             Assert.Equal(expectedPublished, responseWithPublished?.Pagination.TotalItems);
         }

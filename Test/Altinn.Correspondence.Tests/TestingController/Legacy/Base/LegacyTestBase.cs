@@ -21,7 +21,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy.Base
                 PropertyNameCaseInsensitive = true,
                 Converters = { new JsonStringEnumConverter() }
             };
-            _serializerOptions.Converters.Add(new JsonStringEnumConverter());
 
             _senderClient = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
             _legacyClient = _factory.CreateClientWithAddedClaims(

@@ -209,11 +209,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
 
             // Act
             var downloadResponse = await _senderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}/download");
-            var data = downloadResponse.Content.ReadAsByteArrayAsync();
+            var data = await downloadResponse.Content.ReadAsByteArrayAsync();
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, downloadResponse.StatusCode);
-            Assert.NotEmpty(data.Result);
+            Assert.NotEmpty(data);
         }
     }
 }
