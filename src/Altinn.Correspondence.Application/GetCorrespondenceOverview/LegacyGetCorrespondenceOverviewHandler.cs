@@ -56,7 +56,7 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
         {
             return Errors.LegacyNoAccessToCorrespondence;
         }
-        var latestStatus = correspondence.GetLatestStatus();
+        var latestStatus = correspondence.GetHighestStatus();
         if (latestStatus == null)
         {
             _logger.LogWarning("Latest status not found for correspondence");

@@ -92,7 +92,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
             }
 
             return query
-                .Where(cs => statusesToFilter.Contains(cs.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status));
+                .Where(cs => statusesToFilter.Contains(cs.Statuses.OrderBy(cs => cs.Status).Last().Status));
         }
     }
 }

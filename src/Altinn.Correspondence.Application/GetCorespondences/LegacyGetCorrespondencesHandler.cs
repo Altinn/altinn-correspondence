@@ -132,7 +132,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                     ServiceOwnerName = String.IsNullOrWhiteSpace(correspondence.MessageSender) ? owner!.Name : correspondence.MessageSender,
                     InstanceOwnerPartyId = recipient?.PartyId ?? 0,
                     MessageTitle = correspondence.Content.MessageTitle,
-                    Status = correspondence.GetLatestStatusWithoutPurged().Status,
+                    Status = correspondence.GetHighestStatusWithoutPurged().Status,
                     CorrespondenceId = correspondence.Id,
                     MinimumAuthenticationLevel = (int)minAuthLevel,
                     Published = correspondence.Published,
