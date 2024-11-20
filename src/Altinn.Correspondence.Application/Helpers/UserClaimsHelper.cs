@@ -19,6 +19,7 @@ namespace Altinn.Correspondence.Application.Helpers
         private const string _dialogportenOrgClaim = "p";
         private const string _partyIdClaim = "urn:altinn:partyid";
         private const string _personId = "pid";
+        private const string _minAuthLevelClaim = "urn:altinn:authlevel";
 
         public UserClaimsHelper(IHttpContextAccessor httpContextAccessor, IOptions<DialogportenSettings> dialogportenSettings, IOptions<IdportenSettings> idportenSettings)
         {
@@ -33,6 +34,14 @@ namespace Altinn.Correspondence.Application.Helpers
             if (partyId is null) return null;
             if (int.TryParse(partyId, out int id)) return id;
             return null;
+        }
+
+        public int GetMinimumAuthenticationLevel()
+        {
+            var authLevelClaim = _claims.FirstOrDefault(c => c.Type == _minAuthLevelClaim);
+            if (authLevelClaim is null) return 0;
+            if (int.TryParse(authLevelClaim.Value, out int level)) return level;
+            return 0;
         }
         public bool IsAffiliatedWithCorrespondence(string recipientId, string senderId)
         {

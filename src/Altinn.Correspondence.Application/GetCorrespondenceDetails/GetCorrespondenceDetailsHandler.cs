@@ -4,7 +4,9 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
+using Microsoft.AspNetCore.Http;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceDetails;
 
@@ -30,7 +32,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<GetCorrespondenceDetails
         _userClaimsHelper = userClaimsHelper;
     }
 
-    public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(GetCorrespondenceDetailsRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(GetCorrespondenceDetailsRequest request, ClaimsPrincipal user, CancellationToken cancellationToken)
     {
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
         if (correspondence == null)
@@ -47,8 +49,9 @@ public class GetCorrespondenceDetailsHandler : IHandler<GetCorrespondenceDetails
             isOnBehalfOfSender = correspondence.Sender.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
         }
         var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
+            user,
             correspondence.ResourceId,
-            new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
+            [ResourceAccessLevel.Read],
             cancellationToken,
             isOnBehalfOfRecipient || isOnBehalfOfSender ? onBehalfOf : null,
             isOnBehalfOfRecipient || isOnBehalfOfSender ? correspondence?.Id.ToString() : null);

@@ -45,7 +45,7 @@ namespace Altinn.Correspondence.API.Controllers
             _logger.LogInformation("Initialize correspondence");
 
             var commandRequest = MigrateCorrespondenceMapper.MapToRequest(migrateCorrespondence);
-            var commandResult = await handler.Process(commandRequest, cancellationToken);
+            var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(MigrateCorrespondenceMapper.MapToExternal(data)),
@@ -85,7 +85,7 @@ namespace Altinn.Correspondence.API.Controllers
         {
             _logger.LogInformation("{initializeAttachmentExt.SendersReference};Initializing attachment with sendersference", initializeAttachmentExt.SendersReference);
             var commandRequest = InitializeAttachmentMapper.MapToRequest(initializeAttachmentExt);
-            var commandResult = await migrateInitializeAttachmentHandler.Process(commandRequest, cancellationToken);
+            var commandResult = await migrateInitializeAttachmentHandler.Process(commandRequest, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 attachmentId => Ok(attachmentId.ToString()),
@@ -115,7 +115,7 @@ namespace Altinn.Correspondence.API.Controllers
                 AttachmentId = attachmentId,
                 UploadStream = Request.Body,
                 ContentLength = Request.ContentLength ?? Request.Body.Length
-            }, cancellationToken);
+            }, HttpContext.User, cancellationToken);
             return uploadAttachmentResult.Match(
                 attachment => Ok(AttachmentOverviewMapper.MapMigrateToExternal(attachment)),
                 Problem

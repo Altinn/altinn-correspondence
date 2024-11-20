@@ -1,10 +1,12 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Logging;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceOverview;
 
@@ -17,9 +19,10 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly ILogger<LegacyGetCorrespondenceOverviewHandler> _logger;
     private readonly UserClaimsHelper _userClaimsHelper;
+    private readonly UpdateCorrespondenceStatusHelper _updateCorrespondenceStatusHelper;
+    private readonly IEventBus _eventBus;
 
-
-    public LegacyGetCorrespondenceOverviewHandler(IAltinnAccessManagementService altinnAccessManagementService, IAltinnAuthorizationService altinnAuthorizationService, IAltinnRegisterService altinnRegisterService, ICorrespondenceRepository CorrespondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, UserClaimsHelper userClaimsHelper, ILogger<LegacyGetCorrespondenceOverviewHandler> logger)
+    public LegacyGetCorrespondenceOverviewHandler(IAltinnAccessManagementService altinnAccessManagementService, IAltinnAuthorizationService altinnAuthorizationService, IAltinnRegisterService altinnRegisterService, ICorrespondenceRepository CorrespondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper, UserClaimsHelper userClaimsHelper, ILogger<LegacyGetCorrespondenceOverviewHandler> logger, IEventBus eventBus)
     {
         _altinnAccessManagementService = altinnAccessManagementService;
         _altinnAuthorizationService = altinnAuthorizationService;
@@ -28,9 +31,11 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
         _correspondenceStatusRepository = correspondenceStatusRepository;
         _logger = logger;
         _userClaimsHelper = userClaimsHelper;
+        _updateCorrespondenceStatusHelper = updateCorrespondenceStatusHelper;
+        _eventBus = eventBus;
     }
 
-    public async Task<OneOf<LegacyGetCorrespondenceOverviewResponse, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
+    public async Task<OneOf<LegacyGetCorrespondenceOverviewResponse, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         if (_userClaimsHelper.GetPartyId() is not int partyId)
         {
@@ -46,7 +51,7 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
         {
             return Errors.CorrespondenceNotFound;
         }
-        var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
+        var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
         if (minimumAuthLevel == null)
         {
             return Errors.LegacyNoAccessToCorrespondence;
@@ -94,6 +99,22 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
         {
             return Errors.CouldNotFindOrgNo;
         }
+        try
+        {
+            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+            {
+                CorrespondenceId = correspondence.Id,
+                Status = CorrespondenceStatus.Read,
+                StatusChanged = DateTimeOffset.UtcNow,
+                StatusText = CorrespondenceStatus.Read.ToString(),
+            }, cancellationToken);
+            await _updateCorrespondenceStatusHelper.PublishEvent(_eventBus, correspondence, CorrespondenceStatus.Read, cancellationToken);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error when adding status to correspondence");
+        }
+
         var response = new LegacyGetCorrespondenceOverviewResponse
         {
             CorrespondenceId = correspondence.Id,

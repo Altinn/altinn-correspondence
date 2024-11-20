@@ -121,16 +121,15 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 await _context.SaveChangesAsync(cancellationToken);
             }
         }
-        
-        public async Task<(List<CorrespondenceEntity>, int)> GetCorrespondencesForParties(int offset, int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, string language, bool includeActive, bool includeArchived, bool includePurged, string searchString, CancellationToken cancellationToken)
+
+        public async Task<(List<CorrespondenceEntity>, int)> GetCorrespondencesForParties(int offset, int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, bool includeActive, bool includeArchived, bool includePurged, string searchString, CancellationToken cancellationToken)
         {
             var correspondences = _context.Correspondences
                .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
                .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter                              
                .Where(c => recipientIds.Contains(c.Recipient))       // Filter by recipients
-                                                                     //.Where(c => resourceIds.Contains(c.ResourceId))       // Filter by resources
+                .Where(c => resourceIds.Count == 0 || resourceIds.Contains(c.ResourceId))       // Filter by resources
                 .IncludeByStatuses(includeActive, includeArchived, includePurged, status) // Filter by statuses
-                .Where(c => string.IsNullOrEmpty(language) || (c.Content != null && c.Content.Language == language)) // Filter by language
                 .Where(c => string.IsNullOrEmpty(searchString) || (c.Content != null && c.Content.MessageTitle.Contains(searchString))) // Filter by messageTitle containing searchstring
                .Include(c => c.Statuses)
                 .Include(c => c.Content)

@@ -5,6 +5,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.Extensions.Logging;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceOverview;
 
@@ -30,7 +31,7 @@ public class GetCorrespondenceOverviewHandler : IHandler<GetCorrespondenceOvervi
         _logger = logger;
     }
 
-    public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(GetCorrespondenceOverviewRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(GetCorrespondenceOverviewRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         var correspondence = await _CorrespondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
         if (correspondence == null)
@@ -46,8 +47,9 @@ public class GetCorrespondenceOverviewHandler : IHandler<GetCorrespondenceOvervi
             isOnBehalfOfSender = correspondence.Sender.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
         }
         var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
+            user,
             correspondence.ResourceId,
-            new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
+            [ResourceAccessLevel.Read],
             cancellationToken,
             isOnBehalfOfRecipient || isOnBehalfOfSender ? onBehalfOf : null,
             isOnBehalfOfRecipient || isOnBehalfOfSender ? correspondence?.Id.ToString() : null);

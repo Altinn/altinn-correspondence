@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Hosting;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.UploadAttachment;
 
@@ -15,14 +16,14 @@ public class UploadAttachmentHandler(IAltinnAuthorizationService altinnAuthoriza
     private readonly UploadHelper _uploadHelper = uploadHelper;
     private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
 
-    public async Task<OneOf<UploadAttachmentResponse, Error>> Process(UploadAttachmentRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<UploadAttachmentResponse, Error>> Process(UploadAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         var attachment = await _attachmentRepository.GetAttachmentById(request.AttachmentId, true, cancellationToken);
         if (attachment == null)
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;

@@ -2,6 +2,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.CheckNotification;
 
@@ -13,7 +14,7 @@ public class CheckNotificationHandler : IHandler<Guid, CheckNotificationResponse
         _correspondenceRepository = correspondenceRepository;
     }
 
-    public async Task<OneOf<CheckNotificationResponse, Error>> Process(Guid correspondenceId, CancellationToken cancellationToken)
+    public async Task<OneOf<CheckNotificationResponse, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
         var response = new CheckNotificationResponse

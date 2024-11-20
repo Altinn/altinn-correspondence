@@ -2,6 +2,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondences;
 
@@ -18,7 +19,7 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
         _userClaimsHelper = userClaimsHelper;
     }
 
-    public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         if (request.Limit < 0 || request.Offset < 0)
         {
@@ -34,6 +35,7 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
 
         string? onBehalfOf = request.OnBehalfOf;
         var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
+            user,
             request.ResourceId,
             [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
             cancellationToken,

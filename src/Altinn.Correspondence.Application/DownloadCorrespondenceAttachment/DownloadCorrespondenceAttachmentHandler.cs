@@ -5,6 +5,7 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 
@@ -27,7 +28,7 @@ public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespo
         _backgroundJobClient = backgroundJobClient;
     }
 
-    public async Task<OneOf<DownloadCorrespondenceAttachmentResponse, Error>> Process(DownloadCorrespondenceAttachmentRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<DownloadCorrespondenceAttachmentResponse, Error>> Process(DownloadCorrespondenceAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, cancellationToken);
         if (correspondence is null)
@@ -39,7 +40,7 @@ public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespo
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken, correspondence.Recipient.Replace("0192:", ""));
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken, correspondence.Recipient.Replace("0192:", ""));
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;

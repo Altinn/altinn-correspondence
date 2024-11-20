@@ -28,7 +28,6 @@ namespace Altinn.Correspondence.Core.Repositories
             CorrespondenceStatus? status,
             List<string> recipientIds,
             List<string> resourceIds,
-            string language,
             bool includeActive,
             bool includeArchived,
             bool includePurged,

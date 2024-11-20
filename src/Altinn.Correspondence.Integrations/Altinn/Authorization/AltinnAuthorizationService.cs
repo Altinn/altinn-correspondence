@@ -19,24 +19,20 @@ namespace Altinn.Correspondence.Integrations.Altinn.Authorization;
 public class AltinnAuthorizationService : IAltinnAuthorizationService
 {
     private readonly HttpClient _httpClient;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IResourceRightsService _resourceRepository;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly AltinnOptions _altinnOptions;
     private readonly DialogportenSettings _dialogportenSettings;
     private readonly IdportenSettings _idPortenSettings;
-    private readonly ClaimsPrincipal? _user;
     private readonly ILogger<AltinnAuthorizationService> _logger;
 
-    public AltinnAuthorizationService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, IOptions<DialogportenSettings> dialogportenSettings, IOptions<IdportenSettings> idPortenSettings, IHttpContextAccessor httpContextAccessor, IResourceRightsService resourceRepository, IHostEnvironment hostEnvironment, ILogger<AltinnAuthorizationService> logger)
+    public AltinnAuthorizationService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, IOptions<DialogportenSettings> dialogportenSettings, IOptions<IdportenSettings> idPortenSettings, IResourceRightsService resourceRepository, IHostEnvironment hostEnvironment, ILogger<AltinnAuthorizationService> logger)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.PlatformSubscriptionKey);
         _altinnOptions = altinnOptions.Value;
         _dialogportenSettings = dialogportenSettings.Value;
         _idPortenSettings = idPortenSettings.Value;
-        _user = httpContextAccessor.HttpContext?.User;
         _httpClient = httpClient;
-        _httpContextAccessor = httpContextAccessor;
         _resourceRepository = resourceRepository;
         _hostEnvironment = hostEnvironment;
         _logger = logger;
@@ -45,9 +41,12 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     /// <summary>
     /// Checks if the user has access to the resource with the given rights
     /// </summary>
-    public async Task<bool> CheckUserAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, string? onBehalfOf = null, string? correspondenceId = null)
+    public async Task<bool> CheckUserAccess(ClaimsPrincipal? user, string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, string? onBehalfOf = null, string? correspondenceId = null)
     {
-        var user = _httpContextAccessor.HttpContext?.User;
+        if (user is null)
+        {
+            throw new InvalidOperationException("This operation cannot be called outside an authenticated HttpContext");
+        }
         var earlyAccessDecision = await EvaluateEarlyAccessConditions(user, resourceId, cancellationToken);
         if (earlyAccessDecision is not null)
         {
@@ -63,9 +62,12 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     }
 
 
-    public async Task<int?> CheckUserAccessAndGetMinimumAuthLevel(string ssn, string resourceId, List<ResourceAccessLevel> rights, string onBehalfOfIndentifier, CancellationToken cancellationToken = default)
+    public async Task<int?> CheckUserAccessAndGetMinimumAuthLevel(ClaimsPrincipal? user, string ssn, string resourceId, List<ResourceAccessLevel> rights, string onBehalfOfIndentifier, CancellationToken cancellationToken = default)
     {
-        var user = _httpContextAccessor.HttpContext?.User;
+        if (user is null)
+        {
+            throw new InvalidOperationException("This operation cannot be called outside an authenticated HttpContext");
+        }
         var earlyAccessDecision = await EvaluateEarlyAccessConditions(user, resourceId, cancellationToken);
         if (earlyAccessDecision is not null)
         {
@@ -112,11 +114,6 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             _logger.LogWarning("Service owner not found for resource");
             return false;
         }
-        if (user is null)
-        {
-            _logger.LogError("Unexpected null value. User was null when checking access to resource");
-            return false;
-        }
         return null;
     }
 
@@ -138,7 +135,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
     private XacmlJsonRequestRoot CreateDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string? onBehalfOf, string? correspondenceId)
     {
-        var personIdClaim = GetPersonIdClaim();
+        var personIdClaim = GetPersonIdClaim(user);
         if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
         {
             return AltinnTokenXacmlMapper.CreateAltinnDecisionRequest(user, actionTypes, resourceId, onBehalfOf, correspondenceId);
@@ -156,7 +153,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
     private XacmlJsonRequestRoot CreateDecisionRequestForLegacy(ClaimsPrincipal user, string ssn, List<string> actionTypes, string resourceId, string recipientOrgNo)
     {
-        var personIdClaim = GetPersonIdClaim();
+        var personIdClaim = GetPersonIdClaim(user);
         if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
         {
             return AltinnTokenXacmlMapper.CreateAltinnDecisionRequestForLegacy(user, ssn, actionTypes, resourceId, recipientOrgNo);
@@ -171,7 +168,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         {
             return false;
         }
-        var personIdClaim = GetPersonIdClaim();
+        var personIdClaim = GetPersonIdClaim(user);
         if (personIdClaim?.Issuer == _idPortenSettings.Issuer)
         {
             return IdportenXacmlMapper.ValidateIdportenAuthorizationResponse(response, user);
@@ -201,12 +198,12 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         };
     }
 
-    private Claim? GetPersonIdClaim()
+    private Claim? GetPersonIdClaim(ClaimsPrincipal user)
     {
-        var claim = _user?.Claims.FirstOrDefault(claim => claim.Type == "pid");
+        var claim = user.Claims.FirstOrDefault(claim => claim.Type == "pid");
         if (claim is null)
         {
-            claim = _user?.Claims.FirstOrDefault(claim => claim.Type == "c");
+            claim = user.Claims.FirstOrDefault(claim => claim.Type == "c");
         }
         if (claim is null)
         {
