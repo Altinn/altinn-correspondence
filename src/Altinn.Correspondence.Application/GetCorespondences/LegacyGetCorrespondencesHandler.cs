@@ -20,8 +20,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
     private readonly IResourceRightsService _resourceRightsService;
     private readonly UserClaimsHelper _userClaimsHelper;
     private readonly ILogger<LegacyGetCorrespondencesHandler> _logger;
-    private record ResourceOwner(string OrgNumber, Party? Party);
-
+    private record PartyInfo(string Id, Party? Party);
 
     public LegacyGetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, IAltinnAccessManagementService altinnAccessManagement, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IAltinnRegisterService altinnRegisterService, IResourceRightsService resourceRightsService, ILogger<LegacyGetCorrespondencesHandler> logger)
     {
@@ -85,32 +84,48 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
         List<LegacyCorrespondenceItem> correspondenceItems = new List<LegacyCorrespondenceItem>();
 
-        var resourceOwners = new List<ResourceOwner>();
-
+        var Senders = new List<PartyInfo>();
         foreach (var orgNr in correspondences.Item1.Select(c => c.Sender).Distinct().ToList())
         {
             try
             {
                 var resourceOwnerParty = await _altinnRegisterService.LookUpPartyById(orgNr, cancellationToken);
-                resourceOwners.Add(new ResourceOwner(orgNr, resourceOwnerParty));
+                Senders.Add(new PartyInfo(orgNr, resourceOwnerParty));
             }
             catch (Exception e)
             {
-                resourceOwners.Add(new ResourceOwner(orgNr, null));
+                Senders.Add(new PartyInfo(orgNr, null));
             }
         }
-        var recipientDetails = new List<ResourceOwner>();
+
+        var resourceOwners = new List<PartyInfo>();
+        foreach (var resource in correspondences.Item1.Select(c => c.ResourceId).Distinct().ToList())
+        {
+            try
+            {
+                var resourceOwner = await _resourceRightsService.GetServiceOwnerOfResource(resource, cancellationToken);
+                var resourceOwnerInfo = await _altinnRegisterService.LookUpPartyById(resourceOwner, cancellationToken);
+                resourceOwners.Add(new PartyInfo(resource, resourceOwnerInfo));
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Failed to lookup resource owner for resource: {resource}", resource);
+                resourceOwners.Add(new PartyInfo(resource, null));
+            }
+        }
+
+        var recipientDetails = new List<PartyInfo>();
         foreach (var orgNr in correspondences.Item1.Select(c => c.Recipient).Distinct().ToList())
         {
             try
             {
                 var recipientParty = await _altinnRegisterService.LookUpPartyById(orgNr, cancellationToken);
-                recipientDetails.Add(new ResourceOwner(orgNr, recipientParty));
+                recipientDetails.Add(new PartyInfo(orgNr, recipientParty));
             }
             catch (Exception e)
             {
                 _logger.LogError(e, "Failed to lookup recipient party for orgNr: {OrgNr}", orgNr);
-                recipientDetails.Add(new ResourceOwner(orgNr, null));
+                recipientDetails.Add(new PartyInfo(orgNr, null));
             }
         }
         var correspondenceToSubtractFromTotal = 0;
@@ -123,13 +138,13 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                 continue;
             }
             var purgedStatus = correspondence.GetPurgedStatus();
-            var owner = resourceOwners.SingleOrDefault(r => r.OrgNumber == correspondence.Sender)?.Party;
-            var recipient = recipientDetails.SingleOrDefault(r => r.OrgNumber == correspondence.Recipient)?.Party;
+            var sender = Senders.SingleOrDefault(r => r.Id == correspondence.Sender)?.Party;
+            var recipient = recipientDetails.SingleOrDefault(r => r.Id == correspondence.Recipient)?.Party;
             correspondenceItems.Add(
                 new LegacyCorrespondenceItem()
                 {
                     Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId,
-                    ServiceOwnerName = String.IsNullOrWhiteSpace(correspondence.MessageSender) ? owner!.Name : correspondence.MessageSender,
+                    ServiceOwnerName = resourceOwners?.SingleOrDefault(r => r.Id == correspondence.ResourceId).Party?.Name,
                     InstanceOwnerPartyId = recipient?.PartyId ?? 0,
                     MessageTitle = correspondence.Content.MessageTitle,
                     Status = correspondence.GetHighestStatusWithoutPurged().Status,
@@ -141,7 +156,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
                     DueDateTime = correspondence.DueDateTime,
                     Archived = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Archived)?.StatusChanged,
                     Confirmed = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Confirmed)?.StatusChanged,
-                    MessageSender = correspondence.MessageSender
+                    MessageSender = String.IsNullOrWhiteSpace(correspondence.MessageSender) ? sender!.Name : correspondence.MessageSender,
                 }
                 );
         }
