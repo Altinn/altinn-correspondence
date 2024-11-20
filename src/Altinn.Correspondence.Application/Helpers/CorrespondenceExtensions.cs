@@ -7,28 +7,28 @@ public static class CorrespondenceStatusExtensions
     {
         var statusEntity = correspondence.Statuses
             .Where(s => s.Status != CorrespondenceStatus.Fetched)
-            .MaxBy(s => s.StatusChanged);
+            .OrderByDescending(s => s.StatusChanged).FirstOrDefault();
         return statusEntity;
     }
     public static CorrespondenceStatusEntity? GetLatestStatusWithoutPurged(this CorrespondenceEntity correspondence)
     {
         var statusEntity = correspondence.Statuses
             .Where(s => !s.Status.IsPurged() && s.Status != CorrespondenceStatus.Fetched)
-            .MaxBy(s => s.StatusChanged);
+            .OrderByDescending(s => s.StatusChanged).FirstOrDefault();
         return statusEntity;
     }
     public static CorrespondenceStatusEntity? GetHighestStatus(this CorrespondenceEntity correspondence)
     {
         var statusEntity = correspondence.Statuses
             .Where(s => s.Status != CorrespondenceStatus.Fetched)
-            .MaxBy(s => s.Status);
+            .OrderByDescending(s => s.Status).FirstOrDefault();
         return statusEntity;
     }
     public static CorrespondenceStatusEntity? GetHighestStatusWithoutPurged(this CorrespondenceEntity correspondence)
     {
         var statusEntity = correspondence.Statuses
             .Where(s => !s.Status.IsPurged() && s.Status != CorrespondenceStatus.Fetched)
-            .MaxBy(s => s.Status);
+            .OrderByDescending(s => s.Status).FirstOrDefault();
         return statusEntity;
     }
     public static bool IsPurged(this CorrespondenceStatus correspondenceStatus)
