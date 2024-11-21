@@ -7,7 +7,7 @@ using System.Text.Json;
 using System.Text;
 using ReverseMarkdown.Converters;
 
-namespace Altinn.Correspondence.Tests;
+namespace Altinn.Correspondence.Tests.TestingController.Migration;
 
 public class MigrationControllerTests : IClassFixture<MaskinportenWebApplicationFactory>
 {

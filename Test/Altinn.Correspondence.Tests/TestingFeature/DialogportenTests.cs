@@ -3,7 +3,6 @@ using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Helpers;
@@ -15,7 +14,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace Altinn.Correspondence.Tests;
+namespace Altinn.Correspondence.Tests.TestingFeature;
 
 public class DialogportenTests : IClassFixture<CustomWebApplicationFactory>
 {

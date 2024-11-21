@@ -5,7 +5,7 @@ using Altinn.Correspondence.Tests.Factories;
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace Altinn.Correspondence.Tests;
+namespace Altinn.Correspondence.Tests.TestingFeature;
 
 public class NotificationTests : IClassFixture<MaskinportenWebApplicationFactory>
 {
