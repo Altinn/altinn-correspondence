@@ -1,4 +1,4 @@
-using Altinn.Correspondence.API.Models;
+﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.CheckNotification;
@@ -360,13 +360,15 @@ namespace Altinn.Correspondence.API.Controllers
         public async Task<ActionResult> DownloadCorrespondenceAttachmentData(
             Guid correspondenceId,
             Guid attachmentId,
+            [FromQuery] string? onBehalfOf,
             [FromServices] DownloadCorrespondenceAttachmentHandler handler,
             CancellationToken cancellationToken)
         {
             var commandResult = await handler.Process(new DownloadCorrespondenceAttachmentRequest()
             {
                 CorrespondenceId = correspondenceId,
-                AttachmentId = attachmentId
+                AttachmentId = attachmentId,
+                OnBehalfOf = onBehalfOf
             }, HttpContext.User, cancellationToken);
             return commandResult.Match(
                 result => File(result.Stream, "application/octet-stream", result.FileName),
