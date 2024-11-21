@@ -227,6 +227,13 @@
 										"correspondence",
 										"{{correspondenceId}}",
 										"markasread"
+									],
+									"query": [
+										{
+											"key": "onBehalfOf",
+											"value": "",
+											"description": "(Optional) Specifies the identifier of the entity on whose behalf the current user is acting."
+										}
 									]
 								}
 							},
@@ -329,6 +336,13 @@
 										"correspondence",
 										"{{correspondenceId}}",
 										"confirm"
+									],
+									"query": [
+										{
+											"key": "onBehalfOf",
+											"value": "",
+											"description": "(Optional) Specifies the identifier of the entity on whose behalf the current user is acting."
+										}
 									]
 								}
 							},
@@ -431,6 +445,13 @@
 										"correspondence",
 										"{{correspondenceId}}",
 										"archive"
+									],
+									"query": [
+										{
+											"key": "onBehalfOf",
+											"value": "",
+											"description": "(Optional) Specifies the identifier of the entity on whose behalf the current user is acting."
+										}
 									]
 								}
 							},
@@ -516,6 +537,13 @@
 										"attachment",
 										"{{attachmentId}}",
 										"download"
+									],
+									"query": [
+										{
+											"key": "onBehalfOf",
+											"value": "",
+											"description": "(Optional) Specifies the identifier of the entity on whose behalf the current user is acting."
+										}
 									]
 								}
 							},
@@ -586,6 +614,13 @@
 										"correspondence",
 										"{{correspondenceId}}",
 										"purge"
+									],
+									"query": [
+										{
+											"key": "onBehalfOf",
+											"value": "",
+											"description": "(Optional) Specifies the identifier of the entity on whose behalf the current user is acting."
+										}
 									]
 								}
 							},
@@ -1094,6 +1129,13 @@
 								"v1",
 								"correspondence",
 								"{{correspondenceId}}"
+							],
+							"query": [
+								{
+									"key": "onBehalfOf",
+									"value": "",
+									"description": "(Optional) Specifies the identifier of the entity on whose behalf the current user is acting."
+								}
 							]
 						}
 					},
@@ -1173,6 +1215,13 @@
 								"correspondence",
 								"{{correspondenceId}}",
 								"details"
+							],
+							"query": [
+								{
+									"key": "onBehalfOf",
+									"value": "",
+									"description": "(Optional) Specifies the identifier of the entity on whose behalf the current user is acting."
+								}
 							]
 						}
 					},
@@ -1297,6 +1346,11 @@
 								{
 									"key": "role",
 									"value": "RecipientAndSender"
+								},
+								{
+									"key": "onBehalfOf",
+									"value": "",
+									"description": "(Optional) Specifies the identifier of the entity on whose behalf the current user is acting."
 								}
 							]
 						}
