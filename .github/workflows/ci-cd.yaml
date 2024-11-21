@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: test
     if: always() && !failure() && !cancelled() 
-    needs: [get-version, publish]
+    needs: [get-version, publish, test]
     permissions: 
       id-token: write
       contents: read
@@ -86,7 +86,6 @@ jobs:
     needs: [ 
       get-version,
       deploy-test,
-      test
     ]
     permissions: 
       id-token: write
