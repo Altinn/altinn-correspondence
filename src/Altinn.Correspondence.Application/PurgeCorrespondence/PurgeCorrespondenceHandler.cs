@@ -1,16 +1,16 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using OneOf;
-using Hangfire;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.PurgeCorrespondence;
 
-public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
+public class PurgeCorrespondenceHandler : IHandler<PurgeCorrespondenceRequest, Guid>
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly ICorrespondenceRepository _correspondenceRepository;
@@ -35,29 +35,45 @@ public class PurgeCorrespondenceHandler : IHandler<Guid, Guid>
         _purgeCorrespondenceHelper = purgeCorrespondenceHelper;
     }
 
-    public async Task<OneOf<Guid, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    public async Task<OneOf<Guid, Error>> Process(PurgeCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        Guid correspondenceId = request.CorrespondenceId;
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, cancellationToken);
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
         }
-        if (!_userClaimsHelper.IsAffiliatedWithCorrespondence(correspondence.Recipient, correspondence.Sender))
+        string? onBehalfOf = request.OnBehalfOf;
+        bool isOnBehalfOfRecipient = false;
+        bool isOnBehalfOfSender = false;
+        if (!string.IsNullOrEmpty(onBehalfOf))
         {
-            return Errors.CorrespondenceNotFound;
+            isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
+            isOnBehalfOfSender = correspondence.Sender.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(user, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read, ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
+            user,
+            correspondence.ResourceId,
+            [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
+            cancellationToken,
+            isOnBehalfOfRecipient || isOnBehalfOfSender ? onBehalfOf : null,
+            isOnBehalfOfRecipient || isOnBehalfOfSender ? correspondence?.Id.ToString() : null);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
+        }
+        bool isRecipient = _userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
+        bool isSender = _userClaimsHelper.IsSender(correspondence.Sender) || isOnBehalfOfSender;
+
+        if (!isRecipient && !isSender)
+        {
+            return Errors.CorrespondenceNotFound;
         }
         var currentStatusError = _purgeCorrespondenceHelper.ValidateCurrentStatus(correspondence);
         if (currentStatusError is not null)
         {
             return currentStatusError;
         }
-        bool isSender = _userClaimsHelper.IsSender(correspondence.Sender);
-        bool isRecipient = _userClaimsHelper.IsRecipient(correspondence.Recipient);
         if (isSender)
         {
             var senderRecipientPurgeError = _purgeCorrespondenceHelper.ValidatePurgeRequestSender(correspondence);

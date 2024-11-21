@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -40,12 +41,25 @@ public class DownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespo
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken, correspondence.Recipient.Replace("0192:", ""));
+        string? onBehalfOf = request.OnBehalfOf;
+        bool isOnBehalfOfRecipient = false;
+        if (!string.IsNullOrEmpty(onBehalfOf))
+        {
+            isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
+        }
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
+            user,
+            correspondence.ResourceId,
+            [ResourceAccessLevel.Read],
+            cancellationToken,
+            onBehalfOf: isOnBehalfOfRecipient ? onBehalfOf : null,
+            correspondenceId: isOnBehalfOfRecipient ? request.CorrespondenceId.ToString() : null);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
         }
-        if (!_userClaimsHelper.IsRecipient(correspondence.Recipient))
+        var isRecipient = _userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
+        if (!isRecipient)
         {
             return Errors.CorrespondenceNotFound;
         }

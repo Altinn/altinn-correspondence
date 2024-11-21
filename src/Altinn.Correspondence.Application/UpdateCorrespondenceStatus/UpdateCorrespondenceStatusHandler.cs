@@ -1,10 +1,9 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Core.Services.Enums;
-using Hangfire;
 using OneOf;
 using System.Security.Claims;
 
@@ -42,12 +41,24 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             return Errors.CorrespondenceNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(user, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, cancellationToken);
+        string? onBehalfOf = request.OnBehalfOf;
+        bool isOnBehalfOfRecipient = false;
+        if (!string.IsNullOrEmpty(onBehalfOf))
+        {
+            isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
+        }
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
+            user,
+            correspondence.ResourceId,
+            [ResourceAccessLevel.Read],
+            cancellationToken,
+            onBehalfOf: isOnBehalfOfRecipient ? onBehalfOf : null,
+            correspondenceId: isOnBehalfOfRecipient ? request.CorrespondenceId.ToString() : null);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
         }
-        var isRecipient = _userClaimsHelper.IsRecipient(correspondence.Recipient);
+        var isRecipient = _userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
         if (!isRecipient)
         {
             return Errors.CorrespondenceNotFound;

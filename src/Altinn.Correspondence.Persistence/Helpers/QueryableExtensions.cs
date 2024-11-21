@@ -1,6 +1,5 @@
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
-using Microsoft.EntityFrameworkCore.Internal;
 
 namespace Altinn.Correspondence.Persistence.Helpers
 {
@@ -10,23 +9,23 @@ namespace Altinn.Correspondence.Persistence.Helpers
         {
             return role switch
             {
-                CorrespondencesRoleType.RecipientAndSender => query.Where(c => c.Sender == orgNo || c.Recipient == orgNo),
-                CorrespondencesRoleType.Recipient => query.Where(c => c.Recipient == orgNo),
-                CorrespondencesRoleType.Sender => query.Where(c => c.Sender == orgNo),
+                CorrespondencesRoleType.RecipientAndSender => query.Where(c => c.Sender.Contains(orgNo) || c.Recipient.Contains(orgNo)),
+                CorrespondencesRoleType.Recipient => query.Where(c => c.Recipient.Contains(orgNo)),
+                CorrespondencesRoleType.Sender => query.Where(c => c.Sender.Contains(orgNo)),
                 _ => query.Where(c => false),
             };
         }
 
         public static IQueryable<CorrespondenceEntity> FilterByStatus(this IQueryable<CorrespondenceEntity> query, CorrespondenceStatus? status, string orgNo, CorrespondencesRoleType role)
         {
-            var blacklistSender = new List<CorrespondenceStatus?> // TODO: any missing? or should not be here?
+            var blacklistSender = new List<CorrespondenceStatus?>
             {
                 CorrespondenceStatus.Archived,
                 CorrespondenceStatus.PurgedByAltinn,
                 CorrespondenceStatus.PurgedByRecipient,
             };
 
-            var blacklistRecipient = new List<CorrespondenceStatus?> // TODO: any missing? or should not be here?
+            var blacklistRecipient = new List<CorrespondenceStatus?>
             {
                 CorrespondenceStatus.Initialized,
                 CorrespondenceStatus.ReadyForPublish,
@@ -38,7 +37,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
             // Helper functions for common query patterns
             IQueryable<CorrespondenceEntity> FilterForSender()
             {
-                return query.Where(c => c.Sender == orgNo &&
+                return query.Where(c => c.Sender.Contains(orgNo) &&
                     status.HasValue ?
                     (!blacklistSender.Contains(status)) && status == c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status :
                     (!blacklistSender.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)));
@@ -46,7 +45,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
 
             IQueryable<CorrespondenceEntity> FilterForRecipient()
             {
-                return query.Where(c => c.Recipient == orgNo &&
+                return query.Where(c => c.Recipient.Contains(orgNo) &&
                     status.HasValue ?
                     (!blacklistRecipient.Contains(status)) && status == c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status :
                     (!blacklistRecipient.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)));

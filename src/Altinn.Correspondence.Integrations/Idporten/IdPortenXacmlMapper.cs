@@ -13,7 +13,7 @@ namespace Altinn.Correspondence.Integrations.Idporten
         private const string DefaultIssuer = "Idporten";
         private const string DefaultType = "string";
 
-        public static XacmlJsonRequestRoot CreateIdportenDecisionRequest(ClaimsPrincipal user, string resourceId, List<string> actionTypes, string recipientOrgNo)
+        public static XacmlJsonRequestRoot CreateIdportenDecisionRequest(ClaimsPrincipal user, string resourceId, List<string> actionTypes, string? onBehalfOfIdentitier)
         {
             XacmlJsonRequest request = new()
             {
@@ -27,7 +27,7 @@ namespace Altinn.Correspondence.Integrations.Idporten
             {
                 request.Action.Add(CreateActionCategory(actionType));
             }
-            var resourceCategory = CreateResourceCategory(resourceId, recipientOrgNo);
+            var resourceCategory = CreateResourceCategory(resourceId, onBehalfOfIdentitier);
             request.Resource.Add(resourceCategory);
             XacmlJsonRequestRoot jsonRequest = new() { Request = request };
             return jsonRequest;
@@ -45,11 +45,14 @@ namespace Altinn.Correspondence.Integrations.Idporten
             return actionAttributes;
         }
 
-        private static XacmlJsonCategory CreateResourceCategory(string resourceId, string recipientOrgNo)
+        private static XacmlJsonCategory CreateResourceCategory(string resourceId, string? recipientOrgNo)
         {
             XacmlJsonCategory resourceCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
             resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceId, resourceId, DefaultType, DefaultIssuer));
-            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute("urn:altinn:organization:identifier-no", recipientOrgNo, DefaultType, DefaultIssuer));
+            if (!string.IsNullOrEmpty(recipientOrgNo))
+            {
+                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumberAttribute, recipientOrgNo, DefaultType, DefaultIssuer));
+            }
             return resourceCategory;
         }
 

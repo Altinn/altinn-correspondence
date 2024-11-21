@@ -1,15 +1,16 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
-using Altinn.Correspondence.Integrations.Altinn.Authorization;
+using Microsoft.AspNetCore.Http;
 using OneOf;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceDetails;
 
-public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceDetailsResponse>
+public class GetCorrespondenceDetailsHandler : IHandler<GetCorrespondenceDetailsRequest, GetCorrespondenceDetailsResponse>
 {
     private readonly IAltinnAuthorizationService _altinnAuthorizationService;
     private readonly IAltinnNotificationService _altinnNotificationService;
@@ -17,7 +18,12 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly UserClaimsHelper _userClaimsHelper;
 
-    public GetCorrespondenceDetailsHandler(IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, UserClaimsHelper userClaimsHelper)
+    public GetCorrespondenceDetailsHandler(
+        IAltinnAuthorizationService altinnAuthorizationService,
+        IAltinnNotificationService altinnNotificationService,
+        ICorrespondenceRepository correspondenceRepository,
+        ICorrespondenceStatusRepository correspondenceStatusRepository,
+        UserClaimsHelper userClaimsHelper)
     {
         _altinnAuthorizationService = altinnAuthorizationService;
         _altinnNotificationService = altinnNotificationService;
@@ -26,19 +32,38 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
         _userClaimsHelper = userClaimsHelper;
     }
 
-    public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(GetCorrespondenceDetailsRequest request, ClaimsPrincipal user, CancellationToken cancellationToken)
     {
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(user, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read, ResourceAccessLevel.Write }, cancellationToken);
+        string? onBehalfOf = request.OnBehalfOf;
+        bool isOnBehalfOfRecipient = false;
+        bool isOnBehalfOfSender = false;
+
+        if (!string.IsNullOrEmpty(onBehalfOf))
+        {
+            isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
+            isOnBehalfOfSender = correspondence.Sender.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
+        }
+        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
+            user,
+            correspondence.ResourceId,
+            [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
+            cancellationToken,
+            isOnBehalfOfRecipient || isOnBehalfOfSender ? onBehalfOf : null,
+            isOnBehalfOfRecipient || isOnBehalfOfSender ? correspondence?.Id.ToString() : null);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
         }
-        if (!_userClaimsHelper.IsAffiliatedWithCorrespondence(correspondence.Recipient, correspondence.Sender))
+
+        bool isRecipient = _userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
+        bool isSender = _userClaimsHelper.IsSender(correspondence.Sender) || isOnBehalfOfSender;
+
+        if (!isRecipient && !isSender)
         {
             return Errors.CorrespondenceNotFound;
         }
@@ -48,7 +73,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<Guid, GetCorrespondenceD
             return Errors.CorrespondenceNotFound;
         }
 
-        if (_userClaimsHelper.IsRecipient(correspondence.Recipient))
+        if (isRecipient)
         {
             if (!latestStatus.Status.IsAvailableForRecipient())
             {

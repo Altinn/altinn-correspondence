@@ -38,16 +38,22 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         _logger = logger;
     }
 
-    public async Task<bool> CheckUserAccess(ClaimsPrincipal? user, string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, string? recipientOrgNo = null)
+    /// <summary>
+    /// Checks if the user has access to the resource with the given rights
+    /// </summary>
+    public async Task<bool> CheckUserAccess(ClaimsPrincipal? user, string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, string? onBehalfOf = null, string? correspondenceId = null)
     {
         if (user is null)
         {
             throw new InvalidOperationException("This operation cannot be called outside an authenticated HttpContext");
         }
-        var validation = await ValidateCheckUserAccess(user, resourceId, cancellationToken);
-        if (validation != null) return (bool)validation;
+        var earlyAccessDecision = await EvaluateEarlyAccessConditions(user, resourceId, cancellationToken);
+        if (earlyAccessDecision is not null)
+        {
+            return earlyAccessDecision.Value;
+        }
         var actionIds = rights.Select(GetActionId).ToList();
-        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, actionIds, resourceId, recipientOrgNo);
+        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, actionIds, resourceId, onBehalfOf, correspondenceId);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
         if (responseContent is null) return false;
 
@@ -56,17 +62,19 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     }
 
 
-    public async Task<int?> CheckUserAccessAndGetMinimumAuthLevel(ClaimsPrincipal? user, string ssn, string resourceId, List<ResourceAccessLevel> rights, string recipientOrgNo, CancellationToken cancellationToken = default)
+    public async Task<int?> CheckUserAccessAndGetMinimumAuthLevel(ClaimsPrincipal? user, string ssn, string resourceId, List<ResourceAccessLevel> rights, string onBehalfOf, CancellationToken cancellationToken = default)
     {
         if (user is null)
         {
             throw new InvalidOperationException("This operation cannot be called outside an authenticated HttpContext");
         }
-        var validation = await ValidateCheckUserAccess(user, resourceId, cancellationToken);
-        if (validation != null) return (bool)validation ? 3 : null;
+        var earlyAccessDecision = await EvaluateEarlyAccessConditions(user, resourceId, cancellationToken);
+        if (earlyAccessDecision is not null)
+        {
+            return earlyAccessDecision.Value ? 3 : null;
+        }
         var actionIds = rights.Select(GetActionId).ToList();
-        var orgnr = GetOrgWithoutPrefix(recipientOrgNo);
-        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequestForLegacy(user, ssn, actionIds, resourceId, orgnr);
+        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequestForLegacy(user, ssn, actionIds, resourceId, onBehalfOf);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
         if (responseContent is null) return null;
 
@@ -77,16 +85,6 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         }
         int? minLevel = IdportenXacmlMapper.GetMinimumAuthLevel(responseContent, user);
         return minLevel;
-    }
-
-    private string GetOrgWithoutPrefix(string recipientOrgNo)
-    {
-        var parts = recipientOrgNo.Split(":");
-        if (parts.Length > 1)
-        {
-            return parts[1];
-        }
-        return parts[0];
     }
 
     public async Task<bool> CheckMigrationAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
@@ -103,7 +101,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
         return true;
     }
-    private async Task<bool?> ValidateCheckUserAccess(ClaimsPrincipal user, string resourceId, CancellationToken cancellationToken)
+    private async Task<bool?> EvaluateEarlyAccessConditions(ClaimsPrincipal? user, string resourceId, CancellationToken cancellationToken)
     {
         if (_httpClient.BaseAddress is null)
         {
@@ -114,11 +112,6 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         if (string.IsNullOrWhiteSpace(serviceOwnerId))
         {
             _logger.LogWarning("Service owner not found for resource");
-            return false;
-        }
-        if (user is null)
-        {
-            _logger.LogError("Unexpected null value. User was null when checking access to resource");
             return false;
         }
         return null;
@@ -140,12 +133,12 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         return responseContent;
     }
 
-    private XacmlJsonRequestRoot CreateDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string? recipientOrgNo)
+    private XacmlJsonRequestRoot CreateDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string? onBehalfOf, string? correspondenceId)
     {
         var personIdClaim = GetPersonIdClaim(user);
         if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
         {
-            return AltinnTokenXacmlMapper.CreateAltinnDecisionRequest(user, actionTypes, resourceId);
+            return AltinnTokenXacmlMapper.CreateAltinnDecisionRequest(user, actionTypes, resourceId, onBehalfOf, correspondenceId);
         }
         if (personIdClaim.Issuer == _dialogportenSettings.Issuer)
         {
@@ -153,17 +146,17 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         }
         if (personIdClaim.Issuer == _idPortenSettings.Issuer)
         {
-            return IdportenXacmlMapper.CreateIdportenDecisionRequest(user, resourceId, actionTypes, recipientOrgNo);
+            return IdportenXacmlMapper.CreateIdportenDecisionRequest(user, resourceId, actionTypes, onBehalfOf);
         }
         throw new SecurityTokenInvalidIssuerException();
     }
 
-    private XacmlJsonRequestRoot CreateDecisionRequestForLegacy(ClaimsPrincipal user, string ssn, List<string> actionTypes, string resourceId, string recipientOrgNo)
+    private XacmlJsonRequestRoot CreateDecisionRequestForLegacy(ClaimsPrincipal user, string ssn, List<string> actionTypes, string resourceId, string onBehalfOf)
     {
         var personIdClaim = GetPersonIdClaim(user);
         if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
         {
-            return AltinnTokenXacmlMapper.CreateAltinnDecisionRequestForLegacy(user, ssn, actionTypes, resourceId, recipientOrgNo);
+            return AltinnTokenXacmlMapper.CreateAltinnDecisionRequestForLegacy(user, ssn, actionTypes, resourceId, onBehalfOf);
         }
         throw new SecurityTokenInvalidIssuerException();
     }

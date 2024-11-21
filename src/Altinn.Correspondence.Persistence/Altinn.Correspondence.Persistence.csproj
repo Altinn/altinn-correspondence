@@ -19,6 +19,7 @@
   </ItemGroup>
     <ItemGroup>
     <ProjectReference Include="..\Altinn.Correspondence.Core\Altinn.Correspondence.Core.csproj" />
+    <ProjectReference Include="..\Altinn.Correspondence.Common\Altinn.Correspondence.Common.csproj" />
   </ItemGroup>
 
 </Project>
