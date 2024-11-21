@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.CheckNotification;
@@ -330,12 +330,17 @@ namespace Altinn.Correspondence.API.Controllers
         [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         public async Task<ActionResult> Purge(
             Guid correspondenceId,
+            [FromQuery] string? onBehalfOf,
             [FromServices] PurgeCorrespondenceHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Purging Correspondence with id: {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(correspondenceId, HttpContext.User, cancellationToken);
+            var commandResult = await handler.Process(new PurgeCorrespondenceRequest()
+            {
+                CorrespondenceId = correspondenceId,
+                OnBehalfOf = onBehalfOf
+            }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(data),
