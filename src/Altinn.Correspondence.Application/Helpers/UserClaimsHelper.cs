@@ -57,9 +57,9 @@ namespace Altinn.Correspondence.Application.Helpers
         public bool IsSender(string senderId)
         {
             if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(senderId) || GetPersonID() == senderId;
-            if (_claims.Any(c => c.Issuer == _idportenSettings.Issuer)) return false; 
+            if (_claims.Any(c => c.Issuer == _idportenSettings.Issuer)) return false;
             if (GetUserID() != senderId && GetPersonID() != senderId) return false;
-            if (!GetUserScope().Any(scope=> scope == AuthorizationConstants.SenderScope)) return false;
+            if (!GetUserScope().Any(scope => scope == AuthorizationConstants.SenderScope)) return false;
             return true;
         }
         private bool MatchesDialogTokenOrganization(string organizationId)
@@ -90,12 +90,12 @@ namespace Altinn.Correspondence.Application.Helpers
                 {
                     return null;
                 }
-                return personidClaimValue.Replace(_altinnUrnPersonIdentifier, "");
-            } 
+                return personidClaimValue.Replace(_altinnUrnPersonIdentifier + ":", "");
+            }
             else if (_claims.Any(c => c.Type == _personId))
             {
                 return _claims.FirstOrDefault(c => c.Type == _personId)?.Value;
-            } 
+            }
             else
             {
                 return null;
