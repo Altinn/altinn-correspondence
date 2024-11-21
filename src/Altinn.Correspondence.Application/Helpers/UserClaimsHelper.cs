@@ -70,7 +70,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 return false;
             }
             var orgValue = orgClaim.Value;
-            return orgValue.Replace(AltinnXacmlUrns.OrganizationNumberAttribute, "0192:") == organizationId;
+            return orgValue.Replace(AltinnXacmlUrns.OrganizationNumberAttribute, "0192") == organizationId;
         }
         public string? GetUserID()
         {
