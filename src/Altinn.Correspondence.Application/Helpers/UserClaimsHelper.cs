@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
+using Altinn.Common.PEP.Constants;
 using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Http;
@@ -20,6 +21,7 @@ namespace Altinn.Correspondence.Application.Helpers
         private const string _partyIdClaim = "urn:altinn:partyid";
         private const string _personId = "pid";
         private const string _minAuthLevelClaim = "urn:altinn:authlevel";
+        private const string _altinnUrnPersonIdentifier = "urn:altinn:person:identifier-no";
 
         public UserClaimsHelper(IHttpContextAccessor httpContextAccessor, IOptions<DialogportenSettings> dialogportenSettings, IOptions<IdportenSettings> idportenSettings)
         {
@@ -45,7 +47,7 @@ namespace Altinn.Correspondence.Application.Helpers
         }
         public bool IsRecipient(string recipientId)
         {
-            if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(recipientId);
+            if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(recipientId) || GetPersonID() == recipientId;
             if (_claims.Any(c => c.Issuer == _idportenSettings.Issuer)) return true; // Idporten tokens are always recipients, verified by altinn authorization
             if (GetUserID() != recipientId && GetPersonID() != recipientId) return false;
             if (!GetUserScope().Any(scope => scope == AuthorizationConstants.RecipientScope)) return false;
@@ -55,7 +57,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public bool IsSender(string senderId)
         {
-            if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(senderId);
+            if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(senderId) || GetPersonID() == senderId;
             if (_claims.Any(c => c.Issuer == _idportenSettings.Issuer)) return false; 
             if (GetUserID() != senderId && GetPersonID() != senderId) return false;
             if (!GetUserScope().Any(scope=> scope == AuthorizationConstants.SenderScope)) return false;
@@ -69,7 +71,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 return false;
             }
             var orgValue = orgClaim.Value;
-            return orgValue.Replace("urn:altinn:organization:identifier-no:", "0192:") == organizationId;
+            return orgValue.Replace(_altinnUrnPersonIdentifier, "0192:") == organizationId;
         }
         public string? GetUserID()
         {
@@ -82,8 +84,23 @@ namespace Altinn.Correspondence.Application.Helpers
         }
         private string? GetPersonID()
         {
-            var pid = _claims.FirstOrDefault(c => c.Type == _personId)?.Value;
-            return pid;
+            if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer))
+            {
+                var personidClaimValue = _claims.FirstOrDefault(c => c.Type == "p")?.Value;
+                if (!personidClaimValue.StartsWith(_altinnUrnPersonIdentifier))
+                {
+                    return null;
+                }
+                return personidClaimValue.Replace(_altinnUrnPersonIdentifier, "");
+            } 
+            else if (_claims.Any(c => c.Type == _personId))
+            {
+                return _claims.FirstOrDefault(c => c.Type == _personId)?.Value;
+            } 
+            else
+            {
+                return null;
+            }
         }
         private string? GetDialogportenTokenUserId()
         {
