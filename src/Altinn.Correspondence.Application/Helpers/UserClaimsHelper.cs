@@ -18,7 +18,6 @@ namespace Altinn.Correspondence.Application.Helpers
         private const string _consumerClaim = "consumer";
         private const string _IdProperty = "ID";
         private const string _dialogportenOrgClaim = "p";
-        private const string _partyIdClaim = "urn:altinn:partyid";
         private const string _personId = "pid";
         private const string _minAuthLevelClaim = "urn:altinn:authlevel";
         private const string _altinnUrnPersonIdentifier = "urn:altinn:person:identifier-no";
@@ -32,7 +31,7 @@ namespace Altinn.Correspondence.Application.Helpers
         }
         public int? GetPartyId()
         {
-            var partyId = _claims.FirstOrDefault(c => c.Type == _partyIdClaim)?.Value;
+            var partyId = _claims.FirstOrDefault(c => c.Type == AltinnXacmlUrns.PartyId)?.Value;
             if (partyId is null) return null;
             if (int.TryParse(partyId, out int id)) return id;
             return null;
@@ -71,7 +70,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 return false;
             }
             var orgValue = orgClaim.Value;
-            return orgValue.Replace(_altinnUrnPersonIdentifier, "0192:") == organizationId;
+            return orgValue.Replace(AltinnXacmlUrns.OrganizationNumberAttribute, "0192:") == organizationId;
         }
         public string? GetUserID()
         {
