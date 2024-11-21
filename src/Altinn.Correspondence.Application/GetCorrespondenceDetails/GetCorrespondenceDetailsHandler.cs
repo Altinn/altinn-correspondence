@@ -51,7 +51,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<GetCorrespondenceDetails
         var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
             user,
             correspondence.ResourceId,
-            [ResourceAccessLevel.Read],
+            [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
             cancellationToken,
             isOnBehalfOfRecipient || isOnBehalfOfSender ? onBehalfOf : null,
             isOnBehalfOfRecipient || isOnBehalfOfSender ? correspondence?.Id.ToString() : null);
