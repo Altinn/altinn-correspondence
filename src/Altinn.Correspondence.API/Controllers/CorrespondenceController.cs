@@ -235,6 +235,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("{correspondenceId}/markasread")]
         public async Task<ActionResult> MarkAsRead(
             Guid correspondenceId,
+            [FromQuery] string? onBehalfOf,
             [FromServices] UpdateCorrespondenceStatusHandler handler,
             CancellationToken cancellationToken)
         {
@@ -243,7 +244,8 @@ namespace Altinn.Correspondence.API.Controllers
             var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
             {
                 CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Read
+                Status = CorrespondenceStatus.Read,
+                OnBehalfOf = onBehalfOf,
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
@@ -265,6 +267,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("{correspondenceId}/confirm")]
         public async Task<ActionResult> Confirm(
             Guid correspondenceId,
+            [FromQuery] string? onBehalfOf,
             [FromServices] UpdateCorrespondenceStatusHandler handler,
             CancellationToken cancellationToken)
         {
@@ -273,7 +276,8 @@ namespace Altinn.Correspondence.API.Controllers
             var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
             {
                 CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Confirmed
+                Status = CorrespondenceStatus.Confirmed,
+                OnBehalfOf = onBehalfOf,
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
@@ -295,6 +299,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("{correspondenceId}/archive")]
         public async Task<ActionResult> Archive(
             Guid correspondenceId,
+            [FromQuery] string? onBehalfOf,
             [FromServices] UpdateCorrespondenceStatusHandler handler,
             CancellationToken cancellationToken)
         {
@@ -303,7 +308,8 @@ namespace Altinn.Correspondence.API.Controllers
             var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
             {
                 CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Archived
+                Status = CorrespondenceStatus.Archived,
+                OnBehalfOf = onBehalfOf,
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
