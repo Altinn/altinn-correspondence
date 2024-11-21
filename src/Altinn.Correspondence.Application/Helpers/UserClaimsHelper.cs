@@ -43,10 +43,6 @@ namespace Altinn.Correspondence.Application.Helpers
             if (int.TryParse(authLevelClaim.Value, out int level)) return level;
             return 0;
         }
-        public bool IsAffiliatedWithCorrespondence(string recipientId, string senderId)
-        {
-            return IsRecipient(recipientId) || IsSender(senderId);
-        }
         public bool IsRecipient(string recipientId)
         {
             if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(recipientId);
