@@ -14,27 +14,22 @@ public class MigrateCorrespondenceHandler(
     ICorrespondenceRepository correspondenceRepository,
     ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRequest, MigrateCorrespondenceResponse>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
-    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
-    private readonly InitializeCorrespondenceHelper _initializeCorrespondenceHelper = initializeCorrespondenceHelper;
-    private readonly ILogger<MigrateCorrespondenceHandler> _logger = logger;
-
     public async Task<OneOf<MigrateCorrespondenceResponse, Error>> Process(MigrateCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var hasAccess = await _altinnAuthorizationService.CheckMigrationAccess(request.CorrespondenceEntity.ResourceId, [ResourceAccessLevel.Write], cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckMigrationAccess(request.CorrespondenceEntity.ResourceId, [ResourceAccessLevel.Write], cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
         }
 
-        var contentError = _initializeCorrespondenceHelper.ValidateCorrespondenceContent(request.CorrespondenceEntity.Content);
+        var contentError = initializeCorrespondenceHelper.ValidateCorrespondenceContent(request.CorrespondenceEntity.Content);
         if (contentError != null)
         {
             return contentError;
         }
 
         // Validate that existing attachments are correct
-        var getExistingAttachments = await _initializeCorrespondenceHelper.GetExistingAttachments(request.ExistingAttachments, request.CorrespondenceEntity.Sender);
+        var getExistingAttachments = await initializeCorrespondenceHelper.GetExistingAttachments(request.ExistingAttachments, request.CorrespondenceEntity.Sender);
         if (getExistingAttachments.IsT1) return getExistingAttachments.AsT1;
         var existingAttachments = getExistingAttachments.AsT0;
         if (existingAttachments.Count != request.ExistingAttachments.Count)
@@ -59,14 +54,14 @@ public class MigrateCorrespondenceHandler(
                 })
             );
 
-            var correspondence = await _correspondenceRepository.CreateCorrespondence(request.CorrespondenceEntity, cancellationToken);
+            var correspondence = await correspondenceRepository.CreateCorrespondence(request.CorrespondenceEntity, cancellationToken);
             return new MigrateCorrespondenceResponse()
             {
                 Altinn2CorrespondenceId = request.Altinn2CorrespondenceId,
                 CorrespondenceId = correspondence.Id,
                 AttachmentMigrationStatuses = correspondence.Content?.Attachments.Select(a => new AttachmentMigrationStatus() { AttachmentId = a.AttachmentId, AttachmentStatus = AttachmentStatus.Initialized }).ToList() ?? null
             };
-        }, _logger, cancellationToken);
+        }, logger, cancellationToken);
 
     }
 }

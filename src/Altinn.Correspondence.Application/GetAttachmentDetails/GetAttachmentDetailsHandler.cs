@@ -12,28 +12,24 @@ public class GetAttachmentDetailsHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     UserClaimsHelper userClaimsHelper) : IHandler<Guid, GetAttachmentDetailsResponse>
 {
-    private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
-    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
-    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
 
     public async Task<OneOf<GetAttachmentDetailsResponse, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
+        var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
         if (attachment == null)
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
         }
-        if (!_userClaimsHelper.IsSender(attachment.Sender))
+        if (!userClaimsHelper.IsSender(attachment.Sender))
         {
             return Errors.InvalidSender;
         }
-        var correspondenceIds = await _correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);
+        var correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);
         var attachmentStatus = attachment.GetLatestStatus();
 
         var response = new GetAttachmentDetailsResponse

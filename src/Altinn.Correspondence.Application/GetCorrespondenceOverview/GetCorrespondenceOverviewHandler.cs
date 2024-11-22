@@ -16,15 +16,9 @@ public class GetCorrespondenceOverviewHandler(
     UserClaimsHelper userClaimsHelper,
     ILogger<GetCorrespondenceOverviewHandler> logger) : IHandler<GetCorrespondenceOverviewRequest, GetCorrespondenceOverviewResponse>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
-    private readonly ICorrespondenceRepository _CorrespondenceRepository = CorrespondenceRepository;
-    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
-    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
-    private readonly ILogger<GetCorrespondenceOverviewHandler> _logger = logger;
-
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(GetCorrespondenceOverviewRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var correspondence = await _CorrespondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
+        var correspondence = await CorrespondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
@@ -37,7 +31,7 @@ public class GetCorrespondenceOverviewHandler(
             isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
             isOnBehalfOfSender = correspondence.Sender.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
+        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
             user,
             correspondence.ResourceId,
             [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
@@ -49,18 +43,18 @@ public class GetCorrespondenceOverviewHandler(
             return Errors.NoAccessToResource;
         }
 
-        bool isRecipient = _userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
-        bool isSender = _userClaimsHelper.IsSender(correspondence.Sender) || isOnBehalfOfSender;
+        bool isRecipient = userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
+        bool isSender = userClaimsHelper.IsSender(correspondence.Sender) || isOnBehalfOfSender;
 
         if (!isRecipient && !isSender)
         {
-            _logger.LogWarning("Caller not affiliated with correspondence");
+            logger.LogWarning("Caller not affiliated with correspondence");
             return Errors.CorrespondenceNotFound;
         }
         var latestStatus = correspondence.GetLatestStatus();
         if (latestStatus == null)
         {
-            _logger.LogWarning("Latest status not found for correspondence");
+            logger.LogWarning("Latest status not found for correspondence");
             return Errors.CorrespondenceNotFound;
         }
 
@@ -70,10 +64,10 @@ public class GetCorrespondenceOverviewHandler(
             {
                 if (!latestStatus.Status.IsAvailableForRecipient())
                 {
-                    _logger.LogWarning("Rejected because correspondence not available for recipient in current state.");
+                    logger.LogWarning("Rejected because correspondence not available for recipient in current state.");
                     return Errors.CorrespondenceNotFound;
                 }
-                await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+                await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
                 {
                     CorrespondenceId = correspondence.Id,
                     Status = CorrespondenceStatus.Fetched,
@@ -115,6 +109,6 @@ public class GetCorrespondenceOverviewHandler(
                 IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
             };
             return response;
-        }, _logger, cancellationToken);
+        }, logger, cancellationToken);
     }
 }

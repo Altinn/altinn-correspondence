@@ -34,28 +34,16 @@ public class InitializeCorrespondencesHandler(
     IOptions<GeneralSettings> generalSettings,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
-    private readonly IAltinnNotificationService _altinnNotificationService = altinnNotificationService;
-    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
-    private readonly ICorrespondenceNotificationRepository _correspondenceNotificationRepository = correspondenceNotificationRepository;
-    private readonly INotificationTemplateRepository _notificationTemplateRepository = notificationTemplateRepository;
-    private readonly IEventBus _eventBus = eventBus;
-    private readonly InitializeCorrespondenceHelper _initializeCorrespondenceHelper = initializeCorrespondenceHelper;
-    private readonly IBackgroundJobClient _backgroundJobClient = backgroundJobClient;
-    private readonly IDialogportenService _dialogportenService = dialogportenService;
-    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
-    private readonly IHostEnvironment _hostEnvironment = hostEnvironment;
     private readonly GeneralSettings _generalSettings = generalSettings.Value;
-    private readonly ILogger<InitializeCorrespondencesHandler> _logger = logger;
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(user, request.Correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckUserAccess(user, request.Correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
         }
-        var isSender = _userClaimsHelper.IsSender(request.Correspondence.Sender);
+        var isSender = userClaimsHelper.IsSender(request.Correspondence.Sender);
         if (!isSender)
         {
             return Errors.InvalidSender;
@@ -68,12 +56,12 @@ public class InitializeCorrespondencesHandler(
         {
             return Errors.DueDateRequired;
         }
-        var dateError = _initializeCorrespondenceHelper.ValidateDateConstraints(request.Correspondence);
+        var dateError = initializeCorrespondenceHelper.ValidateDateConstraints(request.Correspondence);
         if (dateError != null)
         {
             return dateError;
         }
-        var contentError = _initializeCorrespondenceHelper.ValidateCorrespondenceContent(request.Correspondence.Content);
+        var contentError = initializeCorrespondenceHelper.ValidateCorrespondenceContent(request.Correspondence.Content);
         if (contentError != null)
         {
             return contentError;
@@ -83,7 +71,7 @@ public class InitializeCorrespondencesHandler(
         var uploadAttachmentMetadata = request.Correspondence.Content.Attachments;
 
         // Validate that existing attachments are correct
-        var getExistingAttachments = await _initializeCorrespondenceHelper.GetExistingAttachments(existingAttachmentIds, request.Correspondence.Sender);
+        var getExistingAttachments = await initializeCorrespondenceHelper.GetExistingAttachments(existingAttachmentIds, request.Correspondence.Sender);
         if (getExistingAttachments.IsT1) return getExistingAttachments.AsT1;
         var existingAttachments = getExistingAttachments.AsT0;
         if (existingAttachments.Count != existingAttachmentIds.Count)
@@ -109,7 +97,7 @@ public class InitializeCorrespondencesHandler(
         {
             foreach (var attachment in uploadAttachmentMetadata)
             {
-                var processedAttachment = await _initializeCorrespondenceHelper.ProcessNewAttachment(attachment, cancellationToken);
+                var processedAttachment = await initializeCorrespondenceHelper.ProcessNewAttachment(attachment, cancellationToken);
                 attachmentsToBeUploaded.Add(processedAttachment);
             }
         }
@@ -120,7 +108,7 @@ public class InitializeCorrespondencesHandler(
         List<NotificationContent>? notificationContents = null;
         if (request.Notification != null)
         {
-            var templates = await _notificationTemplateRepository.GetNotificationTemplates(request.Notification.NotificationTemplate, cancellationToken, request.Correspondence.Content?.Language);
+            var templates = await notificationTemplateRepository.GetNotificationTemplates(request.Notification.NotificationTemplate, cancellationToken, request.Correspondence.Content?.Language);
             if (templates.Count == 0)
             {
                 return Errors.NotificationTemplateNotFound;
@@ -130,7 +118,7 @@ public class InitializeCorrespondencesHandler(
             {
                 return Errors.NotificationTemplateNotFound;
             }
-            var notificationError = _initializeCorrespondenceHelper.ValidateNotification(request.Notification);
+            var notificationError = initializeCorrespondenceHelper.ValidateNotification(request.Notification);
             if (notificationError != null)
             {
                 return notificationError;
@@ -140,19 +128,19 @@ public class InitializeCorrespondencesHandler(
         return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
         {
             return await InitializeCorrespondences(request, attachmentsToBeUploaded, uploadAttachments, notificationContents, cancellationToken);
-        }, _logger, cancellationToken);
+        }, logger, cancellationToken);
     }
 
     private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<IFormFile> uploadAttachments, List<NotificationContent>? notificationContents, CancellationToken cancellationToken)
     {
         // Upload attachments
-        var uploadError = await _initializeCorrespondenceHelper.UploadAttachments(attachmentsToBeUploaded, uploadAttachments, cancellationToken);
+        var uploadError = await initializeCorrespondenceHelper.UploadAttachments(attachmentsToBeUploaded, uploadAttachments, cancellationToken);
         if (uploadError != null)
         {
             return uploadError;
         }
 
-        var status = _initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);
+        var status = initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);
         var correspondences = new List<CorrespondenceEntity>();
         foreach (var recipient in request.Recipients)
         {
@@ -196,30 +184,30 @@ public class InitializeCorrespondencesHandler(
             };
             correspondences.Add(correspondence);
         }
-        await _correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
+        await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
 
         var initializedCorrespondences = new List<InitializedCorrespondences>();
         foreach (var correspondence in correspondences)
         {
-            var dialogJob = _backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
+            var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
             if (correspondence.GetLatestStatus()?.Status != CorrespondenceStatus.Published)
             {
                 var publishTime = correspondence.RequestedPublishTime;
 
-                if (!_hostEnvironment.IsDevelopment())
+                if (!hostEnvironment.IsDevelopment())
                 {
                     //Adds a 1 minute delay for malware scan to finish if not running locally
                     publishTime = correspondence.RequestedPublishTime.UtcDateTime.AddSeconds(-30) < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow.AddMinutes(1) : correspondence.RequestedPublishTime.UtcDateTime;
                 }
 
-                _backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), publishTime);
+                backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), publishTime);
 
             }
             if (correspondence.DueDateTime is not null)
             {
-                _backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
+                backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
             }
-            await _eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
+            await eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
 
             var notificationDetails = new List<InitializedCorrespondencesNotifications>();
             if (request.Notification != null)
@@ -227,7 +215,7 @@ public class InitializeCorrespondencesHandler(
                 var notifications = CreateNotifications(request.Notification, correspondence, notificationContents, cancellationToken);
                 foreach (var notification in notifications)
                 {
-                    var notificationOrder = await _altinnNotificationService.CreateNotification(notification, cancellationToken);
+                    var notificationOrder = await altinnNotificationService.CreateNotification(notification, cancellationToken);
                     if (notificationOrder is null)
                     {
                         notificationDetails.Add(new InitializedCorrespondencesNotifications()
@@ -253,8 +241,8 @@ public class InitializeCorrespondencesHandler(
                         IsReminder = entity.IsReminder,
                         Status = notificationOrder.RecipientLookup?.Status == RecipientLookupStatus.Success ? InitializedNotificationStatus.Success : InitializedNotificationStatus.MissingContact
                     });
-                    await _correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
-                    _backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime!.Value.ToString("yyyy-MM-dd HH:mm")));
+                    await correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
+                    backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime!.Value.ToString("yyyy-MM-dd HH:mm")));
                 }
             }
             initializedCorrespondences.Add(new InitializedCorrespondences()
@@ -337,7 +325,7 @@ public class InitializeCorrespondencesHandler(
                     },
                 },
                 ResourceId = correspondence.ResourceId,
-                RequestedSendTime = _hostEnvironment.IsProduction() ? notificationOrder.RequestedSendTime.Value.AddDays(7) : notificationOrder.RequestedSendTime.Value.AddHours(1),
+                RequestedSendTime = hostEnvironment.IsProduction() ? notificationOrder.RequestedSendTime.Value.AddDays(7) : notificationOrder.RequestedSendTime.Value.AddHours(1),
                 ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString()),
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,
@@ -392,8 +380,8 @@ public class InitializeCorrespondencesHandler(
     // Must be public to be run by Hangfire
     public async Task CreateDialogportenDialog(CorrespondenceEntity correspondence)
     {
-        var dialogId = await _dialogportenService.CreateCorrespondenceDialog(correspondence.Id);
-        await _correspondenceRepository.AddExternalReference(correspondence.Id, ReferenceType.DialogportenDialogId, dialogId);
+        var dialogId = await dialogportenService.CreateCorrespondenceDialog(correspondence.Id);
+        await correspondenceRepository.AddExternalReference(correspondence.Id, ReferenceType.DialogportenDialogId, dialogId);
     }
 
     internal class NotificationContent

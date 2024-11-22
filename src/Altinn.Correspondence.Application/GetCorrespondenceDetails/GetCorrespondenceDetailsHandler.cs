@@ -18,16 +18,9 @@ public class GetCorrespondenceDetailsHandler(
     UserClaimsHelper userClaimsHelper,
     ILogger<GetCorrespondenceDetailsHandler> logger) : IHandler<GetCorrespondenceDetailsRequest, GetCorrespondenceDetailsResponse>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
-    private readonly IAltinnNotificationService _altinnNotificationService = altinnNotificationService;
-    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
-    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
-    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
-    private readonly ILogger<GetCorrespondenceDetailsHandler> _logger = logger;
-
     public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(GetCorrespondenceDetailsRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
@@ -41,7 +34,7 @@ public class GetCorrespondenceDetailsHandler(
             isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
             isOnBehalfOfSender = correspondence.Sender.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
+        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
             user,
             correspondence.ResourceId,
             [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
@@ -53,8 +46,8 @@ public class GetCorrespondenceDetailsHandler(
             return Errors.NoAccessToResource;
         }
 
-        bool isRecipient = _userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
-        bool isSender = _userClaimsHelper.IsSender(correspondence.Sender) || isOnBehalfOfSender;
+        bool isRecipient = userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
+        bool isSender = userClaimsHelper.IsSender(correspondence.Sender) || isOnBehalfOfSender;
 
         if (!isRecipient && !isSender)
         {
@@ -74,7 +67,7 @@ public class GetCorrespondenceDetailsHandler(
                 {
                     return Errors.CorrespondenceNotFound;
                 }
-                await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+                await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
                 {
                     CorrespondenceId = correspondence.Id,
                     Status = CorrespondenceStatus.Fetched,
@@ -88,7 +81,7 @@ public class GetCorrespondenceDetailsHandler(
             {
                 if (notification.NotificationOrderId != null)
                 {
-                    var notificationSummary = await _altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString());
+                    var notificationSummary = await altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString());
                     notificationSummary.IsReminder = notification.IsReminder;
                     notificationHistory.Add(notificationSummary);
                 }
@@ -120,6 +113,6 @@ public class GetCorrespondenceDetailsHandler(
                 IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
             };
             return response;
-        }, _logger, cancellationToken);
+        }, logger, cancellationToken);
     }
 }

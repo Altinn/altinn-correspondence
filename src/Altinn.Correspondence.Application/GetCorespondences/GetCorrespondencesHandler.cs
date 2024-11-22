@@ -11,10 +11,6 @@ public class GetCorrespondencesHandler(
     ICorrespondenceRepository correspondenceRepository,
     UserClaimsHelper userClaimsHelper) : IHandler<GetCorrespondencesRequest, GetCorrespondencesResponse>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
-    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
-    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
-
     public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         if (request.Limit < 0 || request.Offset < 0)
@@ -30,7 +26,7 @@ public class GetCorrespondencesHandler(
         }
 
         string? onBehalfOf = request.OnBehalfOf;
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
+        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
             user,
             request.ResourceId,
             [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
@@ -42,7 +38,7 @@ public class GetCorrespondencesHandler(
             return Errors.NoAccessToResource;
         }
 
-        string? orgNo = _userClaimsHelper.GetUserID();
+        string? orgNo = userClaimsHelper.GetUserID();
         if (hasAccess && !string.IsNullOrEmpty(onBehalfOf))
         {
             orgNo = onBehalfOf;
@@ -52,7 +48,7 @@ public class GetCorrespondencesHandler(
         {
             return Errors.CouldNotFindOrgNo;
         }
-        var correspondences = await _correspondenceRepository.GetCorrespondences(
+        var correspondences = await correspondenceRepository.GetCorrespondences(
             request.ResourceId,
             request.Offset,
             limit,

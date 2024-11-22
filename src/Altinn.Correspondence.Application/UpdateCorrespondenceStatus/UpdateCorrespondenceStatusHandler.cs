@@ -19,17 +19,9 @@ public class UpdateCorrespondenceStatusHandler(
     UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
     ILogger<UpdateCorrespondenceStatusHandler> logger) : IHandler<UpdateCorrespondenceStatusRequest, Guid>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
-    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
-    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
-    private readonly IEventBus _eventBus = eventBus;
-    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
-    private readonly UpdateCorrespondenceStatusHelper _updateCorrespondenceStatusHelper = updateCorrespondenceStatusHelper;
-    private readonly ILogger<UpdateCorrespondenceStatusHandler> _logger = logger;
-
     public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, cancellationToken);
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
@@ -40,7 +32,7 @@ public class UpdateCorrespondenceStatusHandler(
         {
             isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
+        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
             user,
             correspondence.ResourceId,
             [ResourceAccessLevel.Read],
@@ -51,17 +43,17 @@ public class UpdateCorrespondenceStatusHandler(
         {
             return Errors.NoAccessToResource;
         }
-        var isRecipient = _userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
+        var isRecipient = userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
         if (!isRecipient)
         {
             return Errors.CorrespondenceNotFound;
         }
-        var currentStatusError = _updateCorrespondenceStatusHelper.ValidateCurrentStatus(correspondence);
+        var currentStatusError = updateCorrespondenceStatusHelper.ValidateCurrentStatus(correspondence);
         if (currentStatusError is not null)
         {
             return currentStatusError;
         }
-        var updateError = _updateCorrespondenceStatusHelper.ValidateUpdateRequest(request, correspondence);
+        var updateError = updateCorrespondenceStatusHelper.ValidateUpdateRequest(request, correspondence);
         if (updateError is not null)
         {
             return updateError;
@@ -69,17 +61,17 @@ public class UpdateCorrespondenceStatusHandler(
         
         await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
         {
-            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+            await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
             {
                 CorrespondenceId = request.CorrespondenceId,
                 Status = request.Status,
                 StatusChanged = DateTimeOffset.UtcNow,
                 StatusText = request.Status.ToString(),
             }, cancellationToken);
-            _updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
-            await _updateCorrespondenceStatusHelper.PublishEvent(_eventBus, correspondence, request.Status, cancellationToken);
+            updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
+            await updateCorrespondenceStatusHelper.PublishEvent(eventBus, correspondence, request.Status, cancellationToken);
             return Task.CompletedTask;
-        },_logger, cancellationToken);
+        },logger, cancellationToken);
 
         return request.CorrespondenceId;
     }
