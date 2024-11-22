@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
@@ -15,7 +16,7 @@ public class LegacyGetCorrespondenceHistoryHandler(ICorrespondenceRepository cor
     private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
     private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
 
-    public async Task<OneOf<LegacyGetCorrespondenceHistoryResponse, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    public async Task<OneOf<List<LegacyGetCorrespondenceHistoryResponse>, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         if (_userClaimsHelper.GetPartyId() is not int partyId)
         {
@@ -41,22 +42,16 @@ public class LegacyGetCorrespondenceHistoryHandler(ICorrespondenceRepository cor
         {
             return Errors.CouldNotFindOrgNo;
         }
-
-        var correspondenceHistory = correspondence.Statuses
-            .Where(s => s.Status.IsAvailableForRecipient())
-            .Select(s => new LegacyCorrespondenceStatus
+        var correspondenceHistory = new List<LegacyGetCorrespondenceHistoryResponse>();
+        foreach (var correspondenceStatus in correspondence.Statuses)
+        {
+            if (correspondenceStatus.Status.IsAvailableForRecipient())
             {
-                Status = s.Status.ToString(),
-                StatusChanged = s.StatusChanged,
-                StatusText = $"[Correspondence] {s.StatusText}",
-                User = new LegacyUser
-                {
-                    PartyId = recipientParty.PartyId,
-                    AuthenticationLevel = (int)minimumAuthLevel
-                },
-            }).ToList();
+                correspondenceHistory.Add(await GetCorrespondenceStatus(correspondenceStatus, recipientParty, senderParty, cancellationToken));
+            }
+        }
 
-        var notificationHistory = new List<LegacyCorrespondenceStatus>();
+        var notificationHistory = new List<LegacyGetCorrespondenceHistoryResponse>();
         foreach (var notification in correspondence.Notifications)
         {
             if (string.IsNullOrEmpty(notification.NotificationOrderId.ToString())) continue;
@@ -67,45 +62,78 @@ public class LegacyGetCorrespondenceHistoryHandler(ICorrespondenceRepository cor
 
             if (notificationDetails.NotificationsStatusDetails.Sms is not null)
             {
-                notificationHistory.Add(GetNotificationStatus(
+                notificationHistory.Add(await GetNotificationStatus(
                     notificationDetails.NotificationsStatusDetails.Sms.SendStatus,
                     notificationDetails.NotificationsStatusDetails.Sms.Recipient,
                     notification.IsReminder,
-                    senderParty.PartyId,
-                    (int)minimumAuthLevel));
+                    cancellationToken));
             }
             if (notificationDetails.NotificationsStatusDetails.Email is not null)
             {
-                notificationHistory.Add(GetNotificationStatus(
+                notificationHistory.Add(await GetNotificationStatus(
                     notificationDetails.NotificationsStatusDetails.Email.SendStatus,
                     notificationDetails.NotificationsStatusDetails.Email.Recipient,
                     notification.IsReminder,
-                    senderParty.PartyId,
-                    (int)minimumAuthLevel));
+                    cancellationToken));
             }
         }
+        List<LegacyGetCorrespondenceHistoryResponse> joinedList = [.. correspondenceHistory.Concat(notificationHistory).OrderByDescending(s => s.StatusChanged)];
 
-        var legacyHistory = new LegacyGetCorrespondenceHistoryResponse
-        {
-            History = [.. correspondenceHistory.Concat(notificationHistory).OrderByDescending(s => s.StatusChanged)],
-            NeedsConfirm = correspondence.IsConfirmationNeeded,
-        };
-        return legacyHistory;
+        return joinedList;
     }
 
-    private static LegacyCorrespondenceStatus GetNotificationStatus(StatusExt sendStatus, Recipient recipient, bool isReminder, int partyId, int authenticationLevel)
+    private async Task<LegacyGetCorrespondenceHistoryResponse> GetCorrespondenceStatus(CorrespondenceStatusEntity status, Party recipientParty, Party senderParty, CancellationToken cancellationToken)
     {
-        return new LegacyCorrespondenceStatus
+        List<CorrespondenceStatus> statusBySender =
+        [
+            CorrespondenceStatus.Published,
+        ];
+        var partyId = statusBySender.Contains(status.Status) ? senderParty.PartyId : recipientParty.PartyId;
+        var party = await _altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
+
+        return new LegacyGetCorrespondenceHistoryResponse
+        {
+            Status = status.Status.ToString(),
+            StatusChanged = status.StatusChanged,
+            StatusText = $"[Correspondence] {status.StatusText}",
+            User = new LegacyUser
+            {
+                PartyId = party?.PartyId,
+                NationalIdentityNumber = party?.SSN,
+                Name = party?.Name
+            }
+        };
+    }
+
+    private async Task<LegacyGetCorrespondenceHistoryResponse> GetNotificationStatus(StatusExt sendStatus, Recipient recipient, bool isReminder, CancellationToken cancellationToken)
+    {
+        var response = new LegacyGetCorrespondenceHistoryResponse
         {
             Status = sendStatus.Status,
             StatusChanged = sendStatus.LastUpdate,
             StatusText = $"[{(isReminder ? "Reminder" : "Notification")}] {sendStatus.StatusDescription}",
-            User = new LegacyUser
+            User = new LegacyUser(),
+            Notification = new LegacyNotification
             {
-                PartyId = partyId,
-                AuthenticationLevel = authenticationLevel,
-                Recipient = recipient
-            },
+                EmailAddress = recipient.EmailAddress,
+                MobileNumber = recipient.MobileNumber,
+                OrganizationNumber = recipient.OrganizationNumber,
+                NationalIdentityNumber = recipient.NationalIdentityNumber
+            }
         };
+
+        string? id = !string.IsNullOrEmpty(recipient.OrganizationNumber) ? recipient.OrganizationNumber : recipient.NationalIdentityNumber;
+        if (!string.IsNullOrEmpty(id))
+        {
+            var party = await _altinnRegisterService.LookUpPartyById(id, cancellationToken);
+            response.User = new LegacyUser
+            {
+                PartyId = party?.PartyId,
+                NationalIdentityNumber = recipient.NationalIdentityNumber,
+                Name = party?.Name
+            };
+        }
+
+        return response;
     }
 }
