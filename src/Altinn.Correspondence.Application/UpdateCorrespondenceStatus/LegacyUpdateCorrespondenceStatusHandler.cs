@@ -49,7 +49,7 @@ public class LegacyUpdateCorrespondenceStatusHandler(
         {
             return updateError;
         }
-        return await TransactionWithRetriesPolicy.Execute<Guid>(async (CancellationToken) =>
+        return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
             {
