@@ -56,8 +56,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
                 StatusText = $"[Correspondence] {s.StatusText}",
                 User = new LegacyUser
                 {
-                    PartyId = recipientParty.PartyId,
-                    AuthenticationLevel = (int)minimumAuthLevel
+                    PartyId = recipientParty.PartyId
                 },
             }).ToList();
 
@@ -76,8 +75,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
                     notificationDetails.NotificationsStatusDetails.Sms.SendStatus,
                     notificationDetails.NotificationsStatusDetails.Sms.Recipient,
                     notification.IsReminder,
-                    senderParty.PartyId,
-                    (int)minimumAuthLevel));
+                    senderParty.PartyId));
             }
             if (notificationDetails.NotificationsStatusDetails.Email is not null)
             {
@@ -85,8 +83,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
                     notificationDetails.NotificationsStatusDetails.Email.SendStatus,
                     notificationDetails.NotificationsStatusDetails.Email.Recipient,
                     notification.IsReminder,
-                    senderParty.PartyId,
-                    (int)minimumAuthLevel));
+                    senderParty.PartyId));
             }
         }
         List<LegacyGetCorrespondenceHistoryResponse> joinedList = [.. correspondenceHistory.Concat(notificationHistory).OrderByDescending(s => s.StatusChanged)];
@@ -94,7 +91,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
         return joinedList;
     }
 
-    private static LegacyGetCorrespondenceHistoryResponse GetNotificationStatus(StatusExt sendStatus, Recipient recipient, bool isReminder, int partyId, int authenticationLevel)
+    private static LegacyGetCorrespondenceHistoryResponse GetNotificationStatus(StatusExt sendStatus, Recipient recipient, bool isReminder, int partyId)
     {
         return new LegacyGetCorrespondenceHistoryResponse
         {
@@ -104,7 +101,6 @@ public class LegacyGetCorrespondenceHistoryHandler(
             User = new LegacyUser
             {
                 PartyId = partyId,
-                AuthenticationLevel = authenticationLevel,
                 Recipient = recipient
             },
         };
