@@ -1,27 +1,23 @@
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
-using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Core.Services.Enums;
+using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.InitializeAttachment;
 
-public class MigrateInitializeAttachmentHandler : IHandler<InitializeAttachmentRequest, Guid>
+public class MigrateInitializeAttachmentHandler(
+    IAttachmentRepository attachmentRepository,
+    IAttachmentStatusRepository attachmentStatusRepository,
+    IAltinnAuthorizationService altinnAuthorizationService,
+    ILogger<MigrateInitializeAttachmentHandler> logger) : IHandler<InitializeAttachmentRequest, Guid>
 {
-    private readonly IAttachmentRepository _attachmentRepository;
-    private readonly IAttachmentStatusRepository _attachmentStatusRepository;
-    private readonly IEventBus _eventBus;
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-
-    public MigrateInitializeAttachmentHandler(IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IEventBus eventBus, IAltinnAuthorizationService altinnAuthorizationService)
-    {
-        _attachmentRepository = attachmentRepository;
-        _attachmentStatusRepository = attachmentStatusRepository;
-        _eventBus = eventBus;
-        _altinnAuthorizationService = altinnAuthorizationService;
-    }
+    private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
+    private readonly IAttachmentStatusRepository _attachmentStatusRepository = attachmentStatusRepository;
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
+    private readonly ILogger<MigrateInitializeAttachmentHandler> _logger = logger;
 
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -30,16 +26,17 @@ public class MigrateInitializeAttachmentHandler : IHandler<InitializeAttachmentR
         {
             return Errors.NoAccessToResource;
         }
-
-        var attachment = await _attachmentRepository.InitializeAttachment(request.Attachment, cancellationToken);
-        var status = new AttachmentStatusEntity
+        return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            AttachmentId = attachment.Id,
-            StatusChanged = DateTimeOffset.UtcNow,
-            Status = AttachmentStatus.Initialized,
-            StatusText = AttachmentStatus.Initialized.ToString()
-        };
-        await _attachmentStatusRepository.AddAttachmentStatus(status, cancellationToken);
-        return attachment.Id;
+            var attachment = await _attachmentRepository.InitializeAttachment(request.Attachment, cancellationToken);
+            await _attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
+            {
+                AttachmentId = attachment.Id,
+                StatusChanged = DateTimeOffset.UtcNow,
+                Status = AttachmentStatus.Initialized,
+                StatusText = AttachmentStatus.Initialized.ToString()
+            }, cancellationToken);
+            return attachment.Id;
+        }, _logger, cancellationToken);
     }
 }
