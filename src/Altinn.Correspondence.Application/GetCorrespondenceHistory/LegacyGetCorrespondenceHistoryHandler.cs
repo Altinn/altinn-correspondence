@@ -47,11 +47,14 @@ public class LegacyGetCorrespondenceHistoryHandler(
         {
             return Errors.CouldNotFindOrgNo;
         }
-
-        var correspondenceHistory = correspondence.Statuses
-            .Where(s => s.Status.IsAvailableForRecipient())
-            .Select(s => GetCorrespondenceStatus(s, recipientParty, senderParty))
-            .ToList();
+        var correspondenceHistory = new List<LegacyGetCorrespondenceHistoryResponse>();
+        foreach (var correspondenceStatus in correspondence.Statuses)
+        {
+            if (correspondenceStatus.Status.IsAvailableForRecipient())
+            {
+                correspondenceHistory.Add(await GetCorrespondenceStatus(correspondenceStatus, recipientParty, senderParty, cancellationToken));
+            }
+        }
 
         var notificationHistory = new List<LegacyGetCorrespondenceHistoryResponse>();
         foreach (var notification in correspondence.Notifications)
@@ -84,52 +87,58 @@ public class LegacyGetCorrespondenceHistoryHandler(
         return joinedList;
     }
 
-    private static LegacyGetCorrespondenceHistoryResponse GetCorrespondenceStatus(CorrespondenceStatusEntity s, Party recipientParty, Party senderParty)
+    private async Task<LegacyGetCorrespondenceHistoryResponse> GetCorrespondenceStatus(CorrespondenceStatusEntity status, Party recipientParty, Party senderParty, CancellationToken cancellationToken)
     {
         List<CorrespondenceStatus> statusBySender =
         [
             CorrespondenceStatus.Published,
         ];
+        var partyId = statusBySender.Contains(status.Status) ? senderParty.PartyId : recipientParty.PartyId;
+        var party = await _altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
+
         return new LegacyGetCorrespondenceHistoryResponse
         {
-            Status = s.Status.ToString(),
-            StatusChanged = s.StatusChanged,
-            StatusText = $"[Correspondence] {s.StatusText}",
+            Status = status.Status.ToString(),
+            StatusChanged = status.StatusChanged,
+            StatusText = $"[Correspondence] {status.StatusText}",
             User = new LegacyUser
             {
-                PartyId = statusBySender.Contains(s.Status) ? senderParty.PartyId : recipientParty.PartyId
+                PartyId = party?.PartyId,
+                NationalIdentityNumber = party?.SSN,
+                Name = party?.Name
             }
         };
     }
 
     private async Task<LegacyGetCorrespondenceHistoryResponse> GetNotificationStatus(StatusExt sendStatus, Recipient recipient, bool isReminder, CancellationToken cancellationToken)
     {
-        int? partyId = await GetPartyIdForNotfication(recipient, cancellationToken);
-        return new LegacyGetCorrespondenceHistoryResponse
+        var response = new LegacyGetCorrespondenceHistoryResponse
         {
             Status = sendStatus.Status,
             StatusChanged = sendStatus.LastUpdate,
             StatusText = $"[{(isReminder ? "Reminder" : "Notification")}] {sendStatus.StatusDescription}",
-            User = new LegacyUser
+            User = new LegacyUser(),
+            Notification = new LegacyNotification
             {
-                PartyId = partyId,
-                Recipient = recipient
-            },
+                EmailAddress = recipient.EmailAddress,
+                MobileNumber = recipient.MobileNumber,
+                OrganizationNumber = recipient.OrganizationNumber,
+                NationalIdentityNumber = recipient.NationalIdentityNumber
+            }
         };
-    }
 
-    private async Task<int?> GetPartyIdForNotfication(Recipient recipient, CancellationToken cancellationToken)
-    {
-        if (recipient.NationalIdentityNumber is not null)
+        string? id = !string.IsNullOrEmpty(recipient.OrganizationNumber) ? recipient.OrganizationNumber : recipient.NationalIdentityNumber;
+        if (!string.IsNullOrEmpty(id))
         {
-            var p = await _altinnRegisterService.LookUpPartyById(recipient.NationalIdentityNumber, cancellationToken);
-            return p?.PartyId;
+            var party = await _altinnRegisterService.LookUpPartyById(id, cancellationToken);
+            response.User = new LegacyUser
+            {
+                PartyId = party?.PartyId,
+                NationalIdentityNumber = recipient.NationalIdentityNumber,
+                Name = party?.Name
+            };
         }
-        else if (recipient.OrganizationNumber is not null)
-        {
-            var party = await _altinnRegisterService.LookUpPartyById(recipient.OrganizationNumber, cancellationToken);
-            return party?.PartyId;
-        }
-        return null;
+
+        return response;
     }
 }
