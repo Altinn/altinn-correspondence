@@ -33,29 +33,27 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
             return Errors.InvalidDateRange;
         }
 
-        string? onBehalfOf = request.OnBehalfOf;
+        string? orgNo = request.OnBehalfOf;
+        if (orgNo is null) { 
+            orgNo = _userClaimsHelper.GetUserID();
+        }
+        if (orgNo is null)
+        {
+            return Errors.CouldNotFindOrgNo;
+        }
         var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
             user,
             request.ResourceId,
+            orgNo,
+            null,
             [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
-            cancellationToken,
-            onBehalfOf: string.IsNullOrEmpty(onBehalfOf) ? null : onBehalfOf);
+            cancellationToken);
 
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
         }
 
-        string? orgNo = _userClaimsHelper.GetUserID();
-        if (hasAccess && !string.IsNullOrEmpty(onBehalfOf))
-        {
-            orgNo = onBehalfOf;
-        }
-
-        if (orgNo is null)
-        {
-            return Errors.CouldNotFindOrgNo;
-        }
         var correspondences = await _correspondenceRepository.GetCorrespondences(
             request.ResourceId,
             request.Offset,

@@ -39,21 +39,21 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     }
 
     /// <summary>
-    /// Checks if the user has access to the resource with the given rights
+    /// Checks if the user has access to the resource with any of the given rights
     /// </summary>
-    public async Task<bool> CheckUserAccess(ClaimsPrincipal? user, string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default, string? onBehalfOf = null, string? correspondenceId = null)
+    public async Task<bool> CheckUserAccess(ClaimsPrincipal? user, string resourceId, string party, string? correspondenceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
     {
         if (user is null)
         {
             throw new InvalidOperationException("This operation cannot be called outside an authenticated HttpContext");
         }
-        var earlyAccessDecision = await EvaluateEarlyAccessConditions(user, resourceId, cancellationToken);
-        if (earlyAccessDecision is not null)
+        var bypassDecision = await EvaluateBypassConditions(user, resourceId, cancellationToken);
+        if (bypassDecision is not null)
         {
-            return earlyAccessDecision.Value;
+            return bypassDecision.Value;
         }
         var actionIds = rights.Select(GetActionId).ToList();
-        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, actionIds, resourceId, onBehalfOf, correspondenceId);
+        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, resourceId, party, correspondenceId, actionIds);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
         if (responseContent is null) return false;
 
@@ -68,10 +68,10 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         {
             throw new InvalidOperationException("This operation cannot be called outside an authenticated HttpContext");
         }
-        var earlyAccessDecision = await EvaluateEarlyAccessConditions(user, resourceId, cancellationToken);
-        if (earlyAccessDecision is not null)
+        var bypassDecision = await EvaluateBypassConditions(user, resourceId, cancellationToken);
+        if (bypassDecision is not null)
         {
-            return earlyAccessDecision.Value ? 3 : null;
+            return bypassDecision.Value ? 3 : null;
         }
         var actionIds = rights.Select(GetActionId).ToList();
         XacmlJsonRequestRoot jsonRequest = CreateDecisionRequestForLegacy(user, ssn, actionIds, resourceId, onBehalfOf);
@@ -101,7 +101,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
         return true;
     }
-    private async Task<bool?> EvaluateEarlyAccessConditions(ClaimsPrincipal? user, string resourceId, CancellationToken cancellationToken)
+    private async Task<bool?> EvaluateBypassConditions(ClaimsPrincipal? user, string resourceId, CancellationToken cancellationToken)
     {
         if (_httpClient.BaseAddress is null)
         {
@@ -133,20 +133,20 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         return responseContent;
     }
 
-    private XacmlJsonRequestRoot CreateDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string? onBehalfOf, string? correspondenceId)
+    private XacmlJsonRequestRoot CreateDecisionRequest(ClaimsPrincipal user, string resourceId, string party, string? instanceId, List<string> actionTypes)
     {
         var personIdClaim = GetPersonIdClaim(user);
         if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
         {
-            return AltinnTokenXacmlMapper.CreateAltinnDecisionRequest(user, actionTypes, resourceId, onBehalfOf, correspondenceId);
+            return AltinnTokenXacmlMapper.CreateAltinnDecisionRequest(user, actionTypes, resourceId, party, instanceId);
         }
         if (personIdClaim.Issuer == _dialogportenSettings.Issuer)
         {
-            return DialogTokenXacmlMapper.CreateDialogportenDecisionRequest(user, resourceId);
+            return DialogTokenXacmlMapper.CreateDialogportenDecisionRequest(user, resourceId, party);
         }
         if (personIdClaim.Issuer == _idPortenSettings.Issuer)
         {
-            return IdportenXacmlMapper.CreateIdportenDecisionRequest(user, resourceId, actionTypes, onBehalfOf);
+            return IdportenXacmlMapper.CreateIdportenDecisionRequest(user, resourceId, actionTypes, party);
         }
         throw new SecurityTokenInvalidIssuerException();
     }

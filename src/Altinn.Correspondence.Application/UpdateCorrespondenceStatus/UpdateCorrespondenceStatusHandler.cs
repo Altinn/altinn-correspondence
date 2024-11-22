@@ -50,10 +50,10 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
             user,
             correspondence.ResourceId,
+            request.OnBehalfOf ?? correspondence.Recipient,
+            correspondence.Id.ToString(),
             [ResourceAccessLevel.Read],
-            cancellationToken,
-            onBehalfOf: isOnBehalfOfRecipient ? onBehalfOf : null,
-            correspondenceId: isOnBehalfOfRecipient ? request.CorrespondenceId.ToString() : null);
+            cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
