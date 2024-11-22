@@ -7,23 +7,20 @@ using OneOf;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceHistory;
-public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCorrespondenceHistoryResponse>
+public class LegacyGetCorrespondenceHistoryHandler(
+    ICorrespondenceRepository correspondenceRepository,
+    IAltinnNotificationService altinnNotificationService,
+    IAltinnRegisterService altinnRegisterService,
+    IAltinnAuthorizationService altinnAuthorizationService,
+    UserClaimsHelper userClaimsHelper) : IHandler<Guid, List<LegacyGetCorrespondenceHistoryResponse>>
 {
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly IAltinnNotificationService _altinnNotificationService;
-    private readonly IAltinnRegisterService _altinnRegisterService;
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly UserClaimsHelper _userClaimsHelper;
+    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
+    private readonly IAltinnNotificationService _altinnNotificationService = altinnNotificationService;
+    private readonly IAltinnRegisterService _altinnRegisterService = altinnRegisterService;
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
+    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
 
-    public LegacyGetCorrespondenceHistoryHandler(ICorrespondenceRepository correspondenceRepository, IAltinnNotificationService altinnNotificationService, IAltinnRegisterService altinnRegisterService, IAltinnAuthorizationService altinnAuthorizationService, UserClaimsHelper userClaimsHelper)
-    {
-        _correspondenceRepository = correspondenceRepository;
-        _altinnNotificationService = altinnNotificationService;
-        _altinnRegisterService = altinnRegisterService;
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _userClaimsHelper = userClaimsHelper;
-    }
-    public async Task<OneOf<LegacyGetCorrespondenceHistoryResponse, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    public async Task<OneOf<List<LegacyGetCorrespondenceHistoryResponse>, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         if (_userClaimsHelper.GetPartyId() is not int partyId)
         {
@@ -52,7 +49,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCor
 
         var correspondenceHistory = correspondence.Statuses
             .Where(s => s.Status.IsAvailableForRecipient())
-            .Select(s => new LegacyCorrespondenceStatus
+            .Select(s => new LegacyGetCorrespondenceHistoryResponse
             {
                 Status = s.Status.ToString(),
                 StatusChanged = s.StatusChanged,
@@ -64,7 +61,7 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCor
                 },
             }).ToList();
 
-        var notificationHistory = new List<LegacyCorrespondenceStatus>();
+        var notificationHistory = new List<LegacyGetCorrespondenceHistoryResponse>();
         foreach (var notification in correspondence.Notifications)
         {
             if (string.IsNullOrEmpty(notification.NotificationOrderId.ToString())) continue;
@@ -92,18 +89,14 @@ public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCor
                     (int)minimumAuthLevel));
             }
         }
+        List<LegacyGetCorrespondenceHistoryResponse> joinedList = [.. correspondenceHistory.Concat(notificationHistory).OrderByDescending(s => s.StatusChanged)];
 
-        var legacyHistory = new LegacyGetCorrespondenceHistoryResponse
-        {
-            History = [.. correspondenceHistory.Concat(notificationHistory).OrderByDescending(s => s.StatusChanged)],
-            NeedsConfirm = correspondence.IsConfirmationNeeded,
-        };
-        return legacyHistory;
+        return joinedList;
     }
 
-    private static LegacyCorrespondenceStatus GetNotificationStatus(StatusExt sendStatus, Recipient recipient, bool isReminder, int partyId, int authenticationLevel)
+    private static LegacyGetCorrespondenceHistoryResponse GetNotificationStatus(StatusExt sendStatus, Recipient recipient, bool isReminder, int partyId, int authenticationLevel)
     {
-        return new LegacyCorrespondenceStatus
+        return new LegacyGetCorrespondenceHistoryResponse
         {
             Status = sendStatus.Status,
             StatusChanged = sendStatus.LastUpdate,
