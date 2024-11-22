@@ -11,6 +11,6 @@ public class LegacyGetCorrespondenceHistoryResponse
 }
 public class LegacyUser
 {
-    public int PartyId { get; set; }
+    public int? PartyId { get; set; }
     public Recipient Recipient { get; set; }
 }

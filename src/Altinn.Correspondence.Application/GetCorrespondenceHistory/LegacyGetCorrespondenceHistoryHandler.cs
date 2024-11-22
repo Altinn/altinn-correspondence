@@ -64,19 +64,19 @@ public class LegacyGetCorrespondenceHistoryHandler(
 
             if (notificationDetails.NotificationsStatusDetails.Sms is not null)
             {
-                notificationHistory.Add(GetNotificationStatus(
+                notificationHistory.Add(await GetNotificationStatus(
                     notificationDetails.NotificationsStatusDetails.Sms.SendStatus,
                     notificationDetails.NotificationsStatusDetails.Sms.Recipient,
                     notification.IsReminder,
-                    senderParty.PartyId)); // Notification recipient
+                    cancellationToken));
             }
             if (notificationDetails.NotificationsStatusDetails.Email is not null)
             {
-                notificationHistory.Add(GetNotificationStatus(
+                notificationHistory.Add(await GetNotificationStatus(
                     notificationDetails.NotificationsStatusDetails.Email.SendStatus,
                     notificationDetails.NotificationsStatusDetails.Email.Recipient,
                     notification.IsReminder,
-                    senderParty.PartyId)); // Notification recipient
+                    cancellationToken));
             }
         }
         List<LegacyGetCorrespondenceHistoryResponse> joinedList = [.. correspondenceHistory.Concat(notificationHistory).OrderByDescending(s => s.StatusChanged)];
@@ -102,8 +102,9 @@ public class LegacyGetCorrespondenceHistoryHandler(
         };
     }
 
-    private static LegacyGetCorrespondenceHistoryResponse GetNotificationStatus(StatusExt sendStatus, Recipient recipient, bool isReminder, int partyId)
+    private async Task<LegacyGetCorrespondenceHistoryResponse> GetNotificationStatus(StatusExt sendStatus, Recipient recipient, bool isReminder, CancellationToken cancellationToken)
     {
+        int? partyId = await GetPartyIdForNotfication(recipient, cancellationToken);
         return new LegacyGetCorrespondenceHistoryResponse
         {
             Status = sendStatus.Status,
@@ -115,5 +116,20 @@ public class LegacyGetCorrespondenceHistoryHandler(
                 Recipient = recipient
             },
         };
+    }
+
+    private async Task<int?> GetPartyIdForNotfication(Recipient recipient, CancellationToken cancellationToken)
+    {
+        if (recipient.NationalIdentityNumber is not null)
+        {
+            var p = await _altinnRegisterService.LookUpPartyById(recipient.NationalIdentityNumber, cancellationToken);
+            return p?.PartyId;
+        }
+        else if (recipient.OrganizationNumber is not null)
+        {
+            var party = await _altinnRegisterService.LookUpPartyById(recipient.OrganizationNumber, cancellationToken);
+            return party?.PartyId;
+        }
+        return null;
     }
 }
