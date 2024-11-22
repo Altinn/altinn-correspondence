@@ -66,14 +66,14 @@ public class GetCorrespondenceDetailsHandler(
             return Errors.CorrespondenceNotFound;
         }
 
-        if (isRecipient)
+        return await TransactionWithRetriesPolicy.Execute<GetCorrespondenceDetailsResponse>(async (cancellationToken) =>
         {
-            if (!latestStatus.Status.IsAvailableForRecipient())
+            if (isRecipient)
             {
-                return Errors.CorrespondenceNotFound;
-            }
-            await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
-            {
+                if (!latestStatus.Status.IsAvailableForRecipient())
+                {
+                    return Errors.CorrespondenceNotFound;
+                }
                 await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
                 {
                     CorrespondenceId = correspondence.Id,
@@ -82,45 +82,44 @@ public class GetCorrespondenceDetailsHandler(
                     StatusChanged = DateTimeOffset.UtcNow
                 }, cancellationToken);
 
-                return Task.CompletedTask;
-            }, _logger, cancellationToken);
-        }
-        var notificationHistory = new List<NotificationStatusResponse>();
-        foreach (var notification in correspondence.Notifications)
-        {
-            if (notification.NotificationOrderId != null)
-            {
-                var notificationSummary = await _altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString());
-                notificationSummary.IsReminder = notification.IsReminder;
-                notificationHistory.Add(notificationSummary);
             }
-        }
+            var notificationHistory = new List<NotificationStatusResponse>();
+            foreach (var notification in correspondence.Notifications)
+            {
+                if (notification.NotificationOrderId != null)
+                {
+                    var notificationSummary = await _altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString());
+                    notificationSummary.IsReminder = notification.IsReminder;
+                    notificationHistory.Add(notificationSummary);
+                }
+            }
 
-        var response = new GetCorrespondenceDetailsResponse
-        {
-            CorrespondenceId = correspondence.Id,
-            Status = latestStatus.Status,
-            StatusText = latestStatus.StatusText,
-            StatusChanged = latestStatus.StatusChanged,
-            SendersReference = correspondence.SendersReference,
-            Sender = correspondence.Sender,
-            MessageSender = correspondence.MessageSender ?? string.Empty,
-            Created = correspondence.Created,
-            Recipient = correspondence.Recipient,
-            Content = correspondence.Content!,
-            ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
-            Notifications = notificationHistory,
-            StatusHistory = correspondence.Statuses?.OrderBy(s => s.StatusChanged).ToList() ?? new List<CorrespondenceStatusEntity>(),
-            ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
-            ResourceId = correspondence.ResourceId,
-            RequestedPublishTime = correspondence.RequestedPublishTime,
-            IgnoreReservation = correspondence.IgnoreReservation ?? false,
-            AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
-            DueDateTime = correspondence.DueDateTime,
-            PropertyList = correspondence.PropertyList,
-            Published = correspondence.Published,
-            IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
-        };
-        return response;
+            var response = new GetCorrespondenceDetailsResponse
+            {
+                CorrespondenceId = correspondence.Id,
+                Status = latestStatus.Status,
+                StatusText = latestStatus.StatusText,
+                StatusChanged = latestStatus.StatusChanged,
+                SendersReference = correspondence.SendersReference,
+                Sender = correspondence.Sender,
+                MessageSender = correspondence.MessageSender ?? string.Empty,
+                Created = correspondence.Created,
+                Recipient = correspondence.Recipient,
+                Content = correspondence.Content!,
+                ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
+                Notifications = notificationHistory,
+                StatusHistory = correspondence.Statuses?.OrderBy(s => s.StatusChanged).ToList() ?? new List<CorrespondenceStatusEntity>(),
+                ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
+                ResourceId = correspondence.ResourceId,
+                RequestedPublishTime = correspondence.RequestedPublishTime,
+                IgnoreReservation = correspondence.IgnoreReservation ?? false,
+                AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
+                DueDateTime = correspondence.DueDateTime,
+                PropertyList = correspondence.PropertyList,
+                Published = correspondence.Published,
+                IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
+            };
+            return response;
+        }, _logger, cancellationToken);
     }
 }

@@ -38,7 +38,7 @@ public class InitializeAttachmentHandler(
             return Errors.InvalidSender;
         }
 
-        return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
+        return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             var attachment = await _attachmentRepository.InitializeAttachment(request.Attachment, cancellationToken);
             await _attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity

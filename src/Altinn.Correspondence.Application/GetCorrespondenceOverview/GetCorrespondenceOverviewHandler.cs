@@ -64,15 +64,15 @@ public class GetCorrespondenceOverviewHandler(
             return Errors.CorrespondenceNotFound;
         }
 
-        if (isRecipient)
+        return await TransactionWithRetriesPolicy.Execute<GetCorrespondenceOverviewResponse>(async (cancellationToken) =>
         {
-            if (!latestStatus.Status.IsAvailableForRecipient())
+            if (isRecipient)
             {
-                _logger.LogWarning("Rejected because correspondence not available for recipient in current state.");
-                return Errors.CorrespondenceNotFound;
-            }
-            await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
-            {
+                if (!latestStatus.Status.IsAvailableForRecipient())
+                {
+                    _logger.LogWarning("Rejected because correspondence not available for recipient in current state.");
+                    return Errors.CorrespondenceNotFound;
+                }
                 await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
                 {
                     CorrespondenceId = correspondence.Id,
@@ -81,41 +81,40 @@ public class GetCorrespondenceOverviewHandler(
                     StatusChanged = DateTimeOffset.UtcNow
                 }, cancellationToken);
 
-                return Task.CompletedTask;
-            }, _logger, cancellationToken);
-        }
-        var notificationsOverview = new List<CorrespondenceNotificationOverview>();
-        foreach (var notification in correspondence.Notifications)
-        {
-            notificationsOverview.Add(new CorrespondenceNotificationOverview
+            }
+            var notificationsOverview = new List<CorrespondenceNotificationOverview>();
+            foreach (var notification in correspondence.Notifications)
             {
-                NotificationOrderId = notification.NotificationOrderId,
-                IsReminder = notification.IsReminder
-            });
-        }
+                notificationsOverview.Add(new CorrespondenceNotificationOverview
+                {
+                    NotificationOrderId = notification.NotificationOrderId,
+                    IsReminder = notification.IsReminder
+                });
+            }
 
-        var response = new GetCorrespondenceOverviewResponse
-        {
-            CorrespondenceId = correspondence.Id,
-            Content = correspondence.Content,
-            Status = latestStatus.Status,
-            StatusText = latestStatus.StatusText,
-            StatusChanged = latestStatus.StatusChanged,
-            ResourceId = correspondence.ResourceId,
-            Sender = correspondence.Sender,
-            SendersReference = correspondence.SendersReference,
-            MessageSender = correspondence.MessageSender ?? string.Empty,
-            Created = correspondence.Created,
-            Recipient = correspondence.Recipient,
-            ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
-            Notifications = notificationsOverview,
-            ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
-            RequestedPublishTime = correspondence.RequestedPublishTime,
-            IgnoreReservation = correspondence.IgnoreReservation ?? false,
-            AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
-            Published = correspondence.Published,
-            IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
-        };
-        return response;
+            var response = new GetCorrespondenceOverviewResponse
+            {
+                CorrespondenceId = correspondence.Id,
+                Content = correspondence.Content,
+                Status = latestStatus.Status,
+                StatusText = latestStatus.StatusText,
+                StatusChanged = latestStatus.StatusChanged,
+                ResourceId = correspondence.ResourceId,
+                Sender = correspondence.Sender,
+                SendersReference = correspondence.SendersReference,
+                MessageSender = correspondence.MessageSender ?? string.Empty,
+                Created = correspondence.Created,
+                Recipient = correspondence.Recipient,
+                ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
+                Notifications = notificationsOverview,
+                ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
+                RequestedPublishTime = correspondence.RequestedPublishTime,
+                IgnoreReservation = correspondence.IgnoreReservation ?? false,
+                AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
+                Published = correspondence.Published,
+                IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
+            };
+            return response;
+        }, _logger, cancellationToken);
     }
 }

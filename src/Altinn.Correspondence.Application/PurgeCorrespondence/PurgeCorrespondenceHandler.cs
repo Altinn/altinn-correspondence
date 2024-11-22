@@ -83,7 +83,7 @@ public class PurgeCorrespondenceHandler(
             return Errors.CorrespondenceNotFound;
         }
         
-        return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
+        return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             var status = isSender ? CorrespondenceStatus.PurgedByAltinn : CorrespondenceStatus.PurgedByRecipient;
             await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity()

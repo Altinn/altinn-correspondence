@@ -62,7 +62,7 @@ public class PurgeAttachmentHandler(
         {
             return Errors.PurgeAttachmentWithExistingCorrespondence;
         }
-        return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
+        return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             await _storageRepository.PurgeAttachment(attachmentId, cancellationToken);
             await _attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity

@@ -67,7 +67,7 @@ public class UpdateCorrespondenceStatusHandler(
             return updateError;
         }
         
-        await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
+        await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
         {
             await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
             {

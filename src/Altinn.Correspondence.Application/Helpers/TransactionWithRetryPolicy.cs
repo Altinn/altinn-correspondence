@@ -13,31 +13,6 @@ using Polly.Retry;
 namespace Altinn.Correspondence.Application.Helpers;
 public static class TransactionWithRetriesPolicy
 {
-    public static async Task<T> Execute<T>(
-        Func<CancellationToken, Task<T>> operation,
-        ILogger logger,
-        CancellationToken cancellationToken = default)
-    {
-        var result = await RetryPolicy(logger).ExecuteAndCaptureAsync<T>(async (cancellationToken) =>
-        {
-            using var transaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
-            var result = await operation(cancellationToken);
-            transaction.Complete();
-            return result;
-        }, cancellationToken);
-        if (result.Outcome == OutcomeType.Failure)
-        {
-            logger.LogError("Exception during retries: {message}\n{stackTrace}", result.FinalException.Message, result.FinalException.StackTrace);
-            throw result.FinalException;
-        }
-        return result.Result;
-    }
-    /*
-    // public static async Task<OneOf<T>> Execute<T>(
-    //     Func<CancellationToken, Task<T>> operation,
-    //     ILogger logger,
-    //     CancellationToken cancellationToken = default)
-    {
     public static async Task<OneOf<T, Error>> Execute<T>(
         Func<CancellationToken, Task<OneOf<T, Error>>> operation,
         ILogger logger,
@@ -57,7 +32,6 @@ public static class TransactionWithRetriesPolicy
         }
         return result.Result;
     }
-    */
 
     public static AsyncRetryPolicy RetryPolicy(ILogger logger) => Policy
         .Handle<TransactionAbortedException>()
