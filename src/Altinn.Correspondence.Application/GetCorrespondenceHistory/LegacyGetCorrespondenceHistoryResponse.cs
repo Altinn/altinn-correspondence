@@ -13,7 +13,6 @@ public class LegacyGetCorrespondenceHistoryResponse
 public class LegacyUser
 {
     public int? PartyId { get; set; }
-    public string? OrganizationNumber { get; set; }
     public string? NationalIdentityNumber { get; set; }
     public string? Name { get; set; }
 }

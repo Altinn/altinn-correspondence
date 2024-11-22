@@ -104,7 +104,6 @@ public class LegacyGetCorrespondenceHistoryHandler(
             User = new LegacyUser
             {
                 PartyId = party?.PartyId,
-                OrganizationNumber = party?.OrgNumber,
                 NationalIdentityNumber = party?.SSN,
                 Name = party?.Name
             }
@@ -135,7 +134,6 @@ public class LegacyGetCorrespondenceHistoryHandler(
             response.User = new LegacyUser
             {
                 PartyId = party?.PartyId,
-                OrganizationNumber = recipient.OrganizationNumber,
                 NationalIdentityNumber = recipient.NationalIdentityNumber,
                 Name = party?.Name
             };
