@@ -55,8 +55,6 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         var actionIds = rights.Select(GetActionId).ToList();
         XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, resourceId, party, correspondenceId, actionIds);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
-        if (responseContent is null) return false;
-
         var validationResult = ValidateAuthorizationResponse(responseContent, user);
         return validationResult;
     }
@@ -76,8 +74,6 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         var actionIds = rights.Select(GetActionId).ToList();
         XacmlJsonRequestRoot jsonRequest = CreateDecisionRequestForLegacy(user, ssn, actionIds, resourceId, onBehalfOf);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
-        if (responseContent is null) return null;
-
         var validationResult = ValidateAuthorizationResponse(responseContent, user);
         if (!validationResult)
         {
@@ -117,18 +113,17 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         return null;
     }
 
-    private async Task<XacmlJsonResponse?> AuthorizeRequest(XacmlJsonRequestRoot jsonRequest, CancellationToken cancellationToken)
+    private async Task<XacmlJsonResponse> AuthorizeRequest(XacmlJsonRequestRoot jsonRequest, CancellationToken cancellationToken)
     {
         var response = await _httpClient.PostAsJsonAsync("authorization/api/v1/authorize", jsonRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            return null;
+            throw new Exception($"Failure when calling authorization: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         }
         var responseContent = await response.Content.ReadFromJsonAsync<XacmlJsonResponse>(cancellationToken: cancellationToken);
         if (responseContent is null)
         {
-            _logger.LogError("Unexpected null or invalid json response from Authorization.");
-            return null;
+            throw new Exception("Unexpected null or invalid json response from Authorization.");
         }
         return responseContent;
     }
@@ -203,7 +198,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         var claim = user.Claims.FirstOrDefault(claim => claim.Type == "pid");
         if (claim is null)
         {
-            claim = user.Claims.FirstOrDefault(claim => claim.Type == "c");
+            claim = user.Claims.FirstOrDefault(claim => claim.Type == "p"); // OnBehalfOf
         }
         if (claim is null)
         {
