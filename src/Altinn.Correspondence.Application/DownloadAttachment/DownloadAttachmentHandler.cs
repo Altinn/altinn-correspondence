@@ -1,27 +1,21 @@
-﻿using System.Runtime.CompilerServices;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
-using Altinn.Correspondence.Core.Services;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.DownloadAttachment;
 
-public class DownloadAttachmentHandler : IHandler<DownloadAttachmentRequest, Stream>
+public class DownloadAttachmentHandler(
+    IAltinnAuthorizationService altinnAuthorizationService,
+    IStorageRepository storageRepository,
+    IAttachmentRepository attachmentRepository,
+    UserClaimsHelper userClaimsHelper) : IHandler<DownloadAttachmentRequest, Stream>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly IStorageRepository _storageRepository;
-    private readonly IAttachmentRepository _attachmentRepository;
-    private readonly UserClaimsHelper _userClaimsHelper;
-
-    public DownloadAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IStorageRepository storageRepository, IAttachmentRepository attachmentRepository, UserClaimsHelper userClaimsHelper)
-    {
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _storageRepository = storageRepository;
-        _attachmentRepository = attachmentRepository;
-        _userClaimsHelper = userClaimsHelper;
-    }
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
+    private readonly IStorageRepository _storageRepository = storageRepository;
+    private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
+    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
 
     public async Task<OneOf<Stream, Error>> Process(DownloadAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {

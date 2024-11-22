@@ -4,35 +4,28 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 
-public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceStatusRequest, Guid>
+public class UpdateCorrespondenceStatusHandler(
+    IAltinnAuthorizationService altinnAuthorizationService,
+    ICorrespondenceRepository correspondenceRepository,
+    ICorrespondenceStatusRepository correspondenceStatusRepository,
+    IEventBus eventBus,
+    UserClaimsHelper userClaimsHelper,
+    UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
+    ILogger<UpdateCorrespondenceStatusHandler> logger) : IHandler<UpdateCorrespondenceStatusRequest, Guid>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
-    private readonly IEventBus _eventBus;
-    private readonly UserClaimsHelper _userClaimsHelper;
-    private readonly UpdateCorrespondenceStatusHelper _updateCorrespondenceStatusHelper;
-
-    public UpdateCorrespondenceStatusHandler(
-        IAltinnAuthorizationService altinnAuthorizationService,
-        ICorrespondenceRepository correspondenceRepository,
-        ICorrespondenceStatusRepository correspondenceStatusRepository,
-        IEventBus eventBus,
-        UserClaimsHelper userClaimsHelper,
-        UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper)
-    {
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _correspondenceRepository = correspondenceRepository;
-        _correspondenceStatusRepository = correspondenceStatusRepository;
-        _eventBus = eventBus;
-        _userClaimsHelper = userClaimsHelper;
-        _updateCorrespondenceStatusHelper = updateCorrespondenceStatusHelper;
-    }
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
+    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
+    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
+    private readonly IEventBus _eventBus = eventBus;
+    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
+    private readonly UpdateCorrespondenceStatusHelper _updateCorrespondenceStatusHelper = updateCorrespondenceStatusHelper;
+    private readonly ILogger<UpdateCorrespondenceStatusHandler> _logger = logger;
 
     public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {

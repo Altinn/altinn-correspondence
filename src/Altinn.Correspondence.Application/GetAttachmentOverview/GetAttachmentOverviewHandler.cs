@@ -6,22 +6,17 @@ using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetAttachmentOverview;
 
-public class GetAttachmentOverviewHandler : IHandler<Guid, GetAttachmentOverviewResponse>
+public class GetAttachmentOverviewHandler(
+    IAltinnAuthorizationService altinnAuthorizationService,
+    IAttachmentRepository attachmentRepository,
+    ICorrespondenceRepository correspondenceRepository,
+    UserClaimsHelper userClaimsHelper) : IHandler<Guid, GetAttachmentOverviewResponse>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly IAttachmentStatusRepository _attachmentStatusRepository;
-    private readonly IAttachmentRepository _attachmentRepository;
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly UserClaimsHelper _userClaimsHelper;
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
+    private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
+    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
+    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
 
-    public GetAttachmentOverviewHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper)
-    {
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _attachmentStatusRepository = attachmentStatusRepository;
-        _attachmentRepository = attachmentRepository;
-        _correspondenceRepository = correspondenceRepository;
-        _userClaimsHelper = userClaimsHelper;
-    }
     public async Task<OneOf<GetAttachmentOverviewResponse, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);

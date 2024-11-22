@@ -9,27 +9,18 @@ using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceOverview;
 
-public class GetCorrespondenceOverviewHandler : IHandler<GetCorrespondenceOverviewRequest, GetCorrespondenceOverviewResponse>
+public class GetCorrespondenceOverviewHandler(
+    IAltinnAuthorizationService altinnAuthorizationService,
+    ICorrespondenceRepository CorrespondenceRepository,
+    ICorrespondenceStatusRepository correspondenceStatusRepository,
+    UserClaimsHelper userClaimsHelper,
+    ILogger<GetCorrespondenceOverviewHandler> logger) : IHandler<GetCorrespondenceOverviewRequest, GetCorrespondenceOverviewResponse>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly ICorrespondenceRepository _CorrespondenceRepository;
-    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
-    private readonly UserClaimsHelper _userClaimsHelper;
-    private readonly ILogger<GetCorrespondenceOverviewHandler> _logger;
-
-    public GetCorrespondenceOverviewHandler(
-        IAltinnAuthorizationService altinnAuthorizationService,
-        ICorrespondenceRepository CorrespondenceRepository,
-        ICorrespondenceStatusRepository correspondenceStatusRepository,
-        UserClaimsHelper userClaimsHelper,
-        ILogger<GetCorrespondenceOverviewHandler> logger)
-    {
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _CorrespondenceRepository = CorrespondenceRepository;
-        _correspondenceStatusRepository = correspondenceStatusRepository;
-        _userClaimsHelper = userClaimsHelper;
-        _logger = logger;
-    }
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
+    private readonly ICorrespondenceRepository _CorrespondenceRepository = CorrespondenceRepository;
+    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
+    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
+    private readonly ILogger<GetCorrespondenceOverviewHandler> _logger = logger;
 
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(GetCorrespondenceOverviewRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {

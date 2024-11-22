@@ -5,35 +5,28 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.PurgeCorrespondence;
 
-public class PurgeCorrespondenceHandler : IHandler<PurgeCorrespondenceRequest, Guid>
+public class PurgeCorrespondenceHandler(
+    IAltinnAuthorizationService altinnAuthorizationService,
+    ICorrespondenceRepository correspondenceRepository,
+    ICorrespondenceStatusRepository correspondenceStatusRepository,
+    IEventBus eventBus,
+    UserClaimsHelper userClaimsHelper,
+    PurgeCorrespondenceHelper purgeCorrespondenceHelper,
+    ILogger<PurgeCorrespondenceHandler> logger) : IHandler<PurgeCorrespondenceRequest, Guid>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
-    private readonly IEventBus _eventBus;
-    private readonly UserClaimsHelper _userClaimsHelper;
-    private readonly PurgeCorrespondenceHelper _purgeCorrespondenceHelper;
-
-    public PurgeCorrespondenceHandler(
-        IAltinnAuthorizationService altinnAuthorizationService,
-        ICorrespondenceRepository correspondenceRepository,
-        ICorrespondenceStatusRepository correspondenceStatusRepository,
-        IEventBus eventBus,
-        UserClaimsHelper userClaimsHelper,
-        PurgeCorrespondenceHelper purgeCorrespondenceHelper)
-    {
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _correspondenceRepository = correspondenceRepository;
-        _correspondenceStatusRepository = correspondenceStatusRepository;
-        _eventBus = eventBus;
-        _userClaimsHelper = userClaimsHelper;
-        _purgeCorrespondenceHelper = purgeCorrespondenceHelper;
-    }
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
+    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
+    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
+    private readonly IEventBus _eventBus = eventBus;
+    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
+    private readonly PurgeCorrespondenceHelper _purgeCorrespondenceHelper = purgeCorrespondenceHelper;
+    private readonly ILogger<PurgeCorrespondenceHandler> _logger = logger;
 
     public async Task<OneOf<Guid, Error>> Process(PurgeCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {

@@ -6,20 +6,16 @@ using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetAttachmentDetails;
 
-public class GetAttachmentDetailsHandler : IHandler<Guid, GetAttachmentDetailsResponse>
+public class GetAttachmentDetailsHandler(
+    IAttachmentRepository attachmentRepository,
+    ICorrespondenceRepository correspondenceRepository,
+    IAltinnAuthorizationService altinnAuthorizationService,
+    UserClaimsHelper userClaimsHelper) : IHandler<Guid, GetAttachmentDetailsResponse>
 {
-    private readonly IAttachmentRepository _attachmentRepository;
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly UserClaimsHelper _userClaimsHelper;
-
-    public GetAttachmentDetailsHandler(IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, IAltinnAuthorizationService altinnAuthorizationService, UserClaimsHelper userClaimsHelper)
-    {
-        _attachmentRepository = attachmentRepository;
-        _correspondenceRepository = correspondenceRepository;
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _userClaimsHelper = userClaimsHelper;
-    }
+    private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
+    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
+    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
 
     public async Task<OneOf<GetAttachmentDetailsResponse, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {

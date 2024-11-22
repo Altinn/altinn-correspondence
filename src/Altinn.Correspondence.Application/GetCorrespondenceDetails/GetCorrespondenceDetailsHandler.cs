@@ -4,35 +4,28 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
-using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceDetails;
 
-public class GetCorrespondenceDetailsHandler : IHandler<GetCorrespondenceDetailsRequest, GetCorrespondenceDetailsResponse>
+public class GetCorrespondenceDetailsHandler(
+    IAltinnAuthorizationService altinnAuthorizationService,
+    IAltinnNotificationService altinnNotificationService,
+    ICorrespondenceRepository correspondenceRepository,
+    ICorrespondenceStatusRepository correspondenceStatusRepository,
+    UserClaimsHelper userClaimsHelper,
+    ILogger<GetCorrespondenceDetailsHandler> logger) : IHandler<GetCorrespondenceDetailsRequest, GetCorrespondenceDetailsResponse>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly IAltinnNotificationService _altinnNotificationService;
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
-    private readonly UserClaimsHelper _userClaimsHelper;
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
+    private readonly IAltinnNotificationService _altinnNotificationService = altinnNotificationService;
+    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
+    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
+    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
+    private readonly ILogger<GetCorrespondenceDetailsHandler> _logger = logger;
 
-    public GetCorrespondenceDetailsHandler(
-        IAltinnAuthorizationService altinnAuthorizationService,
-        IAltinnNotificationService altinnNotificationService,
-        ICorrespondenceRepository correspondenceRepository,
-        ICorrespondenceStatusRepository correspondenceStatusRepository,
-        UserClaimsHelper userClaimsHelper)
-    {
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _altinnNotificationService = altinnNotificationService;
-        _correspondenceRepository = correspondenceRepository;
-        _correspondenceStatusRepository = correspondenceStatusRepository;
-        _userClaimsHelper = userClaimsHelper;
-    }
-
-    public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(GetCorrespondenceDetailsRequest request, ClaimsPrincipal user, CancellationToken cancellationToken)
+    public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(GetCorrespondenceDetailsRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
         if (correspondence == null)

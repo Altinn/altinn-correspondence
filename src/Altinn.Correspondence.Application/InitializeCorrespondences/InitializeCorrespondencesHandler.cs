@@ -9,7 +9,9 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
 using System.Security.Claims;
@@ -17,36 +19,34 @@ using System.Text.RegularExpressions;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
-public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
+public class InitializeCorrespondencesHandler(
+    InitializeCorrespondenceHelper initializeCorrespondenceHelper,
+    IAltinnAuthorizationService altinnAuthorizationService,
+    IAltinnNotificationService altinnNotificationService,
+    ICorrespondenceRepository correspondenceRepository,
+    ICorrespondenceNotificationRepository correspondenceNotificationRepository,
+    INotificationTemplateRepository notificationTemplateRepository,
+    IEventBus eventBus,
+    IBackgroundJobClient backgroundJobClient,
+    UserClaimsHelper userClaimsHelper,
+    IDialogportenService dialogportenService,
+    IHostEnvironment hostEnvironment,
+    IOptions<GeneralSettings> generalSettings,
+    ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly IAltinnNotificationService _altinnNotificationService;
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly ICorrespondenceNotificationRepository _correspondenceNotificationRepository;
-    private readonly INotificationTemplateRepository _notificationTemplateRepository;
-    private readonly IEventBus _eventBus;
-    private readonly InitializeCorrespondenceHelper _initializeCorrespondenceHelper;
-    private readonly IBackgroundJobClient _backgroundJobClient;
-    private readonly IDialogportenService _dialogportenService;
-    private readonly UserClaimsHelper _userClaimsHelper;
-    private readonly IHostEnvironment _hostEnvironment;
-    private readonly GeneralSettings _generalSettings;
-
-    public InitializeCorrespondencesHandler(InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceNotificationRepository correspondenceNotificationRepository, INotificationTemplateRepository notificationTemplateRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient, UserClaimsHelper userClaimsHelper, IDialogportenService dialogportenService, IHostEnvironment hostEnvironment, IOptions<GeneralSettings> generalSettings)
-    {
-        _initializeCorrespondenceHelper = initializeCorrespondenceHelper;
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _altinnNotificationService = altinnNotificationService;
-        _correspondenceRepository = correspondenceRepository;
-        _correspondenceNotificationRepository = correspondenceNotificationRepository;
-        _notificationTemplateRepository = notificationTemplateRepository;
-        _eventBus = eventBus;
-        _backgroundJobClient = backgroundJobClient;
-        _dialogportenService = dialogportenService;
-        _userClaimsHelper = userClaimsHelper;
-        _hostEnvironment = hostEnvironment;
-        _generalSettings = generalSettings.Value;
-    }
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
+    private readonly IAltinnNotificationService _altinnNotificationService = altinnNotificationService;
+    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
+    private readonly ICorrespondenceNotificationRepository _correspondenceNotificationRepository = correspondenceNotificationRepository;
+    private readonly INotificationTemplateRepository _notificationTemplateRepository = notificationTemplateRepository;
+    private readonly IEventBus _eventBus = eventBus;
+    private readonly InitializeCorrespondenceHelper _initializeCorrespondenceHelper = initializeCorrespondenceHelper;
+    private readonly IBackgroundJobClient _backgroundJobClient = backgroundJobClient;
+    private readonly IDialogportenService _dialogportenService = dialogportenService;
+    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
+    private readonly IHostEnvironment _hostEnvironment = hostEnvironment;
+    private readonly GeneralSettings _generalSettings = generalSettings.Value;
+    private readonly ILogger<InitializeCorrespondencesHandler> _logger = logger;
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
