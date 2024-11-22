@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
@@ -49,16 +50,8 @@ public class LegacyGetCorrespondenceHistoryHandler(
 
         var correspondenceHistory = correspondence.Statuses
             .Where(s => s.Status.IsAvailableForRecipient())
-            .Select(s => new LegacyGetCorrespondenceHistoryResponse
-            {
-                Status = s.Status.ToString(),
-                StatusChanged = s.StatusChanged,
-                StatusText = $"[Correspondence] {s.StatusText}",
-                User = new LegacyUser
-                {
-                    PartyId = recipientParty.PartyId
-                },
-            }).ToList();
+            .Select(s => GetCorrespondenceStatus(s, recipientParty, senderParty))
+            .ToList();
 
         var notificationHistory = new List<LegacyGetCorrespondenceHistoryResponse>();
         foreach (var notification in correspondence.Notifications)
@@ -75,7 +68,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
                     notificationDetails.NotificationsStatusDetails.Sms.SendStatus,
                     notificationDetails.NotificationsStatusDetails.Sms.Recipient,
                     notification.IsReminder,
-                    senderParty.PartyId));
+                    senderParty.PartyId)); // Notification recipient
             }
             if (notificationDetails.NotificationsStatusDetails.Email is not null)
             {
@@ -83,12 +76,30 @@ public class LegacyGetCorrespondenceHistoryHandler(
                     notificationDetails.NotificationsStatusDetails.Email.SendStatus,
                     notificationDetails.NotificationsStatusDetails.Email.Recipient,
                     notification.IsReminder,
-                    senderParty.PartyId));
+                    senderParty.PartyId)); // Notification recipient
             }
         }
         List<LegacyGetCorrespondenceHistoryResponse> joinedList = [.. correspondenceHistory.Concat(notificationHistory).OrderByDescending(s => s.StatusChanged)];
 
         return joinedList;
+    }
+
+    private static LegacyGetCorrespondenceHistoryResponse GetCorrespondenceStatus(CorrespondenceStatusEntity s, Party recipientParty, Party senderParty)
+    {
+        List<CorrespondenceStatus> statusBySender =
+        [
+            CorrespondenceStatus.Published,
+        ];
+        return new LegacyGetCorrespondenceHistoryResponse
+        {
+            Status = s.Status.ToString(),
+            StatusChanged = s.StatusChanged,
+            StatusText = $"[Correspondence] {s.StatusText}",
+            User = new LegacyUser
+            {
+                PartyId = statusBySender.Contains(s.Status) ? senderParty.PartyId : recipientParty.PartyId
+            }
+        };
     }
 
     private static LegacyGetCorrespondenceHistoryResponse GetNotificationStatus(StatusExt sendStatus, Recipient recipient, bool isReminder, int partyId)
