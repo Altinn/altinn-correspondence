@@ -73,8 +73,6 @@ public static class AltinnTokenXacmlMapper
 
     private static XacmlJsonCategory CreateSubjectCategory(ClaimsPrincipal user)
     {
-        XacmlJsonCategory xacmlJsonCategory = new XacmlJsonCategory();
-        List<XacmlJsonAttribute> list = new List<XacmlJsonAttribute>();
         var subjectCategory = DecisionHelper.CreateSubjectCategory(user.Claims);
         var isSystemUserSubject = subjectCategory.Attribute.Any(attribute => attribute.AttributeId == AltinnXacmlUrns.SystemUserUuid);
         if (!isSystemUserSubject)
@@ -82,11 +80,10 @@ public static class AltinnTokenXacmlMapper
             var pidClaim = user.Claims.FirstOrDefault(claim => IsValidPid(claim.Type));
             if (pidClaim is not null)
             {
-                list.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, pidClaim.Value, DefaultType, pidClaim.Issuer));
+                subjectCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, pidClaim.Value, DefaultType, pidClaim.Issuer));
             }
         }
-        xacmlJsonCategory.Attribute = list;
-        return xacmlJsonCategory;
+        return subjectCategory;
     }
 
     private static XacmlJsonCategory CreateSubjectCategoryForLegacy(ClaimsPrincipal user, string ssn)
