@@ -8,7 +8,12 @@ using OneOf;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceHistory;
-public class LegacyGetCorrespondenceHistoryHandler(ICorrespondenceRepository correspondenceRepository, IAltinnNotificationService altinnNotificationService, IAltinnRegisterService altinnRegisterService, IAltinnAuthorizationService altinnAuthorizationService, UserClaimsHelper userClaimsHelper) : IHandler<Guid, LegacyGetCorrespondenceHistoryResponse>
+public class LegacyGetCorrespondenceHistoryHandler(
+    ICorrespondenceRepository correspondenceRepository,
+    IAltinnNotificationService altinnNotificationService,
+    IAltinnRegisterService altinnRegisterService,
+    IAltinnAuthorizationService altinnAuthorizationService,
+    UserClaimsHelper userClaimsHelper) : IHandler<Guid, List<LegacyGetCorrespondenceHistoryResponse>>
 {
     private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
     private readonly IAltinnNotificationService _altinnNotificationService = altinnNotificationService;
