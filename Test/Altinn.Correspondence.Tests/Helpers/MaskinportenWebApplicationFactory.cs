@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Hangfire.MemoryStorage;
@@ -25,10 +26,7 @@ public class MaskinportenWebApplicationFactory : WebApplicationFactory<Program>
                        );
             HangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
             services.AddSingleton(HangfireBackgroundJobClient.Object);
-            var altinnAuthorizationService = new Mock<IAltinnAuthorizationService>();
-            altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<ClaimsPrincipal?>(), It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
-            altinnAuthorizationService.Setup(x => x.CheckMigrationAccess(It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
-            services.AddSingleton(altinnAuthorizationService.Object);
+            services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationDevService>();
         });
     }
     public HttpClient CreateClientWithAddedClaims(params (string type, string value)[] claims)

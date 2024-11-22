@@ -1,5 +1,6 @@
 ﻿using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Authorization.Policy;
@@ -30,9 +31,7 @@ namespace Altinn.Correspondence.Tests.Helpers
                 services.AddHangfire(config =>
                                config.UseMemoryStorage()
                            );
-                var altinnAuthorizationService = new Mock<IAltinnAuthorizationService>();
-                altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<ClaimsPrincipal?>(), It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>(), It.IsAny<string>(),  It.IsAny<string>())).ReturnsAsync(true);
-                services.AddSingleton(altinnAuthorizationService.Object);
+                services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationDevService>();
                 if (_customServices is not null)
                     _customServices(services);
             });
