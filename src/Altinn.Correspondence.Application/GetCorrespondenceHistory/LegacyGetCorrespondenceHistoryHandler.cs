@@ -7,22 +7,14 @@ using OneOf;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceHistory;
-public class LegacyGetCorrespondenceHistoryHandler : IHandler<Guid, LegacyGetCorrespondenceHistoryResponse>
+public class LegacyGetCorrespondenceHistoryHandler(ICorrespondenceRepository correspondenceRepository, IAltinnNotificationService altinnNotificationService, IAltinnRegisterService altinnRegisterService, IAltinnAuthorizationService altinnAuthorizationService, UserClaimsHelper userClaimsHelper) : IHandler<Guid, LegacyGetCorrespondenceHistoryResponse>
 {
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly IAltinnNotificationService _altinnNotificationService;
-    private readonly IAltinnRegisterService _altinnRegisterService;
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly UserClaimsHelper _userClaimsHelper;
+    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
+    private readonly IAltinnNotificationService _altinnNotificationService = altinnNotificationService;
+    private readonly IAltinnRegisterService _altinnRegisterService = altinnRegisterService;
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
+    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
 
-    public LegacyGetCorrespondenceHistoryHandler(ICorrespondenceRepository correspondenceRepository, IAltinnNotificationService altinnNotificationService, IAltinnRegisterService altinnRegisterService, IAltinnAuthorizationService altinnAuthorizationService, UserClaimsHelper userClaimsHelper)
-    {
-        _correspondenceRepository = correspondenceRepository;
-        _altinnNotificationService = altinnNotificationService;
-        _altinnRegisterService = altinnRegisterService;
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _userClaimsHelper = userClaimsHelper;
-    }
     public async Task<OneOf<LegacyGetCorrespondenceHistoryResponse, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         if (_userClaimsHelper.GetPartyId() is not int partyId)

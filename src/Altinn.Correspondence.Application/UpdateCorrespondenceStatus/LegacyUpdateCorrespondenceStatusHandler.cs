@@ -3,36 +3,30 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
-public class LegacyUpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceStatusRequest, Guid>
+public class LegacyUpdateCorrespondenceStatusHandler(
+    ICorrespondenceRepository correspondenceRepository,
+    ICorrespondenceStatusRepository correspondenceStatusRepository,
+    IAltinnAuthorizationService altinnAuthorizationService,
+    IAltinnRegisterService altinnRegisterService,
+    IEventBus eventBus,
+    UserClaimsHelper userClaimsHelper,
+    UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
+    ILogger<LegacyUpdateCorrespondenceStatusHandler> logger) : IHandler<UpdateCorrespondenceStatusRequest, Guid>
 {
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly IAltinnRegisterService _altinnRegisterService;
-    private readonly IEventBus _eventBus;
-    private readonly UserClaimsHelper _userClaimsHelper;
-    private readonly UpdateCorrespondenceStatusHelper _updateCorrespondenceStatusHelper;
-    public LegacyUpdateCorrespondenceStatusHandler(
-        ICorrespondenceRepository correspondenceRepository,
-        ICorrespondenceStatusRepository correspondenceStatusRepository,
-        IAltinnAuthorizationService altinnAuthorizationService,
-        IAltinnRegisterService altinnRegisterService,
-        IEventBus eventBus,
-        UserClaimsHelper userClaimsHelper,
-        UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper)
-    {
-        _correspondenceRepository = correspondenceRepository;
-        _correspondenceStatusRepository = correspondenceStatusRepository;
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _altinnRegisterService = altinnRegisterService;
-        _eventBus = eventBus;
-        _userClaimsHelper = userClaimsHelper;
-        _updateCorrespondenceStatusHelper = updateCorrespondenceStatusHelper;
-    }
+    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
+    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
+    private readonly IAltinnRegisterService _altinnRegisterService = altinnRegisterService;
+    private readonly IEventBus _eventBus = eventBus;
+    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
+    private readonly UpdateCorrespondenceStatusHelper _updateCorrespondenceStatusHelper = updateCorrespondenceStatusHelper;
+    private readonly ILogger<LegacyUpdateCorrespondenceStatusHandler> _logger = logger;
+
     public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         if (_userClaimsHelper.GetPartyId() is not int partyId)
@@ -64,17 +58,19 @@ public class LegacyUpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespond
         {
             return updateError;
         }
-
-        await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+        return await TransactionWithRetriesPolicy.Execute<Guid>(async (CancellationToken) =>
         {
-            CorrespondenceId = correspondence.Id,
-            Status = request.Status,
-            StatusChanged = DateTime.UtcNow,
-            StatusText = request.Status.ToString(),
-        }, cancellationToken);
+            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+            {
+                CorrespondenceId = correspondence.Id,
+                Status = request.Status,
+                StatusChanged = DateTime.UtcNow,
+                StatusText = request.Status.ToString(),
+            }, cancellationToken);
 
-        _updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
-        await _updateCorrespondenceStatusHelper.PublishEvent(_eventBus, correspondence, request.Status, cancellationToken);
-        return request.CorrespondenceId;
+            _updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
+            await _updateCorrespondenceStatusHelper.PublishEvent(_eventBus, correspondence, request.Status, cancellationToken);
+            return request.CorrespondenceId;
+        }, _logger, cancellationToken);
     }
 }

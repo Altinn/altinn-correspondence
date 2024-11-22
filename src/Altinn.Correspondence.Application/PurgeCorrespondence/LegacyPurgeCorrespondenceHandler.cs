@@ -5,36 +5,29 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
+using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.PurgeCorrespondence;
-public class LegacyPurgeCorrespondenceHandler : IHandler<Guid, Guid>
+public class LegacyPurgeCorrespondenceHandler(
+    ICorrespondenceRepository correspondenceRepository,
+    ICorrespondenceStatusRepository correspondenceStatusRepository,
+    IAltinnAuthorizationService altinnAuthorizationService,
+    IAltinnRegisterService altinnRegisterService,
+    IEventBus eventBus,
+    PurgeCorrespondenceHelper purgeCorrespondenceHelper,
+    UserClaimsHelper userClaimsHelper,
+    ILogger<LegacyPurgeCorrespondenceHandler> logger) : IHandler<Guid, Guid>
 {
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly IAltinnRegisterService _altinnRegisterService;
-    private readonly IEventBus _eventBus;
-    private readonly PurgeCorrespondenceHelper _purgeCorrespondenceHelper;
-    private readonly UserClaimsHelper _userClaimsHelper;
-    public LegacyPurgeCorrespondenceHandler(
-        ICorrespondenceRepository correspondenceRepository,
-        ICorrespondenceStatusRepository correspondenceStatusRepository,
-        IAltinnAuthorizationService altinnAuthorizationService,
-        IAltinnRegisterService altinnRegisterService,
-        IEventBus eventBus,
-        PurgeCorrespondenceHelper purgeCorrespondenceHelper,
-        UserClaimsHelper userClaimsHelper)
-    {
-        _correspondenceRepository = correspondenceRepository;
-        _correspondenceStatusRepository = correspondenceStatusRepository;
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _altinnRegisterService = altinnRegisterService;
-        _eventBus = eventBus;
-        _purgeCorrespondenceHelper = purgeCorrespondenceHelper;
-        _userClaimsHelper = userClaimsHelper;
-    }
+    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
+    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
+    private readonly IAltinnRegisterService _altinnRegisterService = altinnRegisterService;
+    private readonly IEventBus _eventBus = eventBus;
+    private readonly PurgeCorrespondenceHelper _purgeCorrespondenceHelper = purgeCorrespondenceHelper;
+    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
+    private readonly ILogger<LegacyPurgeCorrespondenceHandler> _logger = logger;
     public async Task<OneOf<Guid, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         if (_userClaimsHelper.GetPartyId() is not int partyId)
@@ -66,19 +59,21 @@ public class LegacyPurgeCorrespondenceHandler : IHandler<Guid, Guid>
         {
             return recipientPurgeError;
         }
-
-        await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+        return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            CorrespondenceId = correspondenceId,
-            Status = CorrespondenceStatus.PurgedByRecipient,
-            StatusChanged = DateTimeOffset.UtcNow,
-            StatusText = CorrespondenceStatus.PurgedByRecipient.ToString()
-        }, cancellationToken);
+            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+            {
+                CorrespondenceId = correspondenceId,
+                Status = CorrespondenceStatus.PurgedByRecipient,
+                StatusChanged = DateTimeOffset.UtcNow,
+                StatusText = CorrespondenceStatus.PurgedByRecipient.ToString()
+            }, cancellationToken);
 
-        await _eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken);
-        await _purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondenceId, cancellationToken);
-        _purgeCorrespondenceHelper.ReportActivityToDialogporten(isSender: false, correspondenceId);
-        _purgeCorrespondenceHelper.CancelNotification(correspondenceId, cancellationToken);
-        return correspondenceId;
+            await _eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken);
+            await _purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondenceId, cancellationToken);
+            _purgeCorrespondenceHelper.ReportActivityToDialogporten(isSender: false, correspondenceId);
+            _purgeCorrespondenceHelper.CancelNotification(correspondenceId, cancellationToken);
+            return correspondenceId;
+        }, _logger, cancellationToken);
     }
 }

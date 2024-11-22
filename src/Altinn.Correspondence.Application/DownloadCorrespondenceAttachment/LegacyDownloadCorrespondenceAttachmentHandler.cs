@@ -8,24 +8,14 @@ using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 
-public class LegacyDownloadCorrespondenceAttachmentHandler : IHandler<DownloadCorrespondenceAttachmentRequest, DownloadCorrespondenceAttachmentResponse>
+public class LegacyDownloadCorrespondenceAttachmentHandler(IStorageRepository storageRepository, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IBackgroundJobClient backgroundJobClient, IAltinnRegisterService altinnRegisterService) : IHandler<DownloadCorrespondenceAttachmentRequest, DownloadCorrespondenceAttachmentResponse>
 {
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly IStorageRepository _storageRepository;
-    private readonly IAttachmentRepository _attachmentRepository;
-    private readonly IAltinnRegisterService _altinnRegisterService;
-    private readonly UserClaimsHelper _userClaimsHelper;
-    private readonly IBackgroundJobClient _backgroundJobClient;
-
-    public LegacyDownloadCorrespondenceAttachmentHandler(IStorageRepository storageRepository, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IBackgroundJobClient backgroundJobClient, IAltinnRegisterService altinnRegisterService)
-    {
-        _correspondenceRepository = correspondenceRepository;
-        _storageRepository = storageRepository;
-        _attachmentRepository = attachmentRepository;
-        _altinnRegisterService = altinnRegisterService;
-        _userClaimsHelper = userClaimsHelper;
-        _backgroundJobClient = backgroundJobClient;
-    }
+    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
+    private readonly IStorageRepository _storageRepository = storageRepository;
+    private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
+    private readonly IAltinnRegisterService _altinnRegisterService = altinnRegisterService;
+    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
+    private readonly IBackgroundJobClient _backgroundJobClient = backgroundJobClient;
 
     public async Task<OneOf<DownloadCorrespondenceAttachmentResponse, Error>> Process(DownloadCorrespondenceAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {

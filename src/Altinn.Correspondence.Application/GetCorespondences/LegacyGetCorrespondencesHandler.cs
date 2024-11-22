@@ -11,27 +11,16 @@ using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondences;
 
-public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondencesRequest, LegacyGetCorrespondencesResponse>
+public class LegacyGetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, IAltinnAccessManagementService altinnAccessManagement, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IAltinnRegisterService altinnRegisterService, IResourceRightsService resourceRightsService, ILogger<LegacyGetCorrespondencesHandler> logger) : IHandler<LegacyGetCorrespondencesRequest, LegacyGetCorrespondencesResponse>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly IAltinnAccessManagementService _altinnAccessManagementService;
-    private readonly IAltinnRegisterService _altinnRegisterService;
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly IResourceRightsService _resourceRightsService;
-    private readonly UserClaimsHelper _userClaimsHelper;
-    private readonly ILogger<LegacyGetCorrespondencesHandler> _logger;
+    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
+    private readonly IAltinnAccessManagementService _altinnAccessManagementService = altinnAccessManagement;
+    private readonly IAltinnRegisterService _altinnRegisterService = altinnRegisterService;
+    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
+    private readonly IResourceRightsService _resourceRightsService = resourceRightsService;
+    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
+    private readonly ILogger<LegacyGetCorrespondencesHandler> _logger = logger;
     private record PartyInfo(string Id, Party? Party);
-
-    public LegacyGetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, IAltinnAccessManagementService altinnAccessManagement, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IAltinnRegisterService altinnRegisterService, IResourceRightsService resourceRightsService, ILogger<LegacyGetCorrespondencesHandler> logger)
-    {
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _altinnAccessManagementService = altinnAccessManagement;
-        _correspondenceRepository = correspondenceRepository;
-        _userClaimsHelper = userClaimsHelper;
-        _altinnRegisterService = altinnRegisterService;
-        _resourceRightsService = resourceRightsService;
-        _logger = logger;
-    }
 
     public async Task<OneOf<LegacyGetCorrespondencesResponse, Error>> Process(LegacyGetCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
