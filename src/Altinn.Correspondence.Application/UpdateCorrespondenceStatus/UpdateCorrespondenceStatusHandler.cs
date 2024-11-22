@@ -66,15 +66,21 @@ public class UpdateCorrespondenceStatusHandler(
         {
             return updateError;
         }
-        await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+        
+        await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
         {
-            CorrespondenceId = request.CorrespondenceId,
-            Status = request.Status,
-            StatusChanged = DateTimeOffset.UtcNow,
-            StatusText = request.Status.ToString(),
-        }, cancellationToken);
-        _updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
-        await _updateCorrespondenceStatusHelper.PublishEvent(_eventBus, correspondence, request.Status, cancellationToken);
+            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+            {
+                CorrespondenceId = request.CorrespondenceId,
+                Status = request.Status,
+                StatusChanged = DateTimeOffset.UtcNow,
+                StatusText = request.Status.ToString(),
+            }, cancellationToken);
+            _updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
+            await _updateCorrespondenceStatusHelper.PublishEvent(_eventBus, correspondence, request.Status, cancellationToken);
+            return Task.CompletedTask;
+        },_logger, cancellationToken);
+
         return request.CorrespondenceId;
     }
 }

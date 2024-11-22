@@ -117,20 +117,10 @@ public class InitializeCorrespondencesHandler(
         {
             attachmentsToBeUploaded.AddRange(existingAttachments.Where(a => a != null).Select(a => a!));
         }
-        // Upload attachments
-        if (uploadAttachments.Count > 0)
-        {
-            var uploadError = await _initializeCorrespondenceHelper.UploadAttachments(attachmentsToBeUploaded, uploadAttachments, cancellationToken);
-            if (uploadError != null)
-            {
-                return uploadError;
-            }
-        }
         List<NotificationContent>? notificationContents = null;
-        List<NotificationTemplateEntity>? templates = null;
         if (request.Notification != null)
         {
-            templates = await _notificationTemplateRepository.GetNotificationTemplates(request.Notification.NotificationTemplate, cancellationToken, request.Correspondence.Content?.Language);
+            var templates = await _notificationTemplateRepository.GetNotificationTemplates(request.Notification.NotificationTemplate, cancellationToken, request.Correspondence.Content?.Language);
             if (templates.Count == 0)
             {
                 return Errors.NotificationTemplateNotFound;
@@ -145,6 +135,21 @@ public class InitializeCorrespondencesHandler(
             {
                 return notificationError;
             }
+        }
+
+        return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
+        {
+            return await InitializeCorrespondences(request, attachmentsToBeUploaded, uploadAttachments, notificationContents, cancellationToken);
+        }, _logger, cancellationToken);
+    }
+
+    private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<IFormFile> uploadAttachments, List<NotificationContent>? notificationContents, CancellationToken cancellationToken)
+    {
+        // Upload attachments
+        var uploadError = await _initializeCorrespondenceHelper.UploadAttachments(attachmentsToBeUploaded, uploadAttachments, cancellationToken);
+        if (uploadError != null)
+        {
+            return uploadError;
         }
 
         var status = _initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);

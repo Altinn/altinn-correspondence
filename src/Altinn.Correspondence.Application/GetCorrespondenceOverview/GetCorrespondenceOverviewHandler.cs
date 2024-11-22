@@ -71,13 +71,18 @@ public class GetCorrespondenceOverviewHandler(
                 _logger.LogWarning("Rejected because correspondence not available for recipient in current state.");
                 return Errors.CorrespondenceNotFound;
             }
-            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+            await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
             {
-                CorrespondenceId = correspondence.Id,
-                Status = CorrespondenceStatus.Fetched,
-                StatusText = CorrespondenceStatus.Fetched.ToString(),
-                StatusChanged = DateTimeOffset.UtcNow
-            }, cancellationToken);
+                await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+                {
+                    CorrespondenceId = correspondence.Id,
+                    Status = CorrespondenceStatus.Fetched,
+                    StatusText = CorrespondenceStatus.Fetched.ToString(),
+                    StatusChanged = DateTimeOffset.UtcNow
+                }, cancellationToken);
+
+                return Task.CompletedTask;
+            }, _logger, cancellationToken);
         }
         var notificationsOverview = new List<CorrespondenceNotificationOverview>();
         foreach (var notification in correspondence.Notifications)
