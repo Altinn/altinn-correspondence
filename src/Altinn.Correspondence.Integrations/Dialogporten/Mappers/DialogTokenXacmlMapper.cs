@@ -16,7 +16,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         internal const string PersonAttributeId = "urn:altinn:person:identifier-no";
         internal const string OrganizationAttributeId = "urn:altinn:organization:identifier-no";
 
-        public static XacmlJsonRequestRoot CreateDialogportenDecisionRequest(ClaimsPrincipal user, string resourceId, string recipientId)
+        public static XacmlJsonRequestRoot CreateDialogportenDecisionRequest(ClaimsPrincipal user, string resourceId, string party, string? instanceId)
         {
             XacmlJsonRequest request = new()
             {
@@ -28,7 +28,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             var subjectCategory = CreateSubjectCategory(user);
             request.AccessSubject.Add(subjectCategory);
             request.Action.Add(CreateActionCategory(user));
-            var resourceCategory = CreateResourceCategory(resourceId, recipientId);
+            var resourceCategory = CreateResourceCategory(resourceId, party, instanceId);
             request.Resource.Add(resourceCategory);
 
             XacmlJsonRequestRoot jsonRequest = new() { Request = request };
@@ -55,7 +55,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return actionAttributes;
         }
 
-        private static XacmlJsonCategory CreateResourceCategory(string resourceId, string recipientId)
+        private static XacmlJsonCategory CreateResourceCategory(string resourceId, string recipientId, string? instanceId)
         {
             XacmlJsonCategory resourceCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
             resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceId, resourceId, DefaultType, DefaultIssuer));
@@ -70,6 +70,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             else
             {
                 throw new InvalidOperationException("RecipientId is not a valid organization or person number");
+            }
+            if (instanceId is not null)
+            {
+                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceInstance, instanceId, DefaultType, DefaultIssuer));
             }
             return resourceCategory;
         }
@@ -132,6 +136,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 }
                 if (result.Obligations != null)
                 {
+                    return true;
                     List<XacmlJsonObligationOrAdvice> obligations = result.Obligations;
                     XacmlJsonAttributeAssignment obligation = GetObligation("urn:altinn:minimum-authenticationlevel", obligations);
                     if (obligation != null)

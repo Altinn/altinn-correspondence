@@ -133,7 +133,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         var personIdClaim = GetPersonIdClaim(user);
         if (personIdClaim is not null && personIdClaim.Issuer == _dialogportenSettings.Issuer)
         {
-            return DialogTokenXacmlMapper.CreateDialogportenDecisionRequest(user, resourceId, party);
+            return DialogTokenXacmlMapper.CreateDialogportenDecisionRequest(user, resourceId, party, instanceId);
         }
         else
         {

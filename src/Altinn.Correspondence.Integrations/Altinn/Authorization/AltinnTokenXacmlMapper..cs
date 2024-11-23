@@ -12,7 +12,7 @@ public static class AltinnTokenXacmlMapper
     private const string DefaultType = "string";
     private const string PersonAttributeId = "urn:altinn:person:identifier-no";
 
-    public static XacmlJsonRequestRoot CreateAltinnDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string party, string? instance)
+    public static XacmlJsonRequestRoot CreateAltinnDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string party, string? instanceId)
     {
         XacmlJsonRequest request = new XacmlJsonRequest();
         request.AccessSubject = new List<XacmlJsonCategory>();
@@ -21,7 +21,7 @@ public static class AltinnTokenXacmlMapper
 
         request.AccessSubject.Add(CreateSubjectCategory(user));
         request.Action.AddRange(actionTypes.Select(action => DecisionHelper.CreateActionCategory(action)));
-        request.Resource.Add(CreateResourceCategory(resourceId, user, party, instance));
+        request.Resource.Add(CreateResourceCategory(resourceId, user, party, instanceId));
 
         XacmlJsonRequestRoot jsonRequest = new() { Request = request };
 
@@ -44,27 +44,27 @@ public static class AltinnTokenXacmlMapper
     }
 
 
-    private static XacmlJsonCategory CreateResourceCategory(string resourceId, ClaimsPrincipal user, string recipientId, string? correspondenceId = null)
+    private static XacmlJsonCategory CreateResourceCategory(string resourceId, ClaimsPrincipal user, string party, string? instanceId = null)
     {
         XacmlJsonCategory resourceCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
 
         resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceId, resourceId, DefaultType, DefaultIssuer));
 
-        if (recipientId.IsOrganizationNumber())
+        if (party.IsOrganizationNumber())
         {
-            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumberAttribute, recipientId.GetOrgNumberWithoutPrefix(), DefaultType, DefaultIssuer));
+            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumberAttribute, party.GetOrgNumberWithoutPrefix(), DefaultType, DefaultIssuer));
         }
-        else if (recipientId.IsSocialSecurityNumber())
+        else if (party.IsSocialSecurityNumber())
         {
-            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, recipientId, DefaultType, DefaultIssuer));
+            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, party, DefaultType, DefaultIssuer));
         }
         else
         {
             throw new InvalidOperationException("RecipientId is not a valid organization or person number");
         }
-        if (correspondenceId is not null)
+        if (instanceId is not null)
         {
-            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceInstance, correspondenceId, DefaultType, DefaultIssuer));
+            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceInstance, instanceId, DefaultType, DefaultIssuer));
         }
         return resourceCategory;
     }
