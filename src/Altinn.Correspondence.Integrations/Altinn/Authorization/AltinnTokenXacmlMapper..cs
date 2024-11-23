@@ -3,7 +3,6 @@ using Altinn.Common.PEP.Constants;
 using Altinn.Common.PEP.Helpers;
 using Altinn.Correspondence.Common.Helpers;
 using System.Security.Claims;
-using System.Text.RegularExpressions;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Authorization;
 
@@ -50,7 +49,6 @@ public static class AltinnTokenXacmlMapper
         XacmlJsonCategory resourceCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
 
         resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceId, resourceId, DefaultType, DefaultIssuer));
-        var orgClaim = user.Claims.FirstOrDefault(claim => IsClientOrgNo(claim.Type));
 
         if (recipientId.IsOrganizationNumber())
         {
@@ -99,30 +97,10 @@ public static class AltinnTokenXacmlMapper
         xacmlJsonCategory.Attribute = list;
         return xacmlJsonCategory;
     }
-    private static bool IsValidUrn(string value)
-    {
-        Regex regex = new Regex("^urn*");
-        return regex.Match(value).Success;
-    }
-
-    private static bool IsCamelCaseOrgnumberClaim(string value)
-    {
-        return value.Equals("urn:altinn:orgNumber");
-    }
-
-    private static bool IsClientOrgNo(string value)
-    {
-        return value.Equals("client_orgno");
-    }
 
     private static bool IsScopeClaim(string value)
     {
         return value.Equals("scope");
-    }
-
-    private static bool IsJtiClaim(string value)
-    {
-        return value.Equals("jti");
     }
 
     private static bool IsValidPid(string value)

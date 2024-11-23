@@ -131,19 +131,14 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     private XacmlJsonRequestRoot CreateDecisionRequest(ClaimsPrincipal user, string resourceId, string party, string? instanceId, List<string> actionTypes)
     {
         var personIdClaim = GetPersonIdClaim(user);
-        if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
-        {
-            return AltinnTokenXacmlMapper.CreateAltinnDecisionRequest(user, actionTypes, resourceId, party, instanceId);
-        }
-        if (personIdClaim.Issuer == _dialogportenSettings.Issuer)
+        if (personIdClaim is not null && personIdClaim.Issuer == _dialogportenSettings.Issuer)
         {
             return DialogTokenXacmlMapper.CreateDialogportenDecisionRequest(user, resourceId, party);
         }
-        if (personIdClaim.Issuer == _idPortenSettings.Issuer)
+        else
         {
-            return IdportenXacmlMapper.CreateIdportenDecisionRequest(user, resourceId, actionTypes, party);
+            return AltinnTokenXacmlMapper.CreateAltinnDecisionRequest(user, actionTypes, resourceId, party, instanceId);
         }
-        throw new SecurityTokenInvalidIssuerException();
     }
 
     private XacmlJsonRequestRoot CreateDecisionRequestForLegacy(ClaimsPrincipal user, string ssn, List<string> actionTypes, string resourceId, string onBehalfOf)
