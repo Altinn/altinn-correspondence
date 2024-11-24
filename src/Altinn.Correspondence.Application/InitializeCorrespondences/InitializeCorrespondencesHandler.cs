@@ -226,7 +226,7 @@ public class InitializeCorrespondencesHandler(
                         NotificationTemplate = request.Notification.NotificationTemplate,
                         CorrespondenceId = correspondence.Id,
                         NotificationOrderId = notificationOrder.OrderId,
-                        RequestedSendTime = notification.RequestedSendTime ?? DateTimeOffset.UtcNow,
+                        RequestedSendTime = notification.RequestedSendTime,
                         IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
                     };
                     notificationDetails.Add(new InitializedCorrespondencesNotifications()
