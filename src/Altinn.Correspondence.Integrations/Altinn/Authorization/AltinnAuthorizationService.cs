@@ -118,12 +118,12 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         var response = await _httpClient.PostAsJsonAsync("authorization/api/v1/authorize", jsonRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception($"Failure when calling authorization: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            throw new HttpRequestException($"Failure when calling authorization: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         }
         var responseContent = await response.Content.ReadFromJsonAsync<XacmlJsonResponse>(cancellationToken: cancellationToken);
         if (responseContent is null)
         {
-            throw new Exception("Unexpected null or invalid json response from Authorization.");
+            throw new HttpRequestException("Unexpected null or invalid json response from Authorization.");
         }
         return responseContent;
     }
