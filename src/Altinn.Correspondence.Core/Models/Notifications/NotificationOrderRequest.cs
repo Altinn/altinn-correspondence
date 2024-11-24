@@ -4,7 +4,7 @@ namespace Altinn.Correspondence.Core.Models.Notifications
 {
     public class NotificationOrderRequest
     {
-        public DateTime? RequestedSendTime { get; set; }
+        public DateTime RequestedSendTime { get; set; }
 
         public string? SendersReference { get; set; }
 
