@@ -225,5 +225,29 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode, await getCorrespondenceOverviewResponse.Content.ReadAsStringAsync());
             Assert.True(getCorrespondenceContentResponse.IsSuccessStatusCode, await getCorrespondenceContentResponse.Content.ReadAsStringAsync());
         }
+
+        [Fact]
+        public async Task PersonalCorrespondence_NotRetrievableWithWrongRecipientToken()
+        {
+            // Arrange
+            var correspondence = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients(["11015699332"])
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+            var initializedCorrespondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var correspondenceId = initializedCorrespondence?.Correspondences.FirstOrDefault().CorrespondenceId;
+
+            var wrongRecipientClient = _factory.CreateClientWithAddedClaims(
+                ("pid", "wrong-personal-id"),
+                ("scope", AuthorizationConstants.RecipientScope));
+
+            var getCorrespondenceResponse = await wrongRecipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceResponse.StatusCode);
+        }
     }
 }
