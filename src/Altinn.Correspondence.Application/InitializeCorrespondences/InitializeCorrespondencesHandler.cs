@@ -17,7 +17,21 @@ using System.Text.RegularExpressions;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
-public class InitializeCorrespondencesHandler(InitializeCorrespondenceHelper initializeCorrespondenceHelper, IAltinnAuthorizationService altinnAuthorizationService, IAltinnNotificationService altinnNotificationService, ICorrespondenceRepository correspondenceRepository, ICorrespondenceNotificationRepository correspondenceNotificationRepository, INotificationTemplateRepository notificationTemplateRepository, IEventBus eventBus, IBackgroundJobClient backgroundJobClient, UserClaimsHelper userClaimsHelper, IDialogportenService dialogportenService, IHostEnvironment hostEnvironment, IOptions<GeneralSettings> generalSettings) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
+public class InitializeCorrespondencesHandler(
+    InitializeCorrespondenceHelper initializeCorrespondenceHelper,
+    IAltinnAuthorizationService altinnAuthorizationService,
+    IAltinnNotificationService altinnNotificationService,
+    ICorrespondenceRepository correspondenceRepository,
+    ICorrespondenceNotificationRepository correspondenceNotificationRepository,
+    INotificationTemplateRepository notificationTemplateRepository,
+    IEventBus eventBus,
+    IBackgroundJobClient backgroundJobClient,
+    UserClaimsHelper userClaimsHelper,
+    IDialogportenService dialogportenService,
+    IAltinnAccessManagementService altinnAccessManagementService,
+    IAltinnRegisterService altinnRegisterService,
+    IHostEnvironment hostEnvironment,
+    IOptions<GeneralSettings> generalSettings) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
     private readonly GeneralSettings _generalSettings = generalSettings.Value;
 
@@ -124,7 +138,6 @@ public class InitializeCorrespondencesHandler(InitializeCorrespondenceHelper ini
         var correspondences = new List<CorrespondenceEntity>();
         foreach (var recipient in request.Recipients)
         {
-            
             var correspondence = new CorrespondenceEntity
             {
                 ResourceId = request.Correspondence.ResourceId,
