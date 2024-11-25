@@ -43,7 +43,7 @@ public static class TransactionWithRetriesPolicy
             retryAttempt => TimeSpan.FromMilliseconds(10),
             (exception, timeSpan, retryCount, context) =>
             {
-                logger.LogWarning($"Attempt {retryCount} failed with exception {exception.Message}. Retrying in {timeSpan.Milliseconds} seconds.");
+                logger.LogWarning($"Attempt {retryCount} failed with exception {exception.Message}. Retrying in {timeSpan.Milliseconds} milliseconds.");
             }
         );
 }
