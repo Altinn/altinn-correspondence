@@ -25,18 +25,18 @@ public class GetCorrespondencesHandler(
             return Errors.InvalidDateRange;
         }
 
-        string? orgNo = request.OnBehalfOf;
-        if (orgNo is null) { 
-            orgNo = userClaimsHelper.GetUserID();
+        string? onBehalfOf = request.OnBehalfOf;
+        if (onBehalfOf is null) { 
+            onBehalfOf = userClaimsHelper.GetUserID();
         }
-        if (orgNo is null)
+        if (onBehalfOf is null)
         {
-            return Errors.CouldNotFindOrgNo;
+            return Errors.CouldNotDetermineCaller;
         }
         var hasAccess = await altinnAuthorizationService.CheckUserAccess(
             user,
             request.ResourceId,
-            orgNo,
+            onBehalfOf,
             null,
             [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
             cancellationToken);
@@ -53,7 +53,7 @@ public class GetCorrespondencesHandler(
             from,
             to,
             request.Status,
-            orgNo,
+            onBehalfOf,
             request.Role,
             cancellationToken);
         var response = new GetCorrespondencesResponse
