@@ -1,4 +1,4 @@
-using Altinn.Correspondence.Application.Helpers;
+﻿using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -30,11 +30,11 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = "Correspondence " + correspondenceId + " not found when publishing";
         }
-        else if (hostEnvironment.IsDevelopment() && correspondence.GetLatestStatus()?.Status == CorrespondenceStatus.Published)
+        else if (hostEnvironment.IsDevelopment() && correspondence.StatusHasBeen(CorrespondenceStatus.Published))
         {
             return Task.CompletedTask;
         }
-        else if (correspondence.GetLatestStatus()?.Status != CorrespondenceStatus.ReadyForPublish)
+        else if (correspondence.GetHighestStatus()?.Status != CorrespondenceStatus.ReadyForPublish) // TODO: Change to check if equal to initialized if/when ReadyForPublish is removed
         {
             errorMessage = $"Correspondence {correspondenceId} not ready for publish";
         }
