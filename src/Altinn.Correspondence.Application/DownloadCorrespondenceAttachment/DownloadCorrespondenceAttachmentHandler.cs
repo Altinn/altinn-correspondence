@@ -53,7 +53,7 @@ public class DownloadCorrespondenceAttachmentHandler(
         {
             return Errors.CorrespondenceNotFound;
         }
-        var latestStatus = correspondence.GetLatestStatus();
+        var latestStatus = correspondence.GetHighestStatus();
         if (!latestStatus.Status.IsAvailableForRecipient())
         {
             return Errors.CorrespondenceNotFound;

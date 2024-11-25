@@ -51,7 +51,7 @@ public class GetCorrespondenceOverviewHandler(
             logger.LogWarning("Caller not affiliated with correspondence");
             return Errors.CorrespondenceNotFound;
         }
-        var latestStatus = correspondence.GetLatestStatus();
+        var latestStatus = correspondence.GetHighestStatus();
         if (latestStatus == null)
         {
             logger.LogWarning("Latest status not found for correspondence");

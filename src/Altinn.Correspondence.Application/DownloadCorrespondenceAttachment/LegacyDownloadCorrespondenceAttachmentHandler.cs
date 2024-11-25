@@ -40,7 +40,7 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
         {
             return Errors.AttachmentNotFound;
         }
-        var latestStatus = correspondence.GetLatestStatus();
+        var latestStatus = correspondence.GetHighestStatus();
         if (!latestStatus.Status.IsAvailableForRecipient())
         {
             return Errors.CorrespondenceNotFound;

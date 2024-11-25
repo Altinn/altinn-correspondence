@@ -190,7 +190,8 @@ public class InitializeCorrespondencesHandler(
         foreach (var correspondence in correspondences)
         {
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
-            if (correspondence.GetLatestStatus()?.Status != CorrespondenceStatus.Published)
+            if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized || 
+                correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish) //TODO: Remove ReadyForPublish check if/when ReadyForPublish is removed
             {
                 var publishTime = correspondence.RequestedPublishTime;
 
@@ -248,7 +249,7 @@ public class InitializeCorrespondencesHandler(
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {
                 CorrespondenceId = correspondence.Id,
-                Status = correspondence.GetLatestStatus().Status,
+                Status = correspondence.GetHighestStatus().Status,
                 Recipient = correspondence.Recipient,
                 Notifications = notificationDetails
             });

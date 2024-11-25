@@ -45,7 +45,7 @@ public class PurgeAttachmentHandler(
         bool allCorrespondencesArePurged = correspondences
             .All(correspondence =>
             {
-                var latestStatus = correspondence.GetLatestStatus();
+                var latestStatus = correspondence.GetHighestStatus();
                 if (latestStatus is null) return false;
                 return latestStatus.Status.IsPurged();
             });

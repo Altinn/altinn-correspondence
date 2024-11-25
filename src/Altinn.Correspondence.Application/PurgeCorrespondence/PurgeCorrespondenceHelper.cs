@@ -31,7 +31,7 @@ public class PurgeCorrespondenceHelper
     }
     public Error? ValidatePurgeRequestSender(CorrespondenceEntity correspondence)
     {
-        var latestStatus = correspondence.GetLatestStatus();
+        var latestStatus = correspondence.GetHighestStatus();
         if (latestStatus == null)
         {
             return Errors.CorrespondenceNotFound;
@@ -44,7 +44,7 @@ public class PurgeCorrespondenceHelper
     }
     public Error? ValidatePurgeRequestRecipient(CorrespondenceEntity correspondence)
     {
-        var latestStatus = correspondence.GetLatestStatus();
+        var latestStatus = correspondence.GetHighestStatus();
         if (latestStatus == null)
         {
             return Errors.CorrespondenceNotFound;
