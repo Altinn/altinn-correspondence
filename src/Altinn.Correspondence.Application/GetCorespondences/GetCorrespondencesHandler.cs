@@ -6,19 +6,11 @@ using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondences;
 
-public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, GetCorrespondencesResponse>
+public class GetCorrespondencesHandler(
+    IAltinnAuthorizationService altinnAuthorizationService,
+    ICorrespondenceRepository correspondenceRepository,
+    UserClaimsHelper userClaimsHelper) : IHandler<GetCorrespondencesRequest, GetCorrespondencesResponse>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly UserClaimsHelper _userClaimsHelper;
-
-    public GetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper)
-    {
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _correspondenceRepository = correspondenceRepository;
-        _userClaimsHelper = userClaimsHelper;
-    }
-
     public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         if (request.Limit < 0 || request.Offset < 0)
@@ -34,7 +26,7 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
         }
 
         string? onBehalfOf = request.OnBehalfOf;
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
+        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
             user,
             request.ResourceId,
             [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
@@ -46,7 +38,7 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
             return Errors.NoAccessToResource;
         }
 
-        string? orgNo = _userClaimsHelper.GetUserID();
+        string? orgNo = userClaimsHelper.GetUserID();
         if (hasAccess && !string.IsNullOrEmpty(onBehalfOf))
         {
             orgNo = onBehalfOf;
@@ -56,7 +48,7 @@ public class GetCorrespondencesHandler : IHandler<GetCorrespondencesRequest, Get
         {
             return Errors.CouldNotFindOrgNo;
         }
-        var correspondences = await _correspondenceRepository.GetCorrespondences(
+        var correspondences = await correspondenceRepository.GetCorrespondences(
             request.ResourceId,
             request.Offset,
             limit,

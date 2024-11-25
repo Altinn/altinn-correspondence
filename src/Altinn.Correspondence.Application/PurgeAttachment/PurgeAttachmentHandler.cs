@@ -6,32 +6,32 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using OneOf;
 using System.Security.Claims;
+using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Application.PurgeAttachment;
 
-public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository, IAttachmentStatusRepository attachmentStatusRepository, IStorageRepository storageRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IEventBus eventBus, UserClaimsHelper userClaimsHelper) : IHandler<Guid, Guid>
+public class PurgeAttachmentHandler(
+    IAltinnAuthorizationService altinnAuthorizationService,
+    IAttachmentRepository attachmentRepository,
+    IAttachmentStatusRepository attachmentStatusRepository,
+    IStorageRepository storageRepository,
+    ICorrespondenceRepository correspondenceRepository,
+    IEventBus eventBus,
+    UserClaimsHelper userClaimsHelper,
+    ILogger<PurgeAttachmentHandler> logger) : IHandler<Guid, Guid>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
-    private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
-    private readonly IAttachmentStatusRepository _attachmentStatusRepository = attachmentStatusRepository;
-    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
-    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository = correspondenceStatusRepository;
-    private readonly IStorageRepository _storageRepository = storageRepository;
-    private readonly IEventBus _eventBus = eventBus;
-    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
-
     public async Task<OneOf<Guid, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
+        var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
         if (attachment == null)
         {
             return Errors.AttachmentNotFound;
         }
-        if (!_userClaimsHelper.IsSender(attachment.Sender))
+        if (!userClaimsHelper.IsSender(attachment.Sender))
         {
             return Errors.InvalidSender;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
@@ -41,7 +41,7 @@ public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizat
             return Errors.InvalidPurgeAttachmentStatus;
         }
 
-        var correspondences = await _correspondenceRepository.GetCorrespondencesByAttachmentId(attachmentId, true, cancellationToken);
+        var correspondences = await correspondenceRepository.GetCorrespondencesByAttachmentId(attachmentId, true, cancellationToken);
         bool allCorrespondencesArePurged = correspondences
             .All(correspondence =>
             {
@@ -53,18 +53,20 @@ public class PurgeAttachmentHandler(IAltinnAuthorizationService altinnAuthorizat
         {
             return Errors.PurgeAttachmentWithExistingCorrespondence;
         }
-
-        await _storageRepository.PurgeAttachment(attachmentId, cancellationToken);
-        await _attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
+        return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            AttachmentId = attachmentId,
-            Status = AttachmentStatus.Purged,
-            StatusChanged = DateTimeOffset.UtcNow,
-            StatusText = AttachmentStatus.Purged.ToString()
-        }, cancellationToken);
+            await storageRepository.PurgeAttachment(attachmentId, cancellationToken);
+            await attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
+            {
+                AttachmentId = attachmentId,
+                Status = AttachmentStatus.Purged,
+                StatusChanged = DateTimeOffset.UtcNow,
+                StatusText = AttachmentStatus.Purged.ToString()
+            }, cancellationToken);
 
-        await _eventBus.Publish(AltinnEventType.AttachmentPurged, attachment.ResourceId, attachmentId.ToString(), "attachment", attachment.Sender, cancellationToken);
+            await eventBus.Publish(AltinnEventType.AttachmentPurged, attachment.ResourceId, attachmentId.ToString(), "attachment", attachment.Sender, cancellationToken);
 
-        return attachmentId;
+            return attachmentId;
+        }, logger, cancellationToken);
     }
 }

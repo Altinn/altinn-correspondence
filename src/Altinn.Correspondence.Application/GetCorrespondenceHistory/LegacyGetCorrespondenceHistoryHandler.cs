@@ -15,34 +15,28 @@ public class LegacyGetCorrespondenceHistoryHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     UserClaimsHelper userClaimsHelper) : IHandler<Guid, List<LegacyGetCorrespondenceHistoryResponse>>
 {
-    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
-    private readonly IAltinnNotificationService _altinnNotificationService = altinnNotificationService;
-    private readonly IAltinnRegisterService _altinnRegisterService = altinnRegisterService;
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
-    private readonly UserClaimsHelper _userClaimsHelper = userClaimsHelper;
-
     public async Task<OneOf<List<LegacyGetCorrespondenceHistoryResponse>, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        if (_userClaimsHelper.GetPartyId() is not int partyId)
+        if (userClaimsHelper.GetPartyId() is not int partyId)
         {
             return Errors.InvalidPartyId;
         }
-        var recipientParty = await _altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
+        var recipientParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (recipientParty == null || (string.IsNullOrEmpty(recipientParty.SSN) && string.IsNullOrEmpty(recipientParty.OrgNumber)))
         {
             return Errors.CouldNotFindOrgNo;
         }
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
         if (correspondence is null)
         {
             return Errors.CorrespondenceNotFound;
         }
-        var minimumAuthLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, recipientParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
+        var minimumAuthLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, recipientParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
         if (minimumAuthLevel is null)
         {
             return Errors.LegacyNoAccessToCorrespondence;
         }
-        var senderParty = await _altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
+        var senderParty = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
         if (senderParty == null || (string.IsNullOrEmpty(senderParty.SSN) && string.IsNullOrEmpty(senderParty.OrgNumber)))
         {
             return Errors.CouldNotFindOrgNo;
@@ -61,7 +55,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
         {
             if (string.IsNullOrEmpty(notification.NotificationOrderId.ToString())) continue;
 
-            var notificationDetails = await _altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString(), cancellationToken);
+            var notificationDetails = await altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString(), cancellationToken);
 
             if (notificationDetails?.NotificationsStatusDetails is null) continue;
 
@@ -94,7 +88,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
             CorrespondenceStatus.Published,
         ];
         var partyId = statusBySender.Contains(status.Status) ? senderParty.PartyId : recipientParty.PartyId;
-        var party = await _altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
+        var party = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
 
         return new LegacyGetCorrespondenceHistoryResponse
         {
@@ -130,7 +124,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
         string? id = !string.IsNullOrEmpty(recipient.OrganizationNumber) ? recipient.OrganizationNumber : recipient.NationalIdentityNumber;
         if (!string.IsNullOrEmpty(id))
         {
-            var party = await _altinnRegisterService.LookUpPartyById(id, cancellationToken);
+            var party = await altinnRegisterService.LookUpPartyById(id, cancellationToken);
             response.User = new LegacyUser
             {
                 PartyId = party?.PartyId,
