@@ -178,5 +178,26 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.OK, archiveResponse.StatusCode);
         }
 
+        [Fact]
+        public async Task Can_Get_Overview_When_Purged()
+        {
+            //  Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(1))
+                .WithConfirmationNeeded(true)
+                .Build();
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.Equal(CorrespondenceStatusExt.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
+            var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
+
+            var purgeRequest = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
+            purgeRequest.EnsureSuccessStatusCode();
+
+            var fetchResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+            Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
+        }
+
     }
 }
