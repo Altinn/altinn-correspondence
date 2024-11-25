@@ -11,27 +11,16 @@ using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondences;
 
-public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondencesRequest, LegacyGetCorrespondencesResponse>
+public class LegacyGetCorrespondencesHandler(
+    IAltinnAuthorizationService altinnAuthorizationService,
+    IAltinnAccessManagementService altinnAccessManagementService,
+    ICorrespondenceRepository correspondenceRepository,
+    UserClaimsHelper userClaimsHelper,
+    IAltinnRegisterService altinnRegisterService,
+    IResourceRightsService resourceRightsService,
+    ILogger<LegacyGetCorrespondencesHandler> logger) : IHandler<LegacyGetCorrespondencesRequest, LegacyGetCorrespondencesResponse>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly IAltinnAccessManagementService _altinnAccessManagementService;
-    private readonly IAltinnRegisterService _altinnRegisterService;
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly IResourceRightsService _resourceRightsService;
-    private readonly UserClaimsHelper _userClaimsHelper;
-    private readonly ILogger<LegacyGetCorrespondencesHandler> _logger;
     private record PartyInfo(string Id, Party? Party);
-
-    public LegacyGetCorrespondencesHandler(IAltinnAuthorizationService altinnAuthorizationService, IAltinnAccessManagementService altinnAccessManagement, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper, IAltinnRegisterService altinnRegisterService, IResourceRightsService resourceRightsService, ILogger<LegacyGetCorrespondencesHandler> logger)
-    {
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _altinnAccessManagementService = altinnAccessManagement;
-        _correspondenceRepository = correspondenceRepository;
-        _userClaimsHelper = userClaimsHelper;
-        _altinnRegisterService = altinnRegisterService;
-        _resourceRightsService = resourceRightsService;
-        _logger = logger;
-    }
 
     public async Task<OneOf<LegacyGetCorrespondencesResponse, Error>> Process(LegacyGetCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -43,12 +32,12 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         {
             return Errors.InvalidDateRange;
         }
-        if (_userClaimsHelper.GetPartyId() is not int partyId)
+        if (userClaimsHelper.GetPartyId() is not int partyId)
         {
             return Errors.InvalidPartyId;
         }
-        var minAuthLevel = _userClaimsHelper.GetMinimumAuthenticationLevel();
-        var userParty = await _altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
+        var minAuthLevel = userClaimsHelper.GetMinimumAuthenticationLevel();
+        var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
         {
             return Errors.CouldNotFindOrgNo;
@@ -56,7 +45,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         var recipients = new List<string>();
         if (request.InstanceOwnerPartyIdList != null && request.InstanceOwnerPartyIdList.Length > 0)
         {
-            var authorizedParties = await _altinnAccessManagementService.GetAuthorizedParties(userParty, cancellationToken);
+            var authorizedParties = await altinnAccessManagementService.GetAuthorizedParties(userParty, cancellationToken);
             var authorizedPartiesDict = authorizedParties.ToDictionary(c => c.PartyId);
             foreach (int instanceOwnerPartyId in request.InstanceOwnerPartyIdList)
             {
@@ -78,7 +67,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         List<string> resourcesToSearch = new List<string>();
 
         // Get all correspondences owned by Recipients
-        var correspondences = await _correspondenceRepository.GetCorrespondencesForParties(request.Offset, limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken);
+        var correspondences = await correspondenceRepository.GetCorrespondencesForParties(request.Offset, limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken);
 
         var resourceIds = correspondences.Item1.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
@@ -89,7 +78,7 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         {
             try
             {
-                var resourceOwnerParty = await _altinnRegisterService.LookUpPartyById(orgNr, cancellationToken);
+                var resourceOwnerParty = await altinnRegisterService.LookUpPartyById(orgNr, cancellationToken);
                 Senders.Add(new PartyInfo(orgNr, resourceOwnerParty));
             }
             catch (Exception e)
@@ -103,13 +92,13 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         {
             try
             {
-                var resourceOwner = await _resourceRightsService.GetServiceOwnerOfResource(resource, cancellationToken);
-                var resourceOwnerInfo = await _altinnRegisterService.LookUpPartyById(resourceOwner, cancellationToken);
+                var resourceOwner = await resourceRightsService.GetServiceOwnerOfResource(resource, cancellationToken);
+                var resourceOwnerInfo = await altinnRegisterService.LookUpPartyById(resourceOwner, cancellationToken);
                 resourceOwners.Add(new PartyInfo(resource, resourceOwnerInfo));
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Failed to lookup resource owner for resource: {resource}", resource);
+                logger.LogError(e, "Failed to lookup resource owner for resource: {resource}", resource);
                 resourceOwners.Add(new PartyInfo(resource, null));
             }
         }
@@ -119,19 +108,19 @@ public class LegacyGetCorrespondencesHandler : IHandler<LegacyGetCorrespondences
         {
             try
             {
-                var recipientParty = await _altinnRegisterService.LookUpPartyById(orgNr, cancellationToken);
+                var recipientParty = await altinnRegisterService.LookUpPartyById(orgNr, cancellationToken);
                 recipientDetails.Add(new PartyInfo(orgNr, recipientParty));
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Failed to lookup recipient party for orgNr: {OrgNr}", orgNr);
+                logger.LogError(e, "Failed to lookup recipient party for orgNr: {OrgNr}", orgNr);
                 recipientDetails.Add(new PartyInfo(orgNr, null));
             }
         }
         var correspondenceToSubtractFromTotal = 0;
         foreach (var correspondence in correspondences.Item1)
         {
-            var authLevel = await _altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
+            var authLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
             if (minAuthLevel == null || minAuthLevel < authLevel)
             {
                 correspondenceToSubtractFromTotal++;

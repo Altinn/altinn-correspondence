@@ -81,9 +81,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             // Assert
             var historyResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/history");
             Assert.Equal(HttpStatusCode.OK, historyResponse.StatusCode);
-            var historyData = await historyResponse.Content.ReadFromJsonAsync<LegacyGetCorrespondenceHistoryResponse>();
+            var historyData = await historyResponse.Content.ReadFromJsonAsync<List<LegacyGetCorrespondenceHistoryResponse>>();
             Assert.NotNull(historyData);
-            Assert.Contains(historyData.History, status => status.Status.Contains(CorrespondenceStatus.Fetched.ToString()));
+            Assert.Contains(historyData, status => status.Status.Contains(CorrespondenceStatus.Fetched.ToString()));
         }
 
         [Fact]
@@ -130,15 +130,13 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             // Assert
-            var content = await response.Content.ReadFromJsonAsync<LegacyGetCorrespondenceHistoryResponse>(_serializerOptions);
+            var content = await response.Content.ReadFromJsonAsync<List<LegacyGetCorrespondenceHistoryResponse>>(_serializerOptions);
             Assert.NotNull(content);
-            Assert.Equal(content.NeedsConfirm, payload.Correspondence.IsConfirmationNeeded);
-            Assert.All(content.History, status => Assert.True(status.User.AuthenticationLevel > 0));
-            Assert.Contains(content.History, status => status.User.PartyId == _digdirPartyId);
-            Assert.Contains(content.History, status => status.Status.Contains(CorrespondenceStatus.Published.ToString()));
-            Assert.Contains(content.History, status => status.Status.Contains(CorrespondenceStatus.Fetched.ToString()));
-            Assert.Contains(content.History, status => status.Status.Contains(CorrespondenceStatus.Confirmed.ToString()));
-            Assert.Contains(content.History, status => status.Status.Contains(CorrespondenceStatus.Archived.ToString()));
+            Assert.Contains(content, status => status.User.PartyId == _digdirPartyId);
+            Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Published.ToString()));
+            Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Fetched.ToString()));
+            Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Confirmed.ToString()));
+            Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Archived.ToString()));
         }
 
         [Fact]

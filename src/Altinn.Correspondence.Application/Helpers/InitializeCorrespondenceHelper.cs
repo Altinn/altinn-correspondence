@@ -9,11 +9,11 @@ using OneOf;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
-    public class InitializeCorrespondenceHelper(IAttachmentRepository attachmentRepository, IHostEnvironment hostEnvironment, UploadHelper uploadHelper)
+    public class InitializeCorrespondenceHelper(
+        IAttachmentRepository attachmentRepository,
+        IHostEnvironment hostEnvironment,
+        UploadHelper uploadHelper)
     {
-        private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
-        private readonly IHostEnvironment _hostEnvironment = hostEnvironment;
-        private readonly UploadHelper _uploadHelper = uploadHelper;
 
         public Error? ValidateDateConstraints(CorrespondenceEntity correspondence)
         {
@@ -150,7 +150,7 @@ namespace Altinn.Correspondence.Application.Helpers
             var attachments = new List<AttachmentEntity>();
             foreach (var attachmentId in attachmentIds)
             {
-                var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true);
+                var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true);
                 if (attachment is not null)
                 {
                     if (attachment.Sender != sender) return Errors.InvalidSenderForAttachment;
@@ -165,7 +165,7 @@ namespace Altinn.Correspondence.Application.Helpers
             var status = CorrespondenceStatus.Initialized;
             if (correspondence.Content != null && correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.StatusHasBeen(AttachmentStatus.Published)))
             {
-                if (_hostEnvironment.IsDevelopment() && correspondence.RequestedPublishTime < DateTimeOffset.UtcNow) status = CorrespondenceStatus.Published; // used to test on published correspondences in development
+                if (hostEnvironment.IsDevelopment() && correspondence.RequestedPublishTime < DateTimeOffset.UtcNow) status = CorrespondenceStatus.Published; // used to test on published correspondences in development
                 else status = CorrespondenceStatus.ReadyForPublish;
             }
             return status;
@@ -184,7 +184,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 OneOf<UploadAttachmentResponse, Error> uploadResponse;
                 await using (var f = file.OpenReadStream())
                 {
-                    uploadResponse = await _uploadHelper.UploadAttachment(f, attachment.Id, cancellationToken);
+                    uploadResponse = await uploadHelper.UploadAttachment(f, attachment.Id, cancellationToken);
                 }
                 var error = uploadResponse.Match(
                     _ => { return null; },
@@ -207,7 +207,7 @@ namespace Altinn.Correspondence.Application.Helpers
             };
             var attachment = correspondenceAttachment.Attachment!;
             attachment.Statuses = status;
-            return await _attachmentRepository.InitializeAttachment(attachment, cancellationToken);
+            return await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
         }
     }
 }

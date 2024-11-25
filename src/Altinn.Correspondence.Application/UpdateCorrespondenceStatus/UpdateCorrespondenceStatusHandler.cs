@@ -4,39 +4,24 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 
-public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceStatusRequest, Guid>
+public class UpdateCorrespondenceStatusHandler(
+    IAltinnAuthorizationService altinnAuthorizationService,
+    ICorrespondenceRepository correspondenceRepository,
+    ICorrespondenceStatusRepository correspondenceStatusRepository,
+    IEventBus eventBus,
+    UserClaimsHelper userClaimsHelper,
+    UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
+    ILogger<UpdateCorrespondenceStatusHandler> logger) : IHandler<UpdateCorrespondenceStatusRequest, Guid>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
-    private readonly IEventBus _eventBus;
-    private readonly UserClaimsHelper _userClaimsHelper;
-    private readonly UpdateCorrespondenceStatusHelper _updateCorrespondenceStatusHelper;
-
-    public UpdateCorrespondenceStatusHandler(
-        IAltinnAuthorizationService altinnAuthorizationService,
-        ICorrespondenceRepository correspondenceRepository,
-        ICorrespondenceStatusRepository correspondenceStatusRepository,
-        IEventBus eventBus,
-        UserClaimsHelper userClaimsHelper,
-        UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper)
-    {
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _correspondenceRepository = correspondenceRepository;
-        _correspondenceStatusRepository = correspondenceStatusRepository;
-        _eventBus = eventBus;
-        _userClaimsHelper = userClaimsHelper;
-        _updateCorrespondenceStatusHelper = updateCorrespondenceStatusHelper;
-    }
-
     public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, cancellationToken);
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
@@ -47,7 +32,7 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
+        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
             user,
             correspondence.ResourceId,
             request.OnBehalfOf ?? correspondence.Recipient,
@@ -58,30 +43,36 @@ public class UpdateCorrespondenceStatusHandler : IHandler<UpdateCorrespondenceSt
         {
             return Errors.NoAccessToResource;
         }
-        var isRecipient = _userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
+        var isRecipient = userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
         if (!isRecipient)
         {
             return Errors.CorrespondenceNotFound;
         }
-        var currentStatusError = _updateCorrespondenceStatusHelper.ValidateCurrentStatus(correspondence);
+        var currentStatusError = updateCorrespondenceStatusHelper.ValidateCurrentStatus(correspondence);
         if (currentStatusError is not null)
         {
             return currentStatusError;
         }
-        var updateError = _updateCorrespondenceStatusHelper.ValidateUpdateRequest(request, correspondence);
+        var updateError = updateCorrespondenceStatusHelper.ValidateUpdateRequest(request, correspondence);
         if (updateError is not null)
         {
             return updateError;
         }
-        await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+        
+        await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
         {
-            CorrespondenceId = request.CorrespondenceId,
-            Status = request.Status,
-            StatusChanged = DateTimeOffset.UtcNow,
-            StatusText = request.Status.ToString(),
-        }, cancellationToken);
-        _updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
-        await _updateCorrespondenceStatusHelper.PublishEvent(_eventBus, correspondence, request.Status, cancellationToken);
+            await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+            {
+                CorrespondenceId = request.CorrespondenceId,
+                Status = request.Status,
+                StatusChanged = DateTimeOffset.UtcNow,
+                StatusText = request.Status.ToString(),
+            }, cancellationToken);
+            updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
+            await updateCorrespondenceStatusHelper.PublishEvent(eventBus, correspondence, request.Status, cancellationToken);
+            return Task.CompletedTask;
+        },logger, cancellationToken);
+
         return request.CorrespondenceId;
     }
 }

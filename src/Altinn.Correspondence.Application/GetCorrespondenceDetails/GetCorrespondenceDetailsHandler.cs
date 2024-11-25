@@ -4,37 +4,23 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
-using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceDetails;
 
-public class GetCorrespondenceDetailsHandler : IHandler<GetCorrespondenceDetailsRequest, GetCorrespondenceDetailsResponse>
+public class GetCorrespondenceDetailsHandler(
+    IAltinnAuthorizationService altinnAuthorizationService,
+    IAltinnNotificationService altinnNotificationService,
+    ICorrespondenceRepository correspondenceRepository,
+    ICorrespondenceStatusRepository correspondenceStatusRepository,
+    UserClaimsHelper userClaimsHelper,
+    ILogger<GetCorrespondenceDetailsHandler> logger) : IHandler<GetCorrespondenceDetailsRequest, GetCorrespondenceDetailsResponse>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly IAltinnNotificationService _altinnNotificationService;
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
-    private readonly UserClaimsHelper _userClaimsHelper;
-
-    public GetCorrespondenceDetailsHandler(
-        IAltinnAuthorizationService altinnAuthorizationService,
-        IAltinnNotificationService altinnNotificationService,
-        ICorrespondenceRepository correspondenceRepository,
-        ICorrespondenceStatusRepository correspondenceStatusRepository,
-        UserClaimsHelper userClaimsHelper)
+    public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(GetCorrespondenceDetailsRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _altinnNotificationService = altinnNotificationService;
-        _correspondenceRepository = correspondenceRepository;
-        _correspondenceStatusRepository = correspondenceStatusRepository;
-        _userClaimsHelper = userClaimsHelper;
-    }
-
-    public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(GetCorrespondenceDetailsRequest request, ClaimsPrincipal user, CancellationToken cancellationToken)
-    {
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
@@ -48,7 +34,7 @@ public class GetCorrespondenceDetailsHandler : IHandler<GetCorrespondenceDetails
             isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
             isOnBehalfOfSender = correspondence.Sender.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(
+        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
             user,
             correspondence.ResourceId,
             request.OnBehalfOf ?? correspondence.Recipient,
@@ -60,8 +46,8 @@ public class GetCorrespondenceDetailsHandler : IHandler<GetCorrespondenceDetails
             return Errors.NoAccessToResource;
         }
 
-        bool isRecipient = _userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
-        bool isSender = _userClaimsHelper.IsSender(correspondence.Sender) || isOnBehalfOfSender;
+        bool isRecipient = userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
+        bool isSender = userClaimsHelper.IsSender(correspondence.Sender) || isOnBehalfOfSender;
 
         if (!isRecipient && !isSender)
         {
@@ -73,56 +59,60 @@ public class GetCorrespondenceDetailsHandler : IHandler<GetCorrespondenceDetails
             return Errors.CorrespondenceNotFound;
         }
 
-        if (isRecipient)
+        return await TransactionWithRetriesPolicy.Execute<GetCorrespondenceDetailsResponse>(async (cancellationToken) =>
         {
-            if (!latestStatus.Status.IsAvailableForRecipient())
+            if (isRecipient)
             {
-                return Errors.CorrespondenceNotFound;
+                if (!latestStatus.Status.IsAvailableForRecipient())
+                {
+                    return Errors.CorrespondenceNotFound;
+                }
+                await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+                {
+                    CorrespondenceId = correspondence.Id,
+                    Status = CorrespondenceStatus.Fetched,
+                    StatusText = CorrespondenceStatus.Fetched.ToString(),
+                    StatusChanged = DateTimeOffset.UtcNow
+                }, cancellationToken);
+
             }
-            await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+            var notificationHistory = new List<NotificationStatusResponse>();
+            foreach (var notification in correspondence.Notifications)
+            {
+                if (notification.NotificationOrderId != null)
+                {
+                    var notificationSummary = await altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString());
+                    notificationSummary.IsReminder = notification.IsReminder;
+                    notificationHistory.Add(notificationSummary);
+                }
+            }
+
+            var response = new GetCorrespondenceDetailsResponse
             {
                 CorrespondenceId = correspondence.Id,
-                Status = CorrespondenceStatus.Fetched,
-                StatusText = CorrespondenceStatus.Fetched.ToString(),
-                StatusChanged = DateTimeOffset.UtcNow
-            }, cancellationToken);
-        }
-        var notificationHistory = new List<NotificationStatusResponse>();
-        foreach (var notification in correspondence.Notifications)
-        {
-            if (notification.NotificationOrderId != null)
-            {
-                var notificationSummary = await _altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString());
-                notificationSummary.IsReminder = notification.IsReminder;
-                notificationHistory.Add(notificationSummary);
-            }
-        }
-
-        var response = new GetCorrespondenceDetailsResponse
-        {
-            CorrespondenceId = correspondence.Id,
-            Status = latestStatus.Status,
-            StatusText = latestStatus.StatusText,
-            StatusChanged = latestStatus.StatusChanged,
-            SendersReference = correspondence.SendersReference,
-            Sender = correspondence.Sender,
-            MessageSender = correspondence.MessageSender ?? string.Empty,
-            Created = correspondence.Created,
-            Recipient = correspondence.Recipient,
-            Content = correspondence.Content!,
-            ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
-            Notifications = notificationHistory,
-            StatusHistory = correspondence.Statuses?.OrderBy(s => s.StatusChanged).ToList() ?? new List<CorrespondenceStatusEntity>(),
-            ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
-            ResourceId = correspondence.ResourceId,
-            RequestedPublishTime = correspondence.RequestedPublishTime,
-            IgnoreReservation = correspondence.IgnoreReservation ?? false,
-            AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
-            DueDateTime = correspondence.DueDateTime,
-            PropertyList = correspondence.PropertyList,
-            Published = correspondence.Published,
-            IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
-        };
-        return response;
+                Status = latestStatus.Status,
+                StatusText = latestStatus.StatusText,
+                StatusChanged = latestStatus.StatusChanged,
+                SendersReference = correspondence.SendersReference,
+                Sender = correspondence.Sender,
+                MessageSender = correspondence.MessageSender ?? string.Empty,
+                Created = correspondence.Created,
+                Recipient = correspondence.Recipient,
+                Content = correspondence.Content!,
+                ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
+                Notifications = notificationHistory,
+                StatusHistory = correspondence.Statuses?.OrderBy(s => s.StatusChanged).ToList() ?? new List<CorrespondenceStatusEntity>(),
+                ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
+                ResourceId = correspondence.ResourceId,
+                RequestedPublishTime = correspondence.RequestedPublishTime,
+                IgnoreReservation = correspondence.IgnoreReservation ?? false,
+                AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
+                DueDateTime = correspondence.DueDateTime,
+                PropertyList = correspondence.PropertyList,
+                Published = correspondence.Published,
+                IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
+            };
+            return response;
+        }, logger, cancellationToken);
     }
 }

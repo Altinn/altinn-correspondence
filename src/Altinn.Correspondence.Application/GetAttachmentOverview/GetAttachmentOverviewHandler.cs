@@ -6,40 +6,30 @@ using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetAttachmentOverview;
 
-public class GetAttachmentOverviewHandler : IHandler<Guid, GetAttachmentOverviewResponse>
+public class GetAttachmentOverviewHandler(
+    IAltinnAuthorizationService altinnAuthorizationService,
+    IAttachmentRepository attachmentRepository,
+    ICorrespondenceRepository correspondenceRepository,
+    UserClaimsHelper userClaimsHelper) : IHandler<Guid, GetAttachmentOverviewResponse>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService;
-    private readonly IAttachmentStatusRepository _attachmentStatusRepository;
-    private readonly IAttachmentRepository _attachmentRepository;
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly UserClaimsHelper _userClaimsHelper;
-
-    public GetAttachmentOverviewHandler(IAltinnAuthorizationService altinnAuthorizationService, IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository, ICorrespondenceRepository correspondenceRepository, UserClaimsHelper userClaimsHelper)
-    {
-        _altinnAuthorizationService = altinnAuthorizationService;
-        _attachmentStatusRepository = attachmentStatusRepository;
-        _attachmentRepository = attachmentRepository;
-        _correspondenceRepository = correspondenceRepository;
-        _userClaimsHelper = userClaimsHelper;
-    }
     public async Task<OneOf<GetAttachmentOverviewResponse, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var attachment = await _attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
+        var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
         if (attachment == null)
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, attachment.Sender, attachment.Id.ToString(), new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, attachment.Sender, attachment.Id.ToString(), new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
         }
-        if (!_userClaimsHelper.IsSender(attachment.Sender))
+        if (!userClaimsHelper.IsSender(attachment.Sender))
         {
             return Errors.InvalidSender;
         }
         var attachmentStatus = attachment.GetLatestStatus();
-        var correspondenceIds = await _correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);
+        var correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);
 
         var response = new GetAttachmentOverviewResponse
         {
