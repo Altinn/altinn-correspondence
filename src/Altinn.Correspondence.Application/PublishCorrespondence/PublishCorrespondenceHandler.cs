@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -37,10 +37,6 @@ public class PublishCorrespondenceHandler(
         else if (correspondence.GetLatestStatus()?.Status != CorrespondenceStatus.ReadyForPublish)
         {
             errorMessage = $"Correspondence {correspondenceId} not ready for publish";
-        }
-        else if (correspondence.Content == null || correspondence.Content.Attachments.Any(a => a.Attachment?.GetLatestStatus()?.Status != AttachmentStatus.Published))
-        {
-            errorMessage = $"Correspondence {correspondenceId} has attachments not published";
         }
         else if (correspondence.RequestedPublishTime > DateTimeOffset.UtcNow)
         {
