@@ -53,6 +53,24 @@ public class LegacyGetCorrespondenceOverviewHandler(
             return Errors.CorrespondenceNotFound;
         }
 
+        var notificationsOverview = new List<CorrespondenceNotificationOverview>();
+        if (correspondence.Notifications != null)
+        {
+            foreach (var notification in correspondence.Notifications)
+            {
+                notificationsOverview.Add(new CorrespondenceNotificationOverview
+                {
+                    NotificationOrderId = notification.NotificationOrderId,
+                    IsReminder = notification.IsReminder
+                });
+            }
+        }
+        var resourceOwnerParty = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
+        if (resourceOwnerParty == null)
+        {
+            return Errors.CouldNotFindOrgNo;
+        }
+
         return await TransactionWithRetriesPolicy.Execute<LegacyGetCorrespondenceOverviewResponse>(async (cancellationToken) =>
         {
             try
@@ -70,23 +88,6 @@ public class LegacyGetCorrespondenceOverviewHandler(
                 logger.LogError(e, "Error when adding status to correspondence");
             }
 
-            var notificationsOverview = new List<CorrespondenceNotificationOverview>();
-            if (correspondence.Notifications != null)
-            {
-                foreach (var notification in correspondence.Notifications)
-                {
-                    notificationsOverview.Add(new CorrespondenceNotificationOverview
-                    {
-                        NotificationOrderId = notification.NotificationOrderId,
-                        IsReminder = notification.IsReminder
-                    });
-                }
-            }
-            var resourceOwnerParty = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
-            if (resourceOwnerParty == null)
-            {
-                return Errors.CouldNotFindOrgNo;
-            }
             try
             {
                 await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
