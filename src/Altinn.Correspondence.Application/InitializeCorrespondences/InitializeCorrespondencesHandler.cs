@@ -34,7 +34,7 @@ public class InitializeCorrespondencesHandler(
     IAltinnRegisterService altinnRegisterService,
     IHostEnvironment hostEnvironment,
     IOptions<GeneralSettings> generalSettings,
-    ILogger<InitializeCorrespondenceHelper> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
+    ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
     private readonly GeneralSettings _generalSettings = generalSettings.Value;
 
