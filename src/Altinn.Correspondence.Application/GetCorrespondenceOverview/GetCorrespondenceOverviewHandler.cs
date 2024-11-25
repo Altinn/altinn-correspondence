@@ -11,14 +11,14 @@ namespace Altinn.Correspondence.Application.GetCorrespondenceOverview;
 
 public class GetCorrespondenceOverviewHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
-    ICorrespondenceRepository CorrespondenceRepository,
+    ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     UserClaimsHelper userClaimsHelper,
     ILogger<GetCorrespondenceOverviewHandler> logger) : IHandler<GetCorrespondenceOverviewRequest, GetCorrespondenceOverviewResponse>
 {
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(GetCorrespondenceOverviewRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var correspondence = await CorrespondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
         if (correspondence == null)
         {
             return Errors.CorrespondenceNotFound;
