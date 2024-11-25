@@ -48,38 +48,42 @@ public class PublishCorrespondenceHandler(
         }
         CorrespondenceStatusEntity status;
         AltinnEventType eventType = AltinnEventType.CorrespondencePublished;
-        if (errorMessage.Length > 0)
+        return await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
         {
-            logger.LogError(errorMessage);
-            status = new CorrespondenceStatusEntity
-            {
-                CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Failed,
-                StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = errorMessage
-            };
-            eventType = AltinnEventType.CorrespondencePublishFailed;
-            foreach (var notification in correspondence.Notifications)
-            {
-                backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
-            }
-        }
-        else
-        {
-            status = new CorrespondenceStatusEntity
-            {
-                CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Published,
-                StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = CorrespondenceStatus.Published.ToString()
-            };
-            await correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
-            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.CorrespondencePublished));
-        }
 
-        await correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
-        await eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
-        if (status.Status == CorrespondenceStatus.Published) await eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
-        return Task.CompletedTask;
+            if (errorMessage.Length > 0)
+            {
+                logger.LogError(errorMessage);
+                status = new CorrespondenceStatusEntity
+                {
+                    CorrespondenceId = correspondenceId,
+                    Status = CorrespondenceStatus.Failed,
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusText = errorMessage
+                };
+                eventType = AltinnEventType.CorrespondencePublishFailed;
+                foreach (var notification in correspondence.Notifications)
+                {
+                    backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
+                }
+            }
+            else
+            {
+                status = new CorrespondenceStatusEntity
+                {
+                    CorrespondenceId = correspondenceId,
+                    Status = CorrespondenceStatus.Published,
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusText = CorrespondenceStatus.Published.ToString()
+                };
+                await correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
+                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.CorrespondencePublished));
+            }
+
+            await correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
+            await eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
+            if (status.Status == CorrespondenceStatus.Published) await eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
+            return Task.CompletedTask;
+        }, logger, cancellationToken);
     }
 }
