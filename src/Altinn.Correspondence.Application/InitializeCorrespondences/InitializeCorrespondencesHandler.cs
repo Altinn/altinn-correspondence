@@ -30,8 +30,6 @@ public class InitializeCorrespondencesHandler(
     IBackgroundJobClient backgroundJobClient,
     UserClaimsHelper userClaimsHelper,
     IDialogportenService dialogportenService,
-    IAltinnAccessManagementService altinnAccessManagementService,
-    IAltinnRegisterService altinnRegisterService,
     IHostEnvironment hostEnvironment,
     IOptions<GeneralSettings> generalSettings,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
