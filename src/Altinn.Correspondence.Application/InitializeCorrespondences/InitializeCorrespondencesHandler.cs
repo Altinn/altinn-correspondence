@@ -38,7 +38,7 @@ public class InitializeCorrespondencesHandler(
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(user, request.Correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckUserAccess(user, request.Correspondence.ResourceId, request.Correspondence.Sender, null, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
@@ -124,15 +124,6 @@ public class InitializeCorrespondencesHandler(
                 return notificationError;
             }
         }
-
-        return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
-        {
-            return await InitializeCorrespondences(request, attachmentsToBeUploaded, uploadAttachments, notificationContents, cancellationToken);
-        }, logger, cancellationToken);
-    }
-
-    private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<IFormFile> uploadAttachments, List<NotificationContent>? notificationContents, CancellationToken cancellationToken)
-    {
         // Upload attachments
         var uploadError = await initializeCorrespondenceHelper.UploadAttachments(attachmentsToBeUploaded, uploadAttachments, cancellationToken);
         if (uploadError != null)
@@ -140,6 +131,14 @@ public class InitializeCorrespondencesHandler(
             return uploadError;
         }
 
+        return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
+        {
+            return await InitializeCorrespondences(request, attachmentsToBeUploaded, notificationContents, cancellationToken);
+        }, logger, cancellationToken);
+    }
+
+    private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<NotificationContent>? notificationContents, CancellationToken cancellationToken)
+    {
         var status = initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);
         var correspondences = new List<CorrespondenceEntity>();
         foreach (var recipient in request.Recipients)
@@ -233,7 +232,7 @@ public class InitializeCorrespondencesHandler(
                         NotificationTemplate = request.Notification.NotificationTemplate,
                         CorrespondenceId = correspondence.Id,
                         NotificationOrderId = notificationOrder.OrderId,
-                        RequestedSendTime = notification.RequestedSendTime ?? DateTimeOffset.UtcNow,
+                        RequestedSendTime = notification.RequestedSendTime,
                         IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
                     };
                     notificationDetails.Add(new InitializedCorrespondencesNotifications()
@@ -243,7 +242,7 @@ public class InitializeCorrespondencesHandler(
                         Status = notificationOrder.RecipientLookup?.Status == RecipientLookupStatus.Success ? InitializedNotificationStatus.Success : InitializedNotificationStatus.MissingContact
                     });
                     await correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
-                    backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime!.Value.ToString("yyyy-MM-dd HH:mm")));
+                    backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime.ToString("yyyy-MM-dd HH:mm")));
                 }
             }
             initializedCorrespondences.Add(new InitializedCorrespondences()
@@ -326,7 +325,7 @@ public class InitializeCorrespondencesHandler(
                     },
                 },
                 ResourceId = correspondence.ResourceId,
-                RequestedSendTime = hostEnvironment.IsProduction() ? notificationOrder.RequestedSendTime.Value.AddDays(7) : notificationOrder.RequestedSendTime.Value.AddHours(1),
+                RequestedSendTime = hostEnvironment.IsProduction() ? notificationOrder.RequestedSendTime.AddDays(7) : notificationOrder.RequestedSendTime.AddHours(1),
                 ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString()),
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,

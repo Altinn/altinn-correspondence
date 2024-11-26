@@ -1,5 +1,13 @@
 ﻿using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Integrations.Altinn.AccessManagement;
+using Altinn.Correspondence.Integrations.Altinn.Authorization;
+using Altinn.Correspondence.Integrations.Altinn.Events;
+using Altinn.Correspondence.Integrations.Altinn.Notifications;
+using Altinn.Correspondence.Integrations.Altinn.Register;
+using Altinn.Correspondence.Integrations.Dialogporten;
+using Altinn.Correspondence.Repositories;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Authorization.Policy;
@@ -30,9 +38,15 @@ namespace Altinn.Correspondence.Tests.Helpers
                 services.AddHangfire(config =>
                                config.UseMemoryStorage()
                            );
-                var altinnAuthorizationService = new Mock<IAltinnAuthorizationService>();
-                altinnAuthorizationService.Setup(x => x.CheckUserAccess(It.IsAny<ClaimsPrincipal?>(), It.IsAny<string>(), It.IsAny<List<ResourceAccessLevel>>(), It.IsAny<CancellationToken>(), It.IsAny<string>(),  It.IsAny<string>())).ReturnsAsync(true);
-                services.AddSingleton(altinnAuthorizationService.Object);
+                services.AddScoped<IEventBus, ConsoleLogEventBus>();
+                services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
+                services.AddScoped<IDialogportenService, DialogportenDevService>();
+                services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationDevService>();
+                services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
+                services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
+                var resourceRightsService = new Mock<IResourceRightsService>();
+                resourceRightsService.Setup(x => x.GetServiceOwnerOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
+                services.AddScoped(_ => resourceRightsService.Object);
                 if (_customServices is not null)
                     _customServices(services);
             });

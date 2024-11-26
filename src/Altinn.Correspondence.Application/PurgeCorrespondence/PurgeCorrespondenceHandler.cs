@@ -39,10 +39,10 @@ public class PurgeCorrespondenceHandler(
         var hasAccess = await altinnAuthorizationService.CheckUserAccess(
             user,
             correspondence.ResourceId,
+            request.OnBehalfOf ?? correspondence.Recipient,
+            correspondence.Id.ToString(),
             [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
-            cancellationToken,
-            isOnBehalfOfRecipient || isOnBehalfOfSender ? onBehalfOf : null,
-            isOnBehalfOfRecipient || isOnBehalfOfSender ? correspondence?.Id.ToString() : null);
+            cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;

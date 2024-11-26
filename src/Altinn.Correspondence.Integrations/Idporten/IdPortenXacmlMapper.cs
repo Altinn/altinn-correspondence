@@ -1,92 +1,14 @@
 ﻿using Altinn.Authorization.ABAC.Xacml;
 using Altinn.Authorization.ABAC.Xacml.JsonProfile;
-using Altinn.Common.PEP.Constants;
-using Altinn.Common.PEP.Helpers;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
-using static Altinn.Authorization.ABAC.Constants.XacmlConstants;
 
 namespace Altinn.Correspondence.Integrations.Idporten
 {
     public static class IdportenXacmlMapper
     {
-        private const string DefaultIssuer = "Idporten";
-        private const string DefaultType = "string";
-
-        public static XacmlJsonRequestRoot CreateIdportenDecisionRequest(ClaimsPrincipal user, string resourceId, List<string> actionTypes, string? onBehalfOfIdentitier)
-        {
-            XacmlJsonRequest request = new()
-            {
-                AccessSubject = new List<XacmlJsonCategory>(),
-                Action = new List<XacmlJsonCategory>(),
-                Resource = new List<XacmlJsonCategory>()
-            };
-            var subjectCategory = CreateSubjectCategory(user);
-            request.AccessSubject.Add(subjectCategory);
-            foreach (var actionType in actionTypes)
-            {
-                request.Action.Add(CreateActionCategory(actionType));
-            }
-            var resourceCategory = CreateResourceCategory(resourceId, onBehalfOfIdentitier);
-            request.Resource.Add(resourceCategory);
-            XacmlJsonRequestRoot jsonRequest = new() { Request = request };
-            return jsonRequest;
-        }
-
-        private static XacmlJsonCategory CreateActionCategory(string actionType, bool includeResult = false)
-        {
-            XacmlJsonCategory actionAttributes = new()
-            {
-                Attribute = new List<XacmlJsonAttribute>
-                {
-                    DecisionHelper.CreateXacmlJsonAttribute(MatchAttributeIdentifiers.ActionId, actionType, DefaultType, DefaultIssuer, includeResult)
-                }
-            };
-            return actionAttributes;
-        }
-
-        private static XacmlJsonCategory CreateResourceCategory(string resourceId, string? recipientOrgNo)
-        {
-            XacmlJsonCategory resourceCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
-            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceId, resourceId, DefaultType, DefaultIssuer));
-            if (!string.IsNullOrEmpty(recipientOrgNo))
-            {
-                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumberAttribute, recipientOrgNo, DefaultType, DefaultIssuer));
-            }
-            return resourceCategory;
-        }
-
-        private static XacmlJsonCategory CreateSubjectCategory(ClaimsPrincipal user)
-        {
-            XacmlJsonCategory xacmlJsonCategory = new XacmlJsonCategory();
-            List<XacmlJsonAttribute> list = new List<XacmlJsonAttribute>();
-
-            foreach (Claim claim in user.Claims)
-            {
-                if (IsSsnClaim(claim.Type))
-                {
-                    list.Add(CreateXacmlJsonAttribute("urn:altinn:person:identifier-no", claim.Value, "string", claim.Issuer));
-                }
-            }
-            xacmlJsonCategory.Attribute = list;
-            return xacmlJsonCategory;
-        }
-
-        private static bool IsSsnClaim(string value)
-        {
-            return value.Equals("pid");
-        }
-
-        private static XacmlJsonAttribute CreateXacmlJsonAttribute(string attributeId, string value, string dataType, string issuer, bool includeResult = false)
-        {
-            XacmlJsonAttribute xacmlJsonAttribute = new XacmlJsonAttribute();
-            xacmlJsonAttribute.AttributeId = attributeId;
-            xacmlJsonAttribute.Value = value;
-            xacmlJsonAttribute.DataType = dataType;
-            xacmlJsonAttribute.Issuer = issuer;
-            xacmlJsonAttribute.IncludeInResult = includeResult;
-            return xacmlJsonAttribute;
-        }
+        internal const string PersonAttributeId = "urn:altinn:person:identifier-no";
+        internal const string OrganizationAttributeId = "urn:altinn:organization:identifier-no";
 
         public static bool ValidateIdportenAuthorizationResponse(XacmlJsonResponse response, ClaimsPrincipal user)
         {

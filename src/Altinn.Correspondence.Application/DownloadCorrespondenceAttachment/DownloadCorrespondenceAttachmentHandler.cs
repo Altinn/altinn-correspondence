@@ -40,10 +40,10 @@ public class DownloadCorrespondenceAttachmentHandler(
         var hasAccess = await altinnAuthorizationService.CheckUserAccess(
             user,
             correspondence.ResourceId,
+            request.OnBehalfOf ?? correspondence.Recipient,
+            correspondence.Id.ToString(),
             [ResourceAccessLevel.Read],
-            cancellationToken,
-            onBehalfOf: isOnBehalfOfRecipient ? onBehalfOf : null,
-            correspondenceId: isOnBehalfOfRecipient ? request.CorrespondenceId.ToString() : null);
+            cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;

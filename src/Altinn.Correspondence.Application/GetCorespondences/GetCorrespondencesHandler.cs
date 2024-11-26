@@ -26,28 +26,26 @@ public class GetCorrespondencesHandler(
         }
 
         string? onBehalfOf = request.OnBehalfOf;
+        if (onBehalfOf is null) { 
+            onBehalfOf = userClaimsHelper.GetUserID();
+        }
+        if (onBehalfOf is null)
+        {
+            return Errors.CouldNotDetermineCaller;
+        }
         var hasAccess = await altinnAuthorizationService.CheckUserAccess(
             user,
             request.ResourceId,
+            onBehalfOf,
+            null,
             [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
-            cancellationToken,
-            onBehalfOf: string.IsNullOrEmpty(onBehalfOf) ? null : onBehalfOf);
+            cancellationToken);
 
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
         }
 
-        string? orgNo = userClaimsHelper.GetUserID();
-        if (hasAccess && !string.IsNullOrEmpty(onBehalfOf))
-        {
-            orgNo = onBehalfOf;
-        }
-
-        if (orgNo is null)
-        {
-            return Errors.CouldNotFindOrgNo;
-        }
         var correspondences = await correspondenceRepository.GetCorrespondences(
             request.ResourceId,
             request.Offset,
@@ -55,7 +53,7 @@ public class GetCorrespondencesHandler(
             from,
             to,
             request.Status,
-            orgNo,
+            onBehalfOf,
             request.Role,
             cancellationToken);
         var response = new GetCorrespondencesResponse

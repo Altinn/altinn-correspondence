@@ -13,19 +13,14 @@ public class MigrateUploadAttachmentHandler(
     UploadHelper uploadHelper,
     ILogger<MigrateUploadAttachmentHandler> logger) : IHandler<UploadAttachmentRequest, MigrateUploadAttachmentResponse>
 {
-    private readonly IAltinnAuthorizationService _altinnAuthorizationService = altinnAuthorizationService;
-    private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
-    private readonly UploadHelper _uploadHelper = uploadHelper;
-    private readonly ILogger<MigrateUploadAttachmentHandler> _logger = logger;
-
     public async Task<OneOf<MigrateUploadAttachmentResponse, Error>> Process(UploadAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var attachment = await _attachmentRepository.GetAttachmentById(request.AttachmentId, true, cancellationToken);
+        var attachment = await attachmentRepository.GetAttachmentById(request.AttachmentId, true, cancellationToken);
         if (attachment == null)
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await _altinnAuthorizationService.CheckMigrationAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckMigrationAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
@@ -41,13 +36,13 @@ public class MigrateUploadAttachmentHandler(
         }
         return await TransactionWithRetriesPolicy.Execute<MigrateUploadAttachmentResponse>(async (cancellationToken) =>
         {
-            var uploadResult = await _uploadHelper.UploadAttachment(request.UploadStream, request.AttachmentId, cancellationToken);
+            var uploadResult = await uploadHelper.UploadAttachment(request.UploadStream, request.AttachmentId, cancellationToken);
 
             if (uploadResult.IsT1)
             {
                 return Errors.UploadFailed; // Why does this need to be commented out
             }
-            var savedAttachment = await _attachmentRepository.GetAttachmentById(uploadResult.AsT0.AttachmentId, true, cancellationToken);
+            var savedAttachment = await attachmentRepository.GetAttachmentById(uploadResult.AsT0.AttachmentId, true, cancellationToken);
             if (savedAttachment == null)
             {
                 return Errors.UploadFailed; // Why does this need to be commented out
@@ -69,6 +64,6 @@ public class MigrateUploadAttachmentHandler(
                 FileName = attachment.FileName,
                 Sender = attachment.Sender,
             };
-        }, _logger, cancellationToken);
+        }, logger, cancellationToken);
     }
 }

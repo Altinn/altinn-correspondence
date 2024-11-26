@@ -13,8 +13,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
     {
         internal const string DefaultIssuer = "Dialogporten";
         internal const string DefaultType = "string";
+        internal const string PersonAttributeId = "urn:altinn:person:identifier-no";
+        internal const string OrganizationAttributeId = "urn:altinn:organization:identifier-no";
 
-        public static XacmlJsonRequestRoot CreateDialogportenDecisionRequest(ClaimsPrincipal user, string resourceId)
+        public static XacmlJsonRequestRoot CreateDialogportenDecisionRequest(ClaimsPrincipal user, string resourceId, string party, string? instanceId)
         {
             XacmlJsonRequest request = new()
             {
@@ -26,7 +28,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             var subjectCategory = CreateSubjectCategory(user);
             request.AccessSubject.Add(subjectCategory);
             request.Action.Add(CreateActionCategory(user));
-            var resourceCategory = CreateResourceCategory(resourceId, user);
+            var resourceCategory = CreateResourceCategory(resourceId, party, instanceId);
             request.Resource.Add(resourceCategory);
 
             XacmlJsonRequestRoot jsonRequest = new() { Request = request };
@@ -53,14 +55,25 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return actionAttributes;
         }
 
-        private static XacmlJsonCategory CreateResourceCategory(string resourceId, ClaimsPrincipal user)
+        private static XacmlJsonCategory CreateResourceCategory(string resourceId, string party, string? instanceId)
         {
             XacmlJsonCategory resourceCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
             resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceId, resourceId, DefaultType, DefaultIssuer));
-            var orgClaim = user.Claims.FirstOrDefault(claim => IsOrgClaim(claim.Type));
-            if (orgClaim is not null)
+            if (party.Length == 9)
             {
-                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute("urn:altinn:organization:identifier-no", orgClaim.Value.Replace("urn:altinn:organization:identifier-no:", ""), DefaultType, DefaultIssuer));
+                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(OrganizationAttributeId, party, DefaultType, DefaultIssuer));
+            }
+            else if (party.Length == 11)
+            {
+                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, party, DefaultType, DefaultIssuer));
+            }
+            else
+            {
+                throw new InvalidOperationException("RecipientId is not a valid organization or person number");
+            }
+            if (instanceId is not null)
+            {
+                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceInstance, instanceId, DefaultType, DefaultIssuer));
             }
             return resourceCategory;
         }
@@ -80,7 +93,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 {
                     list.Add(CreateXacmlJsonAttribute(claim.Type, claim.Value, "string", claim.Issuer));
                 }
-                else if (IsSsnClaim(claim.Type))
+                else if (IsOnBehalfOfClaim(claim.Type))
                 {
                     list.Add(CreateXacmlJsonAttribute("urn:altinn:person:identifier-no", claim.Value.Replace("urn:altinn:person:identifier-no:", ""), "string", claim.Issuer));
                 }
@@ -94,13 +107,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return regex.Match(value).Success;
         }
 
-        private static bool IsOrgClaim(string value)
+        private static bool IsOnBehalfOfClaim(string value)
         {
             return value.Equals("p");
-        }
-        private static bool IsSsnClaim(string value)
-        {
-            return value.Equals("c");
         }
 
         private static bool IsActionClaim(string value)
