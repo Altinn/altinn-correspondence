@@ -162,7 +162,7 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpGet]
         [Route("{correspondenceId}/content")]
         [Produces("application/vnd.dialogporten.frontchannelembed+json;type=markdown")]
-        [Authorize(AuthenticationSchemes = AuthorizationConstants.DialogportenScheme)]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         public async Task<ActionResult> GetCorrespondenceContent(
             Guid correspondenceId,
@@ -176,7 +176,11 @@ namespace Altinn.Correspondence.API.Controllers
                 CorrespondenceId = correspondenceId
             }, HttpContext.User, cancellationToken);
             return commandResult.Match(
-                data => Ok(data.Content.MessageBody),
+                data =>
+                {
+                    var messageBody = data.Content.MessageBody?.Replace("\n", "<br />");
+                    return Ok(messageBody);
+                },
                 Problem
             );
         }
