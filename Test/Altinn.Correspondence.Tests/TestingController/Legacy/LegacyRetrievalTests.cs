@@ -132,7 +132,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             // Assert
             var content = await response.Content.ReadFromJsonAsync<List<LegacyGetCorrespondenceHistoryResponse>>(_serializerOptions);
             Assert.NotNull(content);
-            Assert.Contains(content, status => status.User.PartyId == _digdirPartyId);
+            Assert.Contains(content, status => status.User.PartyId == _validPartyId);
             Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Published.ToString()));
             Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Fetched.ToString()));
             Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Confirmed.ToString()));
