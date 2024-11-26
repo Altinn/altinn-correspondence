@@ -143,44 +143,7 @@ public class InitializeCorrespondencesHandler(
         var correspondences = new List<CorrespondenceEntity>();
         foreach (var recipient in request.Recipients)
         {
-            var correspondence = new CorrespondenceEntity
-            {
-                ResourceId = request.Correspondence.ResourceId,
-                Recipient = recipient,
-                Sender = request.Correspondence.Sender,
-                SendersReference = request.Correspondence.SendersReference,
-                MessageSender = request.Correspondence.MessageSender,
-                Content = new CorrespondenceContentEntity
-                {
-                    Attachments = attachmentsToBeUploaded.Select(a => new CorrespondenceAttachmentEntity
-                    {
-                        Attachment = a,
-                        Created = DateTimeOffset.UtcNow,
-                    }).ToList(),
-                    Language = request.Correspondence.Content.Language,
-                    MessageBody = request.Correspondence.Content.MessageBody,
-                    MessageSummary = request.Correspondence.Content.MessageSummary,
-                    MessageTitle = request.Correspondence.Content.MessageTitle,
-                },
-                RequestedPublishTime = request.Correspondence.RequestedPublishTime,
-                AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,
-                DueDateTime = request.Correspondence.DueDateTime,
-                PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
-                ReplyOptions = request.Correspondence.ReplyOptions,
-                IgnoreReservation = request.Correspondence.IgnoreReservation,
-                Statuses = new List<CorrespondenceStatusEntity>(){
-                    new CorrespondenceStatusEntity
-                    {
-                        Status = status,
-                        StatusChanged = DateTimeOffset.UtcNow,
-                        StatusText = status.ToString()
-                    }
-                },
-                Created = request.Correspondence.Created,
-                ExternalReferences = request.Correspondence.ExternalReferences,
-                Published = status == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
-                IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
-            };
+            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, attachmentsToBeUploaded, status);
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);

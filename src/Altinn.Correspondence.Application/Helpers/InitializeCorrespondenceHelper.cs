@@ -1,10 +1,13 @@
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.UploadAttachment;
+using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.Helpers
@@ -12,7 +15,8 @@ namespace Altinn.Correspondence.Application.Helpers
     public class InitializeCorrespondenceHelper(
         IAttachmentRepository attachmentRepository,
         IHostEnvironment hostEnvironment,
-        UploadHelper uploadHelper)
+        UploadHelper uploadHelper,
+        ILogger<InitializeCorrespondenceHelper> logger)
     {
 
         public Error? ValidateDateConstraints(CorrespondenceEntity correspondence)
@@ -120,6 +124,69 @@ namespace Altinn.Correspondence.Application.Helpers
                 return Errors.MissingPrefferedReminderNotificationContent;
             }
             return null;
+        }
+        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, CorrespondenceStatus status)
+        {
+            var processedAttachments = attachmentsToBeUploaded.Select(a => new CorrespondenceAttachmentEntity
+            {
+                Attachment = a,
+                Created = DateTimeOffset.UtcNow,
+            }).ToList();
+
+            var correspondenceContent = new CorrespondenceContentEntity
+            {
+                Attachments = processedAttachments,
+                Language = request.Correspondence.Content.Language,
+                MessageBody = request.Correspondence.Content.MessageBody,
+                MessageSummary = request.Correspondence.Content.MessageSummary,
+                MessageTitle = request.Correspondence.Content.MessageTitle,
+            };
+
+            var correspondenceStatuses = new List<CorrespondenceStatusEntity>
+            {
+                new CorrespondenceStatusEntity
+                {
+                    Status = status,
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusText = status.ToString()
+                }
+            };
+            if (recipient.Contains("0192:"))
+            {
+                recipient = recipient.Replace("0192:", UrnConstants.OrganizationNumberAttribute + ":");
+                logger.LogInformation($"'0192:' prefix detected for recipient in creation of correspondence. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
+            }
+            else if (recipient.IsSocialSecurityNumber())
+            {
+                recipient = UrnConstants.PersonIdAttribute + ":" + recipient;
+                logger.LogInformation($"Social security number without urn prefix detected for recipient in creation of correspondece. Adding {UrnConstants.PersonIdAttribute} prefix to recipient.");
+            }
+            if (request.Correspondence.Sender.Contains("0192:"))
+            {
+                request.Correspondence.Sender = request.Correspondence.Sender.Replace("0192:", UrnConstants.OrganizationNumberAttribute + ":");
+                logger.LogInformation($"'0192:' prefix detected for sender in creation of correspondence. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
+            }
+
+            return new CorrespondenceEntity
+            {
+                ResourceId = request.Correspondence.ResourceId,
+                Recipient = recipient,
+                Sender = request.Correspondence.Sender,
+                SendersReference = request.Correspondence.SendersReference,
+                MessageSender = request.Correspondence.MessageSender,
+                Content = correspondenceContent,
+                RequestedPublishTime = request.Correspondence.RequestedPublishTime,
+                AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,
+                DueDateTime = request.Correspondence.DueDateTime,
+                PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
+                ReplyOptions = request.Correspondence.ReplyOptions,
+                IgnoreReservation = request.Correspondence.IgnoreReservation,
+                Statuses = correspondenceStatuses,
+                Created = request.Correspondence.Created,
+                ExternalReferences = request.Correspondence.ExternalReferences,
+                Published = status == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
+                IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
+            };
         }
 
         /// <summary>
