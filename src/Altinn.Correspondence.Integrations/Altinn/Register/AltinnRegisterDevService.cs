@@ -8,11 +8,12 @@ public class AltinnRegisterDevService : IAltinnRegisterService
 {
     private const string _identificationIDPattern = @"^(?:\d{11}|\d{9}|\d{4}:\d{9})$";
     private static readonly Regex IdentificationIDRegex = new(_identificationIDPattern);
+    private readonly int _digdirPartyId = 50952483;
     public Task<string?> LookUpPartyId(string identificationId, CancellationToken cancellationToken)
     {
         if (IdentificationIDRegex.IsMatch(identificationId))
         {
-            return Task.FromResult<string?>("50952483");
+            return Task.FromResult<string?>(_digdirPartyId.ToString());
         }
         return Task.FromResult<string?>(null);
     }
@@ -31,7 +32,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
         {
             return Task.FromResult<Party?>(new Party
             {
-                PartyId = 50167512,
+                PartyId = _digdirPartyId,
                 OrgNumber = "991825827",
                 SSN = "",
                 Resources = new List<string>(),
@@ -47,7 +48,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
     {
         var party = new Party
         {
-            PartyId = 50167512,
+            PartyId = _digdirPartyId,
             OrgNumber = "991825827",
             SSN = "",
             Resources = new List<string>(),
