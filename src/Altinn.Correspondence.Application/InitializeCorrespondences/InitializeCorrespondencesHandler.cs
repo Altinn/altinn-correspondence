@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.PublishCorrespondence;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
@@ -9,13 +10,11 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
 using System.Security.Claims;
-using System.Text.RegularExpressions;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
@@ -227,26 +226,18 @@ public class InitializeCorrespondencesHandler(
     private List<NotificationOrderRequest> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
     {
         var notifications = new List<NotificationOrderRequest>();
-
-        var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
-        var organizationWithPrefixFormat = new Regex(@"^\d{4}:\d{9}$");
-        var personFormat = new Regex(@"^\d{11}$");
         string? orgNr = null;
         string? personNr = null;
         NotificationContent? content = null;
-        if (organizationWithoutPrefixFormat.IsMatch(correspondence.Recipient))
+        string recipient = correspondence.Recipient.GetOrgNumberWithoutPrefix();
+        if (recipient.IsOrganizationNumber())
         {
-            orgNr = correspondence.Recipient;
+            orgNr = correspondence.Recipient; // Should this be with the prefix?
             content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Organization || c.RecipientType == null);
         }
-        else if (organizationWithPrefixFormat.IsMatch(correspondence.Recipient))
+        else if (recipient.IsSocialSecurityNumber())
         {
-            orgNr = correspondence.Recipient.Substring(5);
-            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Organization || c.RecipientType == null);
-        }
-        else if (personFormat.IsMatch(correspondence.Recipient))
-        {
-            personNr = correspondence.Recipient;
+            personNr = correspondence.Recipient; // Should this be with the prefix?
             content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person || c.RecipientType == null);
         }
         var notificationOrder = new NotificationOrderRequest
