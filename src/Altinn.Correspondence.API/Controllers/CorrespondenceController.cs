@@ -162,7 +162,7 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpGet]
         [Route("{correspondenceId}/content")]
         [Produces("application/vnd.dialogporten.frontchannelembed+json;type=markdown")]
-        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
+        [Authorize(AuthenticationSchemes = AuthorizationConstants.DialogportenScheme)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         public async Task<ActionResult> GetCorrespondenceContent(
             Guid correspondenceId,

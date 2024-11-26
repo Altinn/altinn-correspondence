@@ -124,7 +124,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         public static bool ValidateDialogportenResult(XacmlJsonResponse response, ClaimsPrincipal user)
         {
-            return true;
             foreach (var result in response.Response)
             {
                 if (!result.Decision.Equals(XacmlContextDecision.Permit.ToString()))
