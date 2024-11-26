@@ -12,7 +12,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
     {
         if (IdentificationIDRegex.IsMatch(identificationId))
         {
-            return Task.FromResult<string?>("50167512");
+            return Task.FromResult<string?>("50952483");
         }
         return Task.FromResult<string?>(null);
     }
