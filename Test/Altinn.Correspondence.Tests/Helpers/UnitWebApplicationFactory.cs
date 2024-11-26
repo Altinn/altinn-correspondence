@@ -7,6 +7,7 @@ using Altinn.Correspondence.Integrations.Altinn.Events;
 using Altinn.Correspondence.Integrations.Altinn.Notifications;
 using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Dialogporten;
+using Altinn.Correspondence.Repositories;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Authorization.Policy;
@@ -43,6 +44,8 @@ namespace Altinn.Correspondence.Tests.Helpers
                 services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationDevService>();
                 services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
                 services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
+                var resourceRightsService = new Mock<IResourceRightsService>();
+                resourceRightsService.Setup(x => x.GetServiceOwnerOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
                 if (_customServices is not null)
                     _customServices(services);
             });
