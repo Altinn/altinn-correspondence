@@ -124,15 +124,6 @@ public class InitializeCorrespondencesHandler(
                 return notificationError;
             }
         }
-
-        return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
-        {
-            return await InitializeCorrespondences(request, attachmentsToBeUploaded, uploadAttachments, notificationContents, cancellationToken);
-        }, logger, cancellationToken);
-    }
-
-    private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<IFormFile> uploadAttachments, List<NotificationContent>? notificationContents, CancellationToken cancellationToken)
-    {
         // Upload attachments
         var uploadError = await initializeCorrespondenceHelper.UploadAttachments(attachmentsToBeUploaded, uploadAttachments, cancellationToken);
         if (uploadError != null)
@@ -140,6 +131,14 @@ public class InitializeCorrespondencesHandler(
             return uploadError;
         }
 
+        return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
+        {
+            return await InitializeCorrespondences(request, attachmentsToBeUploaded, notificationContents, cancellationToken);
+        }, logger, cancellationToken);
+    }
+
+    private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<NotificationContent>? notificationContents, CancellationToken cancellationToken)
+    {
         var status = initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);
         var correspondences = new List<CorrespondenceEntity>();
         foreach (var recipient in request.Recipients)
