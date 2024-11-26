@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.API.Models
 {
@@ -24,7 +24,7 @@ namespace Altinn.Correspondence.API.Models
         /// Organization number in countrycode:organizationnumber format.
         /// </remarks>
         [JsonPropertyName("sender")]
-        [RegularExpression(@"^\d{4}:\d{9}$", ErrorMessage = "Organization numbers should be on the form countrycode:organizationnumber, for instance 0192:910753614")]
+        [OrganizationNumber(ErrorMessage = $"Organization numbers should be on the form '{UrnConstants.OrganizationNumberAttribute}:organizationnumber' or the form countrycode:organizationnumber, for instance 0192:910753614")]
         [Required]
         public required string Sender { get; set; }
     }

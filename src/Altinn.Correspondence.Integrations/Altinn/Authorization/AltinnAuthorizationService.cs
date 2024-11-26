@@ -1,5 +1,6 @@
 ﻿using Altinn.Authorization.ABAC.Xacml.JsonProfile;
 using Altinn.Common.PEP.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
@@ -53,7 +54,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             return bypassDecision.Value;
         }
         var actionIds = rights.Select(GetActionId).ToList();
-        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, resourceId, party, correspondenceId, actionIds);
+        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, resourceId, party.GetOrgNumberWithoutPrefix(), correspondenceId, actionIds);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
         var validationResult = ValidateAuthorizationResponse(responseContent, user);
         return validationResult;

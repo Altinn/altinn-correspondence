@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.API.Models;
 
@@ -55,13 +56,12 @@ public class InitializeCorrespondencesExt
 
             foreach (var recipient in recipients)
             {
-                var reg = new Regex(@"^\d{4}:\d{9}$");
-                var reg2 = new Regex(@"^\d{11}$");
-                if (!reg.IsMatch(recipient) && !reg2.IsMatch(recipient))
+                var orgRegex = new Regex($@"^(?:\d{{4}}:|{UrnConstants.OrganizationNumberAttribute}:)\d{{9}}$");
+                var personRegex = new Regex($@"^(?:{UrnConstants.PersonIdAttribute}:)?\d{{11}}$");
+                if (!orgRegex.IsMatch(recipient) && !personRegex.IsMatch(recipient))
                 {
-                    return new ValidationResult("Recipient should be an organization number in the form countrycode:organizationnumber, for instance 0192:910753614 or a national identity number");
+                    return new ValidationResult($"Recipient should be an organization number in the form '{UrnConstants.OrganizationNumberAttribute}:organizationnumber' or the form countrycode:organizationnumber, for instance 0192:910753614, or a national identity number");
                 }
-
             }
 
             return ValidationResult.Success;
