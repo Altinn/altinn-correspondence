@@ -7,13 +7,13 @@ using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests.TestingFeature;
 
-public class NotificationTests : IClassFixture<MaskinportenWebApplicationFactory>
+public class NotificationTests : IClassFixture<CustomWebApplicationFactory>
 {
-    private readonly MaskinportenWebApplicationFactory _factory;
+    private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _responseSerializerOptions;
 
-    public NotificationTests(MaskinportenWebApplicationFactory factory)
+    public NotificationTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.NotificationCheckScope));

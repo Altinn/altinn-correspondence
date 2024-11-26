@@ -1,21 +1,19 @@
-using Altinn.Correspondence.Tests.Factories;
-using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Tests.Factories;
 using System.Net.Http.Json;
-using System.Text.Json;
 using System.Text;
-using ReverseMarkdown.Converters;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests.TestingController.Migration;
 
-public class MigrationControllerTests : IClassFixture<MaskinportenWebApplicationFactory>
+public class MigrationControllerTests : IClassFixture<CustomWebApplicationFactory>
 {
-    private readonly MaskinportenWebApplicationFactory _factory;
+    private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _responseSerializerOptions;
 
-    public MigrationControllerTests(MaskinportenWebApplicationFactory factory)
+    public MigrationControllerTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClientWithAddedClaims(("scope", "altinn:correspondence.migrate"));

@@ -1,6 +1,12 @@
 ﻿using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Integrations.Altinn.AccessManagement;
 using Altinn.Correspondence.Integrations.Altinn.Authorization;
+using Altinn.Correspondence.Integrations.Altinn.Events;
+using Altinn.Correspondence.Integrations.Altinn.Notifications;
+using Altinn.Correspondence.Integrations.Altinn.Register;
+using Altinn.Correspondence.Integrations.Dialogporten;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Authorization.Policy;
@@ -31,7 +37,12 @@ namespace Altinn.Correspondence.Tests.Helpers
                 services.AddHangfire(config =>
                                config.UseMemoryStorage()
                            );
+                services.AddScoped<IEventBus, ConsoleLogEventBus>();
+                services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
+                services.AddScoped<IDialogportenService, DialogportenDevService>();
                 services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationDevService>();
+                services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
+                services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
                 if (_customServices is not null)
                     _customServices(services);
             });

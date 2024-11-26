@@ -6,6 +6,7 @@ using Altinn.Correspondence.Integrations.Altinn.Events;
 using Altinn.Correspondence.Integrations.Altinn.Notifications;
 using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Dialogporten;
+using Altinn.Correspondence.Repositories;
 using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Hangfire.Common;
@@ -48,6 +49,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationDevService>();
             services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
+            var resourceRightsService = new Mock<IResourceRightsService>();
+            resourceRightsService.Setup(x => x.GetServiceOwnerOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
         });
     }
     public HttpClient CreateClientWithAddedClaims(params (string type, string value)[] claims)
