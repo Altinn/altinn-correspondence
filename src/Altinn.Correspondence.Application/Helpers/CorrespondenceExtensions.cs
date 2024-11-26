@@ -3,20 +3,6 @@ using Altinn.Correspondence.Core.Models.Enums;
 namespace Altinn.Correspondence.Application.Helpers;
 public static class CorrespondenceStatusExtensions
 {
-    public static CorrespondenceStatusEntity? GetLatestStatus(this CorrespondenceEntity correspondence)
-    {
-        var statusEntity = correspondence.Statuses
-            .Where(s => s.Status != CorrespondenceStatus.Fetched)
-            .OrderByDescending(s => s.StatusChanged).FirstOrDefault();
-        return statusEntity;
-    }
-    public static CorrespondenceStatusEntity? GetLatestStatusWithoutPurged(this CorrespondenceEntity correspondence)
-    {
-        var statusEntity = correspondence.Statuses
-            .Where(s => !s.Status.IsPurged() && s.Status != CorrespondenceStatus.Fetched)
-            .OrderByDescending(s => s.StatusChanged).FirstOrDefault();
-        return statusEntity;
-    }
     public static CorrespondenceStatusEntity? GetHighestStatus(this CorrespondenceEntity correspondence)
     {
         var statusEntity = correspondence.Statuses

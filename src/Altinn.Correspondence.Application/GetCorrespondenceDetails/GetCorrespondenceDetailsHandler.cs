@@ -53,7 +53,7 @@ public class GetCorrespondenceDetailsHandler(
         {
             return Errors.CorrespondenceNotFound;
         }
-        var latestStatus = correspondence.GetLatestStatus();
+        var latestStatus = correspondence.GetHighestStatus();
         if (latestStatus == null)
         {
             return Errors.CorrespondenceNotFound;

@@ -30,17 +30,13 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = "Correspondence " + correspondenceId + " not found when publishing";
         }
-        else if (hostEnvironment.IsDevelopment() && correspondence.GetLatestStatus()?.Status == CorrespondenceStatus.Published)
+        else if (hostEnvironment.IsDevelopment() && correspondence.StatusHasBeen(CorrespondenceStatus.Published))
         {
             return Task.CompletedTask;
         }
-        else if (correspondence.GetLatestStatus()?.Status != CorrespondenceStatus.ReadyForPublish)
+        else if (correspondence.GetHighestStatus()?.Status != CorrespondenceStatus.ReadyForPublish) // TODO: Change to check if equal to initialized if/when ReadyForPublish is removed
         {
             errorMessage = $"Correspondence {correspondenceId} not ready for publish";
-        }
-        else if (correspondence.Content == null || correspondence.Content.Attachments.Any(a => a.Attachment?.GetLatestStatus()?.Status != AttachmentStatus.Published))
-        {
-            errorMessage = $"Correspondence {correspondenceId} has attachments not published";
         }
         else if (correspondence.RequestedPublishTime > DateTimeOffset.UtcNow)
         {

@@ -23,7 +23,7 @@ public class UpdateCorrespondenceStatusHelper
     /// <returns></returns>
     public Error? ValidateCurrentStatus(CorrespondenceEntity correspondence)
     {
-        var currentStatus = correspondence.GetLatestStatus();
+        var currentStatus = correspondence.GetHighestStatus();
         if (currentStatus is null)
         {
             return Errors.LatestStatusIsNull;
