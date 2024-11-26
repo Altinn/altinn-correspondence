@@ -45,6 +45,7 @@ namespace Altinn.Correspondence.Application.Helpers
         }
         public bool IsRecipient(string recipientId)
         {
+            recipientId = recipientId.GetOrgNumberWithoutPrefix();
             if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(recipientId) || GetPersonID() == recipientId;
             if (_claims.Any(c => c.Issuer == _idportenSettings.Issuer)) return true; // Idporten tokens are always recipients, verified by altinn authorization
             if (GetUserID() != recipientId && GetPersonID() != recipientId) return false;
@@ -55,6 +56,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public bool IsSender(string senderId)
         {
+            senderId = senderId.GetOrgNumberWithoutPrefix();
             if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(senderId) || GetPersonID() == senderId;
             if (_claims.Any(c => c.Issuer == _idportenSettings.Issuer)) return false;
             if (GetUserID() != senderId && GetPersonID() != senderId) return false;
@@ -78,7 +80,8 @@ namespace Altinn.Correspondence.Application.Helpers
 
             JsonDocument jsonDoc = JsonDocument.Parse(consumer);
             string? id = jsonDoc.RootElement.GetProperty(_IdProperty).GetString();
-            return id;
+            if (id is null) return null;
+            return id.GetOrgNumberWithoutPrefix();
         }
         private string? GetPersonID()
         {
