@@ -1,7 +1,8 @@
 using System.Security.Claims;
 using System.Text.Json;
-using Altinn.Common.PEP.Constants;
 using Altinn.Correspondence.Application.Configuration;
+using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -19,8 +20,6 @@ namespace Altinn.Correspondence.Application.Helpers
         private const string _IdProperty = "ID";
         private const string _dialogportenOrgClaim = "p";
         private const string _personId = "pid";
-        private const string _minAuthLevelClaim = "urn:altinn:authlevel";
-        private const string _altinnUrnPersonIdentifier = "urn:altinn:person:identifier-no";
 
         public UserClaimsHelper(IHttpContextAccessor httpContextAccessor, IOptions<DialogportenSettings> dialogportenSettings, IOptions<IdportenSettings> idportenSettings)
         {
@@ -31,7 +30,7 @@ namespace Altinn.Correspondence.Application.Helpers
         }
         public int? GetPartyId()
         {
-            var partyId = _claims.FirstOrDefault(c => c.Type == AltinnXacmlUrns.PartyId)?.Value;
+            var partyId = _claims.FirstOrDefault(c => c.Type == UrnConstants.Party)?.Value;
             if (partyId is null) return null;
             if (int.TryParse(partyId, out int id)) return id;
             return null;
@@ -39,7 +38,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public int GetMinimumAuthenticationLevel()
         {
-            var authLevelClaim = _claims.FirstOrDefault(c => c.Type == _minAuthLevelClaim);
+            var authLevelClaim = _claims.FirstOrDefault(c => c.Type == UrnConstants.AuthenticationLevel);
             if (authLevelClaim is null) return 0;
             if (int.TryParse(authLevelClaim.Value, out int level)) return level;
             return 0;
@@ -70,7 +69,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 return false;
             }
             var orgValue = orgClaim.Value;
-            return orgValue.Replace(AltinnXacmlUrns.OrganizationNumberAttribute, "0192") == organizationId;
+            return orgValue.Replace(UrnConstants.OrganizationNumberAttribute, "0192") == organizationId;
         }
         public string? GetUserID()
         {
@@ -86,11 +85,11 @@ namespace Altinn.Correspondence.Application.Helpers
             if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer))
             {
                 var personidClaimValue = _claims.FirstOrDefault(c => c.Type == "p")?.Value;
-                if (!personidClaimValue.StartsWith(_altinnUrnPersonIdentifier))
+                if (!personidClaimValue.StartsWith(UrnConstants.PersonIdAttribute))
                 {
                     return null;
                 }
-                return personidClaimValue.Replace(_altinnUrnPersonIdentifier + ":", "");
+                return personidClaimValue.Replace(UrnConstants.PersonIdAttribute + ":", "");
             }
             else if (_claims.Any(c => c.Type == _personId))
             {

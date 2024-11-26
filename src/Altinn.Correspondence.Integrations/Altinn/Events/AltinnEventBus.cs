@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Options;
+﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Altinn.Events.Helpers;
@@ -58,7 +59,7 @@ public class AltinnEventBus : IEventBus
             Id = Guid.NewGuid(),
             SpecVersion = "1.0",
             Time = DateTimeOffset.UtcNow,
-            Resource = "urn:altinn:resource:" + resourceId,
+            Resource = UrnConstants.Resource + resourceId,
             ResourceInstance = itemId,
             Type = "no.altinn.correspondence." + type.ToString().ToLowerInvariant(),
             Source = _generalSettings.CorrespondenceBaseUrl.TrimEnd('/') + "/correspondence/api/v1/" + eventSource,
