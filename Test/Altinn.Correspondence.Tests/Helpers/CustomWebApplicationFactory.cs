@@ -51,6 +51,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
             var resourceRightsService = new Mock<IResourceRightsService>();
             resourceRightsService.Setup(x => x.GetServiceOwnerOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
+            services.AddSingleton(resourceRightsService.Object);
         });
     }
     public HttpClient CreateClientWithAddedClaims(params (string type, string value)[] claims)
