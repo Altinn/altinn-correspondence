@@ -46,6 +46,7 @@ namespace Altinn.Correspondence.Tests.Helpers
                 services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
                 var resourceRightsService = new Mock<IResourceRightsService>();
                 resourceRightsService.Setup(x => x.GetServiceOwnerOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
+                services.AddScoped(_ => resourceRightsService.Object);
                 if (_customServices is not null)
                     _customServices(services);
             });
