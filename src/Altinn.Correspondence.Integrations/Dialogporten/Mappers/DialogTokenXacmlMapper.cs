@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 using static Altinn.Authorization.ABAC.Constants.XacmlConstants;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
-{ 
+{
     public static class DialogTokenXacmlMapper
     {
         internal const string DefaultIssuer = "Dialogporten";
@@ -129,7 +129,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 if (!result.Decision.Equals(XacmlContextDecision.Permit.ToString()))
                 {
                     return false;
-                }                
+                }
                 if (result.Obligations != null)
                 {
                     List<XacmlJsonObligationOrAdvice> obligations = result.Obligations;
