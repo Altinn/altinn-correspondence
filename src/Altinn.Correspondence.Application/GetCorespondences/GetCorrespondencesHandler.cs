@@ -27,7 +27,7 @@ public class GetCorrespondencesHandler(
 
         string? onBehalfOf = request.OnBehalfOf;
         if (onBehalfOf is null) { 
-            onBehalfOf = userClaimsHelper.GetUserID();
+            onBehalfOf = userClaimsHelper.GetOrganizationId();
         }
         if (onBehalfOf is null)
         {

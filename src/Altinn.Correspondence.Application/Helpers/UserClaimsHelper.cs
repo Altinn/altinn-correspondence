@@ -1,10 +1,10 @@
-using System.Security.Claims;
-using System.Text.Json;
 using Altinn.Common.PEP.Constants;
 using Altinn.Correspondence.Application.Configuration;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
@@ -15,7 +15,6 @@ namespace Altinn.Correspondence.Application.Helpers
         private readonly DialogportenSettings _dialogportenSettings;
         private readonly IdportenSettings _idportenSettings;
         private const string _scopeClaim = "scope";
-        private const string _consumerClaim = "consumer";
         private const string _IdProperty = "ID";
         private const string _dialogportenOrgClaim = "p";
         private const string _personId = "pid";
@@ -44,11 +43,18 @@ namespace Altinn.Correspondence.Application.Helpers
             if (int.TryParse(authLevelClaim.Value, out int level)) return level;
             return 0;
         }
+
+        // Get the organization number of the caller including prefix
+        public string? GetOrganizationId()
+        {
+            return _user.GetCallerOrganizationId();
+        }
+
         public bool IsRecipient(string recipientId)
         {
             if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(recipientId) || GetPersonID() == recipientId;
             if (_claims.Any(c => c.Issuer == _idportenSettings.Issuer)) return true; // Idporten tokens are always recipients, verified by altinn authorization
-            if (GetUserID() != recipientId && GetPersonID() != recipientId) return false;
+            if (GetOrganizationId() != recipientId && GetPersonID() != recipientId) return false;
             if (!GetUserScope().Any(scope => scope == AuthorizationConstants.RecipientScope)) return false;
             return true;
         }
@@ -58,7 +64,7 @@ namespace Altinn.Correspondence.Application.Helpers
         {
             if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(senderId) || GetPersonID() == senderId;
             if (_claims.Any(c => c.Issuer == _idportenSettings.Issuer)) return false;
-            if (GetUserID() != senderId && GetPersonID() != senderId) return false;
+            if (GetOrganizationId() != senderId && GetPersonID() != senderId) return false;
             if (!GetUserScope().Any(scope => scope == AuthorizationConstants.SenderScope)) return false;
             return true;
         }
@@ -72,15 +78,7 @@ namespace Altinn.Correspondence.Application.Helpers
             var orgValue = orgClaim.Value;
             return orgValue.Replace(AltinnXacmlUrns.OrganizationNumberAttribute, "0192") == organizationId;
         }
-        public string? GetUserID()
-        {
-            var consumer = _claims.FirstOrDefault(c => c.Type == _consumerClaim)?.Value;
-            if (consumer is null) return GetDialogportenTokenUserId();
 
-            JsonDocument jsonDoc = JsonDocument.Parse(consumer);
-            string? id = jsonDoc.RootElement.GetProperty(_IdProperty).GetString();
-            return id;
-        }
         private string? GetPersonID()
         {
             if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer))
@@ -100,10 +98,6 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return null;
             }
-        }
-        private string? GetDialogportenTokenUserId()
-        {
-            return _claims.FirstOrDefault(c => c.Type == _IdProperty)?.Value;
         }
         private IEnumerable<string> GetUserScope()
         {
