@@ -48,6 +48,11 @@ public class InitializeCorrespondencesHandler(
         {
             return Errors.InvalidSender;
         }
+        var party = await altinnRegisterService.LookUpPartyById(userClaimsHelper.GetUserID(), cancellationToken);
+        if (party?.PartyUuid is not Guid partyUuid)
+        {
+            return Errors.CouldNotFindPartyUuid;
+        }
         if (request.Recipients.Count != request.Recipients.Distinct().Count())
         {
             return Errors.DuplicateRecipients;
@@ -97,7 +102,7 @@ public class InitializeCorrespondencesHandler(
         {
             foreach (var attachment in uploadAttachmentMetadata)
             {
-                var processedAttachment = await initializeCorrespondenceHelper.ProcessNewAttachment(attachment, cancellationToken);
+                var processedAttachment = await initializeCorrespondenceHelper.ProcessNewAttachment(attachment, partyUuid, cancellationToken);
                 attachmentsToBeUploaded.Add(processedAttachment);
             }
         }
@@ -125,16 +130,10 @@ public class InitializeCorrespondencesHandler(
             }
         }
         // Upload attachments
-        var uploadError = await initializeCorrespondenceHelper.UploadAttachments(attachmentsToBeUploaded, uploadAttachments, cancellationToken);
+        var uploadError = await initializeCorrespondenceHelper.UploadAttachments(attachmentsToBeUploaded, uploadAttachments, partyUuid, cancellationToken);
         if (uploadError != null)
         {
             return uploadError;
-        }
-
-        var party = await altinnRegisterService.LookUpPartyById(userClaimsHelper.GetUserID(), cancellationToken);
-        if (party?.PartyUuid is not Guid partyUuid)
-        {
-            return Errors.CouldNotFindPartyUuid;
         }
 
         return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
