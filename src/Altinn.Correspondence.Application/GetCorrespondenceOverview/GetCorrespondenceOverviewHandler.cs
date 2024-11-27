@@ -43,7 +43,7 @@ public class GetCorrespondenceOverviewHandler(
 
         return await TransactionWithRetriesPolicy.Execute<GetCorrespondenceOverviewResponse>(async (cancellationToken) =>
         {
-            if (!hasAccessAsSender && !user.CallingAsSender())
+            if (hasAccessAsRecipient && !user.CallingAsSender())
             {
                 if (!latestStatus.Status.IsAvailableForRecipient())
                 {
