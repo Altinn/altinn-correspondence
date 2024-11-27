@@ -38,6 +38,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyTypeName = PartyType.Organization,
                 UnitType = "Virksomhet",
                 Name = "Digitaliseringsdirektoratet",
+                PartyUuid = Guid.NewGuid(),
             });
         }
         return Task.FromResult<Party?>(null);
@@ -54,6 +55,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
             PartyTypeName = PartyType.Organization,
             UnitType = "Virksomhet",
             Name = "Digitaliseringsdirektoratet",
+            PartyUuid = Guid.NewGuid(),
         };
         return Task.FromResult<Party?>(party);
     }
