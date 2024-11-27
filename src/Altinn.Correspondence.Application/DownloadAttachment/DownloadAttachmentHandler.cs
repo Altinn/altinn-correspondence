@@ -1,17 +1,14 @@
-﻿using System.Security.Claims;
-using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Common.Helpers;
-using Altinn.Correspondence.Core.Models.Enums;
+﻿using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.DownloadAttachment;
 
 public class DownloadAttachmentHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     IStorageRepository storageRepository,
-    IAttachmentRepository attachmentRepository,
-    UserClaimsHelper userClaimsHelper) : IHandler<DownloadAttachmentRequest, Stream>
+    IAttachmentRepository attachmentRepository) : IHandler<DownloadAttachmentRequest, Stream>
 {
     public async Task<OneOf<Stream, Error>> Process(DownloadAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {

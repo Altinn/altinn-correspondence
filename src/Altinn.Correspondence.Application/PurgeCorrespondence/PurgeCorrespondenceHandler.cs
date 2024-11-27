@@ -16,7 +16,6 @@ public class PurgeCorrespondenceHandler(
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IEventBus eventBus,
-    UserClaimsHelper userClaimsHelper,
     PurgeCorrespondenceHelper purgeCorrespondenceHelper,
     ILogger<PurgeCorrespondenceHandler> logger) : IHandler<PurgeCorrespondenceRequest, Guid>
 {

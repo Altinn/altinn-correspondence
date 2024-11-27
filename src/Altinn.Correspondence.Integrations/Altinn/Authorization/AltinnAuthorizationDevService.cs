@@ -7,6 +7,11 @@ namespace Altinn.Correspondence.Integrations.Altinn.Authorization
 {
     public class AltinnAuthorizationDevService : IAltinnAuthorizationService
     {
+        public Task<bool> CheckAccessAsAny(ClaimsPrincipal? user, string resource, string party, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(true);
+        }
+
         public Task<bool> CheckAccessAsRecipient(ClaimsPrincipal? user, CorrespondenceEntity correspondence, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(true);
@@ -23,11 +28,6 @@ namespace Altinn.Correspondence.Integrations.Altinn.Authorization
         }
 
         public Task<bool> CheckMigrationAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(true);
-        }
-
-        public Task<bool> CheckUserAccess(ClaimsPrincipal? user, string resourceId, string instanceOwner, string? correspondenceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(true);
         }

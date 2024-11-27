@@ -18,7 +18,6 @@ public class PurgeAttachmentHandler(
     IStorageRepository storageRepository,
     ICorrespondenceRepository correspondenceRepository,
     IEventBus eventBus,
-    UserClaimsHelper userClaimsHelper,
     ILogger<PurgeAttachmentHandler> logger) : IHandler<Guid, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)

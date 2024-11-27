@@ -10,8 +10,7 @@ namespace Altinn.Correspondence.Application.GetAttachmentDetails;
 public class GetAttachmentDetailsHandler(
     IAttachmentRepository attachmentRepository,
     ICorrespondenceRepository correspondenceRepository,
-    IAltinnAuthorizationService altinnAuthorizationService,
-    UserClaimsHelper userClaimsHelper) : IHandler<Guid, GetAttachmentDetailsResponse>
+    IAltinnAuthorizationService altinnAuthorizationService) : IHandler<Guid, GetAttachmentDetailsResponse>
 {
 
     public async Task<OneOf<GetAttachmentDetailsResponse, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)

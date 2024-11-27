@@ -15,7 +15,6 @@ public class UpdateCorrespondenceStatusHandler(
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IEventBus eventBus,
-    UserClaimsHelper userClaimsHelper,
     UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
     ILogger<UpdateCorrespondenceStatusHandler> logger) : IHandler<UpdateCorrespondenceStatusRequest, Guid>
 {

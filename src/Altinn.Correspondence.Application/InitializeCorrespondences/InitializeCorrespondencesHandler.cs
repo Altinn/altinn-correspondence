@@ -29,7 +29,6 @@ public class InitializeCorrespondencesHandler(
     INotificationTemplateRepository notificationTemplateRepository,
     IEventBus eventBus,
     IBackgroundJobClient backgroundJobClient,
-    UserClaimsHelper userClaimsHelper,
     IDialogportenService dialogportenService,
     IHostEnvironment hostEnvironment,
     IOptions<GeneralSettings> generalSettings,

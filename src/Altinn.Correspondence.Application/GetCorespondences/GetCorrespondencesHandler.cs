@@ -1,7 +1,6 @@
-using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
-using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Microsoft.AspNetCore.Http;
 using OneOf;
 using System.Security.Claims;
 
@@ -10,7 +9,7 @@ namespace Altinn.Correspondence.Application.GetCorrespondences;
 public class GetCorrespondencesHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     ICorrespondenceRepository correspondenceRepository,
-    UserClaimsHelper userClaimsHelper) : IHandler<GetCorrespondencesRequest, GetCorrespondencesResponse>
+    IHttpContextAccessor httpContextAccessor) : IHandler<GetCorrespondencesRequest, GetCorrespondencesResponse>
 {
     public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -25,10 +24,9 @@ public class GetCorrespondencesHandler(
         {
             return Errors.InvalidDateRange;
         }
-
         string? onBehalfOf = request.OnBehalfOf;
         if (onBehalfOf is null) { 
-            onBehalfOf = userClaimsHelper.GetOrganizationId();
+            onBehalfOf = httpContextAccessor.HttpContext?.User.GetCallerOrganizationId();
         }
         if (onBehalfOf is null)
         {

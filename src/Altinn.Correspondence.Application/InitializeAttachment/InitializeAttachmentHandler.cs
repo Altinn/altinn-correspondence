@@ -16,7 +16,6 @@ public class InitializeAttachmentHandler(
     IAttachmentStatusRepository attachmentStatusRepository,
     IEventBus eventBus,
     IAltinnAuthorizationService altinnAuthorizationService,
-    UserClaimsHelper userClaimsHelper,
     ILogger<InitializeAttachmentHandler> logger) : IHandler<InitializeAttachmentRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)

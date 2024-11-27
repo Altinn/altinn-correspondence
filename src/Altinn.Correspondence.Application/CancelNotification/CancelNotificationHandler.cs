@@ -1,6 +1,3 @@
-using System.Runtime.CompilerServices;
-using System.Security.Claims;
-using System.Threading;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -10,6 +7,8 @@ using Hangfire.Server;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Slack.Webhooks;
+using System.Runtime.CompilerServices;
+using System.Security.Claims;
 
 [assembly: InternalsVisibleTo("Altinn.Correspondence.Tests")]
 namespace Altinn.Correspondence.Application.CancelNotification

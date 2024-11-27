@@ -1,5 +1,4 @@
 using Altinn.Common.PEP.Constants;
-using Altinn.Correspondence.Application.Configuration;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Http;
@@ -12,19 +11,12 @@ namespace Altinn.Correspondence.Application.Helpers
     {
         private readonly ClaimsPrincipal _user;
         private readonly IEnumerable<Claim> _claims;
-        private readonly DialogportenSettings _dialogportenSettings;
-        private const string _scopeClaim = "scope";
-        private const string _dialogportenOrgClaim = "p";
-        private const string _personId = "pid";
         private const string _minAuthLevelClaim = "urn:altinn:authlevel";
-        private const string _altinnUrnPersonIdentifier = "urn:altinn:person:identifier-no";
 
-        public UserClaimsHelper(IHttpContextAccessor httpContextAccessor, IOptions<DialogportenSettings> dialogportenSettings, IOptions<IdportenSettings> idportenSettings)
+        public UserClaimsHelper(IHttpContextAccessor httpContextAccessor)
         {
             _user = httpContextAccessor?.HttpContext?.User ?? new ClaimsPrincipal();
             _claims = _user.Claims ?? [];
-            _dialogportenSettings = dialogportenSettings.Value;
-            _idportenSettings = idportenSettings.Value;
         }
         public int? GetPartyId()
         {
@@ -40,49 +32,6 @@ namespace Altinn.Correspondence.Application.Helpers
             if (authLevelClaim is null) return 0;
             if (int.TryParse(authLevelClaim.Value, out int level)) return level;
             return 0;
-        }
-
-        // Get the organization number of the caller including prefix
-        public string? GetOrganizationId()
-        {
-            return _user.GetCallerOrganizationId();
-        }
-        private bool MatchesDialogTokenOrganization(string organizationId)
-        {
-            var orgClaim = _claims.FirstOrDefault(c => c.Type == _dialogportenOrgClaim);
-            if (orgClaim is null)
-            {
-                return false;
-            }
-            var orgValue = orgClaim.Value;
-            return orgValue.Replace(AltinnXacmlUrns.OrganizationNumberAttribute, "0192") == organizationId;
-        }
-
-        private string? GetPersonID()
-        {
-            if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer))
-            {
-                var personidClaimValue = _claims.FirstOrDefault(c => c.Type == "p")?.Value;
-                if (!personidClaimValue.StartsWith(_altinnUrnPersonIdentifier))
-                {
-                    return null;
-                }
-                return personidClaimValue.Replace(_altinnUrnPersonIdentifier + ":", "");
-            }
-            else if (_claims.Any(c => c.Type == _personId))
-            {
-                return _claims.FirstOrDefault(c => c.Type == _personId)?.Value;
-            }
-            else
-            {
-                return null;
-            }
-        }
-        private IEnumerable<string> GetUserScope()
-        {
-            var scopeClaims = _claims.Where(c => c.Type == _scopeClaim) ?? [];
-            var scopes = scopeClaims.SelectMany(c => c.Value.Split(" "));
-            return scopes;
         }
     }
 }

@@ -13,7 +13,6 @@ public class DownloadCorrespondenceAttachmentHandler(
     IStorageRepository storageRepository,
     IAttachmentRepository attachmentRepository,
     ICorrespondenceRepository correspondenceRepository,
-    UserClaimsHelper userClaimsHelper,
     IBackgroundJobClient backgroundJobClient) : IHandler<DownloadCorrespondenceAttachmentRequest, DownloadCorrespondenceAttachmentResponse>
 {
 

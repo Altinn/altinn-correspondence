@@ -13,7 +13,6 @@ public class UploadAttachmentHandler(
     IAttachmentRepository attachmentRepository,
     ICorrespondenceRepository correspondenceRepository,
     UploadHelper uploadHelper,
-    UserClaimsHelper userClaimsHelper,
     ILogger<UploadAttachmentHandler> logger) : IHandler<UploadAttachmentRequest, UploadAttachmentResponse>
 {
     public async Task<OneOf<UploadAttachmentResponse, Error>> Process(UploadAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
