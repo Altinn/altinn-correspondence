@@ -29,7 +29,10 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     [Consumes("application/json")]
     [Produces("application/json")]
     [Authorize(Policy = AuthorizationConstants.Sender)]
-    public async Task<ActionResult<Guid>> InitializeAttachment(InitializeAttachmentExt InitializeAttachmentExt, [FromServices] InitializeAttachmentHandler handler, CancellationToken cancellationToken)
+    public async Task<ActionResult<Guid>> InitializeAttachment(
+        InitializeAttachmentExt InitializeAttachmentExt,
+        [FromServices] InitializeAttachmentHandler handler,
+        CancellationToken cancellationToken)
     {
         var commandRequest = InitializeAttachmentMapper.MapToRequest(InitializeAttachmentExt);
         var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);

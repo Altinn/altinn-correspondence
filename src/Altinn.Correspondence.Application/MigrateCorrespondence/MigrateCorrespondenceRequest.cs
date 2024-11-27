@@ -1,4 +1,3 @@
-using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Core.Models.Entities;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondence;

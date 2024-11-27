@@ -6,5 +6,4 @@ public class UpdateCorrespondenceStatusRequest
 {
     public required Guid CorrespondenceId { get; set; }
     public required CorrespondenceStatus Status { get; set; }
-    public string? OnBehalfOf { get; set; }
 }

@@ -103,7 +103,6 @@ namespace Altinn.Correspondence.API.Controllers
         [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
             Guid correspondenceId,
-            [FromQuery] string? onBehalfOf,
             [FromServices] GetCorrespondenceOverviewHandler handler,
             CancellationToken cancellationToken)
         {
@@ -111,8 +110,7 @@ namespace Altinn.Correspondence.API.Controllers
 
             var commandResult = await handler.Process(new GetCorrespondenceOverviewRequest()
             {
-                CorrespondenceId = correspondenceId,
-                OnBehalfOf = onBehalfOf
+                CorrespondenceId = correspondenceId
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
@@ -134,7 +132,6 @@ namespace Altinn.Correspondence.API.Controllers
         [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         public async Task<ActionResult<CorrespondenceDetailsExt>> GetCorrespondenceDetails(
             Guid correspondenceId,
-            [FromQuery] string? onBehalfOf,
             [FromServices] GetCorrespondenceDetailsHandler handler,
             CancellationToken cancellationToken)
         {
@@ -143,7 +140,6 @@ namespace Altinn.Correspondence.API.Controllers
             var commandResult = await handler.Process(new GetCorrespondenceDetailsRequest()
             {
                 CorrespondenceId = correspondenceId,
-                OnBehalfOf = onBehalfOf
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
@@ -239,7 +235,6 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("{correspondenceId}/markasread")]
         public async Task<ActionResult> MarkAsRead(
             Guid correspondenceId,
-            [FromQuery] string? onBehalfOf,
             [FromServices] UpdateCorrespondenceStatusHandler handler,
             CancellationToken cancellationToken)
         {
@@ -248,8 +243,7 @@ namespace Altinn.Correspondence.API.Controllers
             var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
             {
                 CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Read,
-                OnBehalfOf = onBehalfOf,
+                Status = CorrespondenceStatus.Read
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
@@ -271,7 +265,6 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("{correspondenceId}/confirm")]
         public async Task<ActionResult> Confirm(
             Guid correspondenceId,
-            [FromQuery] string? onBehalfOf,
             [FromServices] UpdateCorrespondenceStatusHandler handler,
             CancellationToken cancellationToken)
         {
@@ -280,8 +273,7 @@ namespace Altinn.Correspondence.API.Controllers
             var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
             {
                 CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Confirmed,
-                OnBehalfOf = onBehalfOf,
+                Status = CorrespondenceStatus.Confirmed
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
@@ -303,7 +295,6 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("{correspondenceId}/archive")]
         public async Task<ActionResult> Archive(
             Guid correspondenceId,
-            [FromQuery] string? onBehalfOf,
             [FromServices] UpdateCorrespondenceStatusHandler handler,
             CancellationToken cancellationToken)
         {
@@ -313,7 +304,6 @@ namespace Altinn.Correspondence.API.Controllers
             {
                 CorrespondenceId = correspondenceId,
                 Status = CorrespondenceStatus.Archived,
-                OnBehalfOf = onBehalfOf,
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
@@ -335,7 +325,6 @@ namespace Altinn.Correspondence.API.Controllers
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         public async Task<ActionResult> Purge(
             Guid correspondenceId,
-            [FromQuery] string? onBehalfOf,
             [FromServices] PurgeCorrespondenceHandler handler,
             CancellationToken cancellationToken)
         {
@@ -343,8 +332,7 @@ namespace Altinn.Correspondence.API.Controllers
 
             var commandResult = await handler.Process(new PurgeCorrespondenceRequest()
             {
-                CorrespondenceId = correspondenceId,
-                OnBehalfOf = onBehalfOf
+                CorrespondenceId = correspondenceId
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
@@ -365,15 +353,13 @@ namespace Altinn.Correspondence.API.Controllers
         public async Task<ActionResult> DownloadCorrespondenceAttachmentData(
             Guid correspondenceId,
             Guid attachmentId,
-            [FromQuery] string? onBehalfOf,
             [FromServices] DownloadCorrespondenceAttachmentHandler handler,
             CancellationToken cancellationToken)
         {
             var commandResult = await handler.Process(new DownloadCorrespondenceAttachmentRequest()
             {
                 CorrespondenceId = correspondenceId,
-                AttachmentId = attachmentId,
-                OnBehalfOf = onBehalfOf
+                AttachmentId = attachmentId
             }, HttpContext.User, cancellationToken);
             return commandResult.Match(
                 result => File(result.Stream, "application/octet-stream", result.FileName),
