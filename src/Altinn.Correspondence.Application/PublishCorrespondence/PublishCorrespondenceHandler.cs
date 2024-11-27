@@ -46,7 +46,7 @@ public class PublishCorrespondenceHandler(
         }
         CorrespondenceStatusEntity status;
         AltinnEventType eventType = AltinnEventType.CorrespondencePublished;
-        var party = await altinnRegisterService.LookUpPartyById(userClaimsHelper.GetUserID(), cancellationToken);
+        var party = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
             return Errors.CouldNotFindPartyUuid;
