@@ -13,6 +13,7 @@ namespace Altinn.Correspondence.Application.PurgeCorrespondence;
 
 public class PurgeCorrespondenceHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
+    IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IEventBus eventBus,
@@ -74,7 +75,12 @@ public class PurgeCorrespondenceHandler(
         {
             return Errors.CorrespondenceNotFound;
         }
-        
+        var party = await altinnRegisterService.LookUpPartyById(userClaimsHelper.GetUserID(), cancellationToken);
+        if (party?.PartyUuid is not Guid partyUuid)
+        {
+            return Errors.CouldNotFindPartyUuid;
+        }
+
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             var status = isSender ? CorrespondenceStatus.PurgedByAltinn : CorrespondenceStatus.PurgedByRecipient;
@@ -83,7 +89,8 @@ public class PurgeCorrespondenceHandler(
                 CorrespondenceId = correspondenceId,
                 Status = status,
                 StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = status.ToString()
+                StatusText = status.ToString(),
+                PartyUuid = partyUuid
             }, cancellationToken);
 
             await eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken);

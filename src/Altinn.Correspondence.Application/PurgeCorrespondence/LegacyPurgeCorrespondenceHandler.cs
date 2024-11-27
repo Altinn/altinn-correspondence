@@ -51,6 +51,10 @@ public class LegacyPurgeCorrespondenceHandler(
         {
             return recipientPurgeError;
         }
+        if (party.PartyUuid is not Guid partyUuid)
+        {
+            return Errors.CouldNotFindPartyUuid;
+        }
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
@@ -58,7 +62,8 @@ public class LegacyPurgeCorrespondenceHandler(
                 CorrespondenceId = correspondenceId,
                 Status = CorrespondenceStatus.PurgedByRecipient,
                 StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = CorrespondenceStatus.PurgedByRecipient.ToString()
+                StatusText = CorrespondenceStatus.PurgedByRecipient.ToString(),
+                PartyUuid = partyUuid,
             }, cancellationToken);
 
             await eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken);

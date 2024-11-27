@@ -1,6 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -12,8 +11,8 @@ namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 
 public class UpdateCorrespondenceStatusHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
+    IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
-    ICorrespondenceStatusRepository correspondenceStatusRepository,
     IEventBus eventBus,
     UserClaimsHelper userClaimsHelper,
     UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
@@ -58,16 +57,15 @@ public class UpdateCorrespondenceStatusHandler(
         {
             return updateError;
         }
+        var party = await altinnRegisterService.LookUpPartyById(userClaimsHelper.GetUserID(), cancellationToken);
+        if (party?.PartyUuid is not Guid partyUuid)
+        {
+            return Errors.CouldNotFindPartyUuid;
+        }
         
         await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
         {
-            await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
-            {
-                CorrespondenceId = request.CorrespondenceId,
-                Status = request.Status,
-                StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = request.Status.ToString(),
-            }, cancellationToken);
+            await updateCorrespondenceStatusHelper.AddCorrespondenceStatus(correspondence, request.Status, partyUuid, cancellationToken);
             updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
             await updateCorrespondenceStatusHelper.PublishEvent(eventBus, correspondence, request.Status, cancellationToken);
             return Task.CompletedTask;
