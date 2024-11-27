@@ -47,7 +47,16 @@ public static class CorrespondenceStatusExtensions
         List<CorrespondenceStatus> validStatuses =
         [
             CorrespondenceStatus.Published, CorrespondenceStatus.Fetched, CorrespondenceStatus.Read, CorrespondenceStatus.Replied,
-            CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived, CorrespondenceStatus.Reserved, CorrespondenceStatus.PurgedByRecipient, CorrespondenceStatus.PurgedByAltinn
+            CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived, CorrespondenceStatus.Reserved
+        ];
+        return validStatuses.Contains(correspondenceStatus);
+    }
+    public static bool IsAvailableForLegacyRecipient(this CorrespondenceStatus correspondenceStatus)
+    {
+        List<CorrespondenceStatus> validStatuses =
+        [
+            CorrespondenceStatus.Published, CorrespondenceStatus.Fetched, CorrespondenceStatus.Read, CorrespondenceStatus.Replied,
+            CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived, CorrespondenceStatus.Reserved, CorrespondenceStatus.PurgedByAltinn, CorrespondenceStatus.PurgedByRecipient
         ];
         return validStatuses.Contains(correspondenceStatus);
     }

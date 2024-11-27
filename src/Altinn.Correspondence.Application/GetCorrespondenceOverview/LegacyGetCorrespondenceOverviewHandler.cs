@@ -62,7 +62,7 @@ public class LegacyGetCorrespondenceOverviewHandler : IHandler<Guid, LegacyGetCo
             _logger.LogWarning("Latest status not found for correspondence");
             return Errors.CorrespondenceNotFound;
         }
-        if (!latestStatus.Status.IsAvailableForRecipient())
+        if (!latestStatus.Status.IsAvailableForLegacyRecipient())
         {
             _logger.LogWarning("Rejected because correspondence not available for recipient in current state.");
             return Errors.CorrespondenceNotFound;
