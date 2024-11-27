@@ -332,6 +332,7 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpDelete]
         [Route("{correspondenceId}/purge")]
         [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
+        [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         public async Task<ActionResult> Purge(
             Guid correspondenceId,
             [FromQuery] string? onBehalfOf,
