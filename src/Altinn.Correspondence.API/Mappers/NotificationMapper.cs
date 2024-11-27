@@ -54,7 +54,6 @@ internal static class NotificationMapper
                 Recipient = new NotificationRecipientExt()
                 {
                     EmailAddress = status.Email.Recipient.EmailAddress,
-                    IsReserved = status.Email.Recipient.IsReserved,
                     MobileNumber = status.Email.Recipient.MobileNumber,
                     NationalIdentityNumber = status.Email.Recipient.NationalIdentityNumber,
                     OrganizationNumber = status.Email.Recipient.OrganizationNumber
@@ -73,7 +72,6 @@ internal static class NotificationMapper
                 Recipient = new NotificationRecipientExt()
                 {
                     EmailAddress = status.Sms.Recipient.EmailAddress,
-                    IsReserved = status.Sms.Recipient.IsReserved,
                     MobileNumber = status.Sms.Recipient.MobileNumber,
                     NationalIdentityNumber = status.Sms.Recipient.NationalIdentityNumber,
                     OrganizationNumber = status.Sms.Recipient.OrganizationNumber
@@ -87,5 +85,21 @@ internal static class NotificationMapper
                 Succeeded = status.Sms.Succeeded
             } : null,
         };
+    }
+
+    public static List<Recipient> MapExternalRecipientsToRequest(List<NotificationRecipientExt> recipients)
+    {
+        var recipientsRequest = new List<Recipient>();
+        foreach (var recipient in recipients)
+        {
+            recipientsRequest.Add(new Recipient()
+            {
+                EmailAddress = recipient.EmailAddress,
+                MobileNumber = recipient.MobileNumber,
+                NationalIdentityNumber = recipient.NationalIdentityNumber,
+                OrganizationNumber = recipient.OrganizationNumber
+            });
+        }
+        return recipientsRequest;
     }
 }

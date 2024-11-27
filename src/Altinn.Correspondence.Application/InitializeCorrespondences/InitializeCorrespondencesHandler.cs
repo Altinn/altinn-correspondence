@@ -293,15 +293,22 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             personNr = correspondence.Recipient;
             content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person || c.RecipientType == null);
         }
+
+        List<Recipient> recipients = new List<Recipient>();
+
+        if (notification.Recipients.Count == 0)
+        {
+            recipients.Add(new Recipient
+            {
+                OrganizationNumber = orgNr,
+                NationalIdentityNumber = personNr
+            });
+        }
+        else recipients = notification.Recipients;
         var notificationOrder = new NotificationOrderRequest
         {
             IgnoreReservation = correspondence.IgnoreReservation,
-            Recipients = new List<Recipient>{
-            new Recipient{
-                OrganizationNumber = orgNr,
-                NationalIdentityNumber = personNr
-            },
-        },
+            Recipients = recipients,
             ResourceId = correspondence.ResourceId,
             RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(5) : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
             SendersReference = correspondence.SendersReference,
@@ -323,14 +330,7 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
             notifications.Add(new NotificationOrderRequest
             {
                 IgnoreReservation = correspondence.IgnoreReservation,
-                Recipients = new List<Recipient>
-                {
-                    new Recipient
-                    {
-                        OrganizationNumber = orgNr,
-                        NationalIdentityNumber = personNr
-                    },
-                },
+                Recipients = recipients,
                 ResourceId = correspondence.ResourceId,
                 RequestedSendTime = _hostEnvironment.IsProduction() ? notificationOrder.RequestedSendTime.Value.AddDays(7) : notificationOrder.RequestedSendTime.Value.AddHours(1),
                 ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString()),
