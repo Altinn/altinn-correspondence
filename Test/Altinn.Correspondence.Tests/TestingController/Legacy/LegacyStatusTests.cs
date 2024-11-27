@@ -190,5 +190,26 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             Assert.Equal(CorrespondenceStatusExt.Published, firstOverview?.Status);
             Assert.Equal(CorrespondenceStatusExt.Read, secondOverview?.Status);
         }
+        [Fact]
+        public async Task Can_Get_Overview_When_Purged()
+        {
+            //  Arrange
+            var payload = new CorrespondenceBuilder()
+                 .CreateCorrespondence()
+                 .Build();
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+            Assert.Equal(CorrespondenceStatusExt.Published, correspondence.Status);
+            var correspondenceId = correspondence.CorrespondenceId;
+
+            var purgeRequest = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{correspondenceId}/purge");
+            purgeRequest.EnsureSuccessStatusCode();
+
+            var fetchResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondenceId}");
+            Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
+            // Verify the correspondence status after purge
+            var purgedCorrespondence = await fetchResponse.Content.ReadFromJsonAsync<CorrespondenceOverviewExt>(_serializerOptions);
+            Assert.Equal(CorrespondenceStatusExt.PurgedByRecipient, purgedCorrespondence?.Status);
+        }
+
     }
 }
