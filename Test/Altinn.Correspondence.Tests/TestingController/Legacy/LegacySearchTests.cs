@@ -1,5 +1,5 @@
 ﻿using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Application.Configuration;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Helpers;

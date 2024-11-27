@@ -1,6 +1,6 @@
 ﻿using Altinn.Common.PEP.Authorization;
 using Altinn.Correspondence.API.Helpers;
-using Altinn.Correspondence.Application.Configuration;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;

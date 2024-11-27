@@ -37,5 +37,11 @@ namespace Altinn.Correspondence.Common.Helpers
             }
             return null;
         }
+
+        public static bool CallingAsSender(this ClaimsPrincipal user)
+        {
+            var scope = user.Claims.FirstOrDefault(c => c.Type == "scope")?.Value;
+            return scope?.Contains("altinn:correspondence.write") ?? false;
+        }
     }
 }

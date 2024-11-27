@@ -1,6 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application.CheckNotification;
-using Altinn.Correspondence.Application.Configuration;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Tests.Factories;
 using System.Net.Http.Json;
 using System.Text.Json;

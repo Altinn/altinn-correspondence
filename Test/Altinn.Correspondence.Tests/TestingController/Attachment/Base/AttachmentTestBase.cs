@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Application.Configuration;
+﻿using Altinn.Correspondence.Common.Constants;
 using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests.TestingController.Attachment.Base

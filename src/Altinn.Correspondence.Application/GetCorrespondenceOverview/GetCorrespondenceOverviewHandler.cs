@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -42,7 +43,7 @@ public class GetCorrespondenceOverviewHandler(
 
         return await TransactionWithRetriesPolicy.Execute<GetCorrespondenceOverviewResponse>(async (cancellationToken) =>
         {
-            if (!hasAccessAsSender && hasAccessAsRecipient)
+            if (!hasAccessAsSender && !user.CallingAsSender())
             {
                 if (!latestStatus.Status.IsAvailableForRecipient())
                 {

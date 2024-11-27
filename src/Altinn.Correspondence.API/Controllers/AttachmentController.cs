@@ -1,6 +1,6 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application;
-using Altinn.Correspondence.Application.Configuration;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Application.DownloadAttachment;
 using Altinn.Correspondence.Application.GetAttachmentDetails;
 using Altinn.Correspondence.Application.GetAttachmentOverview;

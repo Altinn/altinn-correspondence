@@ -2,7 +2,7 @@
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.CheckNotification;
-using Altinn.Correspondence.Application.Configuration;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
