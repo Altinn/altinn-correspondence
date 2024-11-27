@@ -23,33 +23,23 @@ public class GetCorrespondenceOverviewHandler(
         {
             return Errors.CorrespondenceNotFound;
         }
-        string? onBehalfOf = request.OnBehalfOf;
-        bool isOnBehalfOfRecipient = false;
-        bool isOnBehalfOfSender = false;
-        if (!string.IsNullOrEmpty(onBehalfOf))
-        {
-            isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
-            isOnBehalfOfSender = correspondence.Sender.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
-        }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
+        var hasAccessAsRecipient = await altinnAuthorizationService.CheckUserAccess(
             user,
             correspondence.ResourceId,
-            request.OnBehalfOf ?? correspondence.Recipient,
+            correspondence.Recipient.WithoutPrefix(),
             correspondence.Id.ToString(),
             [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
             cancellationToken);
-        if (!hasAccess)
+        var hasAccessAsSender = await altinnAuthorizationService.CheckUserAccess(
+            user,
+            correspondence.ResourceId,
+            correspondence.Sender.WithoutPrefix(),
+            correspondence.Id.ToString(),
+            [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
+            cancellationToken);
+        if (!hasAccessAsRecipient && !hasAccessAsSender)
         {
             return Errors.NoAccessToResource;
-        }
-
-        bool isRecipient = userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
-        bool isSender = userClaimsHelper.IsSender(correspondence.Sender) || isOnBehalfOfSender;
-
-        if (!isRecipient && !isSender)
-        {
-            logger.LogWarning("Caller not affiliated with correspondence");
-            return Errors.CorrespondenceNotFound;
         }
         var latestStatus = correspondence.GetHighestStatus();
         if (latestStatus == null)
@@ -60,7 +50,7 @@ public class GetCorrespondenceOverviewHandler(
 
         return await TransactionWithRetriesPolicy.Execute<GetCorrespondenceOverviewResponse>(async (cancellationToken) =>
         {
-            if (isRecipient)
+            if (!hasAccessAsSender && hasAccessAsRecipient)
             {
                 if (!latestStatus.Status.IsAvailableForRecipient())
                 {

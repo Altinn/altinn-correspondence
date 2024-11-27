@@ -52,7 +52,7 @@ public static class AltinnTokenXacmlMapper
 
         if (party.IsOrganizationNumber())
         {
-            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumberAttribute, party.GetOrgNumberWithoutPrefix(), DefaultType, DefaultIssuer));
+            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumberAttribute, party.WithoutPrefix(), DefaultType, DefaultIssuer));
         }
         else if (party.IsSocialSecurityNumber())
         {

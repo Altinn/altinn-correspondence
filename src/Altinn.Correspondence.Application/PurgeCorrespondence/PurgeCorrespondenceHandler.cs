@@ -28,33 +28,25 @@ public class PurgeCorrespondenceHandler(
         {
             return Errors.CorrespondenceNotFound;
         }
-        string? onBehalfOf = request.OnBehalfOf;
-        bool isOnBehalfOfRecipient = false;
-        bool isOnBehalfOfSender = false;
-        if (!string.IsNullOrEmpty(onBehalfOf))
-        {
-            isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
-            isOnBehalfOfSender = correspondence.Sender.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
-        }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
+        var hasAccessAsSender = await altinnAuthorizationService.CheckUserAccess(
             user,
             correspondence.ResourceId,
-            request.OnBehalfOf ?? correspondence.Recipient,
+            correspondence.Sender.WithoutPrefix(),
             correspondence.Id.ToString(),
             [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
             cancellationToken);
-        if (!hasAccess)
+        var hasAccessAsRecipient = await altinnAuthorizationService.CheckUserAccess(
+            user,
+            correspondence.ResourceId,
+            correspondence.Recipient.WithoutPrefix(),
+            correspondence.Id.ToString(),
+            [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
+            cancellationToken);
+        if (!hasAccessAsSender && !hasAccessAsRecipient)
         {
             return Errors.NoAccessToResource;
         }
-        var currentStatusError = purgeCorrespondenceHelper.ValidateCurrentStatus(correspondence);
-        if (currentStatusError is not null)
-        {
-            return currentStatusError;
-        }
-        bool isRecipient = userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
-        bool isSender = userClaimsHelper.IsSender(correspondence.Sender) || isOnBehalfOfSender;
-        if (isSender)
+        if (hasAccessAsSender)
         {
             var senderRecipientPurgeError = purgeCorrespondenceHelper.ValidatePurgeRequestSender(correspondence);
             if (senderRecipientPurgeError is not null)
@@ -62,7 +54,7 @@ public class PurgeCorrespondenceHandler(
                 return senderRecipientPurgeError;
             }
         }
-        else if (isRecipient)
+        else if (hasAccessAsRecipient)
         {
             var recipientPurgeError = purgeCorrespondenceHelper.ValidatePurgeRequestRecipient(correspondence);
             if (recipientPurgeError is not null)
@@ -70,14 +62,15 @@ public class PurgeCorrespondenceHandler(
                 return recipientPurgeError;
             }
         }
-        if (!isRecipient && !isSender)
+        var currentStatusError = purgeCorrespondenceHelper.ValidateCurrentStatus(correspondence);
+        if (currentStatusError is not null)
         {
-            return Errors.CorrespondenceNotFound;
+            return currentStatusError;
         }
         
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            var status = isSender ? CorrespondenceStatus.PurgedByAltinn : CorrespondenceStatus.PurgedByRecipient;
+            var status = hasAccessAsSender ? CorrespondenceStatus.PurgedByAltinn : CorrespondenceStatus.PurgedByRecipient;
             await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity()
             {
                 CorrespondenceId = correspondenceId,
@@ -88,7 +81,7 @@ public class PurgeCorrespondenceHandler(
 
             await eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken);
             await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondenceId, cancellationToken);
-            purgeCorrespondenceHelper.ReportActivityToDialogporten(isSender, correspondenceId);
+            purgeCorrespondenceHelper.ReportActivityToDialogporten(hasAccessAsSender, correspondenceId);
             purgeCorrespondenceHelper.CancelNotification(correspondenceId, cancellationToken);
             return correspondenceId;
         }, logger, cancellationToken);

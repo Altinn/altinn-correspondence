@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.Extensions.Logging;
@@ -22,14 +23,16 @@ public class UploadAttachmentHandler(
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, attachment.Sender, attachment.Id.ToString(), new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
+            user,
+            attachment.ResourceId,
+            attachment.Sender.WithoutPrefix(),
+            attachment.Id.ToString(),
+            new List<ResourceAccessLevel> { ResourceAccessLevel.Write },
+            cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
-        }
-        if (!userClaimsHelper.IsSender(attachment.Sender))
-        {
-            return Errors.InvalidSender;
         }
         var maxUploadSize = long.Parse(int.MaxValue.ToString());
         if (request.ContentLength > maxUploadSize || request.ContentLength == 0)
@@ -40,7 +43,6 @@ public class UploadAttachmentHandler(
         {
             return Errors.InvalidUploadAttachmentStatus;
         }
-
         // Check if any correspondences are attached. 
         var correspondences = await correspondenceRepository.GetCorrespondencesByAttachmentId(request.AttachmentId, false);
         if (correspondences.Count != 0)

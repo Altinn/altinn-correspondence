@@ -7,6 +7,7 @@ using Altinn.Correspondence.Core.Services.Enums;
 using OneOf;
 using System.Security.Claims;
 using Microsoft.Extensions.Logging;
+using Altinn.Correspondence.Common.Helpers;
 
 namespace Altinn.Correspondence.Application.PurgeAttachment;
 
@@ -27,11 +28,13 @@ public class PurgeAttachmentHandler(
         {
             return Errors.AttachmentNotFound;
         }
-        if (!userClaimsHelper.IsSender(attachment.Sender))
-        {
-            return Errors.InvalidSender;
-        }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, attachment.Sender, attachment.Id.ToString(), new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
+            user,
+            attachment.ResourceId,
+            attachment.Sender.WithoutPrefix(),
+            attachment.Id.ToString(),
+            new List<ResourceAccessLevel> { ResourceAccessLevel.Write },
+            cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;

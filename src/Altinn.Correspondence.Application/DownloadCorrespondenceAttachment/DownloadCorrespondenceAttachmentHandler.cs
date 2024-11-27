@@ -31,16 +31,10 @@ public class DownloadCorrespondenceAttachmentHandler(
         {
             return Errors.AttachmentNotFound;
         }
-        string? onBehalfOf = request.OnBehalfOf;
-        bool isOnBehalfOfRecipient = false;
-        if (!string.IsNullOrEmpty(onBehalfOf))
-        {
-            isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
-        }
         var hasAccess = await altinnAuthorizationService.CheckUserAccess(
             user,
             correspondence.ResourceId,
-            request.OnBehalfOf ?? correspondence.Recipient,
+            correspondence.Recipient.WithoutPrefix(),
             correspondence.Id.ToString(),
             [ResourceAccessLevel.Read],
             cancellationToken);
@@ -48,18 +42,13 @@ public class DownloadCorrespondenceAttachmentHandler(
         {
             return Errors.NoAccessToResource;
         }
-        var isRecipient = userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
-        if (!isRecipient)
-        {
-            return Errors.CorrespondenceNotFound;
-        }
         var latestStatus = correspondence.GetHighestStatus();
         if (!latestStatus.Status.IsAvailableForRecipient())
         {
             return Errors.CorrespondenceNotFound;
         }
         var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, cancellationToken);
-        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, Core.Services.Enums.DialogportenActorType.Recipient, DialogportenTextType.DownloadStarted, attachment.FileName ?? attachment.Name));
+        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, DialogportenActorType.Recipient, DialogportenTextType.DownloadStarted, attachment.FileName ?? attachment.Name));
         return new DownloadCorrespondenceAttachmentResponse(){
             FileName = attachment.FileName,
             Stream = attachmentStream

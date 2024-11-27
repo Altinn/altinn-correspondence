@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.PublishCorrespondence;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
@@ -38,15 +39,16 @@ public class InitializeCorrespondencesHandler(
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(user, request.Correspondence.ResourceId, request.Correspondence.Sender, null, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
+            user,
+            request.Correspondence.ResourceId,
+            request.Correspondence.Sender.WithoutPrefix(),
+            null,
+            new List<ResourceAccessLevel> { ResourceAccessLevel.Write },
+            cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
-        }
-        var isSender = userClaimsHelper.IsSender(request.Correspondence.Sender);
-        if (!isSender)
-        {
-            return Errors.InvalidSender;
         }
         if (request.Recipients.Count != request.Recipients.Distinct().Count())
         {

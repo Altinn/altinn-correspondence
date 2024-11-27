@@ -26,27 +26,16 @@ public class UpdateCorrespondenceStatusHandler(
         {
             return Errors.CorrespondenceNotFound;
         }
-        string? onBehalfOf = request.OnBehalfOf;
-        bool isOnBehalfOfRecipient = false;
-        if (!string.IsNullOrEmpty(onBehalfOf))
-        {
-            isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
-        }
         var hasAccess = await altinnAuthorizationService.CheckUserAccess(
             user,
             correspondence.ResourceId,
-            request.OnBehalfOf ?? correspondence.Recipient,
+            correspondence.Recipient.WithoutPrefix(),
             correspondence.Id.ToString(),
             [ResourceAccessLevel.Read],
             cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
-        }
-        var isRecipient = userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
-        if (!isRecipient)
-        {
-            return Errors.CorrespondenceNotFound;
         }
         var currentStatusError = updateCorrespondenceStatusHelper.ValidateCurrentStatus(correspondence);
         if (currentStatusError is not null)

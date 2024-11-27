@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
@@ -20,14 +21,16 @@ public class GetAttachmentDetailsHandler(
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, attachment.Sender, attachment.Id.ToString(), new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
+            user,
+            attachment.ResourceId,
+            attachment.Sender.WithoutPrefix(),
+            attachment.Id.ToString(),
+            new List<ResourceAccessLevel> { ResourceAccessLevel.Write },
+            cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
-        }
-        if (!userClaimsHelper.IsSender(attachment.Sender))
-        {
-            return Errors.InvalidSender;
         }
         var correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);
         var attachmentStatus = attachment.GetLatestStatus();

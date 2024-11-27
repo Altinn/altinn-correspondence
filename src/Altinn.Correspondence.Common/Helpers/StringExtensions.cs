@@ -24,15 +24,13 @@ public static class StringExtensions
     {
         return (!string.IsNullOrEmpty(identifier) && OrgPattern.IsMatch(identifier));
     }
-
     /// <summary>
-    /// Extracts the organization number from a string that may contain a prefix.
+    /// Extracts the identifier from a colon-separated string that may contain a prefix.
     /// </summary>
     /// <param name="orgNumber">The organization number to format</param>
     /// <returns>Returns the last sequence succeeding a colon.</returns>
-    public static string GetOrgNumberWithoutPrefix(this string orgNumber)
+    public static string WithoutPrefix(this string orgOrSsnNumber)
     {
-        var parts = orgNumber.Split(':');
-        return parts[^1];
+        return orgOrSsnNumber.Split(":").Last();
     }
 }

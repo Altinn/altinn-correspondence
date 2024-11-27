@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
@@ -36,11 +37,10 @@ public class GetCorrespondencesHandler(
         var hasAccess = await altinnAuthorizationService.CheckUserAccess(
             user,
             request.ResourceId,
-            onBehalfOf,
+            onBehalfOf.WithoutPrefix(),
             null,
             [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
             cancellationToken);
-
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
