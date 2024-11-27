@@ -60,5 +60,5 @@ public static class Errors
     public static Error InvalidDateRange = new Error(52, "From date cannot be after to date", HttpStatusCode.BadRequest);
     public static Error InvalidSenderForAttachment = new Error(53, "The sender of the correspondence must be equal the sender of existing attachments", HttpStatusCode.BadRequest);
     public static Error CouldNotDetermineCaller = new Error(54, "Could not determine caller", HttpStatusCode.Unauthorized);
-    public static Error CouldNotFindPartyUuid = new Error(55, "Could retrieve party uuid from lookup in Altinn Register", HttpStatusCode.BadRequest);
+    public static Error CouldNotFindPartyUuid = new Error(55, "Could not retrieve party uuid from lookup in Altinn Register", HttpStatusCode.BadRequest);
 }
