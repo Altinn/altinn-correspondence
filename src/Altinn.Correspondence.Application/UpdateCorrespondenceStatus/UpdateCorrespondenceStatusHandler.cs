@@ -26,12 +26,9 @@ public class UpdateCorrespondenceStatusHandler(
         {
             return Errors.CorrespondenceNotFound;
         }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
+        var hasAccess = await altinnAuthorizationService.CheckAccessAsRecipient(
             user,
-            correspondence.ResourceId,
-            correspondence.Recipient.WithoutPrefix(),
-            correspondence.Id.ToString(),
-            [ResourceAccessLevel.Read],
+            correspondence,
             cancellationToken);
         if (!hasAccess)
         {

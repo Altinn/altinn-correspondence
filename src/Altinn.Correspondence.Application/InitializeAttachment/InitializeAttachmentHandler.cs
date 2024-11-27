@@ -21,12 +21,11 @@ public class InitializeAttachmentHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
+        var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
             request.Attachment.ResourceId,
             request.Attachment.Sender.WithoutPrefix(),
             null,
-            new List<ResourceAccessLevel> { ResourceAccessLevel.Write },
             cancellationToken);
         if (!hasAccess)
         {

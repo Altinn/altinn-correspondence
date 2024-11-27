@@ -1,6 +1,4 @@
 ﻿using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Common.Helpers;
-using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
@@ -31,13 +29,7 @@ public class DownloadCorrespondenceAttachmentHandler(
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
-            user,
-            correspondence.ResourceId,
-            correspondence.Recipient.WithoutPrefix(),
-            correspondence.Id.ToString(),
-            [ResourceAccessLevel.Read],
-            cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckAccessAsRecipient(user, correspondence, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;

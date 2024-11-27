@@ -23,12 +23,11 @@ public class UploadAttachmentHandler(
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
+        var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
             attachment.ResourceId,
             attachment.Sender.WithoutPrefix(),
             attachment.Id.ToString(),
-            new List<ResourceAccessLevel> { ResourceAccessLevel.Write },
             cancellationToken);
         if (!hasAccess)
         {

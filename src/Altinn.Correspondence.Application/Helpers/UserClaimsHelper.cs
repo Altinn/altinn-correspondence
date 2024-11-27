@@ -13,9 +13,7 @@ namespace Altinn.Correspondence.Application.Helpers
         private readonly ClaimsPrincipal _user;
         private readonly IEnumerable<Claim> _claims;
         private readonly DialogportenSettings _dialogportenSettings;
-        private readonly IdportenSettings _idportenSettings;
         private const string _scopeClaim = "scope";
-        private const string _IdProperty = "ID";
         private const string _dialogportenOrgClaim = "p";
         private const string _personId = "pid";
         private const string _minAuthLevelClaim = "urn:altinn:authlevel";
@@ -48,25 +46,6 @@ namespace Altinn.Correspondence.Application.Helpers
         public string? GetOrganizationId()
         {
             return _user.GetCallerOrganizationId();
-        }
-
-        public bool IsRecipient(string recipientId)
-        {
-            if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(recipientId) || GetPersonID() == recipientId;
-            if (_claims.Any(c => c.Issuer == _idportenSettings.Issuer)) return true; // Idporten tokens are always recipients, verified by altinn authorization
-            if (GetOrganizationId() != recipientId && GetPersonID() != recipientId) return false;
-            if (!GetUserScope().Any(scope => scope == AuthorizationConstants.RecipientScope)) return false;
-            return true;
-        }
-
-
-        public bool IsSender(string senderId)
-        {
-            if (_claims.Any(c => c.Issuer == _dialogportenSettings.Issuer)) return MatchesDialogTokenOrganization(senderId) || GetPersonID() == senderId;
-            if (_claims.Any(c => c.Issuer == _idportenSettings.Issuer)) return false;
-            if (GetOrganizationId() != senderId && GetPersonID() != senderId) return false;
-            if (!GetUserScope().Any(scope => scope == AuthorizationConstants.SenderScope)) return false;
-            return true;
         }
         private bool MatchesDialogTokenOrganization(string organizationId)
         {

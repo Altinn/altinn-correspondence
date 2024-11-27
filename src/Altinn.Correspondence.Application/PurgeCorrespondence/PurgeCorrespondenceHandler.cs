@@ -28,19 +28,13 @@ public class PurgeCorrespondenceHandler(
         {
             return Errors.CorrespondenceNotFound;
         }
-        var hasAccessAsSender = await altinnAuthorizationService.CheckUserAccess(
+        var hasAccessAsSender = await altinnAuthorizationService.CheckAccessAsSender(
             user,
-            correspondence.ResourceId,
-            correspondence.Sender.WithoutPrefix(),
-            correspondence.Id.ToString(),
-            [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
+            correspondence,
             cancellationToken);
-        var hasAccessAsRecipient = await altinnAuthorizationService.CheckUserAccess(
+        var hasAccessAsRecipient = await altinnAuthorizationService.CheckAccessAsRecipient(
             user,
-            correspondence.ResourceId,
-            correspondence.Recipient.WithoutPrefix(),
-            correspondence.Id.ToString(),
-            [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
+            correspondence,
             cancellationToken);
         if (!hasAccessAsSender && !hasAccessAsRecipient)
         {

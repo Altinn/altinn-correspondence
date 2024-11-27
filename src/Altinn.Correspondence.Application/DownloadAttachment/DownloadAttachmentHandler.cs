@@ -20,13 +20,7 @@ public class DownloadAttachmentHandler(
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
-            user,
-            attachment.ResourceId,
-            attachment.Sender.WithoutPrefix(),
-            attachment.Id.ToString(),
-            new List<ResourceAccessLevel> { ResourceAccessLevel.Write },
-            cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(user, attachment.ResourceId, attachment.Sender.WithoutPrefix(), null, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;

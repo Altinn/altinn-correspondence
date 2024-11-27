@@ -34,17 +34,16 @@ public class GetCorrespondencesHandler(
         {
             return Errors.CouldNotDetermineCaller;
         }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
+        var hasAccess = await altinnAuthorizationService.CheckAccessAsAny(
             user,
             request.ResourceId,
             onBehalfOf.WithoutPrefix(),
-            null,
-            [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
             cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
         }
+        // TODO: Add implementation to retrieve instances delegated to the user
 
         var correspondences = await correspondenceRepository.GetCorrespondences(
             request.ResourceId,

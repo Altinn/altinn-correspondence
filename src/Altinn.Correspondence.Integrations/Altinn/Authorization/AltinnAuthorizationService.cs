@@ -1,5 +1,7 @@
 ﻿using Altinn.Authorization.ABAC.Xacml.JsonProfile;
 using Altinn.Common.PEP.Helpers;
+using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
@@ -38,26 +40,41 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         _logger = logger;
     }
 
-    /// <summary>
-    /// Checks if the user has access to the resource with any of the given rights
-    /// </summary>
-    public async Task<bool> CheckUserAccess(ClaimsPrincipal? user, string resourceId, string party, string? correspondenceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
-    {
-        if (user is null)
-        {
-            throw new InvalidOperationException("This operation cannot be called outside an authenticated HttpContext");
-        }
-        var bypassDecision = await EvaluateBypassConditions(user, resourceId, cancellationToken);
-        if (bypassDecision is not null)
-        {
-            return bypassDecision.Value;
-        }
-        var actionIds = rights.Select(GetActionId).ToList();
-        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, resourceId, party, correspondenceId, actionIds);
-        var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
-        var validationResult = ValidateAuthorizationResponse(responseContent, user);
-        return validationResult;
-    }
+    public Task<bool> CheckAccessAsSender(ClaimsPrincipal? user, string resourceId, string sender, string? instance, CancellationToken cancellationToken = default) 
+        => CheckUserAccess(
+            user,
+            resourceId,
+            sender.WithoutPrefix(),
+            instance,
+            new List<ResourceAccessLevel> { ResourceAccessLevel.Write },
+            cancellationToken);
+    
+    public Task<bool> CheckAccessAsSender(ClaimsPrincipal? user, CorrespondenceEntity correspondence, CancellationToken cancellationToken = default) => 
+        CheckUserAccess(
+            user,
+            correspondence.ResourceId,
+            correspondence.Sender.WithoutPrefix(),
+            correspondence.Id.ToString(),
+            new List<ResourceAccessLevel> { ResourceAccessLevel.Write },
+            cancellationToken);
+
+    public Task<bool> CheckAccessAsRecipient(ClaimsPrincipal? user, CorrespondenceEntity correspondence, CancellationToken cancellationToken = default) =>
+        CheckUserAccess(
+            user,
+            correspondence.ResourceId,
+            correspondence.Recipient.WithoutPrefix(),
+            correspondence.Id.ToString(),
+            new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
+            cancellationToken);
+
+    public Task<bool> CheckAccessAsAny(ClaimsPrincipal? user, string resource, string party, CancellationToken cancellationToken) =>
+        CheckUserAccess(
+            user,
+            resource,
+            party,
+            null,
+            new List<ResourceAccessLevel> { ResourceAccessLevel.Read, ResourceAccessLevel.Write },
+            cancellationToken);
 
 
     public async Task<int?> CheckUserAccessAndGetMinimumAuthLevel(ClaimsPrincipal? user, string ssn, string resourceId, List<ResourceAccessLevel> rights, string onBehalfOf, CancellationToken cancellationToken = default)
@@ -97,6 +114,25 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
         return true;
     }
+
+    private async Task<bool> CheckUserAccess(ClaimsPrincipal? user, string resourceId, string party, string? correspondenceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
+    {
+        if (user is null)
+        {
+            throw new InvalidOperationException("This operation cannot be called outside an authenticated HttpContext");
+        }
+        var bypassDecision = await EvaluateBypassConditions(user, resourceId, cancellationToken);
+        if (bypassDecision is not null)
+        {
+            return bypassDecision.Value;
+        }
+        var actionIds = rights.Select(GetActionId).ToList();
+        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, resourceId, party, correspondenceId, actionIds);
+        var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
+        var validationResult = ValidateAuthorizationResponse(responseContent, user);
+        return validationResult;
+    }
+
     private async Task<bool?> EvaluateBypassConditions(ClaimsPrincipal? user, string resourceId, CancellationToken cancellationToken)
     {
         if (_httpClient.BaseAddress is null)

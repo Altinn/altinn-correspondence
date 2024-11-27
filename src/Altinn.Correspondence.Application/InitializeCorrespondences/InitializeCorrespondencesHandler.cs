@@ -39,12 +39,11 @@ public class InitializeCorrespondencesHandler(
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
+        var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
             request.Correspondence.ResourceId,
             request.Correspondence.Sender.WithoutPrefix(),
             null,
-            new List<ResourceAccessLevel> { ResourceAccessLevel.Write },
             cancellationToken);
         if (!hasAccess)
         {
