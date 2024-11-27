@@ -20,8 +20,7 @@ public class PublishCorrespondenceHandler(
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IEventBus eventBus,
     IHostEnvironment hostEnvironment,
-    IBackgroundJobClient backgroundJobClient,
-    UserClaimsHelper userClaimsHelper) : IHandler<Guid, Task>
+    IBackgroundJobClient backgroundJobClient) : IHandler<Guid, Task>
 {
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
