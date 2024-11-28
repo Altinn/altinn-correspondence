@@ -25,5 +25,11 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("statusChanged")]
         public DateTimeOffset StatusChanged { get; set; }
+
+        /// <summary>
+        /// The UUID for the party that triggered this Attachment Status Event
+        /// </summary>
+        [JsonPropertyName("partyUuid")]
+        public Guid PartyUuid { get; set; }
     }
 }

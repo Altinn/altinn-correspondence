@@ -20,6 +20,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public Guid AttachmentId { get; set; }
         [ForeignKey("AttachmentId")]
         public AttachmentEntity? Attachment { get; set; }
+        public Guid PartyUuid { get; set; }
 
     }
 }

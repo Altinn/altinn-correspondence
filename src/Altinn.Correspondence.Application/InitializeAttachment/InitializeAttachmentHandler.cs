@@ -12,6 +12,7 @@ using System.Security.Claims;
 namespace Altinn.Correspondence.Application.InitializeAttachment;
 
 public class InitializeAttachmentHandler(
+    IAltinnRegisterService altinnRegisterService,
     IAttachmentRepository attachmentRepository,
     IAttachmentStatusRepository attachmentStatusRepository,
     IEventBus eventBus,
@@ -31,7 +32,11 @@ public class InitializeAttachmentHandler(
         {
             return Errors.InvalidSender;
         }
-
+        var party = await altinnRegisterService.LookUpPartyById(userClaimsHelper.GetUserID(), cancellationToken);
+        if (party?.PartyUuid is not Guid partyUuid)
+        {
+            return Errors.CouldNotFindPartyUuid;
+        }
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             var attachment = await attachmentRepository.InitializeAttachment(request.Attachment, cancellationToken);
@@ -40,7 +45,8 @@ public class InitializeAttachmentHandler(
                 AttachmentId = attachment.Id,
                 StatusChanged = DateTimeOffset.UtcNow,
                 Status = AttachmentStatus.Initialized,
-                StatusText = AttachmentStatus.Initialized.ToString()
+                StatusText = AttachmentStatus.Initialized.ToString(),
+                PartyUuid = partyUuid
             }, cancellationToken);
             await eventBus.Publish(AltinnEventType.AttachmentInitialized, attachment.ResourceId, attachment.Id.ToString(), "attachment", attachment.Sender, cancellationToken);
 

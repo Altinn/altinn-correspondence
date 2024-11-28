@@ -84,7 +84,8 @@ public class DialogportenTests : IClassFixture<CustomWebApplicationFactory>
         var config = _factory.Services.GetService<IConfiguration>();
         var dialogportenSettings = new DialogportenSettings();
         config.GetSection(nameof(DialogportenSettings)).Bind(dialogportenSettings);
-        var dialogTokenClient = _factory.CreateClientWithDialogportenClaims(dialogportenSettings.Issuer, ("p", DialogportenCorrespondenceMapper.GetRecipientUrn(correspondence)));
+        var dialogTokenClient = _factory.CreateClientWithDialogportenClaims(dialogportenSettings.Issuer, ("p", DialogportenCorrespondenceMapper.GetRecipientUrn(correspondence)),
+            ("ID", correspondence.Recipient));
 
         // Act
         var contentResponse = await dialogTokenClient.GetAsync("correspondence/api/v1/correspondence/" + initializedCorrespondence.Correspondences[0].CorrespondenceId + "/content");

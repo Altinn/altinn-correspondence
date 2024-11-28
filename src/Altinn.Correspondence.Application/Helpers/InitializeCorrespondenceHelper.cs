@@ -171,7 +171,7 @@ namespace Altinn.Correspondence.Application.Helpers
             return status;
         }
 
-        public async Task<Error?> UploadAttachments(List<AttachmentEntity> correspondenceAttachments, List<IFormFile> files, CancellationToken cancellationToken)
+        public async Task<Error?> UploadAttachments(List<AttachmentEntity> correspondenceAttachments, List<IFormFile> files, Guid partyUuid, CancellationToken cancellationToken)
         {
             foreach (var file in files)
             {
@@ -184,7 +184,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 OneOf<UploadAttachmentResponse, Error> uploadResponse;
                 await using (var f = file.OpenReadStream())
                 {
-                    uploadResponse = await uploadHelper.UploadAttachment(f, attachment.Id, cancellationToken);
+                    uploadResponse = await uploadHelper.UploadAttachment(f, attachment.Id, partyUuid, cancellationToken);
                 }
                 var error = uploadResponse.Match(
                     _ => { return null; },
@@ -195,14 +195,15 @@ namespace Altinn.Correspondence.Application.Helpers
             return null;
         }
 
-        public async Task<AttachmentEntity> ProcessNewAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, CancellationToken cancellationToken)
+        public async Task<AttachmentEntity> ProcessNewAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, Guid partyUuid, CancellationToken cancellationToken)
         {
             var status = new List<AttachmentStatusEntity>(){
                 new AttachmentStatusEntity
                 {
                     Status = AttachmentStatus.Initialized,
                     StatusChanged = DateTimeOffset.UtcNow,
-                    StatusText = AttachmentStatus.Initialized.ToString()
+                    StatusText = AttachmentStatus.Initialized.ToString(),
+                    PartyUuid = partyUuid
                 }
             };
             var attachment = correspondenceAttachment.Attachment!;
