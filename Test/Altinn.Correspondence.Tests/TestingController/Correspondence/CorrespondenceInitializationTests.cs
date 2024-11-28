@@ -1,4 +1,7 @@
-﻿using Altinn.Correspondence.Common.Constants;
+﻿using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.Application.GetCorrespondenceOverview;
+using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
@@ -419,5 +422,32 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
         }
 
+        [Fact]
+        public async Task InitializeCorrespondence_With_0192_IsCorrected_To_Urn_Format()
+        {
+            // Arrange
+            var orgRecipient = "0192:123456789";
+            var personRecipient = "01234567890";
+            var sender = "0192:991825827";
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithSender(sender)
+                .WithRecipients([orgRecipient, personRecipient])
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            var initializeContent = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(initializeContent);
+            var recipients = initializeContent.Correspondences.Select(c => c.Recipient).ToList(); 
+            var overview = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{initializeContent.Correspondences.First().CorrespondenceId}");
+            var overviewContent = await overview.Content.ReadFromJsonAsync<GetCorrespondenceOverviewResponse>(_responseSerializerOptions);
+            Assert.NotNull(overviewContent);
+
+            // Assert
+            Assert.Equal(recipients.First(), $"{UrnConstants.OrganizationNumberAttribute}:{orgRecipient.WithoutPrefix()}");
+            Assert.Equal(recipients.Last(), $"{UrnConstants.PersonIdAttribute}:{personRecipient}");
+            Assert.Equal(overviewContent.Sender, $"{UrnConstants.OrganizationNumberAttribute}:{sender.WithoutPrefix()}");
+        }
     }
 }
