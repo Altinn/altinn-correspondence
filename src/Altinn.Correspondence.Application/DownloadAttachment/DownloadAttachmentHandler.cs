@@ -1,16 +1,14 @@
-﻿using System.Security.Claims;
-using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Core.Models.Enums;
+﻿using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.DownloadAttachment;
 
 public class DownloadAttachmentHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     IStorageRepository storageRepository,
-    IAttachmentRepository attachmentRepository,
-    UserClaimsHelper userClaimsHelper) : IHandler<DownloadAttachmentRequest, Stream>
+    IAttachmentRepository attachmentRepository) : IHandler<DownloadAttachmentRequest, Stream>
 {
     public async Task<OneOf<Stream, Error>> Process(DownloadAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -19,17 +17,11 @@ public class DownloadAttachmentHandler(
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, attachment.Sender, attachment.Id.ToString(), new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(user, attachment.ResourceId, attachment.Sender.WithoutPrefix(), null, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
         }
-
-        if (!userClaimsHelper.IsSender(attachment.Sender))
-        {
-            return Errors.InvalidSender;
-        }
-
         var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, cancellationToken);
         return attachmentStream;
     }

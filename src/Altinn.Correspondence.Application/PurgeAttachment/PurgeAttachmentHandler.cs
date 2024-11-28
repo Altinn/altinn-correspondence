@@ -7,6 +7,7 @@ using Altinn.Correspondence.Core.Services.Enums;
 using OneOf;
 using System.Security.Claims;
 using Microsoft.Extensions.Logging;
+using Altinn.Correspondence.Common.Helpers;
 
 namespace Altinn.Correspondence.Application.PurgeAttachment;
 
@@ -18,7 +19,6 @@ public class PurgeAttachmentHandler(
     IStorageRepository storageRepository,
     ICorrespondenceRepository correspondenceRepository,
     IEventBus eventBus,
-    UserClaimsHelper userClaimsHelper,
     ILogger<PurgeAttachmentHandler> logger) : IHandler<Guid, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -28,11 +28,12 @@ public class PurgeAttachmentHandler(
         {
             return Errors.AttachmentNotFound;
         }
-        if (!userClaimsHelper.IsSender(attachment.Sender))
-        {
-            return Errors.InvalidSender;
-        }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, attachment.Sender, attachment.Id.ToString(), new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
+            user,
+            attachment.ResourceId,
+            attachment.Sender.WithoutPrefix(),
+            attachment.Id.ToString(),
+            cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
@@ -54,7 +55,7 @@ public class PurgeAttachmentHandler(
         {
             return Errors.PurgeAttachmentWithExistingCorrespondence;
         }
-        var party = await altinnRegisterService.LookUpPartyById(userClaimsHelper.GetUserID(), cancellationToken);
+        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
             return Errors.CouldNotFindPartyUuid;

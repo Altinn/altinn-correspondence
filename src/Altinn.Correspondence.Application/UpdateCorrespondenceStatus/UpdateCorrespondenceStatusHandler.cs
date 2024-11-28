@@ -14,7 +14,6 @@ public class UpdateCorrespondenceStatusHandler(
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     IEventBus eventBus,
-    UserClaimsHelper userClaimsHelper,
     UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
     ILogger<UpdateCorrespondenceStatusHandler> logger) : IHandler<UpdateCorrespondenceStatusRequest, Guid>
 {
@@ -25,27 +24,13 @@ public class UpdateCorrespondenceStatusHandler(
         {
             return Errors.CorrespondenceNotFound;
         }
-        string? onBehalfOf = request.OnBehalfOf;
-        bool isOnBehalfOfRecipient = false;
-        if (!string.IsNullOrEmpty(onBehalfOf))
-        {
-            isOnBehalfOfRecipient = correspondence.Recipient.WithoutPrefix() == onBehalfOf.WithoutPrefix();
-        }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
+        var hasAccess = await altinnAuthorizationService.CheckAccessAsRecipient(
             user,
-            correspondence.ResourceId,
-            request.OnBehalfOf ?? correspondence.Recipient,
-            correspondence.Id.ToString(),
-            [ResourceAccessLevel.Read],
+            correspondence,
             cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
-        }
-        var isRecipient = userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
-        if (!isRecipient)
-        {
-            return Errors.CorrespondenceNotFound;
         }
         var currentStatusError = updateCorrespondenceStatusHelper.ValidateCurrentStatus(correspondence);
         if (currentStatusError is not null)
@@ -57,7 +42,7 @@ public class UpdateCorrespondenceStatusHandler(
         {
             return updateError;
         }
-        var party = await altinnRegisterService.LookUpPartyById(userClaimsHelper.GetUserID(), cancellationToken);
+        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
             return Errors.CouldNotFindPartyUuid;

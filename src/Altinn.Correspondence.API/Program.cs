@@ -1,6 +1,6 @@
 using Altinn.Correspondence.API.Auth;
 using Altinn.Correspondence.Application;
-using Altinn.Correspondence.Application.Configuration;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Integrations;
 using Altinn.Correspondence.Integrations.Hangfire;

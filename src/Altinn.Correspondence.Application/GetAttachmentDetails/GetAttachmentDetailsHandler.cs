@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
@@ -9,8 +10,7 @@ namespace Altinn.Correspondence.Application.GetAttachmentDetails;
 public class GetAttachmentDetailsHandler(
     IAttachmentRepository attachmentRepository,
     ICorrespondenceRepository correspondenceRepository,
-    IAltinnAuthorizationService altinnAuthorizationService,
-    UserClaimsHelper userClaimsHelper) : IHandler<Guid, GetAttachmentDetailsResponse>
+    IAltinnAuthorizationService altinnAuthorizationService) : IHandler<Guid, GetAttachmentDetailsResponse>
 {
 
     public async Task<OneOf<GetAttachmentDetailsResponse, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -20,14 +20,15 @@ public class GetAttachmentDetailsHandler(
         {
             return Errors.AttachmentNotFound;
         }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(user, attachment.ResourceId, attachment.Sender, attachment.Id.ToString(), new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
+            user,
+            attachment.ResourceId,
+            attachment.Sender.WithoutPrefix(),
+            attachment.Id.ToString(),
+            cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
-        }
-        if (!userClaimsHelper.IsSender(attachment.Sender))
-        {
-            return Errors.InvalidSender;
         }
         var correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);
         var attachmentStatus = attachment.GetLatestStatus();

@@ -29,7 +29,6 @@ public class InitializeCorrespondencesHandler(
     INotificationTemplateRepository notificationTemplateRepository,
     IEventBus eventBus,
     IBackgroundJobClient backgroundJobClient,
-    UserClaimsHelper userClaimsHelper,
     IDialogportenService dialogportenService,
     IHostEnvironment hostEnvironment,
     IOptions<GeneralSettings> generalSettings,
@@ -39,17 +38,17 @@ public class InitializeCorrespondencesHandler(
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(user, request.Correspondence.ResourceId, request.Correspondence.Sender, null, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
+            user,
+            request.Correspondence.ResourceId,
+            request.Correspondence.Sender.WithoutPrefix(),
+            null,
+            cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
         }
-        var isSender = userClaimsHelper.IsSender(request.Correspondence.Sender);
-        if (!isSender)
-        {
-            return Errors.InvalidSender;
-        }
-        var party = await altinnRegisterService.LookUpPartyById(userClaimsHelper.GetUserID(), cancellationToken);
+        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
             return Errors.CouldNotFindPartyUuid;

@@ -37,7 +37,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             var data = await downloadResponse.Content.ReadFromJsonAsync<ProblemDetails>();
 
             // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, downloadResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, downloadResponse.StatusCode);
             Assert.NotNull(data?.Title);
         }
     }

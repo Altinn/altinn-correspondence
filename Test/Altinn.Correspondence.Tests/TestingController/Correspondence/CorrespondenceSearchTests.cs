@@ -1,6 +1,6 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Application.Configuration;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Helpers;
@@ -88,6 +88,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build();
             var senderClient = _factory.CreateClientWithAddedClaims(
                 ("consumer", $"{{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"{senderId}\"}}"),
+                ("notRecipient", "true"),
                 ("scope", AuthorizationConstants.SenderScope)
             );
             var initResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", senderPayload);
@@ -102,6 +103,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build();
             var externalClient = _factory.CreateClientWithAddedClaims(
                 ("consumer", $"{{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"{externalId}\"}}"),
+                ("notRecipient", "true"),
                 ("scope", AuthorizationConstants.SenderScope)
             );
             var externalInitResponse = await externalClient.PostAsJsonAsync("correspondence/api/v1/correspondence", externalPayload);
@@ -110,6 +112,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Create recipient client to retrieve correspondences with correct ID
             var recipientIdClient = _factory.CreateClientWithAddedClaims(
                 ("consumer", $"{{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"{recipientId}\"}}"),
+                ("notSender", "true"),
                 ("scope", AuthorizationConstants.RecipientScope)
             );
 
@@ -168,6 +171,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var recipientId = "0192:000000000";
             var recipientClient = _factory.CreateClientWithAddedClaims(
                 ("consumer", $"{{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"{recipientId}\"}}"),
+                ("notSender", "true"),
                 ("scope", AuthorizationConstants.RecipientScope)
             );
 

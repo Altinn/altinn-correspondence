@@ -12,7 +12,7 @@ public static class StringExtensions
     /// <returns>True if the string matches a 11-digit format.</returns>
     public static bool IsSocialSecurityNumber(this string identifier)
     {
-        return (!string.IsNullOrEmpty(identifier) && SsnPattern.IsMatch(identifier));
+        return (!string.IsNullOrWhiteSpace(identifier) && SsnPattern.IsMatch(identifier));
     }
 
     /// <summary>
@@ -22,9 +22,8 @@ public static class StringExtensions
     /// <returns>True if the string matches either a 9-digit format or a '4digits:9digits' format, false otherwise.</returns>
     public static bool IsOrganizationNumber(this string identifier)
     {
-        return (!string.IsNullOrEmpty(identifier) && OrgPattern.IsMatch(identifier));
+        return (!string.IsNullOrWhiteSpace(identifier) && OrgPattern.IsMatch(identifier));
     }
-
     /// <summary>
     /// Extracts the identifier from a colon-separated string that may contain a prefix.
     /// </summary>
