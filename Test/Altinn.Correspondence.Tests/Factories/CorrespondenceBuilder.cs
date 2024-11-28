@@ -160,7 +160,7 @@ namespace Altinn.Correspondence.Tests.Factories
         }
         public CorrespondenceBuilder WithReminderNotificationChannel(NotificationChannelExt notificationChannel)
         {
-            _correspondence.Correspondence.Notification!.ReminderNotificationChannel= notificationChannel;
+            _correspondence.Correspondence.Notification!.ReminderNotificationChannel = notificationChannel;
             return this;
         }
         public CorrespondenceBuilder WithEmailContent()
@@ -177,7 +177,7 @@ namespace Altinn.Correspondence.Tests.Factories
         }
         public CorrespondenceBuilder WithSmsContent()
         {
-            _correspondence.Correspondence.Notification!.SmsBody= "test";
+            _correspondence.Correspondence.Notification!.SmsBody = "test";
             return this;
         }
         public CorrespondenceBuilder WithSmsReminder()
@@ -188,6 +188,11 @@ namespace Altinn.Correspondence.Tests.Factories
         public CorrespondenceBuilder WithoutSendReminder()
         {
             _correspondence.Correspondence.Notification!.SendReminder = false;
+            return this;
+        }
+        public CorrespondenceBuilder WithCustomNotificationRecipients(List<NotificationRecipientExt> recipients)
+        {
+            _correspondence.Correspondence.Notification!.Recipients = recipients;
             return this;
         }
         public static CorrespondenceEntity CorrespondenceEntityWithNotifications()
@@ -214,5 +219,6 @@ namespace Altinn.Correspondence.Tests.Factories
                 },
             };
         }
+
     }
 }
