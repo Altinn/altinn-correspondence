@@ -24,10 +24,7 @@ public class GetCorrespondencesHandler(
         {
             return Errors.InvalidDateRange;
         }
-        string? onBehalfOf = request.OnBehalfOf;
-        if (onBehalfOf is null) { 
-            onBehalfOf = "0192:" + httpContextAccessor.HttpContext?.User.GetCallerOrganizationId();
-        }
+        string? onBehalfOf = request.OnBehalfOf ?? httpContextAccessor.HttpContext?.User.GetCallerOrganizationId();
         if (onBehalfOf is null)
         {
             return Errors.CouldNotDetermineCaller;
@@ -35,7 +32,7 @@ public class GetCorrespondencesHandler(
         var hasAccess = await altinnAuthorizationService.CheckAccessAsAny(
             user,
             request.ResourceId,
-            onBehalfOf.WithoutPrefix(),
+            onBehalfOf,
             cancellationToken);
         if (!hasAccess)
         {
@@ -50,7 +47,7 @@ public class GetCorrespondencesHandler(
             from,
             to,
             request.Status,
-            onBehalfOf.WithoutPrefix(),
+            onBehalfOf,
             request.Role,
             cancellationToken);
         var response = new GetCorrespondencesResponse

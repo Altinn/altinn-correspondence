@@ -54,7 +54,7 @@ public class LegacyGetCorrespondencesHandler(
                     return Errors.LegacyNotAccessToOwner(instanceOwnerPartyId);
                 }
                 if (mappedInstanceOwner.OrgNumber != null)
-                    recipients.Add("0192:" + mappedInstanceOwner.OrgNumber);
+                    recipients.Add(mappedInstanceOwner.OrgNumber);
                 else if (mappedInstanceOwner.SSN != null)
                     recipients.Add(mappedInstanceOwner.SSN);
             }
@@ -62,7 +62,7 @@ public class LegacyGetCorrespondencesHandler(
         else
         {
             if (!string.IsNullOrEmpty(userParty.SSN)) recipients.Add(userParty.SSN);
-            if (!string.IsNullOrEmpty(userParty.OrgNumber)) recipients.Add("0192:" + userParty.OrgNumber);
+            if (!string.IsNullOrEmpty(userParty.OrgNumber)) recipients.Add(userParty.OrgNumber);
         }
         List<string> resourcesToSearch = new List<string>();
 
