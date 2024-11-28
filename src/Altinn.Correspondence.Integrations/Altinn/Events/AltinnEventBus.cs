@@ -59,7 +59,7 @@ public class AltinnEventBus : IEventBus
             Id = Guid.NewGuid(),
             SpecVersion = "1.0",
             Time = DateTimeOffset.UtcNow,
-            Resource = UrnConstants.Resource + resourceId,
+            Resource = UrnConstants.Resource + ":" + resourceId,
             ResourceInstance = itemId,
             Type = "no.altinn.correspondence." + type.ToString().ToLowerInvariant(),
             Source = _generalSettings.CorrespondenceBaseUrl.TrimEnd('/') + "/correspondence/api/v1/" + eventSource,
