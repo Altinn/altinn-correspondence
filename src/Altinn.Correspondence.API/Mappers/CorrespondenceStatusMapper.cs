@@ -14,7 +14,8 @@ internal static class CorrespondenceStatusMapper
 
             Status = (CorrespondenceStatusExt)correspondenceStatus.Status,
             StatusText = correspondenceStatus.StatusText,
-            StatusChanged = correspondenceStatus.StatusChanged
+            StatusChanged = correspondenceStatus.StatusChanged,
+            PartyUuid = correspondenceStatus.PartyUuid
         };
         return Correspondence;
     }

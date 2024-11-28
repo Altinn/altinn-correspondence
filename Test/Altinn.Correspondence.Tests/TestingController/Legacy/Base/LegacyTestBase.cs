@@ -11,7 +11,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy.Base
         public readonly HttpClient _legacyClient;
         public readonly HttpClient _senderClient;
         public readonly string _partyIdClaim = "urn:altinn:partyid";
-        public readonly int _digdirPartyId = 50167512;
+        public readonly int _digdirPartyId = 50952483;
 
         public LegacyTestBase(CustomWebApplicationFactory factory)
         {

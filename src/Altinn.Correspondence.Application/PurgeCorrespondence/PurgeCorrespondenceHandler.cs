@@ -13,6 +13,7 @@ namespace Altinn.Correspondence.Application.PurgeCorrespondence;
 
 public class PurgeCorrespondenceHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
+    IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IEventBus eventBus,
@@ -60,7 +61,12 @@ public class PurgeCorrespondenceHandler(
         {
             return currentStatusError;
         }
-        
+        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
+        if (party?.PartyUuid is not Guid partyUuid)
+        {
+            return Errors.CouldNotFindPartyUuid;
+        }
+
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             var status = hasAccessAsSender ? CorrespondenceStatus.PurgedByAltinn : CorrespondenceStatus.PurgedByRecipient;
@@ -69,11 +75,12 @@ public class PurgeCorrespondenceHandler(
                 CorrespondenceId = correspondenceId,
                 Status = status,
                 StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = status.ToString()
+                StatusText = status.ToString(),
+                PartyUuid = partyUuid
             }, cancellationToken);
 
             await eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken);
-            await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondenceId, cancellationToken);
+            await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondenceId, partyUuid, cancellationToken);
             purgeCorrespondenceHelper.ReportActivityToDialogporten(hasAccessAsSender && user.CallingAsSender(), correspondenceId);
             purgeCorrespondenceHelper.CancelNotification(correspondenceId, cancellationToken);
             return correspondenceId;

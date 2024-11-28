@@ -47,7 +47,7 @@ public class LegacyGetCorrespondenceOverviewHandler(
             logger.LogWarning("Latest status not found for correspondence");
             return Errors.CorrespondenceNotFound;
         }
-        if (!latestStatus.Status.IsAvailableForRecipient())
+        if (!latestStatus.Status.IsAvailableForLegacyRecipient())
         {
             logger.LogWarning("Rejected because correspondence not available for recipient in current state.");
             return Errors.CorrespondenceNotFound;
@@ -70,6 +70,10 @@ public class LegacyGetCorrespondenceOverviewHandler(
         {
             return Errors.CouldNotFindOrgNo;
         }
+        if (userParty.PartyUuid is not Guid partyUuid)
+        {
+            return Errors.CouldNotFindPartyUuid;
+        }
 
         return await TransactionWithRetriesPolicy.Execute<LegacyGetCorrespondenceOverviewResponse>(async (cancellationToken) =>
         {
@@ -80,7 +84,8 @@ public class LegacyGetCorrespondenceOverviewHandler(
                     CorrespondenceId = correspondence.Id,
                     Status = CorrespondenceStatus.Fetched,
                     StatusText = CorrespondenceStatus.Fetched.ToString(),
-                    StatusChanged = DateTimeOffset.UtcNow
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    PartyUuid = partyUuid
                 }, cancellationToken);
             }
             catch (Exception e)
@@ -96,6 +101,7 @@ public class LegacyGetCorrespondenceOverviewHandler(
                     Status = CorrespondenceStatus.Read,
                     StatusChanged = DateTimeOffset.UtcNow,
                     StatusText = CorrespondenceStatus.Read.ToString(),
+                    PartyUuid = partyUuid
                 }, cancellationToken);
                 await updateCorrespondenceStatusHelper.PublishEvent(eventBus, correspondence, CorrespondenceStatus.Read, cancellationToken);
             }

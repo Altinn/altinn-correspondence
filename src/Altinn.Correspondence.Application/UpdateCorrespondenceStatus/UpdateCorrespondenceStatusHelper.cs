@@ -1,20 +1,19 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
 
 namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
-public class UpdateCorrespondenceStatusHelper
+public class UpdateCorrespondenceStatusHelper(
+    IDialogportenService dialogportenService,
+    IBackgroundJobClient backgroundJobClient,
+    ICorrespondenceStatusRepository correspondenceStatusRepository)
 {
-    private readonly IDialogportenService _dialogportenService;
-    private readonly IBackgroundJobClient _backgroundJobClient;
-    public UpdateCorrespondenceStatusHelper(IDialogportenService dialogportenService, IBackgroundJobClient backgroundJobClient)
-    {
-        _dialogportenService = dialogportenService;
-        _backgroundJobClient = backgroundJobClient;
-    }
+    private readonly IDialogportenService _dialogportenService = dialogportenService;
+    private readonly IBackgroundJobClient _backgroundJobClient = backgroundJobClient;
 
     /// <summary>
     /// Validates if the current status of the correspondence allows for status updates.
@@ -97,5 +96,17 @@ public class UpdateCorrespondenceStatusHelper
             _backgroundJobClient.Enqueue(() => _dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondenceArchived));
         }
         return;
+    }
+
+    public async Task AddCorrespondenceStatus(CorrespondenceEntity correspondence, CorrespondenceStatus status, Guid partyUuid, CancellationToken cancellationToken)
+    {
+        await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+        {
+            CorrespondenceId = correspondence.Id,
+            Status = status,
+            StatusChanged = DateTime.UtcNow,
+            StatusText = status.ToString(),
+            PartyUuid = partyUuid
+        }, cancellationToken);
     }
 }

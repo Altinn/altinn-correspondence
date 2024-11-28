@@ -12,6 +12,7 @@ using Altinn.Correspondence.Common.Helpers;
 namespace Altinn.Correspondence.Application.PurgeAttachment;
 
 public class PurgeAttachmentHandler(
+    IAltinnRegisterService altinnRegisterService,
     IAltinnAuthorizationService altinnAuthorizationService,
     IAttachmentRepository attachmentRepository,
     IAttachmentStatusRepository attachmentStatusRepository,
@@ -54,6 +55,11 @@ public class PurgeAttachmentHandler(
         {
             return Errors.PurgeAttachmentWithExistingCorrespondence;
         }
+        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
+        if (party?.PartyUuid is not Guid partyUuid)
+        {
+            return Errors.CouldNotFindPartyUuid;
+        }
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             await storageRepository.PurgeAttachment(attachmentId, cancellationToken);
@@ -62,7 +68,8 @@ public class PurgeAttachmentHandler(
                 AttachmentId = attachmentId,
                 Status = AttachmentStatus.Purged,
                 StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = AttachmentStatus.Purged.ToString()
+                StatusText = AttachmentStatus.Purged.ToString(),
+                PartyUuid = partyUuid
             }, cancellationToken);
 
             await eventBus.Publish(AltinnEventType.AttachmentPurged, attachment.ResourceId, attachmentId.ToString(), "attachment", attachment.Sender, cancellationToken);

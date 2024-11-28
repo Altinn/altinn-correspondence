@@ -1,5 +1,4 @@
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -10,7 +9,6 @@ using System.Security.Claims;
 namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 public class LegacyUpdateCorrespondenceStatusHandler(
     ICorrespondenceRepository correspondenceRepository,
-    ICorrespondenceStatusRepository correspondenceStatusRepository,
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
     IEventBus eventBus,
@@ -55,16 +53,13 @@ public class LegacyUpdateCorrespondenceStatusHandler(
         {
             return updateError;
         }
+        if (party.PartyUuid is not Guid partyUuid)
+        {
+            return Errors.CouldNotFindPartyUuid;
+        }
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
-            {
-                CorrespondenceId = correspondence.Id,
-                Status = request.Status,
-                StatusChanged = DateTime.UtcNow,
-                StatusText = request.Status.ToString(),
-            }, cancellationToken);
-
+            await updateCorrespondenceStatusHelper.AddCorrespondenceStatus(correspondence, request.Status, partyUuid, cancellationToken);
             updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
             await updateCorrespondenceStatusHelper.PublishEvent(eventBus, correspondence, request.Status, cancellationToken);
             return request.CorrespondenceId;
