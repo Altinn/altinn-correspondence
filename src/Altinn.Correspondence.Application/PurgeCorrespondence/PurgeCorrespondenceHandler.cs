@@ -34,8 +34,8 @@ public class PurgeCorrespondenceHandler(
         bool isOnBehalfOfSender = false;
         if (!string.IsNullOrEmpty(onBehalfOf))
         {
-            isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
-            isOnBehalfOfSender = correspondence.Sender.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
+            isOnBehalfOfRecipient = correspondence.Recipient.WithoutPrefix() == onBehalfOf.WithoutPrefix();
+            isOnBehalfOfSender = correspondence.Sender.WithoutPrefix() == onBehalfOf.WithoutPrefix();
         }
         var hasAccess = await altinnAuthorizationService.CheckUserAccess(
             user,

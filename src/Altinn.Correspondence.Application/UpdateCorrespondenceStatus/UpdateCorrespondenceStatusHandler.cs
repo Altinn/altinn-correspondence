@@ -29,7 +29,7 @@ public class UpdateCorrespondenceStatusHandler(
         bool isOnBehalfOfRecipient = false;
         if (!string.IsNullOrEmpty(onBehalfOf))
         {
-            isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
+            isOnBehalfOfRecipient = correspondence.Recipient.WithoutPrefix() == onBehalfOf.WithoutPrefix();
         }
         var hasAccess = await altinnAuthorizationService.CheckUserAccess(
             user,

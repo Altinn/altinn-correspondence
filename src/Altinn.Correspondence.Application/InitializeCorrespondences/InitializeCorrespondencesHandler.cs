@@ -236,7 +236,7 @@ public class InitializeCorrespondencesHandler(
         string? orgNr = null;
         string? personNr = null;
         NotificationContent? content = null;
-        string recipient = correspondence.Recipient.GetOrgNumberWithoutPrefix();
+        string recipient = correspondence.Recipient.WithoutPrefix();
         if (recipient.IsOrganizationNumber())
         {
             orgNr = correspondence.Recipient; // Should this be with the prefix?

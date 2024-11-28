@@ -94,7 +94,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 }
                 else if (IsOnBehalfOfClaim(claim.Type))
                 {
-                    list.Add(CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, claim.Value.GetOrgNumberWithoutPrefix(), DefaultType, claim.Issuer));
+                    list.Add(CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, claim.Value.WithoutPrefix(), DefaultType, claim.Issuer));
                 }
             }
             xacmlJsonCategory.Attribute = list;

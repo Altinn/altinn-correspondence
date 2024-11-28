@@ -57,7 +57,7 @@ public class AltinnRegisterService : IAltinnRegisterService
     }
     public async Task<Party?> LookUpPartyById(string identificationId, CancellationToken cancellationToken = default)
     {
-        identificationId = identificationId.GetOrgNumberWithoutPrefix();
+        identificationId = identificationId.WithoutPrefix();
 
         var partyLookup = new PartyLookup()
         {

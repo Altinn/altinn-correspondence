@@ -29,7 +29,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
 
     public Task<Party?> LookUpPartyById(string identificationId, CancellationToken cancellationToken)
     {
-        if (IdentificationIDRegex.IsMatch(identificationId.GetOrgNumberWithoutPrefix()))
+        if (IdentificationIDRegex.IsMatch(identificationId.WithoutPrefix()))
         {
             return Task.FromResult<Party?>(new Party
             {
