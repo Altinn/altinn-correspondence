@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services;
@@ -28,7 +29,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
 
     public Task<Party?> LookUpPartyById(string identificationId, CancellationToken cancellationToken)
     {
-        if (IdentificationIDRegex.IsMatch(identificationId))
+        if (IdentificationIDRegex.IsMatch(identificationId.GetOrgNumberWithoutPrefix()))
         {
             return Task.FromResult<Party?>(new Party
             {

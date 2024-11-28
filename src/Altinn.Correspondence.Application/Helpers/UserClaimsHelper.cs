@@ -71,7 +71,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 return false;
             }
             var orgValue = orgClaim.Value;
-            return orgValue.Replace(UrnConstants.OrganizationNumberAttribute, "0192") == organizationId;
+            return orgValue.GetOrgNumberWithoutPrefix() == organizationId;
         }
         public string? GetUserID()
         {
@@ -106,6 +106,7 @@ namespace Altinn.Correspondence.Application.Helpers
         private string? GetDialogportenTokenUserId()
         {
             return _claims.FirstOrDefault(c => c.Type == _IdProperty)?.Value;
+            // return _claims.FirstOrDefault(c => c.Type == _IdProperty)?.Value.GetOrgNumberWithoutPrefix();
         }
         private IEnumerable<string> GetUserScope()
         {

@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Models.Entities;
+﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Core.Models.Entities;
 using System.Text.RegularExpressions;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
@@ -32,8 +33,13 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
             var organizationWithPrefixFormat = new Regex(@"^\d{4}:\d{9}$");
+            var correctOrgFormat = new Regex($@"^(?:\d{{4}}:|{UrnConstants.OrganizationNumberAttribute}:)\d{{9}}$");
             var personFormat = new Regex(@"^\d{11}$");
-            if (organizationWithoutPrefixFormat.IsMatch(input))
+            if (correctOrgFormat.IsMatch(input))
+            {
+                return input;
+            }
+            else if (organizationWithoutPrefixFormat.IsMatch(input))
             {
                 return $"{OrgNoPrefix}:{input}";
             }
