@@ -207,7 +207,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var fetchResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondenceId}");
             Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
             // Verify the correspondence status after purge
-            var purgedCorrespondence = await fetchResponse.Content.ReadFromJsonAsync<CorrespondenceOverviewExt>(_serializerOptions);
+            var purgedCorrespondence = await fetchResponse.Content.ReadFromJsonAsync<LegacyCorrespondenceOverviewExt>(_serializerOptions);
             Assert.Equal(CorrespondenceStatusExt.PurgedByRecipient, purgedCorrespondence?.Status);
         }
 
