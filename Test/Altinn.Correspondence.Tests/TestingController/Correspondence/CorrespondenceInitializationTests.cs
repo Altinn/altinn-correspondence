@@ -423,7 +423,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task InitializeCorrespondence_With_0192_IsCorrected_To_Urn_Format()
+        public async Task InitializeCorrespondence_WithoutUrnFormat_AddsUrnFormat()
         {
             // Arrange
             var orgRecipient = "0192:123456789";
