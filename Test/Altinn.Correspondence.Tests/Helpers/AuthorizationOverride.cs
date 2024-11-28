@@ -48,7 +48,7 @@ public static class AuthorizationOverride
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .Returns((ClaimsPrincipal? user, string resource, string party, CancellationToken token) => {
-                return Task.FromResult(NotRecipient(user) || NotSender(user));
+                return Task.FromResult(!NotRecipient(user) || !NotSender(user));
             });
 
         altinnAuthorizationService
