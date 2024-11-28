@@ -127,27 +127,29 @@ namespace Altinn.Correspondence.Application.Helpers
         }
         public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, CorrespondenceStatus status, Guid partyUuid)
         {
+            string sender = request.Correspondence.Sender;
+            if (sender.Contains("0192:"))
+            {
+                sender = $"{UrnConstants.OrganizationNumberAttribute}:{request.Correspondence.Sender.WithoutPrefix()}";
+                logger.LogInformation($"'0192:' prefix detected for sender in creation of correspondence. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
+            }
+
             if (recipient.Contains("0192:"))
             {
-                recipient = recipient.Replace("0192:", UrnConstants.OrganizationNumberAttribute + ":");
+                recipient = $"{UrnConstants.OrganizationNumberAttribute}:{recipient.WithoutPrefix()}";
                 logger.LogInformation($"'0192:' prefix detected for recipient in creation of correspondence. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
             }
             else if (recipient.IsSocialSecurityNumber())
             {
-                recipient = UrnConstants.PersonIdAttribute + ":" + recipient;
+                recipient = $"{UrnConstants.PersonIdAttribute}:{recipient}";
                 logger.LogInformation($"Social security number without urn prefix detected for recipient in creation of correspondece. Adding {UrnConstants.PersonIdAttribute} prefix to recipient.");
-            }
-            if (request.Correspondence.Sender.Contains("0192:"))
-            {
-                request.Correspondence.Sender = request.Correspondence.Sender.Replace("0192:", UrnConstants.OrganizationNumberAttribute + ":");
-                logger.LogInformation($"'0192:' prefix detected for sender in creation of correspondence. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
             }
 
             return new CorrespondenceEntity
             {
                 ResourceId = request.Correspondence.ResourceId,
                 Recipient = recipient,
-                Sender = request.Correspondence.Sender,
+                Sender = sender,
                 SendersReference = request.Correspondence.SendersReference,
                 MessageSender = request.Correspondence.MessageSender,
                 Content = new CorrespondenceContentEntity
