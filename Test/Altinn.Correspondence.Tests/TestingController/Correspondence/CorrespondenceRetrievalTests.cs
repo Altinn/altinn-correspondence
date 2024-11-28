@@ -1,6 +1,6 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Application.Configuration;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
 using System.Net;
@@ -30,23 +30,23 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task GetCorrespondenceOverview_WhenNotSenderOrRecipient_Returns404()
+        public async Task GetCorrespondenceOverview_WhenNotSenderOrRecipient_Returns401()
         {
             // Arrange
             var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             initializeCorrespondenceResponse.EnsureSuccessStatusCode();
             var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            var invalidSenderClient = _factory.CreateClientWithAddedClaims(("consumer", "{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"0192:123456789\"}"), ("scope", AuthorizationConstants.SenderScope));
-            var invalidRecipientClient = _factory.CreateClientWithAddedClaims(("consumer", "{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"0192:123456789\"}"), ("scope", AuthorizationConstants.RecipientScope));
+            var invalidClient = _factory.CreateClientWithAddedClaims(
+                ("notSender", "true"),
+                ("notRecipient", "true"),
+                ("scope", AuthorizationConstants.SenderScope));
 
             // Act
-            var invalidRecipientResponse = await invalidRecipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.Correspondences.FirstOrDefault().CorrespondenceId}");
-            var invalidSenderResponse = await invalidSenderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.Correspondences.FirstOrDefault().CorrespondenceId}");
+            var invalidSenderResponse = await invalidClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.Correspondences.FirstOrDefault().CorrespondenceId}");
 
             // Assert
-            Assert.Equal(HttpStatusCode.NotFound, invalidRecipientResponse.StatusCode);
-            Assert.Equal(HttpStatusCode.NotFound, invalidSenderResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, invalidSenderResponse.StatusCode);
         }
 
         [Fact]
@@ -127,23 +127,23 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task GetCorrespondenceDetails_WhenNotSenderOrRecipient_Returns404()
+        public async Task GetCorrespondenceDetails_WhenNotSenderOrRecipient_Returns401()
         {
             // Arrange
             var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             initializeCorrespondenceResponse.EnsureSuccessStatusCode();
             var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            var invalidSenderClient = _factory.CreateClientWithAddedClaims(("consumer", "{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"0192:123456789\"}"), ("scope", AuthorizationConstants.SenderScope));
-            var invalidRecipientClient = _factory.CreateClientWithAddedClaims(("consumer", "{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"0192:123456789\"}"), ("scope", AuthorizationConstants.RecipientScope));
+            var invalidClient = _factory.CreateClientWithAddedClaims(
+                ("notSender", "true"),
+                ("notRecipient", "true"),
+                ("scope", AuthorizationConstants.SenderScope));
 
             // Act
-            var invalidRecipientResponse = await invalidRecipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.Correspondences.FirstOrDefault().CorrespondenceId}/details");
-            var invalidSenderResponse = await invalidSenderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.Correspondences.FirstOrDefault().CorrespondenceId}/details");
+            var invalidResponse = await invalidClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.Correspondences.FirstOrDefault().CorrespondenceId}/details");
 
             // Assert
-            Assert.Equal(HttpStatusCode.NotFound, invalidRecipientResponse.StatusCode);
-            Assert.Equal(HttpStatusCode.NotFound, invalidSenderResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, invalidResponse.StatusCode);
         }
 
         [Fact]
@@ -242,12 +242,14 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             var wrongRecipientClient = _factory.CreateClientWithAddedClaims(
                 ("pid", "wrong-personal-id"),
+                ("notRecipient", "true"),
+                ("notSender", "true"),
                 ("scope", AuthorizationConstants.RecipientScope));
 
             var getCorrespondenceResponse = await wrongRecipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
 
             // Assert
-            Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, getCorrespondenceResponse.StatusCode);
         }
     }
 }

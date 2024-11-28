@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Application.Configuration;
+﻿using Altinn.Correspondence.Common.Constants;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 

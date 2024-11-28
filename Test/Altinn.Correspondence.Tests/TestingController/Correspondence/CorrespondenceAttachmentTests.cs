@@ -190,7 +190,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task DownloadCorrespondenceAttachment_WhenNotARecipient_Returns404()
+        public async Task DownloadCorrespondenceAttachment_WhenNotARecipient_Returns401()
         {
             // Arrange
             var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
@@ -203,10 +203,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Act
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{response?.Correspondences.FirstOrDefault().CorrespondenceId}/attachment/{attachmentId}/download");
+            var downloadResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{response?.Correspondences.FirstOrDefault().CorrespondenceId}/attachment/{attachmentId}/download");
 
             // Assert
-            Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, downloadResponse.StatusCode);
         }
 
         [Fact]

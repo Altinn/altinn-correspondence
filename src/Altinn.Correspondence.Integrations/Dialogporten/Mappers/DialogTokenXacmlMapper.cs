@@ -2,6 +2,7 @@
 using Altinn.Authorization.ABAC.Xacml.JsonProfile;
 using Altinn.Common.PEP.Constants;
 using Altinn.Common.PEP.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
@@ -59,13 +60,14 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             XacmlJsonCategory resourceCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
             resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceId, resourceId, DefaultType, DefaultIssuer));
-            if (party.Length == 9)
+            var partyWithoutPrefix = party.WithoutPrefix();
+            if (partyWithoutPrefix.IsOrganizationNumber())
             {
-                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(OrganizationAttributeId, party, DefaultType, DefaultIssuer));
+                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumberAttribute, partyWithoutPrefix, DefaultType, DefaultIssuer));
             }
-            else if (party.Length == 11)
+            else if (partyWithoutPrefix.IsSocialSecurityNumber())
             {
-                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, party, DefaultType, DefaultIssuer));
+                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, partyWithoutPrefix, DefaultType, DefaultIssuer));
             }
             else
             {
@@ -93,7 +95,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 {
                     list.Add(CreateXacmlJsonAttribute(claim.Type, claim.Value, "string", claim.Issuer));
                 }
-                else if (IsOnBehalfOfClaim(claim.Type))
+                else if (IsConsumerClaim(claim.Type))
                 {
                     list.Add(CreateXacmlJsonAttribute("urn:altinn:person:identifier-no", claim.Value.Replace("urn:altinn:person:identifier-no:", ""), "string", claim.Issuer));
                 }
@@ -107,9 +109,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return regex.Match(value).Success;
         }
 
-        private static bool IsOnBehalfOfClaim(string value)
+        private static bool IsConsumerClaim(string value)
         {
-            return value.Equals("p");
+            return value.Equals("c");
         }
 
         private static bool IsActionClaim(string value)
@@ -136,9 +138,13 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     XacmlJsonAttributeAssignment obligation = GetObligation("urn:altinn:minimum-authenticationlevel", obligations);
                     if (obligation != null)
                     {
-                        string value = obligation.Value;
-                        string value2 = user.Claims.FirstOrDefault((Claim c) => c.Type.Equals("l")).Value;
-                        if (Convert.ToInt32(value2) < Convert.ToInt32(value))
+                        string obligationRequiredLevel = obligation.Value;
+                        string claimLevel = user.Claims.FirstOrDefault((Claim c) => c.Type.Equals("l")).Value;
+                        if (claimLevel == "0")
+                        {
+                            return true; // Hotfix until Dialogporten starts sending correct level
+                        }
+                        if (Convert.ToInt32(claimLevel) < Convert.ToInt32(obligationRequiredLevel))
                         {
                             return false;
                         }

@@ -1,6 +1,4 @@
 ﻿using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Common.Helpers;
-using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
@@ -15,7 +13,6 @@ public class DownloadCorrespondenceAttachmentHandler(
     IStorageRepository storageRepository,
     IAttachmentRepository attachmentRepository,
     ICorrespondenceRepository correspondenceRepository,
-    UserClaimsHelper userClaimsHelper,
     IBackgroundJobClient backgroundJobClient) : IHandler<DownloadCorrespondenceAttachmentRequest, DownloadCorrespondenceAttachmentResponse>
 {
 
@@ -31,27 +28,10 @@ public class DownloadCorrespondenceAttachmentHandler(
         {
             return Errors.AttachmentNotFound;
         }
-        string? onBehalfOf = request.OnBehalfOf;
-        bool isOnBehalfOfRecipient = false;
-        if (!string.IsNullOrEmpty(onBehalfOf))
-        {
-            isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
-        }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
-            user,
-            correspondence.ResourceId,
-            request.OnBehalfOf ?? correspondence.Recipient,
-            correspondence.Id.ToString(),
-            [ResourceAccessLevel.Read],
-            cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckAccessAsRecipient(user, correspondence, cancellationToken);
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
-        }
-        var isRecipient = userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
-        if (!isRecipient)
-        {
-            return Errors.CorrespondenceNotFound;
         }
         var latestStatus = correspondence.GetHighestStatus();
         if (!latestStatus.Status.IsAvailableForRecipient())
@@ -59,7 +39,7 @@ public class DownloadCorrespondenceAttachmentHandler(
             return Errors.CorrespondenceNotFound;
         }
         var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, cancellationToken);
-        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, Core.Services.Enums.DialogportenActorType.Recipient, DialogportenTextType.DownloadStarted, attachment.FileName ?? attachment.Name));
+        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, DialogportenActorType.Recipient, DialogportenTextType.DownloadStarted, attachment.FileName ?? attachment.Name));
         return new DownloadCorrespondenceAttachmentResponse(){
             FileName = attachment.FileName,
             Stream = attachmentStream

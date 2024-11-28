@@ -17,7 +17,6 @@ public class PurgeCorrespondenceHandler(
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IEventBus eventBus,
-    UserClaimsHelper userClaimsHelper,
     PurgeCorrespondenceHelper purgeCorrespondenceHelper,
     ILogger<PurgeCorrespondenceHandler> logger) : IHandler<PurgeCorrespondenceRequest, Guid>
 {
@@ -29,33 +28,19 @@ public class PurgeCorrespondenceHandler(
         {
             return Errors.CorrespondenceNotFound;
         }
-        string? onBehalfOf = request.OnBehalfOf;
-        bool isOnBehalfOfRecipient = false;
-        bool isOnBehalfOfSender = false;
-        if (!string.IsNullOrEmpty(onBehalfOf))
-        {
-            isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
-            isOnBehalfOfSender = correspondence.Sender.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
-        }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
+        var hasAccessAsSender = await altinnAuthorizationService.CheckAccessAsSender(
             user,
-            correspondence.ResourceId,
-            request.OnBehalfOf ?? correspondence.Recipient,
-            correspondence.Id.ToString(),
-            [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
+            correspondence,
             cancellationToken);
-        if (!hasAccess)
+        var hasAccessAsRecipient = await altinnAuthorizationService.CheckAccessAsRecipient(
+            user,
+            correspondence,
+            cancellationToken);
+        if (!hasAccessAsSender && !hasAccessAsRecipient)
         {
             return Errors.NoAccessToResource;
         }
-        var currentStatusError = purgeCorrespondenceHelper.ValidateCurrentStatus(correspondence);
-        if (currentStatusError is not null)
-        {
-            return currentStatusError;
-        }
-        bool isRecipient = userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
-        bool isSender = userClaimsHelper.IsSender(correspondence.Sender) || isOnBehalfOfSender;
-        if (isSender)
+        if (hasAccessAsSender)
         {
             var senderRecipientPurgeError = purgeCorrespondenceHelper.ValidatePurgeRequestSender(correspondence);
             if (senderRecipientPurgeError is not null)
@@ -63,7 +48,7 @@ public class PurgeCorrespondenceHandler(
                 return senderRecipientPurgeError;
             }
         }
-        else if (isRecipient)
+        else if (hasAccessAsRecipient)
         {
             var recipientPurgeError = purgeCorrespondenceHelper.ValidatePurgeRequestRecipient(correspondence);
             if (recipientPurgeError is not null)
@@ -71,11 +56,12 @@ public class PurgeCorrespondenceHandler(
                 return recipientPurgeError;
             }
         }
-        if (!isRecipient && !isSender)
+        var currentStatusError = purgeCorrespondenceHelper.ValidateCurrentStatus(correspondence);
+        if (currentStatusError is not null)
         {
-            return Errors.CorrespondenceNotFound;
+            return currentStatusError;
         }
-        var party = await altinnRegisterService.LookUpPartyById(userClaimsHelper.GetUserID(), cancellationToken);
+        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
             return Errors.CouldNotFindPartyUuid;
@@ -83,7 +69,7 @@ public class PurgeCorrespondenceHandler(
 
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            var status = isSender ? CorrespondenceStatus.PurgedByAltinn : CorrespondenceStatus.PurgedByRecipient;
+            var status = hasAccessAsSender ? CorrespondenceStatus.PurgedByAltinn : CorrespondenceStatus.PurgedByRecipient;
             await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity()
             {
                 CorrespondenceId = correspondenceId,
@@ -95,7 +81,7 @@ public class PurgeCorrespondenceHandler(
 
             await eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken);
             await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondenceId, partyUuid, cancellationToken);
-            purgeCorrespondenceHelper.ReportActivityToDialogporten(isSender, correspondenceId);
+            purgeCorrespondenceHelper.ReportActivityToDialogporten(hasAccessAsSender && user.CallingAsSender(), correspondenceId);
             purgeCorrespondenceHelper.CancelNotification(correspondenceId, cancellationToken);
             return correspondenceId;
         }, logger, cancellationToken);

@@ -1,11 +1,6 @@
 ﻿using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Attachment.Base;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Altinn.Correspondence.Tests.TestingController.Attachment
 {
@@ -31,11 +26,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
         }
 
         [Fact]
-        public async Task GetAttachmentOverview_As_Different_sender_ReturnsBadRequest()
+        public async Task GetAttachmentOverview_As_Different_sender_ReturnsUnauthorized()
         {
             var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
             var getAttachmentOverviewResponse = await _wrongSenderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}");
-            Assert.Equal(HttpStatusCode.BadRequest, getAttachmentOverviewResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, getAttachmentOverviewResponse.StatusCode);
         }
 
         [Fact]
@@ -54,11 +49,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
         }
 
         [Fact]
-        public async Task GetAttachmentDetails_As_Different_sender_ReturnsBadRequest()
+        public async Task GetAttachmentDetails_As_Different_sender_ReturnsUnauthorized()
         {
             var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
             var getAttachmentOverviewResponse = await _wrongSenderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}/details");
-            Assert.Equal(HttpStatusCode.BadRequest, getAttachmentOverviewResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, getAttachmentOverviewResponse.StatusCode);
         }
     }
 }

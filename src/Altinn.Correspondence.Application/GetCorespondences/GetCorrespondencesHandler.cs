@@ -1,6 +1,6 @@
-using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Repositories;
+using Microsoft.AspNetCore.Http;
 using OneOf;
 using System.Security.Claims;
 
@@ -9,7 +9,7 @@ namespace Altinn.Correspondence.Application.GetCorrespondences;
 public class GetCorrespondencesHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     ICorrespondenceRepository correspondenceRepository,
-    UserClaimsHelper userClaimsHelper) : IHandler<GetCorrespondencesRequest, GetCorrespondencesResponse>
+    IHttpContextAccessor httpContextAccessor) : IHandler<GetCorrespondencesRequest, GetCorrespondencesResponse>
 {
     public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -24,27 +24,24 @@ public class GetCorrespondencesHandler(
         {
             return Errors.InvalidDateRange;
         }
-
         string? onBehalfOf = request.OnBehalfOf;
         if (onBehalfOf is null) { 
-            onBehalfOf = userClaimsHelper.GetUserID();
+            onBehalfOf = "0192:" + httpContextAccessor.HttpContext?.User.GetCallerOrganizationId();
         }
         if (onBehalfOf is null)
         {
             return Errors.CouldNotDetermineCaller;
         }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
+        var hasAccess = await altinnAuthorizationService.CheckAccessAsAny(
             user,
             request.ResourceId,
-            onBehalfOf,
-            null,
-            [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
+            onBehalfOf.WithoutPrefix(),
             cancellationToken);
-
         if (!hasAccess)
         {
             return Errors.NoAccessToResource;
         }
+        // TODO: Add implementation to retrieve instances delegated to the user
 
         var correspondences = await correspondenceRepository.GetCorrespondences(
             request.ResourceId,

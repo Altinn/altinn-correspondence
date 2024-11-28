@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 
-namespace Altinn.Correspondence.Application.Configuration;
+namespace Altinn.Correspondence.Common.Constants;
 
 public static class AuthorizationConstants
 {

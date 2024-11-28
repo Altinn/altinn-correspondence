@@ -39,7 +39,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
         {
             var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
             var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _wrongSenderClient);
-            Assert.Equal(HttpStatusCode.BadRequest, uploadResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, uploadResponse.StatusCode);
         }
 
         [Fact]

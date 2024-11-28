@@ -15,7 +15,6 @@ public class GetCorrespondenceOverviewHandler(
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
-    UserClaimsHelper userClaimsHelper,
     ILogger<GetCorrespondenceOverviewHandler> logger) : IHandler<GetCorrespondenceOverviewRequest, GetCorrespondenceOverviewResponse>
 {
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(GetCorrespondenceOverviewRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -25,33 +24,17 @@ public class GetCorrespondenceOverviewHandler(
         {
             return Errors.CorrespondenceNotFound;
         }
-        string? onBehalfOf = request.OnBehalfOf;
-        bool isOnBehalfOfRecipient = false;
-        bool isOnBehalfOfSender = false;
-        if (!string.IsNullOrEmpty(onBehalfOf))
-        {
-            isOnBehalfOfRecipient = correspondence.Recipient.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
-            isOnBehalfOfSender = correspondence.Sender.GetOrgNumberWithoutPrefix() == onBehalfOf.GetOrgNumberWithoutPrefix();
-        }
-        var hasAccess = await altinnAuthorizationService.CheckUserAccess(
+        var hasAccessAsRecipient = await altinnAuthorizationService.CheckAccessAsRecipient(
             user,
-            correspondence.ResourceId,
-            request.OnBehalfOf ?? correspondence.Recipient,
-            correspondence.Id.ToString(),
-            [ResourceAccessLevel.Read, ResourceAccessLevel.Write],
+            correspondence,
             cancellationToken);
-        if (!hasAccess)
+        var hasAccessAsSender = await altinnAuthorizationService.CheckAccessAsSender(
+            user,
+            correspondence,
+            cancellationToken);
+        if (!hasAccessAsRecipient && !hasAccessAsSender)
         {
             return Errors.NoAccessToResource;
-        }
-
-        bool isRecipient = userClaimsHelper.IsRecipient(correspondence.Recipient) || isOnBehalfOfRecipient;
-        bool isSender = userClaimsHelper.IsSender(correspondence.Sender) || isOnBehalfOfSender;
-
-        if (!isRecipient && !isSender)
-        {
-            logger.LogWarning("Caller not affiliated with correspondence");
-            return Errors.CorrespondenceNotFound;
         }
         var latestStatus = correspondence.GetHighestStatus();
         if (latestStatus == null)
@@ -59,7 +42,7 @@ public class GetCorrespondenceOverviewHandler(
             logger.LogWarning("Latest status not found for correspondence");
             return Errors.CorrespondenceNotFound;
         }
-        var party = await altinnRegisterService.LookUpPartyById(userClaimsHelper.GetUserID(), cancellationToken);
+        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
             return Errors.CouldNotFindPartyUuid;
@@ -67,7 +50,7 @@ public class GetCorrespondenceOverviewHandler(
 
         return await TransactionWithRetriesPolicy.Execute<GetCorrespondenceOverviewResponse>(async (cancellationToken) =>
         {
-            if (isRecipient)
+            if (hasAccessAsRecipient && !user.CallingAsSender())
             {
                 if (!latestStatus.Status.IsAvailableForRecipient())
                 {
