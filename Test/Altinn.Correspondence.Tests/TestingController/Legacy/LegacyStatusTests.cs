@@ -204,7 +204,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var purgeRequest = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{correspondenceId}/purge");
             purgeRequest.EnsureSuccessStatusCode();
 
-            var fetchResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondenceId}");
+            var fetchResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondenceId}/overview");
             Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
             // Verify the correspondence status after purge
             var purgedCorrespondence = await fetchResponse.Content.ReadFromJsonAsync<LegacyCorrespondenceOverviewExt>(_serializerOptions);
