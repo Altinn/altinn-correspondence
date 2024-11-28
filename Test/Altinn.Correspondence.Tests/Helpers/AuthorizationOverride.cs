@@ -60,6 +60,20 @@ public static class AuthorizationOverride
             {
                 return Task.FromResult(true);
             });
+
+        altinnAuthorizationService
+            .Setup(x => x.CheckUserAccessAndGetMinimumAuthLevel(
+                It.IsAny<ClaimsPrincipal>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<List<ResourceAccessLevel>>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((ClaimsPrincipal? user, string ssn, string resourceId, List<ResourceAccessLevel> rights, string recipientOrgNo, CancellationToken token) =>
+            {
+                return Task.FromResult<int?>(3);
+            });
+
         return services.AddScoped(_ => altinnAuthorizationService.Object);
     }
 
