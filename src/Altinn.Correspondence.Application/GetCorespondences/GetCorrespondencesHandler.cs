@@ -26,7 +26,7 @@ public class GetCorrespondencesHandler(
         }
         string? onBehalfOf = request.OnBehalfOf;
         if (onBehalfOf is null) { 
-            onBehalfOf = httpContextAccessor.HttpContext?.User.GetCallerOrganizationId();
+            onBehalfOf = "0192:" + httpContextAccessor.HttpContext?.User.GetCallerOrganizationId();
         }
         if (onBehalfOf is null)
         {

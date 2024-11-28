@@ -14,26 +14,26 @@ namespace Altinn.Correspondence.Common.Helpers
             if (systemUserClaim is not null)
             {
                 var systemUserAuthorizationDetails = JsonSerializer.Deserialize<SystemUserAuthorizationDetails>(systemUserClaim.Value);
-                return systemUserAuthorizationDetails?.SystemUserOrg.ID;
+                return systemUserAuthorizationDetails?.SystemUserOrg.ID.WithoutPrefix();
             }
             // Enterprise token
             var orgClaim = user.Claims.FirstOrDefault(c => c.Type == "urn:altinn:orgNumber");
             if (orgClaim is not null)
             {
-                return orgClaim.Value;
+                return orgClaim.Value.WithoutPrefix(); // Normalize to same format as elsewhere
             }
             // Personal token
             var consumerClaim = user.Claims.FirstOrDefault(c => c.Type == "consumer");
             if (consumerClaim is not null)
             {
                 var consumerObject = JsonSerializer.Deserialize<TokenConsumer>(consumerClaim.Value);
-                return consumerObject.ID;
+                return consumerObject.ID.WithoutPrefix();
             }
             // DialogToken
-            var dialogportenTokenUserId = user.Claims.FirstOrDefault(c => c.Type == "ID")?.Value;
+            var dialogportenTokenUserId = user.Claims.FirstOrDefault(c => c.Type == "p")?.Value;
             if (dialogportenTokenUserId is not null)
             {
-                return dialogportenTokenUserId;
+                return dialogportenTokenUserId.WithoutPrefix(); // Normalize to same format as elsewhere
             }
             return null;
         }
