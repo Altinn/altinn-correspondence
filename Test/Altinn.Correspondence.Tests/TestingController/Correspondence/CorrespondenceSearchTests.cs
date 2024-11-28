@@ -75,16 +75,16 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             // Arrange
             var resource = Guid.NewGuid().ToString();
-            var recipientId = "0192:000000000";
-            var senderId = "0192:111111111";
-            var externalId = "0192:222222222";
+            var recipientId = $"{UrnConstants.OrganizationNumberAttribute}:000000000";
+            var senderId = $"{UrnConstants.OrganizationNumberAttribute}:111111111";
+            var externalId = $"{UrnConstants.OrganizationNumberAttribute}:222222222";
 
             // Create correspondence as Sender with recipientId amongst recipients
             var senderPayload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithResourceId(resource)
                 .WithSender(senderId)
-                .WithRecipients([recipientId, "0192:123456789", "0192:321654987"])
+                .WithRecipients([recipientId, $"{UrnConstants.OrganizationNumberAttribute}:123456789", $"{UrnConstants.OrganizationNumberAttribute}:321654987"])
                 .Build();
             var senderClient = _factory.CreateClientWithAddedClaims(
                 ("consumer", $"{{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"{senderId}\"}}"),
@@ -99,7 +99,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .CreateCorrespondence()
                 .WithResourceId(resource)
                 .WithSender(externalId)
-                .WithRecipients([senderId, recipientId, "0192:864231509"])
+                .WithRecipients([senderId, recipientId, $"{UrnConstants.OrganizationNumberAttribute}:864231509"])
                 .Build();
             var externalClient = _factory.CreateClientWithAddedClaims(
                 ("consumer", $"{{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"{externalId}\"}}"),
@@ -168,7 +168,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             // Arrange
             var resource = Guid.NewGuid().ToString();
-            var recipientId = "0192:000000000";
+            var recipientId = $"{UrnConstants.OrganizationNumberAttribute}:000000000";
             var recipientClient = _factory.CreateClientWithAddedClaims(
                 ("consumer", $"{{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"{recipientId}\"}}"),
                 ("notSender", "true"),
