@@ -177,6 +177,5 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, archiveResponse.StatusCode);
         }
-
     }
 }

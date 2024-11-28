@@ -162,7 +162,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             {
                 Offset = 0,
                 Limit = 10,
-                InstanceOwnerPartyIdList = new int[] { _digdirPartyId },
+                InstanceOwnerPartyIdList = new int[] { },
                 IncludeActive = true,
                 IncludeArchived = true,
                 IncludeDeleted = true,
