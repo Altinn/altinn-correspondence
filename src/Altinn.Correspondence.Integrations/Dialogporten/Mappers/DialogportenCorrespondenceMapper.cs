@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using System.Text.RegularExpressions;
 
@@ -6,8 +7,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
     public static class DialogportenCorrespondenceMapper
     {
-        private const string OrgNoPrefix = "urn:altinn:organization:identifier-no";
-        private const string SsnPrefix = "urn:altinn:person:identifier-no";
+        private const string OrgNoPrefix = UrnConstants.OrganizationNumberAttribute;
+        private const string SsnPrefix = UrnConstants.PersonIdAttribute;
 
         public static string GetSenderUrn(this CorrespondenceEntity correspondence)
         {
@@ -33,9 +34,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
             var organizationWithPrefixFormat = new Regex(@"^\d{4}:\d{9}$");
-            var correctOrgFormat = new Regex($@"^(?:\d{{4}}:|{UrnConstants.OrganizationNumberAttribute}:)\d{{9}}$");
+            var correctOrgFormat = new Regex($@"^{OrgNoPrefix}:\d{{9}}$");
+            var correctSSNFormat = new Regex($@"^{SsnPrefix}:\d{{11}}$");
             var personFormat = new Regex(@"^\d{11}$");
-            if (correctOrgFormat.IsMatch(input))
+            if (correctOrgFormat.IsMatch(input) || correctSSNFormat.IsMatch(input))
             {
                 return input;
             }
@@ -45,7 +47,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             }
             else if (organizationWithPrefixFormat.IsMatch(input))
             {
-                return $"{OrgNoPrefix}:{input.Substring(5)}";
+                return $"{OrgNoPrefix}:{input.WithoutPrefix()}";
             }
             else if (personFormat.IsMatch(input))
             {
