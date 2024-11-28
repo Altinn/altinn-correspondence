@@ -14,6 +14,7 @@ using System.Security.Claims;
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
 
 public class PublishCorrespondenceHandler(
+    IAltinnRegisterService altinnRegisterService,
     ILogger<PublishCorrespondenceHandler> logger,
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
@@ -44,6 +45,12 @@ public class PublishCorrespondenceHandler(
         }
         CorrespondenceStatusEntity status;
         AltinnEventType eventType = AltinnEventType.CorrespondencePublished;
+        var party = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
+        if (party?.PartyUuid is not Guid partyUuid)
+        {
+            return Errors.CouldNotFindPartyUuid;
+        }
+
         return await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
         {
 
@@ -55,7 +62,8 @@ public class PublishCorrespondenceHandler(
                     CorrespondenceId = correspondenceId,
                     Status = CorrespondenceStatus.Failed,
                     StatusChanged = DateTimeOffset.UtcNow,
-                    StatusText = errorMessage
+                    StatusText = errorMessage,
+                    PartyUuid = partyUuid
                 };
                 eventType = AltinnEventType.CorrespondencePublishFailed;
                 foreach (var notification in correspondence.Notifications)
@@ -70,7 +78,8 @@ public class PublishCorrespondenceHandler(
                     CorrespondenceId = correspondenceId,
                     Status = CorrespondenceStatus.Published,
                     StatusChanged = DateTimeOffset.UtcNow,
-                    StatusText = CorrespondenceStatus.Published.ToString()
+                    StatusText = CorrespondenceStatus.Published.ToString(),
+                    PartyUuid = partyUuid
                 };
                 await correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
                 backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.CorrespondencePublished));

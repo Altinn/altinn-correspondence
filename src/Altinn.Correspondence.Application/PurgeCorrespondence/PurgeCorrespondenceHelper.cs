@@ -59,7 +59,7 @@ public class PurgeCorrespondenceHelper
         }
         return null;
     }
-    public async Task CheckAndPurgeAttachments(Guid correspondenceId, CancellationToken cancellationToken)
+    public async Task CheckAndPurgeAttachments(Guid correspondenceId, Guid partyUuid, CancellationToken cancellationToken)
     {
         var attachments = await _attachmentRepository.GetAttachmentsByCorrespondence(correspondenceId, cancellationToken);
         foreach (var attachment in attachments)
@@ -76,7 +76,8 @@ public class PurgeCorrespondenceHelper
                 AttachmentId = attachment.Id,
                 Status = AttachmentStatus.Purged,
                 StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = AttachmentStatus.Purged.ToString()
+                StatusText = AttachmentStatus.Purged.ToString(),
+                PartyUuid = partyUuid
             };
             await _attachmentStatusRepository.AddAttachmentStatus(attachmentStatus, cancellationToken);
         }

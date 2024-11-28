@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -13,6 +14,7 @@ namespace Altinn.Correspondence.Application.GetCorrespondenceDetails;
 public class GetCorrespondenceDetailsHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnNotificationService altinnNotificationService,
+    IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     UserClaimsHelper userClaimsHelper,
@@ -58,6 +60,11 @@ public class GetCorrespondenceDetailsHandler(
         {
             return Errors.CorrespondenceNotFound;
         }
+        var party = await altinnRegisterService.LookUpPartyById(userClaimsHelper.GetUserID(), cancellationToken);
+        if (party?.PartyUuid is not Guid partyUuid)
+        {
+            return Errors.CouldNotFindPartyUuid;
+        }
 
         return await TransactionWithRetriesPolicy.Execute<GetCorrespondenceDetailsResponse>(async (cancellationToken) =>
         {
@@ -72,7 +79,8 @@ public class GetCorrespondenceDetailsHandler(
                     CorrespondenceId = correspondence.Id,
                     Status = CorrespondenceStatus.Fetched,
                     StatusText = CorrespondenceStatus.Fetched.ToString(),
-                    StatusChanged = DateTimeOffset.UtcNow
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    PartyUuid = partyUuid
                 }, cancellationToken);
 
             }

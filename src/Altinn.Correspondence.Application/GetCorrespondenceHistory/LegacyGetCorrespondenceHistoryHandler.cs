@@ -44,7 +44,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
         var correspondenceHistory = new List<LegacyGetCorrespondenceHistoryResponse>();
         foreach (var correspondenceStatus in correspondence.Statuses)
         {
-            if (correspondenceStatus.Status.IsAvailableForRecipient())
+            if (correspondenceStatus.Status.IsAvailableForLegacyRecipient())
             {
                 correspondenceHistory.Add(await GetCorrespondenceStatus(correspondenceStatus, recipientParty, senderParty, cancellationToken));
             }

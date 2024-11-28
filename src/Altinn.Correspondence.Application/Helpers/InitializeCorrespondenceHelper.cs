@@ -125,32 +125,8 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             return null;
         }
-        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, CorrespondenceStatus status)
+        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, CorrespondenceStatus status, Guid partyUuid)
         {
-            var processedAttachments = attachmentsToBeUploaded.Select(a => new CorrespondenceAttachmentEntity
-            {
-                Attachment = a,
-                Created = DateTimeOffset.UtcNow,
-            }).ToList();
-
-            var correspondenceContent = new CorrespondenceContentEntity
-            {
-                Attachments = processedAttachments,
-                Language = request.Correspondence.Content.Language,
-                MessageBody = request.Correspondence.Content.MessageBody,
-                MessageSummary = request.Correspondence.Content.MessageSummary,
-                MessageTitle = request.Correspondence.Content.MessageTitle,
-            };
-
-            var correspondenceStatuses = new List<CorrespondenceStatusEntity>
-            {
-                new CorrespondenceStatusEntity
-                {
-                    Status = status,
-                    StatusChanged = DateTimeOffset.UtcNow,
-                    StatusText = status.ToString()
-                }
-            };
             if (recipient.Contains("0192:"))
             {
                 recipient = recipient.Replace("0192:", UrnConstants.OrganizationNumberAttribute + ":");
@@ -174,14 +150,33 @@ namespace Altinn.Correspondence.Application.Helpers
                 Sender = request.Correspondence.Sender,
                 SendersReference = request.Correspondence.SendersReference,
                 MessageSender = request.Correspondence.MessageSender,
-                Content = correspondenceContent,
+                Content = new CorrespondenceContentEntity
+                {
+                    Attachments = attachmentsToBeUploaded.Select(a => new CorrespondenceAttachmentEntity
+                    {
+                        Attachment = a,
+                        Created = DateTimeOffset.UtcNow,
+                    }).ToList(),
+                    Language = request.Correspondence.Content.Language,
+                    MessageBody = request.Correspondence.Content.MessageBody,
+                    MessageSummary = request.Correspondence.Content.MessageSummary,
+                    MessageTitle = request.Correspondence.Content.MessageTitle,
+                },
                 RequestedPublishTime = request.Correspondence.RequestedPublishTime,
                 AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,
                 DueDateTime = request.Correspondence.DueDateTime,
                 PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
                 ReplyOptions = request.Correspondence.ReplyOptions,
                 IgnoreReservation = request.Correspondence.IgnoreReservation,
-                Statuses = correspondenceStatuses,
+                Statuses = new List<CorrespondenceStatusEntity>(){
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = status,
+                        StatusChanged = DateTimeOffset.UtcNow,
+                        StatusText = status.ToString(),
+                        PartyUuid = partyUuid
+                    }
+                },
                 Created = request.Correspondence.Created,
                 ExternalReferences = request.Correspondence.ExternalReferences,
                 Published = status == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
@@ -238,7 +233,7 @@ namespace Altinn.Correspondence.Application.Helpers
             return status;
         }
 
-        public async Task<Error?> UploadAttachments(List<AttachmentEntity> correspondenceAttachments, List<IFormFile> files, CancellationToken cancellationToken)
+        public async Task<Error?> UploadAttachments(List<AttachmentEntity> correspondenceAttachments, List<IFormFile> files, Guid partyUuid, CancellationToken cancellationToken)
         {
             foreach (var file in files)
             {
@@ -251,7 +246,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 OneOf<UploadAttachmentResponse, Error> uploadResponse;
                 await using (var f = file.OpenReadStream())
                 {
-                    uploadResponse = await uploadHelper.UploadAttachment(f, attachment.Id, cancellationToken);
+                    uploadResponse = await uploadHelper.UploadAttachment(f, attachment.Id, partyUuid, cancellationToken);
                 }
                 var error = uploadResponse.Match(
                     _ => { return null; },
@@ -262,14 +257,15 @@ namespace Altinn.Correspondence.Application.Helpers
             return null;
         }
 
-        public async Task<AttachmentEntity> ProcessNewAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, CancellationToken cancellationToken)
+        public async Task<AttachmentEntity> ProcessNewAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, Guid partyUuid, CancellationToken cancellationToken)
         {
             var status = new List<AttachmentStatusEntity>(){
                 new AttachmentStatusEntity
                 {
                     Status = AttachmentStatus.Initialized,
                     StatusChanged = DateTimeOffset.UtcNow,
-                    StatusText = AttachmentStatus.Initialized.ToString()
+                    StatusText = AttachmentStatus.Initialized.ToString(),
+                    PartyUuid = partyUuid
                 }
             };
             var attachment = correspondenceAttachment.Attachment!;

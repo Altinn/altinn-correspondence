@@ -176,7 +176,11 @@ namespace Altinn.Correspondence.API.Controllers
                 CorrespondenceId = correspondenceId
             }, HttpContext.User, cancellationToken);
             return commandResult.Match(
-                data => Ok(data.Content.MessageBody),
+                data =>
+                {
+                    var messageBody = data.Content.MessageBody?.Replace("\n", "<br />");
+                    return Ok(messageBody);
+                },
                 Problem
             );
         }

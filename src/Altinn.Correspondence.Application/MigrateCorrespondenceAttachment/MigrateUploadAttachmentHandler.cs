@@ -2,6 +2,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.MigrateUploadAttachment;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -9,7 +10,9 @@ using System.Security.Claims;
 namespace Altinn.Correspondence.Application.UploadAttachment;
 
 public class MigrateUploadAttachmentHandler(
-    IAltinnAuthorizationService altinnAuthorizationService, IAttachmentRepository attachmentRepository,
+    IAltinnAuthorizationService altinnAuthorizationService,
+    IAltinnRegisterService altinnRegisterService,
+    IAttachmentRepository attachmentRepository,
     UploadHelper uploadHelper,
     ILogger<MigrateUploadAttachmentHandler> logger) : IHandler<UploadAttachmentRequest, MigrateUploadAttachmentResponse>
 {
@@ -34,9 +37,14 @@ public class MigrateUploadAttachmentHandler(
         {
             return Errors.InvalidUploadAttachmentStatus;
         }
+        var party = await altinnRegisterService.LookUpPartyById(attachment.Sender, cancellationToken);
+        if (party?.PartyUuid is not Guid partyUuid)
+        {
+            return Errors.CouldNotFindPartyUuid;
+        }
         return await TransactionWithRetriesPolicy.Execute<MigrateUploadAttachmentResponse>(async (cancellationToken) =>
         {
-            var uploadResult = await uploadHelper.UploadAttachment(request.UploadStream, request.AttachmentId, cancellationToken);
+            var uploadResult = await uploadHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuid, cancellationToken);
 
             if (uploadResult.IsT1)
             {

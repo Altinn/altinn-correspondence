@@ -14,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
+using ReverseMarkdown.Converters;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
@@ -22,6 +23,7 @@ public class InitializeCorrespondencesHandler(
     InitializeCorrespondenceHelper initializeCorrespondenceHelper,
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnNotificationService altinnNotificationService,
+    IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     INotificationTemplateRepository notificationTemplateRepository,
@@ -46,6 +48,11 @@ public class InitializeCorrespondencesHandler(
         if (!isSender)
         {
             return Errors.InvalidSender;
+        }
+        var party = await altinnRegisterService.LookUpPartyById(userClaimsHelper.GetUserID(), cancellationToken);
+        if (party?.PartyUuid is not Guid partyUuid)
+        {
+            return Errors.CouldNotFindPartyUuid;
         }
         if (request.Recipients.Count != request.Recipients.Distinct().Count())
         {
@@ -96,7 +103,7 @@ public class InitializeCorrespondencesHandler(
         {
             foreach (var attachment in uploadAttachmentMetadata)
             {
-                var processedAttachment = await initializeCorrespondenceHelper.ProcessNewAttachment(attachment, cancellationToken);
+                var processedAttachment = await initializeCorrespondenceHelper.ProcessNewAttachment(attachment, partyUuid, cancellationToken);
                 attachmentsToBeUploaded.Add(processedAttachment);
             }
         }
@@ -124,7 +131,7 @@ public class InitializeCorrespondencesHandler(
             }
         }
         // Upload attachments
-        var uploadError = await initializeCorrespondenceHelper.UploadAttachments(attachmentsToBeUploaded, uploadAttachments, cancellationToken);
+        var uploadError = await initializeCorrespondenceHelper.UploadAttachments(attachmentsToBeUploaded, uploadAttachments, partyUuid, cancellationToken);
         if (uploadError != null)
         {
             return uploadError;
@@ -132,17 +139,17 @@ public class InitializeCorrespondencesHandler(
 
         return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
         {
-            return await InitializeCorrespondences(request, attachmentsToBeUploaded, notificationContents, cancellationToken);
+            return await InitializeCorrespondences(request, attachmentsToBeUploaded, notificationContents, partyUuid, cancellationToken);
         }, logger, cancellationToken);
     }
 
-    private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<NotificationContent>? notificationContents, CancellationToken cancellationToken)
+    private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<NotificationContent>? notificationContents, Guid partyUuid, CancellationToken cancellationToken)
     {
         var status = initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);
         var correspondences = new List<CorrespondenceEntity>();
         foreach (var recipient in request.Recipients)
         {
-            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, attachmentsToBeUploaded, status);
+            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, attachmentsToBeUploaded, status, partyUuid);
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
