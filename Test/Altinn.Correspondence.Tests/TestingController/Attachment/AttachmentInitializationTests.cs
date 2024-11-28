@@ -31,11 +31,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
         }
 
         [Fact]
-        public async Task InitializeAttachment_As_Different_Sender_As_Token_ReturnsBadRequest()
+        public async Task InitializeAttachment_As_Different_Sender_As_Token_ReturnsUnauthorized()
         {
             var attachment = new AttachmentBuilder().CreateAttachment().Build();
             var initializeAttachmentResponse = await _wrongSenderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
-            Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, initializeAttachmentResponse.StatusCode);
         }
 
         [Fact]

@@ -1,7 +1,6 @@
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Altinn.AccessManagement;
-using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Altinn.Correspondence.Integrations.Altinn.Events;
 using Altinn.Correspondence.Integrations.Altinn.Notifications;
 using Altinn.Correspondence.Integrations.Altinn.Register;
@@ -25,6 +24,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
 
+
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)
     {
@@ -46,7 +46,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddScoped<IEventBus, ConsoleLogEventBus>();
             services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
             services.AddScoped<IDialogportenService, DialogportenDevService>();
-            services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationDevService>();
+            services.OverrideAuthorization();
             services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
             var resourceRightsService = new Mock<IResourceRightsService>();
@@ -54,6 +54,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddScoped(_ => resourceRightsService.Object);
         });
     }
+
+
     public HttpClient CreateClientWithAddedClaims(params (string type, string value)[] claims)
     {
         var defaultClaims = new List<Claim>

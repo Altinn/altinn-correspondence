@@ -18,8 +18,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment.Base
             _recipientClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.RecipientScope));
             _wrongSenderClient = factory.CreateClientWithAddedClaims(
                 ("scope", AuthorizationConstants.SenderScope), 
-                ("client_orgnr", "123456789"), 
-                ("consumer", "{\"authority\":\"iso6523-actorid-upis\",\"ID\":\"0192:123456789\"}")
+                ("notSender", "true")
             );
             _responseSerializerOptions = new JsonSerializerOptions()
             {

@@ -18,8 +18,14 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence.Base
         public CorrespondenceTestBase(CustomWebApplicationFactory factory)
         {
             _factory = factory;
-            _senderClient = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
-            _recipientClient = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.RecipientScope));
+            _senderClient = _factory.CreateClientWithAddedClaims(
+                ("notRecipient", "true"),
+                ("scope", AuthorizationConstants.SenderScope)
+            );
+            _recipientClient = _factory.CreateClientWithAddedClaims(
+                ("notSender", "true"),
+                ("scope", AuthorizationConstants.RecipientScope)
+            );
             _responseSerializerOptions = new JsonSerializerOptions(new JsonSerializerOptions()
             {
                 PropertyNameCaseInsensitive = true

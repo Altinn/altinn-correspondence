@@ -100,13 +100,13 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             Assert.Equal(HttpStatusCode.Forbidden, deleteResponse.StatusCode);
         }
         [Fact]
-        public async Task DeleteAttachment_AsWrongSender_ReturnsBadRequest()
+        public async Task DeleteAttachment_AsWrongSender_ReturnsUnauthorized()
         {
             // Arrange
             var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
             var deleteResponse = await _wrongSenderClient.DeleteAsync($"correspondence/api/v1/attachment/{attachmentId}");
             // Assert failure before correspondence is created
-            Assert.Equal(HttpStatusCode.BadRequest, deleteResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, deleteResponse.StatusCode);
         }
     }
 }
