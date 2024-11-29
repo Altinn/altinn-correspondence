@@ -24,7 +24,7 @@ public class GetCorrespondencesHandler(
         {
             return Errors.InvalidDateRange;
         }
-        string? onBehalfOf = request.OnBehalfOf ?? httpContextAccessor.HttpContext?.User.GetCallerOrganizationId();
+        string? onBehalfOf = request.OnBehalfOf?.WithoutPrefix() ?? httpContextAccessor.HttpContext?.User.GetCallerOrganizationId();
         if (onBehalfOf is null)
         {
             return Errors.CouldNotDetermineCaller;
