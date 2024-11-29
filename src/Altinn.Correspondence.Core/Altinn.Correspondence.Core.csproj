@@ -18,4 +18,8 @@
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Altinn.Correspondence.Common\Altinn.Correspondence.Common.csproj" />
+  </ItemGroup>
+
 </Project>
