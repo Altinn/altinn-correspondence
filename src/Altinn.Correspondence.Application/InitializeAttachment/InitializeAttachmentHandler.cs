@@ -39,7 +39,7 @@ public class InitializeAttachmentHandler(
             return Errors.CouldNotFindPartyUuid;
         }
         var attachment = request.Attachment;
-        if (attachment.Sender.Contains("0192"))
+        if (attachment.Sender.StartsWith("0192:"))
         {
             attachment.Sender = $"{UrnConstants.OrganizationNumberAttribute}:{attachment.Sender.WithoutPrefix()}";
             logger.LogInformation($"'0192:' prefix detected for sender in initialization of attachment. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");

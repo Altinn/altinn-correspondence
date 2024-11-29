@@ -128,13 +128,13 @@ namespace Altinn.Correspondence.Application.Helpers
         public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, CorrespondenceStatus status, Guid partyUuid)
         {
             string sender = request.Correspondence.Sender;
-            if (sender.Contains("0192:"))
+            if (sender.StartsWith("0192:"))
             {
                 sender = $"{UrnConstants.OrganizationNumberAttribute}:{request.Correspondence.Sender.WithoutPrefix()}";
                 logger.LogInformation($"'0192:' prefix detected for sender in creation of correspondence. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
             }
 
-            if (recipient.Contains("0192:"))
+            if (recipient.StartsWith("0192:"))
             {
                 recipient = $"{UrnConstants.OrganizationNumberAttribute}:{recipient.WithoutPrefix()}";
                 logger.LogInformation($"'0192:' prefix detected for recipient in creation of correspondence. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
