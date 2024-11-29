@@ -127,7 +127,14 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
         var redirectUrl = _httpContextAccessor.HttpContext.Request.Path;
         properties.RedirectUri = redirectUrl;
         properties.Items.Add("endpoint", redirectUrl);
-        return Context.ChallengeAsync(OpenIdConnectDefaults.AuthenticationScheme, properties);
+        if(_httpContextAccessor.HttpContext.Request.Headers["Authorization"].ToString().StartsWith("Bearer")) 
+        {
+            return Context.ChallengeAsync(JwtBearerDefaults.AuthenticationScheme, properties);
+        }
+        else
+        {
+            return Context.ChallengeAsync(OpenIdConnectDefaults.AuthenticationScheme, properties);
+        }   
     }
 
     public static string AppendSessionToUrl(string url, string sessionId)
