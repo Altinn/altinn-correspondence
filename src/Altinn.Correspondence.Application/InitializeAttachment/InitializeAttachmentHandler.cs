@@ -42,7 +42,7 @@ public class InitializeAttachmentHandler(
         if (attachment.Sender.Contains("0192"))
         {
             attachment.Sender = $"{UrnConstants.OrganizationNumberAttribute}:{attachment.Sender.WithoutPrefix()}";
-            logger.LogInformation($"'0192:' prefix detected for recipient in initialization of attachment. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
+            logger.LogInformation($"'0192:' prefix detected for sender in initialization of attachment. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
         }
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
