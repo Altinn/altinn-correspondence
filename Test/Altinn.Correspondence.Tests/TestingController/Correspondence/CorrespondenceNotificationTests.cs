@@ -97,7 +97,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task CorrespondenceWithPrefferedNotification_Gives_Ok()
+        public async Task CorrespondenceWithPreferredNotification_Gives_Ok()
         {
             var preferredEmailCustomPayload = new CorrespondenceBuilder()
                 .CreateCorrespondence()

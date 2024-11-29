@@ -42,8 +42,8 @@ public static class Errors
     public static Error MissingEmailReminderNotificationContent = new Error(34, "Reminder email body and subject must be provided when sending reminder email notifications", HttpStatusCode.BadRequest);
     public static Error MissingSmsContent = new Error(35, "SMS body must be provided when sending SMS notifications", HttpStatusCode.BadRequest);
     public static Error MissingSmsReminderNotificationContent = new Error(36, "Reminder SMS body must be provided when sending reminder SMS notifications", HttpStatusCode.BadRequest);
-    public static Error MissingPrefferedNotificationContent = new Error(37, "Email body, subject and SMS body must be provided when sending preferred notifications", HttpStatusCode.BadRequest);
-    public static Error MissingPrefferedReminderNotificationContent = new Error(38, $"Reminder email body, subject and SMS body must be provided when sending reminder preferred notifications", HttpStatusCode.BadRequest);
+    public static Error MissingPreferredNotificationContent = new Error(37, "Email body, subject and SMS body must be provided when sending preferred notifications", HttpStatusCode.BadRequest);
+    public static Error MissingPreferredReminderNotificationContent = new Error(38, $"Reminder email body, subject and SMS body must be provided when sending reminder preferred notifications", HttpStatusCode.BadRequest);
     public static Error AttachmentNotPublished = new Error(39, "Attachment is not published", HttpStatusCode.BadRequest);
     public static Error LegacyNotAccessToOwner(int partyId) { return new Error(40, $"User does not have access to party with partyId {partyId}", HttpStatusCode.Unauthorized); }
     public static Error ArchiveBeforeConfirmed = new Error(41, "Cannot archive or delete a correspondence which has not been confirmed when confirmation is required", HttpStatusCode.BadRequest);
@@ -59,4 +59,8 @@ public static class Errors
     public static Error ReadBeforeFetched = new Error(51, "Correspondence must be fetched before it can be read", HttpStatusCode.BadRequest);
     public static Error InvalidDateRange = new Error(52, "From date cannot be after to date", HttpStatusCode.BadRequest);
     public static Error InvalidSenderForAttachment = new Error(53, "The sender of the correspondence must be equal the sender of existing attachments", HttpStatusCode.BadRequest);
+    public static Error MissingEmailRecipient = new Error(54, "Atleast one notification recipient is missing email adress, organization number or national identity number", HttpStatusCode.BadRequest);
+    public static Error MissingSmsRecipient = new Error(55, "Atleast one notification recipient is missing mobile number, organization number or national identity number", HttpStatusCode.BadRequest);
+    public static Error MissingEmailAndSmsRecipient = new Error(56, "Atleast one notification recipient is missing email adress and mobile number, organization number or national identity number", HttpStatusCode.BadRequest);
+    public static Error MissingReminderNotificationChannel = new Error(57, "ReminderNotificationChannel must be provided when sending reminder notifications", HttpStatusCode.BadRequest);
 }

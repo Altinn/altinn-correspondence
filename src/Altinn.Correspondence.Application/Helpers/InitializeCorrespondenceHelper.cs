@@ -90,34 +90,68 @@ namespace Altinn.Correspondence.Application.Helpers
         }
         public Error? ValidateNotification(NotificationRequest notification)
         {
-            if (notification.NotificationTemplate == NotificationTemplate.GenericAltinnMessage || notification.NotificationTemplate == NotificationTemplate.Altinn2Message) return null;
-
+            var skipContentCheck = notification.NotificationTemplate == NotificationTemplate.GenericAltinnMessage || notification.NotificationTemplate == NotificationTemplate.Altinn2Message;
             var reminderNotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel;
-            if (notification.NotificationChannel == NotificationChannel.Email && (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject)))
+            var recipientsHasEmail = notification.Recipients == null || notification.Recipients.Count == 0 || !notification.Recipients.Any(r => string.IsNullOrEmpty(r.EmailAddress) && string.IsNullOrEmpty(r.OrganizationNumber) && string.IsNullOrEmpty(r.NationalIdentityNumber));
+            var recipientsHasSms = notification.Recipients == null || notification.Recipients.Count == 0 || !notification.Recipients.Any(r => string.IsNullOrEmpty(r.MobileNumber) && string.IsNullOrEmpty(r.OrganizationNumber) && string.IsNullOrEmpty(r.NationalIdentityNumber));
+            var recipientsHasEmailAndSms = notification.Recipients == null || notification.Recipients.Count == 0 || !notification.Recipients.Any(r => string.IsNullOrEmpty(r.EmailAddress) && string.IsNullOrEmpty(r.MobileNumber) && string.IsNullOrEmpty(r.OrganizationNumber) && string.IsNullOrEmpty(r.NationalIdentityNumber));
+
+            if (notification.NotificationChannel == NotificationChannel.Email)
             {
-                return Errors.MissingEmailContent;
+                if (!recipientsHasEmail) return Errors.MissingEmailRecipient;
+                if (notification.SendReminder && notification.ReminderNotificationChannel != NotificationChannel.Email && !recipientsHasEmailAndSms)
+                {
+                    return Errors.MissingEmailAndSmsRecipient;
+                }
+                if (!skipContentCheck && (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject)))
+                {
+                    return Errors.MissingEmailContent;
+                }
             }
-            if (reminderNotificationChannel == NotificationChannel.Email && notification.SendReminder && (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject)))
+            if (notification.NotificationChannel == NotificationChannel.Sms)
             {
-                return Errors.MissingEmailReminderNotificationContent;
+                if (!recipientsHasSms) return Errors.MissingSmsRecipient;
+                if (notification.SendReminder && notification.ReminderNotificationChannel != NotificationChannel.Sms && !recipientsHasEmailAndSms)
+                {
+                    return Errors.MissingEmailAndSmsRecipient;
+                }
+                if (!skipContentCheck)
+                {
+                    if (string.IsNullOrEmpty(notification.SmsBody))
+                    {
+                        return Errors.MissingSmsContent;
+                    }
+                }
             }
-            if (notification.NotificationChannel == NotificationChannel.Sms && string.IsNullOrEmpty(notification.SmsBody))
+            if (notification.NotificationChannel == NotificationChannel.EmailPreferred || notification.NotificationChannel == NotificationChannel.SmsPreferred)
             {
-                return Errors.MissingSmsContent;
+                if (!recipientsHasEmailAndSms) return Errors.MissingEmailAndSmsRecipient;
+                if (!skipContentCheck)
+                {
+                    if (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject) || string.IsNullOrEmpty(notification.SmsBody))
+                    {
+                        return Errors.MissingPreferredNotificationContent;
+                    }
+                }
             }
-            if (reminderNotificationChannel == NotificationChannel.Sms && notification.SendReminder && string.IsNullOrEmpty(notification.ReminderSmsBody))
+            if (notification.SendReminder && !skipContentCheck)
             {
-                return Errors.MissingSmsReminderNotificationContent;
-            }
-            if ((notification.NotificationChannel == NotificationChannel.EmailPreferred || notification.NotificationChannel == NotificationChannel.SmsPreferred) &&
-                (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject) || string.IsNullOrEmpty(notification.SmsBody)))
-            {
-                return Errors.MissingPrefferedNotificationContent;
-            }
-            if ((reminderNotificationChannel == NotificationChannel.EmailPreferred || reminderNotificationChannel == NotificationChannel.SmsPreferred) &&
-                notification.SendReminder && (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject) || string.IsNullOrEmpty(notification.ReminderSmsBody)))
-            {
-                return Errors.MissingPrefferedReminderNotificationContent;
+                if (notification.ReminderNotificationChannel == null) return Errors.MissingReminderNotificationChannel;
+                if (notification.ReminderNotificationChannel == NotificationChannel.Email && (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject)))
+                {
+                    return Errors.MissingEmailReminderNotificationContent;
+                }
+                if (notification.ReminderNotificationChannel == NotificationChannel.Sms && string.IsNullOrEmpty(notification.ReminderSmsBody))
+                {
+                    return Errors.MissingSmsReminderNotificationContent;
+                }
+                if (notification.ReminderNotificationChannel == NotificationChannel.EmailPreferred || notification.ReminderNotificationChannel == NotificationChannel.SmsPreferred)
+                {
+                    if (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject) || string.IsNullOrEmpty(notification.ReminderSmsBody))
+                    {
+                        return Errors.MissingPreferredReminderNotificationContent;
+                    }
+                }
             }
             return null;
         }
