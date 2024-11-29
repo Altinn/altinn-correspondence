@@ -185,6 +185,52 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             initializeCorrespondenceResponse2.EnsureSuccessStatusCode();
             Assert.NotNull(response2);
         }
+        [Fact]
+        public async Task Correspondence_CustomRecipient_WithSmsNotificationAndEmailReminder_Gives_Ok()
+        {
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Sms)
+                .WithReminderNotificationChannel(NotificationChannelExt.Email)
+                .WithSmsReminder()
+                .WithEmailReminder()
+                .WithCustomNotificationRecipients(new List<NotificationRecipientExt>()
+                {
+                    new NotificationRecipientExt()
+                    {
+                        OrganizationNumber = "123456789",
+                    },
+                    new NotificationRecipientExt()
+                    {
+                        MobileNumber = "12345678",
+                        EmailAddress = "andreas.hammerbeck@digir.no"
+                    },
+                    new NotificationRecipientExt()
+                    {
+                        NationalIdentityNumber = "12345678901",
+                    }
+                })
+                .Build();
+
+            var initializeCorrespondenceResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            var response1 = await initializeCorrespondenceResponse1.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            initializeCorrespondenceResponse1.EnsureSuccessStatusCode();
+            Assert.NotNull(response1);
+
+            var payload2 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Sms)
+                .WithReminderNotificationChannel(NotificationChannelExt.EmailPreferred)
+                .WithSmsReminder()
+                .WithEmailReminder()
+                .Build();
+            var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload2, _responseSerializerOptions);
+            var response2 = await initializeCorrespondenceResponse2.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            initializeCorrespondenceResponse2.EnsureSuccessStatusCode();
+            Assert.NotNull(response2);
+        }
 
         [Fact]
         public async Task CorrespondenceWithEmptyCustomNotification_Gives_BadRequest()

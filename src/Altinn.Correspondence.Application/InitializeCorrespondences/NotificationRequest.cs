@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Models.Notifications;
 namespace Altinn.Correspondence.Application.InitializeCorrespondences
 {
     public class NotificationRequest
@@ -18,6 +19,8 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
         public string? ReminderEmailBody { get; set; }
 
         public string? ReminderSmsBody { get; set; }
+
+        public List<Recipient> Recipients { get; set; }
 
         public required NotificationChannel NotificationChannel { get; set; }
 

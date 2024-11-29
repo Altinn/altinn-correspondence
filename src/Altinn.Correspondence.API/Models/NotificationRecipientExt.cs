@@ -34,10 +34,4 @@ public class NotificationRecipientExt
     /// </summary>
     [JsonPropertyName("nationalIdentityNumber")]
     public string? NationalIdentityNumber { get; set; }
-
-    /// <summary>
-    /// Boolean indicating if the recipient is reserved
-    /// </summary>
-    [JsonPropertyName("isReserved")]
-    public bool? IsReserved { get; set; }
 }
