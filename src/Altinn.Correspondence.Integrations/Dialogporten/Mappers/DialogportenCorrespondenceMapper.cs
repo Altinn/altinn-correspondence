@@ -33,7 +33,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         private static string? GetUrn(string input)
         {
             var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
-            var organizationWithPrefixFormat = new Regex(@"^\d{4}:\d{9}$");
+            var organizationWithPrefixFormat = new Regex(@"^0192:\d{9}$");
             var correctOrgFormat = new Regex($@"^{OrgNoPrefix}:\d{{9}}$");
             var correctSSNFormat = new Regex($@"^{SsnPrefix}:\d{{11}}$");
             var personFormat = new Regex(@"^\d{11}$");

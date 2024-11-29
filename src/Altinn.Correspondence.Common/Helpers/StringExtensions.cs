@@ -3,7 +3,7 @@ namespace Altinn.Correspondence.Common.Helpers;
 public static class StringExtensions
 {
     private static readonly Regex SsnPattern = new(@"^\d{11}$");
-    private static readonly Regex OrgPattern = new(@"^(?:\d{9}|\d{4}:\d{9})$");
+    private static readonly Regex OrgPattern = new(@"^(?:\d{9}|0192:\d{9})$");
 
     /// <summary>
     /// Checks if the provided string is a valid social security number format.

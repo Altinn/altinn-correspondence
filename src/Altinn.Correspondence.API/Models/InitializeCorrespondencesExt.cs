@@ -56,7 +56,7 @@ public class InitializeCorrespondencesExt
 
             foreach (var recipient in recipients)
             {
-                var orgRegex = new Regex($@"^(?:\d{{4}}:|{UrnConstants.OrganizationNumberAttribute}:)\d{{9}}$");
+                var orgRegex = new Regex($@"^(?:0192:|{UrnConstants.OrganizationNumberAttribute}:)\d{{9}}$");
                 var personRegex = new Regex($@"^(?:{UrnConstants.PersonIdAttribute}:)?\d{{11}}$");
                 if (!orgRegex.IsMatch(recipient) && !personRegex.IsMatch(recipient))
                 {

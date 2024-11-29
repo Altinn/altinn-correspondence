@@ -7,7 +7,7 @@ using Altinn.Correspondence.Core.Services;
 namespace Altinn.Correspondence.Integrations.Altinn.Register;
 public class AltinnRegisterDevService : IAltinnRegisterService
 {
-    private const string _identificationIDPattern = @"^(?:\d{11}|\d{9}|\d{4}:\d{9})$";
+    private const string _identificationIDPattern = @"^(?:\d{11}|\d{9}|0192:\d{9})$";
     private static readonly Regex IdentificationIDRegex = new(_identificationIDPattern);
     private readonly int _digdirPartyId = 50952483;
     public Task<string?> LookUpPartyId(string identificationId, CancellationToken cancellationToken)

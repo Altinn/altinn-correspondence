@@ -255,7 +255,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithRecipients(["1234:123456789", "12345678901"])
+                .WithRecipients(["0192:123456789", "12345678901"])
                 .Build();
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             initializeCorrespondenceResponse.EnsureSuccessStatusCode();
@@ -289,6 +289,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
 
             payload.Recipients = ["1234567812390123"];
+            initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+
+            payload.Recipients = ["1234:123456789"];
             initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
         }

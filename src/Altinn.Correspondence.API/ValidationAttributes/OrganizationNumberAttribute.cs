@@ -5,7 +5,7 @@ using Altinn.Correspondence.Common.Constants;
 namespace Altinn.Correspondence.API.Models;
 public class OrganizationNumberAttribute : ValidationAttribute
 {
-    private static readonly string Pattern = $@"^(?:\d{{4}}:|{UrnConstants.OrganizationNumberAttribute}:)\d{{9}}$";
+    private static readonly string Pattern = $@"^(?:0192:|{UrnConstants.OrganizationNumberAttribute}:)\d{{9}}$";
     private static readonly Regex Regex = new(Pattern);
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
