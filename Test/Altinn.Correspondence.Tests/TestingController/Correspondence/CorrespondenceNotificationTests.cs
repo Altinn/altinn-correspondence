@@ -225,11 +225,79 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithReminderNotificationChannel(NotificationChannelExt.EmailPreferred)
                 .WithSmsReminder()
                 .WithEmailReminder()
+                .WithCustomNotificationRecipients(new List<NotificationRecipientExt>()
+                {
+                    new NotificationRecipientExt()
+                    {
+                        OrganizationNumber = "123456789",
+                    },
+                    new NotificationRecipientExt()
+                    {
+                        MobileNumber = "12345678",
+                        EmailAddress = "andreas.hammerbeck@digir.no"
+                    },
+                    new NotificationRecipientExt()
+                    {
+                        NationalIdentityNumber = "12345678901",
+                    }
+                })
                 .Build();
             var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload2, _responseSerializerOptions);
             var response2 = await initializeCorrespondenceResponse2.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
             initializeCorrespondenceResponse2.EnsureSuccessStatusCode();
             Assert.NotNull(response2);
+        }
+
+        [Fact]
+        public async Task Correspondence_CustomRecipients_WithWrongData_Gives_BadRequest()
+        {
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Sms)
+                .WithReminderNotificationChannel(NotificationChannelExt.Email)
+                .WithSmsReminder()
+                .WithEmailReminder()
+                .WithCustomNotificationRecipients(new List<NotificationRecipientExt>()
+                {
+                    new NotificationRecipientExt()
+                    {
+                        MobileNumber = "12345678",
+                    }
+                }).Build();
+            var initializeCorrespondenceResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse1.StatusCode);
+
+            var payload2 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Sms)
+                .WithReminderNotificationChannel(NotificationChannelExt.Email)
+                .WithSmsReminder()
+                .WithEmailReminder()
+                .WithCustomNotificationRecipients(new List<NotificationRecipientExt>()
+                {
+                    new NotificationRecipientExt()
+                }).Build();
+            var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload2, _responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse2.StatusCode);
+
+            var payload3 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Sms)
+                .WithReminderNotificationChannel(NotificationChannelExt.Email)
+                .WithSmsReminder()
+                .WithEmailReminder()
+                .WithCustomNotificationRecipients(new List<NotificationRecipientExt>()
+                {
+                    new NotificationRecipientExt()
+                    {
+                        EmailAddress = "asd@sdg.ss"
+                    }
+                }).Build();
+            var initializeCorrespondenceResponse3 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload3, _responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse3.StatusCode);
         }
 
         [Fact]

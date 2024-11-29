@@ -219,6 +219,5 @@ namespace Altinn.Correspondence.Tests.Factories
                 },
             };
         }
-
     }
 }
