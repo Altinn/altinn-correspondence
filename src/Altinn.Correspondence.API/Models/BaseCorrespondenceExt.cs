@@ -24,7 +24,7 @@ namespace Altinn.Correspondence.API.Models
         /// Organization number in countrycode:organizationnumber format.
         /// </remarks>
         [JsonPropertyName("sender")]
-        [OrganizationNumber(ErrorMessage = $"Organization numbers should be on the form '{UrnConstants.OrganizationNumberAttribute}:organizationnumber' or the form countrycode:organizationnumber, for instance 0192:910753614")]
+        [RegularExpression($@"^(?:0192:|{UrnConstants.OrganizationNumberAttribute}):\d{{9}}$", ErrorMessage = "Organization numbers should be on the form countrycode:organizationnumber, for instance 0192:910753614")]
         [Required]
         public required string Sender { get; set; }
 
