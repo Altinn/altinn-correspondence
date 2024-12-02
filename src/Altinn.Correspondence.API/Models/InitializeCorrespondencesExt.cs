@@ -60,7 +60,7 @@ public class InitializeCorrespondencesExt
                 var personRegex = new Regex($@"^(?:{UrnConstants.PersonIdAttribute}:)?\d{{11}}$");
                 if (!orgRegex.IsMatch(recipient) && !personRegex.IsMatch(recipient))
                 {
-                    return new ValidationResult($"Recipient should be an organization number in the form '{UrnConstants.OrganizationNumberAttribute}:organizationnumber' or the form countrycode:organizationnumber, for instance 0192:910753614, or a national identity number");
+                    return new ValidationResult($"Recipient should be an organization number in the format '{UrnConstants.OrganizationNumberAttribute}:organizationnumber' or the format countrycode:organizationnumber, for instance 0192:910753614, or a national identity number");
                 }
             }
 
