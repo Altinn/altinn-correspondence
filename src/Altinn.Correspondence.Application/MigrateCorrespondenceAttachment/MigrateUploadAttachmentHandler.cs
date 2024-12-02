@@ -21,26 +21,26 @@ public class MigrateUploadAttachmentHandler(
         var attachment = await attachmentRepository.GetAttachmentById(request.AttachmentId, true, cancellationToken);
         if (attachment == null)
         {
-            return Errors.AttachmentNotFound;
+            return AttachmentErrors.AttachmentNotFound;
         }
         var hasAccess = await altinnAuthorizationService.CheckMigrationAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
         if (!hasAccess)
         {
-            return Errors.NoAccessToResource;
+            return AuthorizationErrors.NoAccessToResource;
         }
         var maxUploadSize = long.Parse(int.MaxValue.ToString());
         if (request.ContentLength > maxUploadSize || request.ContentLength == 0)
         {
-            return Errors.InvalidFileSize;
+            return AttachmentErrors.InvalidFileSize;
         }
         if (attachment.StatusHasBeen(AttachmentStatus.UploadProcessing))
         {
-            return Errors.InvalidUploadAttachmentStatus;
+            return AttachmentErrors.FileAlreadyUploaded;
         }
         var party = await altinnRegisterService.LookUpPartyById(attachment.Sender, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            return Errors.CouldNotFindPartyUuid;
+            return AuthorizationErrors.CouldNotFindPartyUuid;
         }
         return await TransactionWithRetriesPolicy.Execute<MigrateUploadAttachmentResponse>(async (cancellationToken) =>
         {
@@ -48,12 +48,12 @@ public class MigrateUploadAttachmentHandler(
 
             if (uploadResult.IsT1)
             {
-                return Errors.UploadFailed; // Why does this need to be commented out
+                return AttachmentErrors.UploadFailed;
             }
             var savedAttachment = await attachmentRepository.GetAttachmentById(uploadResult.AsT0.AttachmentId, true, cancellationToken);
             if (savedAttachment == null)
             {
-                return Errors.UploadFailed; // Why does this need to be commented out
+                return AttachmentErrors.UploadFailed;
             }
 
             var attachmentStatus = savedAttachment.GetLatestStatus();

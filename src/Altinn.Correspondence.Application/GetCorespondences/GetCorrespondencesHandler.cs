@@ -15,14 +15,14 @@ public class GetCorrespondencesHandler(
     {
         if (request.Limit < 0 || request.Offset < 0)
         {
-            return Errors.OffsetAndLimitIsNegative;
+            return CorrespondenceErrors.OffsetAndLimitIsNegative;
         }
         var limit = request.Limit == 0 ? 50 : request.Limit;
         DateTimeOffset? to = request.To != null ? ((DateTimeOffset)request.To).ToUniversalTime() : null;
         DateTimeOffset? from = request.From != null ? ((DateTimeOffset)request.From).ToUniversalTime() : null;
         if (from != null && to != null && from > to)
         {
-            return Errors.InvalidDateRange;
+            return CorrespondenceErrors.InvalidDateRange;
         }
         string? onBehalfOf = request.OnBehalfOf;
         if (onBehalfOf is null) { 
@@ -30,7 +30,7 @@ public class GetCorrespondencesHandler(
         }
         if (onBehalfOf is null)
         {
-            return Errors.CouldNotDetermineCaller;
+            return AuthorizationErrors.CouldNotDetermineCaller;
         }
         var hasAccess = await altinnAuthorizationService.CheckAccessAsAny(
             user,
@@ -39,7 +39,7 @@ public class GetCorrespondencesHandler(
             cancellationToken);
         if (!hasAccess)
         {
-            return Errors.NoAccessToResource;
+            return AuthorizationErrors.NoAccessToResource;
         }
         // TODO: Add implementation to retrieve instances delegated to the user
 

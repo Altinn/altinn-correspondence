@@ -25,15 +25,15 @@ public class UpdateCorrespondenceStatusHelper(
         var currentStatus = correspondence.GetHighestStatus();
         if (currentStatus is null)
         {
-            return Errors.LatestStatusIsNull;
+            return CorrespondenceErrors.CouldNotRetrieveStatus;
         }
         if (!currentStatus.Status.IsAvailableForRecipient())
         {
-            return Errors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CorrespondenceNotFound;
         }
         if (currentStatus!.Status.IsPurged())
         {
-            return Errors.CorrespondencePurged;
+            return CorrespondenceErrors.CorrespondenceNotFound;
         }
         return null;
     }
@@ -47,15 +47,15 @@ public class UpdateCorrespondenceStatusHelper(
     {
         if (request.Status == CorrespondenceStatus.Read && !correspondence.StatusHasBeen(CorrespondenceStatus.Fetched))
         {
-            return Errors.ReadBeforeFetched;
+            return CorrespondenceErrors.ReadBeforeFetched;
         }
         if (request.Status == CorrespondenceStatus.Confirmed && !correspondence.StatusHasBeen(CorrespondenceStatus.Fetched))
         {
-            return Errors.ConfirmBeforeFetched;
+            return CorrespondenceErrors.ConfirmBeforeFetched;
         }
         if (request.Status == CorrespondenceStatus.Archived && correspondence.IsConfirmationNeeded is true && !correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
         {
-            return Errors.ArchiveBeforeConfirmed;
+            return CorrespondenceErrors.ArchiveBeforeConfirmed;
         }
         return null;
     }

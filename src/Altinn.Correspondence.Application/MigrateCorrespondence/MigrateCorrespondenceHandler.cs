@@ -19,7 +19,7 @@ public class MigrateCorrespondenceHandler(
         var hasAccess = await altinnAuthorizationService.CheckMigrationAccess(request.CorrespondenceEntity.ResourceId, [ResourceAccessLevel.Write], cancellationToken);
         if (!hasAccess)
         {
-            return Errors.NoAccessToResource;
+            return AuthorizationErrors.NoAccessToResource;
         }
 
         var contentError = initializeCorrespondenceHelper.ValidateCorrespondenceContent(request.CorrespondenceEntity.Content);
@@ -34,13 +34,13 @@ public class MigrateCorrespondenceHandler(
         var existingAttachments = getExistingAttachments.AsT0;
         if (existingAttachments.Count != request.ExistingAttachments.Count)
         {
-            return Errors.ExistingAttachmentNotFound;
+            return CorrespondenceErrors.ExistingAttachmentNotFound;
         }
         // Validate that existing attachments are published
         var anyExistingAttachmentsNotPublished = existingAttachments.Any(a => a.GetLatestStatus()?.Status != AttachmentStatus.Published);
         if (anyExistingAttachmentsNotPublished)
         {
-            return Errors.AttachmentNotPublished;
+            return CorrespondenceErrors.MissingAttachments;
         }
 
         return await TransactionWithRetriesPolicy.Execute<MigrateCorrespondenceResponse>(async (cancellationToken) =>

@@ -21,22 +21,22 @@ public class DownloadCorrespondenceAttachmentHandler(
         var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, cancellationToken);
         if (correspondence is null)
         {
-            return Errors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CorrespondenceNotFound;
         }
         var attachment = await attachmentRepository.GetAttachmentByCorrespondenceIdAndAttachmentId(request.CorrespondenceId, request.AttachmentId, cancellationToken);
         if (attachment is null)
         {
-            return Errors.AttachmentNotFound;
+            return AttachmentErrors.AttachmentNotFound;
         }
         var hasAccess = await altinnAuthorizationService.CheckAccessAsRecipient(user, correspondence, cancellationToken);
         if (!hasAccess)
         {
-            return Errors.NoAccessToResource;
+            return AuthorizationErrors.NoAccessToResource;
         }
         var latestStatus = correspondence.GetHighestStatus();
         if (!latestStatus.Status.IsAvailableForRecipient())
         {
-            return Errors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CorrespondenceNotFound;
         }
         var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, cancellationToken);
         backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, DialogportenActorType.Recipient, DialogportenTextType.DownloadStarted, attachment.FileName ?? attachment.Name));

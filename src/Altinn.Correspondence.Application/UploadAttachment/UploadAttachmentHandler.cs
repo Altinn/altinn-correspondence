@@ -23,7 +23,7 @@ public class UploadAttachmentHandler(
         var attachment = await attachmentRepository.GetAttachmentById(request.AttachmentId, true, cancellationToken);
         if (attachment == null)
         {
-            return Errors.AttachmentNotFound;
+            return AttachmentErrors.AttachmentNotFound;
         }
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
@@ -33,27 +33,27 @@ public class UploadAttachmentHandler(
             cancellationToken);
         if (!hasAccess)
         {
-            return Errors.NoAccessToResource;
+            return AuthorizationErrors.NoAccessToResource;
         }
         var maxUploadSize = long.Parse(int.MaxValue.ToString());
         if (request.ContentLength > maxUploadSize || request.ContentLength == 0)
         {
-            return Errors.InvalidFileSize;
+            return AttachmentErrors.InvalidFileSize;
         }
         if (attachment.StatusHasBeen(AttachmentStatus.UploadProcessing))
         {
-            return Errors.InvalidUploadAttachmentStatus;
+            return AttachmentErrors.FileAlreadyUploaded;
         }
         // Check if any correspondences are attached. 
         var correspondences = await correspondenceRepository.GetCorrespondencesByAttachmentId(request.AttachmentId, false);
         if (correspondences.Count != 0)
         {
-            return Errors.CantUploadToExistingCorrespondence;
+            return CorrespondenceErrors.CantUploadToExistingCorrespondence;
         }
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            return Errors.CouldNotFindPartyUuid;
+            return AuthorizationErrors.CouldNotFindPartyUuid;
         }
         return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
         {

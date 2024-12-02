@@ -22,26 +22,26 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 if (correspondence.DueDateTime < DateTimeOffset.UtcNow)
                 {
-                    return Errors.DueDatePriorToday;
+                    return CorrespondenceErrors.DueDatePriorToday;
                 }
                 if (correspondence.DueDateTime < RequestedPublishTime)
                 {
-                    return Errors.DueDatePriorRequestedPublishTime;
+                    return CorrespondenceErrors.DueDatePriorRequestedPublishTime;
                 }
             }
             if (correspondence.AllowSystemDeleteAfter is not null)
             {
                 if (correspondence.AllowSystemDeleteAfter < DateTimeOffset.UtcNow)
                 {
-                    return Errors.AllowSystemDeletePriorToday;
+                    return CorrespondenceErrors.AllowSystemDeletePriorToday;
                 }
                 if (correspondence.AllowSystemDeleteAfter < RequestedPublishTime)
                 {
-                    return Errors.AllowSystemDeletePriorRequestedPublishTime;
+                    return CorrespondenceErrors.AllowSystemDeletePriorRequestedPublishTime;
                 }
                 if (correspondence.DueDateTime is not null && correspondence.AllowSystemDeleteAfter < correspondence.DueDateTime)
                 {
-                    return Errors.AllowSystemDeletePriorDueDate;
+                    return CorrespondenceErrors.AllowSystemDeletePriorDueDate;
                 }
             }
             return null;
@@ -50,35 +50,35 @@ namespace Altinn.Correspondence.Application.Helpers
         {
             if (content == null)
             {
-                return Errors.MissingContent;
+                return CorrespondenceErrors.MissingContent;
             }
             if (string.IsNullOrWhiteSpace(content.MessageTitle))
             {
-                return Errors.MessageTitleEmpty;
+                return CorrespondenceErrors.MessageTitleEmpty;
             }
             if (!TextValidation.ValidatePlainText(content.MessageTitle))
             {
-                return Errors.MessageTitleIsNotPlainText;
+                return CorrespondenceErrors.MessageTitleIsNotPlainText;
             }
             if (string.IsNullOrWhiteSpace(content.MessageBody))
             {
-                return Errors.MessageBodyEmpty;
+                return CorrespondenceErrors.MessageBodyEmpty;
             }
             if (!TextValidation.ValidateMarkdown(content.MessageBody))
             {
-                return Errors.MessageBodyIsNotMarkdown;
+                return CorrespondenceErrors.MessageBodyIsNotMarkdown;
             }
             if (string.IsNullOrWhiteSpace(content.MessageSummary))
             {
-                return Errors.MessageSummaryEmpty;
+                return CorrespondenceErrors.MessageSummaryEmpty;
             }
             if (!TextValidation.ValidateMarkdown(content.MessageSummary))
             {
-                return Errors.MessageSummaryIsNotMarkdown;
+                return CorrespondenceErrors.MessageSummaryIsNotMarkdown;
             }
             if (!IsLanguageValid(content.Language))
             {
-                return Errors.InvalidLanguage;
+                return CorrespondenceErrors.InvalidLanguage;
             }
 
             return null;
@@ -95,29 +95,29 @@ namespace Altinn.Correspondence.Application.Helpers
             var reminderNotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel;
             if (notification.NotificationChannel == NotificationChannel.Email && (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject)))
             {
-                return Errors.MissingEmailContent;
+                return NotificationErrors.MissingEmailContent;
             }
             if (reminderNotificationChannel == NotificationChannel.Email && notification.SendReminder && (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject)))
             {
-                return Errors.MissingEmailReminderNotificationContent;
+                return NotificationErrors.MissingEmailReminderContent;
             }
             if (notification.NotificationChannel == NotificationChannel.Sms && string.IsNullOrEmpty(notification.SmsBody))
             {
-                return Errors.MissingSmsContent;
+                return NotificationErrors.MissingSmsContent;
             }
             if (reminderNotificationChannel == NotificationChannel.Sms && notification.SendReminder && string.IsNullOrEmpty(notification.ReminderSmsBody))
             {
-                return Errors.MissingSmsReminderNotificationContent;
+                return NotificationErrors.MissingSmsReminderContent;
             }
             if ((notification.NotificationChannel == NotificationChannel.EmailPreferred || notification.NotificationChannel == NotificationChannel.SmsPreferred) &&
                 (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject) || string.IsNullOrEmpty(notification.SmsBody)))
             {
-                return Errors.MissingPrefferedNotificationContent;
+                return NotificationErrors.MissingPreferredChannel;
             }
             if ((reminderNotificationChannel == NotificationChannel.EmailPreferred || reminderNotificationChannel == NotificationChannel.SmsPreferred) &&
                 notification.SendReminder && (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject) || string.IsNullOrEmpty(notification.ReminderSmsBody)))
             {
-                return Errors.MissingPrefferedReminderNotificationContent;
+                return NotificationErrors.MissingPreferredReminderChannel;
             }
             return null;
         }
@@ -132,8 +132,8 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 if (attachment.Attachment?.DataLocationUrl != null) continue;
                 var file = files.FirstOrDefault(a => a.FileName == attachment.Attachment?.FileName);
-                if (file == null) return Errors.UploadedFilesDoesNotMatchAttachments;
-                if (file?.Length > maxUploadSize || file?.Length == 0) return Errors.InvalidFileSize;
+                if (file == null) return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
+                if (file?.Length > maxUploadSize || file?.Length == 0) return AttachmentErrors.InvalidFileSize;
             }
             return null;
         }
@@ -153,7 +153,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true);
                 if (attachment is not null)
                 {
-                    if (attachment.Sender != sender) return Errors.InvalidSenderForAttachment;
+                    if (attachment.Sender != sender) return CorrespondenceErrors.InvalidSenderForAttachment;
                     attachments.Add(attachment);
                 }
             }
@@ -179,7 +179,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
                 if (attachment == null)
                 {
-                    return Errors.UploadedFilesDoesNotMatchAttachments;
+                    return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
                 }
                 OneOf<UploadAttachmentResponse, Error> uploadResponse;
                 await using (var f = file.OpenReadStream())
