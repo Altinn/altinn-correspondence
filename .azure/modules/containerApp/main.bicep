@@ -63,6 +63,7 @@ var containerAppEnvVars = [
     value: '${legacy_base_url}/authentication/api/v1/openid/.well-known/openid-configuration'
   }
   { name: 'AltinnOptions__PlatformGatewayUrl', value: platform_base_url }
+  { name: 'AltinnOptions__LegacyPlatformGatewayUrl', value: legacy_base_url }
   { name: 'AltinnOptions__PlatformSubscriptionKey', secretRef: 'platform-subscription-key' }
   { name: 'AltinnOptions__AccessManagementSubscriptionKey', secretRef: 'access-management-subscription-key' }
   { name: 'MaskinportenSettings__Environment', value: maskinporten_environment }

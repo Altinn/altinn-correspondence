@@ -40,7 +40,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         _logger = logger;
     }
 
-    public Task<bool> CheckAccessAsSender(ClaimsPrincipal? user, string resourceId, string sender, string? instance, CancellationToken cancellationToken = default) 
+    public Task<bool> CheckAccessAsSender(ClaimsPrincipal? user, string resourceId, string sender, string? instance, CancellationToken cancellationToken = default)
         => CheckUserAccess(
             user,
             resourceId,
@@ -48,8 +48,8 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             instance,
             new List<ResourceAccessLevel> { ResourceAccessLevel.Write },
             cancellationToken);
-    
-    public Task<bool> CheckAccessAsSender(ClaimsPrincipal? user, CorrespondenceEntity correspondence, CancellationToken cancellationToken = default) => 
+
+    public Task<bool> CheckAccessAsSender(ClaimsPrincipal? user, CorrespondenceEntity correspondence, CancellationToken cancellationToken = default) =>
         CheckUserAccess(
             user,
             correspondence.ResourceId,
@@ -180,7 +180,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     private XacmlJsonRequestRoot CreateDecisionRequestForLegacy(ClaimsPrincipal user, string ssn, List<string> actionTypes, string resourceId, string onBehalfOf)
     {
         var personIdClaim = GetPersonIdClaim(user);
-        if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
+        if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/" || personIdClaim.Issuer == $"{_altinnOptions.LegacyPlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
         {
             return AltinnTokenXacmlMapper.CreateAltinnDecisionRequestForLegacy(user, ssn, actionTypes, resourceId, onBehalfOf);
         }
