@@ -180,7 +180,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
     private XacmlJsonRequestRoot CreateDecisionRequestForLegacy(ClaimsPrincipal user, string ssn, List<string> actionTypes, string resourceId, string onBehalfOf)
     {
         var personIdClaim = GetPersonIdClaim(user);
-        if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/" || personIdClaim.Issuer == $"{_altinnOptions.LegacyPlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
+        if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
         {
             return AltinnTokenXacmlMapper.CreateAltinnDecisionRequestForLegacy(user, ssn, actionTypes, resourceId, onBehalfOf);
         }

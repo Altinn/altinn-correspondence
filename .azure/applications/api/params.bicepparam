@@ -4,7 +4,6 @@ param namePrefix = readEnvironmentVariable('NAME_PREFIX')
 param location = 'norwayeast'
 param imageTag = readEnvironmentVariable('IMAGE_TAG')
 param platform_base_url = readEnvironmentVariable('PLATFORM_BASE_URL')
-param legacy_base_url = readEnvironmentVariable('LEGACY_BASE_URL')
 param correspondenceBaseUrl = readEnvironmentVariable('CORRESPONDENCE_BASE_URL')
 param environment = readEnvironmentVariable('ENVIRONMENT')
 param maskinporten_environment = 'test'

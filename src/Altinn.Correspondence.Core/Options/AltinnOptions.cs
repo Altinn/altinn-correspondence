@@ -6,6 +6,4 @@ public class AltinnOptions
     public string PlatformGatewayUrl { get; set; } = string.Empty;
     public string PlatformSubscriptionKey { get; set; } = string.Empty;
     public string AccessManagementSubscriptionKey { get; set; } = string.Empty;
-    public string LegacyOpenIdWellKnown { get; set; } = string.Empty;
-    public string LegacyPlatformGatewayUrl { get; set; } = string.Empty;
 }
