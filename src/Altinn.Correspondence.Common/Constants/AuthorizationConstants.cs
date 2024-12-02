@@ -21,5 +21,6 @@ public static class AuthorizationConstants
     public const string ArbeidsflateCors = "ArbeidsflateCors";
     public const string DownloadAttachmentPolicy = "DownloadAttachmentPolicy";
     public const string AltinnTokenOrDialogportenScheme = DialogportenScheme + "," + JwtBearerDefaults.AuthenticationScheme;
+    public const string LegacyOrDefaultScheme = Legacy + "," + JwtBearerDefaults.AuthenticationScheme;
     public const string AllSchemes = "AllSchemes";
 }

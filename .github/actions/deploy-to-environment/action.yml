@@ -57,6 +57,9 @@ inputs:
   PLATFORM_BASE_URL:
     description: "Platform Base URL"
     required: true
+  LEGACY_BASE_URL:
+    description: "Legacy Base URL"
+    required: false
   PLATFORM_SUBSCRIPTION_KEY:
     description: "Platform Subscription Key"
     required: true
@@ -117,4 +120,5 @@ runs:
         DIALOGPORTEN_ISSUER: ${{ inputs.DIALOGPORTEN_ISSUER }}
         IDPORTEN_ISSUER: ${{ inputs.IDPORTEN_ISSUER }}
         PLATFORM_BASE_URL: ${{ inputs.PLATFORM_BASE_URL }}
+        LEGACY_BASE_URL: ${{ inputs.LEGACY_BASE_URL }}
         STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}

@@ -8,6 +8,7 @@ param environment string
 param location string
 @minLength(3)
 param platform_base_url string
+param legacy_base_url string
 @secure()
 @minLength(3)
 param sourceKeyVaultName string
@@ -89,6 +90,7 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     subscription_id: subscription().subscriptionId
     principal_id: appIdentity.outputs.id
     platform_base_url: platform_base_url
+    legacy_base_url: legacy_base_url
     keyVaultUrl: keyVaultUrl
     userIdentityClientId: appIdentity.outputs.clientId
     containerAppEnvId: keyvault.getSecret('container-app-env-id')
