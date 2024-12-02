@@ -75,6 +75,7 @@ jobs:
           MASKINPORTEN_CLIENT_ID: ${{ secrets.MASKINPORTEN_CLIENT_ID }}
           MASKINPORTEN_JWK: ${{ secrets.MASKINPORTEN_JWK }}
           PLATFORM_BASE_URL: ${{ secrets.PLATFORM_BASE_URL }}
+          LEGACY_BASE_URL: ${{ secrets.LEGACY_BASE_URL }}
           PLATFORM_SUBSCRIPTION_KEY: ${{ secrets.PLATFORM_SUBSCRIPTION_KEY }}
           SLACK_URL: ${{ secrets.SLACK_URL }}
 
@@ -116,6 +117,7 @@ jobs:
           MASKINPORTEN_CLIENT_ID: ${{ secrets.MASKINPORTEN_CLIENT_ID }}
           MASKINPORTEN_JWK: ${{ secrets.MASKINPORTEN_JWK }}
           PLATFORM_BASE_URL: ${{ secrets.PLATFORM_BASE_URL }}
+          LEGACY_BASE_URL: ${{ secrets.LEGACY_BASE_URL }}
           PLATFORM_SUBSCRIPTION_KEY: ${{ secrets.PLATFORM_SUBSCRIPTION_KEY }}
           SLACK_URL: ${{ secrets.SLACK_URL }}
 
@@ -157,6 +159,7 @@ jobs:
           MASKINPORTEN_CLIENT_ID: ${{ secrets.MASKINPORTEN_CLIENT_ID }}
           MASKINPORTEN_JWK: ${{ secrets.MASKINPORTEN_JWK }}
           PLATFORM_BASE_URL: ${{ secrets.PLATFORM_BASE_URL }}
+          LEGACY_BASE_URL: ${{ secrets.PLATFORM_BASE_URL }}
           PLATFORM_SUBSCRIPTION_KEY: ${{ secrets.PLATFORM_SUBSCRIPTION_KEY }}
           SLACK_URL: ${{ secrets.SLACK_URL }}
 
