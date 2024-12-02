@@ -217,7 +217,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true);
                 if (attachment is not null)
                 {
-                    if (attachment.Sender != sender) return Errors.InvalidSenderForAttachment;
+                    if (attachment.Sender.WithoutPrefix() != sender.WithoutPrefix()) return Errors.InvalidSenderForAttachment;
                     attachments.Add(attachment);
                 }
             }
