@@ -235,15 +235,15 @@ public class InitializeCorrespondencesHandler(
         string? orgNr = null;
         string? personNr = null;
         NotificationContent? content = null;
-        string recipient = correspondence.Recipient.WithoutPrefix();
-        if (recipient.IsOrganizationNumber())
+        string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
+        if (recipientWithoutPrefix.IsOrganizationNumber())
         {
-            orgNr = correspondence.Recipient; // Should this be with the prefix?
+            orgNr = recipientWithoutPrefix;
             content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Organization || c.RecipientType == null);
         }
-        else if (recipient.IsSocialSecurityNumber())
+        else if (recipientWithoutPrefix.IsSocialSecurityNumber())
         {
-            personNr = correspondence.Recipient; // Should this be with the prefix?
+            personNr = recipientWithoutPrefix;
             content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person || c.RecipientType == null);
         }
         var notificationOrder = new NotificationOrderRequest
