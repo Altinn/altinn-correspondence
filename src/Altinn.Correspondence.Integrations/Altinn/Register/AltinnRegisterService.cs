@@ -1,5 +1,5 @@
 ﻿using System.Net.Http.Json;
-using System.Text.RegularExpressions;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Platform.Register.Models;
@@ -57,23 +57,12 @@ public class AltinnRegisterService : IAltinnRegisterService
     }
     public async Task<Party?> LookUpPartyById(string identificationId, CancellationToken cancellationToken = default)
     {
-        var organizationWithPrefixFormat = new Regex(@"^\d{4}:\d{9}$");
-        var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
-        if (organizationWithPrefixFormat.IsMatch(identificationId))
-        {
-            identificationId = identificationId.Substring(5);
-        }
-        var personFormat = new Regex(@"^\d{11}$");
-        if (!personFormat.IsMatch(identificationId) && !organizationWithoutPrefixFormat.IsMatch(identificationId))
-        {
-            _logger.LogError("identificationId is not a valid organization or person number.");
-            return null;
-        }
+        identificationId = identificationId.WithoutPrefix();
 
         var partyLookup = new PartyLookup()
         {
-            OrgNo = organizationWithoutPrefixFormat.IsMatch(identificationId) ? identificationId : null,
-            Ssn = personFormat.IsMatch(identificationId) ? identificationId : null
+            OrgNo = identificationId.IsOrganizationNumber() ? identificationId : null,
+            Ssn = identificationId.IsSocialSecurityNumber() ? identificationId : null
         };
         var response = await _httpClient.PostAsJsonAsync("register/api/v1/parties/lookup", partyLookup, cancellationToken);
         if (!response.IsSuccessStatusCode)

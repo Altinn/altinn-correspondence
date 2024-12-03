@@ -1,8 +1,5 @@
-using Altinn.Common.PEP.Constants;
-using Altinn.Correspondence.Common.Helpers;
-using Altinn.Correspondence.Core.Options;
+using Altinn.Correspondence.Common.Constants;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.Helpers
@@ -11,7 +8,6 @@ namespace Altinn.Correspondence.Application.Helpers
     {
         private readonly ClaimsPrincipal _user;
         private readonly IEnumerable<Claim> _claims;
-        private const string _minAuthLevelClaim = "urn:altinn:authlevel";
 
         public UserClaimsHelper(IHttpContextAccessor httpContextAccessor)
         {
@@ -20,7 +16,7 @@ namespace Altinn.Correspondence.Application.Helpers
         }
         public int? GetPartyId()
         {
-            var partyId = _claims.FirstOrDefault(c => c.Type == AltinnXacmlUrns.PartyId)?.Value;
+            var partyId = _claims.FirstOrDefault(c => c.Type == UrnConstants.Party)?.Value;
             if (partyId is null) return null;
             if (int.TryParse(partyId, out int id)) return id;
             return null;
@@ -28,7 +24,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public int GetMinimumAuthenticationLevel()
         {
-            var authLevelClaim = _claims.FirstOrDefault(c => c.Type == _minAuthLevelClaim);
+            var authLevelClaim = _claims.FirstOrDefault(c => c.Type == UrnConstants.AuthenticationLevel);
             if (authLevelClaim is null) return 0;
             if (int.TryParse(authLevelClaim.Value, out int level)) return level;
             return 0;

@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Models.Entities;
+﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
@@ -75,12 +76,12 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         {
             if (party.PartyTypeName == PartyType.Person)
             {
-                Type = "urn:altinn:person:identifier-no";
+                Type = UrnConstants.PersonIdAttribute;
                 Value = party.SSN;
             }
             else
             {
-                Type = "urn:altinn:organization:identifier-no";
+                Type = UrnConstants.OrganizationNumberAttribute;
                 Value = party.OrgNumber;
             }
         }

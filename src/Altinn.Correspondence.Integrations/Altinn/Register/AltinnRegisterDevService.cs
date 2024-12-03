@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services;
@@ -6,7 +7,7 @@ using Altinn.Correspondence.Core.Services;
 namespace Altinn.Correspondence.Integrations.Altinn.Register;
 public class AltinnRegisterDevService : IAltinnRegisterService
 {
-    private const string _identificationIDPattern = @"^(?:\d{11}|\d{9}|\d{4}:\d{9})$";
+    private const string _identificationIDPattern = @"^(?:\d{11}|\d{9}|0192:\d{9})$";
     private static readonly Regex IdentificationIDRegex = new(_identificationIDPattern);
     private readonly int _digdirPartyId = 50952483;
     public Task<string?> LookUpPartyId(string identificationId, CancellationToken cancellationToken)
@@ -28,7 +29,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
 
     public Task<Party?> LookUpPartyById(string identificationId, CancellationToken cancellationToken)
     {
-        if (IdentificationIDRegex.IsMatch(identificationId))
+        if (IdentificationIDRegex.IsMatch(identificationId.WithoutPrefix()))
         {
             return Task.FromResult<Party?>(new Party
             {

@@ -127,7 +127,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             var correspondences = _context.Correspondences
                .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
                .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter                              
-               .Where(c => recipientIds.Contains(c.Recipient))       // Filter by recipients
+               .Where(c => recipientIds.Any(recipient => c.Recipient.Contains(recipient)))       // Filter by recipients
                 .Where(c => resourceIds.Count == 0 || resourceIds.Contains(c.ResourceId))       // Filter by resources
                 .IncludeByStatuses(includeActive, includeArchived, includePurged, status) // Filter by statuses
                 .Where(c => string.IsNullOrEmpty(searchString) || (c.Content != null && c.Content.MessageTitle.Contains(searchString))) // Filter by messageTitle containing searchstring

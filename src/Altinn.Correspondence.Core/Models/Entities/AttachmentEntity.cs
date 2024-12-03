@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Enums;
 using System.ComponentModel.DataAnnotations;
 
@@ -27,8 +28,8 @@ namespace Altinn.Correspondence.Core.Models.Entities
         [Required]
         public required string SendersReference { get; set; }
 
-        [RegularExpression(@"^\d{4}:\d{9}$", ErrorMessage = "Organization numbers should be on the form countrycode:organizationnumber, for instance 0192:910753614")]
         [Required]
+        [RegularExpression($@"^(?:0192:|{UrnConstants.OrganizationNumberAttribute}):\d{{9}}$", ErrorMessage = "Organization numbers should be on the format countrycode:organizationnumber, for instance 0192:910753614")]
         public required string Sender { get; set; }
 
         [Required]

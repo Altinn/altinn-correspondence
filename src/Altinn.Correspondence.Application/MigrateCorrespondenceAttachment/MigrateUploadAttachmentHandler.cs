@@ -48,12 +48,12 @@ public class MigrateUploadAttachmentHandler(
 
             if (uploadResult.IsT1)
             {
-                return Errors.UploadFailed; // Why does this need to be commented out
+                return Errors.UploadFailed;
             }
             var savedAttachment = await attachmentRepository.GetAttachmentById(uploadResult.AsT0.AttachmentId, true, cancellationToken);
             if (savedAttachment == null)
             {
-                return Errors.UploadFailed; // Why does this need to be commented out
+                return Errors.UploadFailed;
             }
 
             var attachmentStatus = savedAttachment.GetLatestStatus();

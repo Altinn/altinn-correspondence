@@ -1,10 +1,13 @@
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.UploadAttachment;
+using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.Helpers
@@ -12,7 +15,8 @@ namespace Altinn.Correspondence.Application.Helpers
     public class InitializeCorrespondenceHelper(
         IAttachmentRepository attachmentRepository,
         IHostEnvironment hostEnvironment,
-        UploadHelper uploadHelper)
+        UploadHelper uploadHelper,
+        ILogger<InitializeCorrespondenceHelper> logger)
     {
 
         public Error? ValidateDateConstraints(CorrespondenceEntity correspondence)
@@ -121,6 +125,66 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             return null;
         }
+        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, CorrespondenceStatus status, Guid partyUuid)
+        {
+            string sender = request.Correspondence.Sender;
+            if (sender.StartsWith("0192:"))
+            {
+                sender = $"{UrnConstants.OrganizationNumberAttribute}:{request.Correspondence.Sender.WithoutPrefix()}";
+                logger.LogInformation($"'0192:' prefix detected for sender in creation of correspondence. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
+            }
+
+            if (recipient.StartsWith("0192:"))
+            {
+                recipient = $"{UrnConstants.OrganizationNumberAttribute}:{recipient.WithoutPrefix()}";
+                logger.LogInformation($"'0192:' prefix detected for recipient in creation of correspondence. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
+            }
+            else if (recipient.IsSocialSecurityNumber())
+            {
+                recipient = $"{UrnConstants.PersonIdAttribute}:{recipient}";
+                logger.LogInformation($"Social security number without urn prefix detected for recipient in creation of correspondece. Adding {UrnConstants.PersonIdAttribute} prefix to recipient.");
+            }
+
+            return new CorrespondenceEntity
+            {
+                ResourceId = request.Correspondence.ResourceId,
+                Recipient = recipient,
+                Sender = sender,
+                SendersReference = request.Correspondence.SendersReference,
+                MessageSender = request.Correspondence.MessageSender,
+                Content = new CorrespondenceContentEntity
+                {
+                    Attachments = attachmentsToBeUploaded.Select(a => new CorrespondenceAttachmentEntity
+                    {
+                        Attachment = a,
+                        Created = DateTimeOffset.UtcNow,
+                    }).ToList(),
+                    Language = request.Correspondence.Content.Language,
+                    MessageBody = request.Correspondence.Content.MessageBody,
+                    MessageSummary = request.Correspondence.Content.MessageSummary,
+                    MessageTitle = request.Correspondence.Content.MessageTitle,
+                },
+                RequestedPublishTime = request.Correspondence.RequestedPublishTime,
+                AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,
+                DueDateTime = request.Correspondence.DueDateTime,
+                PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
+                ReplyOptions = request.Correspondence.ReplyOptions,
+                IgnoreReservation = request.Correspondence.IgnoreReservation,
+                Statuses = new List<CorrespondenceStatusEntity>(){
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = status,
+                        StatusChanged = DateTimeOffset.UtcNow,
+                        StatusText = status.ToString(),
+                        PartyUuid = partyUuid
+                    }
+                },
+                Created = request.Correspondence.Created,
+                ExternalReferences = request.Correspondence.ExternalReferences,
+                Published = status == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
+                IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
+            };
+        }
 
         /// <summary>
         /// Validates that the uploaded files match the attachments in the correspondence
@@ -153,7 +217,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true);
                 if (attachment is not null)
                 {
-                    if (attachment.Sender != sender) return Errors.InvalidSenderForAttachment;
+                    if (attachment.Sender.WithoutPrefix() != sender.WithoutPrefix()) return Errors.InvalidSenderForAttachment;
                     attachments.Add(attachment);
                 }
             }

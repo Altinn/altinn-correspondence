@@ -14,8 +14,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
+using ReverseMarkdown.Converters;
 using System.Security.Claims;
-using System.Text.RegularExpressions;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
@@ -148,45 +148,7 @@ public class InitializeCorrespondencesHandler(
         var correspondences = new List<CorrespondenceEntity>();
         foreach (var recipient in request.Recipients)
         {
-            var correspondence = new CorrespondenceEntity
-            {
-                ResourceId = request.Correspondence.ResourceId,
-                Recipient = recipient,
-                Sender = request.Correspondence.Sender,
-                SendersReference = request.Correspondence.SendersReference,
-                MessageSender = request.Correspondence.MessageSender,
-                Content = new CorrespondenceContentEntity
-                {
-                    Attachments = attachmentsToBeUploaded.Select(a => new CorrespondenceAttachmentEntity
-                    {
-                        Attachment = a,
-                        Created = DateTimeOffset.UtcNow,
-                    }).ToList(),
-                    Language = request.Correspondence.Content.Language,
-                    MessageBody = request.Correspondence.Content.MessageBody,
-                    MessageSummary = request.Correspondence.Content.MessageSummary,
-                    MessageTitle = request.Correspondence.Content.MessageTitle,
-                },
-                RequestedPublishTime = request.Correspondence.RequestedPublishTime,
-                AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,
-                DueDateTime = request.Correspondence.DueDateTime,
-                PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
-                ReplyOptions = request.Correspondence.ReplyOptions,
-                IgnoreReservation = request.Correspondence.IgnoreReservation,
-                Statuses = new List<CorrespondenceStatusEntity>(){
-                    new CorrespondenceStatusEntity
-                    {
-                        Status = status,
-                        StatusChanged = DateTimeOffset.UtcNow,
-                        StatusText = status.ToString(),
-                        PartyUuid = partyUuid
-                    }
-                },
-                Created = request.Correspondence.Created,
-                ExternalReferences = request.Correspondence.ExternalReferences,
-                Published = status == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
-                IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
-            };
+            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, attachmentsToBeUploaded, status, partyUuid);
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
@@ -270,26 +232,18 @@ public class InitializeCorrespondencesHandler(
     private List<NotificationOrderRequest> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
     {
         var notifications = new List<NotificationOrderRequest>();
-
-        var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
-        var organizationWithPrefixFormat = new Regex(@"^\d{4}:\d{9}$");
-        var personFormat = new Regex(@"^\d{11}$");
         string? orgNr = null;
         string? personNr = null;
         NotificationContent? content = null;
-        if (organizationWithoutPrefixFormat.IsMatch(correspondence.Recipient))
+        string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
+        if (recipientWithoutPrefix.IsOrganizationNumber())
         {
-            orgNr = correspondence.Recipient;
+            orgNr = recipientWithoutPrefix;
             content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Organization || c.RecipientType == null);
         }
-        else if (organizationWithPrefixFormat.IsMatch(correspondence.Recipient))
+        else if (recipientWithoutPrefix.IsSocialSecurityNumber())
         {
-            orgNr = correspondence.Recipient.Substring(5);
-            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Organization || c.RecipientType == null);
-        }
-        else if (personFormat.IsMatch(correspondence.Recipient))
-        {
-            personNr = correspondence.Recipient;
+            personNr = recipientWithoutPrefix;
             content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person || c.RecipientType == null);
         }
         var notificationOrder = new NotificationOrderRequest

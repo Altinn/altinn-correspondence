@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.Core.Models.Entities
 {
@@ -14,8 +15,8 @@ namespace Altinn.Correspondence.Core.Models.Entities
         [Required]
         public required string Recipient { get; set; }
 
-        [RegularExpression(@"^\d{4}:\d{9}$", ErrorMessage = "Organization numbers should be on the form countrycode:organizationnumber, for instance 0192:910753614")]
         [Required]
+        [RegularExpression($@"^(?:0192:|{UrnConstants.OrganizationNumberAttribute}):\d{{9}}$", ErrorMessage = "Organization numbers should be on the format countrycode:organizationnumber, for instance 0192:910753614")]
         public required string Sender { get; set; }
 
         [StringLength(4096, MinimumLength = 1)]

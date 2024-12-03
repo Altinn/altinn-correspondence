@@ -1,6 +1,7 @@
 ﻿using Altinn.Authorization.ABAC.Xacml.JsonProfile;
 using Altinn.Common.PEP.Constants;
 using Altinn.Common.PEP.Helpers;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using System.Security.Claims;
 
@@ -10,7 +11,6 @@ public static class AltinnTokenXacmlMapper
 {
     private const string DefaultIssuer = "Altinn";
     private const string DefaultType = "string";
-    private const string PersonAttributeId = "urn:altinn:person:identifier-no";
 
     public static XacmlJsonRequestRoot CreateAltinnDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string party, string? instanceId)
     {
@@ -52,11 +52,11 @@ public static class AltinnTokenXacmlMapper
 
         if (party.IsOrganizationNumber())
         {
-            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.OrganizationNumberAttribute, party.WithoutPrefix(), DefaultType, DefaultIssuer));
+            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.OrganizationNumberAttribute, party, DefaultType, DefaultIssuer));
         }
         else if (party.IsSocialSecurityNumber())
         {
-            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, party, DefaultType, DefaultIssuer));
+            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, party, DefaultType, DefaultIssuer));
         }
         else
         {
@@ -78,7 +78,7 @@ public static class AltinnTokenXacmlMapper
             var pidClaim = user.Claims.FirstOrDefault(claim => IsValidPid(claim.Type));
             if (pidClaim is not null)
             {
-                subjectCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, pidClaim.Value, DefaultType, pidClaim.Issuer));
+                subjectCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, pidClaim.Value, DefaultType, pidClaim.Issuer));
             }
         }
         return subjectCategory;
@@ -91,7 +91,7 @@ public static class AltinnTokenXacmlMapper
         var claim = user.Claims.FirstOrDefault(claim => IsScopeClaim(claim.Type));
         if (claim is not null)
         {
-            list.Add(DecisionHelper.CreateXacmlJsonAttribute(PersonAttributeId, ssn, DefaultType, claim.Issuer));
+            list.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, ssn, DefaultType, claim.Issuer));
             list.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.Scope, claim.Value, DefaultType, claim.Issuer));
         }
         xacmlJsonCategory.Attribute = list;
