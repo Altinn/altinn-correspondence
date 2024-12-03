@@ -28,6 +28,7 @@ public class PurgeCorrespondenceHandler(
         {
             return Errors.CorrespondenceNotFound;
         }
+
         var hasAccessAsSender = await altinnAuthorizationService.CheckAccessAsSender(
             user,
             correspondence,
@@ -36,19 +37,23 @@ public class PurgeCorrespondenceHandler(
             user,
             correspondence,
             cancellationToken);
-        if (!hasAccessAsSender && !hasAccessAsRecipient)
+
+        if (UserHasDelegatedPermissions(user, hasAccessAsSender, hasAccessAsRecipient))
         {
-            return Errors.NoAccessToResource;
+            // Delegated permissions.
+            // Hvilke tilfeller sender man egentlig melding til seg selv?
         }
-        if (hasAccessAsSender)
+        else if (hasAccessAsSender && user.CallingAsSender())
         {
-            var senderRecipientPurgeError = purgeCorrespondenceHelper.ValidatePurgeRequestSender(correspondence);
-            if (senderRecipientPurgeError is not null)
             {
-                return senderRecipientPurgeError;
+                var senderRecipientPurgeError = purgeCorrespondenceHelper.ValidatePurgeRequestSender(correspondence);
+                if (senderRecipientPurgeError is not null)
+                {
+                    return senderRecipientPurgeError;
+                }
             }
         }
-        else if (hasAccessAsRecipient)
+        else if (hasAccessAsRecipient && user.CallingAsRecipient())
         {
             var recipientPurgeError = purgeCorrespondenceHelper.ValidatePurgeRequestRecipient(correspondence);
             if (recipientPurgeError is not null)
@@ -56,6 +61,11 @@ public class PurgeCorrespondenceHandler(
                 return recipientPurgeError;
             }
         }
+        else
+        {
+            return Errors.NoAccessToResource;
+        }
+
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
@@ -64,7 +74,7 @@ public class PurgeCorrespondenceHandler(
 
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            var status = hasAccessAsSender ? CorrespondenceStatus.PurgedByAltinn : CorrespondenceStatus.PurgedByRecipient;
+            var status = hasAccessAsSender && user.CallingAsSender() ? CorrespondenceStatus.PurgedByAltinn : CorrespondenceStatus.PurgedByRecipient;
             await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity()
             {
                 CorrespondenceId = correspondenceId,
@@ -80,5 +90,10 @@ public class PurgeCorrespondenceHandler(
             purgeCorrespondenceHelper.CancelNotification(correspondenceId, cancellationToken);
             return correspondenceId;
         }, logger, cancellationToken);
+    }
+
+    private bool UserHasDelegatedPermissions(ClaimsPrincipal? user, bool hasAccessAsSender, bool hasAccessAsRecipient)
+    {
+        return !user.CallingAsRecipient() && !user.CallingAsSender() && (hasAccessAsSender || hasAccessAsRecipient);
     }
 }
