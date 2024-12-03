@@ -21,22 +21,18 @@ public class PurgeCorrespondenceHelper
         _attachmentStatusRepository = attachmentStatusRepository;
         _backgroundJobClient = backgroundJobClient;
     }
-    public Error? ValidateCurrentStatus(CorrespondenceEntity correspondence)
+    public Error? ValidatePurgeRequestSender(CorrespondenceEntity correspondence)
     {
-        if (correspondence.Statuses is not null && correspondence.Statuses.Any(status => status.Status.IsPurged()))
+        var highestStatus = correspondence.GetHighestStatus();
+        if (highestStatus == null)
+        {
+            return Errors.LatestStatusIsNull;
+        }
+        if (highestStatus.Status.IsPurged())
         {
             return Errors.CorrespondenceAlreadyPurged;
         }
-        return null;
-    }
-    public Error? ValidatePurgeRequestSender(CorrespondenceEntity correspondence)
-    {
-        var latestStatus = correspondence.GetHighestStatus();
-        if (latestStatus == null)
-        {
-            return Errors.CorrespondenceNotFound;
-        }
-        if (!latestStatus.Status.IsPurgeableForSender())
+        if (!highestStatus.Status.IsPurgeableForSender())
         {
             return Errors.CantPurgeCorrespondenceSender;
         }
@@ -44,12 +40,16 @@ public class PurgeCorrespondenceHelper
     }
     public Error? ValidatePurgeRequestRecipient(CorrespondenceEntity correspondence)
     {
-        var latestStatus = correspondence.GetHighestStatus();
-        if (latestStatus == null)
+        var highestStatus = correspondence.GetHighestStatus();
+        if (highestStatus == null)
         {
-            return Errors.CorrespondenceNotFound;
+            return Errors.LatestStatusIsNull;
         }
-        if (!latestStatus.Status.IsAvailableForRecipient())
+        if (highestStatus.Status.IsPurged())
+        {
+            return Errors.CorrespondenceAlreadyPurged;
+        }
+        if (!highestStatus.Status.IsAvailableForRecipient())
         {
             return Errors.CorrespondenceNotFound;
         }

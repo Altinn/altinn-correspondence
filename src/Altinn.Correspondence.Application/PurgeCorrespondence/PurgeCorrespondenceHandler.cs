@@ -56,11 +56,6 @@ public class PurgeCorrespondenceHandler(
                 return recipientPurgeError;
             }
         }
-        var currentStatusError = purgeCorrespondenceHelper.ValidateCurrentStatus(correspondence);
-        if (currentStatusError is not null)
-        {
-            return currentStatusError;
-        }
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
