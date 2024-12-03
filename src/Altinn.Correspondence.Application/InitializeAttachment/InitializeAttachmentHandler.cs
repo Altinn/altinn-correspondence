@@ -44,6 +44,7 @@ public class InitializeAttachmentHandler(
             attachment.Sender = $"{UrnConstants.OrganizationNumberAttribute}:{attachment.Sender.WithoutPrefix()}";
             logger.LogInformation($"'0192:' prefix detected for sender in initialization of attachment. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
         }
+        attachment.FileName = Guid.NewGuid().ToString();
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             var initializedAttachment = await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
