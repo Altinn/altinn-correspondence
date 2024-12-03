@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -37,20 +38,26 @@ public class InitializeAttachmentHandler(
         {
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
+        var attachment = request.Attachment;
+        if (attachment.Sender.StartsWith("0192:"))
+        {
+            attachment.Sender = $"{UrnConstants.OrganizationNumberAttribute}:{attachment.Sender.WithoutPrefix()}";
+            logger.LogInformation($"'0192:' prefix detected for sender in initialization of attachment. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
+        }
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            var attachment = await attachmentRepository.InitializeAttachment(request.Attachment, cancellationToken);
+            var initializedAttachment = await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
             await attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
             {
-                AttachmentId = attachment.Id,
+                AttachmentId = initializedAttachment.Id,
                 StatusChanged = DateTimeOffset.UtcNow,
                 Status = AttachmentStatus.Initialized,
                 StatusText = AttachmentStatus.Initialized.ToString(),
                 PartyUuid = partyUuid
             }, cancellationToken);
-            await eventBus.Publish(AltinnEventType.AttachmentInitialized, attachment.ResourceId, attachment.Id.ToString(), "attachment", attachment.Sender, cancellationToken);
+            await eventBus.Publish(AltinnEventType.AttachmentInitialized, initializedAttachment.ResourceId, initializedAttachment.Id.ToString(), "attachment", initializedAttachment.Sender, cancellationToken);
 
-            return attachment.Id;
+            return initializedAttachment.Id;
         }, logger, cancellationToken);
     }
 }

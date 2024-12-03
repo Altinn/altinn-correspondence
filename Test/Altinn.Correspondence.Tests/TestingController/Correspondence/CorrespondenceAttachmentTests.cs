@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
@@ -26,7 +27,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithAttachments([attachmentData])
                 .Build();
             var formData = CorrespondenceToFormData(payload.Correspondence);
-            formData.Add(new StringContent("0192:986252932"), "recipients[0]");
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
             using var fileStream = file.OpenReadStream();
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
 
@@ -61,7 +62,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .CreateCorrespondence()
                 .Build();
             var formData = CorrespondenceToFormData(payload.Correspondence);
-            formData.Add(new StringContent("0192:986252932"), "recipients[0]");
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
 
             // Act
             var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
@@ -99,11 +100,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var attachmentMetaData2 = AttachmentHelper.GetAttachmentMetaData(file2.FileName);
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithRecipients(["0192:986252932"])
+                .WithRecipients([$"{UrnConstants.OrganizationNumberAttribute}:986252932"])
                 .WithAttachments([attachmentMetaData, attachmentMetaData2])
                 .Build();
             var formData = CorrespondenceToFormData(payload.Correspondence);
-            formData.Add(new StringContent("0192:986252932"), "recipients[0]");
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
             formData.Add(new StreamContent(fileStream2), "attachments", file2.FileName);
 
@@ -138,15 +139,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithRecipients(["0192:986252932"])
+                .WithRecipients([$"{UrnConstants.OrganizationNumberAttribute}:986252932"])
                 .WithAttachments([attachmentMetaData, attachmentMetaData2])
                 .Build();
 
             var formData = CorrespondenceToFormData(payload.Correspondence);
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
             formData.Add(new StreamContent(fileStream2), "attachments", file2.FileName);
-            formData.Add(new StringContent("0192:986252932"), "recipients[0]");
-            formData.Add(new StringContent("0198:991234649"), "recipients[1]");
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:991234649"), "recipients[1]");
 
             var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
             Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
@@ -197,7 +198,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithExistingAttachments([attachmentId])
-                .WithRecipients(["0192:999999999"]) // Change recipient to invalid org
+                .WithRecipients([$"{UrnConstants.OrganizationNumberAttribute}:999999999"]) // Change recipient to invalid org
                 .Build();
 
             // Act

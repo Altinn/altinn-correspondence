@@ -3,7 +3,7 @@ namespace Altinn.Correspondence.Common.Helpers;
 public static class StringExtensions
 {
     private static readonly Regex SsnPattern = new(@"^\d{11}$");
-    private static readonly Regex OrgPattern = new(@"^(?:\d{9}|\d{4}:\d{9})$");
+    private static readonly Regex OrgPattern = new(@"^(?:\d{9}|0192:\d{9})$");
 
     /// <summary>
     /// Checks if the provided string is a valid social security number format.
@@ -27,7 +27,7 @@ public static class StringExtensions
     /// <summary>
     /// Extracts the identifier from a colon-separated string that may contain a prefix.
     /// </summary>
-    /// <param name="orgNumber">The organization number to format</param>
+    /// <param name="orgOrSsnNumber">The organization number or social security number to format</param>
     /// <returns>Returns the last sequence succeeding a colon.</returns>
     public static string WithoutPrefix(this string orgOrSsnNumber)
     {

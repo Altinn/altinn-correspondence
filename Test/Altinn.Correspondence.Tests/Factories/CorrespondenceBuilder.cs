@@ -1,5 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 
 namespace Altinn.Correspondence.Tests.Factories
@@ -18,7 +19,7 @@ namespace Altinn.Correspondence.Tests.Factories
                 Correspondence = new BaseCorrespondenceExt()
                 {
                     ResourceId = "1",
-                    Sender = "0192:991825827",
+                    Sender = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
                     SendersReference = "1",
                     Content = new InitializeCorrespondenceContentExt()
                     {
@@ -37,7 +38,7 @@ namespace Altinn.Correspondence.Tests.Factories
                     IsConfirmationNeeded = false,
                 },
                 Recipients = new List<string>(){
-                    "0192:991825827",   // org number
+                    $"{UrnConstants.OrganizationNumberAttribute}:991825827",   // org number
                 },
                 ExistingAttachments = new List<Guid>(),
             };
@@ -195,8 +196,8 @@ namespace Altinn.Correspondence.Tests.Factories
             return new CorrespondenceEntity()
             {
                 ResourceId = "1",
-                Sender = "0192:991825827",
-                Recipient = "0192:991825827",
+                Sender = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
+                Recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
                 SendersReference = "1",
                 RequestedPublishTime = DateTimeOffset.UtcNow,
                 Statuses = new List<CorrespondenceStatusEntity>(),
