@@ -40,7 +40,7 @@ public class MigrateCorrespondenceHandler(
         var anyExistingAttachmentsNotPublished = existingAttachments.Any(a => a.GetLatestStatus()?.Status != AttachmentStatus.Published);
         if (anyExistingAttachmentsNotPublished)
         {
-            return CorrespondenceErrors.MissingAttachments;
+            return CorrespondenceErrors.AttachmentsNotPublished;
         }
 
         return await TransactionWithRetriesPolicy.Execute<MigrateCorrespondenceResponse>(async (cancellationToken) =>

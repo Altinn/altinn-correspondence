@@ -25,7 +25,7 @@ public class PurgeCorrespondenceHelper
     {
         if (correspondence.Statuses is not null && correspondence.Statuses.Any(status => status.Status.IsPurged()))
         {
-            return CorrespondenceErrors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CorrespondenceAlreadyPurged;
         }
         return null;
     }

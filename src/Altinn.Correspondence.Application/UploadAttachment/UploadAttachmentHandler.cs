@@ -48,7 +48,7 @@ public class UploadAttachmentHandler(
         var correspondences = await correspondenceRepository.GetCorrespondencesByAttachmentId(request.AttachmentId, false);
         if (correspondences.Count != 0)
         {
-            return CorrespondenceErrors.CantUploadToExistingCorrespondence;
+            return AttachmentErrors.CantUploadToExistingCorrespondence;
         }
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)

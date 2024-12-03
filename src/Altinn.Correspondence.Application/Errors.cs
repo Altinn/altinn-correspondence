@@ -17,12 +17,12 @@ public static class CorrespondenceErrors
     public static Error AllowSystemDeletePriorToday = new Error(1010, "AllowSystemDelete cannot be prior to today", HttpStatusCode.BadRequest);
     public static Error AllowSystemDeletePriorRequestedPublishTime = new Error(1011, "AllowSystemDelete cannot be prior to RequestedPublishTime", HttpStatusCode.BadRequest);
     public static Error AllowSystemDeletePriorDueDate = new Error(1012, "AllowSystemDelete cannot be prior to DueDateTime", HttpStatusCode.BadRequest);
-    public static Error CantPurgePublishedCorrespondence = new Error(1013, "Cannot delete correspondence that has been published", HttpStatusCode.BadRequest);
-    public static Error CantUploadToExistingCorrespondence = new Error(1014, "Cannot upload attachment to a correspondence that has been created", HttpStatusCode.BadRequest);
+    public static Error CantPurgePublishedCorrespondence = new Error(1013, "Sender cannot delete correspondence that has been published", HttpStatusCode.BadRequest);
+    public static Error CorrespondenceAlreadyPurged = new Error(1014, "Correspondence has already been purged", HttpStatusCode.BadRequest);
     public static Error CouldNotRetrieveStatus = new Error(1015, "Could not retrieve highest status for correspondence", HttpStatusCode.BadRequest);
     public static Error DueDateRequired = new Error(1016, "DueDateTime is required when confirmation is needed", HttpStatusCode.BadRequest);
     public static Error InvalidSenderForAttachment = new Error(1017, "The sender of the correspondence must be equal the sender of existing attachments", HttpStatusCode.BadRequest);
-    public static Error MissingAttachments = new Error(1018, "Attachment is not published", HttpStatusCode.BadRequest);
+    public static Error AttachmentsNotPublished = new Error(1018, "Attachment is not published", HttpStatusCode.BadRequest);
     public static Error MissingContent = new Error(1019, "The Content field must be provided for the correspondence", HttpStatusCode.BadRequest);
     public static Error MessageTitleEmpty = new Error(1020, "Message title cannot be empty", HttpStatusCode.BadRequest);
     public static Error MessageBodyEmpty = new Error(1021, "Message body cannot be empty", HttpStatusCode.BadRequest);
@@ -38,12 +38,13 @@ public static class AttachmentErrors
 {
     public static Error AttachmentNotFound = new Error(2001, "The requested attachment was not found", HttpStatusCode.NotFound);
     public static Error UploadFailed = new Error(2002, "Error occurred during upload", HttpStatusCode.BadGateway);
-    public static Error InvalidFileSize = new Error(2003, "File must have content and has a max file size of 2GB", HttpStatusCode.BadRequest);
-    public static Error FileAlreadyUploaded = new Error(2004, "File has already been or is being uploaded", HttpStatusCode.BadRequest);
-    public static Error FileHasBeenPurged = new Error(2005, "File has already been purged", HttpStatusCode.BadRequest);
-    public static Error PurgeAttachmentWithExistingCorrespondence = new Error(2006, "Attachment cannot be purged as it is linked to at least one existing correspondence", HttpStatusCode.BadRequest);
-    public static Error HashMismatch = new Error(2007, "Checksum mismatch", HttpStatusCode.BadRequest);
-    public static Error DataLocationNotFound = new Error(2008, "Could not get data location url", HttpStatusCode.BadRequest);
+    public static Error CantUploadToExistingCorrespondence = new Error(2003, "Cannot upload attachment to a correspondence that has been created", HttpStatusCode.BadRequest);
+    public static Error InvalidFileSize = new Error(2004, "File must have content and has a max file size of 2GB", HttpStatusCode.BadRequest);
+    public static Error FileAlreadyUploaded = new Error(2005, "File has already been or is being uploaded", HttpStatusCode.BadRequest);
+    public static Error FileHasBeenPurged = new Error(2006, "File has already been purged", HttpStatusCode.BadRequest);
+    public static Error PurgeAttachmentWithExistingCorrespondence = new Error(2007, "Attachment cannot be purged as it is linked to at least one existing correspondence", HttpStatusCode.BadRequest);
+    public static Error HashMismatch = new Error(2008, "Checksum mismatch", HttpStatusCode.BadRequest);
+    public static Error DataLocationNotFound = new Error(2009, "Could not get data location url", HttpStatusCode.BadRequest);
 }
 public static class NotificationErrors
 {

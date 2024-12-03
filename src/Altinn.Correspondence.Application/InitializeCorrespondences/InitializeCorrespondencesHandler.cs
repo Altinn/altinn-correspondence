@@ -87,7 +87,7 @@ public class InitializeCorrespondencesHandler(
         var anyExistingAttachmentsNotPublished = existingAttachments.Any(a => a.GetLatestStatus()?.Status != AttachmentStatus.Published);
         if (anyExistingAttachmentsNotPublished)
         {
-            return CorrespondenceErrors.MissingAttachments;
+            return CorrespondenceErrors.AttachmentsNotPublished;
         }
         // Validate that uploaded files match attachment metadata
         var attachmentMetaDataError = InitializeCorrespondenceHelper.ValidateAttachmentFiles(uploadAttachments, uploadAttachmentMetadata);
