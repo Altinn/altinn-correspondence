@@ -4,7 +4,7 @@ namespace Altinn.Correspondence.API.Models
 {
     /// <summary>
     /// Represents a ReplyOption with information provided by the sender.
-    /// A reply option is a way for recipients to respond to a correspondence in additon to the normal Read and Confirm operations
+    /// A reply option is a way for recipients to respond to a correspondence in addition to the normal Read and Confirm operations
     /// </summary>
     public class CorrespondenceReplyOptionExt
     {
