@@ -18,6 +18,6 @@
         /// <summary>
         /// Specifies that the attachment data already exist in an external storage
         /// </summary>
-        ExisitingExternalStorage = 2
+        ExistingExternalStorage = 2
     }
 }
