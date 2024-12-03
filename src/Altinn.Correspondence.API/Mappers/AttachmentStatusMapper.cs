@@ -7,9 +7,9 @@ namespace Altinn.Correspondence.Mappers;
 
 internal static class AttachmentStatusMapper
 {
-    internal static AtachmentStatusEvent MapToExternal(AttachmentStatusEntity AttachmentStatus)
+    internal static AttachmentStatusEvent MapToExternal(AttachmentStatusEntity AttachmentStatus)
     {
-        var attachment = new AtachmentStatusEvent
+        var attachment = new AttachmentStatusEvent
         {
             Status = (AttachmentStatusExt)AttachmentStatus.Status,
             StatusText = AttachmentStatus.StatusText,
@@ -19,9 +19,9 @@ internal static class AttachmentStatusMapper
         return attachment;
     }
 
-    internal static List<AtachmentStatusEvent> MapToExternal(List<AttachmentStatusEntity> AttachmentStatuses)
+    internal static List<AttachmentStatusEvent> MapToExternal(List<AttachmentStatusEntity> AttachmentStatuses)
     {
-        var attachmentStatuses = new List<AtachmentStatusEvent>();
+        var attachmentStatuses = new List<AttachmentStatusEvent>();
         foreach (var status in AttachmentStatuses)
         {
             attachmentStatuses.Add(MapToExternal(status));
