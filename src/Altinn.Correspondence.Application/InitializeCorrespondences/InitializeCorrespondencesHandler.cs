@@ -9,7 +9,6 @@ using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Persistence.Repositories;
 using Hangfire;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -25,7 +24,6 @@ public class InitializeCorrespondencesHandler(
     IAltinnNotificationService altinnNotificationService,
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
-    ICorrespondenceStatusRepository correspondenceStatusRepository,
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     INotificationTemplateRepository notificationTemplateRepository,
     IEventBus eventBus,
@@ -145,7 +143,6 @@ public class InitializeCorrespondencesHandler(
 
     private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<NotificationContent>? notificationContents, Guid partyUuid, CancellationToken cancellationToken)
     {
-        // var status = initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);
         var correspondences = new List<CorrespondenceEntity>();
         foreach (var recipient in request.Recipients)
         {
@@ -159,7 +156,7 @@ public class InitializeCorrespondencesHandler(
         {
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
             if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized || 
-                correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish) //TODO: Remove ReadyForPublish check if/when ReadyForPublish is removed
+                correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish)
             {
                 var publishTime = correspondence.RequestedPublishTime;
 

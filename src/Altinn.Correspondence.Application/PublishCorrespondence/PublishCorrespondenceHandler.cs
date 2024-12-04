@@ -35,7 +35,7 @@ public class PublishCorrespondenceHandler(
         {
             return Task.CompletedTask;
         }
-        else if (correspondence.GetHighestStatus()?.Status != CorrespondenceStatus.ReadyForPublish) // TODO: Change to check if equal to initialized if/when ReadyForPublish is removed
+        else if (correspondence.GetHighestStatus()?.Status != CorrespondenceStatus.ReadyForPublish)
         {
             errorMessage = $"Correspondence {correspondenceId} not ready for publish";
         }
