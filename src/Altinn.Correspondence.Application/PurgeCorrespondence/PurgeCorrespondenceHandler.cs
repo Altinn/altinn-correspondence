@@ -38,35 +38,21 @@ public class PurgeCorrespondenceHandler(
             correspondence,
             cancellationToken);
 
-        if (UserHasDelegatedPermissions(user, hasAccessAsSender, hasAccessAsRecipient))
+        if (user is null)
         {
-            // Delegated permissions.
-            // Hvilke tilfeller sender man egentlig melding til seg selv?
+            return Errors.CouldNotDetermineUser;
         }
-        else if (hasAccessAsSender && user.CallingAsSender())
+        var authError = CheckUserPermissions(user, correspondence, hasAccessAsSender, hasAccessAsRecipient, out bool isSender);
+        if (authError is not null)
         {
-            {
-                var senderRecipientPurgeError = purgeCorrespondenceHelper.ValidatePurgeRequestSender(correspondence);
-                if (senderRecipientPurgeError is not null)
-                {
-                    return senderRecipientPurgeError;
-                }
-            }
+            return authError;
         }
-        else if (hasAccessAsRecipient && user.CallingAsRecipient())
+        var callerId = user.GetCallerOrganizationId();
+        if (callerId is null)
         {
-            var recipientPurgeError = purgeCorrespondenceHelper.ValidatePurgeRequestRecipient(correspondence);
-            if (recipientPurgeError is not null)
-            {
-                return recipientPurgeError;
-            }
+            return Errors.CouldNotDetermineCaller;
         }
-        else
-        {
-            return Errors.NoAccessToResource;
-        }
-
-        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
+        var party = await altinnRegisterService.LookUpPartyById(callerId, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
             return Errors.CouldNotFindPartyUuid;
@@ -74,7 +60,7 @@ public class PurgeCorrespondenceHandler(
 
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            var status = hasAccessAsSender && user.CallingAsSender() ? CorrespondenceStatus.PurgedByAltinn : CorrespondenceStatus.PurgedByRecipient;
+            var status = isSender ? CorrespondenceStatus.PurgedByAltinn : CorrespondenceStatus.PurgedByRecipient;
             await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity()
             {
                 CorrespondenceId = correspondenceId,
@@ -86,13 +72,55 @@ public class PurgeCorrespondenceHandler(
 
             await eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken);
             await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondenceId, partyUuid, cancellationToken);
-            purgeCorrespondenceHelper.ReportActivityToDialogporten(hasAccessAsSender && user.CallingAsSender(), correspondenceId);
+            purgeCorrespondenceHelper.ReportActivityToDialogporten(isSender: isSender, correspondenceId);
             purgeCorrespondenceHelper.CancelNotification(correspondenceId, cancellationToken);
             return correspondenceId;
         }, logger, cancellationToken);
     }
+    private Error? CheckUserPermissions(ClaimsPrincipal user, CorrespondenceEntity correspondence, bool hasAccessAsSender, bool hasAccessAsRecipient, out bool isSender)
+    {
+        isSender = false;
+        if (hasAccessAsSender && user.CallingAsSender())
+        {
+            isSender = true;
+            var senderError = purgeCorrespondenceHelper.ValidatePurgeRequestSender(correspondence);
+            if (senderError is not null)
+            {
+                return senderError;
+            }
+        }
+        else if (hasAccessAsRecipient && user.CallingAsRecipient())
+        {
+            var recipientError = purgeCorrespondenceHelper.ValidatePurgeRequestRecipient(correspondence);
+            if (recipientError is not null)
+            {
+                return recipientError;
+            }
+        }
+        else if (UserHasDelegatedPermissions(user, hasAccessAsSender, hasAccessAsRecipient))
+        {
+            // Try as sender first
+            var senderError = purgeCorrespondenceHelper.ValidatePurgeRequestSender(correspondence);
+            if (senderError is null)
+            {
+                isSender = true;
+                return null;
+            }
+            // If sender fails, try as recipient
+            var recipientError = purgeCorrespondenceHelper.ValidatePurgeRequestRecipient(correspondence);
+            if (recipientError is not null)
+            {
+                return senderError;
+            }
+        }
+        else
+        {
+            return Errors.NoAccessToResource;
+        }
+        return null;
+    }
 
-    private bool UserHasDelegatedPermissions(ClaimsPrincipal? user, bool hasAccessAsSender, bool hasAccessAsRecipient)
+    private static bool UserHasDelegatedPermissions(ClaimsPrincipal user, bool hasAccessAsSender, bool hasAccessAsRecipient)
     {
         return !user.CallingAsRecipient() && !user.CallingAsSender() && (hasAccessAsSender || hasAccessAsRecipient);
     }

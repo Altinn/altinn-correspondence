@@ -61,4 +61,5 @@ public static class Errors
     public static Error InvalidSenderForAttachment = new Error(53, "The sender of the correspondence must be equal the sender of existing attachments", HttpStatusCode.BadRequest);
     public static Error CouldNotDetermineCaller = new Error(54, "Could not determine caller", HttpStatusCode.Unauthorized);
     public static Error CouldNotFindPartyUuid = new Error(55, "Could not retrieve party uuid from lookup in Altinn Register", HttpStatusCode.BadRequest);
+    public static Error CouldNotDetermineUser = new Error(56, "Could not determine user", HttpStatusCode.Unauthorized);
 }
