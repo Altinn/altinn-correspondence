@@ -80,7 +80,11 @@ public class PurgeCorrespondenceHandler(
     private Error? CheckUserPermissions(ClaimsPrincipal user, CorrespondenceEntity correspondence, bool hasAccessAsSender, bool hasAccessAsRecipient, out bool isSender)
     {
         isSender = false;
-        if (hasAccessAsSender && user.CallingAsSender())
+        if (!hasAccessAsSender && !hasAccessAsRecipient)
+        {
+            return Errors.NoAccessToResource;
+        }
+        else if ((hasAccessAsSender && user.CallingAsSender()) || (!hasAccessAsRecipient && hasAccessAsSender))
         {
             isSender = true;
             var senderError = purgeCorrespondenceHelper.ValidatePurgeRequestSender(correspondence);
@@ -89,7 +93,7 @@ public class PurgeCorrespondenceHandler(
                 return senderError;
             }
         }
-        else if (hasAccessAsRecipient && user.CallingAsRecipient())
+        else if ((hasAccessAsRecipient && user.CallingAsRecipient()) || (!hasAccessAsSender && hasAccessAsRecipient)) 
         {
             var recipientError = purgeCorrespondenceHelper.ValidatePurgeRequestRecipient(correspondence);
             if (recipientError is not null)
@@ -97,8 +101,8 @@ public class PurgeCorrespondenceHandler(
                 return recipientError;
             }
         }
-        else if (UserHasDelegatedPermissions(user, hasAccessAsSender, hasAccessAsRecipient))
-        {
+        else 
+        {// User has delegated permissions to both sender and recipient
             // Try as sender first
             var senderError = purgeCorrespondenceHelper.ValidatePurgeRequestSender(correspondence);
             if (senderError is null)
@@ -113,15 +117,6 @@ public class PurgeCorrespondenceHandler(
                 return senderError;
             }
         }
-        else
-        {
-            return Errors.NoAccessToResource;
-        }
         return null;
-    }
-
-    private static bool UserHasDelegatedPermissions(ClaimsPrincipal user, bool hasAccessAsSender, bool hasAccessAsRecipient)
-    {
-        return !user.CallingAsRecipient() && !user.CallingAsSender() && (hasAccessAsSender || hasAccessAsRecipient);
     }
 }
