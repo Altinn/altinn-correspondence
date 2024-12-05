@@ -21,6 +21,31 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             Assert.NotNull(attachmentId);
         }
         [Fact]
+        public async Task InitializeAttachment_InvalidFilename_ReturnsBadRequest()
+        {
+            var attachment = new AttachmentBuilder()
+                .CreateAttachment()
+                .WithFileName("rsietris//rsitersn")
+                .Build();
+            var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+            Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
+
+            attachment = new AttachmentBuilder()
+                .CreateAttachment()
+                .WithFileName("   ")
+                .Build();
+            initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+            Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
+
+            string namewith300chars = new string('a', 300);
+            attachment = new AttachmentBuilder()
+                .CreateAttachment()
+                .WithFileName(namewith300chars)
+                .Build();
+            initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+            Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
+        }
+        [Fact]
         public async Task InitializeAttachment_AsRecipient_ReturnsForbidden()
         {
             var attachment = new AttachmentBuilder().CreateAttachment().Build();

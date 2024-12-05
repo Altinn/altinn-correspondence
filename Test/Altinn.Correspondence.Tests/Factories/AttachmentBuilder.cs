@@ -31,6 +31,11 @@ namespace Altinn.Correspondence.Tests.Factories
             _attachment.Sender = sender;
             return this;
         }
+        public AttachmentBuilder WithFileName(string fileName)
+        {
+            _attachment.FileName = fileName;
+            return this;
+        }
         public AttachmentBuilder WithChecksum(byte[] byteData)
         {
             var checksum = AttachmentHelper.CalculateChecksum(byteData);
