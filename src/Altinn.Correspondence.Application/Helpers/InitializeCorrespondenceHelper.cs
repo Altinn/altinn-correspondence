@@ -125,8 +125,29 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             return null;
         }
-        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, CorrespondenceStatus status, Guid partyUuid)
+        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid)
         {
+            List<CorrespondenceStatusEntity> statuses =
+            [
+                new CorrespondenceStatusEntity
+                {
+                    Status = CorrespondenceStatus.Initialized,
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusText = CorrespondenceStatus.Initialized.ToString(),
+                    PartyUuid = partyUuid
+                },
+            ];
+            var currentStatus = GetCurrentCorrespondenceStatus(request.Correspondence);
+            if (currentStatus != CorrespondenceStatus.Initialized)
+            {
+                statuses.Add(new CorrespondenceStatusEntity
+                {
+                    Status = currentStatus,
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusText = currentStatus.ToString(),
+                    PartyUuid = partyUuid
+                });
+            }
             string sender = request.Correspondence.Sender;
             if (sender.StartsWith("0192:"))
             {
@@ -170,18 +191,10 @@ namespace Altinn.Correspondence.Application.Helpers
                 PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
                 ReplyOptions = request.Correspondence.ReplyOptions,
                 IgnoreReservation = request.Correspondence.IgnoreReservation,
-                Statuses = new List<CorrespondenceStatusEntity>(){
-                    new CorrespondenceStatusEntity
-                    {
-                        Status = status,
-                        StatusChanged = DateTimeOffset.UtcNow,
-                        StatusText = status.ToString(),
-                        PartyUuid = partyUuid
-                    }
-                },
+                Statuses = statuses,
                 Created = request.Correspondence.Created,
                 ExternalReferences = request.Correspondence.ExternalReferences,
-                Published = status == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
+                Published = currentStatus == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
                 IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
             };
         }
@@ -224,10 +237,10 @@ namespace Altinn.Correspondence.Application.Helpers
             return attachments;
         }
 
-        public CorrespondenceStatus GetInitializeCorrespondenceStatus(CorrespondenceEntity correspondence)
+        public CorrespondenceStatus GetCurrentCorrespondenceStatus(CorrespondenceEntity correspondence)
         {
-            var status = CorrespondenceStatus.Initialized;
-            if (correspondence.Content != null && correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.StatusHasBeen(AttachmentStatus.Published)))
+            var status = correspondence.Statuses.LastOrDefault()?.Status ?? CorrespondenceStatus.Initialized;
+            if (correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.StatusHasBeen(AttachmentStatus.Published)))
             {
                 if (hostEnvironment.IsDevelopment() && correspondence.RequestedPublishTime < DateTimeOffset.UtcNow) status = CorrespondenceStatus.Published; // used to test on published correspondences in development
                 else status = CorrespondenceStatus.ReadyForPublish;

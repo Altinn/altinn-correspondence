@@ -14,7 +14,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
-using ReverseMarkdown.Converters;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
@@ -144,11 +143,10 @@ public class InitializeCorrespondencesHandler(
 
     private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<NotificationContent>? notificationContents, Guid partyUuid, CancellationToken cancellationToken)
     {
-        var status = initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);
         var correspondences = new List<CorrespondenceEntity>();
         foreach (var recipient in request.Recipients)
         {
-            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, attachmentsToBeUploaded, status, partyUuid);
+            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, attachmentsToBeUploaded, partyUuid);
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
@@ -158,7 +156,7 @@ public class InitializeCorrespondencesHandler(
         {
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
             if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized || 
-                correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish) //TODO: Remove ReadyForPublish check if/when ReadyForPublish is removed
+                correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish)
             {
                 var publishTime = correspondence.RequestedPublishTime;
 
