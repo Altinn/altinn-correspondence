@@ -39,12 +39,16 @@ public class InitializeAttachmentHandler(
             return Errors.CouldNotFindPartyUuid;
         }
         var attachment = request.Attachment;
+        var attachmentNameError = ValidateAttachmentName(request.Attachment);
+        if (attachmentNameError is not null)
+        {
+            return attachmentNameError;
+        }
         if (attachment.Sender.StartsWith("0192:"))
         {
             attachment.Sender = $"{UrnConstants.OrganizationNumberAttribute}:{attachment.Sender.WithoutPrefix()}";
             logger.LogInformation($"'0192:' prefix detected for sender in initialization of attachment. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
         }
-        attachment.FileName = Guid.NewGuid().ToString();
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             var initializedAttachment = await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
@@ -60,5 +64,26 @@ public class InitializeAttachmentHandler(
 
             return initializedAttachment.Id;
         }, logger, cancellationToken);
+    }
+
+    private static Error? ValidateAttachmentName(AttachmentEntity attachment)
+    {
+        var filename = attachment.FileName;
+        if (string.IsNullOrWhiteSpace(filename))
+        {
+            return Errors.FilenameMissing;
+        }
+        if (filename.Length > 255)
+        {
+            return Errors.FilenameTooLong;
+        }
+        foreach (var c in Path.GetInvalidFileNameChars())
+        {
+            if (filename.Contains(c))
+            {
+                return Errors.FilenameInvalid;
+            }
+        }
+        return null;
     }
 }
