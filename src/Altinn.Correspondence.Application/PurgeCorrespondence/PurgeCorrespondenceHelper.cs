@@ -21,22 +21,18 @@ public class PurgeCorrespondenceHelper
         _attachmentStatusRepository = attachmentStatusRepository;
         _backgroundJobClient = backgroundJobClient;
     }
-    public Error? ValidateCurrentStatus(CorrespondenceEntity correspondence)
+    public Error? ValidatePurgeRequestSender(CorrespondenceEntity correspondence)
     {
-        if (correspondence.Statuses is not null && correspondence.Statuses.Any(status => status.Status.IsPurged()))
+        var highestStatus = correspondence.GetHighestStatus();
+        if (highestStatus == null)
+        {
+            return CorrespondenceErrors.CouldNotRetrieveStatus;
+        }
+        if (highestStatus.Status.IsPurged())
         {
             return CorrespondenceErrors.CorrespondenceAlreadyPurged;
         }
-        return null;
-    }
-    public Error? ValidatePurgeRequestSender(CorrespondenceEntity correspondence)
-    {
-        var latestStatus = correspondence.GetHighestStatus();
-        if (latestStatus == null)
-        {
-            return CorrespondenceErrors.CorrespondenceNotFound;
-        }
-        if (!latestStatus.Status.IsPurgeableForSender())
+        if (!highestStatus.Status.IsPurgeableForSender())
         {
             return CorrespondenceErrors.CantPurgePublishedCorrespondence;
         }
@@ -44,12 +40,16 @@ public class PurgeCorrespondenceHelper
     }
     public Error? ValidatePurgeRequestRecipient(CorrespondenceEntity correspondence)
     {
-        var latestStatus = correspondence.GetHighestStatus();
-        if (latestStatus == null)
+        var highestStatus = correspondence.GetHighestStatus();
+        if (highestStatus == null)
         {
-            return CorrespondenceErrors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CouldNotRetrieveStatus;
         }
-        if (!latestStatus.Status.IsAvailableForRecipient())
+        if (highestStatus.Status.IsPurged())
+        {
+            return CorrespondenceErrors.CorrespondenceAlreadyPurged;
+        }
+        if (!highestStatus.Status.IsAvailableForRecipient())
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
