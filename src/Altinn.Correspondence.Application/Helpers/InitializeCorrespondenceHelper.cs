@@ -277,6 +277,11 @@ namespace Altinn.Correspondence.Application.Helpers
             };
             var attachment = correspondenceAttachment.Attachment!;
             attachment.Statuses = status;
+            if (attachment.Sender.StartsWith("0192:"))
+            {
+                attachment.Sender = $"{UrnConstants.OrganizationNumberAttribute}:{attachment.Sender.WithoutPrefix()}";
+                logger.LogInformation($"'0192:' prefix detected for sender in initialization of attachment. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
+            }
             return await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
         }
     }
