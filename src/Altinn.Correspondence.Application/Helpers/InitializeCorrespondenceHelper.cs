@@ -187,7 +187,8 @@ namespace Altinn.Correspondence.Application.Helpers
         }
 
         /// <summary>
-        /// Validates that the uploaded files. Checks that the files are the same as the attachments, filename and that the files are not too large
+        /// Validates the uploaded files. 
+        /// Checks that the filename is valid, the files are the same as the attachments, and the files are not too large
         /// </summary>
         public Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments)
         {

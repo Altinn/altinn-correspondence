@@ -89,7 +89,7 @@ public class InitializeCorrespondencesHandler(
         {
             return Errors.AttachmentNotPublished;
         }
-        // Validate that uploaded files
+        // Validate the uploaded files
         var attachmentMetaDataError = initializeCorrespondenceHelper.ValidateAttachmentFiles(uploadAttachments, uploadAttachmentMetadata);
         if (attachmentMetaDataError != null)
         {
