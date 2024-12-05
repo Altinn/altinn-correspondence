@@ -5,7 +5,7 @@ using Altinn.Correspondence.API.Models.Enums;
 namespace Altinn.Correspondence.API.Models
 {
     /// <summary>
-    /// Represents an attachment to a specific correspondence as part of Initialize Correpondence Operation
+    /// Represents an attachment to a specific correspondence as part of Initialize Correspondence Operation
     /// </summary>
     public class InitializeCorrespondenceAttachmentExt : BaseAttachmentExt
     {

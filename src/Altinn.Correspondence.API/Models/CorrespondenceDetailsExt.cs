@@ -3,12 +3,12 @@
 namespace Altinn.Correspondence.API.Models
 {
     /// <summary>
-    /// A more detailed object representing all the details for a correspondence, including status history and notificiations
+    /// A more detailed object representing all the details for a correspondence, including status history and notifications
     /// </summary>
     public class CorrespondenceDetailsExt : CorrespondenceOverviewExt
     {
         /// <summary>
-        /// The Status history for the Corrrespondence
+        /// The Status history for the Correspondence
         /// </summary>
         [JsonPropertyName("statusHistory")]
         public List<CorrespondenceStatusEventExt> StatusHistory { get; set; } = new List<CorrespondenceStatusEventExt>();

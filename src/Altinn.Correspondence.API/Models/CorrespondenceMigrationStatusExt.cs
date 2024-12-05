@@ -1,7 +1,4 @@
-using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-using Altinn.Correspondence.Application.InitializeCorrespondence;
-using Newtonsoft.Json;
 
 namespace Altinn.Correspondence.API.Models
 {

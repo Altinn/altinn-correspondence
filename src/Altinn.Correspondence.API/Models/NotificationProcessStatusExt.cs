@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace Altinn.Correspondence.API.Models;
 
 /// <summary>
-/// An abstrct  class representing a status overview of a notification channels
+/// An abstract class representing a status overview of a notification channels
 /// </summary>
 public class NotificationProcessStatusExt
 {

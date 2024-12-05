@@ -11,13 +11,13 @@
         NewCorrespondenceAttachment = 0,
 
         /// <summary>
-        /// Specifies that the attachment  already exist in Altinn Correpondence storage
+        /// Specifies that the attachment  already exist in Altinn Correspondence storage
         /// </summary>
         ExistingCorrespondenceAttachment = 1,
 
         /// <summary>
         /// Specifies that the attachment data already exist in an external storage
         /// </summary>
-        ExisitingExternalStorage = 2
+        ExistingExternalStorage = 2
     }
 }
