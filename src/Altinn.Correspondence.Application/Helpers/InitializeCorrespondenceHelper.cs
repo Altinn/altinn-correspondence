@@ -187,16 +187,21 @@ namespace Altinn.Correspondence.Application.Helpers
         }
 
         /// <summary>
-        /// Validates that the uploaded files match the attachments in the correspondence
+        /// Validates that the uploaded files. Checks that the files are the same as the attachments, filename and that the files are not too large
         /// </summary>
-        public static Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments)
+        public Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments)
         {
             var maxUploadSize = long.Parse(int.MaxValue.ToString());
             foreach (var attachment in attachments)
             {
                 if (attachment.Attachment?.DataLocationUrl != null) continue;
+
+                var nameError = attachmentHelper.ValidateAttachmentName(attachment.Attachment!);
+                if (nameError is not null) return nameError;
+
                 var file = files.FirstOrDefault(a => a.FileName == attachment.Attachment?.FileName);
                 if (file == null) return Errors.UploadedFilesDoesNotMatchAttachments;
+
                 if (file?.Length > maxUploadSize || file?.Length == 0) return Errors.InvalidFileSize;
             }
             return null;
