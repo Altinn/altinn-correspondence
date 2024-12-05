@@ -22,7 +22,7 @@ public class UpdateCorrespondenceStatusHandler(
         var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, cancellationToken);
         if (correspondence == null)
         {
-            return Errors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CorrespondenceNotFound;
         }
         var hasAccess = await altinnAuthorizationService.CheckAccessAsRecipient(
             user,
@@ -30,7 +30,7 @@ public class UpdateCorrespondenceStatusHandler(
             cancellationToken);
         if (!hasAccess)
         {
-            return Errors.NoAccessToResource;
+            return AuthorizationErrors.NoAccessToResource;
         }
         var currentStatusError = updateCorrespondenceStatusHelper.ValidateCurrentStatus(correspondence);
         if (currentStatusError is not null)
@@ -45,7 +45,7 @@ public class UpdateCorrespondenceStatusHandler(
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            return Errors.CouldNotFindPartyUuid;
+            return AuthorizationErrors.CouldNotFindPartyUuid;
         }
         
         await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>

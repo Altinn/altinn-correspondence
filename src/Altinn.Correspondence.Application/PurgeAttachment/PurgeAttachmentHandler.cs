@@ -26,7 +26,7 @@ public class PurgeAttachmentHandler(
         var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
         if (attachment == null)
         {
-            return Errors.AttachmentNotFound;
+            return AttachmentErrors.AttachmentNotFound;
         }
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
@@ -36,11 +36,11 @@ public class PurgeAttachmentHandler(
             cancellationToken);
         if (!hasAccess)
         {
-            return Errors.NoAccessToResource;
+            return AuthorizationErrors.NoAccessToResource;
         }
         if (attachment.StatusHasBeen(AttachmentStatus.Purged))
         {
-            return Errors.InvalidPurgeAttachmentStatus;
+            return AttachmentErrors.FileHasBeenPurged;
         }
 
         var correspondences = await correspondenceRepository.GetCorrespondencesByAttachmentId(attachmentId, true, cancellationToken);
@@ -53,12 +53,12 @@ public class PurgeAttachmentHandler(
             });
         if (correspondences.Count != 0 && !allCorrespondencesArePurged)
         {
-            return Errors.PurgeAttachmentWithExistingCorrespondence;
+            return AttachmentErrors.PurgeAttachmentWithExistingCorrespondence;
         }
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            return Errors.CouldNotFindPartyUuid;
+            return AuthorizationErrors.CouldNotFindPartyUuid;
         }
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {

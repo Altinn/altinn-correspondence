@@ -26,7 +26,7 @@ public class PurgeCorrespondenceHandler(
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, cancellationToken);
         if (correspondence == null)
         {
-            return Errors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CorrespondenceNotFound;
         }
         var hasAccessAsSender = await altinnAuthorizationService.CheckAccessAsSender(
             user,
@@ -38,7 +38,7 @@ public class PurgeCorrespondenceHandler(
             cancellationToken);
         if (!hasAccessAsSender && !hasAccessAsRecipient)
         {
-            return Errors.NoAccessToResource;
+            return AuthorizationErrors.NoAccessToResource;
         }
         if (hasAccessAsSender)
         {
@@ -64,7 +64,7 @@ public class PurgeCorrespondenceHandler(
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            return Errors.CouldNotFindPartyUuid;
+            return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
