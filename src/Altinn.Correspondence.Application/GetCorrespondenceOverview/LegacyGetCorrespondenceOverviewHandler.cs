@@ -24,33 +24,33 @@ public class LegacyGetCorrespondenceOverviewHandler(
     {
         if (userClaimsHelper.GetPartyId() is not int partyId)
         {
-            return Errors.InvalidPartyId;
+            return AuthorizationErrors.InvalidPartyId;
         }
         var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
         {
-            return Errors.CouldNotFindOrgNo;
+            return AuthorizationErrors.CouldNotFindOrgNo;
         }
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
         if (correspondence == null)
         {
-            return Errors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CorrespondenceNotFound;
         }
         var minimumAuthLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
         if (minimumAuthLevel == null)
         {
-            return Errors.LegacyNoAccessToCorrespondence;
+            return AuthorizationErrors.LegacyNoAccessToCorrespondence;
         }
         var latestStatus = correspondence.GetHighestStatus();
         if (latestStatus == null)
         {
             logger.LogWarning("Latest status not found for correspondence");
-            return Errors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CorrespondenceNotFound;
         }
         if (!latestStatus.Status.IsAvailableForLegacyRecipient())
         {
             logger.LogWarning("Rejected because correspondence not available for recipient in current state.");
-            return Errors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CorrespondenceNotFound;
         }
 
         var notificationsOverview = new List<CorrespondenceNotificationOverview>();
@@ -68,11 +68,11 @@ public class LegacyGetCorrespondenceOverviewHandler(
         var resourceOwnerParty = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
         if (resourceOwnerParty == null)
         {
-            return Errors.CouldNotFindOrgNo;
+            return AuthorizationErrors.CouldNotFindOrgNo;
         }
         if (userParty.PartyUuid is not Guid partyUuid)
         {
-            return Errors.CouldNotFindPartyUuid;
+            return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
         return await TransactionWithRetriesPolicy.Execute<LegacyGetCorrespondenceOverviewResponse>(async (cancellationToken) =>

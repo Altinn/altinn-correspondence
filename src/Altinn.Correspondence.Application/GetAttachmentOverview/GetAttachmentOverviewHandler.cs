@@ -16,7 +16,7 @@ public class GetAttachmentOverviewHandler(
         var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
         if (attachment == null)
         {
-            return Errors.AttachmentNotFound;
+            return AttachmentErrors.AttachmentNotFound;
         }
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
@@ -26,7 +26,7 @@ public class GetAttachmentOverviewHandler(
             cancellationToken);
         if (!hasAccess)
         {
-            return Errors.NoAccessToResource;
+            return AuthorizationErrors.NoAccessToResource;
         }
         var attachmentStatus = attachment.GetLatestStatus();
         var correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);

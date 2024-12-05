@@ -25,7 +25,7 @@ public class PurgeCorrespondenceHelper
     {
         if (correspondence.Statuses is not null && correspondence.Statuses.Any(status => status.Status.IsPurged()))
         {
-            return Errors.CorrespondenceAlreadyPurged;
+            return CorrespondenceErrors.CorrespondenceAlreadyPurged;
         }
         return null;
     }
@@ -34,11 +34,11 @@ public class PurgeCorrespondenceHelper
         var latestStatus = correspondence.GetHighestStatus();
         if (latestStatus == null)
         {
-            return Errors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CorrespondenceNotFound;
         }
         if (!latestStatus.Status.IsPurgeableForSender())
         {
-            return Errors.CantPurgeCorrespondenceSender;
+            return CorrespondenceErrors.CantPurgePublishedCorrespondence;
         }
         return null;
     }
@@ -47,15 +47,15 @@ public class PurgeCorrespondenceHelper
         var latestStatus = correspondence.GetHighestStatus();
         if (latestStatus == null)
         {
-            return Errors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CorrespondenceNotFound;
         }
         if (!latestStatus.Status.IsAvailableForRecipient())
         {
-            return Errors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CorrespondenceNotFound;
         }
         if (correspondence.IsConfirmationNeeded && !correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
         {
-            return Errors.ArchiveBeforeConfirmed;
+            return CorrespondenceErrors.ArchiveBeforeConfirmed;
         }
         return null;
     }

@@ -48,7 +48,7 @@ public class PublishCorrespondenceHandler(
         var party = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            return Errors.CouldNotFindPartyUuid;
+            return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
         return await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>

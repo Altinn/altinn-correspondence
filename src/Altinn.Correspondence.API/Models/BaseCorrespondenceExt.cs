@@ -18,7 +18,7 @@ namespace Altinn.Correspondence.API.Models
         public required string ResourceId { get; set; }
 
         /// <summary>
-        /// The Sending organisation of the correspondence. 
+        /// The Sending organization of the correspondence. 
         /// </summary>
         /// <remarks>
         /// Organization number in countrycode:organizationnumber format.
@@ -97,7 +97,7 @@ namespace Altinn.Correspondence.API.Models
         public InitializeCorrespondenceNotificationExt? Notification { get; set; }
 
         /// <summary>
-        /// Specifies whether the correspondence can override reservation against digital comminication in KRR
+        /// Specifies whether the correspondence can override reservation against digital communication in KRR
         /// </summary>
         [JsonPropertyName("ignoreReservation")]
         public bool? IgnoreReservation { get; set; }

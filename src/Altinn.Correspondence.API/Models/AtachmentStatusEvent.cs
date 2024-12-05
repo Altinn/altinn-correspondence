@@ -6,7 +6,7 @@ namespace Altinn.Correspondence.API.Models
     /// <summary>
     /// An entity representing a Attachment Status Event
     /// </summary>
-    public class AtachmentStatusEvent
+    public class AttachmentStatusEvent
     {
         /// <summary>
         /// Attachment status

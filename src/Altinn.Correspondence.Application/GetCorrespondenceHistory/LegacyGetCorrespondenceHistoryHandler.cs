@@ -19,27 +19,27 @@ public class LegacyGetCorrespondenceHistoryHandler(
     {
         if (userClaimsHelper.GetPartyId() is not int partyId)
         {
-            return Errors.InvalidPartyId;
+            return AuthorizationErrors.InvalidPartyId;
         }
         var recipientParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (recipientParty == null || (string.IsNullOrEmpty(recipientParty.SSN) && string.IsNullOrEmpty(recipientParty.OrgNumber)))
         {
-            return Errors.CouldNotFindOrgNo;
+            return AuthorizationErrors.CouldNotFindOrgNo;
         }
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
         if (correspondence is null)
         {
-            return Errors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CorrespondenceNotFound;
         }
         var minimumAuthLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, recipientParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
         if (minimumAuthLevel is null)
         {
-            return Errors.LegacyNoAccessToCorrespondence;
+            return AuthorizationErrors.LegacyNoAccessToCorrespondence;
         }
         var senderParty = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
         if (senderParty == null || (string.IsNullOrEmpty(senderParty.SSN) && string.IsNullOrEmpty(senderParty.OrgNumber)))
         {
-            return Errors.CouldNotFindOrgNo;
+            return AuthorizationErrors.CouldNotFindOrgNo;
         }
         var correspondenceHistory = new List<LegacyGetCorrespondenceHistoryResponse>();
         foreach (var correspondenceStatus in correspondence.Statuses)
