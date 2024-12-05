@@ -18,7 +18,8 @@ public class InitializeAttachmentHandler(
     IAttachmentStatusRepository attachmentStatusRepository,
     IEventBus eventBus,
     IAltinnAuthorizationService altinnAuthorizationService,
-    ILogger<InitializeAttachmentHandler> logger) : IHandler<InitializeAttachmentRequest, Guid>
+    ILogger<InitializeAttachmentHandler> logger,
+    AttachmentHelper attachmentHelper) : IHandler<InitializeAttachmentRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -39,7 +40,7 @@ public class InitializeAttachmentHandler(
             return Errors.CouldNotFindPartyUuid;
         }
         var attachment = request.Attachment;
-        var attachmentNameError = ValidateAttachmentName(request.Attachment);
+        var attachmentNameError = attachmentHelper.ValidateAttachmentName(request.Attachment);
         if (attachmentNameError is not null)
         {
             return attachmentNameError;
@@ -52,38 +53,11 @@ public class InitializeAttachmentHandler(
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             var initializedAttachment = await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
-            await attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
-            {
-                AttachmentId = initializedAttachment.Id,
-                StatusChanged = DateTimeOffset.UtcNow,
-                Status = AttachmentStatus.Initialized,
-                StatusText = AttachmentStatus.Initialized.ToString(),
-                PartyUuid = partyUuid
-            }, cancellationToken);
+            await attachmentHelper.SetAttachmentStatus(initializedAttachment.Id, AttachmentStatus.Initialized, partyUuid, cancellationToken);
             await eventBus.Publish(AltinnEventType.AttachmentInitialized, initializedAttachment.ResourceId, initializedAttachment.Id.ToString(), "attachment", initializedAttachment.Sender, cancellationToken);
 
             return initializedAttachment.Id;
         }, logger, cancellationToken);
     }
 
-    private static Error? ValidateAttachmentName(AttachmentEntity attachment)
-    {
-        var filename = attachment.FileName;
-        if (string.IsNullOrWhiteSpace(filename))
-        {
-            return Errors.FilenameMissing;
-        }
-        if (filename.Length > 255)
-        {
-            return Errors.FilenameTooLong;
-        }
-        foreach (var c in Path.GetInvalidFileNameChars())
-        {
-            if (filename.Contains(c))
-            {
-                return Errors.FilenameInvalid;
-            }
-        }
-        return null;
-    }
 }
