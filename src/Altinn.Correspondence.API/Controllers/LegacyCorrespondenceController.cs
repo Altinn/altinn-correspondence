@@ -21,7 +21,7 @@ namespace Altinn.Correspondence.API.Controllers
     [ApiController]
     [ApiExplorerSettings(IgnoreApi = true)]
     [Route("correspondence/api/v1/legacy/correspondence")]
-    [Authorize(Policy = AuthorizationConstants.Legacy, AuthenticationSchemes = AuthorizationConstants.LegacyOrDefaultScheme)]
+    [Authorize(Policy = AuthorizationConstants.Legacy)]
     public class LegacyCorrespondenceController : Controller
     {
         private readonly ILogger<LegacyCorrespondenceController> _logger;
