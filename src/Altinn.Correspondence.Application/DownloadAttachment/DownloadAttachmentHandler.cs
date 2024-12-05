@@ -15,12 +15,12 @@ public class DownloadAttachmentHandler(
         var attachment = await attachmentRepository.GetAttachmentById(request.AttachmentId, false, cancellationToken);
         if (attachment is null)
         {
-            return Errors.AttachmentNotFound;
+            return AttachmentErrors.AttachmentNotFound;
         }
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(user, attachment.ResourceId, attachment.Sender.WithoutPrefix(), null, cancellationToken);
         if (!hasAccess)
         {
-            return Errors.NoAccessToResource;
+            return AuthorizationErrors.NoAccessToResource;
         }
         var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, cancellationToken);
         return attachmentStream;
