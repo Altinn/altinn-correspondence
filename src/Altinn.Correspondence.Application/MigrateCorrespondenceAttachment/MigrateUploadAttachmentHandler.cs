@@ -13,7 +13,7 @@ public class MigrateUploadAttachmentHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
     IAttachmentRepository attachmentRepository,
-    UploadHelper uploadHelper,
+    AttachmentHelper attachmentHelper,
     ILogger<MigrateUploadAttachmentHandler> logger) : IHandler<UploadAttachmentRequest, MigrateUploadAttachmentResponse>
 {
     public async Task<OneOf<MigrateUploadAttachmentResponse, Error>> Process(UploadAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -44,7 +44,7 @@ public class MigrateUploadAttachmentHandler(
         }
         return await TransactionWithRetriesPolicy.Execute<MigrateUploadAttachmentResponse>(async (cancellationToken) =>
         {
-            var uploadResult = await uploadHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuid, cancellationToken);
+            var uploadResult = await attachmentHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuid, cancellationToken);
 
             if (uploadResult.IsT1)
             {

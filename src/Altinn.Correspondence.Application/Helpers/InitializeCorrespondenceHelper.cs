@@ -15,7 +15,7 @@ namespace Altinn.Correspondence.Application.Helpers
     public class InitializeCorrespondenceHelper(
         IAttachmentRepository attachmentRepository,
         IHostEnvironment hostEnvironment,
-        UploadHelper uploadHelper,
+        AttachmentHelper attachmentHelper,
         ILogger<InitializeCorrespondenceHelper> logger)
     {
 
@@ -248,7 +248,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 OneOf<UploadAttachmentResponse, Error> uploadResponse;
                 await using (var f = file.OpenReadStream())
                 {
-                    uploadResponse = await uploadHelper.UploadAttachment(f, attachment.Id, partyUuid, cancellationToken);
+                    uploadResponse = await attachmentHelper.UploadAttachment(f, attachment.Id, partyUuid, cancellationToken);
                 }
                 var error = uploadResponse.Match(
                     _ => { return null; },
