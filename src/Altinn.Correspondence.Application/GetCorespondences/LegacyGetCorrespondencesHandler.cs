@@ -36,11 +36,8 @@ public class LegacyGetCorrespondencesHandler(
         {
             return Errors.InvalidPartyId;
         }
-        var tempParty = await altinnRegisterService.LookUpPartyId("09827398702", cancellationToken);
-        Console.WriteLine("TempParty: " + tempParty);
         var minAuthLevel = userClaimsHelper.GetMinimumAuthenticationLevel();
         var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
-        Console.WriteLine("UserParty: " + userParty.SSN);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
         {
             return Errors.CouldNotFindOrgNo;
