@@ -20,17 +20,17 @@ public class LegacyUpdateCorrespondenceStatusHandler(
     {
         if (userClaimsHelper.GetPartyId() is not int partyId)
         {
-            return Errors.InvalidPartyId;
+            return AuthorizationErrors.InvalidPartyId;
         }
         var party = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (party is null || (string.IsNullOrEmpty(party.SSN) && string.IsNullOrEmpty(party.OrgNumber)))
         {
-            return Errors.CouldNotFindOrgNo;
+            return AuthorizationErrors.CouldNotFindOrgNo;
         }
         var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, cancellationToken);
         if (correspondence == null)
         {
-            return Errors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CorrespondenceNotFound;
         }
         var minimumAuthLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(
             user,
@@ -41,7 +41,7 @@ public class LegacyUpdateCorrespondenceStatusHandler(
             cancellationToken);
         if (minimumAuthLevel == null)
         {
-            return Errors.LegacyNoAccessToCorrespondence;
+            return AuthorizationErrors.LegacyNoAccessToCorrespondence;
         }
         var currentStatusError = updateCorrespondenceStatusHelper.ValidateCurrentStatus(correspondence);
         if (currentStatusError is not null)
@@ -55,7 +55,7 @@ public class LegacyUpdateCorrespondenceStatusHandler(
         }
         if (party.PartyUuid is not Guid partyUuid)
         {
-            return Errors.CouldNotFindPartyUuid;
+            return AuthorizationErrors.CouldNotFindPartyUuid;
         }
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {

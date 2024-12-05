@@ -46,14 +46,14 @@ namespace Altinn.Correspondence.API.Models
         public bool IncludeDeleted { get; set; }
 
         /// <summary>
-        /// If the seach should filter by published date - from
+        /// If the search should filter by published date - from
         /// </summary>
         [JsonPropertyName("from")]
         [ValidateNotFutureDate]
         public DateTimeOffset? From { get; set; }
 
         /// <summary>
-        /// If the seach should filter by published date - to
+        /// If the search should filter by published date - to
         /// </summary>
         [JsonPropertyName("to")]
         public DateTimeOffset? To { get; set; }

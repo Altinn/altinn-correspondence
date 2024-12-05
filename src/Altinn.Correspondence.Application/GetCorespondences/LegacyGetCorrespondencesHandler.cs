@@ -30,17 +30,17 @@ public class LegacyGetCorrespondencesHandler(
 
         if (from != null && to != null && from > to)
         {
-            return Errors.InvalidDateRange;
+            return CorrespondenceErrors.InvalidDateRange;
         }
         if (userClaimsHelper.GetPartyId() is not int partyId)
         {
-            return Errors.InvalidPartyId;
+            return AuthorizationErrors.InvalidPartyId;
         }
         var minAuthLevel = userClaimsHelper.GetMinimumAuthenticationLevel();
         var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
         {
-            return Errors.CouldNotFindOrgNo;
+            return AuthorizationErrors.CouldNotFindOrgNo;
         }
         var recipients = new List<string>();
         if (request.InstanceOwnerPartyIdList != null && request.InstanceOwnerPartyIdList.Length > 0)
@@ -51,7 +51,7 @@ public class LegacyGetCorrespondencesHandler(
             {
                 if (!authorizedPartiesDict.TryGetValue(instanceOwnerPartyId, out var mappedInstanceOwner))
                 {
-                    return Errors.LegacyNotAccessToOwner(instanceOwnerPartyId);
+                    return AuthorizationErrors.LegacyNotAccessToOwner(instanceOwnerPartyId);
                 }
                 if (mappedInstanceOwner.OrgNumber != null)
                     recipients.Add(mappedInstanceOwner.OrgNumber);

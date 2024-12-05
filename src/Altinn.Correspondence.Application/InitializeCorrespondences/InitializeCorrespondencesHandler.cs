@@ -14,7 +14,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
-using ReverseMarkdown.Converters;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
@@ -46,20 +45,20 @@ public class InitializeCorrespondencesHandler(
             cancellationToken);
         if (!hasAccess)
         {
-            return Errors.NoAccessToResource;
+            return AuthorizationErrors.NoAccessToResource;
         }
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            return Errors.CouldNotFindPartyUuid;
+            return AuthorizationErrors.CouldNotFindPartyUuid;
         }
         if (request.Recipients.Count != request.Recipients.Distinct().Count())
         {
-            return Errors.DuplicateRecipients;
+            return CorrespondenceErrors.DuplicateRecipients;
         }
         if (request.Correspondence.IsConfirmationNeeded && request.Correspondence.DueDateTime is null)
         {
-            return Errors.DueDateRequired;
+            return CorrespondenceErrors.DueDateRequired;
         }
         var dateError = initializeCorrespondenceHelper.ValidateDateConstraints(request.Correspondence);
         if (dateError != null)
@@ -81,13 +80,13 @@ public class InitializeCorrespondencesHandler(
         var existingAttachments = getExistingAttachments.AsT0;
         if (existingAttachments.Count != existingAttachmentIds.Count)
         {
-            return Errors.ExistingAttachmentNotFound;
+            return CorrespondenceErrors.ExistingAttachmentNotFound;
         }
         // Validate that existing attachments are published
         var anyExistingAttachmentsNotPublished = existingAttachments.Any(a => a.GetLatestStatus()?.Status != AttachmentStatus.Published);
         if (anyExistingAttachmentsNotPublished)
         {
-            return Errors.AttachmentNotPublished;
+            return CorrespondenceErrors.AttachmentsNotPublished;
         }
         // Validate that uploaded files match attachment metadata
         var attachmentMetaDataError = InitializeCorrespondenceHelper.ValidateAttachmentFiles(uploadAttachments, uploadAttachmentMetadata);
@@ -116,12 +115,12 @@ public class InitializeCorrespondencesHandler(
             var templates = await notificationTemplateRepository.GetNotificationTemplates(request.Notification.NotificationTemplate, cancellationToken, request.Correspondence.Content?.Language);
             if (templates.Count == 0)
             {
-                return Errors.NotificationTemplateNotFound;
+                return NotificationErrors.TemplateNotFound;
             }
             notificationContents = GetMessageContent(request.Notification, templates, cancellationToken, request.Correspondence.Content?.Language);
             if (notificationContents.Count == 0)
             {
-                return Errors.NotificationTemplateNotFound;
+                return NotificationErrors.TemplateNotFound;
             }
             var notificationError = initializeCorrespondenceHelper.ValidateNotification(request.Notification);
             if (notificationError != null)
@@ -144,11 +143,10 @@ public class InitializeCorrespondencesHandler(
 
     private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<NotificationContent>? notificationContents, Guid partyUuid, CancellationToken cancellationToken)
     {
-        var status = initializeCorrespondenceHelper.GetInitializeCorrespondenceStatus(request.Correspondence);
         var correspondences = new List<CorrespondenceEntity>();
         foreach (var recipient in request.Recipients)
         {
-            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, attachmentsToBeUploaded, status, partyUuid);
+            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, attachmentsToBeUploaded, partyUuid);
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
@@ -158,7 +156,7 @@ public class InitializeCorrespondencesHandler(
         {
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
             if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized || 
-                correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish) //TODO: Remove ReadyForPublish check if/when ReadyForPublish is removed
+                correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish)
             {
                 var publishTime = correspondence.RequestedPublishTime;
 

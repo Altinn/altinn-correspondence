@@ -26,7 +26,7 @@ public class PurgeCorrespondenceHandler(
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, cancellationToken);
         if (correspondence == null)
         {
-            return Errors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CorrespondenceNotFound;
         }
 
         var hasAccessAsSender = await altinnAuthorizationService.CheckAccessAsSender(
@@ -40,7 +40,7 @@ public class PurgeCorrespondenceHandler(
 
         if (user is null)
         {
-            return Errors.CouldNotDetermineUser;
+            throw new InvalidOperationException("This operation cannot be called outside an authenticated HttpContext");
         }
         var authError = CheckUserPermissions(user, correspondence, hasAccessAsSender, hasAccessAsRecipient, out bool isSender);
         if (authError is not null)
@@ -50,12 +50,12 @@ public class PurgeCorrespondenceHandler(
         var callerId = user.GetCallerOrganizationId();
         if (callerId is null)
         {
-            return Errors.CouldNotDetermineCaller;
+            return AuthorizationErrors.CouldNotDetermineCaller;
         }
         var party = await altinnRegisterService.LookUpPartyById(callerId, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            return Errors.CouldNotFindPartyUuid;
+            return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
@@ -82,7 +82,7 @@ public class PurgeCorrespondenceHandler(
         isSender = false;
         if (!hasAccessAsSender && !hasAccessAsRecipient)
         {
-            return Errors.NoAccessToResource;
+            return AuthorizationErrors.NoAccessToResource;
         }
         else if ((hasAccessAsSender && user.CallingAsSender()) || (!hasAccessAsRecipient && hasAccessAsSender))
         {
