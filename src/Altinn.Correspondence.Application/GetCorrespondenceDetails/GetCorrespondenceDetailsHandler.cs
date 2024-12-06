@@ -24,7 +24,7 @@ public class GetCorrespondenceDetailsHandler(
         var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, cancellationToken);
         if (correspondence == null)
         {
-            return Errors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CorrespondenceNotFound;
         }
         var hasAccessAsRecipient = await altinnAuthorizationService.CheckAccessAsRecipient(
             user,
@@ -36,17 +36,17 @@ public class GetCorrespondenceDetailsHandler(
             cancellationToken);
         if (!hasAccessAsRecipient && !hasAccessAsSender)
         {
-            return Errors.NoAccessToResource;
+            return AuthorizationErrors.NoAccessToResource;
         }
         var latestStatus = correspondence.GetHighestStatus();
         if (latestStatus == null)
         {
-            return Errors.CorrespondenceNotFound;
+            return CorrespondenceErrors.CorrespondenceNotFound;
         }
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            return Errors.CouldNotFindPartyUuid;
+            return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
         return await TransactionWithRetriesPolicy.Execute<GetCorrespondenceDetailsResponse>(async (cancellationToken) =>
@@ -55,7 +55,7 @@ public class GetCorrespondenceDetailsHandler(
             {
                 if (!latestStatus.Status.IsAvailableForRecipient())
                 {
-                    return Errors.CorrespondenceNotFound;
+                    return CorrespondenceErrors.CorrespondenceNotFound;
                 }
                 await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
                 {

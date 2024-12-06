@@ -64,13 +64,13 @@ namespace Altinn.Correspondence.API.Models
         public string? ResourceId { get; set; }
 
         /// <summary>
-        /// Gets or sets the processing status of the notication order
+        /// Gets or sets the processing status of the notification order
         /// </summary>
         [JsonPropertyName("processingStatus")]
         public NotificationProcessStatusExt ProcessingStatus { get; set; }
 
         /// <summary>
-        /// Gets or sets the summary of the notifiications statuses
+        /// Gets or sets the summary of the notifications statuses
         /// </summary>
         [JsonPropertyName("notificationStatusDetails")]
         public NotificationStatusDetailsExt? NotificationStatusDetails { get; set; }

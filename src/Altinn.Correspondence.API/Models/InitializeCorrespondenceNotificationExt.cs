@@ -5,12 +5,12 @@ using System.Text.Json.Serialization;
 namespace Altinn.Correspondence.API.Models
 {
     /// <summary>
-    /// Used to specify a single notifification connected to a specific Correspondence during the Initialize Correspondence operation
+    /// Used to specify a single notification connected to a specific Correspondence during the Initialize Correspondence operation
     /// </summary>
     public class InitializeCorrespondenceNotificationExt
     {
         /// <summary>
-        /// Which of the notifcation templates to use for this notification
+        /// Which of the notification templates to use for this notification
         /// </summary>
         /// <remarks>
         /// Assumed valid variants:

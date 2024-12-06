@@ -41,7 +41,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         _logger = logger;
     }
 
-    public Task<bool> CheckAccessAsSender(ClaimsPrincipal? user, string resourceId, string sender, string? instance, CancellationToken cancellationToken = default) 
+    public Task<bool> CheckAccessAsSender(ClaimsPrincipal? user, string resourceId, string sender, string? instance, CancellationToken cancellationToken = default)
         => CheckUserAccess(
             user,
             resourceId,
@@ -49,8 +49,8 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             instance,
             new List<ResourceAccessLevel> { ResourceAccessLevel.Write },
             cancellationToken);
-    
-    public Task<bool> CheckAccessAsSender(ClaimsPrincipal? user, CorrespondenceEntity correspondence, CancellationToken cancellationToken = default) => 
+
+    public Task<bool> CheckAccessAsSender(ClaimsPrincipal? user, CorrespondenceEntity correspondence, CancellationToken cancellationToken = default) =>
         CheckUserAccess(
             user,
             correspondence.ResourceId,

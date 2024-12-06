@@ -4,7 +4,6 @@ param namePrefix string
 param image string
 param environment string
 param platform_base_url string
-param legacy_base_url string
 param maskinporten_environment string
 param correspondenceBaseUrl string
 param idportenIssuer string
@@ -57,10 +56,6 @@ var containerAppEnvVars = [
   {
     name: 'AltinnOptions__OpenIdWellKnown'
     value: '${platform_base_url}/authentication/api/v1/openid/.well-known/openid-configuration'
-  }
-  {
-    name: 'AltinnOptions__LegacyOpenIdWellKnown'
-    value: '${legacy_base_url}/authentication/api/v1/openid/.well-known/openid-configuration'
   }
   { name: 'AltinnOptions__PlatformGatewayUrl', value: platform_base_url }
   { name: 'AltinnOptions__PlatformSubscriptionKey', secretRef: 'platform-subscription-key' }

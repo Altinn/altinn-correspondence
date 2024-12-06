@@ -16,7 +16,7 @@ namespace Altinn.Correspondence.Application.Helpers
             var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
             if (attachment == null)
             {
-                return Errors.AttachmentNotFound;
+                return AttachmentErrors.AttachmentNotFound;
             }
 
             var currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.UploadProcessing, partyUuid, cancellationToken);
@@ -35,23 +35,23 @@ namespace Altinn.Correspondence.Application.Helpers
                 {
                     await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.UploadFailed);
                     await storageRepository.PurgeAttachment(attachment.Id, cancellationToken);
-                    return Errors.UploadFailed;
+                    return AttachmentErrors.UploadFailed;
                 }
             }
             catch (DataLocationUrlException)
             {
                 await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.InvalidLocationUrl);
-                return Errors.DataLocationNotFound;
+                return AttachmentErrors.DataLocationNotFound;
             }
             catch (HashMismatchException)
             {
                 await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.ChecksumMismatch);
-                return Errors.HashError;
+                return AttachmentErrors.HashMismatch;
             }
             catch (RequestFailedException)
             {
                 await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.UploadFailed);
-                return Errors.UploadFailed;
+                return AttachmentErrors.UploadFailed;
             }
 
             if (hostEnvironment.IsDevelopment()) // No malware scan when running locally
@@ -85,17 +85,17 @@ namespace Altinn.Correspondence.Application.Helpers
             var filename = attachment.FileName;
             if (string.IsNullOrWhiteSpace(filename))
             {
-                return Errors.FilenameMissing;
+                return AttachmentErrors.FilenameMissing;
             }
             if (filename.Length > 255)
             {
-                return Errors.FilenameTooLong;
+                return AttachmentErrors.FilenameTooLong;
             }
             foreach (var c in Path.GetInvalidFileNameChars())
             {
                 if (filename.Contains(c))
                 {
-                    return Errors.FilenameInvalid;
+                    return AttachmentErrors.FilenameInvalid;
                 }
             }
             return null;

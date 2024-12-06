@@ -5,7 +5,7 @@ using Altinn.Correspondence.Common.Constants;
 namespace Altinn.Correspondence.API.Models
 {
     /// <summary>
-    /// Represents a container object for attachments used when initiatating a shared attachment
+    /// Represents a container object for attachments used when initiating a shared attachment
     /// </summary>
     public class InitializeAttachmentExt : BaseAttachmentExt
     {
