@@ -92,9 +92,9 @@ namespace Altinn.Correspondence.Application.Helpers
         {
             var skipContentCheck = notification.NotificationTemplate == NotificationTemplate.GenericAltinnMessage || notification.NotificationTemplate == NotificationTemplate.Altinn2Message;
             var reminderNotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel;
-            var recipientsHasEmail = notification.Recipients == null || notification.Recipients.Count == 0 || !notification.Recipients.Any(r => string.IsNullOrEmpty(r.EmailAddress) && string.IsNullOrEmpty(r.OrganizationNumber) && string.IsNullOrEmpty(r.NationalIdentityNumber));
-            var recipientsHasSms = notification.Recipients == null || notification.Recipients.Count == 0 || !notification.Recipients.Any(r => string.IsNullOrEmpty(r.MobileNumber) && string.IsNullOrEmpty(r.OrganizationNumber) && string.IsNullOrEmpty(r.NationalIdentityNumber));
-            var recipientsHasEmailAndSms = notification.Recipients == null || notification.Recipients.Count == 0 || !notification.Recipients.Any(r => string.IsNullOrEmpty(r.EmailAddress) && string.IsNullOrEmpty(r.MobileNumber) && string.IsNullOrEmpty(r.OrganizationNumber) && string.IsNullOrEmpty(r.NationalIdentityNumber));
+            var recipientsHasEmail = notification.RecipientOverrides == null || notification.RecipientOverrides.Count == 0 || !notification.RecipientOverrides.Any(r => r.recipients.Any(r2 => string.IsNullOrEmpty(r2.EmailAddress) && string.IsNullOrEmpty(r2.OrganizationNumber) && string.IsNullOrEmpty(r2.NationalIdentityNumber)));
+            var recipientsHasSms = notification.RecipientOverrides == null || notification.RecipientOverrides.Count == 0 || !notification.RecipientOverrides.Any(r => r.recipients.Any(r2 => string.IsNullOrEmpty(r2.MobileNumber) && string.IsNullOrEmpty(r2.OrganizationNumber) && string.IsNullOrEmpty(r2.NationalIdentityNumber)));
+            var recipientsHasEmailAndSms = notification.RecipientOverrides == null || notification.RecipientOverrides.Count == 0 || !notification.RecipientOverrides.Any(r => r.recipients.Any(r2 => string.IsNullOrEmpty(r2.EmailAddress) && string.IsNullOrEmpty(r2.MobileNumber) && string.IsNullOrEmpty(r2.OrganizationNumber) && string.IsNullOrEmpty(r2.NationalIdentityNumber)));
 
             if (notification.NotificationChannel == NotificationChannel.Email)
             {

@@ -94,6 +94,6 @@ namespace Altinn.Correspondence.API.Models
         /// A list of recipients for the notification. If not set, the notification will be sent to the recipient of the Correspondence
         /// </summary>
         [JsonPropertyName("recipients")]
-        public List<NotificationRecipientExt>? Recipients { get; set; }
+        public List<NotificationRecipientOverrideExt>? RecipientOverides { get; set; }
     }
 }

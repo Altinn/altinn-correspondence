@@ -277,22 +277,49 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
         var personFormat = new Regex(@"^\d{11}$");
         string? orgNr = null;
         string? personNr = null;
+
         NotificationContent? content = null;
-        if (organizationWithoutPrefixFormat.IsMatch(correspondence.Recipient))
+        List<NotificationRecipientWithContent> recipientWithContents = new List<NotificationRecipientWithContent>();
+        var recipients = notification.RecipientOverrides.Where(r => r.RecipientToOverride == correspondence.Recipient).Select(r => r.recipients).ToList();
+        if (recipients.Count == 0)
         {
-            orgNr = correspondence.Recipient;
-            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Organization || c.RecipientType == null);
+            if (organizationWithoutPrefixFormat.IsMatch(correspondence.Recipient))
+            {
+                recipientWithContents.Add(new NotificationRecipientWithContent
+                {
+                    recipient = new Recipient
+                    {
+                        OrganizationNumber = correspondence.Recipient
+                    },
+                    content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Organization || c.RecipientType == null)
+                });
+            }
+            else if (organizationWithPrefixFormat.IsMatch(correspondence.Recipient))
+            {
+                recipientWithContents.Add(new NotificationRecipientWithContent
+                {
+                    recipient = new Recipient
+                    {
+                        OrganizationNumber = correspondence.Recipient.Substring(5)
+                    },
+                    content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Organization || c.RecipientType == null)
+                });
+            }
+            else if (personFormat.IsMatch(correspondence.Recipient))
+            {
+                recipientWithContents.Add(new NotificationRecipientWithContent
+                {
+                    recipient = new Recipient
+                    {
+                        NationalIdentityNumber = correspondence.Recipient
+                    },
+                    content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person || c.RecipientType == null)
+                });
+            }
+        } else {
+            
         }
-        else if (organizationWithPrefixFormat.IsMatch(correspondence.Recipient))
-        {
-            orgNr = correspondence.Recipient.Substring(5);
-            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Organization || c.RecipientType == null);
-        }
-        else if (personFormat.IsMatch(correspondence.Recipient))
-        {
-            personNr = correspondence.Recipient;
-            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person || c.RecipientType == null);
-        }
+
 
         List<Recipient> recipients = new List<Recipient>();
 
@@ -389,6 +416,13 @@ public class InitializeCorrespondencesHandler : IHandler<InitializeCorrespondenc
     {
         var dialogId = await _dialogportenService.CreateCorrespondenceDialog(correspondence.Id);
         await _correspondenceRepository.AddExternalReference(correspondence.Id, ReferenceType.DialogportenDialogId, dialogId);
+    }
+
+
+    internal class NotificationRecipientWithContent
+    {
+        public Recipient recipient { get; set; }
+        public NotificationContent content { get; set; }
     }
 
     internal class NotificationContent

@@ -20,7 +20,7 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
 
         public string? ReminderSmsBody { get; set; }
 
-        public List<Recipient> Recipients { get; set; }
+        public List<RecipientOverride> RecipientOverrides { get; set; }
 
         public required NotificationChannel NotificationChannel { get; set; }
 

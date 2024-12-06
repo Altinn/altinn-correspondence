@@ -87,19 +87,32 @@ internal static class NotificationMapper
         };
     }
 
-    public static List<Recipient> MapExternalRecipientsToRequest(List<NotificationRecipientExt> recipients)
+    public static List<RecipientOverride> MapExternalRecipientsToRequest(List<NotificationRecipientOverrideExt> recipients)
     {
-        var recipientsRequest = new List<Recipient>();
+        var recipientsRequest = new List<RecipientOverride>();
         foreach (var recipient in recipients)
         {
-            recipientsRequest.Add(new Recipient()
+            recipientsRequest.Add(new RecipientOverride()
             {
-                EmailAddress = recipient.EmailAddress,
-                MobileNumber = recipient.MobileNumber,
-                NationalIdentityNumber = recipient.NationalIdentityNumber,
-                OrganizationNumber = recipient.OrganizationNumber
+                RecipientToOverride = recipient.RecipientToOverride,
+                recipients = recipient.NotifificationRecipient != null ? MapExternalRecipientToRequest(recipient.NotifificationRecipient) : null
             });
         }
         return recipientsRequest;
+    }
+    public static List<Recipient> MapExternalRecipientToRequest(List<NotificationRecipientExt> recipient)
+    {
+        var recipients = new List<Recipient>();
+        foreach (var rec in recipient)
+        {
+            recipients.Add(new Recipient()
+            {
+                EmailAddress = rec.EmailAddress,
+                MobileNumber = rec.MobileNumber,
+                NationalIdentityNumber = rec.NationalIdentityNumber,
+                OrganizationNumber = rec.OrganizationNumber
+            });
+        }
+        return recipients;
     }
 }
