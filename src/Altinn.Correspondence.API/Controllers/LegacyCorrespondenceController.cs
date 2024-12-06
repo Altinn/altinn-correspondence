@@ -11,6 +11,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.API.Controllers
 {
@@ -89,7 +90,7 @@ namespace Altinn.Correspondence.API.Controllers
             LegacyGetCorrespondencesRequest legacyRequest = LegacyGetCorrespondencesMapper.MapToRequest(request);
 
             var commandResult = await handler.Process(legacyRequest, HttpContext.User, cancellationToken);
-
+            _logger.LogInformation("Result is: " + JsonSerializer.Serialize(commandResult));
             return commandResult.Match(
                 data => Ok(data),
                 Problem
