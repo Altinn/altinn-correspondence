@@ -20,6 +20,28 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
             Assert.NotNull(attachmentId);
         }
+        [Theory]
+        [InlineData("rsietris//rsitersn")]
+        [InlineData("    ")]
+        public async Task InitializeAttachment_InvalidFilename_ReturnsBadRequest(string fileName)
+        {
+            var attachment = new AttachmentBuilder()
+                .CreateAttachment()
+                .WithFileName(fileName)
+                .Build();
+            var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+            Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
+        }
+        public async Task InitializeAttachment_FileNameTooLong_ReturnsBadRequest(string fileName)
+        {
+            string namewith300chars = new string('a', 300);
+            var attachment = new AttachmentBuilder()
+                .CreateAttachment()
+                .WithFileName(namewith300chars)
+                .Build();
+            var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+            Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
+        }
         [Fact]
         public async Task InitializeAttachment_AsRecipient_ReturnsForbidden()
         {
@@ -36,22 +58,17 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             Assert.Equal(HttpStatusCode.Unauthorized, initializeAttachmentResponse.StatusCode);
         }
 
-        [Fact]
-        public async Task InitializeAttachment_WithWrongSender_ReturnsBadRequest()
+        [Theory]
+        [InlineData("123456789")]
+        [InlineData("invalid-sender")]
+        public async Task InitializeAttachment_WithWrongSender_ReturnsBadRequest(string sender)
         {
             var attachment = new AttachmentBuilder()
                 .CreateAttachment()
-                .WithSender("invalid-sender")
+                .WithSender(sender)
                 .Build();
             var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
             Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
-
-            var attachment2 = new AttachmentBuilder()
-                .CreateAttachment()
-                .WithSender("123456789")
-                .Build();
-            var initializeAttachmentResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment2);
-            Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse2.StatusCode);
         }
         [Fact]
         public async Task InitializeAttachment_WithoutUrnFormat_AddsUrnFormat()

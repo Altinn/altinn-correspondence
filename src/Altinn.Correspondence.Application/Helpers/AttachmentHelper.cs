@@ -9,7 +9,7 @@ using OneOf;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
-    public class UploadHelper(IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository, IStorageRepository storageRepository, IHostEnvironment hostEnvironment)
+    public class AttachmentHelper(IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository, IStorageRepository storageRepository, IHostEnvironment hostEnvironment)
     {
         public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, CancellationToken cancellationToken)
         {
@@ -55,7 +55,7 @@ namespace Altinn.Correspondence.Application.Helpers
             }
 
             if (hostEnvironment.IsDevelopment()) // No malware scan when running locally
-            {                
+            {
                 currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.Published, partyUuid, cancellationToken);
             }
 
@@ -67,7 +67,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 StatusText = currentStatus.StatusText
             };
         }
-        private async Task<AttachmentStatusEntity> SetAttachmentStatus(Guid attachmentId, AttachmentStatus status, Guid partyUuid, CancellationToken cancellationToken, string statusText = null)
+        public async Task<AttachmentStatusEntity> SetAttachmentStatus(Guid attachmentId, AttachmentStatus status, Guid partyUuid, CancellationToken cancellationToken, string statusText = null)
         {
             var currentStatus = new AttachmentStatusEntity
             {
@@ -79,6 +79,26 @@ namespace Altinn.Correspondence.Application.Helpers
             };
             await attachmentStatusRepository.AddAttachmentStatus(currentStatus, cancellationToken);
             return currentStatus;
+        }
+        public Error? ValidateAttachmentName(AttachmentEntity attachment)
+        {
+            var filename = attachment.FileName;
+            if (string.IsNullOrWhiteSpace(filename))
+            {
+                return AttachmentErrors.FilenameMissing;
+            }
+            if (filename.Length > 255)
+            {
+                return AttachmentErrors.FilenameTooLong;
+            }
+            foreach (var c in Path.GetInvalidFileNameChars())
+            {
+                if (filename.Contains(c))
+                {
+                    return AttachmentErrors.FilenameInvalid;
+                }
+            }
+            return null;
         }
     }
 }

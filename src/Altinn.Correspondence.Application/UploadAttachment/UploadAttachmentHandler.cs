@@ -14,7 +14,7 @@ public class UploadAttachmentHandler(
     IAltinnRegisterService altinnRegisterService,
     IAttachmentRepository attachmentRepository,
     ICorrespondenceRepository correspondenceRepository,
-    UploadHelper uploadHelper,
+    AttachmentHelper attachmentHelper,
     ILogger<UploadAttachmentHandler> logger) : IHandler<UploadAttachmentRequest, UploadAttachmentResponse>
 {
 
@@ -57,7 +57,7 @@ public class UploadAttachmentHandler(
         }
         return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
         {
-            var uploadResult = await uploadHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuid, cancellationToken);
+            var uploadResult = await attachmentHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuid, cancellationToken);
             return uploadResult.Match<OneOf<UploadAttachmentResponse, Error>>(
                 data => { return data; },
                 error => { return error; }

@@ -48,7 +48,7 @@ public static class DependencyInjection
         services.AddScoped<CheckNotificationHandler>();
 
         // Helpers
-        services.AddScoped<UploadHelper>();
+        services.AddScoped<AttachmentHelper>();
         services.AddScoped<UserClaimsHelper>();
         services.AddScoped<InitializeCorrespondenceHelper>();
         services.AddScoped<UpdateCorrespondenceStatusHelper>();

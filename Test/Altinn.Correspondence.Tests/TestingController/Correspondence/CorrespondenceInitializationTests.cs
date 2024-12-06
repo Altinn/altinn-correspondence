@@ -29,54 +29,41 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
         }
 
-        [Fact]
-        public async Task InitializeCorrespondence_WithCorrectLanguageCode_ReturnsOK()
+        [Theory]
+        [InlineData("nN")]
+        [InlineData("EN")]
+        public async Task InitializeCorrespondence_WithCorrectLanguageCode_ReturnsOK(string languageCode)
         {
             // Arrange
-            var payload1 = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithLanguageCode("nN")
-                .Build();
-            var payload2 = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithLanguageCode("EN")
-                .Build();
+            var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithLanguageCode(languageCode)
+            .Build();
 
             // Act
-            var response1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload1);
-            var response2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload2);
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
             // Assert
-            Assert.Equal(HttpStatusCode.OK, response1.StatusCode);
-            Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
-        [Fact]
-        public async Task InitializeCorrespondence_WithInvalidLanguageCode_ReturnsBadRequest()
+        [Theory]
+        [InlineData("nu")]
+        [InlineData(null)]
+        [InlineData("")]
+        public async Task InitializeCorrespondence_WithInvalidLanguageCode_ReturnsBadRequest(string languageCode)
         {
             // Arrange
-            var payload1 = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithLanguageCode("nu")
-                .Build();
-            var payload2 = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithLanguageCode(null)
-                .Build();
-            var payload3 = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithLanguageCode("")
-                .Build();
+            var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithLanguageCode(languageCode)
+            .Build();
 
             // Act
-            var response1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload1);
-            var response2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload2);
-            var response3 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload3);
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
             // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, response1.StatusCode);
-            Assert.Equal(HttpStatusCode.BadRequest, response2.StatusCode);
-            Assert.Equal(HttpStatusCode.BadRequest, response3.StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
         [Fact]
@@ -189,22 +176,17 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.BadRequest, response3.StatusCode);
         }
 
-        [Fact]
-        public async Task InitializeCorrespondence_With_HTML_Or_Markdown_In_Title_fails()
+        [Theory]
+        [InlineData("<h1>test</h1>")]
+        [InlineData("# test")]
+        public async Task InitializeCorrespondence_With_HTML_Or_Markdown_In_Title_fails(string messageTitle)
         {
             var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithMessageTitle("<h1>test</h1>")
-                .Build();
+            .CreateCorrespondence()
+            .WithMessageTitle(messageTitle)
+            .Build();
 
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-
-            payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithMessageTitle("# test")
-                .Build();
-            initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
         }
 
@@ -212,9 +194,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task InitializeCorrespondence_With_HTML_In_Summary_Or_Body_fails()
         {
             var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithMessageSummary("<h1>test</h1>")
-                .Build();
+            .CreateCorrespondence()
+            .WithMessageSummary("<h1>test</h1>")
+            .Build();
 
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
@@ -273,27 +255,19 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
         }
 
-        [Fact]
-        public async Task InitializeCorrespondence_With_Invalid_Recipient_Returns_BadRequest()
+        [Theory]
+        [InlineData("invalid-recipient")]
+        [InlineData("123456789")]
+        [InlineData("1234567812390123")]
+        [InlineData("1234:123456789")]
+        public async Task InitializeCorrespondence_With_Invalid_Recipient_Returns_BadRequest(string recipient)
         {
             var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithRecipients(["invalid-recipient"])
-                .Build();
+            .CreateCorrespondence()
+            .WithRecipients([recipient])
+            .Build();
 
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-
-            payload.Recipients = ["123456789"];
-            initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-
-            payload.Recipients = ["1234567812390123"];
-            initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-
-            payload.Recipients = ["1234:123456789"];
-            initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
         }
 

@@ -45,6 +45,9 @@ public static class AttachmentErrors
     public static Error PurgeAttachmentWithExistingCorrespondence = new Error(2007, "Attachment cannot be purged as it is linked to at least one existing correspondence", HttpStatusCode.BadRequest);
     public static Error HashMismatch = new Error(2008, "Checksum mismatch", HttpStatusCode.BadRequest);
     public static Error DataLocationNotFound = new Error(2009, "Could not get data location url", HttpStatusCode.BadRequest);
+    public static Error FilenameMissing = new Error(2010, "Filename is missing", HttpStatusCode.BadRequest);
+    public static Error FilenameTooLong = new Error(2011, "Filename is too long", HttpStatusCode.BadRequest);
+    public static Error FilenameInvalid = new Error(2012, "Filename contains invalid characters", HttpStatusCode.BadRequest);
 }
 public static class NotificationErrors
 {

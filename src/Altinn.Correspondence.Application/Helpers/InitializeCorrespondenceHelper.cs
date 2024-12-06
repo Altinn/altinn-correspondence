@@ -15,7 +15,7 @@ namespace Altinn.Correspondence.Application.Helpers
     public class InitializeCorrespondenceHelper(
         IAttachmentRepository attachmentRepository,
         IHostEnvironment hostEnvironment,
-        UploadHelper uploadHelper,
+        AttachmentHelper attachmentHelper,
         ILogger<InitializeCorrespondenceHelper> logger)
     {
 
@@ -200,14 +200,19 @@ namespace Altinn.Correspondence.Application.Helpers
         }
 
         /// <summary>
-        /// Validates that the uploaded files match the attachments in the correspondence
+        /// Validates the uploaded files. 
+        /// Checks that the filename is valid, the files are the same as the attachments, and the files are not too large
         /// </summary>
-        public static Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments)
+        public Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments)
         {
             var maxUploadSize = long.Parse(int.MaxValue.ToString());
             foreach (var attachment in attachments)
             {
                 if (attachment.Attachment?.DataLocationUrl != null) continue;
+
+                var nameError = attachmentHelper.ValidateAttachmentName(attachment.Attachment!);
+                if (nameError is not null) return nameError;
+
                 var file = files.FirstOrDefault(a => a.FileName == attachment.Attachment?.FileName);
                 if (file == null) return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
                 if (file?.Length > maxUploadSize || file?.Length == 0) return AttachmentErrors.InvalidFileSize;
@@ -261,7 +266,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 OneOf<UploadAttachmentResponse, Error> uploadResponse;
                 await using (var f = file.OpenReadStream())
                 {
-                    uploadResponse = await uploadHelper.UploadAttachment(f, attachment.Id, partyUuid, cancellationToken);
+                    uploadResponse = await attachmentHelper.UploadAttachment(f, attachment.Id, partyUuid, cancellationToken);
                 }
                 var error = uploadResponse.Match(
                     _ => { return null; },
@@ -285,6 +290,11 @@ namespace Altinn.Correspondence.Application.Helpers
             };
             var attachment = correspondenceAttachment.Attachment!;
             attachment.Statuses = status;
+            if (attachment.Sender.StartsWith("0192:"))
+            {
+                attachment.Sender = $"{UrnConstants.OrganizationNumberAttribute}:{attachment.Sender.WithoutPrefix()}";
+                logger.LogInformation($"'0192:' prefix detected for sender in initialization of attachment. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
+            }
             return await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
         }
     }
