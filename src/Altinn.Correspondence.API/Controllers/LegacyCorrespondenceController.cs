@@ -90,7 +90,12 @@ namespace Altinn.Correspondence.API.Controllers
             LegacyGetCorrespondencesRequest legacyRequest = LegacyGetCorrespondencesMapper.MapToRequest(request);
 
             var commandResult = await handler.Process(legacyRequest, HttpContext.User, cancellationToken);
-            _logger.LogInformation("Result is: " + JsonSerializer.Serialize(commandResult));
+            if (commandResult.IsT0) { 
+                _logger.LogInformation("Result is: " + JsonSerializer.Serialize(commandResult.AsT0));
+            } else
+            {
+                _logger.LogInformation("Result is error: " + commandResult.AsT1);
+            }
             return commandResult.Match(
                 data => Ok(data),
                 Problem
