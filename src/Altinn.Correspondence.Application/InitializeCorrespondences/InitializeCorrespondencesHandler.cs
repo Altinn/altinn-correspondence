@@ -201,11 +201,21 @@ public class InitializeCorrespondencesHandler(
                         RequestedSendTime = notification.RequestedSendTime,
                         IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
                     };
+InitializedNotificationStatus status;
+
+                    if (notificationOrder.RecipientLookup is null) // Custom recipient
+                    {
+                        status = InitializedNotificationStatus.Success;
+                    }
+                    else
+                    {
+                        status = notificationOrder.RecipientLookup.Status == RecipientLookupStatus.Success ? InitializedNotificationStatus.Success : InitializedNotificationStatus.MissingContact;
+                    }
                     notificationDetails.Add(new InitializedCorrespondencesNotifications()
                     {
                         OrderId = entity.NotificationOrderId,
                         IsReminder = entity.IsReminder,
-                        Status = notificationOrder.RecipientLookup?.Status == RecipientLookupStatus.Success ? InitializedNotificationStatus.Success : InitializedNotificationStatus.MissingContact
+                        Status = status
                     });
                     await correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
                     backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime.ToString("yyyy-MM-dd HH:mm")));
@@ -230,29 +240,46 @@ public class InitializeCorrespondencesHandler(
     private List<NotificationOrderRequest> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents)
     {
         var notifications = new List<NotificationOrderRequest>();
-        string? orgNr = null;
-        string? personNr = null;
-        NotificationContent? content = null;
-        string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
-        if (recipientWithoutPrefix.IsOrganizationNumber())
+                string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
+        bool isOrganization = recipientWithoutPrefix.IsOrganizationNumber();
+        bool isPerson = recipientWithoutPrefix.IsSocialSecurityNumber();
+
+        var recipientOverrides = notification.CustomNotificationRecipients ?? [];
+        var newRecipients = new List<Recipient>();
+        foreach (var recipientOverride in recipientOverrides)
         {
-            orgNr = recipientWithoutPrefix;
-            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Organization || c.RecipientType == null);
+            newRecipients.AddRange(recipientOverride.Recipients.Select(r => new Recipient
+            {
+                EmailAddress = r.EmailAddress,
+                MobileNumber = r.MobileNumber,
+                IsReserved = r.IsReserved,
+                OrganizationNumber = r.OrganizationNumber,
+                NationalIdentityNumber = r.NationalIdentityNumber
+            }));
         }
-        else if (recipientWithoutPrefix.IsSocialSecurityNumber())
+        
+        List<Recipient> relevantRecipients = newRecipients.Count > 0 ? newRecipients : new List<Recipient>
         {
-            personNr = recipientWithoutPrefix;
-            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person || c.RecipientType == null);
+            new()
+            {
+                OrganizationNumber = isOrganization ? recipientWithoutPrefix : null,
+                NationalIdentityNumber = isPerson ? recipientWithoutPrefix : null
+            }
+        };
+
+        NotificationContent? content = null;
+        if (isOrganization)
+        {
+            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Organization) ?? contents.FirstOrDefault(c => c.RecipientType == null);
+        }
+        else if (isPerson)
+        {
+            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person) ?? contents.FirstOrDefault(c => c.RecipientType == null);
         }
         var notificationOrder = new NotificationOrderRequest
         {
             IgnoreReservation = correspondence.IgnoreReservation,
-            Recipients = new List<Recipient>{
-            new Recipient{
-                OrganizationNumber = orgNr,
-                NationalIdentityNumber = personNr
-            },
-        },
+            Recipients = relevantRecipients,
             ResourceId = correspondence.ResourceId,
             RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(5) : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
             SendersReference = correspondence.SendersReference,
@@ -274,14 +301,7 @@ public class InitializeCorrespondencesHandler(
             notifications.Add(new NotificationOrderRequest
             {
                 IgnoreReservation = correspondence.IgnoreReservation,
-                Recipients = new List<Recipient>
-                {
-                    new Recipient
-                    {
-                        OrganizationNumber = orgNr,
-                        NationalIdentityNumber = personNr
-                    },
-                },
+                Recipients = relevantRecipients,
                 ResourceId = correspondence.ResourceId,
                 RequestedSendTime = hostEnvironment.IsProduction() ? notificationOrder.RequestedSendTime.AddDays(7) : notificationOrder.RequestedSendTime.AddHours(1),
                 ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString()),
