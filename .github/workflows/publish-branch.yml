@@ -39,4 +39,5 @@ jobs:
             STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
             DIALOGPORTEN_ISSUER: ${{ secrets.DIALOGPORTEN_ISSUER }}
             IDPORTEN_ISSUER: ${{ secrets.IDPORTEN_ISSUER }}
+            SBL_BRIDGE_BASE_URL: ${{ secrets.SBL_BRIDGE_BASE_URL }}
           

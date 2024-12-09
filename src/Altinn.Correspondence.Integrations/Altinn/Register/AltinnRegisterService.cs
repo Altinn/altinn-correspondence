@@ -20,10 +20,10 @@ public class AltinnRegisterService : IAltinnRegisterService
         _logger = logger;
     }
 
-    public async Task<string?> LookUpPartyId(string identificationId, CancellationToken cancellationToken = default)
+    public async Task<int?> LookUpPartyId(string identificationId, CancellationToken cancellationToken = default)
     {
         var party = await LookUpPartyById(identificationId, cancellationToken);
-        return party?.PartyId.ToString();
+        return party?.PartyId;
     }
 
     public async Task<string?> LookUpName(string identificationId, CancellationToken cancellationToken = default)

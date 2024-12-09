@@ -33,7 +33,7 @@ public static class DependencyInjection
             services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationDevService>();
             services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
-        } 
+        }
         else
         {
             var altinnOptions = new AltinnOptions();
@@ -51,11 +51,16 @@ public static class DependencyInjection
         if (string.IsNullOrWhiteSpace(generalSettings.SlackUrl))
         {
             services.AddSingleton<ISlackClient>(new SlackDevClient(""));
-        } 
+        }
         else
         {
             services.AddSingleton<ISlackClient>(new SlackClient(generalSettings.SlackUrl));
         }
+        if (string.IsNullOrWhiteSpace(generalSettings.AltinnSblBridgeBaseUrl))
+        {
+            services.AddSingleton<IAltinnSblBridgeService>(new AltinnSblBridgeDevService(""));
+        }
+        else services.AddSingleton<IAltinnSblBridgeService>(new AltinnSblBridgeService(generalSettings.AltinnSblBridgeBaseUrl));
     }
 
     public static void RegisterMaskinportenHttpClient<TClient, TImplementation>(this IServiceCollection services, MaskinportenSettings maskinportenSettings, AltinnOptions altinnOptions)

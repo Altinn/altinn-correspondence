@@ -40,6 +40,9 @@ inputs:
   IDPORTEN_ISSUER:
     description: "Issuer for Maskinporten integration used for IDPorten auth"
     required: true
+  SBL_BRIDGE_BASE_URL:
+    description: "Base url for SBL Bridge"
+    required: true
 
 runs:
   using: "composite"
@@ -70,6 +73,7 @@ runs:
         CORRESPONDENCE_BASE_URL: ${{ inputs.CORRESPONDENCE_BASE_URL }}
         DIALOGPORTEN_ISSUER: ${{ inputs.DIALOGPORTEN_ISSUER }}
         IDPORTEN_ISSUER: ${{ inputs.IDPORTEN_ISSUER }}
+        SBL_BRIDGE_BASE_URL: ${{ inputs.SBL_BRIDGE_BASE_URL }}
       with:
         scope: subscription
         subscriptionId: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
