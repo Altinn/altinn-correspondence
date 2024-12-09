@@ -17,6 +17,8 @@ param keyVaultUrl string
 param namePrefix string
 @secure()
 param storageAccountName string
+@secure()
+param sblBridgeBaseUrl string
 @minLength(3)
 param maskinporten_environment string
 param correspondenceBaseUrl string
@@ -96,6 +98,7 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     correspondenceBaseUrl: correspondenceBaseUrl
     idportenIssuer: idportenIssuer
     dialogportenIssuer: dialogportenIssuer
+    sblBridgeBaseUrl: sblBridgeBaseUrl
   }
 }
 

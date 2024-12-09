@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -155,7 +156,7 @@ public class InitializeCorrespondencesHandler(
         foreach (var correspondence in correspondences)
         {
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
-            if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized || 
+            if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized ||
                 correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish)
             {
                 var publishTime = correspondence.RequestedPublishTime;
@@ -174,6 +175,7 @@ public class InitializeCorrespondencesHandler(
                 backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
             }
             await eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
+            backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence.Recipient, null, cancellationToken));
 
             var notificationDetails = new List<InitializedCorrespondencesNotifications>();
             if (request.Notification != null)
