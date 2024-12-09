@@ -8,10 +8,9 @@ public class AltinnSblBridgeService : IAltinnSblBridgeService
 {
     private readonly HttpClient _httpClient;
 
-    public AltinnSblBridgeService(string baseUrl)
+    public AltinnSblBridgeService(HttpClient httpClient)
     {
-        _httpClient = _httpClient ?? new HttpClient();
-        _httpClient.BaseAddress = new Uri(baseUrl);
+        _httpClient = httpClient;
         _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     }
 

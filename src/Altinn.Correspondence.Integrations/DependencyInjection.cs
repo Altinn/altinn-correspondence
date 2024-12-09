@@ -60,7 +60,7 @@ public static class DependencyInjection
         {
             services.AddSingleton<IAltinnSblBridgeService>(new AltinnSblBridgeDevService(""));
         }
-        else services.AddSingleton<IAltinnSblBridgeService>(new AltinnSblBridgeService(generalSettings.AltinnSblBridgeBaseUrl));
+        else services.AddHttpClient<IAltinnSblBridgeService, AltinnSblBridgeService>(client => client.BaseAddress = new Uri(generalSettings.AltinnSblBridgeBaseUrl));
     }
 
     public static void RegisterMaskinportenHttpClient<TClient, TImplementation>(this IServiceCollection services, MaskinportenSettings maskinportenSettings, AltinnOptions altinnOptions)
