@@ -67,14 +67,14 @@ public class LegacyGetCorrespondencesHandler(
         List<string> resourcesToSearch = new List<string>();
 
         // Get all correspondences owned by Recipients
-        var correspondences = await correspondenceRepository.GetCorrespondencesForParties(request.Offset, limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken);
+        var (correspondences, correspondencesCount) = await correspondenceRepository.GetCorrespondencesForParties(request.Offset, limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken);
 
-        var resourceIds = correspondences.Item1.Select(c => c.ResourceId).Distinct().ToList();
+        var resourceIds = correspondences.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
         List<LegacyCorrespondenceItem> correspondenceItems = new List<LegacyCorrespondenceItem>();
 
         var Senders = new List<PartyInfo>();
-        foreach (var orgNr in correspondences.Item1.Select(c => c.Sender).Distinct().ToList())
+        foreach (var orgNr in correspondences.Select(c => c.Sender).Distinct().ToList())
         {
             try
             {
@@ -88,7 +88,7 @@ public class LegacyGetCorrespondencesHandler(
         }
 
         var resourceOwners = new List<PartyInfo>();
-        foreach (var resource in correspondences.Item1.Select(c => c.ResourceId).Distinct().ToList())
+        foreach (var resource in correspondences.Select(c => c.ResourceId).Distinct().ToList())
         {
             try
             {
@@ -104,7 +104,7 @@ public class LegacyGetCorrespondencesHandler(
         }
 
         var recipientDetails = new List<PartyInfo>();
-        foreach (var orgNr in correspondences.Item1.Select(c => c.Recipient).Distinct().ToList())
+        foreach (var orgNr in correspondences.Select(c => c.Recipient).Distinct().ToList())
         {
             try
             {
@@ -118,7 +118,7 @@ public class LegacyGetCorrespondencesHandler(
             }
         }
         var correspondenceToSubtractFromTotal = 0;
-        foreach (var correspondence in correspondences.Item1)
+        foreach (var correspondence in correspondences)
         {
             var authLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
             if (minAuthLevel == null || minAuthLevel < authLevel)
@@ -156,7 +156,7 @@ public class LegacyGetCorrespondencesHandler(
             {
                 Offset = request.Offset,
                 Limit = limit,
-                TotalItems = correspondences.Item2 - correspondenceToSubtractFromTotal
+                TotalItems = correspondencesCount - correspondenceToSubtractFromTotal
             }
         };
         return response;
