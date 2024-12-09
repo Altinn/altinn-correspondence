@@ -47,6 +47,8 @@ public class LegacyGetCorrespondencesHandler(
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
+        logger.LogInformation("OrgNo: " + userParty.OrgNumber);
+        logger.LogInformation("SSN: " + userParty.SSN);
         var recipients = new List<string>();
         if (request.InstanceOwnerPartyIdList != null && request.InstanceOwnerPartyIdList.Length > 0)
         {
