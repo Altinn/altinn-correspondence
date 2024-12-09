@@ -81,6 +81,8 @@ public class LegacyGetCorrespondencesHandler(
         List<LegacyCorrespondenceItem> correspondenceItems = new List<LegacyCorrespondenceItem>();
 
         var Senders = new List<PartyInfo>();
+        logger.LogInformation($"Retrieved {correspondencesCount} correspondences from db");
+        logger.LogInformation($"Retrieved correspondences from {resourceIds.Count} distinct resourcws from db.");
         foreach (var orgNr in correspondences.Select(c => c.Sender).Distinct().ToList())
         {
             try
@@ -130,6 +132,7 @@ public class LegacyGetCorrespondencesHandler(
             var authLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
             if (minAuthLevel == null || minAuthLevel < authLevel)
             {
+                logger.LogInformation($"Correspondence with id {correspondence.Id} was excluded from total");
                 correspondenceToSubtractFromTotal++;
                 continue;
             }
