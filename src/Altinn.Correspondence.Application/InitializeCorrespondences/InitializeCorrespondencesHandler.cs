@@ -122,7 +122,7 @@ public class InitializeCorrespondencesHandler(
             {
                 return NotificationErrors.TemplateNotFound;
             }
-            var notificationError = initializeCorrespondenceHelper.ValidateNotification(request.Notification);
+            var notificationError = initializeCorrespondenceHelper.ValidateNotification(request.Notification, request.Recipients);
             if (notificationError != null)
             {
                 return notificationError;
@@ -155,7 +155,7 @@ public class InitializeCorrespondencesHandler(
         foreach (var correspondence in correspondences)
         {
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
-            if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized || 
+            if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized ||
                 correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish)
             {
                 var publishTime = correspondence.RequestedPublishTime;
@@ -201,7 +201,7 @@ public class InitializeCorrespondencesHandler(
                         RequestedSendTime = notification.RequestedSendTime,
                         IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
                     };
-InitializedNotificationStatus status;
+                    InitializedNotificationStatus status;
 
                     if (notificationOrder.RecipientLookup is null) // Custom recipient
                     {
@@ -240,7 +240,7 @@ InitializedNotificationStatus status;
     private List<NotificationOrderRequest> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents)
     {
         var notifications = new List<NotificationOrderRequest>();
-                string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
+        string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
         bool isOrganization = recipientWithoutPrefix.IsOrganizationNumber();
         bool isPerson = recipientWithoutPrefix.IsSocialSecurityNumber();
 
@@ -257,7 +257,7 @@ InitializedNotificationStatus status;
                 NationalIdentityNumber = r.NationalIdentityNumber
             }));
         }
-        
+
         List<Recipient> relevantRecipients = newRecipients.Count > 0 ? newRecipients : new List<Recipient>
         {
             new()

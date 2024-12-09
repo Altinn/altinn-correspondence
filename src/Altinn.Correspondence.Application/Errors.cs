@@ -57,7 +57,14 @@ public static class NotificationErrors
     public static Error MissingSmsContent = new Error(3004, "SMS body must be provided when sending SMS notifications", HttpStatusCode.BadRequest);
     public static Error MissingSmsReminderContent = new Error(3005, "Reminder SMS body must be provided when sending reminder SMS notifications", HttpStatusCode.BadRequest);
     public static Error MissingPreferredChannel = new Error(3006, "Email body, subject and SMS body must be provided when sending preferred notifications", HttpStatusCode.BadRequest);
-    public static Error MissingPreferredReminderChannel = new Error(3007, $"Reminder email body, subject and SMS body must be provided when sending reminder preferred notifications", HttpStatusCode.BadRequest);
+    public static Error MissingPreferredReminderChannel = new Error(3007, "Reminder email body, subject and SMS body must be provided when sending reminder preferred notifications", HttpStatusCode.BadRequest);
+    public static Error CouldNotFindRecipientToOverride(string id) { return new Error(3008, $"Could not find recipient with id: {id} to override", HttpStatusCode.BadRequest); }
+    public static Error MissingEmailRecipient = new Error(3009, "Missing email information for custom recipient. Add email or use the OrganizationNumber or NationalIdentityNumber fields for contact information", HttpStatusCode.BadRequest);
+    public static Error MissingSmsRecipient = new Error(3010, "Missing mobile number for custom recipient. Add mobile number or use the OrganizationNumber or NationalIdentityNumber fields for contact information", HttpStatusCode.BadRequest);
+    public static Error InvalidEmailProvided = new Error(3011, "Invalid email provided for custom recipient.", HttpStatusCode.BadRequest);
+    public static Error InvalidMobileNumberProvided = new Error(3012, "Invalid mobile number provided. Mobile number can contain only '+' and numeric characters, and it must adhere to the E.164 standard.", HttpStatusCode.BadRequest);
+    public static Error OrgNumberWithSsnEmailOrMobile = new Error(3013, "Organization number cannot be combined with email address, mobile number, or national identity number.", HttpStatusCode.BadRequest);
+    public static Error SsnWithOrgNoEmailOrMobile = new Error(3014, "National identity number cannot be combined with email address, mobile number, or organization number.", HttpStatusCode.BadRequest);
 }
 public static class AuthorizationErrors
 {
