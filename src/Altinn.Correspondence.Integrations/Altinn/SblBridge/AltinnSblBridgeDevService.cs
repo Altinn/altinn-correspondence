@@ -10,12 +10,8 @@ using Party = Altinn.Correspondence.Core.Models.Entities.Party;
 namespace Altinn.Correspondence.Integrations.Altinn.Register;
 public class AltinnSblBridgeDevService : IAltinnSblBridgeService
 {
-    private readonly HttpClient _httpClient;
-
     public AltinnSblBridgeDevService(string baseUrl)
     {
-        _httpClient = _httpClient ?? new HttpClient();
-        _httpClient.BaseAddress = new Uri(baseUrl);
     }
 
     public async Task<bool> AddPartyToSblBridge(int partyId, CancellationToken cancellationToken = default)
