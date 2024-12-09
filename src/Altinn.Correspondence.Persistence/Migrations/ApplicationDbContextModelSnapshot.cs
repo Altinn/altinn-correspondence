@@ -348,13 +348,14 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.LegacyPartyEntity", b =>
                 {
-                    b.Property<int>("PartyId")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("PartyId")
                         .HasColumnType("integer");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PartyId"));
-
-                    b.HasKey("PartyId");
+                    b.HasKey("Id");
 
                     b.ToTable("LegacyParties", "correspondence");
                 });

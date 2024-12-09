@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241208122348_LegacyPartyId")]
+    [Migration("20241209072946_LegacyPartyId")]
     partial class LegacyPartyId
     {
         /// <inheritdoc />
@@ -351,13 +351,14 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.LegacyPartyEntity", b =>
                 {
-                    b.Property<int>("PartyId")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("PartyId")
                         .HasColumnType("integer");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PartyId"));
-
-                    b.HasKey("PartyId");
+                    b.HasKey("Id");
 
                     b.ToTable("LegacyParties", "correspondence");
                 });
