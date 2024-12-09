@@ -52,15 +52,15 @@ public static class AltinnTokenXacmlMapper
 
         if (party.IsOrganizationNumber())
         {
-            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.OrganizationNumberAttribute, party, DefaultType, DefaultIssuer));
+            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.OrganizationNumberAttribute, party.WithoutPrefix(), DefaultType, DefaultIssuer));
         }
         else if (party.IsSocialSecurityNumber())
         {
-            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, party, DefaultType, DefaultIssuer));
+            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, party.WithoutPrefix(), DefaultType, DefaultIssuer));
         }
         else
         {
-            throw new InvalidOperationException("RecipientId is not a valid organization or person number");
+            throw new InvalidOperationException("RecipientId is not a valid organization or person number: " + party);
         }
         if (instanceId is not null)
         {
