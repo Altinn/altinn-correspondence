@@ -39,6 +39,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.6" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
     <PackageReference Include="Moq" Version="4.20.70" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.0.0" />
     <PackageReference Include="xunit" Version="2.8.1" />
 	  <PackageReference Include="xunit.runner.visualstudio" Version="2.8.1">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -49,6 +50,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Altinn.Correspondence.API\Altinn.Correspondence.API.csproj" />
     <ProjectReference Include="..\..\src\Altinn.Correspondence.Core\Altinn.Correspondence.Core.csproj" />
+    <ProjectReference Include="..\..\src\Altinn.Correspondence.Persistence\Altinn.Correspondence.Persistence.csproj" />
   </ItemGroup>
 
   <ItemGroup>
