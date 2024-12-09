@@ -86,6 +86,7 @@ namespace Altinn.Correspondence.API.Controllers
             CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Get correspondences for receiver");
+            _logger.LogInformation("Request is: " + JsonSerializer.Serialize(request));
 
             LegacyGetCorrespondencesRequest legacyRequest = LegacyGetCorrespondencesMapper.MapToRequest(request);
 
