@@ -11,14 +11,14 @@ namespace Altinn.Correspondence.API.Models;
 public class CustomNotificationRecipientExt
 {
     /// <summary>
-    /// recipient
+    /// Organization number or national identity number of the recipient to override with custom recipient(s)
     /// </summary>
     [JsonPropertyName("recipientToOverride")]
     public required string RecipientToOverride { get; set; }
 
     /// <summary>
-    /// the email address of the recipient
+    /// List of custom recipients to override the default recipients
     /// </summary>
     [JsonPropertyName("notificationRecipient")]
-    public List<NotificationRecipientExt>? Recipients { get; set; }
+    public required List<NotificationRecipientExt> Recipients { get; set; }
 }

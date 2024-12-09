@@ -3,12 +3,12 @@ namespace Altinn.Correspondence.Core.Models.Notifications;
 public class CustomNotificationRecipient
 {
     /// <summary>
-    /// Which recipient we want to override the notification information for
+    /// Organization number or national identity number of the recipient to override with custom recipient(s)
     /// </summary>
-    public string RecipientToOverride { get; set; }
+    public required string RecipientToOverride { get; set; }
 
     /// <summary>
-    /// The new notification information for the recipient
+    /// List of new recipients to override the default recipients
     /// </summary>
-    public List<Recipient> Recipients { get; set; }
+    public required List<Recipient> Recipients { get; set; }
 }
