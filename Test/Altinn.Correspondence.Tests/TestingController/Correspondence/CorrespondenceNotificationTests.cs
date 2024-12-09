@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Notifications;
@@ -29,7 +29,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .CreateCorrespondence()
                 .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
                 .WithNotificationChannel(NotificationChannelExt.Sms)
-                .WithEmailContent()
+                .WithSmsContent()
                 .Build();
             var initializeCorrespondenceResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", smsPayload, _responseSerializerOptions);
             var response1 = await initializeCorrespondenceResponse1.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
@@ -97,7 +97,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task CorrespondenceWithPrefferedNotification_Gives_Ok()
+        public async Task CorrespondenceWithPreferredNotification_Gives_Ok()
         {
             var preferredEmailCustomPayload = new CorrespondenceBuilder()
                 .CreateCorrespondence()

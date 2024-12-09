@@ -161,7 +161,7 @@ namespace Altinn.Correspondence.Tests.Factories
         }
         public CorrespondenceBuilder WithReminderNotificationChannel(NotificationChannelExt notificationChannel)
         {
-            _correspondence.Correspondence.Notification!.ReminderNotificationChannel= notificationChannel;
+            _correspondence.Correspondence.Notification!.ReminderNotificationChannel = notificationChannel;
             return this;
         }
         public CorrespondenceBuilder WithEmailContent()
@@ -178,7 +178,7 @@ namespace Altinn.Correspondence.Tests.Factories
         }
         public CorrespondenceBuilder WithSmsContent()
         {
-            _correspondence.Correspondence.Notification!.SmsBody= "test";
+            _correspondence.Correspondence.Notification!.SmsBody = "test";
             return this;
         }
         public CorrespondenceBuilder WithSmsReminder()

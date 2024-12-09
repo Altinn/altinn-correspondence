@@ -178,7 +178,7 @@ public class InitializeCorrespondencesHandler(
             var notificationDetails = new List<InitializedCorrespondencesNotifications>();
             if (request.Notification != null)
             {
-                var notifications = CreateNotifications(request.Notification, correspondence, notificationContents, cancellationToken);
+                var notifications = CreateNotifications(request.Notification, correspondence, notificationContents);
                 foreach (var notification in notifications)
                 {
                     var notificationOrder = await altinnNotificationService.CreateNotification(notification, cancellationToken);
@@ -227,7 +227,7 @@ public class InitializeCorrespondencesHandler(
         };
     }
 
-    private List<NotificationOrderRequest> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
+    private List<NotificationOrderRequest> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents)
     {
         var notifications = new List<NotificationOrderRequest>();
         string? orgNr = null;
