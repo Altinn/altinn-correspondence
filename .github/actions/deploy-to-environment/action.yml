@@ -63,6 +63,9 @@ inputs:
   SLACK_URL:
     description: "Slack URL"
     required: true
+  SBL_BRIDGE_BASE_URL:
+    description: "SBL Bridge Base URL"
+    required: true
 
 runs:
   using: "composite"
@@ -118,3 +121,4 @@ runs:
         IDPORTEN_ISSUER: ${{ inputs.IDPORTEN_ISSUER }}
         PLATFORM_BASE_URL: ${{ inputs.PLATFORM_BASE_URL }}
         STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}
+        SBL_BRIDGE_BASE_URL: ${{ inputs.SBL_BRIDGE_BASE_URL }}
