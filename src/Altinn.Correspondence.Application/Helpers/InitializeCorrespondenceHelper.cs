@@ -194,14 +194,15 @@ namespace Altinn.Correspondence.Application.Helpers
         private Error? ValidateNotificationChannelForRecipientOverrides(NotificationRequest notification, Recipient recipient)
         {
             bool recipientHaveOrgOrSsn = !string.IsNullOrEmpty(recipient.OrganizationNumber) || !string.IsNullOrEmpty(recipient.NationalIdentityNumber);
-            if (notification.NotificationChannel != NotificationChannel.Sms || notification.ReminderNotificationChannel != NotificationChannel.Sms)
+            var reminderNotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel;
+            if (notification.NotificationChannel != NotificationChannel.Sms || reminderNotificationChannel != NotificationChannel.Sms)
             {
                 if (recipient.EmailAddress is null && !recipientHaveOrgOrSsn)
                 {
                     return NotificationErrors.MissingEmailRecipient;
                 }
             }
-            if (notification.NotificationChannel != NotificationChannel.Email || notification.ReminderNotificationChannel != NotificationChannel.Email)
+            if (notification.NotificationChannel != NotificationChannel.Email || reminderNotificationChannel != NotificationChannel.Email)
             {
                 if (recipient.MobileNumber is null && !recipientHaveOrgOrSsn)
                 {
