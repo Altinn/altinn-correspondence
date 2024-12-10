@@ -242,12 +242,12 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                         new NotificationRecipientExt()
                         {
                             MobileNumber = "+4798765432",
-                            EmailAddress = "andreas.hammerbeck@digir.no"
+                            EmailAddress = "andreas.håmmerbeck@digdær.no"
                         },
                         new NotificationRecipientExt()
                         {
                             MobileNumber = "004798765432",
-                            EmailAddress = "andreas.hammerbeck@digir.no"
+                            EmailAddress = "andreås.hammerbeck@digdør.no"
                         },
                         new NotificationRecipientExt()
                         {
