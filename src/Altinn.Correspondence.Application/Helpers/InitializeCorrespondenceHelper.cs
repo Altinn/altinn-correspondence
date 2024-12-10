@@ -99,6 +99,25 @@ namespace Altinn.Correspondence.Application.Helpers
         }
         public Error? ValidateNotification(NotificationRequest notification, List<string> recipients)
         {
+            var customRecipientError = ValidateRecipientOverrides(notification, recipients);
+            if (customRecipientError != null)
+            {
+                return customRecipientError;
+            }
+
+            var contentError = ValidateNotificationContent(notification);
+            if (contentError != null)
+            {
+                return contentError;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Validate the content of the notification.
+        /// </summary>
+        private Error? ValidateNotificationContent(NotificationRequest notification)
+        {
             if (notification.NotificationTemplate == NotificationTemplate.GenericAltinnMessage || notification.NotificationTemplate == NotificationTemplate.Altinn2Message) return null;
 
             var reminderNotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel;
@@ -128,16 +147,11 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return NotificationErrors.MissingPreferredReminderChannel;
             }
-
-            var overridesError = ValidateRecipientOverrides(notification, recipients);
-            if (overridesError != null)
-            {
-                return overridesError;
-            }
             return null;
         }
+
         /// <summary>
-        /// Validate that the recipient overrides for a notification has the required fields for the chosen notification channel
+        /// Validate that the recipient overrides for a notification.
         /// </summary>
         public Error? ValidateRecipientOverrides(NotificationRequest notification, List<string> recipients)
         {
@@ -177,9 +191,6 @@ namespace Altinn.Correspondence.Application.Helpers
         /// <summary>
         /// Validate that the recipient only provides organization number, social security number, or contact info in email or mobile number for the given notification channel.
         /// </summary>
-        /// <param name="notification"></param>
-        /// <param name="recipient"></param>
-        /// <returns></returns>
         private Error? ValidateNotificationChannelForRecipientOverrides(NotificationRequest notification, Recipient recipient)
         {
             bool recipientHaveOrgOrSsn = !string.IsNullOrEmpty(recipient.OrganizationNumber) || !string.IsNullOrEmpty(recipient.NationalIdentityNumber);
