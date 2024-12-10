@@ -10,13 +10,13 @@ public class AltinnRegisterDevService : IAltinnRegisterService
     private const string _identificationIDPattern = @"^(?:\d{11}|\d{9}|0192:\d{9})$";
     private static readonly Regex IdentificationIDRegex = new(_identificationIDPattern);
     private readonly int _digdirPartyId = 50952483;
-    public Task<string?> LookUpPartyId(string identificationId, CancellationToken cancellationToken)
+    public Task<int?> LookUpPartyId(string identificationId, CancellationToken cancellationToken)
     {
         if (IdentificationIDRegex.IsMatch(identificationId))
         {
-            return Task.FromResult<string?>(_digdirPartyId.ToString());
+            return Task.FromResult<int?>(_digdirPartyId);
         }
-        return Task.FromResult<string?>(null);
+        return Task.FromResult<int?>(null);
     }
     public Task<string?> LookUpName(string identificationId, CancellationToken cancellationToken)
     {
