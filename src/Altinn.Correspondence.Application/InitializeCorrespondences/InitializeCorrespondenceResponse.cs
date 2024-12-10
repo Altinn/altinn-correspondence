@@ -23,7 +23,16 @@ public class InitializedCorrespondencesNotifications
 }
 public enum InitializedNotificationStatus 
 {
+    /// <summary>
+    /// The recipient lookup was successful for at least one recipient
+    /// </summary>
     Success,
+    /// <summary>
+    /// The recipient lookup failed for all recipients
+    /// </summary>
     MissingContact,
+    /// <summary>
+    /// The notification order failed to be created due to an error
+    /// </summary>
     Failure,
 }

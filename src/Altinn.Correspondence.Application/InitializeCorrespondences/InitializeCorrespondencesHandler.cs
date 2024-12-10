@@ -201,21 +201,13 @@ public class InitializeCorrespondencesHandler(
                         RequestedSendTime = notification.RequestedSendTime,
                         IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
                     };
-                    InitializedNotificationStatus status;
 
-                    if (notificationOrder.RecipientLookup is null) // Custom recipient
-                    {
-                        status = InitializedNotificationStatus.Success;
-                    }
-                    else
-                    {
-                        status = notificationOrder.RecipientLookup.Status == RecipientLookupStatus.Success ? InitializedNotificationStatus.Success : InitializedNotificationStatus.MissingContact;
-                    }
                     notificationDetails.Add(new InitializedCorrespondencesNotifications()
                     {
                         OrderId = entity.NotificationOrderId,
                         IsReminder = entity.IsReminder,
-                        Status = status
+                        // For custom recipients, RecipientLookup will be null. As such, this also maps to Success
+                        Status = notificationOrder.RecipientLookup?.Status == RecipientLookupStatus.Failed ? InitializedNotificationStatus.MissingContact : InitializedNotificationStatus.Success
                     });
                     await correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
                     backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime.ToString("yyyy-MM-dd HH:mm")));
