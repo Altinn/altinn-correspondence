@@ -10,7 +10,7 @@ namespace Altinn.Correspondence.API.Models
     public class BaseCorrespondenceExt
     {
         /// <summary>
-        /// Gets or sets the Resource Id for the correspondence service.
+        /// The Resource Id associated with the correspondence service.
         /// </summary>
         [JsonPropertyName("resourceId")]
         [StringLength(255, MinimumLength = 1)]
@@ -21,7 +21,7 @@ namespace Altinn.Correspondence.API.Models
         /// The Sending organization of the correspondence. 
         /// </summary>
         /// <remarks>
-        /// Organization number in countrycode:organizationnumber format.
+        /// Organization number must be formatted as countrycode:organizationnumber.
         /// </remarks>
         [JsonPropertyName("sender")]
         [OrganizationNumber(ErrorMessage = $"Organization numbers should be on the format '{UrnConstants.OrganizationNumberAttribute}:organizationnumber' or the format countrycode:organizationnumber, for instance 0192:910753614")]
@@ -29,7 +29,7 @@ namespace Altinn.Correspondence.API.Models
         public required string Sender { get; set; }
 
         /// <summary>
-        /// Used by senders and receivers to identify specific a Correspondence using external identification methods.
+        /// A reference used by senders and receivers to identify a specific Correspondence using external identification methods.
         /// </summary>
         [JsonPropertyName("sendersReference")]
         [StringLength(4096, MinimumLength = 1)]
@@ -56,23 +56,21 @@ namespace Altinn.Correspondence.API.Models
         public DateTimeOffset? RequestedPublishTime { get; set; }
 
         /// <summary>
-        /// Gets or sets the date for when Altinn can remove the correspondence from its database.
+        /// When Altinn can remove the correspondence from its database.
         /// </summary>
         [JsonPropertyName("allowSystemDeleteAfter")]
         public DateTimeOffset? AllowSystemDeleteAfter { get; set; }
 
         /// <summary>
-        /// Gets or sets a date and time for when the recipient must reply.
+        /// When the recipient must reply to the correspondence
         /// </summary>
         [JsonPropertyName("dueDateTime")]
         public DateTimeOffset? DueDateTime { get; set; }
 
         /// <summary>
-        /// Gets or sets an list of references Senders can use this field to tell the recipient that the correspondence is related to the referenced item(s)
+        /// A list of references Senders can use to tell the recipient that the correspondence is related to the referenced item(s)
         /// Examples include Altinn App instances, Altinn Broker File Transfers
         /// </summary>
-        /// <remarks>
-        /// </remarks>
         [JsonPropertyName("externalReferences")]
         [ExternalReferences]
         public List<ExternalReferenceExt>? ExternalReferences { get; set; }
@@ -85,13 +83,13 @@ namespace Altinn.Correspondence.API.Models
         public Dictionary<string, string> PropertyList { get; set; } = new Dictionary<string, string>();
 
         /// <summary>
-        /// Options for how the recipient can reply to the correspondence
+        /// Options for how the recipient can reply to the Correspondence
         /// </summary>
         [JsonPropertyName("replyOptions")]
         public List<CorrespondenceReplyOptionExt> ReplyOptions { get; set; } = new List<CorrespondenceReplyOptionExt>();
 
         /// <summary>
-        /// Notifications directly related to this Correspondence.
+        /// Notifications related to the Correspondence.
         /// </summary>
         [JsonPropertyName("notification")]
         public InitializeCorrespondenceNotificationExt? Notification { get; set; }

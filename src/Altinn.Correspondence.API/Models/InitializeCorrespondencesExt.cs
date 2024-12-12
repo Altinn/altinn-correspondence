@@ -14,7 +14,7 @@ public class InitializeCorrespondencesExt
     public required BaseCorrespondenceExt Correspondence { get; set; }
 
     /// <summary>
-    /// The recipients of the correspondence, either an organisation or an person
+    /// List of recipients for the correspondence, either as organization or national identity number
     /// </summary>
     [JsonPropertyName("recipients")]
     [Required]
