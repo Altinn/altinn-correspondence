@@ -48,8 +48,8 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// The date the correspondence was confirmed
         /// </summary>
-        [JsonPropertyName("confirmed")]
-        public DateTimeOffset? Confirmed { get; set; }
+        [JsonPropertyName("confirmationDate")]
+        public DateTimeOffset? ConfirmationDate { get; set; }
 
         /// <summary>
         /// Gets or sets the language of the correspondence, specified according to ISO 639-1 
