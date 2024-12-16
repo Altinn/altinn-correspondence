@@ -22,7 +22,7 @@ param maskinporten_environment string
 param correspondenceBaseUrl string
 param idportenIssuer string
 param dialogportenIssuer string
-param maskinporten_token_exchange_environment string?
+param maskinporten_token_exchange_environment string
 
 var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'

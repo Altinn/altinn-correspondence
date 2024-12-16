@@ -66,6 +66,7 @@ inputs:
   MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT:
     description: "Maskinporten Token Exchange Environment"
     required: false
+    default: ""
 
 runs:
   using: "composite"
