@@ -30,6 +30,7 @@ public class ProcessLegacyPartyHandler(
         {
             throw new Exception("Failed to send party to SBL");
         }
+        logger.Log(LogLevel.Information, "Party {partyId} added to SBL", partyId);
         await legacyPartyRepository.AddLegacyPartyId((int)partyId, cancellationToken);
         return Task.CompletedTask;
     }
