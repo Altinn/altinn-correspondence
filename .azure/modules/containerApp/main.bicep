@@ -8,6 +8,7 @@ param maskinporten_environment string
 param correspondenceBaseUrl string
 param idportenIssuer string
 param dialogportenIssuer string
+param maskinporten_token_exchange_environment string
 
 @secure()
 param subscription_id string
@@ -70,6 +71,7 @@ var containerAppEnvVars = [
     name: 'MaskinportenSettings__ExhangeToAltinnToken'
     value: 'true'
   }
+  { name: 'MaskinportenSettings__TokenExchangeEnvironment', value: maskinporten_token_exchange_environment }
   { name: 'MaskinportenSettings__EncodedJwk', secretRef: 'maskinporten-jwk' }
   { name: 'GeneralSettings__CorrespondenceBaseUrl', value: correspondenceBaseUrl }
   { name: 'GeneralSettings__SlackUrl', secretRef: 'slack-url' }
