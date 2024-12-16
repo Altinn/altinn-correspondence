@@ -11,6 +11,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.InitializeCorrespondence;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
+using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Application.PurgeAttachment;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
@@ -47,6 +48,7 @@ public static class DependencyInjection
         // Integrations
         services.AddScoped<MalwareScanResultHandler>();
         services.AddScoped<CheckNotificationHandler>();
+        services.AddScoped<ProcessLegacyPartyHandler>();
 
         // Helpers
         services.AddScoped<AttachmentHelper>();
