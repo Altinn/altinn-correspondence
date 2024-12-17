@@ -1,4 +1,5 @@
 ﻿using Altinn.Common.PEP.Authorization;
+using Altinn.Common.AccessToken;
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Options;
@@ -6,7 +7,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
@@ -68,6 +68,27 @@ namespace Altinn.Correspondence.API.Auth
                         ValidateLifetime = !hostEnvironment.IsDevelopment(),
                         ClockSkew = TimeSpan.Zero
                     };
+                })
+                .AddJwtBearer(AuthorizationConstants.Legacy, options =>
+                {
+                    options.SaveToken = true;
+                    if (hostEnvironment.IsProduction())
+                    {
+                        options.MetadataAddress = altinnOptions.OpenIdWellKnown;
+                    }
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
+                        RequireExpirationTime = true,
+                        ValidateLifetime = true,
+                        ClockSkew = TimeSpan.Zero
+                    };
+                    if (hostEnvironment.IsDevelopment())
+                    {
+                        options.RequireHttpsMetadata = false;
+                    }
                 })
                 .AddJwtBearer(AuthorizationConstants.DialogportenScheme, options =>
                 {
@@ -141,7 +162,7 @@ namespace Altinn.Correspondence.API.Auth
                 options.AddPolicy(AuthorizationConstants.DownloadAttachmentPolicy, policy =>
                     policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope)
                           .AddAuthenticationSchemes(AuthorizationConstants.AllSchemes));
-                options.AddPolicy(AuthorizationConstants.Legacy, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.LegacyScope)).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
+                options.AddPolicy(AuthorizationConstants.Legacy, policy => policy.AddRequirements(new AccessTokenRequirement()).AddAuthenticationSchemes(AuthorizationConstants.Legacy));
             });
         }
     }
