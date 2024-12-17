@@ -63,6 +63,10 @@ inputs:
   SLACK_URL:
     description: "Slack URL"
     required: true
+  MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT:
+    description: "Maskinporten Token Exchange Environment"
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -118,3 +122,4 @@ runs:
         IDPORTEN_ISSUER: ${{ inputs.IDPORTEN_ISSUER }}
         PLATFORM_BASE_URL: ${{ inputs.PLATFORM_BASE_URL }}
         STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}
+        MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}

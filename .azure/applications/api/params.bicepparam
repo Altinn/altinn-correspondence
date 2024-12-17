@@ -9,6 +9,7 @@ param environment = readEnvironmentVariable('ENVIRONMENT')
 param maskinporten_environment = 'test'
 param dialogportenIssuer = readEnvironmentVariable('DIALOGPORTEN_ISSUER')
 param idportenIssuer = readEnvironmentVariable('IDPORTEN_ISSUER')
+param maskinporten_token_exchange_environment = readEnvironmentVariable('MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT')
 // secrets
 param sourceKeyVaultName = readEnvironmentVariable('KEY_VAULT_NAME')
 param keyVaultUrl = readEnvironmentVariable('KEY_VAULT_URL')

@@ -22,6 +22,7 @@ param maskinporten_environment string
 param correspondenceBaseUrl string
 param idportenIssuer string
 param dialogportenIssuer string
+param maskinporten_token_exchange_environment string
 
 var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'
@@ -96,6 +97,7 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     correspondenceBaseUrl: correspondenceBaseUrl
     idportenIssuer: idportenIssuer
     dialogportenIssuer: dialogportenIssuer
+    maskinporten_token_exchange_environment: maskinporten_token_exchange_environment
   }
 }
 
