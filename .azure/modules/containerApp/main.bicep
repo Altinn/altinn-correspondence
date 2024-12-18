@@ -148,6 +148,11 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           keyVaultUrl: '${keyVaultUrl}/secrets/idporten-client-secret'
           name: 'idporten-client-secret'
         }
+        {
+          identity: principal_id
+          keyVaultUrl: '${keyVaultUrl}/secrets/redis-connection-string'
+          name: 'redis-connection-string'
+        }
       ]
     }
 
