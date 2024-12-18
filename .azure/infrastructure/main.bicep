@@ -135,6 +135,16 @@ module storageAccount '../modules/storageAccount/create.bicep' = {
   }
 }
 
+module reddis '../modules/redis/main.bicep' = {
+  scope: resourceGroup
+  name: 'redis'
+  params: {
+    location: location
+    namePrefix: namePrefix
+    keyVaultName: sourceKeyVaultName
+  }
+}
+
 module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
   scope: resourceGroup
   name: 'container-app-environment'
