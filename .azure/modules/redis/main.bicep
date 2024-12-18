@@ -19,7 +19,6 @@ resource redis 'Microsoft.Cache/redis@2024-11-01' = {
   location: location
   name: '${namePrefix}-redis'
   properties: {
-    disableAccessKeyAuthentication: true
     sku: {
       capacity: 0
       family: 'C'
