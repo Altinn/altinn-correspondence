@@ -1,5 +1,7 @@
 ﻿using Altinn.Common.PEP.Authorization;
 using Altinn.Common.AccessToken;
+using Altinn.Common.AccessToken.Services;
+
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Options;
@@ -10,6 +12,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
+using Altinn.Common.AccessToken.Configuration;
 
 namespace Altinn.Correspondence.API.Auth
 {
@@ -27,6 +30,12 @@ namespace Altinn.Correspondence.API.Auth
             config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
             services.AddDistributedMemoryCache();
             services.AddTransient<IdportenTokenValidator>();
+
+            services.Configure<AccessTokenSettings>(config.GetSection("AccessTokenSettings"));
+            services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
+            services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProvider>();
+            services.Configure<KeyVaultSettings>(config.GetSection("KeyVaultSettings"));
+
             services
                 .AddAuthentication()
                 .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
@@ -72,18 +81,15 @@ namespace Altinn.Correspondence.API.Auth
                 .AddJwtBearer(AuthorizationConstants.Legacy, options =>
                 {
                     options.SaveToken = true;
-                    if (hostEnvironment.IsProduction())
-                    {
-                        options.MetadataAddress = altinnOptions.OpenIdWellKnown;
-                    }
+                    options.MetadataAddress = altinnOptions.OpenIdWellKnown;
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuerSigningKey = true,
                         ValidateIssuer = false,
                         ValidateAudience = false,
-                        RequireExpirationTime = true,
-                        ValidateLifetime = true,
-                        ClockSkew = TimeSpan.Zero
+                        RequireExpirationTime = false,
+                        ValidateLifetime = false,
+                        ClockSkew = TimeSpan.Zero,
                     };
                     if (hostEnvironment.IsDevelopment())
                     {

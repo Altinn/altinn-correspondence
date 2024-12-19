@@ -79,6 +79,10 @@ var containerAppEnvVars = [
   { name: 'IdportenSettings__Issuer', value: idportenIssuer }
   { name: 'IdportenSettings__ClientId', secretRef: 'idporten-client-id' }
   { name: 'IdportenSettings__ClientSecret', secretRef: 'idporten-client-secret' }
+  { name: 'KeyVaultSettings__Url', secretRef: 'kv-url' }
+  { name: 'KeyVaultSettings__TenantId', secretRef: 'kv-teant-id' }
+  { name: 'KeyVaultSettings__ClientId', secretRef: 'kv-client-id' }
+  { name: 'KeyVaultSettings__ClientSecret', secretRef: 'kv-client-secret' }
 ]
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: '${namePrefix}-app'
@@ -146,6 +150,26 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           identity: principal_id
           keyVaultUrl: '${keyVaultUrl}/secrets/idporten-client-secret'
           name: 'idporten-client-secret'
+        }
+        {
+          identity: principal_id
+          keyVaultUrl: '${keyVaultUrl}/secrets/kv-url'
+          name: 'kv-url'
+        }
+        {
+          identity: principal_id
+          keyVaultUrl: '${keyVaultUrl}/secrets/kv-tenant-id'
+          name: 'kv-tenant-id'
+        }
+        {
+          identity: principal_id
+          keyVaultUrl: '${keyVaultUrl}/secrets/kv-client-secret'
+          name: 'kv-client-secret'
+        }
+        {
+          identity: principal_id
+          keyVaultUrl: '${keyVaultUrl}/secrets/kv-client-id'
+          name: 'kv-client-id'
         }
       ]
     }

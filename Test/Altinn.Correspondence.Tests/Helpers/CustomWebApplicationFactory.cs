@@ -40,8 +40,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                        );
             HangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
             HangfireBackgroundJobClient.Setup(x => x.Create(
-                It.IsAny<Job>(), 
-                It.IsAny<IState>())).Returns("1"); 
+                It.IsAny<Job>(),
+                It.IsAny<IState>())).Returns("1");
             services.AddSingleton(HangfireBackgroundJobClient.Object);
             services.AddScoped<IEventBus, ConsoleLogEventBus>();
             services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
@@ -74,6 +74,43 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             new Claim("actual_iss", "mock"),
             new Claim("nbf", "1721893243"),
             new Claim("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier", "1"),
+            new Claim("urn:altinn:userid", "1"),
+            new Claim("urn:altinn:partyid", "1")
+        };
+        var claimsWithDuplicatesAllowed = new List<string> { "scope" };
+        foreach (var (type, value) in claims)
+        {
+            if (claimsWithDuplicatesAllowed.Contains(type))
+            {
+                defaultClaims.Add(new Claim(type, value));
+            }
+            else
+            {
+                defaultClaims.RemoveAll(c => c.Type == type);
+                defaultClaims.Add(new Claim(type, value));
+            }
+        }
+        // Clone the current factory and set the specific claims for this instance
+        var clientFactory = WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.AddSingleton<IPolicyEvaluator>(provider =>
+                {
+                    return new MockPolicyEvaluator(defaultClaims);
+                });
+            });
+        });
+        return clientFactory.CreateClient();
+    }
+    public HttpClient CreateClientWithLegacyClaims(params (string type, string value)[] claims)
+    {
+        var defaultClaims = new List<Claim>
+        {
+            new Claim("urn:altinn:authlevel", "3"),
+            new Claim("exp", "1721895043"),
+            new Claim("iat", "1721893243"),
+            new Claim("nbf", "1721893243"),
             new Claim("urn:altinn:userid", "1"),
             new Claim("urn:altinn:partyid", "1")
         };
