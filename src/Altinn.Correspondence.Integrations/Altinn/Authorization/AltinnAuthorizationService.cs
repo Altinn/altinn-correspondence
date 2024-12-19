@@ -191,7 +191,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
     private bool ValidateAuthorizationResponse(XacmlJsonResponse response, ClaimsPrincipal user)
     {
-        if (response.Response.IsNullOrEmpty())
+        if (response.Response == null || !response.Response.Any())
         {
             return false;
         }
