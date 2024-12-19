@@ -63,7 +63,7 @@ static void BuildAndRun(string[] args)
 static void ConfigureServices(IServiceCollection services, IConfiguration config, IHostEnvironment hostEnvironment)
 {
     var connectionString = GetConnectionString(config);
-
+    services.AddMemoryCache();
     services.AddHostedService<EdDsaSecurityKeysCacheService>();
     services.Configure<AttachmentStorageOptions>(config.GetSection(key: nameof(AttachmentStorageOptions)));
     services.Configure<AltinnOptions>(config.GetSection(key: nameof(AltinnOptions)));
