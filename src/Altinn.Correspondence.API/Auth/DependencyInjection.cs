@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
@@ -25,7 +24,11 @@ namespace Altinn.Correspondence.API.Auth
             config.GetSection(nameof(DialogportenSettings)).Bind(dialogportenSettings);
             var generalSettings = new GeneralSettings();
             config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
-            services.AddDistributedMemoryCache();
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = generalSettings.RedisConnectionString;
+                options.InstanceName = "redisCache";
+            });
             services.AddTransient<IdportenTokenValidator>();
             services
                 .AddAuthentication()

@@ -49,6 +49,7 @@ var containerAppEnvVarsdefault = [
   { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'application-insights-connection-string' }
   { name: 'DatabaseOptions__ConnectionString', secretRef: 'correspondence-ado-connection-string' }
   { name: 'AttachmentStorageOptions__ConnectionString', secretRef: 'storage-connection-string' }
+  { name: 'GeneralSettings__RedisConnectionString', secretRef: 'redis-connection-string' }
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription_id }
   { name: 'AzureResourceManagerOptions__Location', value: 'norwayeast' }
   { name: 'AzureResourceManagerOptions__Environment', value: environment }
@@ -156,6 +157,11 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           identity: principal_id
           keyVaultUrl: '${keyVaultUrl}/secrets/idporten-client-secret'
           name: 'idporten-client-secret'
+        }
+        {
+          identity: principal_id
+          keyVaultUrl: '${keyVaultUrl}/secrets/redis-connection-string'
+          name: 'redis-connection-string'
         }
       ]
     }
