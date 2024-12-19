@@ -63,6 +63,9 @@ inputs:
   SLACK_URL:
     description: "Slack URL"
     required: true
+  MASKINPORTEN_ENVIRONMENT:
+    description: "Maskinporten Environment"
+    required: true
   MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT:
     description: "Maskinporten Token Exchange Environment"
     required: false
@@ -91,6 +94,7 @@ runs:
         IDPORTEN_CLIENT_SECRET: ${{ inputs.IDPORTEN_CLIENT_SECRET }}
         MASKINPORTEN_CLIENT_ID: ${{ inputs.MASKINPORTEN_CLIENT_ID }}
         MASKINPORTEN_JWK: ${{ inputs.MASKINPORTEN_JWK }}
+        MASKINPORTEN_ENVIRONMENT: ${{ inputs.MASKINPORTEN_ENVIRONMENT }}
         PLATFORM_SUBSCRIPTION_KEY: ${{ inputs.PLATFORM_SUBSCRIPTION_KEY }}
         SLACK_URL: ${{ inputs.SLACK_URL }}
 
