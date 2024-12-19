@@ -44,7 +44,7 @@ var probes = [
   }
 ]
 
-var containerAppEnvVars = [
+var containerAppEnvVarsdefault = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: environment }
   { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'application-insights-connection-string' }
   { name: 'DatabaseOptions__ConnectionString', secretRef: 'correspondence-ado-connection-string' }
@@ -71,7 +71,7 @@ var containerAppEnvVars = [
     name: 'MaskinportenSettings__ExhangeToAltinnToken'
     value: 'true'
   }
-  { name: 'MaskinportenSettings__TokenExchangeEnvironment', value: maskinporten_token_exchange_environment }
+
   { name: 'MaskinportenSettings__EncodedJwk', secretRef: 'maskinporten-jwk' }
   { name: 'GeneralSettings__CorrespondenceBaseUrl', value: correspondenceBaseUrl }
   { name: 'GeneralSettings__SlackUrl', secretRef: 'slack-url' }
@@ -84,6 +84,16 @@ var containerAppEnvVars = [
   { name: 'KeyVaultSettings__ClientId', secretRef: 'kv-client-id' }
   { name: 'KeyVaultSettings__ClientSecret', secretRef: 'kv-client-secret' }
 ]
+
+var containerAppEnvVars = concat(
+  containerAppEnvVarsdefault,
+  maskinporten_token_exchange_environment != '' && maskinporten_token_exchange_environment != null
+    ? [
+        { name: 'MaskinportenSettings__TokenExchangeEnvironment', value: maskinporten_token_exchange_environment }
+      ]
+    : []
+)
+
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: '${namePrefix}-app'
   location: location
