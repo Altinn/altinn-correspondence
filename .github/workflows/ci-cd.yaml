@@ -78,7 +78,6 @@ jobs:
           PLATFORM_SUBSCRIPTION_KEY: ${{ secrets.PLATFORM_SUBSCRIPTION_KEY }}
           SLACK_URL: ${{ secrets.SLACK_URL }}
           MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ secrets.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
-          MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
 
   deploy-at22:
     name: deploy at22
@@ -118,7 +117,6 @@ jobs:
           PLATFORM_SUBSCRIPTION_KEY: ${{ secrets.PLATFORM_SUBSCRIPTION_KEY }}
           SLACK_URL: ${{ secrets.SLACK_URL }}
           MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ secrets.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
-          MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
 
   deploy-staging:
     name: Internal staging
@@ -161,7 +159,6 @@ jobs:
           PLATFORM_SUBSCRIPTION_KEY: ${{ secrets.PLATFORM_SUBSCRIPTION_KEY }}
           SLACK_URL: ${{ secrets.SLACK_URL }}
           MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ secrets.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
-          MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
 
   deploy-production:
     name: Production
@@ -204,7 +201,6 @@ jobs:
           PLATFORM_SUBSCRIPTION_KEY: ${{ secrets.PLATFORM_SUBSCRIPTION_KEY }}
           SLACK_URL: ${{ secrets.SLACK_URL }}
           MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ secrets.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
-          MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
 
   release-to-git:  
     name: Release to git
