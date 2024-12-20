@@ -27,8 +27,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
                 GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
                 Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
-                Activities = GetActivitiesForCorrespondence(correspondence),
-                Transmissions = new List<Transmission>()
+                Activities = GetActivitiesForCorrespondence(correspondence)
             };
         }
 
