@@ -1,4 +1,7 @@
 ﻿using Altinn.Common.PEP.Authorization;
+using Altinn.Common.AccessToken;
+using Altinn.Common.AccessToken.Services;
+
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Options;
@@ -6,10 +9,10 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
+using Altinn.Common.AccessToken.Configuration;
 
 namespace Altinn.Correspondence.API.Auth
 {
@@ -27,6 +30,12 @@ namespace Altinn.Correspondence.API.Auth
             config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
             services.AddDistributedMemoryCache();
             services.AddTransient<IdportenTokenValidator>();
+
+            services.Configure<AccessTokenSettings>(config.GetSection("AccessTokenSettings"));
+            services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
+            services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProvider>();
+            services.Configure<KeyVaultSettings>(config.GetSection("KeyVaultSettings"));
+
             services
                 .AddAuthentication()
                 .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
@@ -68,6 +77,24 @@ namespace Altinn.Correspondence.API.Auth
                         ValidateLifetime = !hostEnvironment.IsDevelopment(),
                         ClockSkew = TimeSpan.Zero
                     };
+                })
+                .AddJwtBearer(AuthorizationConstants.Legacy, options =>
+                {
+                    options.SaveToken = true;
+                    options.MetadataAddress = altinnOptions.OpenIdWellKnown;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
+                        RequireExpirationTime = false,
+                        ValidateLifetime = false,
+                        ClockSkew = TimeSpan.Zero,
+                    };
+                    if (hostEnvironment.IsDevelopment())
+                    {
+                        options.RequireHttpsMetadata = false;
+                    }
                 })
                 .AddJwtBearer(AuthorizationConstants.DialogportenScheme, options =>
                 {
@@ -141,7 +168,7 @@ namespace Altinn.Correspondence.API.Auth
                 options.AddPolicy(AuthorizationConstants.DownloadAttachmentPolicy, policy =>
                     policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope)
                           .AddAuthenticationSchemes(AuthorizationConstants.AllSchemes));
-                options.AddPolicy(AuthorizationConstants.Legacy, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.LegacyScope)).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
+                options.AddPolicy(AuthorizationConstants.Legacy, policy => policy.AddRequirements(new AccessTokenRequirement()).AddAuthenticationSchemes(AuthorizationConstants.Legacy));
             });
         }
     }

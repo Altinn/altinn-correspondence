@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System.Text.Json.Serialization;
+using Altinn.Common.AccessToken.Configuration;
 
 BuildAndRun(args);
 
@@ -62,13 +63,14 @@ static void BuildAndRun(string[] args)
 static void ConfigureServices(IServiceCollection services, IConfiguration config, IHostEnvironment hostEnvironment)
 {
     var connectionString = GetConnectionString(config);
-
+    services.AddMemoryCache();
     services.AddHostedService<EdDsaSecurityKeysCacheService>();
     services.Configure<AttachmentStorageOptions>(config.GetSection(key: nameof(AttachmentStorageOptions)));
     services.Configure<AltinnOptions>(config.GetSection(key: nameof(AltinnOptions)));
     services.Configure<DialogportenSettings>(config.GetSection(key: nameof(DialogportenSettings)));
     services.Configure<IdportenSettings>(config.GetSection(key: nameof(IdportenSettings)));
     services.Configure<GeneralSettings>(config.GetSection(key: nameof(GeneralSettings)));
+    services.Configure<KeyVaultSettings>(config.GetSection(key: nameof(KeyVaultSettings)));
 
     services.AddControllers().AddJsonOptions(options =>
     {
