@@ -1,12 +1,11 @@
 ﻿using Altinn.Correspondence.Core.Services;
 
-namespace Altinn.Correspondence.Integrations.Altinn.ContactReservationRegistry
+namespace Altinn.Correspondence.Integrations.Altinn.ContactReservationRegistry;
+
+internal class ContactReservationRegistryDevService : IContactReservationRegistryService
 {
-    internal class ContactReservationRegistryDevService : IContactReservationRegistryService
+    public Task<bool> IsPersonReserved(string ssn)
     {
-        public Task<bool> IsPersonReserved(string ssn)
-        {
-            return Task.FromResult(false);
-        }
+        return Task.FromResult(false);
     }
 }

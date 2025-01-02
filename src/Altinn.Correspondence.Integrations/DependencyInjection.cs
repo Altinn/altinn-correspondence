@@ -49,9 +49,7 @@ public static class DependencyInjection
             services.RegisterAltinnHttpClient<IEventBus, AltinnEventBus>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnNotificationService, AltinnNotificationService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IDialogportenService, DialogportenService>(maskinportenSettings, altinnOptions);
-            services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(IContactReservationRegistryService).FullName, maskinportenSettings);
-            services.AddHttpClient<IContactReservationRegistryService, ContactReservationRegistryService>((client) => client.BaseAddress = new Uri(generalSettings.ContactReservationRegistryBaseUrl))
-                .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, IContactReservationRegistryService>();
+            services.RegisterMaskinportenHttpClient<IContactReservationRegistryService, ContactReservationRegistryService>(config, generalSettings.ContactReservationRegistryBaseUrl);
         }
         if (string.IsNullOrWhiteSpace(generalSettings.SlackUrl))
         {
@@ -69,6 +67,18 @@ public static class DependencyInjection
     {
         services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(TClient).FullName, maskinportenSettings);
         services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
+            .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>();
+    }
+
+    public static void RegisterMaskinportenHttpClient<TClient, TImplementation>(this IServiceCollection services, IConfiguration config, string baseAddress)
+        where TClient : class
+        where TImplementation : class, TClient
+    {
+        var maskinportenSettings = new MaskinportenSettings();
+        config.GetSection(nameof(MaskinportenSettings)).Bind(maskinportenSettings);
+        maskinportenSettings.ExhangeToAltinnToken = false;
+        services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(TClient).FullName, maskinportenSettings);
+        services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(baseAddress))
             .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>();
     }
 }
