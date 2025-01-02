@@ -318,7 +318,7 @@ public class InitializeCorrespondencesHandler(
         var sendersName = correspondence.MessageSender;
         if (string.IsNullOrEmpty(sendersName))
         {
-            sendersName = await altinnRegisterService.LookUpName(correspondence.Sender, cancellationToken);
+            sendersName = await altinnRegisterService.LookUpName(correspondence.Sender.WithoutPrefix(), cancellationToken);
             sendersName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(sendersName.ToLower());
         }
         foreach (var template in templates)
