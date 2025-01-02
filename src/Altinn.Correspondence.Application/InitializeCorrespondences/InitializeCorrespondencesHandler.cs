@@ -14,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
+using System.Globalization;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
@@ -178,7 +179,13 @@ public class InitializeCorrespondencesHandler(
             var notificationDetails = new List<InitializedCorrespondencesNotifications>();
             if (request.Notification != null)
             {
-                var notifications = CreateNotifications(request.Notification, correspondence, notificationContents);
+                var sendersName = correspondence.MessageSender;
+                if (string.IsNullOrEmpty(sendersName))
+                {
+                    sendersName = await altinnRegisterService.LookUpName(correspondence.Sender, cancellationToken);
+                    sendersName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(sendersName.ToLower());
+                }
+                var notifications = CreateNotifications(request.Notification, correspondence, notificationContents, sendersName);
                 foreach (var notification in notifications)
                 {
                     var notificationOrder = await altinnNotificationService.CreateNotification(notification, cancellationToken);
@@ -229,7 +236,7 @@ public class InitializeCorrespondencesHandler(
         };
     }
 
-    private List<NotificationOrderRequest> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents)
+    private List<NotificationOrderRequest> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents, string sendersName)
     {
         var notifications = new List<NotificationOrderRequest>();
         string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
@@ -278,12 +285,12 @@ public class InitializeCorrespondencesHandler(
             NotificationChannel = notification.NotificationChannel,
             EmailTemplate = new EmailTemplate
             {
-                Subject = content.EmailSubject,
-                Body = content.EmailBody,
+                Subject = content.EmailSubject.Replace("$sendersName$", sendersName),
+                Body = content.EmailBody.Replace("$sendersName$", sendersName)
             },
             SmsTemplate = new SmsTemplate
             {
-                Body = content.SmsBody,
+                Body = content.SmsBody.Replace("$sendersName$", sendersName),
 
             }
         };
@@ -301,12 +308,12 @@ public class InitializeCorrespondencesHandler(
                 NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,
                 EmailTemplate = new EmailTemplate
                 {
-                    Subject = content.ReminderEmailSubject,
-                    Body = content.ReminderEmailBody,
+                    Subject = content.ReminderEmailSubject.Replace("$sendersName$", sendersName),
+                    Body = content.ReminderEmailBody.Replace("$sendersName$", sendersName),
                 },
                 SmsTemplate = new SmsTemplate
                 {
-                    Body = content.ReminderSmsBody,
+                    Body = content.ReminderSmsBody.Replace("$sendersName$", sendersName),
                 }
             });
         }
