@@ -179,7 +179,6 @@ public class InitializeCorrespondencesHandler(
             var notificationDetails = new List<InitializedCorrespondencesNotifications>();
             if (request.Notification != null)
             {
-
                 var notifications = CreateNotifications(request.Notification, correspondence, notificationContents);
                 foreach (var notification in notifications)
                 {
@@ -281,7 +280,7 @@ public class InitializeCorrespondencesHandler(
             EmailTemplate = new EmailTemplate
             {
                 Subject = content.EmailSubject,
-                Body = content.EmailBody
+                Body = content.EmailBody,
             },
             SmsTemplate = new SmsTemplate
             {
