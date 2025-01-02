@@ -14,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
+using System.Globalization;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
@@ -117,7 +118,7 @@ public class InitializeCorrespondencesHandler(
             {
                 return NotificationErrors.TemplateNotFound;
             }
-            notificationContents = GetMessageContent(request.Notification, templates, cancellationToken, request.Correspondence.Content?.Language);
+            notificationContents = await GetMessageContent(request.Notification, templates, request.Correspondence, cancellationToken, request.Correspondence.Content?.Language);
             if (notificationContents.Count == 0)
             {
                 return NotificationErrors.TemplateNotFound;
@@ -284,7 +285,6 @@ public class InitializeCorrespondencesHandler(
             SmsTemplate = new SmsTemplate
             {
                 Body = content.SmsBody,
-
             }
         };
         notifications.Add(notificationOrder);
@@ -312,19 +312,25 @@ public class InitializeCorrespondencesHandler(
         }
         return notifications;
     }
-    private List<NotificationContent> GetMessageContent(NotificationRequest request, List<NotificationTemplateEntity> templates, CancellationToken cancellationToken, string? language = null)
+    private async Task<List<NotificationContent>> GetMessageContent(NotificationRequest request, List<NotificationTemplateEntity> templates, CorrespondenceEntity correspondence, CancellationToken cancellationToken, string? language = null)
     {
         var content = new List<NotificationContent>();
+        var sendersName = correspondence.MessageSender;
+        if (string.IsNullOrEmpty(sendersName))
+        {
+            sendersName = await altinnRegisterService.LookUpName(correspondence.Sender.WithoutPrefix(), cancellationToken);
+            sendersName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(sendersName.ToLower());
+        }
         foreach (var template in templates)
         {
             content.Add(new NotificationContent()
             {
-                EmailSubject = CreateMessageFromToken(template.EmailSubject, request.EmailSubject),
-                EmailBody = CreateMessageFromToken(template.EmailBody, request.EmailBody),
-                SmsBody = CreateMessageFromToken(template.SmsBody, request.SmsBody),
-                ReminderEmailBody = CreateMessageFromToken(template.ReminderEmailBody, request.ReminderEmailBody),
-                ReminderEmailSubject = CreateMessageFromToken(template.ReminderEmailSubject, request.ReminderEmailSubject),
-                ReminderSmsBody = CreateMessageFromToken(template.ReminderSmsBody, request.ReminderSmsBody),
+                EmailSubject = CreateMessageFromToken(template.EmailSubject, request.EmailSubject).Replace("$sendersName$", sendersName),
+                EmailBody = CreateMessageFromToken(template.EmailBody, request.EmailBody).Replace("$sendersName$", sendersName),
+                SmsBody = CreateMessageFromToken(template.SmsBody, request.SmsBody).Replace("$sendersName$", sendersName),
+                ReminderEmailBody = CreateMessageFromToken(template.ReminderEmailBody, request.ReminderEmailBody).Replace("$sendersName$", sendersName),
+                ReminderEmailSubject = CreateMessageFromToken(template.ReminderEmailSubject, request.ReminderEmailSubject).Replace("$sendersName$", sendersName),
+                ReminderSmsBody = CreateMessageFromToken(template.ReminderSmsBody, request.ReminderSmsBody).Replace("$sendersName$", sendersName),
                 Language = template.Language,
                 RecipientType = template.RecipientType
             });
