@@ -29,6 +29,7 @@ public class InitializeCorrespondencesHandler(
     IEventBus eventBus,
     IBackgroundJobClient backgroundJobClient,
     IDialogportenService dialogportenService,
+    IContactReservationRegistryService contactReservationRegistryService,
     IHostEnvironment hostEnvironment,
     IOptions<GeneralSettings> generalSettings,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
@@ -59,6 +60,18 @@ public class InitializeCorrespondencesHandler(
         if (request.Correspondence.IsConfirmationNeeded && request.Correspondence.DueDateTime is null)
         {
             return CorrespondenceErrors.DueDateRequired;
+        }
+        if (request.Correspondence.IgnoreReservation != true)
+        {
+            foreach(var recipient in request.Recipients.Where(recipient => recipient.IsSocialSecurityNumber())) 
+            { 
+                var isReserved = await contactReservationRegistryService.IsPersonReserved(recipient);
+                if (isReserved)
+                {
+                    logger.LogInformation("Recipient is reserved from correspondences in KRR");
+                    return CorrespondenceErrors.RecipientReserved(recipient);
+                }
+            }
         }
         var dateError = initializeCorrespondenceHelper.ValidateDateConstraints(request.Correspondence);
         if (dateError != null)
