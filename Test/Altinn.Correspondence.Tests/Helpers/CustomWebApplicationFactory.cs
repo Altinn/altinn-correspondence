@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Altinn.AccessManagement;
@@ -23,7 +24,7 @@ using System.Security.Claims;
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
-
+    public const string ReservedSsn = "12345123451";
 
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)
@@ -49,6 +50,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.OverrideAuthorization();
             services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
+            var mockContactReservationRegistryService = new Mock<IContactReservationRegistryService>();
+            mockContactReservationRegistryService.Setup(x => x.IsPersonReserved(It.Is<string>(person => person.WithoutPrefix() == ReservedSsn))).ReturnsAsync(true);
+            mockContactReservationRegistryService.Setup(x => x.IsPersonReserved(It.Is<string>(person => person.WithoutPrefix() != ReservedSsn))).ReturnsAsync(false);
+            services.AddScoped(_ => mockContactReservationRegistryService.Object);
+
             var resourceRightsService = new Mock<IResourceRightsService>();
             resourceRightsService.Setup(x => x.GetServiceOwnerOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
             services.AddScoped(_ => resourceRightsService.Object);

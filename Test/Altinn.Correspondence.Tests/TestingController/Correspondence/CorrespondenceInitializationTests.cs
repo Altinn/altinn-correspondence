@@ -427,5 +427,38 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(recipients.Last(), $"{UrnConstants.PersonIdAttribute}:{personRecipient}");
             Assert.Equal(overviewContent.Sender, $"{UrnConstants.OrganizationNumberAttribute}:{sender.WithoutPrefix()}");
         }
+
+        [Fact]
+        public async Task InitializeCorrespondence_RecipientIsReserved_Fails()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([CustomWebApplicationFactory.ReservedSsn])
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.UnprocessableEntity, initializeCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_RecipientIsReservedButIgnoreReservation_Succeeds()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([CustomWebApplicationFactory.ReservedSsn])
+                .WithIgnoreReservation(true)
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+        }
     }
 }
