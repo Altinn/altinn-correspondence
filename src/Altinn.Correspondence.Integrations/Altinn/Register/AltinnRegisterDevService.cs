@@ -61,4 +61,26 @@ public class AltinnRegisterDevService : IAltinnRegisterService
         };
         return Task.FromResult<Party?>(party);
     }
+    public Task<List<Party>?> LookUpPartiesByIds(List<string> identificationIds, CancellationToken cancellationToken)
+    {
+        var parties = new List<Party>();
+        foreach (var id in identificationIds)
+        {
+            if (IdentificationIDRegex.IsMatch(id.WithoutPrefix()))
+            {
+                parties.Add(new Party
+                {
+                    PartyId = _digdirPartyId,
+                    OrgNumber = id,
+                    SSN = id,
+                    Resources = new List<string>(),
+                    PartyTypeName = PartyType.Organization,
+                    UnitType = "Virksomhet",
+                    Name = "Digitaliseringsdirektoratet",
+                    PartyUuid = Guid.NewGuid(),
+                });
+            }
+        }
+        return Task.FromResult<List<Party>?>(parties);
+    }
 }

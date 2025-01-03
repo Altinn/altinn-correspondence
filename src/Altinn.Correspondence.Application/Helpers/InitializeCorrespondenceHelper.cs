@@ -252,7 +252,7 @@ namespace Altinn.Correspondence.Application.Helpers
             return null;
         }
 
-        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, bool isReserved)
+        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, Party? partyDetails, bool isReserved)
         {
             List<CorrespondenceStatusEntity> statuses =
             [
@@ -308,9 +308,9 @@ namespace Altinn.Correspondence.Application.Helpers
                         Created = DateTimeOffset.UtcNow,
                     }).ToList(),
                     Language = request.Correspondence.Content.Language,
-                    MessageBody = request.Correspondence.Content.MessageBody,
-                    MessageSummary = request.Correspondence.Content.MessageSummary,
-                    MessageTitle = request.Correspondence.Content.MessageTitle,
+                    MessageBody = AddRecipientToMessage(request.Correspondence.Content.MessageBody, partyDetails?.Name),
+                    MessageSummary = AddRecipientToMessage(request.Correspondence.Content.MessageSummary, partyDetails?.Name),
+                    MessageTitle = AddRecipientToMessage(request.Correspondence.Content.MessageTitle, partyDetails?.Name),
                 },
                 RequestedPublishTime = request.Correspondence.RequestedPublishTime,
                 AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,
@@ -324,6 +324,15 @@ namespace Altinn.Correspondence.Application.Helpers
                 Published = currentStatus == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
                 IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
             };
+        }
+
+        public string AddRecipientToMessage(string message, string recipient)
+        {
+            if (message.Contains("{{recipientName}}"))
+            {
+                return message.Replace("{{recipientName}}", recipient);
+            }
+            return message;
         }
 
         /// <summary>
