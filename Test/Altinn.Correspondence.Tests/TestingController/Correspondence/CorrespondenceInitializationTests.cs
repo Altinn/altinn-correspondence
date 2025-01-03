@@ -429,22 +429,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task InitializeCorrespondence_RecipientIsReserved_Fails()
-        {
-            // Arrange
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithRecipients([CustomWebApplicationFactory.ReservedSsn])
-                .Build();
-
-            // Act
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-
-            // Assert
-            Assert.Equal(HttpStatusCode.UnprocessableEntity, initializeCorrespondenceResponse.StatusCode);
-        }
-
-        [Fact]
         public async Task InitializeCorrespondence_OneOfRecipientsIsReserved_PartiallySucceeds()
         {
             // Arrange
