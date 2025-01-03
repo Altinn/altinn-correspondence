@@ -255,7 +255,6 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, Party? partyDetails)
         {
-            Console.WriteLine("RecipientDetails: " + partyDetails?.Name);
             List<CorrespondenceStatusEntity> statuses =
             [
                 new CorrespondenceStatusEntity
@@ -330,8 +329,6 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public string AddRecipientToMessage(string message, string? recipient)
         {
-            Console.WriteLine("Adding recipient to message");
-            Console.WriteLine("recipient: " + recipient);
             if (message.Contains("{{recipientName}}"))
             {
                 if (recipient.IsNullOrEmpty())

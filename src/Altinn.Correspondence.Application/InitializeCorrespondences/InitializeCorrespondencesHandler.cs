@@ -156,9 +156,6 @@ public class InitializeCorrespondencesHandler(
             }
             foreach (var details in recipientDetails)
             {
-                Console.WriteLine("RecipientSSN: " + details.SSN);
-                Console.WriteLine("RecipientOrgNumber: " + details.OrgNumber);
-                Console.WriteLine("RecipientDetails: " + details.Name);
                 if (details.PartyUuid == Guid.Empty)
                 {
                     return CorrespondenceErrors.RecipientLookupFailed(new List<string> { details.SSN ?? details.OrgNumber });
@@ -169,7 +166,6 @@ public class InitializeCorrespondencesHandler(
         foreach (var recipient in request.Recipients)
         {
             var recipientParty = recipientDetails.FirstOrDefault(r => r.SSN == recipient.WithoutPrefix() || r.OrgNumber == recipient.WithoutPrefix());
-            Console.WriteLine("Recipient: " + recipient);
             var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, attachmentsToBeUploaded, partyUuid, recipientParty);
             correspondences.Add(correspondence);
         }
