@@ -371,7 +371,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public CorrespondenceStatus GetCurrentCorrespondenceStatus(CorrespondenceEntity correspondence, bool isReserved)
         {
-            if (isReserved)
+            if (isReserved && (correspondence.IgnoreReservation != true))
             {
                 return CorrespondenceStatus.Reserved;
             }
