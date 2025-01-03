@@ -202,6 +202,7 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.IgnoreReservation = ignoreReservation;
             return this;
         }
+
         public static CorrespondenceEntity CorrespondenceEntityWithNotifications()
         {
             return new CorrespondenceEntity()
