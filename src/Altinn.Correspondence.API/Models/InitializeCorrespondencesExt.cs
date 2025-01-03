@@ -1,7 +1,7 @@
+using Altinn.Correspondence.Common.Constants;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.API.Models;
 

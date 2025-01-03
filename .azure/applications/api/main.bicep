@@ -20,6 +20,7 @@ param storageAccountName string
 @minLength(3)
 param maskinporten_environment string
 param correspondenceBaseUrl string
+param contactReservationRegistryBaseUrl string
 param idportenIssuer string
 param dialogportenIssuer string
 param maskinporten_token_exchange_environment string
@@ -95,6 +96,7 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     containerAppEnvId: keyvault.getSecret('container-app-env-id')
     maskinporten_environment: maskinporten_environment
     correspondenceBaseUrl: correspondenceBaseUrl
+    contactReservationRegistryBaseUrl: contactReservationRegistryBaseUrl
     idportenIssuer: idportenIssuer
     dialogportenIssuer: dialogportenIssuer
     maskinporten_token_exchange_environment: maskinporten_token_exchange_environment

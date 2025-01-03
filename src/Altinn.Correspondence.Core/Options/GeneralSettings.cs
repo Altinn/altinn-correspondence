@@ -6,4 +6,5 @@ public class GeneralSettings
 
     public string CorrespondenceBaseUrl { get; set; } = string.Empty;
     public string RedisConnectionString { get; set; } = string.Empty;
+    public string ContactReservationRegistryBaseUrl { get; set; } = string.Empty;
 }
