@@ -326,14 +326,10 @@ namespace Altinn.Correspondence.Application.Helpers
             };
         }
 
-        public string AddRecipientToMessage(string message, string? recipient)
+        public string AddRecipientToMessage(string message, string recipient)
         {
             if (message.Contains("{{recipientName}}"))
             {
-                if (string.IsNullOrEmpty(recipient))
-                {
-                    throw new ArgumentException("Recipient is null or empty");
-                }
                 return message.Replace("{{recipientName}}", recipient);
             }
             return message;
