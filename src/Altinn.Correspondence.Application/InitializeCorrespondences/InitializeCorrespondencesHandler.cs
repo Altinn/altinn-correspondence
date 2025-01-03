@@ -118,7 +118,7 @@ public class InitializeCorrespondencesHandler(
             {
                 return NotificationErrors.TemplateNotFound;
             }
-            notificationContents = await GeNotificationContent(request.Notification, templates, request.Correspondence, cancellationToken, request.Correspondence.Content?.Language);
+            notificationContents = await GetNotificationContent(request.Notification, templates, request.Correspondence, cancellationToken, request.Correspondence.Content?.Language);
             if (notificationContents.Count == 0)
             {
                 return NotificationErrors.TemplateNotFound;
@@ -330,7 +330,7 @@ public class InitializeCorrespondencesHandler(
         }
         return notifications;
     }
-    private async Task<List<NotificationContent>> GeNotificationContent(NotificationRequest request, List<NotificationTemplateEntity> templates, CorrespondenceEntity correspondence, CancellationToken cancellationToken, string? language = null)
+    private async Task<List<NotificationContent>> GetNotificationContent(NotificationRequest request, List<NotificationTemplateEntity> templates, CorrespondenceEntity correspondence, CancellationToken cancellationToken, string? language = null)
     {
         var content = new List<NotificationContent>();
         var sendersName = correspondence.MessageSender;
