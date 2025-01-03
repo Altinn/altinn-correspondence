@@ -209,6 +209,25 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
         }
+        [Fact]
+        public async Task InitializeCorrespondence_With_RecipientToken_succeeds()
+        {
+            var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithMessageSummary("<h1>test for {{recipientName}}</h1>")
+            .Build();
+
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+
+            payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageSummary("<h1>test for {{recipientName}}</h1>")
+                .Build();
+
+            initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+        }
 
         [Fact]
         public async Task InitializeCorrespondence_No_Message_Body_fails()
@@ -417,7 +436,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             var initializeContent = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
             Assert.NotNull(initializeContent);
-            var recipients = initializeContent.Correspondences.Select(c => c.Recipient).ToList(); 
+            var recipients = initializeContent.Correspondences.Select(c => c.Recipient).ToList();
             var overview = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{initializeContent.Correspondences.First().CorrespondenceId}");
             var overviewContent = await overview.Content.ReadFromJsonAsync<GetCorrespondenceOverviewResponse>(_responseSerializerOptions);
             Assert.NotNull(overviewContent);
