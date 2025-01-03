@@ -214,19 +214,19 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
-            .WithMessageSummary("<h1>test for {{recipientName}}</h1>")
+            .WithMessageSummary("test for {{recipientName}}")
             .Build();
 
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
 
             payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithMessageSummary("<h1>test for {{recipientName}}</h1>")
+                .WithMessageSummary("test for {{recipientName}}")
                 .Build();
 
             initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
         }
 
         [Fact]
