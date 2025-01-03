@@ -51,8 +51,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
             var mockContactReservationRegistryService = new Mock<IContactReservationRegistryService>();
-            mockContactReservationRegistryService.Setup(x => x.IsPersonReserved(It.Is<string>(person => person.WithoutPrefix() == ReservedSsn))).ReturnsAsync(true);
-            mockContactReservationRegistryService.Setup(x => x.IsPersonReserved(It.Is<string>(person => person.WithoutPrefix() != ReservedSsn))).ReturnsAsync(false);
+            mockContactReservationRegistryService.Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => recipients.Contains(ReservedSsn)))).ReturnsAsync([ReservedSsn]);
+            mockContactReservationRegistryService.Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => !recipients.Contains(ReservedSsn)))).ReturnsAsync([]);
             services.AddScoped(_ => mockContactReservationRegistryService.Object);
 
             var resourceRightsService = new Mock<IResourceRightsService>();

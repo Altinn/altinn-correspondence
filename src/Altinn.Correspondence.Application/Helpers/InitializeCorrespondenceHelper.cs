@@ -252,7 +252,7 @@ namespace Altinn.Correspondence.Application.Helpers
             return null;
         }
 
-        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid)
+        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, bool isReserved)
         {
             List<CorrespondenceStatusEntity> statuses =
             [
@@ -264,14 +264,14 @@ namespace Altinn.Correspondence.Application.Helpers
                     PartyUuid = partyUuid
                 },
             ];
-            var currentStatus = GetCurrentCorrespondenceStatus(request.Correspondence);
+            var currentStatus = GetCurrentCorrespondenceStatus(request.Correspondence, isReserved);
             if (currentStatus != CorrespondenceStatus.Initialized)
             {
                 statuses.Add(new CorrespondenceStatusEntity
                 {
                     Status = currentStatus,
                     StatusChanged = DateTimeOffset.UtcNow,
-                    StatusText = currentStatus.ToString(),
+                    StatusText = GetStatusText(currentStatus),
                     PartyUuid = partyUuid
                 });
             }
@@ -326,6 +326,15 @@ namespace Altinn.Correspondence.Application.Helpers
             };
         }
 
+        private string GetStatusText(CorrespondenceStatus status)
+        {
+            return status switch
+            {
+                CorrespondenceStatus.Reserved => "Recipient has opted out of digital communication in KRR",
+                _ => status.ToString(),
+            };
+        }
+
         /// <summary>
         /// Validates the uploaded files. 
         /// Checks that the filename is valid, the files are the same as the attachments, and the files are not too large
@@ -369,8 +378,12 @@ namespace Altinn.Correspondence.Application.Helpers
             return attachments;
         }
 
-        public CorrespondenceStatus GetCurrentCorrespondenceStatus(CorrespondenceEntity correspondence)
+        public CorrespondenceStatus GetCurrentCorrespondenceStatus(CorrespondenceEntity correspondence, bool isReserved)
         {
+            if (isReserved)
+            {
+                return CorrespondenceStatus.Reserved;
+            }
             var status = correspondence.Statuses.LastOrDefault()?.Status ?? CorrespondenceStatus.Initialized;
             if (correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.StatusHasBeen(AttachmentStatus.Published)))
             {

@@ -8,4 +8,9 @@ internal class ContactReservationRegistryDevService : IContactReservationRegistr
     {
         return Task.FromResult(false);
     }
+
+    public Task<List<string>> GetReservedRecipients(List<string> recipients)
+    {
+        return Task.FromResult(new List<string>());
+    }
 }
