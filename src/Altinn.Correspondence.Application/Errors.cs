@@ -33,6 +33,7 @@ public static class CorrespondenceErrors
     public static Error ArchiveBeforeConfirmed = new Error(1026, "Cannot archive or delete a correspondence which has not been confirmed when confirmation is required", HttpStatusCode.BadRequest);
     public static Error InvalidDateRange = new Error(1027, "From date cannot be after to date", HttpStatusCode.BadRequest);
     public static Error OffsetAndLimitIsNegative = new Error(1028, "Limit and offset must be greater than or equal to 0", HttpStatusCode.BadRequest);
+    public static Error RecipientLookupFailed(List<string> recipients) { return new Error(1029, $"Could not find partyId for the following recipients: {string.Join(", ", recipients)}", HttpStatusCode.NotFound); }
 }
 public static class AttachmentErrors
 {

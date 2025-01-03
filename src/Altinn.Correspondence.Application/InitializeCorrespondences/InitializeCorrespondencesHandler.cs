@@ -118,7 +118,7 @@ public class InitializeCorrespondencesHandler(
             {
                 return NotificationErrors.TemplateNotFound;
             }
-            notificationContents = await GetMessageContent(request.Notification, templates, request.Correspondence, cancellationToken, request.Correspondence.Content?.Language);
+            notificationContents = await GeNotificationContent(request.Notification, templates, request.Correspondence, cancellationToken, request.Correspondence.Content?.Language);
             if (notificationContents.Count == 0)
             {
                 return NotificationErrors.TemplateNotFound;
@@ -145,16 +145,42 @@ public class InitializeCorrespondencesHandler(
     private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<NotificationContent>? notificationContents, Guid partyUuid, CancellationToken cancellationToken)
     {
         var correspondences = new List<CorrespondenceEntity>();
+        var recipientsToSearch = request.Recipients.Select(r => r.WithoutPrefix()).ToList();
+        var recipientDetails = new List<Party>();
+        if (request.Correspondence.Content!.MessageBody.Contains("{{recipientName}}") || request.Correspondence.Content!.MessageTitle.Contains("{{recipientName}}") || request.Correspondence.Content!.MessageSummary.Contains("{{recipientName}}"))
+        {
+            recipientDetails = await altinnRegisterService.LookUpPartiesByIds(recipientsToSearch, cancellationToken);
+            if (recipientDetails == null || recipientDetails?.Count != recipientsToSearch.Count)
+            {
+                return CorrespondenceErrors.RecipientLookupFailed(recipientsToSearch.Except(recipientDetails != null ? recipientDetails.Select(r => r.SSN ?? r.OrgNumber) : new List<string>()).ToList());
+            }
+            foreach (var details in recipientDetails)
+            {
+                Console.WriteLine("RecipientSSN: " + details.SSN);
+                Console.WriteLine("RecipientOrgNumber: " + details.OrgNumber);
+                Console.WriteLine("RecipientDetails: " + details.Name);
+                if (details.PartyUuid == Guid.Empty)
+                {
+                    return CorrespondenceErrors.RecipientLookupFailed(new List<string> { details.SSN ?? details.OrgNumber });
+                }
+            }
+        }
+
         foreach (var recipient in request.Recipients)
         {
-            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, attachmentsToBeUploaded, partyUuid);
+            var recipientParty = recipientDetails.FirstOrDefault(r => r.SSN == recipient.WithoutPrefix() || r.OrgNumber == recipient.WithoutPrefix());
+            Console.WriteLine("Recipient: " + recipient);
+            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, attachmentsToBeUploaded, partyUuid, recipientParty);
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
 
+
+
         var initializedCorrespondences = new List<InitializedCorrespondences>();
         foreach (var correspondence in correspondences)
         {
+
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
             if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized ||
                 correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish)
@@ -312,7 +338,7 @@ public class InitializeCorrespondencesHandler(
         }
         return notifications;
     }
-    private async Task<List<NotificationContent>> GetMessageContent(NotificationRequest request, List<NotificationTemplateEntity> templates, CorrespondenceEntity correspondence, CancellationToken cancellationToken, string? language = null)
+    private async Task<List<NotificationContent>> GeNotificationContent(NotificationRequest request, List<NotificationTemplateEntity> templates, CorrespondenceEntity correspondence, CancellationToken cancellationToken, string? language = null)
     {
         var content = new List<NotificationContent>();
         var sendersName = correspondence.MessageSender;
@@ -325,12 +351,12 @@ public class InitializeCorrespondencesHandler(
         {
             content.Add(new NotificationContent()
             {
-                EmailSubject = CreateMessageFromToken(template.EmailSubject, request.EmailSubject).Replace("$sendersName$", sendersName),
-                EmailBody = CreateMessageFromToken(template.EmailBody, request.EmailBody).Replace("$sendersName$", sendersName),
-                SmsBody = CreateMessageFromToken(template.SmsBody, request.SmsBody).Replace("$sendersName$", sendersName),
-                ReminderEmailBody = CreateMessageFromToken(template.ReminderEmailBody, request.ReminderEmailBody).Replace("$sendersName$", sendersName),
-                ReminderEmailSubject = CreateMessageFromToken(template.ReminderEmailSubject, request.ReminderEmailSubject).Replace("$sendersName$", sendersName),
-                ReminderSmsBody = CreateMessageFromToken(template.ReminderSmsBody, request.ReminderSmsBody).Replace("$sendersName$", sendersName),
+                EmailSubject = CreateNotificationContentFromToken(template.EmailSubject, request.EmailSubject).Replace("$sendersName$", sendersName),
+                EmailBody = CreateNotificationContentFromToken(template.EmailBody, request.EmailBody).Replace("$sendersName$", sendersName),
+                SmsBody = CreateNotificationContentFromToken(template.SmsBody, request.SmsBody).Replace("$sendersName$", sendersName),
+                ReminderEmailBody = CreateNotificationContentFromToken(template.ReminderEmailBody, request.ReminderEmailBody).Replace("$sendersName$", sendersName),
+                ReminderEmailSubject = CreateNotificationContentFromToken(template.ReminderEmailSubject, request.ReminderEmailSubject).Replace("$sendersName$", sendersName),
+                ReminderSmsBody = CreateNotificationContentFromToken(template.ReminderSmsBody, request.ReminderSmsBody).Replace("$sendersName$", sendersName),
                 Language = template.Language,
                 RecipientType = template.RecipientType
             });
@@ -348,7 +374,7 @@ public class InitializeCorrespondencesHandler(
         return conditionEndpoint;
     }
 
-    private string CreateMessageFromToken(string message, string? token = "")
+    private string CreateNotificationContentFromToken(string message, string? token = "")
     {
         return message.Replace("{textToken}", token + " ").Trim();
     }
