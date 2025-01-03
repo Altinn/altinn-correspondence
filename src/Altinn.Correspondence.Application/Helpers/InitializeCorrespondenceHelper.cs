@@ -11,7 +11,6 @@ using Altinn.Notifications.Core.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.Helpers
@@ -331,7 +330,7 @@ namespace Altinn.Correspondence.Application.Helpers
         {
             if (message.Contains("{{recipientName}}"))
             {
-                if (recipient.IsNullOrEmpty())
+                if (string.IsNullOrEmpty(recipient))
                 {
                     throw new ArgumentException("Recipient is null or empty");
                 }
