@@ -48,7 +48,7 @@ public class PublishCorrespondenceHandler(
         }
         else if (correspondence.IgnoreReservation != true && correspondence.GetRecipientUrn().IsSocialSecurityNumber())
         {
-            var isReserved = await contactReservationRegistryService.IsPersonReserved(correspondence.GetRecipientUrn());
+            var isReserved = await contactReservationRegistryService.IsPersonReserved(correspondence.GetRecipientUrn().WithoutPrefix());
             if (isReserved)
             {
                 errorMessage = $"Recipient of {correspondenceId} has been set to reserved in kontakt- og reserverasjonsregisteret ('KRR')";

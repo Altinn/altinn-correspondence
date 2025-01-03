@@ -12,20 +12,8 @@ public class ContactReservationRegistryService(HttpClient httpClient, ILogger<Co
 {
     public async Task<bool> IsPersonReserved(string ssn)
     {
-        var request = new ContactReservationPersonRequest { Personidentifikatorer = [ ssn ] };
-        var response = await httpClient.PostAsJsonAsync("rest/v2/personer", request);
-        if (!response.IsSuccessStatusCode)
-        {
-            logger.LogError("Error while calling the KRR API. Status code was: {statusCode}, error was: {error}", response.StatusCode, await response.Content.ReadAsStringAsync());
-            throw new HttpRequestException("Error while calling the KRR API.");
-        }
-        var result = await response.Content.ReadFromJsonAsync<ContactReservationPersonResponse>();
-        if (result is null)
-        {
-            logger.LogError("Unexpected json response when looking up person in KRR");
-            throw new HttpRequestException("Unexpected json response when looking up person in KRR");
-        }
-        return result.Personer[0].Reservasjon == "JA";
+        var reservedRecipients = await GetReservedRecipients(new List<string> { ssn });
+        return reservedRecipients.Count > 0;
     }
 
     public async Task<List<string>> GetReservedRecipients(List<string> recipients)
