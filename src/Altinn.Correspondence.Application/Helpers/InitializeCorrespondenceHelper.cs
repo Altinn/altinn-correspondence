@@ -271,7 +271,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 {
                     Status = currentStatus,
                     StatusChanged = DateTimeOffset.UtcNow,
-                    StatusText = GetStatusText(currentStatus),
+                    StatusText = currentStatus.ToString(),
                     PartyUuid = partyUuid
                 });
             }
@@ -323,15 +323,6 @@ namespace Altinn.Correspondence.Application.Helpers
                 ExternalReferences = request.Correspondence.ExternalReferences,
                 Published = currentStatus == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
                 IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
-            };
-        }
-
-        private string GetStatusText(CorrespondenceStatus status)
-        {
-            return status switch
-            {
-                CorrespondenceStatus.Reserved => "Recipient has opted out of digital communication in KRR",
-                _ => status.ToString(),
             };
         }
 
