@@ -6,6 +6,7 @@ param environment string
 param platform_base_url string
 param maskinporten_environment string
 param correspondenceBaseUrl string
+param contactReservationRegistryBaseUrl string
 param idportenIssuer string
 param dialogportenIssuer string
 param maskinporten_token_exchange_environment string
@@ -66,7 +67,7 @@ var containerAppEnvVarsdefault = [
   { name: 'MaskinportenSettings__ClientId', secretRef: 'maskinporten-client-id' }
   {
     name: 'MaskinportenSettings__Scope'
-    value: 'altinn:events.publish altinn:events.publish.admin altinn:register/partylookup.admin altinn:authorization/authorize.admin altinn:serviceowner/notifications.create altinn:serviceowner/notifications.read digdir:dialogporten.serviceprovider digdir:dialogporten.serviceprovider.admin altinn:accessmanagement/authorizedparties.admin altinn:accessmanagement/authorizedparties.resourceowner'
+    value: 'altinn:events.publish altinn:events.publish.admin altinn:register/partylookup.admin altinn:authorization/authorize.admin altinn:serviceowner/notifications.create altinn:serviceowner/notifications.read digdir:dialogporten.serviceprovider digdir:dialogporten.serviceprovider.admin altinn:accessmanagement/authorizedparties.admin altinn:accessmanagement/authorizedparties.resourceowner krr:global/kontaktinformasjon.read'
   }
   {
     name: 'MaskinportenSettings__ExhangeToAltinnToken'
@@ -75,6 +76,7 @@ var containerAppEnvVarsdefault = [
 
   { name: 'MaskinportenSettings__EncodedJwk', secretRef: 'maskinporten-jwk' }
   { name: 'GeneralSettings__CorrespondenceBaseUrl', value: correspondenceBaseUrl }
+  { name: 'GeneralSettings__ContactReservationRegistryBaseUrl', value: contactReservationRegistryBaseUrl}
   { name: 'GeneralSettings__SlackUrl', secretRef: 'slack-url' }
   { name: 'DialogportenSettings__Issuer', value: dialogportenIssuer }
   { name: 'IdportenSettings__Issuer', value: idportenIssuer }

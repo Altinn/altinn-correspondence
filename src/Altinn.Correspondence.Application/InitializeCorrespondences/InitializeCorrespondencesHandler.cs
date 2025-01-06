@@ -30,6 +30,7 @@ public class InitializeCorrespondencesHandler(
     IEventBus eventBus,
     IBackgroundJobClient backgroundJobClient,
     IDialogportenService dialogportenService,
+    IContactReservationRegistryService contactReservationRegistryService,
     IHostEnvironment hostEnvironment,
     IOptions<GeneralSettings> generalSettings,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
@@ -60,6 +61,12 @@ public class InitializeCorrespondencesHandler(
         if (request.Correspondence.IsConfirmationNeeded && request.Correspondence.DueDateTime is null)
         {
             return CorrespondenceErrors.DueDateRequired;
+        }
+        var reservedRecipients = await contactReservationRegistryService.GetReservedRecipients(request.Recipients.Where(recipient => recipient.IsSocialSecurityNumber()).ToList());
+        if (request.Correspondence.IgnoreReservation != true && request.Recipients.Count == 1 && reservedRecipients.Count == 1)
+        {
+            logger.LogInformation("Recipient reserved from correspondences in KRR");
+            return CorrespondenceErrors.RecipientReserved(request.Recipients.First());
         }
         var dateError = initializeCorrespondenceHelper.ValidateDateConstraints(request.Correspondence);
         if (dateError != null)
@@ -138,11 +145,11 @@ public class InitializeCorrespondencesHandler(
 
         return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
         {
-            return await InitializeCorrespondences(request, attachmentsToBeUploaded, notificationContents, partyUuid, cancellationToken);
+            return await InitializeCorrespondences(request, attachmentsToBeUploaded, notificationContents, partyUuid, reservedRecipients, cancellationToken);
         }, logger, cancellationToken);
     }
 
-    private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<NotificationContent>? notificationContents, Guid partyUuid, CancellationToken cancellationToken)
+    private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<NotificationContent>? notificationContents, Guid partyUuid, List<string> reservedRecipients, CancellationToken cancellationToken)
     {
         var correspondences = new List<CorrespondenceEntity>();
         var recipientsToSearch = request.Recipients.Select(r => r.WithoutPrefix()).ToList();
@@ -165,8 +172,9 @@ public class InitializeCorrespondencesHandler(
 
         foreach (var recipient in request.Recipients)
         {
+            var isReserved = reservedRecipients.Contains(recipient.WithoutPrefix());
             var recipientParty = recipientDetails.FirstOrDefault(r => r.SSN == recipient.WithoutPrefix() || r.OrgNumber == recipient.WithoutPrefix());
-            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, attachmentsToBeUploaded, partyUuid, recipientParty);
+            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, attachmentsToBeUploaded, partyUuid, recipientParty, isReserved);
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
@@ -186,50 +194,53 @@ public class InitializeCorrespondencesHandler(
                 }
 
                 backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), publishTime);
-
             }
-            if (correspondence.DueDateTime is not null)
-            {
-                backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
-            }
-            await eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
-
+            var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
             var notificationDetails = new List<InitializedCorrespondencesNotifications>();
-            if (request.Notification != null)
+            if (!isReserved)
             {
-                var notifications = CreateNotifications(request.Notification, correspondence, notificationContents);
-                foreach (var notification in notifications)
+                if (correspondence.DueDateTime is not null)
                 {
-                    var notificationOrder = await altinnNotificationService.CreateNotification(notification, cancellationToken);
-                    if (notificationOrder is null)
+                    backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
+                }
+                await eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
+
+                if (request.Notification != null)
+                {
+                    var notifications = CreateNotifications(request.Notification, correspondence, notificationContents);
+                    foreach (var notification in notifications)
                     {
+                        var notificationOrder = await altinnNotificationService.CreateNotification(notification, cancellationToken);
+                        if (notificationOrder is null)
+                        {
+                            notificationDetails.Add(new InitializedCorrespondencesNotifications()
+                            {
+                                OrderId = Guid.Empty,
+                                Status = InitializedNotificationStatus.Failure
+                            });
+                            continue;
+                        }
+                        var entity = new CorrespondenceNotificationEntity()
+                        {
+                            Created = DateTimeOffset.UtcNow,
+                            NotificationChannel = request.Notification.NotificationChannel,
+                            NotificationTemplate = request.Notification.NotificationTemplate,
+                            CorrespondenceId = correspondence.Id,
+                            NotificationOrderId = notificationOrder.OrderId,
+                            RequestedSendTime = notification.RequestedSendTime,
+                            IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
+                        };
+
                         notificationDetails.Add(new InitializedCorrespondencesNotifications()
                         {
-                            OrderId = Guid.Empty,
-                            Status = InitializedNotificationStatus.Failure
+                            OrderId = entity.NotificationOrderId,
+                            IsReminder = entity.IsReminder,
+                            // For custom recipients, RecipientLookup will be null. As such, this also maps to Success
+                            Status = notificationOrder.RecipientLookup?.Status == RecipientLookupStatus.Failed ? InitializedNotificationStatus.MissingContact : InitializedNotificationStatus.Success
                         });
-                        continue;
+                        await correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
+                        backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime.ToString("yyyy-MM-dd HH:mm")));
                     }
-                    var entity = new CorrespondenceNotificationEntity()
-                    {
-                        Created = DateTimeOffset.UtcNow,
-                        NotificationChannel = request.Notification.NotificationChannel,
-                        NotificationTemplate = request.Notification.NotificationTemplate,
-                        CorrespondenceId = correspondence.Id,
-                        NotificationOrderId = notificationOrder.OrderId,
-                        RequestedSendTime = notification.RequestedSendTime,
-                        IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
-                    };
-
-                    notificationDetails.Add(new InitializedCorrespondencesNotifications()
-                    {
-                        OrderId = entity.NotificationOrderId,
-                        IsReminder = entity.IsReminder,
-                        // For custom recipients, RecipientLookup will be null. As such, this also maps to Success
-                        Status = notificationOrder.RecipientLookup?.Status == RecipientLookupStatus.Failed ? InitializedNotificationStatus.MissingContact : InitializedNotificationStatus.Success
-                    });
-                    await correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
-                    backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime.ToString("yyyy-MM-dd HH:mm")));
                 }
             }
             initializedCorrespondences.Add(new InitializedCorrespondences()

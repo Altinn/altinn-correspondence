@@ -252,7 +252,7 @@ namespace Altinn.Correspondence.Application.Helpers
             return null;
         }
 
-        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, Party? partyDetails)
+        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, Party? partyDetails, bool isReserved)
         {
             List<CorrespondenceStatusEntity> statuses =
             [
@@ -264,7 +264,7 @@ namespace Altinn.Correspondence.Application.Helpers
                     PartyUuid = partyUuid
                 },
             ];
-            var currentStatus = GetCurrentCorrespondenceStatus(request.Correspondence);
+            var currentStatus = GetCurrentCorrespondenceStatus(request.Correspondence, isReserved);
             if (currentStatus != CorrespondenceStatus.Initialized)
             {
                 statuses.Add(new CorrespondenceStatusEntity
@@ -378,8 +378,12 @@ namespace Altinn.Correspondence.Application.Helpers
             return attachments;
         }
 
-        public CorrespondenceStatus GetCurrentCorrespondenceStatus(CorrespondenceEntity correspondence)
+        public CorrespondenceStatus GetCurrentCorrespondenceStatus(CorrespondenceEntity correspondence, bool isReserved)
         {
+            if (isReserved && (correspondence.IgnoreReservation != true))
+            {
+                return CorrespondenceStatus.Reserved;
+            }
             var status = correspondence.Statuses.LastOrDefault()?.Status ?? CorrespondenceStatus.Initialized;
             if (correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.StatusHasBeen(AttachmentStatus.Published)))
             {

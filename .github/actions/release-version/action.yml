@@ -34,6 +34,8 @@ inputs:
     required: true
   CORRESPONDENCE_BASE_URL:
     description: "Base url for callbacks to Correspondence"
+  CONTACT_RESERVATION_REGISTRY_BASE_URL:
+    description: "Contact Reservation Registry Base URL"
   DIALOGPORTEN_ISSUER:
     description: "Issuer for Dialogporten integration used to support ID"
     required: true
@@ -72,6 +74,7 @@ runs:
         PLATFORM_BASE_URL: ${{ inputs.PLATFORM_BASE_URL }}
         STORAGE_ACCOUNT_NAME: ${{ inputs.STORAGE_ACCOUNT_NAME }}
         CORRESPONDENCE_BASE_URL: ${{ inputs.CORRESPONDENCE_BASE_URL }}
+        CONTACT_RESERVATION_REGISTRY_BASE_URL: ${{ inputs.CONTACT_RESERVATION_REGISTRY_BASE_URL }}
         DIALOGPORTEN_ISSUER: ${{ inputs.DIALOGPORTEN_ISSUER }}
         IDPORTEN_ISSUER: ${{ inputs.IDPORTEN_ISSUER }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}

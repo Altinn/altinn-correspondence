@@ -446,5 +446,59 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(recipients.Last(), $"{UrnConstants.PersonIdAttribute}:{personRecipient}");
             Assert.Equal(overviewContent.Sender, $"{UrnConstants.OrganizationNumberAttribute}:{sender.WithoutPrefix()}");
         }
+
+        [Fact]
+        public async Task InitializeCorrespondence_OneOfRecipientsIsReserved_PartiallySucceeds()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([CustomWebApplicationFactory.ReservedSsn, "01234567890"])
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+            var responseObject = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(responseObject);
+            Assert.True(responseObject.Status == API.Models.Enums.InitializedCorrespondecesStatusExt.PartialSuccess);
+            Assert.True(responseObject.Correspondences.Exists(responseObject => responseObject.Status == API.Models.Enums.CorrespondenceStatusExt.Published));
+            Assert.True(responseObject.Correspondences.Exists(responseObject => responseObject.Status != API.Models.Enums.CorrespondenceStatusExt.Published));
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_OnlyRecipientIsReserved_Fails()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([CustomWebApplicationFactory.ReservedSsn])
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.UnprocessableEntity, initializeCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_RecipientIsReservedButIgnoreReservation_Succeeds()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([CustomWebApplicationFactory.ReservedSsn])
+                .WithIgnoreReservation(true)
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+        }
     }
 }
