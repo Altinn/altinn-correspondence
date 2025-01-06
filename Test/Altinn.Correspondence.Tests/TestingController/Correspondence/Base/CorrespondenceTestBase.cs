@@ -1,14 +1,9 @@
 ﻿using Altinn.Correspondence.Common.Constants;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence.Base
 {
-    public class CorrespondenceTestBase : IClassFixture<CustomWebApplicationFactory>
+    public class CorrespondenceTestBase : IClassFixture<CustomWebApplicationFactory>, IDisposable
     {
         internal readonly CustomWebApplicationFactory _factory;
         internal readonly HttpClient _senderClient;
@@ -31,6 +26,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence.Base
                 PropertyNameCaseInsensitive = true
             });
             _responseSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        }
+
+        public void Dispose()
+        {
+            _factory?.Dispose();
         }
     }
 }

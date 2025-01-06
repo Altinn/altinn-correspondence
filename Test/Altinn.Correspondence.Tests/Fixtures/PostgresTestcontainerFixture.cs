@@ -36,7 +36,10 @@ public class PostgresTestcontainerFixture : IAsyncLifetime
         var assemblies = AppDomain.CurrentDomain.GetAssemblies();
         await using var context = new TestApplicationDbContext(_dbContextOptions);
         await context.Database.EnsureCreatedAsync();
-        await context.Database.MigrateAsync();
+        if ((await context.Database.GetPendingMigrationsAsync()).Any()) 
+        { 
+            await context.Database.MigrateAsync();
+        }
     }
 
     public async Task DisposeAsync()
