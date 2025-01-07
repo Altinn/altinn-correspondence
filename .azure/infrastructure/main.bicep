@@ -30,11 +30,21 @@ param idportenClientSecret string
 @secure()
 param storageAccountName string
 
+param maskinporten_token_exchange_environment string
+
 import { Sku as KeyVaultSku } from '../modules/keyvault/create.bicep'
 param keyVaultSku KeyVaultSku
 
 import { Sku as PostgresSku } from '../modules/postgreSql/create.bicep'
-param postgresSku PostgresSku
+param prodLikeEnvironment bool = environment == 'production' || maskinporten_token_exchange_environment == 'yt01'
+param postgresSku PostgresSku = prodLikeEnvironment ? {
+    name: 'Standard_D2ads_v5'
+    tier: 'GeneralPurpose'
+  } : {
+    name: 'Standard_B1ms'
+    tier: 'Burstable'
+}
+
 
 var resourceGroupName = '${namePrefix}-rg'
 
