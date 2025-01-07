@@ -109,6 +109,7 @@ runs:
         IDPORTEN_ISSUER: ${{ inputs.IDPORTEN_ISSUER }}
         IDPORTEN_CLIENT_ID: ${{ inputs.IDPORTEN_CLIENT_ID }}
         IDPORTEN_CLIENT_SECRET: ${{ inputs.IDPORTEN_CLIENT_SECRET }}
+        MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
       with:
         scope: subscription
         template: ./.azure/infrastructure/main.bicep
