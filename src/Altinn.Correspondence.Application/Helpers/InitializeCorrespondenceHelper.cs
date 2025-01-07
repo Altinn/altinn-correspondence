@@ -1,10 +1,13 @@
+using System.Text.RegularExpressions;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Notifications.Core.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -16,8 +19,10 @@ namespace Altinn.Correspondence.Application.Helpers
         IAttachmentRepository attachmentRepository,
         IHostEnvironment hostEnvironment,
         AttachmentHelper attachmentHelper,
+        MobileNumberHelper mobileNumberHelper,
         ILogger<InitializeCorrespondenceHelper> logger)
     {
+        private static readonly Regex emailRegex = new Regex(@"((""[^\\""]+"")|(([a-zA-Z0-9!#$%&'*+\-=?\^_`{|}~])+(\.([a-zA-Z0-9!#$%&'*+\-=?\^_`{|}~])+)*))@((((([a-zA-Z0-9æøåÆØÅ]([a-zA-Z0-9\-æøåÆØÅ]{0,61})[a-zA-Z0-9æøåÆØÅ]\.)|[a-zA-Z0-9æøåÆØÅ]\.){1,9})([a-zA-Z]{2,14}))|((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})))");
 
         public Error? ValidateDateConstraints(CorrespondenceEntity correspondence)
         {
@@ -92,7 +97,26 @@ namespace Altinn.Correspondence.Application.Helpers
             List<string> supportedLanguages = ["nb", "nn", "en"];
             return supportedLanguages.Contains(language.ToLower());
         }
-        public Error? ValidateNotification(NotificationRequest notification)
+        public Error? ValidateNotification(NotificationRequest notification, List<string> recipients)
+        {
+            var customRecipientError = ValidateRecipientOverrides(notification, recipients);
+            if (customRecipientError != null)
+            {
+                return customRecipientError;
+            }
+
+            var contentError = ValidateNotificationContent(notification);
+            if (contentError != null)
+            {
+                return contentError;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Validate the content of the notification.
+        /// </summary>
+        private Error? ValidateNotificationContent(NotificationRequest notification)
         {
             if (notification.NotificationTemplate == NotificationTemplate.GenericAltinnMessage || notification.NotificationTemplate == NotificationTemplate.Altinn2Message) return null;
 
@@ -125,7 +149,110 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             return null;
         }
-        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid)
+
+        /// <summary>
+        /// Validate that the recipient overrides for a notification.
+        /// </summary>
+        public Error? ValidateRecipientOverrides(NotificationRequest notification, List<string> recipients)
+        {
+            var customRecipients = notification.CustomNotificationRecipients ?? [];
+            if (customRecipients.Count == 0)
+            {
+                return null;
+            }
+
+            foreach (var recipientToOverride in customRecipients)
+            {
+                if (!recipients.Any(recipient => recipient.WithoutPrefix() == recipientToOverride.RecipientToOverride.WithoutPrefix()))
+                {
+                    return NotificationErrors.CouldNotFindRecipientToOverride(recipientToOverride.RecipientToOverride);
+                }
+            }
+
+            foreach (var recipientOverride in customRecipients)
+            {
+                foreach (var recipient in recipientOverride.Recipients)
+                {
+                    var missingNotificationDetailsError = ValidateNotificationChannelForRecipientOverrides(notification, recipient);
+                    if (missingNotificationDetailsError != null)
+                    {
+                        return missingNotificationDetailsError;
+                    }
+                    var notificationInputError = ValidateContactInformationForRecipientOverrides(recipient);
+                    if (notificationInputError != null)
+                    {
+                        return notificationInputError;
+                    }
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Validate that the recipient only provides organization number, social security number, or contact info in email or mobile number for the given notification channel.
+        /// </summary>
+        private Error? ValidateNotificationChannelForRecipientOverrides(NotificationRequest notification, Recipient recipient)
+        {
+            bool recipientHaveOrgOrSsn = !string.IsNullOrEmpty(recipient.OrganizationNumber) || !string.IsNullOrEmpty(recipient.NationalIdentityNumber);
+            var reminderNotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel;
+            if (notification.NotificationChannel != NotificationChannel.Sms || reminderNotificationChannel != NotificationChannel.Sms)
+            {
+                if (recipient.EmailAddress is null && !recipientHaveOrgOrSsn)
+                {
+                    return NotificationErrors.MissingEmailRecipient;
+                }
+            }
+            if (notification.NotificationChannel != NotificationChannel.Email || reminderNotificationChannel != NotificationChannel.Email)
+            {
+                if (recipient.MobileNumber is null && !recipientHaveOrgOrSsn)
+                {
+                    return NotificationErrors.MissingSmsRecipient;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Validate that the recipient only provides organization number, social security number, or contact info in email or mobile number. If email or mobile number is provided, this is validated.
+        /// </summary>
+        private Error? ValidateContactInformationForRecipientOverrides(Recipient recipient)
+        {
+            bool recipientHasOrgNo = !string.IsNullOrEmpty(recipient.OrganizationNumber);
+            bool recipientHasSsn = !string.IsNullOrEmpty(recipient.NationalIdentityNumber);
+            bool recipientHasEmail = !string.IsNullOrEmpty(recipient.EmailAddress);
+            bool recipientHasMobile = !string.IsNullOrEmpty(recipient.MobileNumber);
+            if (recipientHasOrgNo)
+            {
+                if (recipientHasEmail || recipientHasMobile || recipientHasSsn)
+                {
+                    return NotificationErrors.OrgNumberWithSsnEmailOrMobile;
+                }
+            }
+            if (recipientHasSsn)
+            {
+                if (recipientHasEmail || recipientHasMobile || recipientHasOrgNo)
+                {
+                    return NotificationErrors.SsnWithOrgNoEmailOrMobile;
+                }
+            }
+            if (recipientHasEmail)
+            {
+                if (recipient.EmailAddress is not null && !emailRegex.IsMatch(recipient.EmailAddress))
+                {
+                    return NotificationErrors.InvalidEmailProvided;
+                }
+            }
+            if (recipientHasMobile)
+            {
+                if (!mobileNumberHelper.IsValidMobileNumber(recipient.MobileNumber))
+                {
+                    return NotificationErrors.InvalidMobileNumberProvided;
+                }
+            }
+            return null;
+        }
+
+        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, Party? partyDetails, bool isReserved)
         {
             List<CorrespondenceStatusEntity> statuses =
             [
@@ -137,7 +264,7 @@ namespace Altinn.Correspondence.Application.Helpers
                     PartyUuid = partyUuid
                 },
             ];
-            var currentStatus = GetCurrentCorrespondenceStatus(request.Correspondence);
+            var currentStatus = GetCurrentCorrespondenceStatus(request.Correspondence, isReserved);
             if (currentStatus != CorrespondenceStatus.Initialized)
             {
                 statuses.Add(new CorrespondenceStatusEntity
@@ -181,9 +308,9 @@ namespace Altinn.Correspondence.Application.Helpers
                         Created = DateTimeOffset.UtcNow,
                     }).ToList(),
                     Language = request.Correspondence.Content.Language,
-                    MessageBody = request.Correspondence.Content.MessageBody,
-                    MessageSummary = request.Correspondence.Content.MessageSummary,
-                    MessageTitle = request.Correspondence.Content.MessageTitle,
+                    MessageBody = AddRecipientToMessage(request.Correspondence.Content.MessageBody, partyDetails?.Name),
+                    MessageSummary = AddRecipientToMessage(request.Correspondence.Content.MessageSummary, partyDetails?.Name),
+                    MessageTitle = AddRecipientToMessage(request.Correspondence.Content.MessageTitle, partyDetails?.Name),
                 },
                 RequestedPublishTime = request.Correspondence.RequestedPublishTime,
                 AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,
@@ -197,6 +324,15 @@ namespace Altinn.Correspondence.Application.Helpers
                 Published = currentStatus == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
                 IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
             };
+        }
+
+        public string AddRecipientToMessage(string message, string recipient)
+        {
+            if (message.Contains("{{recipientName}}"))
+            {
+                return message.Replace("{{recipientName}}", recipient);
+            }
+            return message;
         }
 
         /// <summary>
@@ -242,8 +378,12 @@ namespace Altinn.Correspondence.Application.Helpers
             return attachments;
         }
 
-        public CorrespondenceStatus GetCurrentCorrespondenceStatus(CorrespondenceEntity correspondence)
+        public CorrespondenceStatus GetCurrentCorrespondenceStatus(CorrespondenceEntity correspondence, bool isReserved)
         {
+            if (isReserved && (correspondence.IgnoreReservation != true))
+            {
+                return CorrespondenceStatus.Reserved;
+            }
             var status = correspondence.Statuses.LastOrDefault()?.Status ?? CorrespondenceStatus.Initialized;
             if (correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.StatusHasBeen(AttachmentStatus.Published)))
             {

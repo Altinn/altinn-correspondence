@@ -17,6 +17,7 @@ using Altinn.Correspondence.Application.PurgeAttachment;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 using Altinn.Correspondence.Application.UploadAttachment;
+using Altinn.Notifications.Core.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Correspondence.Application;
@@ -55,6 +56,7 @@ public static class DependencyInjection
         services.AddScoped<InitializeCorrespondenceHelper>();
         services.AddScoped<UpdateCorrespondenceStatusHelper>();
         services.AddScoped<PurgeCorrespondenceHelper>();
+        services.AddScoped<MobileNumberHelper>();
 
         // Legacy
         services.AddScoped<LegacyGetCorrespondencesHandler>();

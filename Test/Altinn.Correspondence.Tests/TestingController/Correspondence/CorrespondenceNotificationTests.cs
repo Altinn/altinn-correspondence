@@ -29,7 +29,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .CreateCorrespondence()
                 .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
                 .WithNotificationChannel(NotificationChannelExt.Sms)
-                .WithEmailContent()
+                .WithSmsContent()
                 .Build();
             var initializeCorrespondenceResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", smsPayload, _responseSerializerOptions);
             var response1 = await initializeCorrespondenceResponse1.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
@@ -97,7 +97,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task CorrespondenceWithPrefferedNotification_Gives_Ok()
+        public async Task CorrespondenceWithPreferredNotification_Gives_Ok()
         {
             var preferredEmailCustomPayload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
@@ -223,17 +223,374 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initializeCorrespondenceResponse4 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload4, _responseSerializerOptions);
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse4.StatusCode);
         }
+
         [Fact]
-        public async Task Correspondence_WithNotification_Failed_Returns_MissingContact()
+        public async Task Correspondence_CustomRecipient_OneToMany_GivesOK()
         {
-            // Arrange
+            var recipientToOverride = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipients = new List<CustomNotificationRecipientExt>()
+            {
+                new CustomNotificationRecipientExt()
+                {
+                    RecipientToOverride = recipientToOverride,
+                    Recipients = new List<NotificationRecipientExt>()
+                    {
+                        new NotificationRecipientExt()
+                        {
+                            OrganizationNumber = "123456789",
+                        },
+                        new NotificationRecipientExt()
+                        {
+                            MobileNumber = "+4798765432",
+                            EmailAddress = "andreas.håmmerbeck@digdær.no"
+                        },
+                        new NotificationRecipientExt()
+                        {
+                            MobileNumber = "004798765432",
+                            EmailAddress = "andreås.hammerbeck@digdør.no"
+                        },
+                        new NotificationRecipientExt()
+                        {
+                            NationalIdentityNumber = "12345678901",
+                        }
+                    }
+                }
+            };
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
+                .WithRecipients([recipientToOverride])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.SmsPreferred)
+                .WithCustomNotificationRecipients(customRecipients)
+                .Build();
+
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            var content = await initResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            initResponse.EnsureSuccessStatusCode();
+            Assert.NotNull(content);
+        }
+        [Fact]
+        public async Task Correspondence_CustomRecipientMultiple_GivesOK()
+        {
+            var recipientToOverride1 = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var recipientToOverride2 = $"{UrnConstants.OrganizationNumberAttribute}:991825828";
+            var customRecipients = new List<CustomNotificationRecipientExt>()
+            {
+                new CustomNotificationRecipientExt()
+                {
+                    RecipientToOverride = recipientToOverride1,
+                    Recipients = new List<NotificationRecipientExt>()
+                    {
+                        new NotificationRecipientExt()
+                        {
+                            OrganizationNumber = "123456789",
+                        },
+                    }
+                },
+                new CustomNotificationRecipientExt()
+                {
+                    RecipientToOverride = recipientToOverride2,
+                    Recipients = new List<NotificationRecipientExt>()
+                    {
+                        new NotificationRecipientExt()
+                        {
+                            NationalIdentityNumber = "12345678901",
+                        }
+                    }
+                }
+            };
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipientToOverride1, recipientToOverride2])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.SmsPreferred)
+                .WithCustomNotificationRecipients(customRecipients)
+                .Build();
+
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            var content = await initResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            initResponse.EnsureSuccessStatusCode();
+            Assert.NotNull(content);
+        }
+
+        [Fact]
+        public async Task Correspondence_CustomRecipient_RecipientToOverride_NotExist_GivesBadRequest()
+        {
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var recipientToOverride = $"{UrnConstants.OrganizationNumberAttribute}:123456789";
+            var customRecipients = new List<CustomNotificationRecipientExt>()
+            {
+                new CustomNotificationRecipientExt()
+                {
+                    RecipientToOverride = recipientToOverride,
+                    Recipients = new List<NotificationRecipientExt>()
+                    {
+                        new NotificationRecipientExt()
+                        {
+                            NationalIdentityNumber = "12345678901",
+                        }
+                    }
+                }
+            };
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.SmsPreferred)
+                .WithCustomNotificationRecipients(customRecipients)
+                .Build();
+
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task Correspondence_CustomRecipient_OrgNumberAndContactInfo_GivesBadRequest()
+        {
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipients = new List<CustomNotificationRecipientExt>()
+            {
+                new CustomNotificationRecipientExt()
+                {
+                    RecipientToOverride = recipient,
+                    Recipients = new List<NotificationRecipientExt>()
+                    {
+                        new NotificationRecipientExt()
+                        {
+                            OrganizationNumber = "123456789",
+                            MobileNumber = "12345678",
+                        },
+                    }
+                }
+            };
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.SmsPreferred)
+                .WithCustomNotificationRecipients(customRecipients)
+                .Build();
+
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task Correspondence_CustomRecipient_OrgNumberAndNationalID_GivesBadRequest()
+        {
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipients = new List<CustomNotificationRecipientExt>()
+            {
+                new CustomNotificationRecipientExt()
+                {
+                    RecipientToOverride = recipient,
+                    Recipients = new List<NotificationRecipientExt>()
+                    {
+                        new NotificationRecipientExt()
+                        {
+                            OrganizationNumber = "123456789",
+                            NationalIdentityNumber = "01019912345",
+                        },
+                    }
+                }
+            };
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.SmsPreferred)
+                .WithCustomNotificationRecipients(customRecipients)
+                .Build();
+
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task Correspondence_CustomRecipient_NationalIDAndContactInfo_GivesBadRequest()
+        {
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipients = new List<CustomNotificationRecipientExt>()
+            {
+                new CustomNotificationRecipientExt()
+                {
+                    RecipientToOverride = recipient,
+                    Recipients = new List<NotificationRecipientExt>()
+                    {
+                        new NotificationRecipientExt()
+                        {
+                            MobileNumber = "12345678",
+                            NationalIdentityNumber = "01019912345",
+                        },
+                    }
+                }
+            };
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Sms)
+                .WithReminderNotificationChannel(NotificationChannelExt.Email)
+                .WithSmsReminder()
+                .WithEmailReminder()
+                .WithCustomNotificationRecipients(customRecipients)
+                .Build();
+
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task Correspondence_CustomRecipient_MissingEmail_GivesBadRequest()
+        {
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipients = new List<CustomNotificationRecipientExt>()
+            {
+                new CustomNotificationRecipientExt()
+                {
+                    RecipientToOverride = recipient,
+                    Recipients = new List<NotificationRecipientExt>()
+                    {
+                        new NotificationRecipientExt()
+                        {
+                            MobileNumber = "12345678",
+                        },
+                    }
+                }
+            };
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
                 .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
                 .WithNotificationChannel(NotificationChannelExt.Email)
+                .WithCustomNotificationRecipients(customRecipients)
                 .Build();
-            var orderId = Guid.NewGuid();
+            
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+        }
 
+        [Fact]
+        public async Task Correspondence_CustomRecipient_InvalidEmail_GivesBadRequest()
+        {
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipients = new List<CustomNotificationRecipientExt>()
+            {
+                new CustomNotificationRecipientExt()
+                {
+                    RecipientToOverride = recipient,
+                    Recipients = new List<NotificationRecipientExt>()
+                    {
+                        new NotificationRecipientExt()
+                        {
+                            MobileNumber = "12345678",
+                            EmailAddress = "andreas.hammerbeckdigir.no"
+                        },
+                    }
+                }
+            };
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Email)
+                .WithCustomNotificationRecipients(customRecipients)
+                .Build();
+            
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task Correspondence_CustomRecipient_InvalidPhoneNumber_GivesBadRequest()
+        {
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipients = new List<CustomNotificationRecipientExt>()
+            {
+                new CustomNotificationRecipientExt()
+                {
+                    RecipientToOverride = recipient,
+                    Recipients = new List<NotificationRecipientExt>()
+                    {
+                        new NotificationRecipientExt()
+                        {
+                            MobileNumber = "12345678",
+                        }
+                    }
+                }
+            };
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Sms)
+                .WithCustomNotificationRecipients(customRecipients)
+                .Build();
+            
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task Correspondence_CustomRecipient_MissingMobileNumber_GivesBadRequest()
+        {
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipients = new List<CustomNotificationRecipientExt>()
+            {
+                new CustomNotificationRecipientExt()
+                {
+                    RecipientToOverride = recipient,
+                    Recipients = new List<NotificationRecipientExt>()
+                    {
+                        new NotificationRecipientExt()
+                        {
+                            EmailAddress = "andreas@hammerbeck.no",
+                        }
+                    }
+                }
+            };
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Sms)
+                .WithCustomNotificationRecipients(customRecipients)
+                .Build();
+            
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task Correspondence_CustomRecipient_RecipientLookupNull_Returns_Success()
+        {
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipients = new List<CustomNotificationRecipientExt>()
+            {
+                new CustomNotificationRecipientExt()
+                {
+                    RecipientToOverride = recipient,
+                    Recipients = new List<NotificationRecipientExt>()
+                    {
+                        new NotificationRecipientExt()
+                        {
+                            EmailAddress = "andreas@hammerbeck.no",
+                        }
+                    }
+                }
+            };
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Email)
+                .WithCustomNotificationRecipients(customRecipients)
+                .Build();
+
+            var orderId = Guid.NewGuid();
             var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
@@ -243,12 +600,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(new NotificationOrderRequestResponse()
                 {
                     OrderId = orderId,
-                    RecipientLookup = new RecipientLookupResult()
-                    {
-                        Status = RecipientLookupStatus.Failed,
-                        MissingContact = [],
-                        IsReserved = []
-                    }
+                    RecipientLookup = null
                 });
                 services.AddSingleton(mockNotificationService.Object);
             });
@@ -261,42 +613,12 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             Assert.Equal(CorrespondenceStatusExt.Published, content?.Correspondences.First().Status);
-            Assert.Equal(InitializedNotificationStatusExt.MissingContact, content?.Correspondences?.First()?.Notifications?.First().Status);
+            Assert.Equal(InitializedNotificationStatusExt.Success, content?.Correspondences?.First()?.Notifications?.First().Status);
             Assert.Equal(orderId, content?.Correspondences?.First()?.Notifications?.First().OrderId);
         }
+
         [Fact]
-        public async Task Correspondence_WithNotification_Failed_Returns_Failed()
-        {
-            // Arrange
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
-                .WithNotificationChannel(NotificationChannelExt.Email)
-                .Build();
-
-            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
-            {
-                var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
-                hangfireBackgroundJobClient.Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>())).Returns("1");
-                services.AddSingleton(hangfireBackgroundJobClient.Object);
-                var mockNotificationService = new Mock<IAltinnNotificationService>();
-                mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync((NotificationOrderRequestResponse)null);
-                services.AddSingleton(mockNotificationService.Object);
-            });
-            var senderClient = testFactory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
-
-            // Act
-            var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
-            var content = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-
-            // Assert
-            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
-            Assert.Equal(CorrespondenceStatusExt.Published, content?.Correspondences.First().Status);
-            Assert.Equal(InitializedNotificationStatusExt.Failure, content?.Correspondences?.First()?.Notifications?.First().Status);
-            Assert.Equal(Guid.Empty, content?.Correspondences?.First()?.Notifications?.First().OrderId);
-        }
-        [Fact]
-        public async Task Correspondence_WithNotification_Success_Returns_OK()
+        public async Task Correspondence_WithNotification_RecipientLookupSuccess_Returns_Success()
         {
             // Arrange
             var payload = new CorrespondenceBuilder()
@@ -337,5 +659,119 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(orderId, content?.Correspondences?.First()?.Notifications?.First().OrderId);
         }
 
+        [Fact]
+        public async Task Correspondence_WithNotification_RecipientLookupPartialSuccess_Returns_Success()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Email)
+                .Build();
+            var orderId = Guid.NewGuid();
+
+            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+                hangfireBackgroundJobClient.Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>())).Returns("1");
+                services.AddSingleton(hangfireBackgroundJobClient.Object);
+                var mockNotificationService = new Mock<IAltinnNotificationService>();
+                mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(new NotificationOrderRequestResponse()
+                {
+                    OrderId = orderId,
+                    RecipientLookup = new RecipientLookupResult()
+                    {
+                        Status = RecipientLookupStatus.PartialSuccess,
+                        MissingContact = [],
+                        IsReserved = []
+                    }
+                });
+                services.AddSingleton(mockNotificationService.Object);
+            });
+            var senderClient = testFactory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+
+            // Act
+            var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            var content = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+            Assert.Equal(CorrespondenceStatusExt.Published, content?.Correspondences.First().Status);
+            Assert.Equal(InitializedNotificationStatusExt.Success, content?.Correspondences?.First()?.Notifications?.First().Status);
+            Assert.Equal(orderId, content?.Correspondences?.First()?.Notifications?.First().OrderId);
+        }
+
+        [Fact]
+        public async Task Correspondence_WithNotification_RecipientLookupFailed_Returns_MissingContact()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Email)
+                .Build();
+            var orderId = Guid.NewGuid();
+
+            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+                hangfireBackgroundJobClient.Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>())).Returns("1");
+                services.AddSingleton(hangfireBackgroundJobClient.Object);
+                var mockNotificationService = new Mock<IAltinnNotificationService>();
+                mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(new NotificationOrderRequestResponse()
+                {
+                    OrderId = orderId,
+                    RecipientLookup = new RecipientLookupResult()
+                    {
+                        Status = RecipientLookupStatus.Failed,
+                        MissingContact = [],
+                        IsReserved = []
+                    }
+                });
+                services.AddSingleton(mockNotificationService.Object);
+            });
+            var senderClient = testFactory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+
+            // Act
+            var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            var content = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+            Assert.Equal(CorrespondenceStatusExt.Published, content?.Correspondences.First().Status);
+            Assert.Equal(InitializedNotificationStatusExt.MissingContact, content?.Correspondences?.First()?.Notifications?.First().Status);
+            Assert.Equal(orderId, content?.Correspondences?.First()?.Notifications?.First().OrderId);
+        }
+        [Fact]
+        public async Task Correspondence_WithNotification_NotificationCreationFailed_Returns_Failed()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Email)
+                .Build();
+
+            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+                hangfireBackgroundJobClient.Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>())).Returns("1");
+                services.AddSingleton(hangfireBackgroundJobClient.Object);
+                var mockNotificationService = new Mock<IAltinnNotificationService>();
+                mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync((NotificationOrderRequestResponse)null);
+                services.AddSingleton(mockNotificationService.Object);
+            });
+            var senderClient = testFactory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+
+            // Act
+            var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            var content = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+            Assert.Equal(CorrespondenceStatusExt.Published, content?.Correspondences.First().Status);
+            Assert.Equal(InitializedNotificationStatusExt.Failure, content?.Correspondences?.First()?.Notifications?.First().Status);
+            Assert.Equal(Guid.Empty, content?.Correspondences?.First()?.Notifications?.First().OrderId);
+        }
     }
 }

@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Altinn.AccessManagement;
 using Altinn.Correspondence.Integrations.Altinn.Authorization;
+using Altinn.Correspondence.Integrations.Altinn.ContactReservationRegistry;
 using Altinn.Correspondence.Integrations.Altinn.Events;
 using Altinn.Correspondence.Integrations.Altinn.Notifications;
 using Altinn.Correspondence.Integrations.Altinn.Register;
@@ -24,6 +25,8 @@ public static class DependencyInjection
     {
         var maskinportenSettings = new MaskinportenSettings();
         config.GetSection(nameof(MaskinportenSettings)).Bind(maskinportenSettings);
+        var generalSettings = new GeneralSettings();
+        config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
         services.AddScoped<IResourceRightsService, ResourceRightsService>();
         if (string.IsNullOrWhiteSpace(maskinportenSettings.ClientId))
         {
@@ -33,21 +36,21 @@ public static class DependencyInjection
             services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationDevService>();
             services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
-        }
+            services.AddScoped<IContactReservationRegistryService, ContactReservationRegistryDevService>();
+        } 
         else
         {
             var altinnOptions = new AltinnOptions();
             config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
-            services.RegisterMaskinportenHttpClient<IAltinnAuthorizationService, AltinnAuthorizationService>(maskinportenSettings, altinnOptions);
-            services.RegisterMaskinportenHttpClient<IResourceRightsService, ResourceRightsService>(maskinportenSettings, altinnOptions);
-            services.RegisterMaskinportenHttpClient<IAltinnRegisterService, AltinnRegisterService>(maskinportenSettings, altinnOptions);
-            services.RegisterMaskinportenHttpClient<IAltinnAccessManagementService, AltinnAccessManagementService>(maskinportenSettings, altinnOptions);
-            services.RegisterMaskinportenHttpClient<IEventBus, AltinnEventBus>(maskinportenSettings, altinnOptions);
-            services.RegisterMaskinportenHttpClient<IAltinnNotificationService, AltinnNotificationService>(maskinportenSettings, altinnOptions);
-            services.RegisterMaskinportenHttpClient<IDialogportenService, DialogportenService>(maskinportenSettings, altinnOptions);
+            services.RegisterAltinnHttpClient<IAltinnAuthorizationService, AltinnAuthorizationService>(maskinportenSettings, altinnOptions);
+            services.RegisterAltinnHttpClient<IResourceRightsService, ResourceRightsService>(maskinportenSettings, altinnOptions);
+            services.RegisterAltinnHttpClient<IAltinnRegisterService, AltinnRegisterService>(maskinportenSettings, altinnOptions);
+            services.RegisterAltinnHttpClient<IAltinnAccessManagementService, AltinnAccessManagementService>(maskinportenSettings, altinnOptions);
+            services.RegisterAltinnHttpClient<IEventBus, AltinnEventBus>(maskinportenSettings, altinnOptions);
+            services.RegisterAltinnHttpClient<IAltinnNotificationService, AltinnNotificationService>(maskinportenSettings, altinnOptions);
+            services.RegisterAltinnHttpClient<IDialogportenService, DialogportenService>(maskinportenSettings, altinnOptions);
+            services.RegisterMaskinportenHttpClient<IContactReservationRegistryService, ContactReservationRegistryService>(config, generalSettings.ContactReservationRegistryBaseUrl);
         }
-        var generalSettings = new GeneralSettings();
-        config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
         if (string.IsNullOrWhiteSpace(generalSettings.SlackUrl))
         {
             services.AddSingleton<ISlackClient>(new SlackDevClient(""));
@@ -63,12 +66,24 @@ public static class DependencyInjection
         else services.AddHttpClient<IAltinnSblBridgeService, AltinnSblBridgeService>(client => client.BaseAddress = new Uri(generalSettings.AltinnSblBridgeBaseUrl));
     }
 
-    public static void RegisterMaskinportenHttpClient<TClient, TImplementation>(this IServiceCollection services, MaskinportenSettings maskinportenSettings, AltinnOptions altinnOptions)
+    public static void RegisterAltinnHttpClient<TClient, TImplementation>(this IServiceCollection services, MaskinportenSettings maskinportenSettings, AltinnOptions altinnOptions)
         where TClient : class
         where TImplementation : class, TClient
     {
         services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(TClient).FullName, maskinportenSettings);
         services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
+            .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>();
+    }
+
+    public static void RegisterMaskinportenHttpClient<TClient, TImplementation>(this IServiceCollection services, IConfiguration config, string baseAddress)
+        where TClient : class
+        where TImplementation : class, TClient
+    {
+        var maskinportenSettings = new MaskinportenSettings();
+        config.GetSection(nameof(MaskinportenSettings)).Bind(maskinportenSettings);
+        maskinportenSettings.ExhangeToAltinnToken = false;
+        services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(TClient).FullName, maskinportenSettings);
+        services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(baseAddress))
             .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>();
     }
 }

@@ -88,4 +88,28 @@ internal static class NotificationMapper
             } : null,
         };
     }
+
+    internal static List<CustomNotificationRecipient> MapExternalRecipientsToRequest(List<CustomNotificationRecipientExt>? customRecipients)
+    {
+        if (customRecipients == null)
+        {
+            return new List<CustomNotificationRecipient>();
+        }
+        List<CustomNotificationRecipient> mappedCustomRecipients = new List<CustomNotificationRecipient>();
+        foreach (var customRecipient in customRecipients)
+        {
+            mappedCustomRecipients.Add(new CustomNotificationRecipient
+            {
+                RecipientToOverride = customRecipient.RecipientToOverride,
+                Recipients = customRecipient.Recipients.Select(newRecipient => new Recipient
+                {
+                    EmailAddress = newRecipient.EmailAddress,
+                    MobileNumber = newRecipient.MobileNumber,
+                    NationalIdentityNumber = newRecipient.NationalIdentityNumber,
+                    OrganizationNumber = newRecipient.OrganizationNumber
+                }).ToList()
+            });
+        }
+        return mappedCustomRecipients;
+    }
 }
