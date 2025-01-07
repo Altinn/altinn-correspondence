@@ -56,6 +56,10 @@ inputs:
   IDPORTEN_CLIENT_SECRET:
     description: "Client secret for Maskinporten integration used for IDPorten auth"
     required: true
+  MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT:
+    description: "Maskinporten Token Exchange Environment"
+    required: false
+    default: ""
 
 runs:
   using: "composite"
