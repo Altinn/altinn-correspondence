@@ -32,7 +32,7 @@ type ContainerAppScale = {
 }
 param prodLikeEnvironment bool = environment == 'production' || maskinporten_token_exchange_environment == 'yt01'
 param containerAppResources ContainerAppResources = prodLikeEnvironment ? {
-  cpu: json('2.0')
+  cpu: 2
   memory: '4.0Gi'
 } : {
   cpu: json('0.5')
