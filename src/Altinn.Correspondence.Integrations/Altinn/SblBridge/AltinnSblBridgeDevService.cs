@@ -20,9 +20,6 @@ public class AltinnSblBridgeDevService : IAltinnSblBridgeService
         {
             return false;
         }
-
         return true;
     }
-
-
 }

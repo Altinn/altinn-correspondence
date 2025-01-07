@@ -195,8 +195,6 @@ public class InitializeCorrespondencesHandler(
 
                 backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), publishTime);
             }
-            await eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
-
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
             var notificationDetails = new List<InitializedCorrespondencesNotifications>();
             if (!isReserved)

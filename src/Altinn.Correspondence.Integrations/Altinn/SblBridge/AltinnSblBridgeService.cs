@@ -28,9 +28,6 @@ public class AltinnSblBridgeService : IAltinnSblBridgeService
             var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
             throw new Exception($"Error when adding party to SBL Bridge. Statuscode was: ${statusCode}, error was: ${errorContent}");
         }
-
         return true;
     }
-
-
 }
