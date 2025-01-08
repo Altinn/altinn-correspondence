@@ -2,7 +2,7 @@ using System.Transactions;
 
 using Hangfire;
 using Hangfire.PostgreSql;
-
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 using Npgsql;
@@ -42,6 +42,7 @@ public static class TransactionWithRetriesPolicy
         .Or<PostgresException>()
         .Or<BackgroundJobClientException>()
         .Or<PostgreSqlDistributedLockException>()
+        .Or<DbUpdateConcurrencyException>()
         .WaitAndRetryAsync(
             10,
             retryAttempt => TimeSpan.FromMilliseconds(10),
