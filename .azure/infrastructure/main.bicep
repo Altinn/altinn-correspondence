@@ -35,9 +35,8 @@ param maskinporten_token_exchange_environment string
 import { Sku as KeyVaultSku } from '../modules/keyvault/create.bicep'
 param keyVaultSku KeyVaultSku
 
-import { Sku as PostgresSku } from '../modules/postgreSql/create.bicep'
 param prodLikeEnvironment bool = environment == 'production' || maskinporten_token_exchange_environment == 'yt01'
-param postgresSku PostgresSku = prodLikeEnvironment ? {
+param postgresSku object = prodLikeEnvironment ? {
     name: 'Standard_D8ads_v5'
     tier: 'GeneralPurpose'
   } : {

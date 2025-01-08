@@ -3,12 +3,7 @@ param location string
 param environmentKeyVaultName string
 param srcSecretName string
 
-@export()
-type Sku = {
-  name: 'Standard_B1ms' | 'Standard_B2s' | 'Standard_D2ads_v5'
-  tier: 'Burstable' | 'GeneralPurpose' | 'MemoryOptimized'
-}
-param sku Sku
+param sku object
 param iopsTier string
 @secure()
 param srcKeyVault object
