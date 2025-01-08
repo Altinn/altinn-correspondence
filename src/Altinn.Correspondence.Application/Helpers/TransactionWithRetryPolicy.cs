@@ -23,7 +23,7 @@ public static class TransactionWithRetriesPolicy
             using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
             {
                 IsolationLevel = IsolationLevel.ReadCommitted,
-                Timeout = TransactionManager.MaximumTimeout
+                Timeout = TimeSpan.FromSeconds(30)
             }, TransactionScopeAsyncFlowOption.Enabled);
             var result = await operation(cancellationToken);
             transaction.Complete();
