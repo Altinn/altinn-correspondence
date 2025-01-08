@@ -3,8 +3,6 @@ param location string
 param environmentKeyVaultName string
 param srcSecretName string
 
-param sku object
-param iopsTier string
 @secure()
 param srcKeyVault object
 
@@ -12,6 +10,8 @@ param srcKeyVault object
 param administratorLoginPassword string
 @secure()
 param tenantId string
+
+param prodLikeEnvironment bool
 
 var databaseName = 'correspondence'
 var databaseUser = 'adminuser'
@@ -48,7 +48,7 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-01-preview'
     storage: {
       storageSizeGB: 32
       autoGrow: 'Enabled'
-      tier: iopsTier
+      tier: prodLikeEnvironment ? 'P15': 'P4'
     }
     backup: { backupRetentionDays: 35 }
     authConfig: {
@@ -57,15 +57,31 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-01-preview'
       tenantId: tenantId
     }
   }
-  sku: sku
+  sku: prodLikeEnvironment ? {
+    name: 'Standard_D8ads_v5'
+    tier: 'GeneralPurpose'
+  } : {
+    name: 'Standard_B1ms'
+    tier: 'Burstable'
+  }
 }
 
-resource configurations 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
+resource extensionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
   name: 'azure.extensions'
   parent: postgres
   dependsOn: [database]
   properties: {
     value: 'UUID-OSSP,HSTORE'
+    source: 'user-override'
+  }
+}
+
+resource maxConnectionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
+  name: 'max_connections'
+  parent: postgres
+  dependsOn: [database]
+  properties: {
+    value: prodLikeEnvironment ? '3000' : '50'
     source: 'user-override'
   }
 }
@@ -82,7 +98,7 @@ resource database 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-06-0
 resource allowAzureAccess 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-06-01-preview' = {
   name: 'azure-access'
   parent: postgres
-  dependsOn: [configurations] // Needs to depend on database to avoid updating at the same time
+  dependsOn: [database, extensionsConfiguration, maxConnectionsConfiguration] // Needs to depend on database to avoid updating at the same time
   properties: {
     startIpAddress: '0.0.0.0'
     endIpAddress: '0.0.0.0'

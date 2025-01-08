@@ -18,8 +18,3 @@ param slackUrl = readEnvironmentVariable('SLACK_URL')
 param idportenClientId = readEnvironmentVariable('IDPORTEN_CLIENT_ID')
 param idportenClientSecret = readEnvironmentVariable('IDPORTEN_CLIENT_SECRET')
 param maskinporten_token_exchange_environment = readEnvironmentVariable('MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT')
-// SKUs
-param keyVaultSku = {
-  name: 'standard'
-  family: 'A'
-}
