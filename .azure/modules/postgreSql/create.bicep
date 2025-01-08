@@ -15,7 +15,7 @@ param prodLikeEnvironment bool
 
 var databaseName = 'correspondence'
 var databaseUser = 'adminuser'
-var poolSize = 100
+var poolSize = prodLikeEnvironment ? 100 : 25
 
 module saveAdmPassword '../keyvault/upsertSecret.bicep' = {
   name: 'Save_${srcSecretName}'
