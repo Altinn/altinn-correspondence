@@ -10,9 +10,9 @@ public class ProcessLegacyPartyHandler(
     ILogger<ProcessLegacyPartyHandler> logger,
     IAltinnRegisterService altinnRegisterService,
     IAltinnSblBridgeService sblBridgeService,
-    ILegacyPartyRepository legacyPartyRepository) : IHandler<string, Task>
+    ILegacyPartyRepository legacyPartyRepository)
 {
-    public async Task<OneOf<Task, Error>> Process(string recipient, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    public async Task Process(string recipient, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Process legacy party {recipient}", recipient);
         var partyId = await altinnRegisterService.LookUpPartyId(recipient, cancellationToken);
@@ -21,17 +21,15 @@ public class ProcessLegacyPartyHandler(
             throw new Exception("Failed to look up party in Altinn Register");
         }
         var exists = await legacyPartyRepository.PartyAlreadyExists((int)partyId, cancellationToken);
-        if (exists)
+        if (!exists)
         {
-            return Task.CompletedTask;
+            var success = await sblBridgeService.AddPartyToSblBridge((int)partyId, cancellationToken);
+            if (!success)
+            {
+                throw new Exception("Failed to send party to SBL");
+            }
+            logger.Log(LogLevel.Information, "Party {partyId} added to SBL", partyId);
+            await legacyPartyRepository.AddLegacyPartyId((int)partyId, cancellationToken);
         }
-        var success = true; await sblBridgeService.AddPartyToSblBridge((int)partyId, cancellationToken);
-        if (!success)
-        {
-            throw new Exception("Failed to send party to SBL");
-        }
-        logger.Log(LogLevel.Information, "Party {partyId} added to SBL", partyId);
-        await legacyPartyRepository.AddLegacyPartyId((int)partyId, cancellationToken);
-        return Task.CompletedTask;
     }
 }

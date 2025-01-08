@@ -11,6 +11,7 @@ using Altinn.Correspondence.Integrations.Altinn.Events;
 using Altinn.Correspondence.Integrations.Altinn.Notifications;
 using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
+using Altinn.Correspondence.Integrations.Altinn.SblBridge;
 using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Integrations.Slack;
 using Altinn.Correspondence.Repositories;
@@ -37,7 +38,7 @@ public static class DependencyInjection
             services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
             services.AddScoped<IContactReservationRegistryService, ContactReservationRegistryDevService>();
-        } 
+        }
         else
         {
             var altinnOptions = new AltinnOptions();

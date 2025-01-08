@@ -11,12 +11,12 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task AddLegacyPartyId(int id, CancellationToken cancellationToken)
         {
             await _context.LegacyParties.AddAsync(new LegacyPartyEntity { PartyId = id }, cancellationToken);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
         public async Task<bool> PartyAlreadyExists(int partyId, CancellationToken cancellationToken)
         {
-            return await _context.LegacyParties.AnyAsync(p => p.PartyId == partyId);
+            return await _context.LegacyParties.AnyAsync(p => p.PartyId == partyId, cancellationToken);
         }
     }
 }

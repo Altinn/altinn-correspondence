@@ -3,7 +3,7 @@ using System.Text;
 using Altinn.Correspondence.Core.Services;
 
 
-namespace Altinn.Correspondence.Integrations.Altinn.Register;
+namespace Altinn.Correspondence.Integrations.Altinn.SblBridge;
 public class AltinnSblBridgeService : IAltinnSblBridgeService
 {
     private readonly HttpClient _httpClient;
@@ -21,7 +21,7 @@ public class AltinnSblBridgeService : IAltinnSblBridgeService
             return false;
         }
         StringContent content = new StringContent(partyId.ToString(), Encoding.UTF8, "application/json");
-        var response = await _httpClient.PostAsync($"authorization/api/partieswithmessages", content, cancellationToken);
+        using var response = await _httpClient.PostAsync($"authorization/api/partieswithmessages", content, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             var statusCode = response.StatusCode;

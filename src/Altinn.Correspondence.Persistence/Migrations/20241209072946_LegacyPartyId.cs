@@ -22,7 +22,14 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_LegacyParties", x => x.Id);
+                    table.UniqueConstraint("UK_LegacyParties_PartyId", x => x.PartyId);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_LegacyParties_PartyId",
+                schema: "correspondence",
+                table: "LegacyParties",
+                column: "PartyId");
         }
 
         /// <inheritdoc />
