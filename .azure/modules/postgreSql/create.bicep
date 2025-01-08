@@ -3,12 +3,6 @@ param location string
 param environmentKeyVaultName string
 param srcSecretName string
 
-@export()
-type Sku = {
-  name: 'Standard_B1ms' | 'Standard_B2s' | 'Standard_D2ads_v5'
-  tier: 'Burstable' | 'GeneralPurpose' | 'MemoryOptimized'
-}
-param sku Sku
 @secure()
 param srcKeyVault object
 
@@ -17,9 +11,11 @@ param administratorLoginPassword string
 @secure()
 param tenantId string
 
+param prodLikeEnvironment bool
+
 var databaseName = 'correspondence'
 var databaseUser = 'adminuser'
-var poolSize = 25
+var poolSize = prodLikeEnvironment ? 100 : 25
 
 module saveAdmPassword '../keyvault/upsertSecret.bicep' = {
   name: 'Save_${srcSecretName}'
@@ -51,6 +47,8 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-01-preview'
     administratorLoginPassword: administratorLoginPassword
     storage: {
       storageSizeGB: 32
+      autoGrow: 'Enabled'
+      tier: prodLikeEnvironment ? 'P15': 'P4'
     }
     backup: { backupRetentionDays: 35 }
     authConfig: {
@@ -59,16 +57,12 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-01-preview'
       tenantId: tenantId
     }
   }
-  sku: sku
-}
-
-resource configurations 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
-  name: 'azure.extensions'
-  parent: postgres
-  dependsOn: [database]
-  properties: {
-    value: 'UUID-OSSP,HSTORE'
-    source: 'user-override'
+  sku: prodLikeEnvironment ? {
+    name: 'Standard_D8ads_v5'
+    tier: 'GeneralPurpose'
+  } : {
+    name: 'Standard_B1ms'
+    tier: 'Burstable'
   }
 }
 
@@ -81,10 +75,30 @@ resource database 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-06-0
   }
 }
 
+resource extensionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
+  name: 'azure.extensions'
+  parent: postgres
+  dependsOn: [database]
+  properties: {
+    value: 'UUID-OSSP,HSTORE'
+    source: 'user-override'
+  }
+}
+
+resource maxConnectionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
+  name: 'max_connections'
+  parent: postgres
+  dependsOn: [extensionsConfiguration]
+  properties: {
+    value: prodLikeEnvironment ? '3000' : '50'
+    source: 'user-override'
+  }
+}
+
 resource allowAzureAccess 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-06-01-preview' = {
   name: 'azure-access'
   parent: postgres
-  dependsOn: [configurations] // Needs to depend on database to avoid updating at the same time
+  dependsOn: [maxConnectionsConfiguration] // Needs to depend on database to avoid updating at the same time
   properties: {
     startIpAddress: '0.0.0.0'
     endIpAddress: '0.0.0.0'

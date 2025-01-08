@@ -5,12 +5,6 @@ param environment string
 param tenant_id string
 @secure()
 param test_client_id string
-@export()
-type Sku = {
-  name: 'standard'
-  family: 'A'
-}
-param sku Sku
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: vaultName
@@ -19,7 +13,10 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enabledForTemplateDeployment: true
     enabledForDiskEncryption: true
     enabledForDeployment: true
-    sku: sku
+    sku: {
+      name: 'standard'
+      family: 'A'
+    }
     tenantId: tenant_id
     accessPolicies: environment == 'test'
       ? [

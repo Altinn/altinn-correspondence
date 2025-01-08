@@ -99,6 +99,7 @@ runs:
         MASKINPORTEN_JWK: ${{ inputs.MASKINPORTEN_JWK }}
         PLATFORM_SUBSCRIPTION_KEY: ${{ inputs.PLATFORM_SUBSCRIPTION_KEY }}
         SLACK_URL: ${{ inputs.SLACK_URL }}
+        MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
 
     - name: Migrate database
       uses: ./.github/actions/migrate-database
