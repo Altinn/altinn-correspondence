@@ -20,7 +20,11 @@ public static class TransactionWithRetriesPolicy
     {
         var result = await RetryPolicy(logger).ExecuteAndCaptureAsync<OneOf<T, Error>>(async (cancellationToken) =>
         {
-            using var transaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+            using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TransactionManager.MaximumTimeout
+            }, TransactionScopeAsyncFlowOption.Enabled);
             var result = await operation(cancellationToken);
             transaction.Complete();
             return result;
