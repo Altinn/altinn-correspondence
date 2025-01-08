@@ -9,6 +9,7 @@ type Sku = {
   tier: 'Burstable' | 'GeneralPurpose' | 'MemoryOptimized'
 }
 param sku Sku
+param iopsTier string
 @secure()
 param srcKeyVault object
 
@@ -19,7 +20,7 @@ param tenantId string
 
 var databaseName = 'correspondence'
 var databaseUser = 'adminuser'
-var poolSize = 25
+var poolSize = 100
 
 module saveAdmPassword '../keyvault/upsertSecret.bicep' = {
   name: 'Save_${srcSecretName}'
@@ -51,6 +52,8 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-01-preview'
     administratorLoginPassword: administratorLoginPassword
     storage: {
       storageSizeGB: 32
+      autoGrow: 'Enabled'
+      tier: iopsTier
     }
     backup: { backupRetentionDays: 35 }
     authConfig: {

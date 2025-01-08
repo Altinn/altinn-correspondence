@@ -38,7 +38,7 @@ param keyVaultSku KeyVaultSku
 import { Sku as PostgresSku } from '../modules/postgreSql/create.bicep'
 param prodLikeEnvironment bool = environment == 'production' || maskinporten_token_exchange_environment == 'yt01'
 param postgresSku PostgresSku = prodLikeEnvironment ? {
-    name: 'Standard_D2ads_v5'
+    name: 'Standard_D8ads_v5'
     tier: 'GeneralPurpose'
   } : {
     name: 'Standard_B1ms'
@@ -131,6 +131,7 @@ module postgresql '../modules/postgreSql/create.bicep' = {
     srcSecretName: correspondenceAdminPasswordSecretName
     administratorLoginPassword: correspondencePgAdminPassword
     sku: postgresSku
+    iopsTier: prodLikeEnvironment ? 'P15': 'P4'
     tenantId: tenantId
   }
 }
