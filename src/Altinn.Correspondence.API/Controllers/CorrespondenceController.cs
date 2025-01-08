@@ -48,7 +48,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] InitializeCorrespondencesHandler handler,
             CancellationToken cancellationToken)
         {
-            LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
+            LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence, HttpContext);
             _logger.LogInformation("Initialize correspondences");
 
             var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, null, request.ExistingAttachments);
@@ -76,7 +76,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] InitializeCorrespondencesHandler handler,
             CancellationToken cancellationToken)
         {
-            LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
+            LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence, HttpContext);
             _logger.LogInformation("Insert correspondences with attachment data");
 
             Request.EnableBuffering();

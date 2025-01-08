@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System.Text.Json.Serialization;
+using Altinn.Correspondence.API.Middlewares;
 
 BuildAndRun(args);
 
@@ -39,6 +40,7 @@ static void BuildAndRun(string[] args)
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
+    app.UseMiddleware<LogEnrichmentMiddleware>();
     app.UseMiddleware<SecurityHeadersMiddleware>();
 
     if (app.Environment.IsDevelopment())

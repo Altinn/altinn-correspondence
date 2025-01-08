@@ -1,22 +1,22 @@
 ﻿using Altinn.Correspondence.API.Models;
-using Serilog.Context;
+using Altinn.Correspondence.Common.Helpers;
 
 namespace Altinn.Correspondence.Helpers
 {
     public static class LogContextHelpers
     {
-        public static void EnrichLogsWithInsertCorrespondence(BaseCorrespondenceExt initializeCorrespondenceExt)
+        public static void EnrichLogsWithInsertCorrespondence(BaseCorrespondenceExt initializeCorrespondenceExt, HttpContext httpContext)
         {
-            LogContext.PushProperty("sender", initializeCorrespondenceExt.Sender);
-            LogContext.PushProperty("resourceId", initializeCorrespondenceExt.ResourceId);
-            LogContext.PushProperty("sendersReference", initializeCorrespondenceExt.SendersReference);
+            httpContext.PushProperty("sender", initializeCorrespondenceExt.Sender);
+            httpContext.PushProperty("resourceId", initializeCorrespondenceExt.ResourceId);
+            httpContext.PushProperty("sendersReference", initializeCorrespondenceExt.SendersReference);
         }
 
-        public static void EnrichLogsWithMigrateCorrespondence(MigrateCorrespondenceExt migrateCorrespondenceExt)
+        public static void EnrichLogsWithMigrateCorrespondence(MigrateCorrespondenceExt migrateCorrespondenceExt, HttpContext httpContext)
         {
-            LogContext.PushProperty("sender", migrateCorrespondenceExt.CorrespondenceData.Correspondence.Sender);
-            LogContext.PushProperty("resourceId", migrateCorrespondenceExt.CorrespondenceData.Correspondence.ResourceId);
-            LogContext.PushProperty("sendersReference", migrateCorrespondenceExt.CorrespondenceData.Correspondence.SendersReference);
+            httpContext.PushProperty("sender", migrateCorrespondenceExt.CorrespondenceData.Correspondence.Sender);
+            httpContext.PushProperty("resourceId", migrateCorrespondenceExt.CorrespondenceData.Correspondence.ResourceId);
+            httpContext.PushProperty("sendersReference", migrateCorrespondenceExt.CorrespondenceData.Correspondence.SendersReference);
         }
     }
 }
