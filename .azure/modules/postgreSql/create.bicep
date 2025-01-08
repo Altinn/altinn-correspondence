@@ -66,6 +66,15 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-01-preview'
   }
 }
 
+resource database 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-06-01-preview' = {
+  name: databaseName
+  parent: postgres
+  properties: {
+    charset: 'UTF8'
+    collation: 'nb_NO.utf8'
+  }
+}
+
 resource extensionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
   name: 'azure.extensions'
   parent: postgres
@@ -79,26 +88,17 @@ resource extensionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/conf
 resource maxConnectionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
   name: 'max_connections'
   parent: postgres
-  dependsOn: [database]
+  dependsOn: [extensionsConfiguration]
   properties: {
     value: prodLikeEnvironment ? '3000' : '50'
     source: 'user-override'
   }
 }
 
-resource database 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-06-01-preview' = {
-  name: databaseName
-  parent: postgres
-  properties: {
-    charset: 'UTF8'
-    collation: 'nb_NO.utf8'
-  }
-}
-
 resource allowAzureAccess 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-06-01-preview' = {
   name: 'azure-access'
   parent: postgres
-  dependsOn: [database, extensionsConfiguration, maxConnectionsConfiguration] // Needs to depend on database to avoid updating at the same time
+  dependsOn: [maxConnectionsConfiguration] // Needs to depend on database to avoid updating at the same time
   properties: {
     startIpAddress: '0.0.0.0'
     endIpAddress: '0.0.0.0'
