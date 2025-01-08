@@ -11,6 +11,7 @@ using Altinn.Correspondence.Integrations.Altinn.Events;
 using Altinn.Correspondence.Integrations.Altinn.Notifications;
 using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
+using Altinn.Correspondence.Integrations.Altinn.SblBridge;
 using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Integrations.Slack;
 using Altinn.Correspondence.Repositories;
@@ -37,7 +38,7 @@ public static class DependencyInjection
             services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
             services.AddScoped<IContactReservationRegistryService, ContactReservationRegistryDevService>();
-        } 
+        }
         else
         {
             var altinnOptions = new AltinnOptions();
@@ -54,11 +55,16 @@ public static class DependencyInjection
         if (string.IsNullOrWhiteSpace(generalSettings.SlackUrl))
         {
             services.AddSingleton<ISlackClient>(new SlackDevClient(""));
-        } 
+        }
         else
         {
             services.AddSingleton<ISlackClient>(new SlackClient(generalSettings.SlackUrl));
         }
+        if (string.IsNullOrWhiteSpace(generalSettings.AltinnSblBridgeBaseUrl))
+        {
+            services.AddSingleton<IAltinnSblBridgeService>(new AltinnSblBridgeDevService(""));
+        }
+        else services.AddHttpClient<IAltinnSblBridgeService, AltinnSblBridgeService>(client => client.BaseAddress = new Uri(generalSettings.AltinnSblBridgeBaseUrl));
     }
 
     public static void RegisterAltinnHttpClient<TClient, TImplementation>(this IServiceCollection services, MaskinportenSettings maskinportenSettings, AltinnOptions altinnOptions)

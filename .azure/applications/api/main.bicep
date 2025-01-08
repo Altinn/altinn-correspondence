@@ -17,6 +17,8 @@ param keyVaultUrl string
 param namePrefix string
 @secure()
 param storageAccountName string
+@secure()
+param sblBridgeBaseUrl string
 @minLength(3)
 param maskinporten_environment string
 param correspondenceBaseUrl string
@@ -99,6 +101,7 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     contactReservationRegistryBaseUrl: contactReservationRegistryBaseUrl
     idportenIssuer: idportenIssuer
     dialogportenIssuer: dialogportenIssuer
+    sblBridgeBaseUrl: sblBridgeBaseUrl
     maskinporten_token_exchange_environment: maskinporten_token_exchange_environment
   }
 }

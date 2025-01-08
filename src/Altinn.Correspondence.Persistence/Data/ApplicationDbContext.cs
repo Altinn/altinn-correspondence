@@ -37,6 +37,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<CorrespondenceReplyOptionEntity> CorrespondenceReplyOptions { get; set; }
     public DbSet<ExternalReferenceEntity> ExternalReferences { get; set; }
     public DbSet<NotificationTemplateEntity> NotificationTemplates { get; set; }
+    public DbSet<LegacyPartyEntity> LegacyParties { get; set; }
 
     private bool IsAccessTokenValid()
     {

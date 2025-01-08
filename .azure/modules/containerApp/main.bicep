@@ -12,6 +12,9 @@ param dialogportenIssuer string
 param maskinporten_token_exchange_environment string
 
 @secure()
+param sblBridgeBaseUrl string
+
+@secure()
 param subscription_id string
 @secure()
 param principal_id string
@@ -78,6 +81,7 @@ var containerAppEnvVarsdefault = [
   { name: 'GeneralSettings__CorrespondenceBaseUrl', value: correspondenceBaseUrl }
   { name: 'GeneralSettings__ContactReservationRegistryBaseUrl', value: contactReservationRegistryBaseUrl}
   { name: 'GeneralSettings__SlackUrl', secretRef: 'slack-url' }
+  { name: 'GeneralSettings__AltinnSblBridgeBaseUrl', value: sblBridgeBaseUrl }
   { name: 'DialogportenSettings__Issuer', value: dialogportenIssuer }
   { name: 'IdportenSettings__Issuer', value: idportenIssuer }
   { name: 'IdportenSettings__ClientId', secretRef: 'idporten-client-id' }

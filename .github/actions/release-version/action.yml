@@ -42,6 +42,9 @@ inputs:
   IDPORTEN_ISSUER:
     description: "Issuer for Maskinporten integration used for IDPorten auth"
     required: true
+  SBL_BRIDGE_BASE_URL:
+    description: "Base url for SBL Bridge"
+    required: true
   MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT:
     description: "Environment for Maskinporten token exchange"
     required: false
@@ -77,6 +80,7 @@ runs:
         CONTACT_RESERVATION_REGISTRY_BASE_URL: ${{ inputs.CONTACT_RESERVATION_REGISTRY_BASE_URL }}
         DIALOGPORTEN_ISSUER: ${{ inputs.DIALOGPORTEN_ISSUER }}
         IDPORTEN_ISSUER: ${{ inputs.IDPORTEN_ISSUER }}
+        SBL_BRIDGE_BASE_URL: ${{ inputs.SBL_BRIDGE_BASE_URL }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
       with:
         scope: subscription
