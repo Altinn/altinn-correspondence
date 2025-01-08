@@ -10,12 +10,10 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
-using Serilog.Context;
 using System.Globalization;
 using System.Security.Claims;
 
@@ -34,7 +32,6 @@ public class InitializeCorrespondencesHandler(
     IDialogportenService dialogportenService,
     IContactReservationRegistryService contactReservationRegistryService,
     IHostEnvironment hostEnvironment,
-    IHttpContextAccessor httpContextAccessor,
     IOptions<GeneralSettings> generalSettings,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
@@ -184,7 +181,6 @@ public class InitializeCorrespondencesHandler(
         var initializedCorrespondences = new List<InitializedCorrespondences>();
         foreach (var correspondence in correspondences)
         {
-            LogContext.PushProperty("correspondenceId", correspondence.Id);
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
             if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized ||
                 correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish)
