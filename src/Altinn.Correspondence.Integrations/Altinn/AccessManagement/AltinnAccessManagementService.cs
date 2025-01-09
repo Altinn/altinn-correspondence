@@ -45,17 +45,24 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             _logger.LogError("Unexpected null or invalid json response from Authorization GetAuthorizedParties.");
             throw new Exception("Unexpected null or invalid json response from Authorization GetAuthorizedParties.");
         }
-
-        return responseContent.Select(p => new PartyWithSubUnits
+        List<PartyWithSubUnits> parties = new();
+        foreach (var p in responseContent)
         {
-            PartyId = p.partyId,
-            PartyUuid = p.partyUuid,
-            OrgNumber = p.organizationNumber,
-            SSN = p.personId,
-            Resources = p.authorizedResources,
-            PartyTypeName = GetType(p.type),
-            SubUnits = GetPartiesFromSubunits(p.subunits)
-        }).ToList();
+            parties.Add(new PartyWithSubUnits
+            {
+                PartyId = p.partyId,
+                OrgNumber = p.organizationNumber,
+                SSN = p.personId,
+                Resources = p.authorizedResources,
+                PartyTypeName = GetType(p.type),
+            });
+            if (p.subunits != null && p.subunits.Count > 0)
+            {
+                parties.AddRange(GetPartiesFromSubunits(p.subunits));
+            }
+        }
+
+        return parties;
     }
     public PartyType GetType(string type)
     {
