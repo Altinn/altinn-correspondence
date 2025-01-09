@@ -51,7 +51,6 @@ internal static class InitializeCorrespondencesMapper
     {
         return new InitializeCorrespondencesResponseExt
         {
-            Status = GetOperationStatus(response),
             Correspondences = response.Correspondences.Select(correspondence => new InitializedCorrespondencesExt
             {
                 CorrespondenceId = correspondence.CorrespondenceId,
@@ -66,22 +65,5 @@ internal static class InitializeCorrespondencesMapper
             }).ToList(),
             AttachmentIds = response.AttachmentIds
         };
-    }
-
-    private static InitializedCorrespondecesStatusExt GetOperationStatus(InitializeCorrespondencesResponse response)
-    {
-        var notificationsCount = response.Correspondences.SelectMany(c => c.Notifications).Count();
-        var notificationsThatSucceeded = response.Correspondences.SelectMany(c => c.Notifications).Where(n => n.Status == InitializedNotificationStatus.Success).Count();
-        var correspondencesCount = response.Correspondences.Count;
-        var correspondencesThatSucceeded = response.Correspondences.Where(c => c.Status == CorrespondenceStatus.ReadyForPublish || c.Status == CorrespondenceStatus.Published).Count();
-        if (notificationsCount == notificationsThatSucceeded && correspondencesCount == correspondencesThatSucceeded)
-        {
-            return InitializedCorrespondecesStatusExt.Success;
-        }
-        if (notificationsThatSucceeded == 0 && correspondencesThatSucceeded == 0)
-        {
-            return InitializedCorrespondecesStatusExt.Failed;
-        }
-        return InitializedCorrespondecesStatusExt.PartialSuccess;
     }
 }
