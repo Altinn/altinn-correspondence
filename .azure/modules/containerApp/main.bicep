@@ -34,6 +34,7 @@ param containerAppResources object = prodLikeEnvironment ? {
   cpu: 2
   memory: '4.0Gi'
 } : {
+  // Using json() as a workaround for Bicep float type limitations in Container Apps
   cpu: json('0.5')
   memory: '1.0Gi'
 }
