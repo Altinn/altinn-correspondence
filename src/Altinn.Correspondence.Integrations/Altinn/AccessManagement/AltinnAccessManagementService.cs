@@ -24,7 +24,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         _logger = logger;
     }
 
-    public async Task<List<Party>> GetAuthorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default)
+    public async Task<List<PartyWithSubUnits>> GetAuthorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default)
     {
         AuthorizedPartiesRequest request = new(partyToRequestFor);
         JsonSerializerOptions serializerOptions = new()
@@ -46,14 +46,15 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             throw new Exception("Unexpected null or invalid json response from Authorization GetAuthorizedParties.");
         }
 
-        return responseContent.Select(p => new Party
+        return responseContent.Select(p => new PartyWithSubUnits
         {
             PartyId = p.partyId,
             PartyUuid = p.partyUuid,
             OrgNumber = p.organizationNumber,
             SSN = p.personId,
             Resources = p.authorizedResources,
-            PartyTypeName = GetType(p.type)
+            PartyTypeName = GetType(p.type),
+            SubUnits = GetPartiesFromSubunits(p.subunits)
         }).ToList();
     }
     public PartyType GetType(string type)
@@ -65,6 +66,27 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             "SelfIdentified" => PartyType.SelfIdentified,
             _ => throw new NotImplementedException()
         };
+    }
+    private List<PartyWithSubUnits> GetPartiesFromSubunits(List<AuthroizedPartiesResponse> subunits)
+    {
+        List<PartyWithSubUnits> parties = new();
+        foreach (var subunit in subunits)
+        {
+            parties.Add(new PartyWithSubUnits
+            {
+
+                PartyId = subunit.partyId,
+                OrgNumber = subunit.organizationNumber,
+                SSN = subunit.personId,
+                Resources = subunit.authorizedResources,
+                PartyTypeName = GetType(subunit.type),
+            });
+            if (subunit.subunits != null && subunit.subunits.Count > 0)
+            {
+                parties.AddRange(GetPartiesFromSubunits(subunit.subunits));
+            }
+        }
+        return parties;
     }
 
     internal sealed class AuthorizedPartiesRequest
