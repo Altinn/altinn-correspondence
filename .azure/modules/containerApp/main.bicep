@@ -25,16 +25,12 @@ param userIdentityClientId string
 @secure()
 param containerAppEnvId string
 
-type ContainerAppResources = {
-    cpu: int
-    memory: string
-}
 type ContainerAppScale = {
     minReplicas: int
     maxReplicas: int
 }
 param prodLikeEnvironment bool = environment == 'production' || maskinporten_token_exchange_environment == 'yt01'
-param containerAppResources ContainerAppResources = prodLikeEnvironment ? {
+param containerAppResources object = prodLikeEnvironment ? {
   cpu: 2
   memory: '4.0Gi'
 } : {
