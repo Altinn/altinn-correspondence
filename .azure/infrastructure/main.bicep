@@ -29,13 +29,9 @@ param idportenClientSecret string
 
 @secure()
 param storageAccountName string
+param maskinporten_token_exchange_environment string
 
-import { Sku as KeyVaultSku } from '../modules/keyvault/create.bicep'
-param keyVaultSku KeyVaultSku
-
-import { Sku as PostgresSku } from '../modules/postgreSql/create.bicep'
-param postgresSku PostgresSku
-
+var prodLikeEnvironment = environment == 'production' || maskinporten_token_exchange_environment == 'yt01'
 var resourceGroupName = '${namePrefix}-rg'
 
 // Create resource groups
@@ -50,7 +46,6 @@ module environmentKeyVault '../modules/keyvault/create.bicep' = {
   params: {
     vaultName: sourceKeyVaultName
     location: location
-    sku: keyVaultSku
     tenant_id: tenantId
     environment: environment
     test_client_id: test_client_id
@@ -120,8 +115,8 @@ module postgresql '../modules/postgreSql/create.bicep' = {
     srcKeyVault: srcKeyVault
     srcSecretName: correspondenceAdminPasswordSecretName
     administratorLoginPassword: correspondencePgAdminPassword
-    sku: postgresSku
     tenantId: tenantId
+    prodLikeEnvironment: prodLikeEnvironment
   }
 }
 
@@ -132,6 +127,16 @@ module storageAccount '../modules/storageAccount/create.bicep' = {
     storageAccountName: storageAccountName
     location: location
     fileshare: 'migrations'
+  }
+}
+
+module reddis '../modules/redis/main.bicep' = {
+  scope: resourceGroup
+  name: 'redis'
+  params: {
+    location: location
+    namePrefix: namePrefix
+    keyVaultName: sourceKeyVaultName
   }
 }
 

@@ -36,6 +36,9 @@ inputs:
   CORRESPONDENCE_BASE_URL:
     description: "Correspondence Base URL"
     required: true
+  CONTACT_RESERVATION_REGISTRY_BASE_URL:
+    description: "Contact Reservation Registry Base URL"
+    required: true
   DIALOGPORTEN_ISSUER:
     description: "Dialogporten Issuer"
     required: true
@@ -63,6 +66,13 @@ inputs:
   SLACK_URL:
     description: "Slack URL"
     required: true
+  SBL_BRIDGE_BASE_URL:
+    description: "SBL Bridge Base URL"
+    required: true
+  MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT:
+    description: "Maskinporten Token Exchange Environment"
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -89,6 +99,7 @@ runs:
         MASKINPORTEN_JWK: ${{ inputs.MASKINPORTEN_JWK }}
         PLATFORM_SUBSCRIPTION_KEY: ${{ inputs.PLATFORM_SUBSCRIPTION_KEY }}
         SLACK_URL: ${{ inputs.SLACK_URL }}
+        MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
 
     - name: Migrate database
       uses: ./.github/actions/migrate-database
@@ -114,7 +125,10 @@ runs:
         AZURE_SUBSCRIPTION_ID: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
         AZURE_TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
         CORRESPONDENCE_BASE_URL: ${{ inputs.CORRESPONDENCE_BASE_URL }}
+        CONTACT_RESERVATION_REGISTRY_BASE_URL: ${{ inputs.CONTACT_RESERVATION_REGISTRY_BASE_URL }}
         DIALOGPORTEN_ISSUER: ${{ inputs.DIALOGPORTEN_ISSUER }}
         IDPORTEN_ISSUER: ${{ inputs.IDPORTEN_ISSUER }}
         PLATFORM_BASE_URL: ${{ inputs.PLATFORM_BASE_URL }}
         STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}
+        SBL_BRIDGE_BASE_URL: ${{ inputs.SBL_BRIDGE_BASE_URL }}
+        MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}

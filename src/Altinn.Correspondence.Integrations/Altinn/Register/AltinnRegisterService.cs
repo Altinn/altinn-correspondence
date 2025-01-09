@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+﻿using System.Globalization;
+using System.Net.Http.Json;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
@@ -20,10 +21,10 @@ public class AltinnRegisterService : IAltinnRegisterService
         _logger = logger;
     }
 
-    public async Task<string?> LookUpPartyId(string identificationId, CancellationToken cancellationToken = default)
+    public async Task<int?> LookUpPartyId(string identificationId, CancellationToken cancellationToken = default)
     {
         var party = await LookUpPartyById(identificationId, cancellationToken);
-        return party?.PartyId.ToString();
+        return party?.PartyId;
     }
 
     public async Task<string?> LookUpName(string identificationId, CancellationToken cancellationToken = default)
@@ -78,5 +79,33 @@ public class AltinnRegisterService : IAltinnRegisterService
             return null;
         }
         return party;
+    }
+    public async Task<List<Party>?> LookUpPartiesByIds(List<string> identificationIds, CancellationToken cancellationToken = default)
+    {
+        var organizations = identificationIds.Where(x => x.IsOrganizationNumber()).Select(x => new PartyLookup() { OrgNo = x }).ToList();
+        var socialSecurityNumbers = identificationIds.Where(x => x.IsSocialSecurityNumber()).Select(x => new PartyLookup() { Ssn = x }).ToList();
+        var partyLookup = new PartyNamesLookup()
+        {
+            Parties = organizations.Concat(socialSecurityNumbers).ToList()
+        };
+        var response = await _httpClient.PostAsJsonAsync("register/api/v1/parties/nameslookup", partyLookup, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Error when looking up party names in Altinn Register.Statuscode was: {statusCode}, error was: {error}", response.StatusCode, await response.Content.ReadAsStringAsync());
+            return null;
+        }
+        var parties = await response.Content.ReadFromJsonAsync<PartyNamesLookupResult>();
+        if (parties is null)
+        {
+            _logger.LogError("Unexpected json response when looking up party names in Altinn Register");
+            return null;
+        }
+
+        return parties.PartyNames.Select(x => new Party
+        {
+            OrgNumber = x.OrgNo,
+            SSN = x.Ssn,
+            Name = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(x.Name.ToLower())
+        }).ToList();
     }
 }

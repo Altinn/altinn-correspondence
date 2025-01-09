@@ -252,7 +252,7 @@ namespace Altinn.Correspondence.Application.Helpers
             return null;
         }
 
-        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid)
+        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, Party? partyDetails, bool isReserved)
         {
             List<CorrespondenceStatusEntity> statuses =
             [
@@ -264,7 +264,7 @@ namespace Altinn.Correspondence.Application.Helpers
                     PartyUuid = partyUuid
                 },
             ];
-            var currentStatus = GetCurrentCorrespondenceStatus(request.Correspondence);
+            var currentStatus = GetCurrentCorrespondenceStatus(request.Correspondence, isReserved);
             if (currentStatus != CorrespondenceStatus.Initialized)
             {
                 statuses.Add(new CorrespondenceStatusEntity
@@ -308,9 +308,9 @@ namespace Altinn.Correspondence.Application.Helpers
                         Created = DateTimeOffset.UtcNow,
                     }).ToList(),
                     Language = request.Correspondence.Content.Language,
-                    MessageBody = request.Correspondence.Content.MessageBody,
-                    MessageSummary = request.Correspondence.Content.MessageSummary,
-                    MessageTitle = request.Correspondence.Content.MessageTitle,
+                    MessageBody = AddRecipientToMessage(request.Correspondence.Content.MessageBody, partyDetails?.Name),
+                    MessageSummary = AddRecipientToMessage(request.Correspondence.Content.MessageSummary, partyDetails?.Name),
+                    MessageTitle = AddRecipientToMessage(request.Correspondence.Content.MessageTitle, partyDetails?.Name),
                 },
                 RequestedPublishTime = request.Correspondence.RequestedPublishTime,
                 AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,
@@ -324,6 +324,15 @@ namespace Altinn.Correspondence.Application.Helpers
                 Published = currentStatus == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
                 IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
             };
+        }
+
+        public string AddRecipientToMessage(string message, string recipient)
+        {
+            if (message.Contains("{{recipientName}}"))
+            {
+                return message.Replace("{{recipientName}}", recipient);
+            }
+            return message;
         }
 
         /// <summary>
@@ -369,8 +378,12 @@ namespace Altinn.Correspondence.Application.Helpers
             return attachments;
         }
 
-        public CorrespondenceStatus GetCurrentCorrespondenceStatus(CorrespondenceEntity correspondence)
+        public CorrespondenceStatus GetCurrentCorrespondenceStatus(CorrespondenceEntity correspondence, bool isReserved)
         {
+            if (isReserved && (correspondence.IgnoreReservation != true))
+            {
+                return CorrespondenceStatus.Reserved;
+            }
             var status = correspondence.Statuses.LastOrDefault()?.Status ?? CorrespondenceStatus.Initialized;
             if (correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.StatusHasBeen(AttachmentStatus.Published)))
             {

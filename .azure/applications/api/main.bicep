@@ -17,11 +17,15 @@ param keyVaultUrl string
 param namePrefix string
 @secure()
 param storageAccountName string
+@secure()
+param sblBridgeBaseUrl string
 @minLength(3)
 param maskinporten_environment string
 param correspondenceBaseUrl string
+param contactReservationRegistryBaseUrl string
 param idportenIssuer string
 param dialogportenIssuer string
+param maskinporten_token_exchange_environment string
 
 var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'
@@ -94,8 +98,11 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     containerAppEnvId: keyvault.getSecret('container-app-env-id')
     maskinporten_environment: maskinporten_environment
     correspondenceBaseUrl: correspondenceBaseUrl
+    contactReservationRegistryBaseUrl: contactReservationRegistryBaseUrl
     idportenIssuer: idportenIssuer
     dialogportenIssuer: dialogportenIssuer
+    sblBridgeBaseUrl: sblBridgeBaseUrl
+    maskinporten_token_exchange_environment: maskinporten_token_exchange_environment
   }
 }
 

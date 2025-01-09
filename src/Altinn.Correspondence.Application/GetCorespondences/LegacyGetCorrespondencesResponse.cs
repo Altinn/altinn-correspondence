@@ -25,6 +25,6 @@ namespace Altinn.Correspondence.Application.GetCorrespondences
         public DateTimeOffset? DueDateTime { get; set; }
         public DateTimeOffset? Archived { get; set; }
         public string? MessageSender { get; set; }
-        public DateTimeOffset? Confirmed { get; set; }
+        public DateTimeOffset? ConfirmationDate { get; set; }
     }
 }
