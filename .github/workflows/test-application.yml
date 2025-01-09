@@ -40,4 +40,4 @@ jobs:
         run: dotnet ef database update --no-build --configuration Release --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API
 
       - name: Test
-        run: dotnet test --no-build --configuration Release
+        run: dotnet test --no-build --configuration Release --no-parallel
