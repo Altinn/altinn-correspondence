@@ -16,6 +16,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<AltinnAccessManagementService> _logger;
+    private readonly int _MAX_DEPTH_FOR_SUBUNITS = 20;
 
     public AltinnAccessManagementService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnAccessManagementService> logger)
     {
@@ -51,6 +52,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             parties.Add(new PartyWithSubUnits
             {
                 PartyId = p.partyId,
+                PartyUuid = p.partyUuid,
                 OrgNumber = p.organizationNumber,
                 SSN = p.personId,
                 Resources = p.authorizedResources,
@@ -74,15 +76,21 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             _ => throw new NotImplementedException()
         };
     }
-    private List<PartyWithSubUnits> GetPartiesFromSubunits(List<AuthroizedPartiesResponse> subunits)
+    private List<PartyWithSubUnits> GetPartiesFromSubunits(List<AuthroizedPartiesResponse> subunits, int depth = 0)
     {
         List<PartyWithSubUnits> parties = new();
+        if (depth > _MAX_DEPTH_FOR_SUBUNITS)
+        {
+            _logger.LogWarning("Max depth for subunits reached. Ignoring further subunits.");
+            return parties;
+        }
         foreach (var subunit in subunits)
         {
             parties.Add(new PartyWithSubUnits
             {
 
                 PartyId = subunit.partyId,
+                PartyUuid = subunit.partyUuid,
                 OrgNumber = subunit.organizationNumber,
                 SSN = subunit.personId,
                 Resources = subunit.authorizedResources,
@@ -90,7 +98,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             });
             if (subunit.subunits != null && subunit.subunits.Count > 0)
             {
-                parties.AddRange(GetPartiesFromSubunits(subunit.subunits));
+                parties.AddRange(GetPartiesFromSubunits(subunit.subunits, depth + 1));
             }
         }
         return parties;
