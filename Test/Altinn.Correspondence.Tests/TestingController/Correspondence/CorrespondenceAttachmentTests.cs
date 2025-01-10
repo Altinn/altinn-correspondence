@@ -9,10 +9,15 @@ using System.Net.Http.Json;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
-    public class CorrespondenceAttachmentTests : CorrespondenceTestBase
+    public class CorrespondenceAttachmentTests : CorrespondenceTestBase, IDisposable
     {
+        private readonly CustomWebApplicationFactory _factory;
+        private readonly HttpClient _client;
+
         public CorrespondenceAttachmentTests(CustomWebApplicationFactory factory) : base(factory)
         {
+            _factory = factory;
+            _client = _factory.CreateClient();
         }
 
         [Fact]
@@ -24,7 +29,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var attachmentData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithAttachments([attachmentData])
+                .WithAttachments(new List<InitializeCorrespondenceAttachmentExt> { attachmentData })
                 .Build();
             var formData = CorrespondenceToFormData(payload.Correspondence);
             formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
@@ -32,26 +37,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
 
             // Act
-            var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
-            // Assert
-            Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
+            var response = await _client.PostAsync("/api/correspondence", formData);
 
-            // Arrange
-            var response = await uploadCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            var attachmentId = response?.AttachmentIds.FirstOrDefault();
-            var attachmentOverview = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
-            var newAttachmentData = AttachmentHelper.GetAttachmentMetaData("Logical file name", attachmentOverview);
-            var payload2 = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithAttachments([attachmentData, newAttachmentData])
-                .Build();
-            formData = CorrespondenceToFormData(payload2.Correspondence);
-            formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
-
-            // Act
-            var uploadCorrespondenceResponse2 = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
             // Assert
-            Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
+            response.EnsureSuccessStatusCode();
+        }
+
+        public void Dispose()
+        {
+            _client.Dispose();
         }
 
         [Fact]
