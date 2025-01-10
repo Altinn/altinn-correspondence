@@ -60,8 +60,8 @@ namespace Altinn.Correspondence.API.Auth
                         ValidateIssuerSigningKey = true,
                         ValidateIssuer = false,
                         ValidateAudience = false,
-                        RequireExpirationTime = false,
-                        ValidateLifetime = false, // Do not validate lifetime in tests
+                        RequireExpirationTime = true,
+                        ValidateLifetime = !hostEnvironment.IsDevelopment(), // Do not validate lifetime in tests
                         ClockSkew = TimeSpan.Zero
                     };
                     options.Events = new JwtBearerEvents()
