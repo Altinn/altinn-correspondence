@@ -8,11 +8,15 @@ internal static class InitializeCorrespondenceAttachmentMapper
 {
     internal static CorrespondenceAttachmentEntity MapToEntity(InitializeCorrespondenceAttachmentExt initializeAttachmentExt, string resourceId, string sender)
     {
-        string DataType;
-
-        string fileName = initializeAttachmentExt.FileName; // Assuming FileName contains the full filename
+        string dataType;
+        
+        if (string.IsNullOrEmpty(initializeAttachmentExt.FileName))
+        {
+            throw new ArgumentException("FileName cannot be null or empty", nameof(initializeAttachmentExt));
+        }
+        
+        string fileName = initializeAttachmentExt.FileName;
         string fileExtension = Path.GetExtension(fileName).ToLower();
-
         DataType = fileExtension switch
         {
             ".pdf" => "PDF",
