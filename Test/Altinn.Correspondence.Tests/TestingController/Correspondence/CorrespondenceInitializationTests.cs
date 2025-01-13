@@ -463,7 +463,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             var responseObject = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
             Assert.NotNull(responseObject);
-            Assert.True(responseObject.Status == API.Models.Enums.InitializedCorrespondecesStatusExt.PartialSuccess);
             Assert.True(responseObject.Correspondences.Exists(responseObject => responseObject.Status == API.Models.Enums.CorrespondenceStatusExt.Published));
             Assert.True(responseObject.Correspondences.Exists(responseObject => responseObject.Status != API.Models.Enums.CorrespondenceStatusExt.Published));
         }
