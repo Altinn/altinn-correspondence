@@ -1,5 +1,4 @@
 ﻿// See https://aka.ms/new-console-template for more information
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.LoadTests.DatabasePopulater;
 using Altinn.Correspondence.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using System.Data.Common;
-using System.IO;
+using System.Text;
 
 public class Program
 {
@@ -76,99 +75,112 @@ public class Program
     }
     static void PopulateWithPartyList(string path, ApplicationDbContext appContext)
     {
+        var startTime = DateTime.Now;
+        var tempCsvPath = Path.GetTempFileName(); // Temporary CSV file
+        using var csvWriter = new StreamWriter(tempCsvPath, false, Encoding.UTF8);
         var fileStream = File.Open(path, FileMode.Open);
         using var streamReader = new StreamReader(fileStream, true);
+
+        // Skip header lines
         var line = streamReader.ReadLine();
         Console.WriteLine(line);
         line = streamReader.ReadLine();
         Console.WriteLine(line);
 
-        // Execute raw sql to create the tablevar dropOldTableIfExists = appContext.Database.ExecuteSqlRaw(@"
+        // Drop old table if exists
         var dropOldTableIfExists = appContext.Database.ExecuteSqlRaw(@"
-            DROP TABLE IF EXISTS correspondence.altinn2party;"
+        DROP TABLE IF EXISTS correspondence.altinn2party;"
         );
 
+        // Create table
         var createResult = appContext.Database.ExecuteSqlRaw(@"
-            CREATE TABLE correspondence.altinn2party (
-                partyid_pk VARCHAR(255) PRIMARY KEY, 
-                name VARCHAR(255), 
-                reguserid VARCHAR(255), 
-                authuserid VARCHAR(255), 
-                orgnumber_ak VARCHAR(255), 
-                unitid_pk VARCHAR(255), 
-                unitname VARCHAR(255)
-            )"
+        CREATE TABLE correspondence.altinn2party (
+            partyid_pk VARCHAR(255) PRIMARY KEY, 
+            name VARCHAR(255), 
+            reguserid VARCHAR(255), 
+            authuserid VARCHAR(255), 
+            orgnumber_ak VARCHAR(255), 
+            unitid_pk VARCHAR(255), 
+            unitname VARCHAR(255)
+        )"
         );
 
-        var npgDatabase = appContext.Database;
+        int lineCount = 0;
+
+        while (!streamReader.EndOfStream)
+        {
+            var row = streamReader.ReadLine();
+            lineCount++;
+            var newRow = "";
+            var oldRow = "";
+            // Remove extra spaces
+            do
+            {
+                oldRow = row;
+                newRow = row.Replace("  ", " ");
+                row = newRow;
+            } while (newRow.Length < oldRow.Length);
+
+            var parts = row.Split(' ');
+            if (lineCount % 10000 == 0)
+            {
+                Console.WriteLine("Currently processing line {0}", lineCount);
+            }
+
+            if (parts.Length != 8 || parts[5] == "NULL")
+                continue; // Skip invalid rows
+
+            // Write to CSV
+            csvWriter.WriteLine(string.Join(",",
+                EscapeCsv(parts[0]),
+                EscapeCsv(parts[1]),
+                EscapeCsv(parts[2]),
+                EscapeCsv(parts[3]),
+                EscapeCsv(parts[5]),
+                EscapeCsv(parts[6]),
+                EscapeCsv(parts[7])
+            ));
+        }
+
+        csvWriter.Close(); // Close the CSV writer
+
+        Console.WriteLine("Finished writing CSV file. Starting bulk copy...");
+
+        // Use COPY command to load CSV into PostgreSQL
         using (var connection = (NpgsqlConnection)appContext.Database.GetDbConnection())
         {
             connection.Open();
-
-            using (var command = new NpgsqlCommand(@"
-                        INSERT INTO correspondence.altinn2party 
-                        (partyid_pk, name, reguserid, authuserid, orgnumber_ak, unitid_pk, unitname)
-                        VALUES 
-                        (@PartyID_PK, @Name, @RegUserId, @AuthUserId, @OrgNumber_AK, @UnitId_PK, @UnitName)", connection))
+            using (var writer = connection.BeginTextImport(@"
+        COPY correspondence.altinn2party (
+            partyid_pk, name, reguserid, authuserid, orgnumber_ak, unitid_pk, unitname
+        )
+        FROM STDIN WITH (FORMAT CSV)"
+            ))
             {
-                // Prepare command for reuse
-                command.Parameters.Add(new NpgsqlParameter("@PartyID_PK", NpgsqlTypes.NpgsqlDbType.Varchar));
-                command.Parameters.Add(new NpgsqlParameter("@Name", NpgsqlTypes.NpgsqlDbType.Varchar));
-                command.Parameters.Add(new NpgsqlParameter("@RegUserId", NpgsqlTypes.NpgsqlDbType.Varchar));
-                command.Parameters.Add(new NpgsqlParameter("@AuthUserId", NpgsqlTypes.NpgsqlDbType.Varchar));
-                command.Parameters.Add(new NpgsqlParameter("@OrgNumber_AK", NpgsqlTypes.NpgsqlDbType.Varchar));
-                command.Parameters.Add(new NpgsqlParameter("@UnitId_PK", NpgsqlTypes.NpgsqlDbType.Varchar));
-                command.Parameters.Add(new NpgsqlParameter("@UnitName", NpgsqlTypes.NpgsqlDbType.Varchar));
-
-                int rowCount = 0;
-                int lineCount = 0;
-
-                while (!streamReader.EndOfStream)
+                using var fileReader = new StreamReader(tempCsvPath, Encoding.UTF8);
+                while (!fileReader.EndOfStream)
                 {
-                    var row = streamReader.ReadLine();
-                    lineCount++;
-
-                    var newRow = "";
-                    var oldRow = "";
-
-                    int spacesRemoved = 0;
-                    do
-                    {
-                        oldRow = row;
-                        newRow = row.Replace("  ", " ");
-                        row = newRow;
-
-                    } while (newRow.Length < oldRow.Length);
-                    var parts = row.Split(' ');
-                    if (lineCount % 10000 == 0)
-                    {
-                        Console.WriteLine("Currently {0}", lineCount);
-                    }
-                    if (parts.Length != 8)
-                        continue; // Skip invalid rows
-                    if (parts[5] == "NULL")
-                        continue;
-
-                    command.Parameters["@PartyID_PK"].Value = parts[0] ?? (object)DBNull.Value;
-                    command.Parameters["@Name"].Value = parts[1] ?? (object)DBNull.Value;
-                    command.Parameters["@RegUserId"].Value = parts[2] ?? (object)DBNull.Value;
-                    command.Parameters["@AuthUserId"].Value = parts[3] ?? (object)DBNull.Value;
-                    command.Parameters["@OrgNumber_AK"].Value = parts[5] ?? (object)DBNull.Value;
-                    command.Parameters["@UnitId_PK"].Value = parts[6] ?? (object)DBNull.Value;
-                    command.Parameters["@UnitName"].Value = parts[7] ?? (object)DBNull.Value;
-
-                    command.ExecuteNonQuery();
-                    rowCount++;
-
-                    if (rowCount % 10000 == 0)
-                    {
-
-                        Console.WriteLine("Currently {0}", rowCount);
-                    }
+                    line = fileReader.ReadLine();
+                    writer.WriteLine(line);
                 }
-                Console.WriteLine("Added {0} rows to the database", rowCount);
             }
         }
+
+        // Delete temporary CSV file
+        File.Delete(tempCsvPath);
+
+        Console.WriteLine("Bulk copy complete in {0} seconds", (DateTime.Now-startTime).TotalSeconds);
+    }
+
+    // Helper function to escape CSV values
+    private static string EscapeCsv(string value)
+    {
+        if (value == null || value.ToUpper() == "NULL")
+            return "";
+
+        return value.Contains(",") || value.Contains("\"") || value.Contains("\n")
+            ? $"\"{value.Replace("\"", "\"\"")}\""
+            : value;
     }
 
     static async Task FillWithTestDataAsync(ApplicationDbContext applicationDbContext, int correspondenceCount)
@@ -184,31 +196,12 @@ public class Program
         // Create the populate_test_database function
         applicationDbContext.Database.ExecuteSqlRaw(ReadFileContent("./populate_test_database.sql"));
 
-        /*var startTimeStamp = DateTime.Now;
-
-        int threadCount = 8; // Configurable number of threads
-        int batchSize = correspondenceCount / threadCount;
-
-        // Create tasks for each batch
-        var tasks = new List<Task>();
-        for (int i = 0; i < threadCount; i++)
-        {
-            var count = (i == threadCount - 1) ? correspondenceCount : batchSize; // Handle remainder
-
-            tasks.Add(applicationDbContext.Database.ExecuteSqlRawAsync($"SELECT populate_test_database({count});"));
-        }
-
-        // Wait for all tasks to complete
-        await Task.WhenAll(tasks);
-
-        var endTimeStamp = DateTime.Now;
-        var secondsRunTime = (endTimeStamp - startTimeStamp).TotalSeconds;*/
         var startTimeStamp = DateTime.Now;
 
         var threadCount = 128;
         var tasks = new List<Task>();
         for (int i = 0; i < threadCount; i++)
-        { 
+        {
             var freshConnection = new NpgsqlConnection(applicationDbContext.Database.GetConnectionString());
             tasks.Add(RunPopulateQueryAsync(correspondenceCount, freshConnection));
         }
@@ -216,7 +209,7 @@ public class Program
         await Task.WhenAll(tasks);
         var endTimeStamp = DateTime.Now;
         var secondsRunTime = (endTimeStamp - startTimeStamp).TotalSeconds;
-        Console.WriteLine("Successfully filled database with {0} correspondence records in {1} seconds for a rate of {2} correspondences/second", correspondenceCount* threadCount, secondsRunTime, correspondenceCount* threadCount / secondsRunTime);
+        Console.WriteLine("Successfully filled database with {0} correspondence records in {1} seconds for a rate of {2} correspondences/second", correspondenceCount * threadCount, secondsRunTime, correspondenceCount * threadCount / secondsRunTime);
 
     }
 
