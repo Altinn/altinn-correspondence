@@ -53,7 +53,7 @@ begin
         )
         SELECT 
             gen_random_uuid(),
-            'correspondence-medl-' || (floor(random() * 10) + 1)::text,
+            'dagl-correspondence-' || (floor(random() * 10) + 1)::text,
             R.identifier,
             'urn:altinn:organization:identifier-no:' || Sender."orgnumber_ak",
             Series."Id"::text,
