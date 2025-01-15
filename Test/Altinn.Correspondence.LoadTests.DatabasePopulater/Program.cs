@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using System;
 using System.Data.Common;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -36,6 +37,11 @@ public class Program
         using var scope = host.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
+        if (!dbContext.Database.CanConnect())
+        {
+            Console.WriteLine("Database not available. Is connection string correct?");
+            return;
+        }
         Console.WriteLine("Choose an option:");
         Console.WriteLine("1. Populate with Party List");
         Console.WriteLine("2. Fill with Test Data");
@@ -85,23 +91,6 @@ public class Program
         // Skip header lines
         var line = streamReader.ReadLine();
         line = streamReader.ReadLine();
-
-        var dropOldTableIfExists = appContext.Database.ExecuteSqlRaw(@"
-        DROP TABLE IF EXISTS correspondence.altinn2party;"
-        );
-
-        var createResult = appContext.Database.ExecuteSqlRaw(@"
-        CREATE TABLE correspondence.altinn2party (
-            partyid_pk VARCHAR(255) PRIMARY KEY, 
-            fnumber_ak VARCHAR(255), 
-            name VARCHAR(255), 
-            reguserid VARCHAR(255), 
-            authuserid VARCHAR(255), 
-            orgnumber_ak VARCHAR(255), 
-            unitid_pk VARCHAR(255), 
-            unitname VARCHAR(255)
-        )"
-        );
 
         int lineCount = 0;
         int invalids = 0;
@@ -154,11 +143,30 @@ public class Program
         using (var connection = (NpgsqlConnection)appContext.Database.GetDbConnection())
         {
             connection.Open();
+            var dropOldTableIfExists = connection.CreateCommand();
+            dropOldTableIfExists.CommandText = @"
+                DROP TABLE IF EXISTS correspondence.altinn2party;";
+            dropOldTableIfExists.ExecuteNonQuery();
+
+            var createTable = connection.CreateCommand();
+            createTable.CommandText = @"
+                CREATE TABLE correspondence.altinn2party (
+                    partyid_pk VARCHAR(255) PRIMARY KEY, 
+                    fnumber_ak VARCHAR(255), 
+                    name VARCHAR(255), 
+                    reguserid VARCHAR(255), 
+                    authuserid VARCHAR(255), 
+                    orgnumber_ak VARCHAR(255), 
+                    unitid_pk VARCHAR(255), 
+                    unitname VARCHAR(255)
+                )";
+            createTable.ExecuteNonQuery();
+
             using (var writer = connection.BeginTextImport(@"
-        COPY correspondence.altinn2party (
-            partyid_pk, fnumber_ak, name, reguserid, authuserid, orgnumber_ak, unitid_pk, unitname
-        )
-        FROM STDIN WITH (FORMAT CSV)"
+                COPY correspondence.altinn2party (
+                    partyid_pk, fnumber_ak, name, reguserid, authuserid, orgnumber_ak, unitid_pk, unitname
+                )
+                FROM STDIN WITH (FORMAT CSV)"
             ))
             {
                 using var fileReader = new StreamReader(tempCsvPath, Encoding.UTF8);
