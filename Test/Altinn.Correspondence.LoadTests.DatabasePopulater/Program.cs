@@ -197,7 +197,7 @@ public class Program
 
         var startTimeStamp = DateTime.Now;
 
-        var threadCount = 128;
+        var threadCount = GetThreadCount(correspondenceCount);
         var tasks = new List<Task>();
         for (int i = 0; i < threadCount; i++)
         {
@@ -209,7 +209,15 @@ public class Program
         var endTimeStamp = DateTime.Now;
         var secondsRunTime = (endTimeStamp - startTimeStamp).TotalSeconds;
         Console.WriteLine("Successfully filled database with {0} correspondence records in {1} seconds for a rate of {2} correspondences/second", correspondenceCount * threadCount, secondsRunTime, correspondenceCount * threadCount / secondsRunTime);
+    }
 
+    static int GetThreadCount(int correspondenceCount)
+    {
+        if (correspondenceCount <= 100 * 1000)
+        {
+            return 1;
+        }
+        return Math.Min(128, correspondenceCount/(100 * 1000));
     }
 
     private static string ReadFileContent(string path)
