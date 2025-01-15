@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\Altinn.Correspondence.Persistence\Altinn.Correspondence.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Altinn.Correspondence.Persistence\Altinn.Correspondence.Persistence.csproj" />
   </ItemGroup>
 
   <ItemGroup>
