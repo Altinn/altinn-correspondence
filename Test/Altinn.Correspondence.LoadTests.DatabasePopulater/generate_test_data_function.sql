@@ -80,7 +80,7 @@ begin
                 WHERE identifier != 'urn:altinn:organization:identifier-no:' || Sender."orgnumber_ak"
                 LIMIT 1
             ) R
-        RETURNING "Id", 'b2c6699b-b602-425d-a583-7138a8b7b7d5'::uuid AS "PartyUuid"
+        RETURNING "Id", gen_random_uuid()::uuid AS "PartyUuid"
     )
     INSERT INTO temp_correspondencebase ("Id", "PartyUuid")
     SELECT "Id", "PartyUuid" FROM inserted_correspondences;

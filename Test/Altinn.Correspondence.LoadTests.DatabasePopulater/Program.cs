@@ -203,7 +203,12 @@ public class Program
         for (int i = 0; i < threadCount; i++)
         {
             var freshConnection = new NpgsqlConnection(applicationDbContext.Database.GetConnectionString());
-            tasks.Add(RunPopulateQueryAsync(correspondenceCount, freshConnection));
+            tasks.Add(RunPopulateQueryAsync(correspondenceCount/threadCount, freshConnection));
+        }
+        if (correspondenceCount % threadCount != 0)
+        {
+            var freshConnection = new NpgsqlConnection(applicationDbContext.Database.GetConnectionString());
+            tasks.Add(RunPopulateQueryAsync(correspondenceCount % threadCount, freshConnection));
         }
 
         await Task.WhenAll(tasks);
@@ -223,8 +228,8 @@ public class Program
 
     private static string ReadFileContent(string path)
     {
-        var fileStream = File.OpenRead(path);
-        var streamReader = new StreamReader(fileStream);
+        using var fileStream = File.OpenRead(path);
+        using var streamReader = new StreamReader(fileStream);
         var fileContent = streamReader.ReadToEnd();
         return fileContent;
     }
@@ -233,20 +238,10 @@ public class Program
     {
         if (dbConnection.State != System.Data.ConnectionState.Open)
             await dbConnection.OpenAsync();
-        var command = dbConnection.CreateCommand();
+        using var command = dbConnection.CreateCommand();
         command.CommandText = $"SELECT populate_test_database({count});";
         await command.ExecuteNonQueryAsync();
+        dbConnection.Close();
+        dbConnection.Dispose();
     }
 }
-
-
-/*
- * Todo:
- * Create resources with policies:
- * medl-correspondence-1
- * ...
- * medl-correspondence-10
- * 
- * Distribute 500 million correspondences on these
- * 
- */ 
