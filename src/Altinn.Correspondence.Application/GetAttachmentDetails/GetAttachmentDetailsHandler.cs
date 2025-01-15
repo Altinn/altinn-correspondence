@@ -43,7 +43,6 @@ public class GetAttachmentDetailsHandler(
             StatusText = attachmentStatus.StatusText,
             StatusChanged = attachmentStatus.StatusChanged,
             DataLocationType = attachment.DataLocationType,
-            DataType = attachment.DataType,
             SendersReference = attachment.SendersReference,
             CorrespondenceIds = correspondenceIds,
             FileName = attachment.FileName,

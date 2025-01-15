@@ -32,8 +32,13 @@ internal static class InitializeCorrespondencesMapper
                 MessageTitle = initializeCorrespondenceExt.Content.MessageTitle,
                 MessageSummary = initializeCorrespondenceExt.Content.MessageSummary,
                 MessageBody = initializeCorrespondenceExt.Content.MessageBody,
+                //
                 Attachments = initializeCorrespondenceExt.Content.Attachments.Select(
-                    attachment => InitializeCorrespondenceAttachmentMapper.MapToEntity(attachment, initializeCorrespondenceExt.ResourceId, initializeCorrespondenceExt.Sender)
+                    attachment => InitializeCorrespondenceAttachmentMapper.MapToEntity(
+                        attachment, 
+                        initializeCorrespondenceExt.ResourceId, 
+                        initializeCorrespondenceExt.Sender
+                    )
                 ).ToList()
             } : null,
             IsConfirmationNeeded = initializeCorrespondenceExt.IsConfirmationNeeded

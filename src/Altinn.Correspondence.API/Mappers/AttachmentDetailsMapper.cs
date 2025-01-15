@@ -20,7 +20,6 @@ internal static class AttachmentDetailsMapper
             Sender = AttachmentDetails.Sender,
             StatusText = AttachmentDetails.StatusText,
             StatusChanged = AttachmentDetails.StatusChanged,
-            DataType = AttachmentDetails.DataType,
             SendersReference = AttachmentDetails.SendersReference,
             StatusHistory = AttachmentStatusMapper.MapToExternal(AttachmentDetails.Statuses),
             CorrespondenceIds = AttachmentDetails.CorrespondenceIds,
