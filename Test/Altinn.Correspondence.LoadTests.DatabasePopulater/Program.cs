@@ -87,12 +87,10 @@ public class Program
         line = streamReader.ReadLine();
         Console.WriteLine(line);
 
-        // Drop old table if exists
         var dropOldTableIfExists = appContext.Database.ExecuteSqlRaw(@"
         DROP TABLE IF EXISTS correspondence.altinn2party;"
         );
 
-        // Create table
         var createResult = appContext.Database.ExecuteSqlRaw(@"
         CREATE TABLE correspondence.altinn2party (
             partyid_pk VARCHAR(255) PRIMARY KEY, 
@@ -130,7 +128,6 @@ public class Program
             if (parts.Length != 8 || parts[5] == "NULL")
                 continue; // Skip invalid rows
 
-            // Write to CSV
             csvWriter.WriteLine(string.Join(",",
                 EscapeCsv(parts[0]),
                 EscapeCsv(parts[1]),
@@ -142,7 +139,7 @@ public class Program
             ));
         }
 
-        csvWriter.Close(); // Close the CSV writer
+        csvWriter.Close();
 
         Console.WriteLine("Finished writing CSV file. Starting bulk copy...");
 
@@ -172,7 +169,6 @@ public class Program
         Console.WriteLine("Bulk copy complete in {0} seconds", (DateTime.Now-startTime).TotalSeconds);
     }
 
-    // Helper function to escape CSV values
     private static string EscapeCsv(string value)
     {
         if (value == null || value.ToUpper() == "NULL")
@@ -185,15 +181,11 @@ public class Program
 
     static async Task FillWithTestDataAsync(ApplicationDbContext applicationDbContext, int correspondenceCount)
     {
-        // Check if the functions already exist and drop them if they do
         applicationDbContext.Database.ExecuteSqlRaw(@"
             DROP FUNCTION IF EXISTS generate_test_data(INT);
             DROP FUNCTION IF EXISTS populate_test_database(bigint, int);
         ");
-        // Create the populate_test_database function
         applicationDbContext.Database.ExecuteSqlRaw(ReadFileContent("./generate_test_data_function.sql"));
-
-        // Create the populate_test_database function
         applicationDbContext.Database.ExecuteSqlRaw(ReadFileContent("./populate_test_database.sql"));
 
         var startTimeStamp = DateTime.Now;
