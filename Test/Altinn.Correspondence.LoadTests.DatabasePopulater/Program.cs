@@ -232,3 +232,13 @@ public class Program
 }
 
 
+/*
+ * Todo:
+ * Create resources with policies:
+ * medl-correspondence-1
+ * ...
+ * medl-correspondence-10
+ * 
+ * Distribute 500 million correspondences on these
+ * 
+ */ 
