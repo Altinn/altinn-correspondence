@@ -51,23 +51,35 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     [HttpPost]
     [Produces("application/json")]
     [Route("{attachmentId}/upload")]
-    [Consumes("application/octet-stream")]
+    [Consumes("multipart/form-data")]
+    [Authorize(Policy = AuthorizationConstants.Sender)]
     [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<AttachmentOverviewExt>> UploadAttachmentData(
         Guid attachmentId,
         [FromServices] UploadAttachmentHandler uploadAttachmentHandler,
         [FromServices] GetAttachmentOverviewHandler attachmentOverviewHandler,
+        [FromForm] IFormFile file,
         CancellationToken cancellationToken = default
     )
     {
         _logger.LogInformation("Uploading attachment {attachmentId}", attachmentId.ToString());
 
+        if (file == null || file.Length == 0)
+        {
+            _logger.LogWarning("No file uploaded or file is empty.");
+            return BadRequest("No file uploaded or file is empty.");
+        }
+
+        var contentType = file.ContentType;
+        _logger.LogInformation("File ContentType: {ContentType}", contentType);
+        
         Request.EnableBuffering();
         var uploadAttachmentResult = await uploadAttachmentHandler.Process(new UploadAttachmentRequest()
         {
             AttachmentId = attachmentId,
             UploadStream = Request.Body,
-            ContentLength = Request.ContentLength ?? Request.Body.Length
+            ContentLength = Request.ContentLength ?? Request.Body.Length,
+            ContentType = contentType
         }, HttpContext.User, cancellationToken);
         var attachmentOverviewResult = await attachmentOverviewHandler.Process(attachmentId, HttpContext.User, cancellationToken);
         if (!attachmentOverviewResult.TryPickT0(out var attachmentOverview, out var error))

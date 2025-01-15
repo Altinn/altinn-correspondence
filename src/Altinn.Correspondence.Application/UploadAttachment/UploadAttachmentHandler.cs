@@ -57,7 +57,7 @@ public class UploadAttachmentHandler(
         }
         return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
         {
-            var uploadResult = await attachmentHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuid, cancellationToken);
+            var uploadResult = await attachmentHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuid, request.ContentType, cancellationToken);
             return uploadResult.Match<OneOf<UploadAttachmentResponse, Error>>(
                 data => { return data; },
                 error => { return error; }
