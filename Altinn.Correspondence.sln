@@ -19,7 +19,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Altinn.Correspondence.Integ
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Altinn.Correspondence.Common", "src\Altinn.Correspondence.Common\Altinn.Correspondence.Common.csproj", "{AC3CF570-F9E1-4616-A56B-FF94C89CBC0B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Correspondence.LoadTests.DatabasePopulater", "Altinn.Correspondence.LoadTests.DatabasePopulater\Altinn.Correspondence.LoadTests.DatabasePopulater.csproj", "{FD25104C-5895-424F-B4FC-C88E24B17E39}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Correspondence.LoadTests.DatabasePopulater", "Test\Altinn.Correspondence.LoadTests.DatabasePopulater\Altinn.Correspondence.LoadTests.DatabasePopulater.csproj", "{3E5EEBF3-366E-48F8-9D57-1975F95D4FAD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -55,17 +55,17 @@ Global
 		{AC3CF570-F9E1-4616-A56B-FF94C89CBC0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AC3CF570-F9E1-4616-A56B-FF94C89CBC0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AC3CF570-F9E1-4616-A56B-FF94C89CBC0B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FD25104C-5895-424F-B4FC-C88E24B17E39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FD25104C-5895-424F-B4FC-C88E24B17E39}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FD25104C-5895-424F-B4FC-C88E24B17E39}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FD25104C-5895-424F-B4FC-C88E24B17E39}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E5EEBF3-366E-48F8-9D57-1975F95D4FAD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E5EEBF3-366E-48F8-9D57-1975F95D4FAD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E5EEBF3-366E-48F8-9D57-1975F95D4FAD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E5EEBF3-366E-48F8-9D57-1975F95D4FAD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{D78A36B1-D457-4FF7-B01E-82A0C3C64EDC} = {DC791FEF-108F-4773-8B84-56986CB90767}
-		{FD25104C-5895-424F-B4FC-C88E24B17E39} = {DC791FEF-108F-4773-8B84-56986CB90767}
+		{3E5EEBF3-366E-48F8-9D57-1975F95D4FAD} = {DC791FEF-108F-4773-8B84-56986CB90767}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3508DF12-D3DE-4956-ABAB-31D7321B72C7}
