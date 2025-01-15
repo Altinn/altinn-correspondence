@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Npgsql;
 using System.Data.Common;
 using System.Text;
+using System.Text.RegularExpressions;
 
 public class Program
 {
@@ -83,9 +84,7 @@ public class Program
 
         // Skip header lines
         var line = streamReader.ReadLine();
-        Console.WriteLine(line);
         line = streamReader.ReadLine();
-        Console.WriteLine(line);
 
         var dropOldTableIfExists = appContext.Database.ExecuteSqlRaw(@"
         DROP TABLE IF EXISTS correspondence.altinn2party;"
@@ -94,6 +93,7 @@ public class Program
         var createResult = appContext.Database.ExecuteSqlRaw(@"
         CREATE TABLE correspondence.altinn2party (
             partyid_pk VARCHAR(255) PRIMARY KEY, 
+            fnumber_ak VARCHAR(255), 
             name VARCHAR(255), 
             reguserid VARCHAR(255), 
             authuserid VARCHAR(255), 
@@ -105,34 +105,39 @@ public class Program
 
         int lineCount = 0;
 
+        // Regex pattern
+        string pattern = @"^(\S+)\s+(\S+)\s+(.+?)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)$";
+
         while (!streamReader.EndOfStream)
         {
             var row = streamReader.ReadLine();
             lineCount++;
-            var newRow = "";
-            var oldRow = "";
-            // Remove extra spaces
-            do
-            {
-                oldRow = row;
-                newRow = row.Replace("  ", " ");
-                row = newRow;
-            } while (newRow.Length < oldRow.Length);
-
-            var parts = row.Split(' ');
+            Match match = Regex.Match(row, pattern);
             if (lineCount % 10000 == 0)
             {
                 Console.WriteLine("Currently processing line {0}", lineCount);
             }
 
-            if (parts.Length != 8 || parts[5] == "NULL")
-                continue; // Skip invalid rows
-
+            string[] parts = new string[8];
+            if (match.Success && match.Groups.Count == 9)
+            {
+                // Extract fields
+                for (int i = 1; i <= 8; i++)
+                {
+                    parts[i - 1] = match.Groups[i].Value;
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid line: " + row);
+                continue;
+            }
             csvWriter.WriteLine(string.Join(",",
                 EscapeCsv(parts[0]),
                 EscapeCsv(parts[1]),
                 EscapeCsv(parts[2]),
                 EscapeCsv(parts[3]),
+                EscapeCsv(parts[4]),
                 EscapeCsv(parts[5]),
                 EscapeCsv(parts[6]),
                 EscapeCsv(parts[7])
@@ -149,7 +154,7 @@ public class Program
             connection.Open();
             using (var writer = connection.BeginTextImport(@"
         COPY correspondence.altinn2party (
-            partyid_pk, name, reguserid, authuserid, orgnumber_ak, unitid_pk, unitname
+            partyid_pk, fnumber_ak, name, reguserid, authuserid, orgnumber_ak, unitid_pk, unitname
         )
         FROM STDIN WITH (FORMAT CSV)"
             ))
