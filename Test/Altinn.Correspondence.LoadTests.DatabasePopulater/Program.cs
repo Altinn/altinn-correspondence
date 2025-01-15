@@ -104,9 +104,10 @@ public class Program
         );
 
         int lineCount = 0;
+        int invalids = 0;
 
         // Regex pattern
-        string pattern = @"^(\S+)\s+(\S+)\s+(.+?)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)$";
+        string pattern = @"^(\d+|NULL)\s+(\d+|NULL)\s+(.+?)\s+(\d+|NULL)\s+(\d+|NULL)\s+(\d+|NULL)\s+(\d+|NULL)\s+(.+)$";
 
         while (!streamReader.EndOfStream)
         {
@@ -129,6 +130,7 @@ public class Program
             }
             else
             {
+                invalids++;
                 Console.WriteLine("Invalid line: " + row);
                 continue;
             }
@@ -172,6 +174,7 @@ public class Program
         File.Delete(tempCsvPath);
 
         Console.WriteLine("Bulk copy complete in {0} seconds", (DateTime.Now-startTime).TotalSeconds);
+        Console.WriteLine("Disregard {0} invalid lines", invalids);
     }
 
     private static string EscapeCsv(string value)
