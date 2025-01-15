@@ -37,7 +37,7 @@
             )
             SELECT 
                 gen_random_uuid(),
-                'dagl-' || (floor(random() * 500) + 1)::text,
+                'correspondence-medl-' || (floor(random() * 10) + 1)::text,
                 'urn:altinn:organization:identifier-no:' || P1."orgnumber_ak",
                 'urn:altinn:organization:identifier-no:' || P2."orgnumber_ak",
                 S."Id"::text,
