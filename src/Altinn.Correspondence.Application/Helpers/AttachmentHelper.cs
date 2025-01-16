@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -12,7 +11,7 @@ namespace Altinn.Correspondence.Application.Helpers
 {
     public class AttachmentHelper(IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository, IStorageRepository storageRepository, IHostEnvironment hostEnvironment)
     {
-        public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, string dataType, CancellationToken cancellationToken)
+        public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, CancellationToken cancellationToken)
         {
             var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
             if (attachment == null)
@@ -20,23 +19,18 @@ namespace Altinn.Correspondence.Application.Helpers
                 return AttachmentErrors.AttachmentNotFound;
             }
 
-            // Validate the data type
-            if (!IsValidDataType(dataType))
-            {
-                return AttachmentErrors.InvalidDataType;
-            }
-
             var currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.UploadProcessing, partyUuid, cancellationToken);
             try
             {
                 var (dataLocationUrl, checksum) = await storageRepository.UploadAttachment(attachment, file, cancellationToken);
-                var isValidUpdate = await attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);                
-                attachment.DataType = dataType;
+
+                var isValidUpdate = await attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
 
                 if (string.IsNullOrWhiteSpace(attachment.Checksum))
                 {
                     isValidUpdate |= await attachmentRepository.SetChecksum(attachment, checksum, cancellationToken);
                 }
+
                 if (!isValidUpdate)
                 {
                     await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.UploadFailed);
@@ -59,10 +53,12 @@ namespace Altinn.Correspondence.Application.Helpers
                 await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.UploadFailed);
                 return AttachmentErrors.UploadFailed;
             }
+
             if (hostEnvironment.IsDevelopment()) // No malware scan when running locally
             {
                 currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.Published, partyUuid, cancellationToken);
             }
+
             return new UploadAttachmentResponse()
             {
                 AttachmentId = attachment.Id,
@@ -70,12 +66,6 @@ namespace Altinn.Correspondence.Application.Helpers
                 StatusChanged = currentStatus.StatusChanged,
                 StatusText = currentStatus.StatusText
             };
-        }
-
-        private bool IsValidDataType(string dataType)
-        {
-            var validDataTypes = new List<string> { "application/pdf", "application/msword", "application/vnd.ms-excel", "image/jpeg", "text/plain" };            
-            return validDataTypes.Contains(dataType);
         }
         public async Task<AttachmentStatusEntity> SetAttachmentStatus(Guid attachmentId, AttachmentStatus status, Guid partyUuid, CancellationToken cancellationToken, string statusText = null)
         {
