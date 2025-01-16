@@ -199,39 +199,36 @@ public class Program
     {
         applicationDbContext.Database.ExecuteSqlRaw(@"
             DROP FUNCTION IF EXISTS generate_test_data(INT);
-            DROP FUNCTION IF EXISTS populate_test_database(bigint, int);
+            DROP PROCEDURE IF EXISTS populate_test_database(bigint, int);
         ");
         applicationDbContext.Database.ExecuteSqlRaw(ReadFileContent("./generate_test_data_function.sql"));
         applicationDbContext.Database.ExecuteSqlRaw(ReadFileContent("./populate_test_database.sql"));
 
         var startTimeStamp = DateTime.Now;
-
+        
         var threadCount = GetThreadCount(correspondenceCount);
         var tasks = new List<Task>();
         for (int i = 0; i < threadCount; i++)
         {
-            var freshConnection = new NpgsqlConnection(applicationDbContext.Database.GetConnectionString());
-            tasks.Add(RunPopulateQueryAsync(correspondenceCount/threadCount, freshConnection));
+            tasks.Add(RunPopulateQueryAsync(correspondenceCount / threadCount, applicationDbContext.Database.GetConnectionString()));
         }
         if (correspondenceCount % threadCount != 0)
         {
-            var freshConnection = new NpgsqlConnection(applicationDbContext.Database.GetConnectionString());
-            tasks.Add(RunPopulateQueryAsync(correspondenceCount % threadCount, freshConnection));
+            tasks.Add(RunPopulateQueryAsync(correspondenceCount % threadCount, applicationDbContext.Database.GetConnectionString()));
         }
-
         await Task.WhenAll(tasks);
         var endTimeStamp = DateTime.Now;
         var secondsRunTime = (endTimeStamp - startTimeStamp).TotalSeconds;
-        Console.WriteLine("Successfully filled database with {0} correspondence records in {1} seconds for a rate of {2} correspondences/second", correspondenceCount * threadCount, secondsRunTime, correspondenceCount * threadCount / secondsRunTime);
+        Console.WriteLine("Successfully filled database with {0} correspondence records in {1} seconds for a rate of {2} correspondences/second", correspondenceCount, secondsRunTime, correspondenceCount / secondsRunTime);
     }
 
     static int GetThreadCount(int correspondenceCount)
     {
-        if (correspondenceCount <= 100 * 1000)
+        if (correspondenceCount <= 10 * 1000)
         {
             return 1;
         }
-        return Math.Min(128, correspondenceCount/(100 * 1000));
+        return Math.Min(64, correspondenceCount/(10 * 1000));
     }
 
     private static string ReadFileContent(string path)
@@ -242,14 +239,13 @@ public class Program
         return fileContent;
     }
 
-    private static async Task RunPopulateQueryAsync(int count, DbConnection dbConnection)
+    private static async Task RunPopulateQueryAsync(int count, string connectionString)
     {
+        using var dbConnection = new NpgsqlConnection(connectionString);
         if (dbConnection.State != System.Data.ConnectionState.Open)
             await dbConnection.OpenAsync();
         using var command = dbConnection.CreateCommand();
-        command.CommandText = $"SELECT populate_test_database({count});";
+        command.CommandText = $"CALL populate_test_database({count});";
         await command.ExecuteNonQueryAsync();
-        dbConnection.Close();
-        dbConnection.Dispose();
     }
 }

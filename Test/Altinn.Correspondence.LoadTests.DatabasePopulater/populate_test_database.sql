@@ -1,6 +1,6 @@
-﻿
-CREATE OR REPLACE FUNCTION populate_test_database(total_records bigint)
-RETURNS void AS $$
+﻿CREATE OR REPLACE PROCEDURE populate_test_database(total_records bigint)
+LANGUAGE plpgsql
+AS $$
 DECLARE
     batches int;
     remaining_records int;
@@ -20,4 +20,4 @@ BEGIN
     END IF;
     -- SET session_replication_role = DEFAULT;
 END;
-$$ LANGUAGE plpgsql;
+$$;
