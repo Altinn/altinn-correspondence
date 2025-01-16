@@ -8,6 +8,7 @@ using OneOf;
 
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
+using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.Application.GetCorrespondences;
 
@@ -54,15 +55,15 @@ public class LegacyGetCorrespondencesHandler(
                     return AuthorizationErrors.LegacyNotAccessToOwner(instanceOwnerPartyId);
                 }
                 if (mappedInstanceOwner.OrgNumber != null)
-                    recipients.Add(mappedInstanceOwner.OrgNumber);
+                    recipients.Add(GetPrefixedForOrg(mappedInstanceOwner.OrgNumber));
                 else if (mappedInstanceOwner.SSN != null)
-                    recipients.Add(mappedInstanceOwner.SSN);
+                    recipients.Add(GetPrefixedForPerson(mappedInstanceOwner.SSN));
             }
         }
         else
         {
-            if (!string.IsNullOrEmpty(userParty.SSN)) recipients.Add(userParty.SSN);
-            if (!string.IsNullOrEmpty(userParty.OrgNumber)) recipients.Add(userParty.OrgNumber);
+            if (!string.IsNullOrEmpty(userParty.SSN)) recipients.Add(GetPrefixedForPerson(userParty.SSN));
+            if (!string.IsNullOrEmpty(userParty.OrgNumber)) recipients.Add(GetPrefixedForOrg(userParty.OrgNumber));
         }
         List<string> resourcesToSearch = new List<string>();
 
@@ -160,5 +161,15 @@ public class LegacyGetCorrespondencesHandler(
             }
         };
         return response;
+    }
+
+    private static string GetPrefixedForPerson(string ssn)
+    {
+        return $"{UrnConstants.PersonIdAttribute}:{ssn}";
+    }
+
+    private static string GetPrefixedForOrg(string orgnr)
+    {
+        return $"{UrnConstants.OrganizationNumberAttribute}:{orgnr}";
     }
 }
