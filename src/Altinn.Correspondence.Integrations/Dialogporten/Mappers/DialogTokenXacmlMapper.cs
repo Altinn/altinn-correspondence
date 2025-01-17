@@ -87,15 +87,15 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 if (IsJtiClaim(claim.Type))
                 {
-                    list.Add(CreateXacmlJsonAttribute(UrnConstants.SessionId, claim.Value, DefaultType, claim.Issuer));
+                    list.Add(CreateXacmlJsonAttribute(UrnConstants.SessionId, claim.Value, claim.Issuer));
                 }
                 else if (IsValidUrn(claim.Type))
                 {
-                    list.Add(CreateXacmlJsonAttribute(claim.Type, claim.Value, DefaultType, claim.Issuer));
+                    list.Add(CreateXacmlJsonAttribute(claim.Type, claim.Value, claim.Issuer));
                 }
                 else if (IsConsumerClaim(claim.Type))
                 {
-                    list.Add(CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, claim.Value.WithoutPrefix(), DefaultType, claim.Issuer));
+                    list.Add(CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, claim.Value.WithoutPrefix(), claim.Issuer));
                 }
             }
             xacmlJsonCategory.Attribute = list;
@@ -167,12 +167,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return null;
         }
 
-        private static XacmlJsonAttribute CreateXacmlJsonAttribute(string attributeId, string value, string dataType, string issuer, bool includeResult = false)
+        private static XacmlJsonAttribute CreateXacmlJsonAttribute(string attributeId, string value, string issuer, bool includeResult = false)
         {
             XacmlJsonAttribute xacmlJsonAttribute = new XacmlJsonAttribute();
             xacmlJsonAttribute.AttributeId = attributeId;
             xacmlJsonAttribute.Value = value;
-            xacmlJsonAttribute.DataType = dataType;
             xacmlJsonAttribute.Issuer = issuer;
             xacmlJsonAttribute.IncludeInResult = includeResult;
             return xacmlJsonAttribute;

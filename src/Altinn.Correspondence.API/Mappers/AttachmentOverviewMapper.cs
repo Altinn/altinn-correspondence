@@ -20,7 +20,6 @@ internal static class AttachmentOverviewMapper
             StatusText = attachmentOverview.StatusText,
             Checksum = attachmentOverview.Checksum,
             StatusChanged = attachmentOverview.StatusChanged,
-            DataType = attachmentOverview.DataType,
             SendersReference = attachmentOverview.SendersReference,
             CorrespondenceIds = attachmentOverview.CorrespondenceIds ?? new List<Guid>(),
         };
@@ -39,7 +38,6 @@ internal static class AttachmentOverviewMapper
             StatusText = overview.StatusText,
             Checksum = overview.Checksum,
             StatusChanged = overview.StatusChanged,
-            DataType = overview.DataType,
             SendersReference = overview.SendersReference,
             CorrespondenceIds = overview.CorrespondenceIds ?? new List<Guid>(),
         };

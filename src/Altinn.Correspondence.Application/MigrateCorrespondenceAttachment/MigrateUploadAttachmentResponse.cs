@@ -25,7 +25,5 @@ public class MigrateUploadAttachmentResponse
 
     public string SendersReference { get; set; } = string.Empty;
 
-    public string DataType { get; set; } = string.Empty;
-
     public List<Guid> CorrespondenceIds { get; set; } = new List<Guid>();
 }

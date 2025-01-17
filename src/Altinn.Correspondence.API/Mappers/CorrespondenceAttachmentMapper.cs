@@ -11,7 +11,6 @@ internal static class CorrespondenceAttachmentMapper
     {
         var content = new CorrespondenceAttachmentExt
         {
-            DataType = attachment.Attachment.DataType,
             FileName = attachment.Attachment.FileName,
             Id = attachment.AttachmentId,
             IsEncrypted = attachment.Attachment.IsEncrypted,

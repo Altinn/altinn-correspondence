@@ -25,8 +25,6 @@ public class GetAttachmentDetailsResponse
 
     public string SendersReference { get; set; } = string.Empty;
 
-    public string DataType { get; set; } = string.Empty;
-
     public bool IsEncrypted { get; set; }
 
     public string Checksum { get; set; } = string.Empty;
