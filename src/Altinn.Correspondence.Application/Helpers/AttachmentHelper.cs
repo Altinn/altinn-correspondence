@@ -98,6 +98,12 @@ namespace Altinn.Correspondence.Application.Helpers
                     return AttachmentErrors.FilenameInvalid;
                 }
             }
+            var validFileExtensions = new List<string> { ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".jpg", ".jpeg", ".png", ".txt" };
+            var fileExtension = Path.GetExtension(filename).ToLowerInvariant();
+            if (!validFileExtensions.Contains(fileExtension))
+            {
+                return AttachmentErrors.InvalidFileType;
+            }
             return null;
         }
     }
