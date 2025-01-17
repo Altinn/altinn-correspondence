@@ -12,6 +12,18 @@ public class GetAttachmentDetailsHandler(
     ICorrespondenceRepository correspondenceRepository,
     IAltinnAuthorizationService altinnAuthorizationService) : IHandler<Guid, GetAttachmentDetailsResponse>
 {
+    private static readonly Dictionary<string, string> MimeTypes = new Dictionary<string, string>
+    {
+        { ".pdf", "application/pdf" },
+        { ".doc", "application/msword" },
+        { ".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+        { ".xls", "application/vnd.ms-excel" },
+        { ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+        { ".jpg", "image/jpeg" },
+        { ".jpeg", "image/jpeg" },
+        { ".png", "image/png" },
+        { ".txt", "text/plain" }
+    };
 
     public async Task<OneOf<GetAttachmentDetailsResponse, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -33,6 +45,10 @@ public class GetAttachmentDetailsHandler(
         var correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);
         var attachmentStatus = attachment.GetLatestStatus();
 
+        var fileName = attachment.Name ?? string.Empty;
+        var fileExtension = Path.GetExtension(fileName).ToLowerInvariant();
+        var contentType = MimeTypes.ContainsKey(fileExtension) ? MimeTypes[fileExtension] : "application/octet-stream";
+
         var response = new GetAttachmentDetailsResponse
         {
             ResourceId = attachment.ResourceId,
@@ -43,7 +59,7 @@ public class GetAttachmentDetailsHandler(
             StatusText = attachmentStatus.StatusText,
             StatusChanged = attachmentStatus.StatusChanged,
             DataLocationType = attachment.DataLocationType,
-            DataType = attachment.DataType,
+            DataType = contentType,
             SendersReference = attachment.SendersReference,
             CorrespondenceIds = correspondenceIds,
             FileName = attachment.FileName,

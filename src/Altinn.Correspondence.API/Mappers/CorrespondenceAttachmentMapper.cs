@@ -7,11 +7,28 @@ namespace Altinn.Correspondence.Mappers;
 
 internal static class CorrespondenceAttachmentMapper
 {
+    private static readonly Dictionary<string, string> MimeTypes = new Dictionary<string, string>
+    {
+        { ".pdf", "application/pdf" },
+        { ".doc", "application/msword" },
+        { ".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+        { ".xls", "application/vnd.ms-excel" },
+        { ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+        { ".jpg", "image/jpeg" },
+        { ".jpeg", "image/jpeg" },
+        { ".png", "image/png" },
+        { ".txt", "text/plain" }
+    };
+
     internal static CorrespondenceAttachmentExt MapToExternal(CorrespondenceAttachmentEntity attachment)
     {
+        var fileName = attachment.Attachment.FileName ?? string.Empty;
+        var fileExtension = Path.GetExtension(fileName).ToLowerInvariant();
+        var contentType = MimeTypes.ContainsKey(fileExtension) ? MimeTypes[fileExtension] : "application/octet-stream";
+
         var content = new CorrespondenceAttachmentExt
         {
-            DataType = attachment.Attachment.DataType,
+            DataType = contentType,
             FileName = attachment.Attachment.FileName,
             Id = attachment.AttachmentId,
             IsEncrypted = attachment.Attachment.IsEncrypted,
