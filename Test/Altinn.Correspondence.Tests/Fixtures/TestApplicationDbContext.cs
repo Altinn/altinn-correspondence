@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Altinn.Correspondence.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Tests.Fixtures
 {

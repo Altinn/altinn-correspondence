@@ -6,6 +6,8 @@ using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using System.IdentityModel.Tokens.Jwt;
 
+namespace Altinn.Correspondence.Persistence;
+
 public class ApplicationDbContext : DbContext
 {
     private string? _accessToken;
