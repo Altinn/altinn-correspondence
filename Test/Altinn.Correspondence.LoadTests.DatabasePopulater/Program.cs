@@ -1,18 +1,12 @@
 ﻿// See https://aka.ms/new-console-template for more information
-using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.LoadTests.DatabasePopulater;
 using Altinn.Correspondence.Persistence;
-using Altinn.Correspondence.Persistence.Migrations;
-using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Npgsql;
-using System;
-using System.Data.Common;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -70,56 +64,26 @@ public class Program
 
             case "2":
                 Console.WriteLine("Enter the number of correspondence records to generate:");
-                if (int.TryParse(Console.ReadLine(), out int count))
-                {
-                    await FillWithTestDataAsync(dbContext, count);
-                }
-                else
-                {
-                    Console.WriteLine("Invalid number provided.");
-                }
-                break;
-
-            case "3":
-                Console.WriteLine("Enter the number of correspondence records to generate:");
                 if (int.TryParse(Console.ReadLine(), out int bulkCopycount))
                 {
-                    var options = new DatabasePopulator.BatchingOptions
+                    var startTime = DateTime.Now;
+                    var options = new BatchingOptions
                     {
-                        BatchSize = 100000,
+                        BatchSize = 10000,
                         Logger = msg => Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {msg}"),
                         MaxDegreeOfParallelism = 32
                     };
-
+                    options.Logger($"Starting population of database with batch size of {options.BatchSize} and with {options.MaxDegreeOfParallelism} parallel threads");
+                    var databasePopulator = new DatabasePopulator(dbContext.Database.GetConnectionString(), options); 
                     // Generate correspondences and get their IDs
-                    var correspondenceIds = DatabasePopulator.PopulateWithCorrespondences(dbContext, bulkCopycount, options);
+                    var correspondenceIds = databasePopulator.PopulateWithCorrespondences(bulkCopycount);
 
-                    // Genereate related records
-                    var dependentTasks = new[]
-                    {
-                        DatabasePopulator.PopulateWithCorrespondenceStatusesAsync(dbContext, correspondenceIds, options),
-                        DatabasePopulator.PopulateWithCorrespondenceContentsAsync(dbContext, correspondenceIds, options),
-                        DatabasePopulator.PopulateWithCorrespondenceReplyOptionsAsync(dbContext, correspondenceIds, options),
-                        DatabasePopulator.PopulateWithCorrespondenceNotificationsAsync(dbContext, correspondenceIds, options)
-                    };
-                    await Task.WhenAll(dependentTasks);
-
-                    try
-                    {
-                        await Task.WhenAll(dependentTasks);
-                    }
-                    catch (Exception)
-                    {
-                        for (int i = 0; i < dependentTasks.Length; i++)
-                        {
-                            if (dependentTasks[i].IsFaulted)
-                            {
-                                options.Logger($"Task {i} failed with error: {dependentTasks[i].Exception?.InnerException?.Message}");
-                            }
-                        }
-                        throw; 
-                    }
-
+                    // Generate related records
+                    databasePopulator.PopulateWithCorrespondenceStatuses(correspondenceIds);
+                    databasePopulator.PopulateWithCorrespondenceContents(correspondenceIds);
+                    databasePopulator.PopulateWithCorrespondenceReplyOptions(correspondenceIds);
+                    databasePopulator.PopulateWithCorrespondenceNotifications(correspondenceIds);
+                    options.Logger($"Finished populating database with {bulkCopycount} correspondences and related rows in {(DateTime.Now - startTime).TotalSeconds} seconds");
                 }
                 else
                 {
@@ -237,126 +201,6 @@ public class Program
         Console.WriteLine("Disregard {0} invalid lines", invalids);
     }
 
-    static void PopulateWithCorrespondences(ApplicationDbContext appContext, int count)
-    {
-        var startTime = DateTime.Now;
-        var tempCsvPath = Path.GetTempFileName(); // Temporary CSV file
-
-        int lineCount = 0;
-        var random = new Random();
-
-        // We need to put in memory the entire contents of the PartyList table to generate the correspondence records
-        (var ssnList, var orgList) = GetPartyList(appContext);
-        var ssnCount = ssnList.Count;
-        var orgCount = orgList.Count;
-        var totalCount = ssnCount + orgCount;
-
-        using var csvWriter = new StreamWriter(tempCsvPath, false, Encoding.UTF8);
-        for (int i = 0; i < count; i++)
-        {
-            if (i % 10000 == 0)
-            {
-                Console.WriteLine("Currently processing correspondence #{0}", lineCount);
-            }
-
-            var senderId = random.Next(orgCount);
-            var recipientId = random.Next(totalCount);
-
-            var correspondenceLine = new string[15];
-
-            correspondenceLine[0] = Guid.NewGuid().ToString();                                                                  //"Id",
-            correspondenceLine[1] = "dagl-correspondence-" + random.Next(10).ToString();                                        //"ResourceId",
-            correspondenceLine[2] = recipientId < ssnCount ? "urn:altinn:person:identifier-no:" + ssnList[recipientId] :
-                                                             "urn:altinn:organization:identifier-no:" + orgList[recipientId];   //"Recipient",
-            correspondenceLine[3] = "urn:altinn:organization:identifier-no:" + orgList[senderId];                                                                                     //"Sender",
-            correspondenceLine[4] = "";                                                                                         //"SendersReference",
-            correspondenceLine[5] = "";                                                                                         //"MessageSender",
-            correspondenceLine[6] = DateTimeOffset.Now.AddHours(1).ToString("yyyy-MM-dd HH:mm:ss.fff zzz");                     //"RequestedPublishTime",
-            correspondenceLine[7] = DateTimeOffset.Now.AddMonths(12).ToString("yyyy-MM-dd HH:mm:ss.fff zzz");                   //"AllowSystemDeleteAfter",
-            correspondenceLine[8] = DateTimeOffset.Now.AddMonths(6).ToString("yyyy-MM-dd HH:mm:ss.fff zzz");                    //"DueDateTime",
-            correspondenceLine[9] = "";                                                                                         //"PropertyList",
-            correspondenceLine[10] = "false";                                                                                   //"IgnoreReservation",
-            correspondenceLine[11] = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss.fff zzz");                                //"Created",
-            correspondenceLine[12] = "";                                                                                        //"Altinn2CorrespondenceId",
-            correspondenceLine[13] = DateTimeOffset.Now.AddHours(1).ToString("yyyy-MM-dd HH:mm:ss.fff zzz");                    //"Published",
-            correspondenceLine[14] = "false";                                                                                   //"IsConfirmationNeeded"
-
-
-            csvWriter.WriteLine(string.Join(",",
-                EscapeCsv(correspondenceLine[0]),
-                EscapeCsv(correspondenceLine[1]),
-                EscapeCsv(correspondenceLine[2]),
-                EscapeCsv(correspondenceLine[3]),
-                EscapeCsv(correspondenceLine[4]),
-                EscapeCsv(correspondenceLine[5]),
-                EscapeCsv(correspondenceLine[6]),
-                EscapeCsv(correspondenceLine[7]),
-                EscapeCsv(correspondenceLine[8]),
-                EscapeCsv(correspondenceLine[9]),
-                EscapeCsv(correspondenceLine[10]),
-                EscapeCsv(correspondenceLine[11]),
-                EscapeCsv(correspondenceLine[12]),
-                EscapeCsv(correspondenceLine[13]),
-                EscapeCsv(correspondenceLine[14])
-            ));
-        }
-        csvWriter.Close();
-        Console.WriteLine("Finished writing CSV file of {0} correspondences. Starting bulk copy...");
-
-        using (var connection = (NpgsqlConnection)appContext.Database.GetDbConnection())
-        {
-            connection.Open();
-            using (var writer = connection.BeginTextImport(@"
-                COPY correspondence.Correspondences (
-                    Id, ResourceId, Recipient, Sender, SendersReference, MessageSender, RequestedPublishTime, AllowSystemDeleteAfter, DueDateTime, PropertyList, IgnoreReservation, Created, Altinn2CorrespondenceId, Published, IsConfirmationNeeded
-                )
-                FROM STDIN WITH (FORMAT CSV)"
-            ))
-            {
-                using var fileReader = new StreamReader(tempCsvPath, Encoding.UTF8);
-                while (!fileReader.EndOfStream)
-                {
-                    writer.WriteLine(fileReader.ReadLine());
-                }
-            }
-        }
-        
-        // Delete temporary CSV file
-        File.Delete(tempCsvPath);
-        Console.WriteLine("Bulk copy complete in {0} seconds", (DateTime.Now - startTime).TotalSeconds);
-    }
-
-    private static (List<string> ssnList, List<string> orgList) GetPartyList(ApplicationDbContext appContext)
-    {
-        var ssnList = new List<string>();
-        var orgList = new List<string>();
-        using (var connection = (NpgsqlConnection)appContext.Database.GetDbConnection())
-        {
-            connection.Open();
-            var getSsnCommand = connection.CreateCommand();
-            getSsnCommand.CommandText = @"
-                SELECT fnumber_ak
-                FROM correspondence.altinn2party
-                WHERE fnumber_ak IS NOT NULL";
-            using var ssnReader = getSsnCommand.ExecuteReader();
-            while (ssnReader.Read())
-            {
-                ssnList.Add(ssnReader.GetString(0));
-            }
-            var getOrgCommand = connection.CreateCommand();
-            getOrgCommand.CommandText = @"
-                SELECT orgnumber_ak
-                FROM correspondence.altinn2party
-                WHERE orgnumber_ak IS NOT NULL";
-            using var orgReader = getOrgCommand.ExecuteReader();
-            while (orgReader.Read())
-            {
-                orgList.Add(orgReader.GetString(0));
-            }
-        }
-        return (ssnList, orgList);
-    }
-
     private static string EscapeCsv(string value)
     {
         if (value == null || value.ToUpper() == "NULL")
@@ -365,33 +209,6 @@ public class Program
         return value.Contains(",") || value.Contains("\"") || value.Contains("\n")
             ? $"\"{value.Replace("\"", "\"\"")}\""
             : value;
-    }
-
-    static async Task FillWithTestDataAsync(ApplicationDbContext applicationDbContext, int correspondenceCount)
-    {
-        applicationDbContext.Database.ExecuteSqlRaw(@"
-            DROP FUNCTION IF EXISTS generate_test_data(INT);
-            DROP PROCEDURE IF EXISTS populate_test_database(bigint, int);
-        ");
-        applicationDbContext.Database.ExecuteSqlRaw(ReadFileContent("./generate_test_data_function.sql"));
-        applicationDbContext.Database.ExecuteSqlRaw(ReadFileContent("./populate_test_database.sql"));
-
-        var startTimeStamp = DateTime.Now;
-        
-        var threadCount = GetThreadCount(correspondenceCount);
-        var tasks = new List<Task>();
-        for (int i = 0; i < threadCount; i++)
-        {
-            tasks.Add(RunPopulateQueryAsync(correspondenceCount / threadCount, applicationDbContext.Database.GetConnectionString()));
-        }
-        if (correspondenceCount % threadCount != 0)
-        {
-            tasks.Add(RunPopulateQueryAsync(correspondenceCount % threadCount, applicationDbContext.Database.GetConnectionString()));
-        }
-        await Task.WhenAll(tasks);
-        var endTimeStamp = DateTime.Now;
-        var secondsRunTime = (endTimeStamp - startTimeStamp).TotalSeconds;
-        Console.WriteLine("Successfully filled database with {0} correspondence records in {1} seconds for a rate of {2} correspondences/second", correspondenceCount, secondsRunTime, correspondenceCount / secondsRunTime);
     }
 
     static int GetThreadCount(int correspondenceCount)

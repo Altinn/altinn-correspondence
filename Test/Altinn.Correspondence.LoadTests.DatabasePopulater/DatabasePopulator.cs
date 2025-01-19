@@ -1,6 +1,5 @@
 ﻿using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Persistence;
-using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System.Collections.Concurrent;
 using System.Text;
@@ -8,99 +7,78 @@ using System.Text;
 namespace Altinn.Correspondence.LoadTests.DatabasePopulater;
 public class DatabasePopulator
 {
-    public class BatchingOptions
+    private readonly BatchingOptions _options;
+    private readonly NpgsqlDataSource _npgsqlDataSource;
+
+    public DatabasePopulator(string connectionString, BatchingOptions options)
     {
-        public int BatchSize { get; set; } = 50000;
-        public int MaxDegreeOfParallelism { get; set; } = 4;
-        public Action<string> Logger { get; set; } = Console.WriteLine;
+        var npgsqlDataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+        npgsqlDataSourceBuilder.ConnectionStringBuilder.MaxPoolSize = options.MaxDegreeOfParallelism + 10;
+        _npgsqlDataSource = npgsqlDataSourceBuilder.Build();
+        _options = options;
     }
     private class BatchInfo
     {
         public int StartIndex { get; set; }
         public int Size { get; set; }
     }
-    public static List<string> PopulateWithCorrespondences(
-        ApplicationDbContext appContext,
+    /// <summary>
+    /// Generic method to handle batch processing of data and bulk copying to database.
+    /// Returns a list of generated IDs when needed (for Correspondences) or empty list otherwise.
+    /// </summary>
+    private List<string> ProcessInBatches(
         int totalCount,
-        BatchingOptions options)
+        Func<Random, int, int, (List<string> lines, List<string> ids)> createLinesAndIds,
+        string tableName,
+        string columnNames)
     {
-        var startTime = DateTime.Now;
         var allIds = new ConcurrentBag<string>();
-        (var ssnList, var orgList) = GetPartyList(appContext);
-        var ssnCount = ssnList.Count;
-        var orgCount = orgList.Count;
-
-        var batches = new List<BatchInfo>();
-        var remainingCount = totalCount;
-        while (remainingCount > 0)
-        {
-            var batchSize = Math.Min(options.BatchSize, remainingCount);
-            batches.Add(new BatchInfo
-            {
-                StartIndex = totalCount - remainingCount,
-                Size = batchSize
-            });
-            remainingCount -= batchSize;
-        }
-
         var processedCount = 0;
         var syncLock = new object();
+        var batches = CreateBatches(totalCount, _options.BatchSize);
+        var startTime = DateTime.Now;
 
-        // Process batches in parallel
         Parallel.ForEach(
             batches,
-            new ParallelOptions { MaxDegreeOfParallelism = options.MaxDegreeOfParallelism },
+            new ParallelOptions { MaxDegreeOfParallelism = _options.MaxDegreeOfParallelism },
             batch =>
             {
-                var random = new Random(Guid.NewGuid().GetHashCode()); // Ensure thread-safe random
+                var random = new Random(Guid.NewGuid().GetHashCode());
                 var tempCsvPath = Path.GetTempFileName();
 
+                var (lines, ids) = createLinesAndIds(random, batch.StartIndex, batch.Size);
                 try
                 {
                     // Generate CSV content
                     using (var csvWriter = new StreamWriter(tempCsvPath, false, Encoding.UTF8))
                     {
-                        for (int i = 0; i < batch.Size; i++)
+                        foreach (var line in lines)
                         {
-                            var id = Guid.NewGuid().ToString();
+                            csvWriter.WriteLine(line);
+                        }
+                        foreach (var id in ids)
+                        {
                             allIds.Add(id);
-                            var senderId = random.Next(orgCount);
-                            var recipientId = random.Next(ssnCount + orgCount);
-                            var line = CreateCorrespondenceLine(id, random, ssnList, orgList, senderId, recipientId, ssnCount);
-                            csvWriter.WriteLine(string.Join(",", line.Select(EscapeCsv)));
                         }
                     }
 
                     // Import to database
-                    using (var connection = new NpgsqlConnection(appContext.Database.GetConnectionString()))
-                    {
-                        connection.Open();
-                        using (var writer = connection.BeginTextImport(@"
-                        COPY ""correspondence"".""Correspondences"" (
-                            ""Id"", ""ResourceId"", ""Recipient"", ""Sender"", ""SendersReference"", ""MessageSender"", 
-                            ""RequestedPublishTime"", ""AllowSystemDeleteAfter"", ""DueDateTime"", ""PropertyList"", 
-                            ""IgnoreReservation"", ""Created"", ""Altinn2CorrespondenceId"", ""Published"", ""IsConfirmationNeeded""
-                        )
-                        FROM STDIN WITH (FORMAT CSV)"))
-                        {
-                            using var fileReader = new StreamReader(tempCsvPath, Encoding.UTF8);
-                            while (!fileReader.EndOfStream)
-                            {
-                                writer.WriteLine(fileReader.ReadLine());
-                            }
-                        }
-                    }
+                    BulkCopyToTable(tempCsvPath, tableName, columnNames);
 
                     // Update progress
                     lock (syncLock)
                     {
                         processedCount += batch.Size;
-                        options.Logger($"Processed {processedCount}/{totalCount} correspondences");
+                        _options.Logger($"Processed {processedCount}/{totalCount} records for {tableName}");
                     }
+                }
+                catch (Exception e)
+                {
+                    _options.Logger($"Failed batch for {tableName}: {e.Message}");                    
+                    throw;
                 }
                 finally
                 {
-                    // Cleanup temp file
                     if (File.Exists(tempCsvPath))
                     {
                         File.Delete(tempCsvPath);
@@ -108,303 +86,191 @@ public class DatabasePopulator
                 }
             });
 
-        options.Logger($"Completed in {(DateTime.Now - startTime).TotalSeconds:F1} seconds");
+        _options.Logger($"Completed {tableName} in {(DateTime.Now - startTime).TotalSeconds:F1} seconds");
         return allIds.ToList();
     }
-    public static async Task PopulateWithCorrespondenceStatusesAsync(
-    ApplicationDbContext appContext,
-    List<string> correspondenceIds,
-    BatchingOptions options)
+
+    public List<string> PopulateWithCorrespondences(int totalCount)
     {
-        var startTime = DateTime.Now;
-        var processedCount = 0;
-        var syncLock = new object();
-        var batches = CreateBatches(correspondenceIds.Count, options.BatchSize);
+        (var ssnList, var orgList) = GetPartyList();
+        var ssnCount = ssnList.Count;
+        var orgCount = orgList.Count;
 
-        await Parallel.ForEachAsync(
-            batches,
-            new ParallelOptions { MaxDegreeOfParallelism = options.MaxDegreeOfParallelism },
-            async (batch, ct) =>
+        return ProcessInBatches(
+            totalCount,
+            (random, startIndex, batchSize) =>
             {
-                var tempCsvPath = Path.GetTempFileName();
-                try
+                var lines = new List<string>(batchSize);
+                var ids = new List<string>(batchSize);
+
+                for (int i = 0; i < batchSize; i++)
                 {
-                    using (var csvWriter = new StreamWriter(tempCsvPath, false, Encoding.UTF8))
-                    {
-                        for (int j = 0; j < batch.Size; j++)
-                        {
-                            var correspondenceId = correspondenceIds[batch.StartIndex + j];
-                            var initializedline = CreateStatusLine(correspondenceId, CorrespondenceStatus.Initialized);
-                            var readyForPublishLine = CreateStatusLine(correspondenceId, CorrespondenceStatus.ReadyForPublish);
-                            var publishedLine = CreateStatusLine(correspondenceId, CorrespondenceStatus.Published);
-                            csvWriter.WriteLine(string.Join(",", initializedline.Select(EscapeCsv)));
-                            csvWriter.WriteLine(string.Join(",", readyForPublishLine.Select(EscapeCsv)));
-                            csvWriter.WriteLine(string.Join(",", publishedLine.Select(EscapeCsv)));
-                        }
-                    }
-
-                    await BulkCopyToTable(
-                        appContext,
-                        tempCsvPath,
-                        "\"correspondence\".\"CorrespondenceStatuses\"",
-                        "Id, CorrespondenceId, Status, StatusChanged, StatusText"
-                    );
-
-                    lock (syncLock)
-                    {
-                        processedCount += batch.Size;
-                        options.Logger($"Processed statuses for {processedCount}/{correspondenceIds.Count} correspondences");
-                    }
+                    var id = Guid.NewGuid().ToString();
+                    ids.Add(id);
+                    var senderId = random.Next(orgCount);
+                    var recipientId = random.Next(ssnCount + orgCount);
+                    var line = CreateCorrespondenceLine(id, random, ssnList, orgList, senderId, recipientId, ssnCount);
+                    lines.Add(string.Join(",", line.Select(EscapeCsv)));
                 }
-                finally
-                {
-                    if (File.Exists(tempCsvPath))
-                    {
-                        File.Delete(tempCsvPath);
-                    }
-                }
-            });
 
-        options.Logger($"Completed statuses in {(DateTime.Now - startTime).TotalSeconds:F1} seconds");
+                return (lines, ids);
+            },
+            "\"correspondence\".\"Correspondences\"",
+            @"Id, ResourceId, Recipient, Sender, SendersReference, MessageSender,
+              RequestedPublishTime, AllowSystemDeleteAfter, DueDateTime, PropertyList,
+              IgnoreReservation, Created, Altinn2CorrespondenceId, Published, IsConfirmationNeeded"
+        );
     }
 
-    public static async Task PopulateWithCorrespondenceContentsAsync(
-        ApplicationDbContext appContext,
-        List<string> correspondenceIds,
-        BatchingOptions options)
+    public void PopulateWithCorrespondenceStatuses(List<string> correspondenceIds)
     {
-        var startTime = DateTime.Now;
-        var processedCount = 0;
-        var syncLock = new object();
-        var batches = CreateBatches(correspondenceIds.Count, options.BatchSize);
+        var statuses = Enum.GetValues<CorrespondenceStatus>().Take(3);
 
-        await Parallel.ForEachAsync(
-            batches,
-            new ParallelOptions { MaxDegreeOfParallelism = options.MaxDegreeOfParallelism },
-            async (batch, ct) =>
+        ProcessInBatches(
+            correspondenceIds.Count,
+            (random, startIndex, batchSize) =>
             {
-                var tempCsvPath = Path.GetTempFileName();
-                try
+                var lines = new List<string>(batchSize * statuses.Count());
+                for (int i = 0; i < batchSize; i++)
                 {
-                    using (var csvWriter = new StreamWriter(tempCsvPath, false, Encoding.UTF8))
+                    var correspondenceId = correspondenceIds[startIndex + i];
+                    foreach (var status in statuses)
                     {
-                        for (int j = 0; j < batch.Size; j++)
-                        {
-                            var correspondenceId = correspondenceIds[batch.StartIndex + j];
-                            var line = CreateContentLine(correspondenceId);
-                            csvWriter.WriteLine(string.Join(",", line.Select(EscapeCsv)));
-                        }
-                    }
-
-                    await BulkCopyToTable(
-                        appContext,
-                        tempCsvPath,
-                        "\"correspondence\".\"CorrespondenceContents\"",
-                        "Id,Language,MessageTitle,MessageSummary,MessageBody,CorrespondenceId"
-                    );
-
-                    lock (syncLock)
-                    {
-                        processedCount += batch.Size;
-                        options.Logger($"Processed contents for {processedCount}/{correspondenceIds.Count} correspondences");
+                        var line = CreateStatusLine(correspondenceId, status);
+                        lines.Add(string.Join(",", line.Select(EscapeCsv)));
                     }
                 }
-                finally
-                {
-                    if (File.Exists(tempCsvPath))
-                    {
-                        File.Delete(tempCsvPath);
-                    }
-                }
-            });
-
-        options.Logger($"Completed contents in {(DateTime.Now - startTime).TotalSeconds:F1} seconds");
+                return (lines, new List<string>());  // Return empty list for IDs
+            },
+            "\"correspondence\".\"CorrespondenceStatuses\"",
+            "Id, CorrespondenceId, Status, StatusChanged, StatusText"
+        );
     }
 
-    public static async Task PopulateWithCorrespondenceReplyOptionsAsync(
-        ApplicationDbContext appContext,
-        List<string> correspondenceIds,
-        BatchingOptions options)
+    public void PopulateWithCorrespondenceContents(List<string> correspondenceIds)
     {
-        var startTime = DateTime.Now;
-        var processedCount = 0;
-        var syncLock = new object();
-        var batches = CreateBatches(correspondenceIds.Count, options.BatchSize);
-
-        await Parallel.ForEachAsync(
-            batches,
-            new ParallelOptions { MaxDegreeOfParallelism = options.MaxDegreeOfParallelism },
-            async (batch, ct) =>
+        ProcessInBatches(
+            correspondenceIds.Count,
+            (random, startIndex, batchSize) =>
             {
-                var random = new Random(Guid.NewGuid().GetHashCode()); // Thread-safe random
-                var tempCsvPath = Path.GetTempFileName();
-                try
+                var lines = new List<string>(batchSize);
+                for (int i = 0; i < batchSize; i++)
                 {
-                    using (var csvWriter = new StreamWriter(tempCsvPath, false, Encoding.UTF8))
-                    {
-                        for (int j = 0; j < batch.Size; j++)
-                        {
-                            var correspondenceId = correspondenceIds[batch.StartIndex + j];
-                            var replyOptionCount = random.Next(1, 4);
-                            for (int k = 0; k < replyOptionCount; k++)
-                            {
-                                var line = CreateReplyOptionLine(correspondenceId, random, replyOptionCount);
-                                csvWriter.WriteLine(string.Join(",", line.Select(EscapeCsv)));
-                            }
-                        }
-                    }
-
-                    await BulkCopyToTable(
-                        appContext,
-                        tempCsvPath,
-                        "\"correspondence\".\"CorrespondenceReplyOptions\"",
-                        "Id,LinkURL,LinkText,CorrespondenceId"
-                    );
-
-                    lock (syncLock)
-                    {
-                        processedCount += batch.Size;
-                        options.Logger($"Processed reply options for {processedCount}/{correspondenceIds.Count} correspondences");
-                    }
+                    var correspondenceId = correspondenceIds[startIndex + i];
+                    var line = CreateContentLine(correspondenceId);
+                    lines.Add(string.Join(",", line.Select(EscapeCsv)));
                 }
-                finally
-                {
-                    if (File.Exists(tempCsvPath))
-                    {
-                        File.Delete(tempCsvPath);
-                    }
-                }
-            });
-
-        options.Logger($"Completed reply options in {(DateTime.Now - startTime).TotalSeconds:F1} seconds");
+                return (lines, new List<string>());  // Return empty list for IDs
+            },
+            "\"correspondence\".\"CorrespondenceContents\"",
+            "Id,Language,MessageTitle,MessageSummary,MessageBody,CorrespondenceId"
+        );
     }
 
-    public static async Task PopulateWithCorrespondenceNotificationsAsync(
-        ApplicationDbContext appContext,
-        List<string> correspondenceIds,
-        BatchingOptions options)
+    public void PopulateWithCorrespondenceReplyOptions(List<string> correspondenceIds)
     {
-        var startTime = DateTime.Now;
-        var processedCount = 0;
-        var syncLock = new object();
-        var batches = CreateBatches(correspondenceIds.Count, options.BatchSize);
-
-        await Parallel.ForEachAsync(
-            batches,
-            new ParallelOptions { MaxDegreeOfParallelism = options.MaxDegreeOfParallelism },
-            async (batch, ct) =>
+        ProcessInBatches(
+            correspondenceIds.Count,
+            (random, startIndex, batchSize) =>
             {
-                var random = new Random(Guid.NewGuid().GetHashCode()); // Thread-safe random
-                var tempCsvPath = Path.GetTempFileName();
-                try
+                var lines = new List<string>(batchSize);
+                for (int i = 0; i < batchSize; i++)
                 {
-                    using (var csvWriter = new StreamWriter(tempCsvPath, false, Encoding.UTF8))
-                    {
-                        for (int j = 0; j < batch.Size; j++)
-                        {
-                            var correspondenceId = correspondenceIds[batch.StartIndex + j];
-                            var notificationCount = random.Next(1, 3);
-                            for (int k = 0; k < notificationCount; k++)
-                            {
-                                var line = CreateNotificationLine(correspondenceId, random, k);
-                                csvWriter.WriteLine(string.Join(",", line.Select(EscapeCsv)));
-                            }
-                        }
-                    }
-
-                    await BulkCopyToTable(
-                        appContext,
-                        tempCsvPath,
-                        "\"correspondence\".\"CorrespondenceNotifications\"",
-                        "Id,NotificationTemplate,NotificationAddress,RequestedSendTime,CorrespondenceId,Created,NotificationChannel,NotificationOrderId,NotificationSent,IsReminder,Altinn2NotificationId"
-                    );
-
-                    lock (syncLock)
-                    {
-                        processedCount += batch.Size;
-                        options.Logger($"Processed notifications for {processedCount}/{correspondenceIds.Count} correspondences");
-                    }
+                    var correspondenceId = correspondenceIds[startIndex + i];
+                    var line = CreateReplyOptionLine(correspondenceId);
+                    lines.Add(string.Join(",", line.Select(EscapeCsv)));
                 }
-                finally
+                return (lines, new List<string>());  // Return empty list for IDs
+            },
+            "\"correspondence\".\"CorrespondenceReplyOptions\"",
+            "Id,LinkURL,LinkText,CorrespondenceId"
+        );
+    }
+
+    public void PopulateWithCorrespondenceNotifications(List<string> correspondenceIds)
+    {
+        ProcessInBatches(
+            correspondenceIds.Count,
+            (random, startIndex, batchSize) =>
+            {
+                var lines = new List<string>();
+                for (int i = 0; i < batchSize; i++)
                 {
-                    if (File.Exists(tempCsvPath))
-                    {
-                        File.Delete(tempCsvPath);
-                    }
+                    var correspondenceId = correspondenceIds[startIndex + i];
+                    var line = CreateNotificationLine(correspondenceId, random, 1);
+                    lines.Add(string.Join(",", line.Select(EscapeCsv)));
                 }
-            });
-
-        options.Logger($"Completed notifications in {(DateTime.Now - startTime).TotalSeconds:F1} seconds");
+                return (lines, new List<string>());  // Return empty list for IDs
+            },
+            "\"correspondence\".\"CorrespondenceNotifications\"",
+            "Id,NotificationTemplate,NotificationAddress,RequestedSendTime,CorrespondenceId,Created,NotificationChannel,NotificationOrderId,NotificationSent,IsReminder,Altinn2NotificationId"
+        );
     }
 
 
 
-    private static async Task BulkCopyToTable(
-        ApplicationDbContext appContext,
+    private void BulkCopyToTable(
         string csvPath,
         string tableName,
         string columns)
     {
-        await using var connection = new NpgsqlConnection(appContext.Database.GetConnectionString());
-        await connection.OpenAsync();
-        await using var writer = connection.BeginTextImport($@"
-            COPY {tableName} (
-                {string.Join(", ", columns.Split(',').Select(c => $"\"{c.Trim()}\""))}
-            )
-            FROM STDIN WITH (FORMAT CSV)");
-
-        using var fileReader = new StreamReader(csvPath, Encoding.UTF8);
-        while (!fileReader.EndOfStream)
+        DateTime startTimeBulkCopy = DateTime.Now;
+        try
         {
-            try
+            using var connection = _npgsqlDataSource.OpenConnection();
+            using var writer = connection.BeginTextImport($@"
+                        COPY {tableName} (
+                            {string.Join(", ", columns.Split(',').Select(c => $"\"{c.Trim()}\""))}
+                        )
+                        FROM STDIN WITH (FORMAT CSV)");
+
+            using var fileReader = new StreamReader(csvPath, Encoding.UTF8);
+            while (!fileReader.EndOfStream)
             {
-                string? line = await fileReader.ReadLineAsync();
-                if (line != null)
-                {
-                    await writer.WriteAsync(line + "\n");
-                }
+                writer.WriteLine(fileReader.ReadLine());
             }
-            catch (Exception e)
-            {
-                Console.WriteLine("Exception when inserting to table {0}: {1}", tableName, e.Message);
-            }
+
         }
+        catch (Exception e)
+        {
+            _options.Logger("Failed bulk copy: " + e.Message);
+            return;
+        }
+
+        _options.Logger($"Bulk copied to table {tableName} in {(DateTime.Now - startTimeBulkCopy).TotalSeconds:F1} seconds");
     }
 
 
-    private static (List<string> ssnList, List<string> orgList) GetPartyList(ApplicationDbContext appContext)
+    private (List<string> ssnList, List<string> orgList) GetPartyList()
     {
         Console.WriteLine("Retrieving list of parties");
+        var startTime = DateTime.Now;
         var ssnList = new List<string>();
         var orgList = new List<string>();
-        using (var connection = (NpgsqlConnection)appContext.Database.GetDbConnection())
-        {
-            connection.Open();
-            var command = connection.CreateCommand();
-            command.CommandText = @"
-                SELECT fnumber_ak, orgnumber_ak
-                FROM correspondence.altinn2party
-                WHERE fnumber_ak IS NOT NULL OR orgnumber_ak IS NOT NULL";
+        using var command = _npgsqlDataSource.CreateCommand();
+        command.CommandText = @"
+            SELECT fnumber_ak, orgnumber_ak
+            FROM correspondence.altinn2party
+            WHERE fnumber_ak IS NOT NULL OR orgnumber_ak IS NOT NULL";
 
-            using (var reader = command.ExecuteReader())
+        using (var reader = command.ExecuteReader())
+        {
+            while (reader.Read())
             {
-                while (reader.Read())
-                {
-                    if (!reader.IsDBNull(0))
-                        ssnList.Add(reader.GetString(0));
-                    if (!reader.IsDBNull(1))
-                        orgList.Add(reader.GetString(1));
-                }
+                if (!reader.IsDBNull(0))
+                    ssnList.Add(reader.GetString(0));
+                if (!reader.IsDBNull(1))
+                    orgList.Add(reader.GetString(1));
             }
         }
 
-        Console.WriteLine("Retrieved list of parties: {0} ssn and {1} orgs", ssnList.Count, orgList.Count);
+        Console.WriteLine("Retrieved list of parties: {0} ssn and {1} orgs in {2} seconds", ssnList.Count, orgList.Count, (DateTime.Now - startTime).TotalSeconds);
         return (ssnList, orgList);
     }
 
     private static string[] CreateCorrespondenceLine(
-        string id, Random random, List<string> ssnList, List<string> orgList,
-        int senderId, int recipientId, int ssnCount)
+    string id, Random random, List<string> ssnList, List<string> orgList,
+    int senderId, int recipientId, int ssnCount)
     {
         return new[]
         {
@@ -453,12 +319,12 @@ public class DatabasePopulator
         };
     }
 
-    private static string[] CreateReplyOptionLine(string correspondenceId, Random random, int optNum)
+    private static string[] CreateReplyOptionLine(string correspondenceId)
     {
         return new[]
         {
             Guid.NewGuid().ToString(),                 // Id
-            optNum == 1 ? "test.no" : "www.test.no",   // LinkURL
+            "www.test.no",                              // LinkURL
             "test",                                    // LinkText
             correspondenceId                           // CorrespondenceId
         };
