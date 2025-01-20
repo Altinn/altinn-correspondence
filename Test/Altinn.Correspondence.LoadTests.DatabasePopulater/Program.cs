@@ -26,11 +26,17 @@ public class Program
                 {
                     var postgresSettings = serviceProvider.GetRequiredService<IOptions<PostgresSettings>>().Value;
                     var connectionString = new NpgsqlConnectionStringBuilder(postgresSettings.PostgresConnectionString);
-                    connectionString.CommandTimeout = 0;
-                    options.UseNpgsql(connectionString.ConnectionString);
+                    connectionString.CommandTimeout = 3600;
+                    options.UseNpgsql(connectionString.ConnectionString, npgsqlOptions =>
+                    {
+                        npgsqlOptions.EnableRetryOnFailure(
+                            maxRetryCount: 3,
+                            maxRetryDelay: TimeSpan.FromSeconds(30),
+                            errorCodesToAdd: null
+                        );
+                    });
                 });
-            })
-            .Build();
+            }).Build();
 
         using var scope = host.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
