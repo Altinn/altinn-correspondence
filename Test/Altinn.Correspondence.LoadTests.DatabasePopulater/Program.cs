@@ -215,31 +215,4 @@ public class Program
             ? $"\"{value.Replace("\"", "\"\"")}\""
             : value;
     }
-
-    static int GetThreadCount(int correspondenceCount)
-    {
-        if (correspondenceCount <= 10 * 1000)
-        {
-            return 1;
-        }
-        return Math.Min(64, correspondenceCount/(10 * 1000));
-    }
-
-    private static string ReadFileContent(string path)
-    {
-        using var fileStream = File.OpenRead(path);
-        using var streamReader = new StreamReader(fileStream);
-        var fileContent = streamReader.ReadToEnd();
-        return fileContent;
-    }
-
-    private static async Task RunPopulateQueryAsync(int count, string connectionString)
-    {
-        using var dbConnection = new NpgsqlConnection(connectionString);
-        if (dbConnection.State != System.Data.ConnectionState.Open)
-            await dbConnection.OpenAsync();
-        using var command = dbConnection.CreateCommand();
-        command.CommandText = $"CALL populate_test_database({count});";
-        await command.ExecuteNonQueryAsync();
-    }
 }
