@@ -68,7 +68,7 @@ public class LegacyGetCorrespondencesHandler(
         List<string> resourcesToSearch = new List<string>();
 
         // Get all correspondences owned by Recipients
-        var (correspondences, correspondencesCount) = await correspondenceRepository.GetCorrespondencesForParties(request.Offset, limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken);
+        var correspondences = await correspondenceRepository.GetCorrespondencesForParties(request.Offset, limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken);
 
         var resourceIds = correspondences.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
@@ -153,12 +153,6 @@ public class LegacyGetCorrespondencesHandler(
         var response = new LegacyGetCorrespondencesResponse
         {
             Items = correspondenceItems,
-            Pagination = new PaginationMetaData
-            {
-                Offset = request.Offset,
-                Limit = limit,
-                TotalItems = correspondencesCount - correspondenceToSubtractFromTotal
-            }
         };
         return response;
     }
