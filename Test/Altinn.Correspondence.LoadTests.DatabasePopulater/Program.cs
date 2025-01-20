@@ -43,7 +43,6 @@ public class Program
         Console.WriteLine("Choose an option:");
         Console.WriteLine("1. Populate with Party List");
         Console.WriteLine("2. Fill with Test Data");
-        Console.WriteLine("3. Fill with Test Data using bulk copy");
 
         string? choice = Console.ReadLine();
 
