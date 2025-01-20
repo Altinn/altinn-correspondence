@@ -95,6 +95,26 @@ resource maxConnectionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/
   }
 }
 
+resource workMemConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
+  name: 'work_mem'
+  parent: postgres
+  dependsOn: [extensionsConfiguration]
+  properties: {
+    value: prodLikeEnvironment ? '1097151' : '4096'
+    source: 'user-override'
+  }
+}
+
+resource maintenanceWorkMemConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
+  name: 'maintenance_work_mem'
+  parent: postgres
+  dependsOn: [extensionsConfiguration]
+  properties: {
+    value: prodLikeEnvironment ? '2097151' : '99328'
+    source: 'user-override'
+  }
+}
+
 resource allowAzureAccess 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-06-01-preview' = {
   name: 'azure-access'
   parent: postgres
