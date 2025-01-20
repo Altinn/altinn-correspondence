@@ -78,12 +78,12 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             }, CancellationToken.None);
 
             // Act
-            var (correspondences, correspondenceCount) = await correspondenceRepository.GetCorrespondencesForParties(0, 1000, from, to, null, [recipient], [resource], true, false, false, "", CancellationToken.None);
+            var correspondences = await correspondenceRepository.GetCorrespondencesForParties(0, 1000, from, to, null, [recipient], [resource], true, false, false, "", CancellationToken.None);
 
             // Assert
             Assert.NotNull(correspondences);
             Assert.NotEmpty(correspondences);
-            Assert.Equal(1, correspondenceCount);
+            Assert.Equal(1, correspondences?.Count);
             Assert.Equal(addedCorrespondence.Id, correspondences.FirstOrDefault()?.Id);
         }
     }
