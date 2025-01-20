@@ -68,7 +68,7 @@ public class LegacyGetCorrespondencesHandler(
         List<string> resourcesToSearch = new List<string>();
 
         // Get all correspondences owned by Recipients
-        var correspondences = await correspondenceRepository.GetCorrespondencesForParties(request.Offset, limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken);
+        var correspondences = await correspondenceRepository.GetCorrespondencesForParties(limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken);
 
         var resourceIds = correspondences.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
@@ -118,13 +118,11 @@ public class LegacyGetCorrespondencesHandler(
                 recipientDetails.Add(new PartyInfo(orgNr, null));
             }
         }
-        var correspondenceToSubtractFromTotal = 0;
         foreach (var correspondence in correspondences)
         {
             var authLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
             if (minAuthLevel == null || minAuthLevel < authLevel)
             {
-                correspondenceToSubtractFromTotal++;
                 continue;
             }
             var purgedStatus = correspondence.GetPurgedStatus();

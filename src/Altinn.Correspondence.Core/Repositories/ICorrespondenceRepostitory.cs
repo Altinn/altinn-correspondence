@@ -21,7 +21,6 @@ namespace Altinn.Correspondence.Core.Repositories
             CancellationToken cancellationToken);
 
         Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(
-            int offset,
             int limit,
             DateTimeOffset? from,
             DateTimeOffset? to,
