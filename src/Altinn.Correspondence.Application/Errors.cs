@@ -50,7 +50,6 @@ public static class AttachmentErrors
     public static Error FilenameMissing = new Error(2010, "Filename is missing", HttpStatusCode.BadRequest);
     public static Error FilenameTooLong = new Error(2011, "Filename is too long", HttpStatusCode.BadRequest);
     public static Error FilenameInvalid = new Error(2012, "Filename contains invalid characters", HttpStatusCode.BadRequest);
-    public static Error InvalidFileType = new Error(2013, "File type is not valid", HttpStatusCode.BadRequest);
 }
 public static class NotificationErrors
 {
