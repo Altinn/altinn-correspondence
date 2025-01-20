@@ -30,7 +30,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
 
             Assert.True(response?.Items.Count > 0);
-            Assert.True(response?.Pagination.TotalItems > 0);
         }
 
         [Fact]
@@ -45,7 +44,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
             Assert.Equal(HttpStatusCode.OK, correspondenceList.StatusCode);
-            Assert.True(response?.Pagination.TotalItems > 0);
         }
         [Fact]
         public async Task GetCorrespondences_With_Different_statuses()
@@ -58,20 +56,17 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
             Assert.True(response?.Items.Count > 0);
-            Assert.True(response?.Pagination.TotalItems > 0);
             await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview"); // Fetch in order to be able to Confirm
             await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/confirm", null); // Update to Confirmed in order to be able to Archive
             listPayload.Status = CorrespondenceStatusExt.Confirmed;
             correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
             Assert.True(response?.Items.Count > 0);
-            Assert.True(response?.Pagination.TotalItems > 0);
             await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/archive", null);
             listPayload.Status = CorrespondenceStatusExt.Archived;
             correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
             Assert.True(response?.Items.Count > 0);
-            Assert.True(response?.Pagination.TotalItems > 0);
         }
 
         [Fact]
@@ -99,7 +94,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
             Assert.True(response?.Items.Count > 0);
-            Assert.True(response?.Pagination.TotalItems > 0);
         }
 
         [Fact]
@@ -122,7 +116,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
             Assert.True(response?.Items.Count > 0);
-            Assert.True(response?.Pagination.TotalItems > 0);
         }
 
         [Fact]

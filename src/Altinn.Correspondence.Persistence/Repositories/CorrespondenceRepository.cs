@@ -122,7 +122,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
-        public async Task<(List<CorrespondenceEntity>, int)> GetCorrespondencesForParties(int offset, int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, bool includeActive, bool includeArchived, bool includePurged, string searchString, CancellationToken cancellationToken)
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, bool includeActive, bool includeArchived, bool includePurged, string searchString, CancellationToken cancellationToken)
         {
             var correspondences = recipientIds.Count == 1
                 ? _context.Correspondences.Where(c => c.Recipient == recipientIds[0])     // Filter by single recipient
@@ -138,9 +138,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Include(c => c.Content)
                 .OrderByDescending(c => c.RequestedPublishTime);             // Sort by RequestedPublishTime
 
-            var totalItems = await correspondences.CountAsync(cancellationToken);
-            var result = await correspondences.Skip(offset).Take(limit).ToListAsync(cancellationToken);
-            return (result, totalItems);
+            var result = await correspondences.Take(limit).ToListAsync(cancellationToken);
+            return result;
         }
     }
 }
