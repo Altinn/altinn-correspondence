@@ -34,9 +34,8 @@ public class GetAttachmentDetailsHandler(
         var correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);
         var attachmentStatus = attachment.GetLatestStatus();
 
-        var fileName = attachment.FileName ?? string.Empty;
-        var fileExtension = Path.GetExtension(fileName).ToLowerInvariant();
-        var contentType = FileConstants.MimeTypes.ContainsKey(fileExtension) ? FileConstants.MimeTypes[fileExtension] : "application/octet-stream";
+        var fileName = attachment.FileName;
+        var contentType = FileConstants.GetMIMEType(fileName);
 
         var response = new GetAttachmentDetailsResponse
         {

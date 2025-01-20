@@ -12,10 +12,7 @@ internal static class CorrespondenceAttachmentMapper
     internal static CorrespondenceAttachmentExt MapToExternal(CorrespondenceAttachmentEntity attachment)
     {
         var fileName = attachment.Attachment.FileName;
-        var fileExtension = !string.IsNullOrEmpty(fileName) 
-            ? Path.GetExtension(Path.GetFileName(fileName))?.ToLowerInvariant() 
-            : string.Empty;
-        var contentType = FileConstants.MimeTypes.ContainsKey(fileExtension) ? FileConstants.MimeTypes[fileExtension] : "application/octet-stream";
+        var contentType = FileConstants.GetMIMEType(fileName);
 
         var content = new CorrespondenceAttachmentExt
         {

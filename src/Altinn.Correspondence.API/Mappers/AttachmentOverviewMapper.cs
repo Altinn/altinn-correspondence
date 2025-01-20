@@ -10,9 +10,8 @@ internal static class AttachmentOverviewMapper
 {
     internal static AttachmentOverviewExt MapToExternal(GetAttachmentOverviewResponse attachmentOverview)
     {
-        var fileName = attachmentOverview.FileName ?? string.Empty;
-        var fileExtension = Path.GetExtension(fileName).ToLowerInvariant();
-        var contentType = FileConstants.MimeTypes.ContainsKey(fileExtension) ? FileConstants.MimeTypes[fileExtension] : "application/octet-stream";
+        var fileName = attachmentOverview.FileName;
+        var contentType = FileConstants.GetMIMEType(fileName);
 
         var attachment = new AttachmentOverviewExt
         {
