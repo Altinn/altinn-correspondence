@@ -2,28 +2,17 @@ using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetAttachmentOverview;
 using Altinn.Correspondence.Application.MigrateUploadAttachment;
+using Altinn.Correspondence.Common.Helpers;
 
 namespace Altinn.Correspondence.Mappers;
 
 internal static class AttachmentOverviewMapper
 {
-    private static readonly Dictionary<string, string> MimeTypes = new Dictionary<string, string>
-    {
-        { ".pdf", "application/pdf" },
-        { ".doc", "application/msword" },
-        { ".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
-        { ".xls", "application/vnd.ms-excel" },
-        { ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
-        { ".jpg", "image/jpeg" },
-        { ".jpeg", "image/jpeg" },
-        { ".png", "image/png" },
-        { ".txt", "text/plain" }
-    };
     internal static AttachmentOverviewExt MapToExternal(GetAttachmentOverviewResponse attachmentOverview)
     {
         var fileName = attachmentOverview.FileName ?? string.Empty;
         var fileExtension = Path.GetExtension(fileName).ToLowerInvariant();
-        var contentType = MimeTypes.ContainsKey(fileExtension) ? MimeTypes[fileExtension] : "application/octet-stream";
+        var contentType = FileConstants.MimeTypes.ContainsKey(fileExtension) ? FileConstants.MimeTypes[fileExtension] : "application/octet-stream";
 
         var attachment = new AttachmentOverviewExt
         {
@@ -55,7 +44,7 @@ internal static class AttachmentOverviewMapper
             StatusText = overview.StatusText,
             Checksum = overview.Checksum,
             StatusChanged = overview.StatusChanged,
-            DataType = "lserp",
+            DataType = overview.DataType,
             SendersReference = overview.SendersReference,
             CorrespondenceIds = overview.CorrespondenceIds ?? new List<Guid>(),
         };

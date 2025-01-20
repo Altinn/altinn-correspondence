@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
 using System.Security.Claims;
+using Altinn.Correspondence.Common.Helpers;
 
 namespace Altinn.Correspondence.Application.GetAttachmentDetails;
 
@@ -12,18 +13,6 @@ public class GetAttachmentDetailsHandler(
     ICorrespondenceRepository correspondenceRepository,
     IAltinnAuthorizationService altinnAuthorizationService) : IHandler<Guid, GetAttachmentDetailsResponse>
 {
-    private static readonly Dictionary<string, string> MimeTypes = new Dictionary<string, string>
-    {
-        { ".pdf", "application/pdf" },
-        { ".doc", "application/msword" },
-        { ".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
-        { ".xls", "application/vnd.ms-excel" },
-        { ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
-        { ".jpg", "image/jpeg" },
-        { ".jpeg", "image/jpeg" },
-        { ".png", "image/png" },
-        { ".txt", "text/plain" }
-    };
 
     public async Task<OneOf<GetAttachmentDetailsResponse, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -47,7 +36,7 @@ public class GetAttachmentDetailsHandler(
 
         var fileName = attachment.FileName ?? string.Empty;
         var fileExtension = Path.GetExtension(fileName).ToLowerInvariant();
-        var contentType = MimeTypes.ContainsKey(fileExtension) ? MimeTypes[fileExtension] : "application/octet-stream";
+        var contentType = FileConstants.MimeTypes.ContainsKey(fileExtension) ? FileConstants.MimeTypes[fileExtension] : "application/octet-stream";
 
         var response = new GetAttachmentDetailsResponse
         {
