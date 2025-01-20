@@ -88,19 +88,18 @@ public class LegacyGetCorrespondencesHandler(
             }
         }
 
-        var resourceOwners = new List<PartyInfo>();
+        var resourceOwners = new Dictionary<string, string>();
         foreach (var resource in correspondences.Select(c => c.ResourceId).Distinct().ToList())
         {
-            try
+            var resourceOwner = await resourceRightsService.GetServiceOwnerOfResource(resource, cancellationToken);
+            if (resourceOwner == null)
             {
-                var resourceOwner = await resourceRightsService.GetServiceOwnerOfResource(resource, cancellationToken);
-                var resourceOwnerInfo = await altinnRegisterService.LookUpPartyById(resourceOwner, cancellationToken);
-                resourceOwners.Add(new PartyInfo(resource, resourceOwnerInfo));
+                logger.LogError("Failed to get resource owner for resource {Resource}", resource);
+                resourceOwners.Add(resource, "");
             }
-            catch (Exception e)
+            else
             {
-                logger.LogError(e, "Failed to lookup resource owner for resource: {resource}", resource);
-                resourceOwners.Add(new PartyInfo(resource, null));
+                resourceOwners.Add(resource, resourceOwner);
             }
         }
 
@@ -132,7 +131,7 @@ public class LegacyGetCorrespondencesHandler(
                 new LegacyCorrespondenceItem()
                 {
                     Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId,
-                    ServiceOwnerName = resourceOwners?.SingleOrDefault(r => r.Id == correspondence.ResourceId).Party?.Name,
+                    ServiceOwnerName = resourceOwners?[correspondence.ResourceId],
                     InstanceOwnerPartyId = recipient?.PartyId ?? 0,
                     MessageTitle = correspondence.Content.MessageTitle,
                     Status = correspondence.GetHighestStatusWithoutPurged().Status,
