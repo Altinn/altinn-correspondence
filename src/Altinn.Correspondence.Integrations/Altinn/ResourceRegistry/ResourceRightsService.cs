@@ -38,6 +38,16 @@ public class ResourceRightsService : IResourceRightsService
             _logger.LogError("Failed to deserialize response from Altinn Resource Registry");
             throw new BadHttpRequestException("Failed to process response from Altinn Resource Registry");
         }
-        return altinnResourceResponse.HasCompetentAuthority.Organization;
+        var nameAttributes = new List<string> { "en", "nb-no", "nn-no" };
+        string? name = null;
+        foreach (var nameAttribute in nameAttributes)
+        {
+            if (altinnResourceResponse.HasCompetentAuthority.Name?.ContainsKey(nameAttribute) == true)
+            {
+                name = altinnResourceResponse.HasCompetentAuthority.Name[nameAttribute];
+                break;
+            }
+        }
+        return name;
     }
 }
