@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
@@ -16,16 +17,38 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<AltinnAccessManagementService> _logger;
+    private readonly IDistributedCache _cache;
+    private readonly DistributedCacheEntryOptions _cacheOptions;
 
-    public AltinnAccessManagementService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnAccessManagementService> logger)
+    public AltinnAccessManagementService(
+        HttpClient httpClient, 
+        IOptions<AltinnOptions> altinnOptions, 
+        ILogger<AltinnAccessManagementService> logger,
+        IDistributedCache cache)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.AccessManagementSubscriptionKey);
         _httpClient = httpClient;
         _logger = logger;
+        _cache = cache;
+        _cacheOptions = new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
+        };
     }
 
     public async Task<List<Party>> GetAuthorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default)
     {
+        string cacheKey = $"AuthorizedParties_{partyToRequestFor.PartyId}";
+        string? cachedDataString = await _cache.GetStringAsync(cacheKey, cancellationToken);
+        if (!string.IsNullOrEmpty(cachedDataString))
+        {
+            var cachedParties = JsonSerializer.Deserialize<List<Party>>(cachedDataString);
+            if (cachedParties != null)
+            {
+                return cachedParties;
+            }
+        }
+
         AuthorizedPartiesRequest request = new(partyToRequestFor);
         JsonSerializerOptions serializerOptions = new()
         {
@@ -46,7 +69,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             throw new Exception("Unexpected null or invalid json response from Authorization GetAuthorizedParties.");
         }
 
-        return responseContent.Select(p => new Party
+        var parties = responseContent.Select(p => new Party
         {
             PartyId = p.partyId,
             PartyUuid = p.partyUuid,
@@ -55,6 +78,11 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             Resources = p.authorizedResources,
             PartyTypeName = GetType(p.type)
         }).ToList();
+
+        string serializedDataString = JsonSerializer.Serialize(parties);
+        await _cache.SetStringAsync(cacheKey, serializedDataString, _cacheOptions, cancellationToken);
+
+        return parties;
     }
     public PartyType GetType(string type)
     {
