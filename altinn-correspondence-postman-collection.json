@@ -873,11 +873,6 @@
 									"type": "text"
 								},
 								{
-									"key": "Correspondence.content.attachments[0].DataType",
-									"value": "1",
-									"type": "text"
-								},
-								{
 									"key": "Correspondence.content.attachments[0].Name",
 									"value": "testfile.txt",
 									"type": "text"
