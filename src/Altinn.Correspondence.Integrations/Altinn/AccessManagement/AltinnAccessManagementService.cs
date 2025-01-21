@@ -39,14 +39,16 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
     public async Task<List<Party>> GetAuthorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default)
     {
         string cacheKey = $"AuthorizedParties_{partyToRequestFor.PartyId}";
-        string? cachedDataString = await _cache.GetStringAsync(cacheKey, cancellationToken);
-        if (!string.IsNullOrEmpty(cachedDataString))
-        {
-            var cachedParties = JsonSerializer.Deserialize<List<Party>>(cachedDataString);
-            if (cachedParties != null)
+        try {
+            string? cachedDataString = await _cache.GetStringAsync(cacheKey, cancellationToken);
+            if (!string.IsNullOrEmpty(cachedDataString))
             {
-                return cachedParties;
+                return JsonSerializer.Deserialize<List<Party>>(cachedDataString) ?? new List<Party>();
             }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error retrieving authorized parties from cache. Proceeding with API call.");
         }
 
         AuthorizedPartiesRequest request = new(partyToRequestFor);
@@ -79,8 +81,14 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             PartyTypeName = GetType(p.type)
         }).ToList();
 
-        string serializedDataString = JsonSerializer.Serialize(parties);
-        await _cache.SetStringAsync(cacheKey, serializedDataString, _cacheOptions, cancellationToken);
+        try {
+            string serializedDataString = JsonSerializer.Serialize(parties);
+            await _cache.SetStringAsync(cacheKey, serializedDataString, _cacheOptions, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error saving response content from Authorization GetAuthorizedParties to cache.");
+        }
 
         return parties;
     }
