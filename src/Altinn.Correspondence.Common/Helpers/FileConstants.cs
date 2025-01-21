@@ -19,7 +19,7 @@ namespace Altinn.Correspondence.Common.Helpers
             { ".gif", "image/gif" },
             { ".bmp", "image/bmp" },
             { ".png", "image/png" }
-
+        };
         public static string GetMIMEType(string fileName)
         {
             var fileExtension = Path.GetExtension(fileName).ToLowerInvariant();
