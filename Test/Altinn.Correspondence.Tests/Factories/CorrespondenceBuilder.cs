@@ -83,7 +83,7 @@ namespace Altinn.Correspondence.Tests.Factories
                     DataType = "html",
                     Name = "2",
                     SendersReference = "1234",
-                    FileName = "test-fil2e",
+                    FileName = "test-fil2e.txt",
                     IsEncrypted = false,
                 }
             };

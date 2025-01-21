@@ -2,7 +2,7 @@ using System.Transactions;
 
 using Hangfire;
 using Hangfire.PostgreSql;
-
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 using Npgsql;
@@ -20,7 +20,11 @@ public static class TransactionWithRetriesPolicy
     {
         var result = await RetryPolicy(logger).ExecuteAndCaptureAsync<OneOf<T, Error>>(async (cancellationToken) =>
         {
-            using var transaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+            using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30)
+            }, TransactionScopeAsyncFlowOption.Enabled);
             var result = await operation(cancellationToken);
             transaction.Complete();
             return result;
@@ -38,6 +42,7 @@ public static class TransactionWithRetriesPolicy
         .Or<PostgresException>()
         .Or<BackgroundJobClientException>()
         .Or<PostgreSqlDistributedLockException>()
+        .Or<DbUpdateConcurrencyException>()
         .WaitAndRetryAsync(
             10,
             retryAttempt => TimeSpan.FromMilliseconds(10),

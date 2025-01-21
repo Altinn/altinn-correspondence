@@ -19,6 +19,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
     private readonly ILogger<AltinnAccessManagementService> _logger;
     private readonly IDistributedCache _cache;
     private readonly DistributedCacheEntryOptions _cacheOptions;
+    private readonly int _MAX_DEPTH_FOR_SUBUNITS = 20;
 
     public AltinnAccessManagementService(
         HttpClient httpClient, 
@@ -36,14 +37,14 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         };
     }
 
-    public async Task<List<Party>> GetAuthorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default)
+    public async Task<List<PartyWithSubUnits>> GetAuthorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default)
     {
         string cacheKey = $"AuthorizedParties_{partyToRequestFor.PartyId}";
         try {
             string? cachedDataString = await _cache.GetStringAsync(cacheKey, cancellationToken);
             if (!string.IsNullOrEmpty(cachedDataString))
             {
-                return JsonSerializer.Deserialize<List<Party>>(cachedDataString) ?? new List<Party>();
+                return JsonSerializer.Deserialize<List<PartyWithSubUnits>>(cachedDataString) ?? new List<PartyWithSubUnits>();
             }
         }
         catch (Exception ex)
@@ -70,16 +71,23 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             _logger.LogError("Unexpected null or invalid json response from Authorization GetAuthorizedParties.");
             throw new Exception("Unexpected null or invalid json response from Authorization GetAuthorizedParties.");
         }
-
-        var parties = responseContent.Select(p => new Party
+        List<PartyWithSubUnits> parties = new();
+        foreach (var p in responseContent)
         {
-            PartyId = p.partyId,
-            PartyUuid = p.partyUuid,
-            OrgNumber = p.organizationNumber,
-            SSN = p.personId,
-            Resources = p.authorizedResources,
-            PartyTypeName = GetType(p.type)
-        }).ToList();
+            parties.Add(new PartyWithSubUnits
+            {
+                PartyId = p.partyId,
+                PartyUuid = p.partyUuid,
+                OrgNumber = p.organizationNumber,
+                SSN = p.personId,
+                Resources = p.authorizedResources,
+                PartyTypeName = GetType(p.type),
+            });
+            if (p.subunits != null && p.subunits.Count > 0)
+            {
+                parties.AddRange(GetPartiesFromSubunits(p.subunits));
+            }
+        }
 
         try {
             string serializedDataString = JsonSerializer.Serialize(parties);
@@ -101,6 +109,33 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             "SelfIdentified" => PartyType.SelfIdentified,
             _ => throw new NotImplementedException()
         };
+    }
+    private List<PartyWithSubUnits> GetPartiesFromSubunits(List<AuthroizedPartiesResponse> subunits, int depth = 0)
+    {
+        List<PartyWithSubUnits> parties = new();
+        if (depth > _MAX_DEPTH_FOR_SUBUNITS)
+        {
+            _logger.LogWarning("Max depth for subunits reached. Ignoring further subunits.");
+            return parties;
+        }
+        foreach (var subunit in subunits)
+        {
+            parties.Add(new PartyWithSubUnits
+            {
+
+                PartyId = subunit.partyId,
+                PartyUuid = subunit.partyUuid,
+                OrgNumber = subunit.organizationNumber,
+                SSN = subunit.personId,
+                Resources = subunit.authorizedResources,
+                PartyTypeName = GetType(subunit.type),
+            });
+            if (subunit.subunits != null && subunit.subunits.Count > 0)
+            {
+                parties.AddRange(GetPartiesFromSubunits(subunit.subunits, depth + 1));
+            }
+        }
+        return parties;
     }
 
     internal sealed class AuthorizedPartiesRequest

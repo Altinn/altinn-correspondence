@@ -12,6 +12,9 @@ param dialogportenIssuer string
 param maskinporten_token_exchange_environment string
 
 @secure()
+param sblBridgeBaseUrl string
+
+@secure()
 param subscription_id string
 @secure()
 param principal_id string
@@ -21,6 +24,27 @@ param keyVaultUrl string
 param userIdentityClientId string
 @secure()
 param containerAppEnvId string
+
+type ContainerAppScale = {
+    minReplicas: int
+    maxReplicas: int
+}
+param prodLikeEnvironment bool = environment == 'production' || maskinporten_token_exchange_environment == 'yt01'
+param containerAppResources object = prodLikeEnvironment ? {
+  cpu: 2
+  memory: '4.0Gi'
+} : {
+  // Using json() as a workaround for Bicep float type limitations in Container Apps
+  cpu: json('0.5')
+  memory: '1.0Gi'
+}
+param containerAppScale ContainerAppScale = prodLikeEnvironment ? {
+  minReplicas: 3
+  maxReplicas:10
+} : {
+  minReplicas: 1
+  maxReplicas: 1
+}
 
 var probes = [
   {
@@ -78,6 +102,7 @@ var containerAppEnvVarsdefault = [
   { name: 'GeneralSettings__CorrespondenceBaseUrl', value: correspondenceBaseUrl }
   { name: 'GeneralSettings__ContactReservationRegistryBaseUrl', value: contactReservationRegistryBaseUrl}
   { name: 'GeneralSettings__SlackUrl', secretRef: 'slack-url' }
+  { name: 'GeneralSettings__AltinnSblBridgeBaseUrl', value: sblBridgeBaseUrl }
   { name: 'DialogportenSettings__Issuer', value: dialogportenIssuer }
   { name: 'IdportenSettings__Issuer', value: idportenIssuer }
   { name: 'IdportenSettings__ClientId', secretRef: 'idporten-client-id' }
@@ -170,20 +195,14 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
 
     environmentId: containerAppEnvId
     template: {
-      scale: {
-        minReplicas: 1
-        maxReplicas: 1
-      }
+      scale: containerAppScale
       containers: [
         {
           name: 'app'
           image: image
           env: containerAppEnvVars
           probes: probes
-          resources: {
-            cpu: json('0.5')
-            memory: '1.0Gi'
-          }
+          resources: containerAppResources
         }
       ]
     }

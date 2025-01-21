@@ -42,10 +42,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<string>("DataLocationUrl")
                         .HasColumnType("text");
 
-                    b.Property<string>("DataType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("FileName")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -344,6 +340,20 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasIndex("CorrespondenceId");
 
                     b.ToTable("ExternalReferences", "correspondence");
+                });
+
+            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.LegacyPartyEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("PartyId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("LegacyParties", "correspondence");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.NotificationTemplateEntity", b =>

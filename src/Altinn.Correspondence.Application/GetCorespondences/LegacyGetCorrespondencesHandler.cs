@@ -8,6 +8,7 @@ using OneOf;
 
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
+using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.Application.GetCorrespondences;
 
@@ -24,7 +25,7 @@ public class LegacyGetCorrespondencesHandler(
 
     public async Task<OneOf<LegacyGetCorrespondencesResponse, Error>> Process(LegacyGetCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var limit = request.Limit == 0 ? 50 : request.Limit;
+        var limit = request.Limit == 0 ? 1000 : request.Limit;
         DateTimeOffset? to = request.To != null ? ((DateTimeOffset)request.To).ToUniversalTime() : null;
         DateTimeOffset? from = request.From != null ? ((DateTimeOffset)request.From).ToUniversalTime() : null;
 
@@ -46,7 +47,7 @@ public class LegacyGetCorrespondencesHandler(
         if (request.InstanceOwnerPartyIdList != null && request.InstanceOwnerPartyIdList.Length > 0)
         {
             var authorizedParties = await altinnAccessManagementService.GetAuthorizedParties(userParty, cancellationToken);
-            var authorizedPartiesDict = authorizedParties.ToDictionary(c => c.PartyId);
+            var authorizedPartiesDict = authorizedParties.ToDictionary(p => p.PartyId, p => p);
             foreach (int instanceOwnerPartyId in request.InstanceOwnerPartyIdList)
             {
                 if (!authorizedPartiesDict.TryGetValue(instanceOwnerPartyId, out var mappedInstanceOwner))
@@ -54,20 +55,20 @@ public class LegacyGetCorrespondencesHandler(
                     return AuthorizationErrors.LegacyNotAccessToOwner(instanceOwnerPartyId);
                 }
                 if (mappedInstanceOwner.OrgNumber != null)
-                    recipients.Add(mappedInstanceOwner.OrgNumber);
+                    recipients.Add(GetPrefixedForOrg(mappedInstanceOwner.OrgNumber));
                 else if (mappedInstanceOwner.SSN != null)
-                    recipients.Add(mappedInstanceOwner.SSN);
+                    recipients.Add(GetPrefixedForPerson(mappedInstanceOwner.SSN));
             }
         }
         else
         {
-            if (!string.IsNullOrEmpty(userParty.SSN)) recipients.Add(userParty.SSN);
-            if (!string.IsNullOrEmpty(userParty.OrgNumber)) recipients.Add(userParty.OrgNumber);
+            if (!string.IsNullOrEmpty(userParty.SSN)) recipients.Add(GetPrefixedForPerson(userParty.SSN));
+            if (!string.IsNullOrEmpty(userParty.OrgNumber)) recipients.Add(GetPrefixedForOrg(userParty.OrgNumber));
         }
         List<string> resourcesToSearch = new List<string>();
 
         // Get all correspondences owned by Recipients
-        var (correspondences, correspondencesCount) = await correspondenceRepository.GetCorrespondencesForParties(request.Offset, limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken);
+        var correspondences = await correspondenceRepository.GetCorrespondencesForParties(limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken);
 
         var resourceIds = correspondences.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
@@ -87,19 +88,18 @@ public class LegacyGetCorrespondencesHandler(
             }
         }
 
-        var resourceOwners = new List<PartyInfo>();
+        var resourceOwners = new Dictionary<string, string>();
         foreach (var resource in correspondences.Select(c => c.ResourceId).Distinct().ToList())
         {
-            try
+            var resourceOwner = await resourceRightsService.GetServiceOwnerOfResource(resource, cancellationToken);
+            if (resourceOwner == null)
             {
-                var resourceOwner = await resourceRightsService.GetServiceOwnerOfResource(resource, cancellationToken);
-                var resourceOwnerInfo = await altinnRegisterService.LookUpPartyById(resourceOwner, cancellationToken);
-                resourceOwners.Add(new PartyInfo(resource, resourceOwnerInfo));
+                logger.LogError("Failed to get resource owner for resource {Resource}", resource);
+                resourceOwners.Add(resource, "");
             }
-            catch (Exception e)
+            else
             {
-                logger.LogError(e, "Failed to lookup resource owner for resource: {resource}", resource);
-                resourceOwners.Add(new PartyInfo(resource, null));
+                resourceOwners.Add(resource, resourceOwner);
             }
         }
 
@@ -117,13 +117,11 @@ public class LegacyGetCorrespondencesHandler(
                 recipientDetails.Add(new PartyInfo(orgNr, null));
             }
         }
-        var correspondenceToSubtractFromTotal = 0;
         foreach (var correspondence in correspondences)
         {
             var authLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
             if (minAuthLevel == null || minAuthLevel < authLevel)
             {
-                correspondenceToSubtractFromTotal++;
                 continue;
             }
             var purgedStatus = correspondence.GetPurgedStatus();
@@ -133,7 +131,7 @@ public class LegacyGetCorrespondencesHandler(
                 new LegacyCorrespondenceItem()
                 {
                     Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId,
-                    ServiceOwnerName = resourceOwners?.SingleOrDefault(r => r.Id == correspondence.ResourceId).Party?.Name,
+                    ServiceOwnerName = resourceOwners?[correspondence.ResourceId],
                     InstanceOwnerPartyId = recipient?.PartyId ?? 0,
                     MessageTitle = correspondence.Content.MessageTitle,
                     Status = correspondence.GetHighestStatusWithoutPurged().Status,
@@ -152,13 +150,17 @@ public class LegacyGetCorrespondencesHandler(
         var response = new LegacyGetCorrespondencesResponse
         {
             Items = correspondenceItems,
-            Pagination = new PaginationMetaData
-            {
-                Offset = request.Offset,
-                Limit = limit,
-                TotalItems = correspondencesCount - correspondenceToSubtractFromTotal
-            }
         };
         return response;
+    }
+
+    private static string GetPrefixedForPerson(string ssn)
+    {
+        return $"{UrnConstants.PersonIdAttribute}:{ssn}";
+    }
+
+    private static string GetPrefixedForOrg(string orgnr)
+    {
+        return $"{UrnConstants.OrganizationNumberAttribute}:{orgnr}";
     }
 }

@@ -14,7 +14,11 @@ on:
           - test
           - staging
           - production
+          - yt01
+          - at21
           - at22
+          - at23
+          - at24
 
 jobs:
   get-version: 
@@ -81,4 +85,5 @@ jobs:
         PLATFORM_BASE_URL: ${{ secrets.PLATFORM_BASE_URL }}
         PLATFORM_SUBSCRIPTION_KEY: ${{ secrets.PLATFORM_SUBSCRIPTION_KEY }}
         SLACK_URL: ${{ secrets.SLACK_URL }}
+        SBL_BRIDGE_BASE_URL: ${{ secrets.SBL_BRIDGE_BASE_URL }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ secrets.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}

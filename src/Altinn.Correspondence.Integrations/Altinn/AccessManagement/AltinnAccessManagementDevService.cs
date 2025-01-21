@@ -8,9 +8,9 @@ namespace Altinn.Correspondence.Integrations.Altinn.AccessManagement;
 public class AltinnAccessManagementDevService : IAltinnAccessManagementService
 {
     private readonly int _digdirPartyId = 50952483;
-    public Task<List<Party>> GetAuthorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default)
+    public Task<List<PartyWithSubUnits>> GetAuthorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default)
     {
-        Party party = new()
+        PartyWithSubUnits party = new()
         {
             PartyId = _digdirPartyId,
             OrgNumber = "991825827",
@@ -20,6 +20,6 @@ public class AltinnAccessManagementDevService : IAltinnAccessManagementService
             UnitType = "Virksomhet",
             Name = "Digitaliseringsdirektoratet",
         };
-        return Task.FromResult(new List<Party> { party });
+        return Task.FromResult(new List<PartyWithSubUnits> { party });
     }
 }

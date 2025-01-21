@@ -5,6 +5,7 @@ param location = 'norwayeast'
 param imageTag = readEnvironmentVariable('IMAGE_TAG')
 param platform_base_url = readEnvironmentVariable('PLATFORM_BASE_URL')
 param correspondenceBaseUrl = readEnvironmentVariable('CORRESPONDENCE_BASE_URL')
+param sblBridgeBaseUrl = readEnvironmentVariable('SBL_BRIDGE_BASE_URL')
 param contactReservationRegistryBaseUrl = readEnvironmentVariable('CONTACT_RESERVATION_REGISTRY_BASE_URL')
 param environment = readEnvironmentVariable('ENVIRONMENT')
 param maskinporten_environment = 'test'

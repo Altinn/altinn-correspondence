@@ -25,6 +25,7 @@ public static class DependencyInjection
         services.AddScoped<ICorrespondenceNotificationRepository, CorrespondenceNotificationRepository>();
         services.AddScoped<IStorageRepository, StorageRepository>();
         services.AddScoped<INotificationTemplateRepository, NotificationTemplateRepository>();
+        services.AddScoped<ILegacyPartyRepository, LegacyPartyRepository>();
     }
 
     private static NpgsqlDataSource BuildAzureNpgsqlDataSource(IConfiguration config)

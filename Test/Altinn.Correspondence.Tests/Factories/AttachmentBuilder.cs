@@ -21,7 +21,7 @@ namespace Altinn.Correspondence.Tests.Factories
                 Name = "Test file logical name",
                 Sender = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
                 SendersReference = "1234",
-                FileName = "test-file",
+                FileName = "test-file.txt",
                 IsEncrypted = false
             };
             return this;
