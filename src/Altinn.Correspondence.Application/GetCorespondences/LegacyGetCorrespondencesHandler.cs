@@ -133,7 +133,7 @@ public class LegacyGetCorrespondencesHandler(
                     Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId,
                     ServiceOwnerName = resourceOwners?[correspondence.ResourceId],
                     InstanceOwnerPartyId = recipient?.PartyId ?? 0,
-                    MessageTitle = correspondence.Content.MessageTitle,
+                    MessageTitle = "",//correspondence.Content.MessageTitle,
                     Status = correspondence.GetHighestStatusWithoutPurged().Status,
                     CorrespondenceId = correspondence.Id,
                     MinimumAuthenticationLevel = (int)minAuthLevel,
