@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using OneOf;
 using System.Security.Claims;
+using Altinn.Correspondence.Common.Helpers;
 
 namespace Altinn.Correspondence.Application.GetAttachmentDetails;
 
@@ -33,6 +34,9 @@ public class GetAttachmentDetailsHandler(
         var correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);
         var attachmentStatus = attachment.GetLatestStatus();
 
+        var fileName = attachment.FileName;
+        var contentType = FileConstants.GetMIMEType(fileName);
+
         var response = new GetAttachmentDetailsResponse
         {
             ResourceId = attachment.ResourceId,
@@ -43,7 +47,7 @@ public class GetAttachmentDetailsHandler(
             StatusText = attachmentStatus.StatusText,
             StatusChanged = attachmentStatus.StatusChanged,
             DataLocationType = attachment.DataLocationType,
-            DataType = attachment.DataType,
+            DataType = contentType,
             SendersReference = attachment.SendersReference,
             CorrespondenceIds = correspondenceIds,
             FileName = attachment.FileName,
