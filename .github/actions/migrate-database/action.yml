@@ -72,9 +72,9 @@ runs:
       with:
         azcliversion: 2.68.0
         inlineScript: |
-          az storage blob upload --container-name migrations --account-name ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }} --auth-mode login \
+          az storage blob upload --container-name migrations --account-name ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }} \
             --file ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --name bundle.exe --overwrite
-          az storage blob upload --container-name migrations --account-name ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }} --auth-mode login \
+          az storage blob upload --container-name migrations --account-name ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }} \
             --file ./src/Altinn.Correspondence.API/appsettings.json --name appsettings.json --overwrite
 
     - name: Start migration job
