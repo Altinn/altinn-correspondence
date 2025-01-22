@@ -118,10 +118,10 @@ public class LegacyGetCorrespondencesHandler(
             }
         }
 
-        Dictionary<string, int?> authlevels = [];
+        Dictionary<string, int?> authlevels = new(correspondences.Count);
         foreach (var correspondence in correspondences)
         {
-            string authLevelKey = $"{correspondence.Recipient}_{correspondence.ResourceId}";
+            string authLevelKey = $"{correspondence.Recipient}::{correspondence.ResourceId}";
             if (!authlevels.TryGetValue(authLevelKey, out int? authLevel))
             {
                 authLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
