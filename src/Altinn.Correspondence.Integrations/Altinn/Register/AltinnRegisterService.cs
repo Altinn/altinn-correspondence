@@ -139,7 +139,7 @@ public class AltinnRegisterService : IAltinnRegisterService
 
     public async Task<List<Party>?> LookUpPartiesByIds(List<string> identificationIds, CancellationToken cancellationToken = default)
     {
-        string cacheKey = $"PartiesByIds_{string.Join("_", identificationIds)}";
+        string cacheKey = $"PartiesByIds_{string.Join("_", identificationIds).GetHashCode()}";
         try
         {
             var cachedParty = await CacheHelpers.GetObjectFromCacheAsync<List<Party>>(cacheKey, _cache, cancellationToken);
