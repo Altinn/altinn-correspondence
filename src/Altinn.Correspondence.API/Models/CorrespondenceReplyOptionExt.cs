@@ -25,35 +25,35 @@ namespace Altinn.Correspondence.API.Models
         [AttributeUsage(AttributeTargets.Property)]
         internal class IsLinkAttribute : ValidationAttribute
         {
+            private const int maxLength = 255;
+            private const string httpsPrefix = "https://";
+            private const string httpPrefix = "http://";
             public IsLinkAttribute()
             {
+
             }
 
             protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
             {
-                if (value == null || value.GetType() != typeof(string))
+                if (value is not string strValue)
                 {
                     return new ValidationResult("LinkURL is not of type string");
                 }
-                if (((string)value).Length > 255)
+                if (strValue.Length > maxLength)
                 {
-                    return new ValidationResult("LinkURL is too long");
+                    return new ValidationResult($"LinkURL  must not exceed {maxLength} characters");
                 }
                 if (!Uri.IsWellFormedUriString((string)value, UriKind.Absolute))
                 {
                     return new ValidationResult("LinkURL is not a valid URL");
                 }
-                if (((string)value).Contains(" "))
+                if (strValue.StartsWith(httpPrefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    return new ValidationResult("LinkURL contains whitespace");
+                    return new ValidationResult("LinkURL must use HTTPS");
                 }
-                if (((string)value).StartsWith("http://"))
+                if (!strValue.StartsWith(httpsPrefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    return new ValidationResult("LinkURL is not secure");
-                }
-                if (!((string)value).StartsWith("https://"))
-                {
-                    return new ValidationResult("LinkURL must start with https://");
+                    return new ValidationResult($"LinkURL must start with{httpsPrefix}");
                 }
                 return ValidationResult.Success;
             }
