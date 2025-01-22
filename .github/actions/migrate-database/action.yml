@@ -67,13 +67,17 @@ runs:
       run: |
         dotnet ef migrations bundle --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API --self-contained -r linux-x64 -o ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe
 
-    - name: Upload Migration Files to Azure File Share
+- name: Upload Migration Files to Azure Storage
       uses: azure/CLI@v2
       with:
         azcliversion: 2.68.0
         inlineScript: |
-          az storage copy --source ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --destination https://${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}.file.core.windows.net/migrations --recursive
-          az storage copy --source ./src/Altinn.Correspondence.API/appsettings.json --destination https://${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}.file.core.windows.net/migrations --recursive
+          chmod +x ./.github/tools/upload-migration-files.sh
+          ./.github/tools/upload-migration-files.sh \
+            ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }} \
+            migrations \
+            ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe \
+            ./src/Altinn.Correspondence.API/appsettings.json
 
     - name: Start migration job
       uses: azure/CLI@v2
