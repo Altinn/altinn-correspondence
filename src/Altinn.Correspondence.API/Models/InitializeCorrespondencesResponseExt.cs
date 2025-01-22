@@ -1,4 +1,3 @@
-using Altinn.Correspondence.API.Models.Enums;
 using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models;
@@ -8,11 +7,6 @@ namespace Altinn.Correspondence.API.Models;
 /// </summary>
 public class InitializeCorrespondencesResponseExt
 {
-    /// <summary>
-    /// The status of the initialize correspondences operation as a whole (Success/PartialSuccess/Failed)
-    /// </summary>
-    public required InitializedCorrespondecesStatusExt Status { get; set; }
-
     /// <summary>
     /// The initialized correspondences
     /// </summary>

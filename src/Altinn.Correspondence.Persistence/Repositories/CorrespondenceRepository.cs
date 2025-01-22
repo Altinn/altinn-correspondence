@@ -122,23 +122,24 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
-        public async Task<(List<CorrespondenceEntity>, int)> GetCorrespondencesForParties(int offset, int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, bool includeActive, bool includeArchived, bool includePurged, string searchString, CancellationToken cancellationToken)
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, bool includeActive, bool includeArchived, bool includePurged, string searchString, CancellationToken cancellationToken)
         {
-            var correspondences = _context.Correspondences
-               .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
-               .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter                              
-               .Where(c => recipientIds.Any(recipient => c.Recipient.Contains(recipient)))       // Filter by recipients
+            var correspondences = recipientIds.Count == 1
+                ? _context.Correspondences.Where(c => c.Recipient == recipientIds[0])     // Filter by single recipient
+                : _context.Correspondences.Where(c => recipientIds.Contains(c.Recipient)); // Filter multiple recipients
+
+            correspondences = correspondences
+                .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
+                .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter                              
                 .Where(c => resourceIds.Count == 0 || resourceIds.Contains(c.ResourceId))       // Filter by resources
                 .IncludeByStatuses(includeActive, includeArchived, includePurged, status) // Filter by statuses
                 .Where(c => string.IsNullOrEmpty(searchString) || (c.Content != null && c.Content.MessageTitle.Contains(searchString))) // Filter by messageTitle containing searchstring
-               .Include(c => c.Statuses)
+                .Include(c => c.Statuses)
                 .Include(c => c.Content)
-               .OrderByDescending(c => c.RequestedPublishTime);             // Sort by RequestedPublishTime
+                .OrderByDescending(c => c.RequestedPublishTime);             // Sort by RequestedPublishTime
 
-
-            var totalItems = await correspondences.CountAsync(cancellationToken);
-            var result = await correspondences.Skip(offset).Take(limit).ToListAsync(cancellationToken);
-            return (result, totalItems);
+            var result = await correspondences.Take(limit).ToListAsync(cancellationToken);
+            return result;
         }
     }
 }
