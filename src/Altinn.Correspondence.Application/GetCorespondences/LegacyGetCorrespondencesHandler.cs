@@ -120,7 +120,7 @@ public class LegacyGetCorrespondencesHandler(
         foreach (var correspondence in correspondences)
         {
             var authLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
-            if (minAuthLevel == null || minAuthLevel < authLevel)
+            if (authLevel == null || minAuthLevel < authLevel)
             {
                 continue;
             }
