@@ -72,10 +72,10 @@ runs:
       with:
         azcliversion: 2.68.0
         inlineScript: |
-          az storage blob upload --container-name migrations --account-name ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }} \
-            --file ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --name bundle.exe --overwrite
-          az storage blob upload --container-name migrations --account-name ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }} \
-            --file ./src/Altinn.Correspondence.API/appsettings.json --name appsettings.json --overwrite
+          az storage file upload --share-name migrations --account-name ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }} \
+            --source ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --path bundle.exe --overwrite true
+          az storage file upload --share-name migrations --account-name ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }} \
+            --source ./src/Altinn.Correspondence.API/appsettings.json --path appsettings.json --overwrite true
 
     - name: Start migration job
       uses: azure/CLI@v2
