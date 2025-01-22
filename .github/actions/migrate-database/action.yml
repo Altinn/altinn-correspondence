@@ -67,7 +67,7 @@ runs:
       run: |
         dotnet ef migrations bundle --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API --self-contained -r linux-x64 -o ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe
 
-    - name: Upload Migration Files to Azure Storage
+    - name: Upload Migration Files to Azure File Share
       uses: azure/CLI@v2
       with:
         azcliversion: 2.68.0
