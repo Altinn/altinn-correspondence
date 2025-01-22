@@ -54,7 +54,7 @@ public class AltinnRegisterService : IAltinnRegisterService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error retrieving Party from cache when looking up Party in Altinn Register.");
+            _logger.LogWarning(ex, "Error retrieving Party from cache when looking up Party in Altinn Register Service.");
         }
 
         if (partyId <= 0)
@@ -82,7 +82,7 @@ public class AltinnRegisterService : IAltinnRegisterService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error saving response content to cache when looking up Party in Altinn Register.");
+            _logger.LogWarning(ex, "Error storing response content to cache when looking up Party in Altinn Register Service.");
         }
 
         return party;
@@ -101,7 +101,7 @@ public class AltinnRegisterService : IAltinnRegisterService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error retrieving organization from cache when looking up organization in Altinn Register.");
+            _logger.LogWarning(ex, "Error retrieving organization from cache when looking up organization in Altinn Register Service.");
         }
 
         identificationId = identificationId.WithoutPrefix();
@@ -131,7 +131,7 @@ public class AltinnRegisterService : IAltinnRegisterService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error saving response content to cache when looking up organization in Altinn Register.");
+            _logger.LogWarning(ex, "Error storing response content to cache when looking up organization in Altinn Register Service.");
         }
 
         return party;
@@ -150,7 +150,7 @@ public class AltinnRegisterService : IAltinnRegisterService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error retrieving party names from cache when looking up party names in Altinn Register.");
+            _logger.LogWarning(ex, "Error retrieving party names from cache when looking up party names in Altinn Register Service.");
         }
 
         var organizations = identificationIds.Where(x => x.IsOrganizationNumber()).Select(x => new PartyLookup() { OrgNo = x }).ToList();
@@ -185,7 +185,7 @@ public class AltinnRegisterService : IAltinnRegisterService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error saving response content to cache when looking up organization in Altinn Register.");
+            _logger.LogWarning(ex, "Error storing response content to cache when looking up party names in Altinn Register Service.");
         }
 
         return partyNames;
