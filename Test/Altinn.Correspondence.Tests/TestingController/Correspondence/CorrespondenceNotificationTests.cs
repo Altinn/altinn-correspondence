@@ -261,6 +261,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithRecipients([recipientToOverride])
                 .WithNotificationTemplate(NotificationTemplateExt.CustomMessage)
                 .WithNotificationChannel(NotificationChannelExt.SmsPreferred)
+                .WithEmailContent()
+                .WithEmailReminder()
+                .WithSmsContent()
+                .WithSmsReminder()
                 .WithCustomNotificationRecipients(customRecipients)
                 .Build();
 
@@ -656,6 +660,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithRecipients([recipient])
                 .WithNotificationTemplate(NotificationTemplateExt.CustomMessage)
                 .WithNotificationChannel(NotificationChannelExt.Email)
+                .WithEmailContent()
                 .WithCustomNotificationRecipients(customRecipients)
                 .Build();
 
