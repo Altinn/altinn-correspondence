@@ -144,4 +144,45 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         });
         return clientFactory.CreateClient();
     }
+
+    public void Reset()
+    {
+        // Reset Hangfire mock
+        HangfireBackgroundJobClient?.Reset();
+        HangfireBackgroundJobClient?.Setup(x => x.Create(
+            It.IsAny<Job>(), 
+            It.IsAny<IState>())).Returns("1");
+
+        // Re-configure test services
+        WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureTestServices(services =>
+            {
+                services.AddHangfire(config => config.UseMemoryStorage());
+                services.AddScoped<IEventBus, ConsoleLogEventBus>();
+                services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
+                services.AddScoped<IDialogportenService, DialogportenDevService>();
+                services.OverrideAuthorization();
+                services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
+                services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
+
+                var mockContactReservationRegistryService = new Mock<IContactReservationRegistryService>();
+                mockContactReservationRegistryService
+                    .Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => 
+                        recipients.Contains(ReservedSsn))))
+                    .ReturnsAsync([ReservedSsn]);
+                mockContactReservationRegistryService
+                    .Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => 
+                        !recipients.Contains(ReservedSsn))))
+                    .ReturnsAsync([]);
+                services.AddScoped(_ => mockContactReservationRegistryService.Object);
+
+                var resourceRightsService = new Mock<IResourceRightsService>();
+                resourceRightsService
+                    .Setup(x => x.GetServiceOwnerOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync("");
+                services.AddScoped(_ => resourceRightsService.Object);
+            });
+        });
+    }
 }

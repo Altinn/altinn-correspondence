@@ -14,6 +14,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment.Base
         public AttachmentTestBase(CustomWebApplicationFactory factory)
         {
             _factory = factory;
+            _factory.Reset(); // Reset the factory state
             _senderClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
             _recipientClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.RecipientScope));
             _wrongSenderClient = factory.CreateClientWithAddedClaims(
