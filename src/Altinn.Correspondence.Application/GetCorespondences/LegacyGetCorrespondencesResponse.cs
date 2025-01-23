@@ -6,8 +6,6 @@ namespace Altinn.Correspondence.Application.GetCorrespondences
     public class LegacyGetCorrespondencesResponse
     {
         public List<LegacyCorrespondenceItem> Items { get; set; } = new List<LegacyCorrespondenceItem>();
-
-        public PaginationMetaData Pagination { get; set; } = new PaginationMetaData();
     }
 
     public class LegacyCorrespondenceItem

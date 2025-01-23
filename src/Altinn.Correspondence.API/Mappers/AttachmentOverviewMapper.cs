@@ -2,6 +2,7 @@ using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetAttachmentOverview;
 using Altinn.Correspondence.Application.MigrateUploadAttachment;
+using Altinn.Correspondence.Common.Helpers;
 
 namespace Altinn.Correspondence.Mappers;
 
@@ -9,6 +10,9 @@ internal static class AttachmentOverviewMapper
 {
     internal static AttachmentOverviewExt MapToExternal(GetAttachmentOverviewResponse attachmentOverview)
     {
+        var fileName = attachmentOverview.FileName;
+        var contentType = FileConstants.GetMIMEType(fileName);
+
         var attachment = new AttachmentOverviewExt
         {
             ResourceId = attachmentOverview.ResourceId,
@@ -20,7 +24,7 @@ internal static class AttachmentOverviewMapper
             StatusText = attachmentOverview.StatusText,
             Checksum = attachmentOverview.Checksum,
             StatusChanged = attachmentOverview.StatusChanged,
-            DataType = attachmentOverview.DataType,
+            DataType = contentType,
             SendersReference = attachmentOverview.SendersReference,
             CorrespondenceIds = attachmentOverview.CorrespondenceIds ?? new List<Guid>(),
         };

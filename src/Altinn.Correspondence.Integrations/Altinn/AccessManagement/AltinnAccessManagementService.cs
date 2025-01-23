@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
@@ -16,16 +17,41 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<AltinnAccessManagementService> _logger;
+    private readonly IDistributedCache _cache;
+    private readonly DistributedCacheEntryOptions _cacheOptions;
+    private readonly int _MAX_DEPTH_FOR_SUBUNITS = 20;
 
-    public AltinnAccessManagementService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnAccessManagementService> logger)
+    public AltinnAccessManagementService(
+        HttpClient httpClient, 
+        IOptions<AltinnOptions> altinnOptions, 
+        ILogger<AltinnAccessManagementService> logger,
+        IDistributedCache cache)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.AccessManagementSubscriptionKey);
         _httpClient = httpClient;
         _logger = logger;
+        _cache = cache;
+        _cacheOptions = new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
+        };
     }
 
-    public async Task<List<Party>> GetAuthorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default)
+    public async Task<List<PartyWithSubUnits>> GetAuthorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default)
     {
+        string cacheKey = $"AuthorizedParties_{partyToRequestFor.PartyId}";
+        try {
+            string? cachedDataString = await _cache.GetStringAsync(cacheKey, cancellationToken);
+            if (!string.IsNullOrEmpty(cachedDataString))
+            {
+                return JsonSerializer.Deserialize<List<PartyWithSubUnits>>(cachedDataString) ?? new List<PartyWithSubUnits>();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error retrieving authorized parties from cache. Proceeding with API call.");
+        }
+
         AuthorizedPartiesRequest request = new(partyToRequestFor);
         JsonSerializerOptions serializerOptions = new()
         {
@@ -45,16 +71,34 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             _logger.LogError("Unexpected null or invalid json response from Authorization GetAuthorizedParties.");
             throw new Exception("Unexpected null or invalid json response from Authorization GetAuthorizedParties.");
         }
-
-        return responseContent.Select(p => new Party
+        List<PartyWithSubUnits> parties = new();
+        foreach (var p in responseContent)
         {
-            PartyId = p.partyId,
-            PartyUuid = p.partyUuid,
-            OrgNumber = p.organizationNumber,
-            SSN = p.personId,
-            Resources = p.authorizedResources,
-            PartyTypeName = GetType(p.type)
-        }).ToList();
+            parties.Add(new PartyWithSubUnits
+            {
+                PartyId = p.partyId,
+                PartyUuid = p.partyUuid,
+                OrgNumber = p.organizationNumber,
+                SSN = p.personId,
+                Resources = p.authorizedResources,
+                PartyTypeName = GetType(p.type),
+            });
+            if (p.subunits != null && p.subunits.Count > 0)
+            {
+                parties.AddRange(GetPartiesFromSubunits(p.subunits));
+            }
+        }
+
+        try {
+            string serializedDataString = JsonSerializer.Serialize(parties);
+            await _cache.SetStringAsync(cacheKey, serializedDataString, _cacheOptions, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error saving response content from Authorization GetAuthorizedParties to cache.");
+        }
+
+        return parties;
     }
     public PartyType GetType(string type)
     {
@@ -65,6 +109,33 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             "SelfIdentified" => PartyType.SelfIdentified,
             _ => throw new NotImplementedException()
         };
+    }
+    private List<PartyWithSubUnits> GetPartiesFromSubunits(List<AuthroizedPartiesResponse> subunits, int depth = 0)
+    {
+        List<PartyWithSubUnits> parties = new();
+        if (depth > _MAX_DEPTH_FOR_SUBUNITS)
+        {
+            _logger.LogWarning("Max depth for subunits reached. Ignoring further subunits.");
+            return parties;
+        }
+        foreach (var subunit in subunits)
+        {
+            parties.Add(new PartyWithSubUnits
+            {
+
+                PartyId = subunit.partyId,
+                PartyUuid = subunit.partyUuid,
+                OrgNumber = subunit.organizationNumber,
+                SSN = subunit.personId,
+                Resources = subunit.authorizedResources,
+                PartyTypeName = GetType(subunit.type),
+            });
+            if (subunit.subunits != null && subunit.subunits.Count > 0)
+            {
+                parties.AddRange(GetPartiesFromSubunits(subunit.subunits, depth + 1));
+            }
+        }
+        return parties;
     }
 
     internal sealed class AuthorizedPartiesRequest
