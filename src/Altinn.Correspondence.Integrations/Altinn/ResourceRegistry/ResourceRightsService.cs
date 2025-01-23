@@ -72,10 +72,14 @@ public class ResourceRightsService : IResourceRightsService
                 break;
             }
         }
-
-        try 
+        if (name == null)
         {
-            await CacheHelpers.StoreObjectInCacheAsync(cacheKey, resourceId, _cache, _cacheOptions, cancellationToken);
+            return name;
+        }
+
+        try
+        {
+            await CacheHelpers.StoreObjectInCacheAsync(cacheKey, name, _cache, _cacheOptions, cancellationToken);
         }
         catch (Exception ex)
         {
