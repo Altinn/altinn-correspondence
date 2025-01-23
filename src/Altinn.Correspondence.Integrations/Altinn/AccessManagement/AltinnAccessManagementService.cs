@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
@@ -41,15 +42,15 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
     {
         string cacheKey = $"AuthorizedParties_{partyToRequestFor.PartyId}";
         try {
-            string? cachedDataString = await _cache.GetStringAsync(cacheKey, cancellationToken);
-            if (!string.IsNullOrEmpty(cachedDataString))
+            var cachedParties = await CacheHelpers.GetObjectFromCacheAsync<List<PartyWithSubUnits>>(cacheKey, _cache, cancellationToken);
+            if (cachedParties != null)
             {
-                return JsonSerializer.Deserialize<List<PartyWithSubUnits>>(cachedDataString) ?? new List<PartyWithSubUnits>();
+                return cachedParties;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error retrieving authorized parties from cache. Proceeding with API call.");
+            _logger.LogWarning(ex, "Error retrieving authorized parties from cache in Access Management Service.");
         }
 
         AuthorizedPartiesRequest request = new(partyToRequestFor);
@@ -90,12 +91,11 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         }
 
         try {
-            string serializedDataString = JsonSerializer.Serialize(parties);
-            await _cache.SetStringAsync(cacheKey, serializedDataString, _cacheOptions, cancellationToken);
+            await CacheHelpers.StoreObjectInCacheAsync(cacheKey, parties, _cache, _cacheOptions, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error saving response content from Authorization GetAuthorizedParties to cache.");
+            _logger.LogWarning(ex, "Error storing response content to cache when looking up authorized parties in Access Management Service.");
         }
 
         return parties;
