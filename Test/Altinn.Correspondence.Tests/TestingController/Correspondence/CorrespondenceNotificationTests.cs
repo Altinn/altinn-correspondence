@@ -661,6 +661,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithNotificationTemplate(NotificationTemplateExt.CustomMessage)
                 .WithNotificationChannel(NotificationChannelExt.Email)
                 .WithEmailContent()
+                .WithEmailReminder()
                 .WithCustomNotificationRecipients(customRecipients)
                 .Build();
 
