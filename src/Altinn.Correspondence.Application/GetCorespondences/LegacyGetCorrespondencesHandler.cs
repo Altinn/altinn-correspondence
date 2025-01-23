@@ -117,9 +117,16 @@ public class LegacyGetCorrespondencesHandler(
                 recipientDetails.Add(new PartyInfo(orgNr, null));
             }
         }
+
+        Dictionary<string, int?> authlevels = new(correspondences.Count);
         foreach (var correspondence in correspondences)
         {
-            var authLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
+            string authLevelKey = $"{correspondence.Recipient}::{correspondence.ResourceId}";
+            if (!authlevels.TryGetValue(authLevelKey, out int? authLevel))
+            {
+                authLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
+                authlevels.Add(authLevelKey, authLevel);
+            }
             if (authLevel == null || minAuthLevel < authLevel)
             {
                 continue;
