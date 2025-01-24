@@ -80,7 +80,6 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>() {
                 new InitializeCorrespondenceAttachmentExt()
                 {
-                    //DataType = "html",
                     Name = "2",
                     SendersReference = "1234",
                     FileName = "test-fil2e.txt",
