@@ -38,5 +38,12 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("correspondenceIds")]
         public required List<Guid> CorrespondenceIds { get; set; }
+
+        /// <summary>
+        /// The attachment data type in MIME format
+        /// </summary>
+        [JsonPropertyName("dataType")]
+        [Required]
+        public required string DataType { get; set; }
     }
 }

@@ -14,7 +14,7 @@ namespace Altinn.Correspondence.Tests.Helpers
         {
             var attachmentData = new InitializeCorrespondenceAttachmentExt()
             {
-                DataType = existingAttachmentData?.DataType ?? "txt",
+                //DataType = existingAttachmentData?.DataType ?? "txt",
                 Name = existingAttachmentData?.Name ?? fileName,
                 SendersReference = existingAttachmentData?.SendersReference ?? "1234",
                 FileName = existingAttachmentData?.FileName ?? fileName,
