@@ -89,6 +89,13 @@ namespace Altinn.Correspondence.Tests.Factories
             };
             return this;
         }
+
+        public CorrespondenceBuilder WithReplyOptions(List<CorrespondenceReplyOptionExt> replyOptions)
+        {
+            _correspondence.Correspondence.ReplyOptions = replyOptions;
+            return this;
+        }
+
         public CorrespondenceBuilder WithExternalReference()
         {
             _correspondence.Correspondence.ExternalReferences = new List<ExternalReferenceExt>(){
