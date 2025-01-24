@@ -7,10 +7,6 @@ public class LegacyGetCorrespondencesRequest
 {
     public required int[] InstanceOwnerPartyIdList { get; set; }
 
-    public int Offset { get; set; }
-
-    public int Limit { get; set; }
-
     public bool IncludeActive { get; set; }
 
     public bool IncludeArchived { get; set; }
