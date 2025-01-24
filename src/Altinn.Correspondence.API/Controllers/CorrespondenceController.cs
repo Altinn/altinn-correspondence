@@ -193,8 +193,6 @@ namespace Altinn.Correspondence.API.Controllers
         [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         public async Task<ActionResult<CorrespondencesExt>> GetCorrespondences(
             [FromQuery] string resourceId,
-            [FromQuery] int offset,
-            [FromQuery] int limit,
             [FromQuery] DateTimeOffset? from,
             [FromQuery] DateTimeOffset? to,
             [FromServices] GetCorrespondencesHandler handler,
@@ -210,8 +208,6 @@ namespace Altinn.Correspondence.API.Controllers
                 ResourceId = resourceId,
                 From = from,
                 To = to,
-                Limit = limit,
-                Offset = offset,
                 Status = status is null ? null : (CorrespondenceStatus)status,
                 Role = role,
                 OnBehalfOf = onBehalfOf

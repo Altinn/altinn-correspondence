@@ -11,7 +11,6 @@ namespace Altinn.Correspondence.Core.Repositories
 
         Task<(List<Guid>, int)> GetCorrespondences(
             string resourceId,
-            int offset,
             int limit,
             DateTimeOffset? from,
             DateTimeOffset? to,
