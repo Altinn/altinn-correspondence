@@ -1,7 +1,6 @@
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Logging;
-using OneOf;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.ProcessLegacyParty;
@@ -9,7 +8,7 @@ namespace Altinn.Correspondence.Application.ProcessLegacyParty;
 public class ProcessLegacyPartyHandler(
     ILogger<ProcessLegacyPartyHandler> logger,
     IAltinnRegisterService altinnRegisterService,
-    IAltinnSblBridgeService sblBridgeService,
+    IAltinnStorageService altinnStorageService,
     ILegacyPartyRepository legacyPartyRepository)
 {
     public async Task Process(string recipient, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -23,7 +22,7 @@ public class ProcessLegacyPartyHandler(
         var exists = await legacyPartyRepository.PartyAlreadyExists((int)partyId, cancellationToken);
         if (!exists)
         {
-            var success = await sblBridgeService.AddPartyToSblBridge((int)partyId, cancellationToken);
+            var success = await altinnStorageService.AddPartyToSblBridge((int)partyId, cancellationToken);
             if (!success)
             {
                 throw new Exception("Failed to send party to SBL");
