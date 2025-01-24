@@ -23,8 +23,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
-            var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={1}&offset={0}&limit={10}&status={0}&role={"recipientandsender"}");
-            Assert.True(correspondenceList?.Pagination.TotalItems > 0);
+            var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={1}&status={0}&role={"recipientandsender"}");
+            Assert.True(correspondenceList?.Ids.Count > 0);
         }
 
         [Fact]
@@ -34,10 +34,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
-            var responseWithout = await _senderClient.GetAsync($"correspondence/api/v1/correspondence?resourceId={1}&offset={0}&limit={10}&status={0}");
+            var responseWithout = await _senderClient.GetAsync($"correspondence/api/v1/correspondence?resourceId={1}&status={0}");
             Assert.Equal(HttpStatusCode.BadRequest, responseWithout.StatusCode);
 
-            var responseWithInvalid = await _senderClient.GetAsync($"correspondence/api/v1/correspondence?resourceId={1}&offset={0}&limit={10}&status={0}&role={"invalid"}");
+            var responseWithInvalid = await _senderClient.GetAsync($"correspondence/api/v1/correspondence?resourceId={1}&status={0}&role={"invalid"}");
             Assert.Equal(HttpStatusCode.BadRequest, responseWithInvalid.StatusCode);
         }
 
@@ -66,8 +66,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
 
             int status = (int)CorrespondenceStatusExt.Published;
-            var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceA}&offset={0}&limit={10}&status={status}&role={"recipientandsender"}");
-            Assert.Equal(payloadResourceA.Recipients.Count, correspondenceList?.Pagination.TotalItems);
+            var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceA}&status={status}&role={"recipientandsender"}");
+            Assert.Equal(payloadResourceA.Recipients.Count, correspondenceList?.Ids.Count);
         }
 
         [Fact]
@@ -117,17 +117,17 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             );
 
             // Act
-            var correspondencesSender = await senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&role={"sender"}");
-            var correspondencesRecipient = await recipientIdClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&role={"recipient"}");
-            var correspondencesSenderAndRecipient = await senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&role={"recipientandsender"}");
+            var correspondencesSender = await senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&role={"sender"}");
+            var correspondencesRecipient = await recipientIdClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&role={"recipient"}");
+            var correspondencesSenderAndRecipient = await senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&role={"recipientandsender"}");
 
             // Assert
             var expectedSender = senderPayload.Recipients.Count; // sender only sees the ones they sent
-            Assert.Equal(expectedSender, correspondencesSender?.Pagination.TotalItems);
+            Assert.Equal(expectedSender, correspondencesSender?.Ids.Count);
             var expectedRecipient = senderPayload.Recipients.Where(r => r == recipientId).Count() + externalPayload.Recipients.Where(r => r == recipientId).Count(); // recipient sees the ones from the initial sender and external sender
-            Assert.Equal(expectedRecipient, correspondencesRecipient?.Pagination.TotalItems);
+            Assert.Equal(expectedRecipient, correspondencesRecipient?.Ids.Count);
             var expectedSenderAndRecipient = expectedSender + externalPayload.Recipients.Where(r => r == senderId).Count(); // sender sees the ones they sent and the ones where they were the recipient from external
-            Assert.Equal(expectedSenderAndRecipient, correspondencesSenderAndRecipient?.Pagination.TotalItems);
+            Assert.Equal(expectedSenderAndRecipient, correspondencesSenderAndRecipient?.Ids.Count);
         }
 
         [Fact]
@@ -153,14 +153,14 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", publishedCorrespondences);
 
             // Act
-            var responseWithReadyForPublish = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&offset=0&limit=10&status={(int)CorrespondenceStatusExt.ReadyForPublish}&role={"sender"}");
-            var responseWithPublished = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&offset=0&limit=10&status={(int)CorrespondenceStatusExt.Published}&role={"sender"}");
+            var responseWithReadyForPublish = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&status={(int)CorrespondenceStatusExt.ReadyForPublish}&role={"sender"}");
+            var responseWithPublished = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&status={(int)CorrespondenceStatusExt.Published}&role={"sender"}");
 
             // Assert
             var expectedInitialized = initializedCorrespondence.Recipients.Count;
-            Assert.Equal(expectedInitialized, responseWithReadyForPublish?.Pagination.TotalItems);
+            Assert.Equal(expectedInitialized, responseWithReadyForPublish?.Ids.Count);
             var expectedPublished = publishedCorrespondences.Recipients.Count;
-            Assert.Equal(expectedPublished, responseWithPublished?.Pagination.TotalItems);
+            Assert.Equal(expectedPublished, responseWithPublished?.Ids.Count);
         }
 
         [Fact]
@@ -193,11 +193,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.True(responsePublished.IsSuccessStatusCode, await responsePublished.Content.ReadAsStringAsync());
             var responseReadyForPublish = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadReadyForPublish);
             Assert.True(responseReadyForPublish.IsSuccessStatusCode, await responseReadyForPublish.Content.ReadAsStringAsync());
-            var correspondenceList = await recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&role={"recipient"}");
+            var correspondenceList = await recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&role={"recipient"}");
 
             // Assert
             var expected = payloadPublished.Recipients.Where(r => r == recipientId).Count(); // Receiver only sees the one that is published
-            Assert.Equal(expected, correspondenceList?.Pagination.TotalItems);
+            Assert.Equal(expected, correspondenceList?.Ids.Count);
         }
 
         [Fact]
@@ -214,17 +214,17 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Act
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
-            var correspondencesBeforeDeletion = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&role={"sender"}");
+            var correspondencesBeforeDeletion = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&role={"sender"}");
             var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
 
             await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{response.Correspondences.FirstOrDefault().CorrespondenceId}/purge");
-            var correspondencesAfterDeletion = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&role={"sender"}");
+            var correspondencesAfterDeletion = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&role={"sender"}");
 
             // Assert
             var expectedBeforeDeletion = payload.Recipients.Count;
-            Assert.Equal(correspondencesBeforeDeletion?.Pagination.TotalItems, expectedBeforeDeletion);
+            Assert.Equal(correspondencesBeforeDeletion?.Ids.Count, expectedBeforeDeletion);
             var expectedAfterDeletion = payload.Recipients.Count - 1; // One was deleted
-            Assert.Equal(expectedAfterDeletion, correspondencesAfterDeletion?.Pagination.TotalItems);
+            Assert.Equal(expectedAfterDeletion, correspondencesAfterDeletion?.Ids.Count);
         }
 
         [Fact]
@@ -241,22 +241,21 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Act
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
-            var correspondencesRecipient = await _recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&status={1}&role={"recipient"}");
-            var correspondencesSender = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&offset=0&limit=10&status={1}&role={"sender"}");
+            var correspondencesRecipient = await _recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&status={1}&role={"recipient"}");
+            var correspondencesSender = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&status={1}&role={"sender"}");
 
             // Assert
             var expectedRecipient = 0; // recipient does not see ReadyForPublish
             var expectedSender = payload.Recipients.Count;
-            Assert.Equal(expectedRecipient, correspondencesRecipient?.Pagination.TotalItems);
-            Assert.Equal(expectedSender, correspondencesSender?.Pagination.TotalItems);
+            Assert.Equal(expectedRecipient, correspondencesRecipient?.Ids.Count);
+            Assert.Equal(expectedSender, correspondencesSender?.Ids.Count);
         }
 
         [Fact]
         public async Task GetCorrespondences_With_Invalid_Date_Gives_BadRequest()
         {
-            var response = await _senderClient.GetAsync($"correspondence/api/v1/correspondence?resourceId={1}&offset={0}&limit={10}&status={0}&role={"recipientandsender"}&from={DateTimeOffset.UtcNow.AddDays(1)}&to={DateTimeOffset.UtcNow}");
+            var response = await _senderClient.GetAsync($"correspondence/api/v1/correspondence?resourceId={1}&status={0}&role={"recipientandsender"}&from={DateTimeOffset.UtcNow.AddDays(1)}&to={DateTimeOffset.UtcNow}");
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
     }
-
 }
