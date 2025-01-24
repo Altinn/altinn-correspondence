@@ -41,11 +41,5 @@ namespace Altinn.Correspondence.API.Models
         [Required]
         public required string SendersReference { get; set; }
 
-        /// <summary>
-        /// The attachment data type in MIME format
-        /// </summary>
-        [JsonPropertyName("dataType")]
-        [Required]
-        public required string DataType { get; set; }
     }
 }
