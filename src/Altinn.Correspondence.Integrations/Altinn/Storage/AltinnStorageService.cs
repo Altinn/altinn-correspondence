@@ -3,6 +3,7 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Altinn.Register;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Net.Http.Json;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Storage;
 
@@ -24,7 +25,10 @@ public class AltinnStorageService : IAltinnStorageService
         {
             return false;
         }
-        using var response = await _httpClient.PostAsync($"storage/api/v1/sblbridge/correspondencerecipient?partyId={partyId}", null, cancellationToken);
+        using var response = await _httpClient.PostAsJsonAsync($"storage/api/v1/sblbridge/correspondencerecipient?partyId={partyId}", new SblBridgeParty()
+        {
+            PartyId = partyId
+        }, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             var statusCode = response.StatusCode;
