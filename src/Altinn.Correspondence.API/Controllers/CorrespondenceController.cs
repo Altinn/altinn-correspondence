@@ -187,7 +187,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>
         /// Meant for Receivers, but also available for Senders to track Correspondences
         /// </remarks>
-        /// <returns>A list of Correspondence ids and pagination metadata</returns>
+        /// <returns>A list of Correspondence ids</returns>
         [HttpGet]
         [Produces("application/json")]
         [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
