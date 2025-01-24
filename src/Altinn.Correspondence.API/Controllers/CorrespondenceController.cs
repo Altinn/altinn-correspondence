@@ -81,6 +81,8 @@ namespace Altinn.Correspondence.API.Controllers
 
             Request.EnableBuffering();
 
+            throw new NotImplementedException();
+
             var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, attachments, request.ExistingAttachments);
             var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
 
