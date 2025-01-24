@@ -306,15 +306,15 @@ public class InitializeCorrespondencesHandler(
             RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(5) : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
             SendersReference = correspondence.SendersReference,
             NotificationChannel = notification.NotificationChannel,
-            EmailTemplate = new EmailTemplate
+            EmailTemplate = !string.IsNullOrWhiteSpace(content.EmailSubject) && !string.IsNullOrWhiteSpace(content.EmailBody) ? new EmailTemplate
             {
                 Subject = content.EmailSubject,
                 Body = content.EmailBody,
-            },
-            SmsTemplate = new SmsTemplate
+            } : null,
+            SmsTemplate = !string.IsNullOrWhiteSpace(content.SmsBody) ? new SmsTemplate
             {
                 Body = content.SmsBody,
-            }
+            } : null
         };
         notifications.Add(notificationOrder);
         if (notification.SendReminder)
@@ -328,15 +328,15 @@ public class InitializeCorrespondencesHandler(
                 ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString()),
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,
-                EmailTemplate = new EmailTemplate
+                EmailTemplate = !string.IsNullOrWhiteSpace(content.ReminderEmailSubject) && !string.IsNullOrWhiteSpace(content.ReminderEmailBody) ? new EmailTemplate
                 {
                     Subject = content.ReminderEmailSubject,
                     Body = content.ReminderEmailBody,
-                },
-                SmsTemplate = new SmsTemplate
+                } : null,
+                SmsTemplate = !string.IsNullOrWhiteSpace(content.ReminderSmsBody) ? new SmsTemplate
                 {
                     Body = content.ReminderSmsBody,
-                }
+                } : null
             });
         }
         return notifications;

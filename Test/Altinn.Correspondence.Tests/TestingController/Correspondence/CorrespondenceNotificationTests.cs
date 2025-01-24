@@ -259,8 +259,12 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithRecipients([recipientToOverride])
-                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationTemplate(NotificationTemplateExt.CustomMessage)
                 .WithNotificationChannel(NotificationChannelExt.SmsPreferred)
+                .WithEmailContent()
+                .WithEmailReminder()
+                .WithSmsContent()
+                .WithSmsReminder()
                 .WithCustomNotificationRecipients(customRecipients)
                 .Build();
 
@@ -468,7 +472,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithNotificationChannel(NotificationChannelExt.Email)
                 .WithCustomNotificationRecipients(customRecipients)
                 .Build();
-            
+
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
         }
@@ -499,7 +503,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithNotificationChannel(NotificationChannelExt.Email)
                 .WithCustomNotificationRecipients(customRecipients)
                 .Build();
-            
+
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
         }
@@ -529,7 +533,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithNotificationChannel(NotificationChannelExt.Sms)
                 .WithCustomNotificationRecipients(customRecipients)
                 .Build();
-            
+
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
         }
@@ -555,11 +559,80 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithRecipients([recipient])
-                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationTemplate(NotificationTemplateExt.CustomMessage)
                 .WithNotificationChannel(NotificationChannelExt.Sms)
                 .WithCustomNotificationRecipients(customRecipients)
                 .Build();
-            
+
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+        }
+
+        [Theory]
+        [InlineData("97661466", null)]
+        [InlineData(null, "test@example.com")]
+        public async Task Correspondence_CustomRecipient_WithPhoneNumberOrEmailAndRecipientTag_GivesBadRequest(string? number, string? email)
+        {
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipients = new List<CustomNotificationRecipientExt>()
+            {
+                new CustomNotificationRecipientExt()
+                {
+                    RecipientToOverride = recipient,
+                    Recipients = new List<NotificationRecipientExt>()
+                    {
+                        new NotificationRecipientExt()
+                        {
+                            MobileNumber = number,
+                            EmailAddress = email
+                        }
+                    }
+                }
+            };
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(number != null ? NotificationChannelExt.Sms : NotificationChannelExt.Email)
+                .WithCustomNotificationRecipients(customRecipients)
+                .Build();
+
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+        }
+
+        [Theory]
+        [InlineData("97661466", null)]
+        [InlineData(null, "test@example.com")]
+        public async Task Correspondence_CustomRecipient_WithNumberOrEmailAndCustomRecipientTag_GivesBadRequest(string? number, string? email)
+        {
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipients = new List<CustomNotificationRecipientExt>()
+            {
+                new CustomNotificationRecipientExt()
+                {
+                    RecipientToOverride = recipient,
+                    Recipients = new List<NotificationRecipientExt>()
+                    {
+                        new NotificationRecipientExt()
+                        {
+                            MobileNumber = number,
+                            EmailAddress = email
+                        }
+                    }
+                }
+            };
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(number != null ? NotificationChannelExt.Sms : NotificationChannelExt.Email)
+                .WithCustomNotificationRecipients(customRecipients)
+                .Build();
+
+            payload.Correspondence.Notification.SmsBody = number != null ? "Test $recipientName$" : null;
+            payload.Correspondence.Notification.EmailBody = email != null ? "Test $recipientName$" : null;
+
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
         }
@@ -585,8 +658,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithRecipients([recipient])
-                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationTemplate(NotificationTemplateExt.CustomMessage)
                 .WithNotificationChannel(NotificationChannelExt.Email)
+                .WithEmailContent()
+                .WithEmailReminder()
                 .WithCustomNotificationRecipients(customRecipients)
                 .Build();
 
@@ -609,7 +684,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Act
             var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             var content = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             Assert.Equal(CorrespondenceStatusExt.Published, content?.Correspondences.First().Status);

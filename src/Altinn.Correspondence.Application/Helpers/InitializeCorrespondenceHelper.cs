@@ -160,7 +160,20 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return null;
             }
-
+            var recipientWithNumberOrEmail = customRecipients.Where(recipient => recipient.Recipients.Any(r => r.EmailAddress != null || r.MobileNumber != null)).ToList();
+            if (recipientWithNumberOrEmail.Count > 0)
+            {
+                if (notification.NotificationTemplate != NotificationTemplate.CustomMessage)
+                {
+                    return NotificationErrors.RecipientOverridesWithNumberOrEmailNotAllowedWithCustomTemplate;
+                }
+                if (TextContainsTag(notification.EmailBody, "$recipientName$") || TextContainsTag(notification.SmsBody, "$recipientName$")
+                    || TextContainsTag(notification.EmailSubject, "$recipientName$") || TextContainsTag(notification.ReminderEmailBody, "$recipientName$")
+                    || TextContainsTag(notification.ReminderSmsBody, "$recipientName$") || TextContainsTag(notification.ReminderEmailSubject, "$recipientName$"))
+                {
+                    return NotificationErrors.RecipientOverridesWithNumberOrEmailNotAllowedWithRecipientName;
+                }
+            }
             foreach (var recipientToOverride in customRecipients)
             {
                 if (!recipients.Any(recipient => recipient.WithoutPrefix() == recipientToOverride.RecipientToOverride.WithoutPrefix()))
@@ -186,6 +199,11 @@ namespace Altinn.Correspondence.Application.Helpers
                 }
             }
             return null;
+        }
+        private bool TextContainsTag(string? text, string tag)
+        {
+            if (text == null) return false;
+            return text.Contains(tag, StringComparison.CurrentCultureIgnoreCase);
         }
 
         /// <summary>
