@@ -114,10 +114,5 @@ namespace Altinn.Correspondence.Tests.Helpers
                 ("notRecipient", "true"),
                 ("scope", AuthorizationConstants.SenderScope)
             );
-
-        public HttpClient CreateRecipientCLient() => CreateClientWithAddedClaims(
-                ("notRecipient", "true"),
-                ("scope", AuthorizationConstants.SenderScope)
-            );
     }
 }
