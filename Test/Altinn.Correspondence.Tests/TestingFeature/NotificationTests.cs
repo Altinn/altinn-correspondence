@@ -2,12 +2,15 @@ using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application.CheckNotification;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Fixtures;
+using Altinn.Correspondence.Tests.Helpers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests.TestingFeature;
 
-public class NotificationTests : IClassFixture<CustomWebApplicationFactory>
+[Collection(nameof(CustomWebApplicationTestsCollection))]
+public class NotificationTests
 {
     private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;

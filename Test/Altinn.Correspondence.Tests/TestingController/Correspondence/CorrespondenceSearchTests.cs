@@ -7,9 +7,11 @@ using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
 using System.Net;
 using System.Net.Http.Json;
+using Altinn.Correspondence.Tests.Fixtures;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
+    [Collection(nameof(CustomWebApplicationTestsCollection))]
     public class CorrespondenceSearchTests : CorrespondenceTestBase
     {
         public CorrespondenceSearchTests(CustomWebApplicationFactory factory) : base(factory)

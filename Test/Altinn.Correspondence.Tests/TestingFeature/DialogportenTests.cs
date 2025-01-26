@@ -5,6 +5,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Microsoft.Extensions.Configuration;
@@ -16,7 +17,8 @@ using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests.TestingFeature;
 
-public class DialogportenTests : IClassFixture<CustomWebApplicationFactory>
+[Collection(nameof(CustomWebApplicationTestsCollection))]
+public class DialogportenTests
 {
     private readonly CustomWebApplicationFactory _factory;
     private readonly JsonSerializerOptions _responseSerializerOptions;

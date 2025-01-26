@@ -1,9 +1,10 @@
 ﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Tests.Helpers;
 using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests.TestingController.Attachment.Base
 {
-    public class AttachmentTestBase : IClassFixture<CustomWebApplicationFactory>
+    public class AttachmentTestBase
     {
         public readonly CustomWebApplicationFactory _factory;
         public readonly HttpClient _senderClient;
@@ -14,10 +15,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment.Base
         public AttachmentTestBase(CustomWebApplicationFactory factory)
         {
             _factory = factory;
-            _factory.Reset(); // Reset the factory state
-            _senderClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
-            _recipientClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.RecipientScope));
-            _wrongSenderClient = factory.CreateClientWithAddedClaims(
+            _senderClient = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+            _recipientClient = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.RecipientScope));
+            _wrongSenderClient = _factory.CreateClientWithAddedClaims(
                 ("scope", AuthorizationConstants.SenderScope), 
                 ("notSender", "true")
             );

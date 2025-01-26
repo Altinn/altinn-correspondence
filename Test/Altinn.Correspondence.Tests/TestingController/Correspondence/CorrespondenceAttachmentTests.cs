@@ -1,6 +1,7 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
 using Microsoft.AspNetCore.Http;
@@ -9,6 +10,7 @@ using System.Net.Http.Json;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
+    [Collection(nameof(CustomWebApplicationTestsCollection))]
     public class CorrespondenceAttachmentTests : CorrespondenceTestBase
     {
         public CorrespondenceAttachmentTests(CustomWebApplicationFactory factory) : base(factory)
