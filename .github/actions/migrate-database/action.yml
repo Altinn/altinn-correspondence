@@ -59,8 +59,10 @@ runs:
         parameters: ./.azure/applications/migration/params.bicepparam
 
     - name: Install EF Core CLI
-      run: dotnet tool install dotnet-ef --global
       shell: bash
+      run: | 
+        dotnet tool install --global dotnet-ef 
+        dotnet tool restore 
 
     - name: Create migration script
       shell: bash
