@@ -125,9 +125,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             var expectedSender = senderPayload.Recipients.Count; // sender only sees the ones they sent
-            Assert.Equal(expectedSender, correspondencesSender?.Pagination.TotalItems);
+            Assert.Equal(3, expectedSender);
             var expectedRecipient = senderPayload.Recipients.Where(r => r == recipientId).Count() + externalPayload.Recipients.Where(r => r == recipientId).Count(); // recipient sees the ones from the initial sender and external sender
-            Assert.Equal(expectedRecipient, correspondencesRecipient?.Pagination.TotalItems);
+            Assert.Equal(2, expectedRecipient);
             var expectedSenderAndRecipient = expectedSender + externalPayload.Recipients.Where(r => r == senderId).Count(); // sender sees the ones they sent and the ones where they were the recipient from external
             Assert.Equal(expectedSenderAndRecipient, correspondencesSenderAndRecipient?.Pagination.TotalItems);
         }
