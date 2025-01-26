@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Altinn.AccessManagement;
@@ -10,19 +11,12 @@ using Hangfire;
 using Hangfire.Common;
 using Hangfire.MemoryStorage;
 using Hangfire.States;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization.Policy;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.Tokens;
 using Moq;
-using System.IdentityModel.Tokens.Jwt;
-using System.Runtime;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -32,7 +26,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
     internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
     public const string ReservedSsn = "12345123451";
-
+    public Action<IServiceCollection>? CustomServices;
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)
     {
@@ -68,6 +62,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             resourceRightsService.Setup(x => x.GetServiceOwnerOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
             services.AddScoped(_ => resourceRightsService.Object);
         });
+        if (CustomServices is not null)
+        {
+            builder.ConfigureServices(CustomServices);
+        }
     }
 
 
@@ -146,4 +144,9 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         client.DefaultRequestHeaders.Add("X-Custom-Claims", JsonSerializer.Serialize(claimsData));
         return client;
     }
+
+    public HttpClient CreateSenderClient() => CreateClientWithAddedClaims(
+            ("notRecipient", "true"),
+            ("scope", AuthorizationConstants.SenderScope)
+        );
 }
