@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Models.Enums;
+﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Altinn.AccessManagement;
@@ -9,7 +10,9 @@ using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Repositories;
 using Hangfire;
+using Hangfire.Common;
 using Hangfire.MemoryStorage;
+using Hangfire.States;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -17,12 +20,14 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests.Helpers
 {
     internal class UnitWebApplicationFactory : WebApplicationFactory<Program>
     {
         private Action<IServiceCollection>? _customServices;
+        public const string ReservedSsn = "12345123451";
 
         public UnitWebApplicationFactory(Action<IServiceCollection> customServices)
         {
@@ -38,15 +43,25 @@ namespace Altinn.Correspondence.Tests.Helpers
                 services.AddHangfire(config =>
                                config.UseMemoryStorage()
                            );
+                var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+                hangfireBackgroundJobClient.Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>())).Returns("1");
+                services.AddSingleton(hangfireBackgroundJobClient.Object);
                 services.AddScoped<IEventBus, ConsoleLogEventBus>();
                 services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
                 services.AddScoped<IDialogportenService, DialogportenDevService>();
                 services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationDevService>();
                 services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
                 services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
+                services.OverrideAltinnAuthorization();
+                services.OverrideAuthentication();
+                services.OverrideAuthorization();
                 var resourceRightsService = new Mock<IResourceRightsService>();
                 resourceRightsService.Setup(x => x.GetServiceOwnerOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
                 services.AddScoped(_ => resourceRightsService.Object);
+                var mockContactReservationRegistryService = new Mock<IContactReservationRegistryService>();
+                mockContactReservationRegistryService.Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => recipients.Contains(ReservedSsn)))).ReturnsAsync([ReservedSsn]);
+                mockContactReservationRegistryService.Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => !recipients.Contains(ReservedSsn)))).ReturnsAsync([]);
+                services.AddScoped(_ => mockContactReservationRegistryService.Object);
                 if (_customServices is not null)
                     _customServices(services);
             });
@@ -85,18 +100,24 @@ namespace Altinn.Correspondence.Tests.Helpers
                     defaultClaims.Add(new Claim(type, value));
                 }
             }
-            // Clone the current factory and set the specific claims for this instance
-            var clientFactory = WithWebHostBuilder(builder =>
+            var client = CreateClient();
+            var claimsData = defaultClaims.Select(c => new Dictionary<string, string>
             {
-                builder.ConfigureServices(services =>
-                {
-                    services.AddSingleton<IPolicyEvaluator>(provider =>
-                    {
-                        return new MockPolicyEvaluator(defaultClaims);
-                    });
-                });
-            });
-            return clientFactory.CreateClient();
+                { "Type", c.Type },
+                { "Value", c.Value }
+            }).ToList();
+            client.DefaultRequestHeaders.Add("X-Custom-Claims", JsonSerializer.Serialize(claimsData));
+            return client;
         }
+
+        public HttpClient CreateSenderClient() => CreateClientWithAddedClaims(
+                ("notRecipient", "true"),
+                ("scope", AuthorizationConstants.SenderScope)
+            );
+
+        public HttpClient CreateRecipientCLient() => CreateClientWithAddedClaims(
+                ("notRecipient", "true"),
+                ("scope", AuthorizationConstants.SenderScope)
+            );
     }
 }

@@ -49,7 +49,7 @@ public class DialogportenTests
         });
 
         var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
-        var testClient = testFactory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+        var testClient = testFactory.CreateSenderClient();
 
         // Act
         var initializeCorrespondenceResponse = await testClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
