@@ -4,6 +4,7 @@ using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Legacy.Base;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +14,7 @@ using System.Net.Http.Json;
 
 namespace Altinn.Correspondence.Tests.TestingController.Legacy
 {
+    [Collection(nameof(CustomWebApplicationTestsCollection))]
     public class LegacyDeletionTests : LegacyTestBase
     {
         public LegacyDeletionTests(CustomWebApplicationFactory factory) : base(factory)

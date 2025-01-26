@@ -1,9 +1,11 @@
-﻿using Altinn.Correspondence.Tests.Helpers;
+﻿using Altinn.Correspondence.Tests.Fixtures;
+using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Attachment.Base;
 using System.Net;
 
 namespace Altinn.Correspondence.Tests.TestingController.Attachment
 {
+    [Collection(nameof(CustomWebApplicationTestsCollection))]
     public class AttachmentRetrievalTests : AttachmentTestBase
     {
         public AttachmentRetrievalTests(CustomWebApplicationFactory factory) : base(factory)

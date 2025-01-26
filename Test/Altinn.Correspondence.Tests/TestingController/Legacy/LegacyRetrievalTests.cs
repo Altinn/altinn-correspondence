@@ -12,9 +12,11 @@ using System.Net.Http.Json;
 using Altinn.Correspondence.Core.Services;
 using Moq;
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Tests.Fixtures;
 
 namespace Altinn.Correspondence.Tests.TestingController.Legacy
 {
+    [Collection(nameof(CustomWebApplicationTestsCollection))]
     public class LegacyRetrievalTests : LegacyTestBase
     {
         public LegacyRetrievalTests(CustomWebApplicationFactory factory) : base(factory)

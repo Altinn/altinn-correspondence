@@ -9,21 +9,20 @@ using System.Security.Claims;
 
 namespace Altinn.Correspondence.Tests.Helpers
 {
-
     internal class MockPolicyEvaluator : IPolicyEvaluator
     {
-        private List<Claim> _claims;
-        public MockPolicyEvaluator(List<Claim> customClaims)
+        public MockPolicyEvaluator()
         {
-            _claims = customClaims;
         }
         public virtual async Task<AuthenticateResult> AuthenticateAsync(AuthorizationPolicy policy, HttpContext context)
         {
+            // Do we not already get the correct principal here? Check with debugger.
+            var claims = context.User.Claims;
             var principal = new ClaimsPrincipal();
             // Check if the user meets the authorization policy's requirements
             foreach (var requirement in policy.Requirements.OfType<ScopeAccessRequirement>())
             {
-                bool hasMatchingClaim = _claims
+                bool hasMatchingClaim = claims
                     .Any(claim => requirement.Scope
                         .Any(scope => scope.Equals(claim.Value)));
 
@@ -32,13 +31,13 @@ namespace Altinn.Correspondence.Tests.Helpers
                     return await Task.FromResult(AuthenticateResult.Fail($"Missing or invalid claim: {requirement.Scope}"));
                 }
             }
-            var issuer = _claims.FirstOrDefault(c => c.Type == "iss")?.Value;
+            var issuer = claims.FirstOrDefault(c => c.Type == "iss")?.Value;
             if (issuer.Contains("dialogporten"))
             {
-                principal.AddIdentity(new ClaimsIdentity(_claims, AuthorizationConstants.DialogportenScheme));
+                principal.AddIdentity(new ClaimsIdentity(claims, AuthorizationConstants.DialogportenScheme));
             } else
             {
-                principal.AddIdentity(new ClaimsIdentity(_claims, "MockScheme"));
+                principal.AddIdentity(new ClaimsIdentity(claims, "MockScheme"));
             }
             return await Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(principal,
                 new AuthenticationProperties(), "MockScheme")));
@@ -46,6 +45,7 @@ namespace Altinn.Correspondence.Tests.Helpers
 
         public virtual async Task<PolicyAuthorizationResult> AuthorizeAsync(AuthorizationPolicy policy, AuthenticateResult authenticationResult, HttpContext context, object resource)
         {
+            // Is this hook not just replicating default functionality?
             if (authenticationResult == null)
             {
                 return PolicyAuthorizationResult.Forbid();

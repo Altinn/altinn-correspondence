@@ -1,14 +1,10 @@
 ﻿using Altinn.Correspondence.Common.Constants;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using Altinn.Correspondence.Tests.Helpers;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence.Base
 {
-    public class CorrespondenceTestBase : IClassFixture<CustomWebApplicationFactory>
+    public class CorrespondenceTestBase
     {
         internal readonly CustomWebApplicationFactory _factory;
         internal readonly HttpClient _senderClient;

@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Tests.Helpers;
+﻿using Altinn.Correspondence.Tests.Fixtures;
+using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Attachment.Base;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
@@ -6,6 +7,7 @@ using System.Net.Http.Json;
 
 namespace Altinn.Correspondence.Tests.TestingController.Attachment
 {
+    [Collection(nameof(CustomWebApplicationTestsCollection))]
     public class AttachmentDownloadTests : AttachmentTestBase
     {
         public AttachmentDownloadTests(CustomWebApplicationFactory factory) : base(factory)
