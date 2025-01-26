@@ -28,6 +28,12 @@ runs:
     - name: "Checkout repository"
       uses: actions/checkout@v4
 
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          9.0.x
+
     - name: Get version
       id: get-version
       uses: ./.github/actions/get-current-version
@@ -67,7 +73,7 @@ runs:
     - name: Create migration script
       shell: bash
       run: |
-        dotnet-ef migrations bundle --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API --self-contained -r linux-x64 -o ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe
+        dotnet ef migrations bundle --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API --self-contained -r linux-x64 -o ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --force
 
     - name: Upload Migration Files to Azure File Share
       uses: azure/CLI@v2
