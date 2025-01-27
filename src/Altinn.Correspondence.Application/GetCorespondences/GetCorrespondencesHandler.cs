@@ -13,11 +13,7 @@ public class GetCorrespondencesHandler(
 {
     public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        if (request.Limit < 0 || request.Offset < 0)
-        {
-            return CorrespondenceErrors.OffsetAndLimitIsNegative;
-        }
-        var limit = request.Limit == 0 ? 50 : request.Limit;
+        const int limit = 1000;
         DateTimeOffset? to = request.To != null ? ((DateTimeOffset)request.To).ToUniversalTime() : null;
         DateTimeOffset? from = request.From != null ? ((DateTimeOffset)request.From).ToUniversalTime() : null;
         if (from != null && to != null && from > to)
@@ -42,7 +38,6 @@ public class GetCorrespondencesHandler(
 
         var correspondences = await correspondenceRepository.GetCorrespondences(
             request.ResourceId,
-            request.Offset,
             limit,
             from,
             to,
@@ -52,13 +47,7 @@ public class GetCorrespondencesHandler(
             cancellationToken);
         var response = new GetCorrespondencesResponse
         {
-            Items = correspondences.Item1,
-            Pagination = new PaginationMetaData
-            {
-                Offset = request.Offset,
-                Limit = limit,
-                TotalItems = correspondences.Item2
-            }
+            Ids = correspondences.Item1,
         };
         return response;
     }

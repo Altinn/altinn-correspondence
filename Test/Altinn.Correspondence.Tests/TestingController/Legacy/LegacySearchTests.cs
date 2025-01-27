@@ -155,8 +155,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         {
             return new LegacyGetCorrespondencesRequestExt
             {
-                Offset = 0,
-                Limit = 10,
                 InstanceOwnerPartyIdList = new int[] { },
                 IncludeActive = true,
                 IncludeArchived = true,

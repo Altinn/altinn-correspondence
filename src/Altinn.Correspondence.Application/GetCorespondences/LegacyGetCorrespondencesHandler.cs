@@ -25,7 +25,7 @@ public class LegacyGetCorrespondencesHandler(
 
     public async Task<OneOf<LegacyGetCorrespondencesResponse, Error>> Process(LegacyGetCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var limit = request.Limit == 0 ? 1000 : request.Limit;
+        const int limit = 1000;
         DateTimeOffset? to = request.To != null ? ((DateTimeOffset)request.To).ToUniversalTime() : null;
         DateTimeOffset? from = request.From != null ? ((DateTimeOffset)request.From).ToUniversalTime() : null;
 
