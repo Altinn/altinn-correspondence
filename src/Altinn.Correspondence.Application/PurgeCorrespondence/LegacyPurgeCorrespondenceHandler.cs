@@ -32,7 +32,6 @@ public class LegacyPurgeCorrespondenceHandler(
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, cancellationToken);
-        Console.WriteLine(correspondence);
         if (correspondence == null)
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
