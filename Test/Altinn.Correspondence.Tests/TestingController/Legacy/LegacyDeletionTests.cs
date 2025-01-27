@@ -38,6 +38,23 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         }
 
         [Fact]
+        public async Task Delete_Published_IsConfirmedRequired_Correspondence_GivesOk()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+            payload.Correspondence.IsConfirmationNeeded = true;
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+
+            // Act
+            var deleteResponse = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/purge");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
+            var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondence.CorrespondenceId}", _serializerOptions);
+            Assert.Equal(CorrespondenceStatusExt.PurgedByRecipient, overview.Status);
+        }
+
+        [Fact]
         public async Task Delete_Correspondence_InvalidParyId_Gives()
         {
             // Arrange
