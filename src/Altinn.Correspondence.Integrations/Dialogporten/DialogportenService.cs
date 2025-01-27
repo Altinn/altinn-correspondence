@@ -14,6 +14,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 {
     public async Task<string> CreateCorrespondenceDialog(Guid correspondenceId)
     {
+
+        throw new NotImplementedException();
         var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
