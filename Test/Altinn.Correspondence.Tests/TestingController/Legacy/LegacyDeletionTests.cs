@@ -41,7 +41,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         public async Task Delete_Published_IsConfirmedRequired_Correspondence_GivesOk()
         {
             // Arrange
-            var payload = new CorrespondenceBuilder().CreateCorrespondence().WithConfirmationNeeded(true).Build();
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().WithDueDateTime(DateTime.UtcNow.AddDays(5)).WithConfirmationNeeded(true).Build();
 
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
 
