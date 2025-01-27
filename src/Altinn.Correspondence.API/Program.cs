@@ -2,15 +2,15 @@ using Altinn.Correspondence.API.Auth;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Options;
+using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Integrations;
 using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Persistence;
+using Altinn.Correspondence.Persistence.Helpers;
 using Azure.Identity;
-using Altinn.Correspondence.Helpers;
 using Hangfire;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System.Text.Json.Serialization;
 
@@ -47,10 +47,7 @@ static void BuildAndRun(string[] args)
         var _Db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         if (_Db != null)
         {
-            if (_Db.Database.GetPendingMigrations().Any())
-            {
-                _Db.Database.Migrate();
-            }
+            _Db.MigrateWithLock();
         }
         app.UseHangfireDashboard();
     }

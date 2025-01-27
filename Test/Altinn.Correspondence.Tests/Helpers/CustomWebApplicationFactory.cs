@@ -1,4 +1,4 @@
-using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Altinn.AccessManagement;
@@ -7,12 +7,10 @@ using Altinn.Correspondence.Integrations.Altinn.Notifications;
 using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Repositories;
-using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.MemoryStorage;
 using Hangfire.States;
-using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -20,12 +18,15 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Security.Claims;
+using System.Text.Json;
+
+namespace Altinn.Correspondence.Tests.Helpers;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
-{
+    {
     internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
     public const string ReservedSsn = "12345123451";
-
+    public Action<IServiceCollection>? CustomServices;
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)
     {
@@ -33,6 +34,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             .AddJsonFile("appsettings.json")
             .AddJsonFile("appsettings.Development.json")
             .Build());
+
         // Overwrite registrations from Program.cs
         builder.ConfigureTestServices((services) =>
         {
@@ -47,18 +49,23 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddScoped<IEventBus, ConsoleLogEventBus>();
             services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
             services.AddScoped<IDialogportenService, DialogportenDevService>();
+            services.OverrideAuthentication();
             services.OverrideAuthorization();
+            services.OverrideAltinnAuthorization();
             services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
             var mockContactReservationRegistryService = new Mock<IContactReservationRegistryService>();
             mockContactReservationRegistryService.Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => recipients.Contains(ReservedSsn)))).ReturnsAsync([ReservedSsn]);
             mockContactReservationRegistryService.Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => !recipients.Contains(ReservedSsn)))).ReturnsAsync([]);
             services.AddScoped(_ => mockContactReservationRegistryService.Object);
-
             var resourceRightsService = new Mock<IResourceRightsService>();
             resourceRightsService.Setup(x => x.GetServiceOwnerOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
             services.AddScoped(_ => resourceRightsService.Object);
         });
+        if (CustomServices is not null)
+        {
+            builder.ConfigureServices(CustomServices);
+        }
     }
 
 
@@ -96,18 +103,14 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 defaultClaims.Add(new Claim(type, value));
             }
         }
-        // Clone the current factory and set the specific claims for this instance
-        var clientFactory = WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureServices(services =>
-            {
-                services.AddSingleton<IPolicyEvaluator>(provider =>
-                {
-                    return new MockPolicyEvaluator(defaultClaims);
-                });
-            });
-        });
-        return clientFactory.CreateClient();
+        var client = CreateClient();
+        var claimsData = defaultClaims.Select(c => new Dictionary<string, string> 
+        { 
+            { "Type", c.Type }, 
+            { "Value", c.Value } 
+        }).ToList();
+        client.DefaultRequestHeaders.Add("X-Custom-Claims", JsonSerializer.Serialize(claimsData));
+        return client;
     }
 
     public HttpClient CreateClientWithDialogportenClaims(string? issuer, params (string type, string value)[] claims)
@@ -131,17 +134,19 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             defaultClaims.RemoveAll(c => c.Type == type);
             defaultClaims.Add(new Claim(type, value));
         }
-        // Clone the current factory and set the specific claims for this instance
-        var clientFactory = WithWebHostBuilder(builder =>
+
+        var client = CreateClient();
+        var claimsData = defaultClaims.Select(c => new Dictionary<string, string>
         {
-            builder.ConfigureServices(services =>
-            {
-                services.AddSingleton<IPolicyEvaluator>(provider =>
-                {
-                    return new MockPolicyEvaluator(defaultClaims);
-                });
-            });
-        });
-        return clientFactory.CreateClient();
+            { "Type", c.Type },
+            { "Value", c.Value }
+        }).ToList();
+        client.DefaultRequestHeaders.Add("X-Custom-Claims", JsonSerializer.Serialize(claimsData));
+        return client;
     }
+
+    public HttpClient CreateSenderClient() => CreateClientWithAddedClaims(
+            ("notRecipient", "true"),
+            ("scope", AuthorizationConstants.SenderScope)
+        );
 }

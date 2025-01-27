@@ -11,7 +11,7 @@ using Altinn.Correspondence.Integrations.Altinn.Events;
 using Altinn.Correspondence.Integrations.Altinn.Notifications;
 using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
-using Altinn.Correspondence.Integrations.Altinn.SblBridge;
+using Altinn.Correspondence.Integrations.Altinn.Storage;
 using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Integrations.Slack;
 using Altinn.Correspondence.Repositories;
@@ -38,6 +38,7 @@ public static class DependencyInjection
             services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
             services.AddScoped<IContactReservationRegistryService, ContactReservationRegistryDevService>();
+            services.AddScoped<IAltinnStorageService, AltinnStorageDevService>();
         }
         else
         {
@@ -50,6 +51,7 @@ public static class DependencyInjection
             services.RegisterAltinnHttpClient<IEventBus, AltinnEventBus>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnNotificationService, AltinnNotificationService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IDialogportenService, DialogportenService>(maskinportenSettings, altinnOptions);
+            services.RegisterAltinnHttpClient<IAltinnStorageService, AltinnStorageService>(maskinportenSettings, altinnOptions);
             services.RegisterMaskinportenHttpClient<IContactReservationRegistryService, ContactReservationRegistryService>(config, generalSettings.ContactReservationRegistryBaseUrl);
         }
         if (string.IsNullOrWhiteSpace(generalSettings.SlackUrl))
@@ -60,11 +62,6 @@ public static class DependencyInjection
         {
             services.AddSingleton<ISlackClient>(new SlackClient(generalSettings.SlackUrl));
         }
-        if (string.IsNullOrWhiteSpace(generalSettings.AltinnSblBridgeBaseUrl))
-        {
-            services.AddSingleton<IAltinnSblBridgeService>(new AltinnSblBridgeDevService(""));
-        }
-        else services.AddHttpClient<IAltinnSblBridgeService, AltinnSblBridgeService>(client => client.BaseAddress = new Uri(generalSettings.AltinnSblBridgeBaseUrl));
     }
 
     public static void RegisterAltinnHttpClient<TClient, TImplementation>(this IServiceCollection services, MaskinportenSettings maskinportenSettings, AltinnOptions altinnOptions)

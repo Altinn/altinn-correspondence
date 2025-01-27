@@ -1,6 +1,7 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
 using Microsoft.AspNetCore.Http;
@@ -9,6 +10,7 @@ using System.Net.Http.Json;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
+    [Collection(nameof(CustomWebApplicationTestsCollection))]
     public class CorrespondenceAttachmentTests : CorrespondenceTestBase
     {
         public CorrespondenceAttachmentTests(CustomWebApplicationFactory factory) : base(factory)
@@ -278,7 +280,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             correspondence.Content.Attachments.Select((attachment, index) => new[]
             {
             new { Key = $"correspondence.content.Attachments[{index}].DataLocationType", Value = attachment.DataLocationType.ToString() },
-            new { Key = $"correspondence.content.Attachments[{index}].DataType", Value = attachment.DataType },
             new { Key = $"correspondence.content.Attachments[{index}].Name", Value = attachment.Name },
             new { Key = $"correspondence.content.Attachments[{index}].FileName", Value = attachment.FileName ?? "" },
             new { Key = $"correspondence.content.Attachments[{index}].SendersReference", Value = attachment.SendersReference },

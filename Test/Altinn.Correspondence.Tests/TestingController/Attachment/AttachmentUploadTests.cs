@@ -11,9 +11,11 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Text.Json;
+using Altinn.Correspondence.Tests.Fixtures;
 
 namespace Altinn.Correspondence.Tests.TestingController.Attachment
 {
+    [Collection(nameof(CustomWebApplicationTestsCollection))]
     public class AttachmentUploadTests : AttachmentTestBase
     {
         public AttachmentUploadTests(CustomWebApplicationFactory factory) : base(factory)

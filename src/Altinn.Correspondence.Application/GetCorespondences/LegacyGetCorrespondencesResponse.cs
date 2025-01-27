@@ -24,5 +24,6 @@ namespace Altinn.Correspondence.Application.GetCorrespondences
         public DateTimeOffset? Archived { get; set; }
         public string? MessageSender { get; set; }
         public DateTimeOffset? ConfirmationDate { get; set; }
+        public bool IsConfirmationNeeded { get; set; }
     }
 }

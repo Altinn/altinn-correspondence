@@ -35,7 +35,6 @@ formData.append('Correspondence.content.messageTitle', "Test");
 formData.append('Correspondence.content.messageSummary', "Test");
 formData.append('Correspondence.content.messageBody', "Test");
 formData.append('Correspondence.content.attachments[0].DataLocationType', "ExistingExternalStorage");
-formData.append('Correspondence.content.attachments[0].DataType', "1");
 formData.append('Correspondence.content.attachments[0].Name', "testfile.txt");
 formData.append('Correspondence.content.attachments[0].Sender', sender);
 formData.append('Correspondence.content.attachments[0].SendersReference', "1234");

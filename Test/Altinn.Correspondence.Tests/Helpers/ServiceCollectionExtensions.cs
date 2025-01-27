@@ -1,15 +1,42 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization.Policy;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Tests.Helpers;
 
-public static class AuthorizationOverride
+public static class ServiceCollectionExtensions
 {
+    public static IServiceCollection OverrideAuthentication(this IServiceCollection services)
+    {
+        services.AddAuthentication(options =>
+        {
+            var schemes = options.Schemes.ToList();
+            if (schemes.Any())
+            {
+                options.DefaultAuthenticateScheme = "Test";
+                options.DefaultChallengeScheme = "Test";
+            }
+        })
+        .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>("Test", _ => { });
+
+        return services;
+    }
     public static IServiceCollection OverrideAuthorization(this IServiceCollection services)
+    {
+        services.AddSingleton<IPolicyEvaluator>(provider =>
+        {
+            return new MockPolicyEvaluator();
+        });
+        return services;
+    }
+
+    public static IServiceCollection OverrideAltinnAuthorization(this IServiceCollection services)
     {
         var altinnAuthorizationService = new Mock<IAltinnAuthorizationService>();
         altinnAuthorizationService

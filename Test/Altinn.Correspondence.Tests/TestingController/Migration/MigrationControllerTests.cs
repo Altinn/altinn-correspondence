@@ -1,13 +1,16 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Fixtures;
+using Altinn.Correspondence.Tests.Helpers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests.TestingController.Migration;
 
-public class MigrationControllerTests : IClassFixture<CustomWebApplicationFactory>
+[Collection(nameof(CustomWebApplicationTestsCollection))]
+public class MigrationControllerTests
 {
     private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;

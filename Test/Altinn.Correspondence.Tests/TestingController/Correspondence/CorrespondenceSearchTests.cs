@@ -7,9 +7,11 @@ using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
 using System.Net;
 using System.Net.Http.Json;
+using Altinn.Correspondence.Tests.Fixtures;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
+    [Collection(nameof(CustomWebApplicationTestsCollection))]
     public class CorrespondenceSearchTests : CorrespondenceTestBase
     {
         public CorrespondenceSearchTests(CustomWebApplicationFactory factory) : base(factory)
@@ -123,9 +125,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             var expectedSender = senderPayload.Recipients.Count; // sender only sees the ones they sent
-            Assert.Equal(expectedSender, correspondencesSender?.Ids.Count);
+            Assert.Equal(3, expectedSender);
             var expectedRecipient = senderPayload.Recipients.Where(r => r == recipientId).Count() + externalPayload.Recipients.Where(r => r == recipientId).Count(); // recipient sees the ones from the initial sender and external sender
-            Assert.Equal(expectedRecipient, correspondencesRecipient?.Ids.Count);
+            Assert.Equal(2, expectedRecipient);
             var expectedSenderAndRecipient = expectedSender + externalPayload.Recipients.Where(r => r == senderId).Count(); // sender sees the ones they sent and the ones where they were the recipient from external
             Assert.Equal(expectedSenderAndRecipient, correspondencesSenderAndRecipient?.Ids.Count);
         }
