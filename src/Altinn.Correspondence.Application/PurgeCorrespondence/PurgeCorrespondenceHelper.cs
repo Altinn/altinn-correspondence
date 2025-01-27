@@ -38,7 +38,7 @@ public class PurgeCorrespondenceHelper
         }
         return null;
     }
-    public Error? ValidatePurgeRequestRecipient(CorrespondenceEntity correspondence)
+    public Error? ValidatePurgeRequestRecipient(CorrespondenceEntity correspondence, bool IsLegacy = false)
     {
         var highestStatus = correspondence.GetHighestStatus();
         if (highestStatus == null)
@@ -53,7 +53,7 @@ public class PurgeCorrespondenceHelper
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        if (correspondence.IsConfirmationNeeded && !correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
+        if (!IsLegacy && correspondence.IsConfirmationNeeded && !correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
         {
             return CorrespondenceErrors.ArchiveBeforeConfirmed;
         }

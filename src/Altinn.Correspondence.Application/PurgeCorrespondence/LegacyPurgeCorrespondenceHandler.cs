@@ -32,6 +32,7 @@ public class LegacyPurgeCorrespondenceHandler(
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, cancellationToken);
+        Console.WriteLine(correspondence);
         if (correspondence == null)
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
@@ -41,7 +42,7 @@ public class LegacyPurgeCorrespondenceHandler(
         {
             return AuthorizationErrors.LegacyNoAccessToCorrespondence;
         }
-        var recipientPurgeError = purgeCorrespondenceHelper.ValidatePurgeRequestRecipient(correspondence);
+        var recipientPurgeError = purgeCorrespondenceHelper.ValidatePurgeRequestRecipient(correspondence, true);
         if (recipientPurgeError is not null)
         {
             return recipientPurgeError;
