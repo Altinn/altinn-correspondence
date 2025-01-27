@@ -138,6 +138,7 @@ public class LegacyGetCorrespondencesHandler(
                 new LegacyCorrespondenceItem()
                 {
                     Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId,
+                    IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
                     ServiceOwnerName = resourceOwners?[correspondence.ResourceId],
                     InstanceOwnerPartyId = recipient?.PartyId ?? 0,
                     MessageTitle = correspondence.Content.MessageTitle,

@@ -41,7 +41,7 @@ public class LegacyPurgeCorrespondenceHandler(
         {
             return AuthorizationErrors.LegacyNoAccessToCorrespondence;
         }
-        var recipientPurgeError = purgeCorrespondenceHelper.ValidatePurgeRequestRecipient(correspondence);
+        var recipientPurgeError = purgeCorrespondenceHelper.ValidatePurgeRequestRecipient(correspondence, true);
         if (recipientPurgeError is not null)
         {
             return recipientPurgeError;
