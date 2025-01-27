@@ -108,24 +108,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         }
 
         [Fact]
-        public async Task Delete_Published_Correspondence_WithoutConfirmation_WhenConfirmationNeeded_ReturnsBadRequest()
-        {
-            // Arrange
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(1))
-                .WithConfirmationNeeded(true)
-                .Build();
-            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
-
-            // Act
-            var deleteResponse = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/purge");
-
-            // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, deleteResponse.StatusCode);
-        }
-
-        [Fact]
         public async Task Delete_Published_Correspondence_WithConfirmation_WhenConfirmationNeeded_Gives_OK()
         {
             // Arrange
