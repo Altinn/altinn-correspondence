@@ -17,6 +17,8 @@ namespace Altinn.Correspondence.Application.CorrespondenceDueDate
         [AutomaticRetry(Attempts = 0)]
         public async Task Process(Guid correspondenceId, CancellationToken cancellationToken = default)
         {
+            //slack notification needs to catch this one
+            throw new NotImplementedException();
             logger.LogInformation("Due date for correspondence {correspondenceId} has expired", correspondenceId);
             var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
             if (correspondence == null)
