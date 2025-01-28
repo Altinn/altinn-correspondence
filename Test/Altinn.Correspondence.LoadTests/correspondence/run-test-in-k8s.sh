@@ -4,7 +4,7 @@ tokengenuser=${TOKEN_GENERATOR_USERNAME}
 tokengenpasswd=${TOKEN_GENERATOR_PASSWORD}
 failed=0
 
-kubectl config set-context --current --namespace=dialogporten
+kubectl config set-context --current --namespace=correspondence
 
 # Validate required environment variables
 if [ -z "$TOKEN_GENERATOR_USERNAME" ] || [ -z "$TOKEN_GENERATOR_PASSWORD" ]; then
@@ -123,7 +123,7 @@ apiVersion: k6.io/v1alpha1
 kind: TestRun
 metadata:
   name: $name
-  namespace: dialogporten
+  namespace: correspondence
 spec:
   arguments: --out experimental-prometheus-rw --vus=$vus --duration=$duration --tag testid=$testid
   parallelism: $parallelism
