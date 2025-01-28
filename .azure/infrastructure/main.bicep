@@ -30,6 +30,8 @@ param idportenClientSecret string
 @secure()
 param storageAccountName string
 param maskinporten_token_exchange_environment string
+@secure()
+param resourceWhiteList string
 
 var prodLikeEnvironment = environment == 'production' || maskinporten_token_exchange_environment == 'yt01'
 var resourceGroupName = '${namePrefix}-rg'
@@ -79,6 +81,10 @@ var secrets = [
   {
     name: 'idporten-client-secret'
     value: idportenClientSecret
+  }
+  {
+    name: 'resource-whitelist'
+    value: resourceWhiteList
   }
 ]
 

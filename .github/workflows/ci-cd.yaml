@@ -79,6 +79,7 @@ jobs:
           PLATFORM_SUBSCRIPTION_KEY: ${{ secrets.PLATFORM_SUBSCRIPTION_KEY }}
           SLACK_URL: ${{ secrets.SLACK_URL }}
           SBL_BRIDGE_BASE_URL: ${{ secrets.SBL_BRIDGE_BASE_URL }}
+          RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
 
   deploy-at22:
     name: deploy at22
@@ -120,6 +121,7 @@ jobs:
           SBL_BRIDGE_BASE_URL: ${{ secrets.SBL_BRIDGE_BASE_URL }}
           MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ secrets.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
           CONTACT_RESERVATION_REGISTRY_BASE_URL: ${{ secrets.CONTACT_RESERVATION_REGISTRY_BASE_URL }} 
+          RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
 
   deploy-staging:
     name: Internal staging
@@ -164,6 +166,7 @@ jobs:
           SLACK_URL: ${{ secrets.SLACK_URL }}
           SBL_BRIDGE_BASE_URL: ${{ secrets.SBL_BRIDGE_BASE_URL }}
           MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ secrets.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
+          RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
 
   deploy-production:
     name: Production
@@ -208,6 +211,7 @@ jobs:
           SLACK_URL: ${{ secrets.SLACK_URL }}
           SBL_BRIDGE_BASE_URL: ${{ secrets.SBL_BRIDGE_BASE_URL }}
           MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ secrets.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
+          RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
 
   release-to-git:  
     name: Release to git
