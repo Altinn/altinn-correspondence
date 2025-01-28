@@ -27,17 +27,17 @@ namespace Altinn.Correspondence.Application.Helpers
         public Error? ValidateDateConstraints(CorrespondenceEntity correspondence)
         {
             var RequestedPublishTime = correspondence.RequestedPublishTime;
-            if (correspondence.DueDateTime is not null)
-            {
-                if (correspondence.DueDateTime < DateTimeOffset.UtcNow)
-                {
-                    return CorrespondenceErrors.DueDatePriorToday;
-                }
-                if (correspondence.DueDateTime < RequestedPublishTime)
-                {
-                    return CorrespondenceErrors.DueDatePriorRequestedPublishTime;
-                }
-            }
+            // if (correspondence.DueDateTime is not null)
+            // {
+            //     // if (correspondence.DueDateTime < DateTimeOffset.UtcNow)
+            //     // {
+            //     //     return CorrespondenceErrors.DueDatePriorToday;
+            //     // }
+            //     // if (correspondence.DueDateTime < RequestedPublishTime)
+            //     // {
+            //     //     return CorrespondenceErrors.DueDatePriorRequestedPublishTime;
+            //     // }
+            // }
             if (correspondence.AllowSystemDeleteAfter is not null)
             {
                 if (correspondence.AllowSystemDeleteAfter < DateTimeOffset.UtcNow)

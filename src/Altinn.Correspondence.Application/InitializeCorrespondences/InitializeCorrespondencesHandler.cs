@@ -201,7 +201,11 @@ public class InitializeCorrespondencesHandler(
             {
                 if (correspondence.DueDateTime is not null)
                 {
-                    backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
+                    // var jobId = BackgroundJob.Schedule<CorrespondenceDueDateHandler>(
+                    //                 x => x.Process(correspondenceId, CancellationToken.None),
+                    //                 TimeSpan.FromHours(1)  // Schedule for 1 hour later
+                    //             );
+                    backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), TimeSpan.FromHours(1));
                 }
                 await eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
 
