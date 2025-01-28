@@ -3,6 +3,7 @@ using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
 using System.Net;
@@ -10,6 +11,7 @@ using System.Net.Http.Json;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
+    [Collection(nameof(CustomWebApplicationTestsCollection))]
     public class CorrespondenceInitializationTests : CorrespondenceTestBase
     {
         public CorrespondenceInitializationTests(CustomWebApplicationFactory factory) : base(factory)
@@ -498,6 +500,65 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task IntializeCorrespondence_WithValidReplyOptions_ReturnsOK()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithReplyOptions(new List<CorrespondenceReplyOptionExt>
+                {
+                    new CorrespondenceReplyOptionExt
+                    {
+                        LinkURL = "https://www.altinn.no",
+                        LinkText = "Altinn"
+                    }
+                })
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+        }
+        [Fact]
+        public async Task InitializeCorrespondence_WithInvalidReplyOptions_ReturnsBadRequest()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithReplyOptions(new List<CorrespondenceReplyOptionExt>
+                {
+                    new CorrespondenceReplyOptionExt
+                    {
+                        LinkURL = "http://www.altinn.no",
+                        LinkText = "Altinn"
+                    }
+                })
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+
+            payload.Correspondence.ReplyOptions.First().LinkURL = "www.altinn.no";
+            initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+
+            payload.Correspondence.ReplyOptions.First().LinkURL = "https://www.al tinn.no";
+            initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+
+            payload.Correspondence.ReplyOptions.First().LinkURL = "C:\\Users\\User\\Desktop";
+            initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
         }
     }
 }

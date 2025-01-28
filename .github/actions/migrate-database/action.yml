@@ -28,6 +28,12 @@ runs:
     - name: "Checkout repository"
       uses: actions/checkout@v4
 
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          9.0.x
+
     - name: Get version
       id: get-version
       uses: ./.github/actions/get-current-version
@@ -59,26 +65,30 @@ runs:
         parameters: ./.azure/applications/migration/params.bicepparam
 
     - name: Install EF Core CLI
-      run: dotnet tool install dotnet-ef --global
       shell: bash
+      run: | 
+        dotnet tool install --global dotnet-ef 
+        dotnet tool restore 
 
     - name: Create migration script
       shell: bash
       run: |
-        dotnet ef migrations bundle --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API --self-contained -r linux-x64 -o ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe
+        dotnet ef migrations bundle --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API --self-contained -r linux-x64 -o ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --force
 
     - name: Upload Migration Files to Azure File Share
       uses: azure/CLI@v2
       with:
-        azcliversion: 2.56.0
+        azcliversion: 2.68.0
         inlineScript: |
-          az storage copy --source ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --destination https://${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}.file.core.windows.net/migrations --recursive
-          az storage copy --source ./src/Altinn.Correspondence.API/appsettings.json --destination https://${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}.file.core.windows.net/migrations --recursive
+          az storage file upload --share-name migrations --account-name ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }} \
+            --source ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --path bundle.exe
+          az storage file upload --share-name migrations --account-name ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }} \
+            --source ./src/Altinn.Correspondence.API/appsettings.json --path appsettings.json
 
     - name: Start migration job
       uses: azure/CLI@v2
       with:
-        azcliversion: 2.56.0
+        azcliversion: 2.68.0
         inlineScript: |
           az containerapp job start -n ${{ steps.migration-job.outputs.name }} -g ${{ inputs.AZURE_NAME_PREFIX }}-rg
 
@@ -86,7 +96,7 @@ runs:
       uses: azure/CLI@v2
       id: verify-migration
       with:
-        azcliversion: 2.56.0
+        azcliversion: 2.68.0
         inlineScript: |
           chmod +x ./.github/tools/containerAppJobVerifier.sh
           ./.github/tools/containerAppJobVerifier.sh ${{ steps.migration-job.outputs.name }} '${{ inputs.AZURE_NAME_PREFIX }}-rg' ${{ steps.get-version.outputs.imageTag }}

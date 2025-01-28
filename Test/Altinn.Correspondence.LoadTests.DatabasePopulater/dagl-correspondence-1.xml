@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xacml:Policy PolicyId="urn:altinn:policyid:1" Version="1.0" RuleCombiningAlgId="urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:deny-overrides" xmlns:xacml="urn:oasis:names:tc:xacml:3.0:core:schema:wd-17">
+    <xacml:Target />
+    <xacml:Rule RuleId="urn:altinn:resource:dagl-correspondence:ruleid:1" Effect="Permit">
+        <xacml:Description>Full tilgang for daglige ledere i et selskap</xacml:Description>
+        <xacml:Target>
+            <xacml:AnyOf>
+                <xacml:AllOf>
+                    <xacml:Match MatchId="urn:oasis:names:tc:xacml:3.0:function:string-equal-ignore-case">
+                        <xacml:AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">dagl</xacml:AttributeValue>
+                        <xacml:AttributeDesignator AttributeId="urn:altinn:rolecode" Category="urn:oasis:names:tc:xacml:1.0:subject-category:access-subject" DataType="http://www.w3.org/2001/XMLSchema#string" MustBePresent="false" />
+                    </xacml:Match>
+                </xacml:AllOf>
+            </xacml:AnyOf>
+            <xacml:AnyOf>
+                <xacml:AllOf>
+                    <xacml:Match MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                        <xacml:AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">dagl-correspondence-10</xacml:AttributeValue>
+                        <xacml:AttributeDesignator AttributeId="urn:altinn:resource" Category="urn:oasis:names:tc:xacml:3.0:attribute-category:resource" DataType="http://www.w3.org/2001/XMLSchema#string" MustBePresent="false" />
+                    </xacml:Match>
+                </xacml:AllOf>
+            </xacml:AnyOf>
+            <xacml:AnyOf>
+                <xacml:AllOf>
+                    <xacml:Match MatchId="urn:oasis:names:tc:xacml:3.0:function:string-equal-ignore-case">
+                        <xacml:AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">read</xacml:AttributeValue>
+                        <xacml:AttributeDesignator AttributeId="urn:oasis:names:tc:xacml:1.0:action:action-id" Category="urn:oasis:names:tc:xacml:3.0:attribute-category:action" DataType="http://www.w3.org/2001/XMLSchema#string" MustBePresent="false" />
+                    </xacml:Match>
+                </xacml:AllOf>
+                <xacml:AllOf>
+                    <xacml:Match MatchId="urn:oasis:names:tc:xacml:3.0:function:string-equal-ignore-case">
+                        <xacml:AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">write</xacml:AttributeValue>
+                        <xacml:AttributeDesignator AttributeId="urn:oasis:names:tc:xacml:1.0:action:action-id" Category="urn:oasis:names:tc:xacml:3.0:attribute-category:action" DataType="http://www.w3.org/2001/XMLSchema#string" MustBePresent="false" />
+                    </xacml:Match>
+                </xacml:AllOf>
+            </xacml:AnyOf>
+        </xacml:Target>
+    </xacml:Rule>
+    <xacml:Rule RuleId="urn:altinn:resource:dagl-correspondence:ruleid:2" Effect="Permit">
+        <xacml:Description>Lesetilgang for privatpersoner</xacml:Description>
+        <xacml:Target>
+            <xacml:AnyOf>
+                <xacml:AllOf>
+                    <xacml:Match MatchId="urn:oasis:names:tc:xacml:3.0:function:string-equal-ignore-case">
+                        <xacml:AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">priv</xacml:AttributeValue>
+                        <xacml:AttributeDesignator AttributeId="urn:altinn:rolecode" Category="urn:oasis:names:tc:xacml:1.0:subject-category:access-subject" DataType="http://www.w3.org/2001/XMLSchema#string" MustBePresent="false" />
+                    </xacml:Match>
+                </xacml:AllOf>
+            </xacml:AnyOf>
+            <xacml:AnyOf>
+                <xacml:AllOf>
+                    <xacml:Match MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                        <xacml:AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">dagl-correspondence-10</xacml:AttributeValue>
+                        <xacml:AttributeDesignator AttributeId="urn:altinn:resource" Category="urn:oasis:names:tc:xacml:3.0:attribute-category:resource" DataType="http://www.w3.org/2001/XMLSchema#string" MustBePresent="false" />
+                    </xacml:Match>
+                </xacml:AllOf>
+            </xacml:AnyOf>
+            <xacml:AnyOf>
+                <xacml:AllOf>
+                    <xacml:Match MatchId="urn:oasis:names:tc:xacml:3.0:function:string-equal-ignore-case">
+                        <xacml:AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">read</xacml:AttributeValue>
+                        <xacml:AttributeDesignator AttributeId="urn:oasis:names:tc:xacml:1.0:action:action-id" Category="urn:oasis:names:tc:xacml:3.0:attribute-category:action" DataType="http://www.w3.org/2001/XMLSchema#string" MustBePresent="false" />
+                    </xacml:Match>
+                </xacml:AllOf>
+            </xacml:AnyOf>
+        </xacml:Target>
+    </xacml:Rule>
+    <xacml:ObligationExpressions>
+        <xacml:ObligationExpression ObligationId="urn:altinn:obligation:authenticationLevel1" FulfillOn="Permit">
+            <xacml:AttributeAssignmentExpression AttributeId="urn:altinn:obligation1-assignment1" Category="urn:altinn:minimum-authenticationlevel">
+                <xacml:AttributeValue DataType="http://www.w3.org/2001/XMLSchema#integer">3</xacml:AttributeValue>
+            </xacml:AttributeAssignmentExpression>
+        </xacml:ObligationExpression>
+        <xacml:ObligationExpression ObligationId="urn:altinn:obligation:authenticationLevel2" FulfillOn="Permit">
+            <xacml:AttributeAssignmentExpression AttributeId="urn:altinn:obligation2-assignment2" Category="urn:altinn:minimum-authenticationlevel-org">
+                <xacml:AttributeValue DataType="http://www.w3.org/2001/XMLSchema#integer">3</xacml:AttributeValue>
+            </xacml:AttributeAssignmentExpression>
+        </xacml:ObligationExpression>
+    </xacml:ObligationExpressions>
+</xacml:Policy>

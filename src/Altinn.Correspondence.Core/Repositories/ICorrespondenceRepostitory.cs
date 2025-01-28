@@ -11,7 +11,6 @@ namespace Altinn.Correspondence.Core.Repositories
 
         Task<(List<Guid>, int)> GetCorrespondences(
             string resourceId,
-            int offset,
             int limit,
             DateTimeOffset? from,
             DateTimeOffset? to,
@@ -20,8 +19,7 @@ namespace Altinn.Correspondence.Core.Repositories
             CorrespondencesRoleType role,
             CancellationToken cancellationToken);
 
-        Task<(List<CorrespondenceEntity>, int)> GetCorrespondencesForParties(
-            int offset,
+        Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(
             int limit,
             DateTimeOffset? from,
             DateTimeOffset? to,

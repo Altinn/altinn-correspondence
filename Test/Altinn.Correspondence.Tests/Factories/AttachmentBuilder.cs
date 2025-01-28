@@ -17,11 +17,10 @@ namespace Altinn.Correspondence.Tests.Factories
             _attachment = new InitializeAttachmentExt()
             {
                 ResourceId = "1",
-                DataType = "html",
                 Name = "Test file logical name",
                 Sender = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
                 SendersReference = "1234",
-                FileName = "test-file",
+                FileName = "test-file.txt",
                 IsEncrypted = false
             };
             return this;

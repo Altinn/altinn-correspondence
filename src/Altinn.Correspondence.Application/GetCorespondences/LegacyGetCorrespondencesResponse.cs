@@ -6,8 +6,6 @@ namespace Altinn.Correspondence.Application.GetCorrespondences
     public class LegacyGetCorrespondencesResponse
     {
         public List<LegacyCorrespondenceItem> Items { get; set; } = new List<LegacyCorrespondenceItem>();
-
-        public PaginationMetaData Pagination { get; set; } = new PaginationMetaData();
     }
 
     public class LegacyCorrespondenceItem
@@ -26,5 +24,6 @@ namespace Altinn.Correspondence.Application.GetCorrespondences
         public DateTimeOffset? Archived { get; set; }
         public string? MessageSender { get; set; }
         public DateTimeOffset? ConfirmationDate { get; set; }
+        public bool IsConfirmationNeeded { get; set; }
     }
 }

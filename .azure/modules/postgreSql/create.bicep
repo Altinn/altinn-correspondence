@@ -46,9 +46,9 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-01-preview'
     administratorLogin: databaseUser
     administratorLoginPassword: administratorLoginPassword
     storage: {
-      storageSizeGB: 32
+      storageSizeGB: prodLikeEnvironment ? 512 : 32
       autoGrow: 'Enabled'
-      tier: prodLikeEnvironment ? 'P15': 'P4'
+      tier: prodLikeEnvironment ? 'P20': 'P4'
     }
     backup: { backupRetentionDays: 35 }
     authConfig: {
@@ -88,9 +88,29 @@ resource extensionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/conf
 resource maxConnectionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
   name: 'max_connections'
   parent: postgres
-  dependsOn: [extensionsConfiguration]
+  dependsOn: [database, extensionsConfiguration]
   properties: {
     value: prodLikeEnvironment ? '3000' : '50'
+    source: 'user-override'
+  }
+}
+
+resource workMemConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
+  name: 'work_mem'
+  parent: postgres
+  dependsOn: [database, maxConnectionsConfiguration]
+  properties: {
+    value: prodLikeEnvironment ? '1097151' : '4096'
+    source: 'user-override'
+  }
+}
+
+resource maintenanceWorkMemConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
+  name: 'maintenance_work_mem'
+  parent: postgres
+  dependsOn: [database, workMemConfiguration]
+  properties: {
+    value: prodLikeEnvironment ? '2097151' : '99328'
     source: 'user-override'
   }
 }
@@ -98,7 +118,7 @@ resource maxConnectionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/
 resource allowAzureAccess 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-06-01-preview' = {
   name: 'azure-access'
   parent: postgres
-  dependsOn: [maxConnectionsConfiguration] // Needs to depend on database to avoid updating at the same time
+  dependsOn: [database, maintenanceWorkMemConfiguration] // Needs to depend on database to avoid updating at the same time
   properties: {
     startIpAddress: '0.0.0.0'
     endIpAddress: '0.0.0.0'

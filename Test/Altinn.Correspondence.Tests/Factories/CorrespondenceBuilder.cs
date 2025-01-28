@@ -80,15 +80,21 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>() {
                 new InitializeCorrespondenceAttachmentExt()
                 {
-                    DataType = "html",
                     Name = "2",
                     SendersReference = "1234",
-                    FileName = "test-fil2e",
+                    FileName = "test-fil2e.txt",
                     IsEncrypted = false,
                 }
             };
             return this;
         }
+
+        public CorrespondenceBuilder WithReplyOptions(List<CorrespondenceReplyOptionExt> replyOptions)
+        {
+            _correspondence.Correspondence.ReplyOptions = replyOptions;
+            return this;
+        }
+
         public CorrespondenceBuilder WithExternalReference()
         {
             _correspondence.Correspondence.ExternalReferences = new List<ExternalReferenceExt>(){

@@ -1,10 +1,11 @@
 ﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Tests.Helpers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.Tests.TestingController.Legacy.Base
 {
-    public class LegacyTestBase : IClassFixture<CustomWebApplicationFactory>
+    public class LegacyTestBase
     {
         public readonly CustomWebApplicationFactory _factory;
         public readonly JsonSerializerOptions _serializerOptions;

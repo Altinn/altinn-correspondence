@@ -22,7 +22,7 @@ public class ContactReservationRegistryService(HttpClient httpClient, ILogger<Co
         {
             throw new ArgumentException("Maximum number of recipients is 1000"); // Max recipient count for InitializeCorrespondence is 500, should implement batching if that is increased
         }
-        if (recipients.IsNullOrEmpty())
+        if (recipients == null || recipients.Count == 0)
         {
             return new List<string>();
         }

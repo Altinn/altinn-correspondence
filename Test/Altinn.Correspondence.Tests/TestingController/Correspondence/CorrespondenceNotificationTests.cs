@@ -4,6 +4,7 @@ using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
 using Hangfire;
@@ -16,6 +17,7 @@ using System.Net.Http.Json;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
+    [Collection(nameof(CustomWebApplicationTestsCollection))]
     public class CorrespondenceNotificationTests : CorrespondenceTestBase
     {
         public CorrespondenceNotificationTests(CustomWebApplicationFactory factory) : base(factory)
@@ -259,8 +261,12 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithRecipients([recipientToOverride])
-                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationTemplate(NotificationTemplateExt.CustomMessage)
                 .WithNotificationChannel(NotificationChannelExt.SmsPreferred)
+                .WithEmailContent()
+                .WithEmailReminder()
+                .WithSmsContent()
+                .WithSmsReminder()
                 .WithCustomNotificationRecipients(customRecipients)
                 .Build();
 
@@ -468,7 +474,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithNotificationChannel(NotificationChannelExt.Email)
                 .WithCustomNotificationRecipients(customRecipients)
                 .Build();
-            
+
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
         }
@@ -499,7 +505,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithNotificationChannel(NotificationChannelExt.Email)
                 .WithCustomNotificationRecipients(customRecipients)
                 .Build();
-            
+
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
         }
@@ -529,7 +535,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithNotificationChannel(NotificationChannelExt.Sms)
                 .WithCustomNotificationRecipients(customRecipients)
                 .Build();
-            
+
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
         }
@@ -555,11 +561,80 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithRecipients([recipient])
-                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationTemplate(NotificationTemplateExt.CustomMessage)
                 .WithNotificationChannel(NotificationChannelExt.Sms)
                 .WithCustomNotificationRecipients(customRecipients)
                 .Build();
-            
+
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+        }
+
+        [Theory]
+        [InlineData("97661466", null)]
+        [InlineData(null, "test@example.com")]
+        public async Task Correspondence_CustomRecipient_WithPhoneNumberOrEmailAndRecipientTag_GivesBadRequest(string? number, string? email)
+        {
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipients = new List<CustomNotificationRecipientExt>()
+            {
+                new CustomNotificationRecipientExt()
+                {
+                    RecipientToOverride = recipient,
+                    Recipients = new List<NotificationRecipientExt>()
+                    {
+                        new NotificationRecipientExt()
+                        {
+                            MobileNumber = number,
+                            EmailAddress = email
+                        }
+                    }
+                }
+            };
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(number != null ? NotificationChannelExt.Sms : NotificationChannelExt.Email)
+                .WithCustomNotificationRecipients(customRecipients)
+                .Build();
+
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+        }
+
+        [Theory]
+        [InlineData("97661466", null)]
+        [InlineData(null, "test@example.com")]
+        public async Task Correspondence_CustomRecipient_WithNumberOrEmailAndCustomRecipientTag_GivesBadRequest(string? number, string? email)
+        {
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipients = new List<CustomNotificationRecipientExt>()
+            {
+                new CustomNotificationRecipientExt()
+                {
+                    RecipientToOverride = recipient,
+                    Recipients = new List<NotificationRecipientExt>()
+                    {
+                        new NotificationRecipientExt()
+                        {
+                            MobileNumber = number,
+                            EmailAddress = email
+                        }
+                    }
+                }
+            };
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(number != null ? NotificationChannelExt.Sms : NotificationChannelExt.Email)
+                .WithCustomNotificationRecipients(customRecipients)
+                .Build();
+
+            payload.Correspondence.Notification.SmsBody = number != null ? "Test $recipientName$" : null;
+            payload.Correspondence.Notification.EmailBody = email != null ? "Test $recipientName$" : null;
+
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
         }
@@ -585,17 +660,16 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithRecipients([recipient])
-                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationTemplate(NotificationTemplateExt.CustomMessage)
                 .WithNotificationChannel(NotificationChannelExt.Email)
+                .WithEmailContent()
+                .WithEmailReminder()
                 .WithCustomNotificationRecipients(customRecipients)
                 .Build();
 
             var orderId = Guid.NewGuid();
             var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
-                var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
-                hangfireBackgroundJobClient.Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>())).Returns("1");
-                services.AddSingleton(hangfireBackgroundJobClient.Object);
                 var mockNotificationService = new Mock<IAltinnNotificationService>();
                 mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(new NotificationOrderRequestResponse()
                 {
@@ -604,12 +678,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 });
                 services.AddSingleton(mockNotificationService.Object);
             });
-            var senderClient = testFactory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+            var senderClient = testFactory.CreateSenderClient();
 
             // Act
             var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             var content = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             Assert.Equal(CorrespondenceStatusExt.Published, content?.Correspondences.First().Status);
@@ -630,9 +703,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
-                var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
-                hangfireBackgroundJobClient.Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>())).Returns("1");
-                services.AddSingleton(hangfireBackgroundJobClient.Object);
                 var mockNotificationService = new Mock<IAltinnNotificationService>();
                 mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(new NotificationOrderRequestResponse()
                 {
@@ -644,9 +714,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                         IsReserved = []
                     }
                 });
+                
                 services.AddSingleton(mockNotificationService.Object);
             });
-            var senderClient = testFactory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+            var senderClient = testFactory.CreateSenderClient();
 
             // Act
             var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
@@ -672,9 +743,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
-                var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
-                hangfireBackgroundJobClient.Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>())).Returns("1");
-                services.AddSingleton(hangfireBackgroundJobClient.Object);
                 var mockNotificationService = new Mock<IAltinnNotificationService>();
                 mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(new NotificationOrderRequestResponse()
                 {
@@ -688,7 +756,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 });
                 services.AddSingleton(mockNotificationService.Object);
             });
-            var senderClient = testFactory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+            var senderClient = testFactory.CreateSenderClient();
 
             // Act
             var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
@@ -714,9 +782,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
-                var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
-                hangfireBackgroundJobClient.Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>())).Returns("1");
-                services.AddSingleton(hangfireBackgroundJobClient.Object);
                 var mockNotificationService = new Mock<IAltinnNotificationService>();
                 mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(new NotificationOrderRequestResponse()
                 {
@@ -730,7 +795,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 });
                 services.AddSingleton(mockNotificationService.Object);
             });
-            var senderClient = testFactory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+            var senderClient = testFactory.CreateSenderClient();
 
             // Act
             var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
@@ -754,14 +819,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
-                var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
-                hangfireBackgroundJobClient.Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>())).Returns("1");
-                services.AddSingleton(hangfireBackgroundJobClient.Object);
                 var mockNotificationService = new Mock<IAltinnNotificationService>();
                 mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync((NotificationOrderRequestResponse)null);
                 services.AddSingleton(mockNotificationService.Object);
             });
-            var senderClient = testFactory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+            var senderClient = testFactory.CreateSenderClient();
 
             // Act
             var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);

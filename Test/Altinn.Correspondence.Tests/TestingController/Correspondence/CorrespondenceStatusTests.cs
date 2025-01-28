@@ -1,12 +1,15 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Fixtures;
+using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
 using System.Net;
 using System.Net.Http.Json;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
+    [Collection(nameof(CustomWebApplicationTestsCollection))]
     public class CorrespondenceStatusTests : CorrespondenceTestBase
     {
         public CorrespondenceStatusTests(CustomWebApplicationFactory factory) : base(factory)

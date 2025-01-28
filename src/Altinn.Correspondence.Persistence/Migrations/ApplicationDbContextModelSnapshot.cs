@@ -42,10 +42,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<string>("DataLocationUrl")
                         .HasColumnType("text");
 
-                    b.Property<string>("DataType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("FileName")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");

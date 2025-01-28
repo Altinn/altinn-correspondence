@@ -2,16 +2,21 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Common.Helpers;
 
 namespace Altinn.Correspondence.Mappers;
 
 internal static class CorrespondenceAttachmentMapper
 {
+
     internal static CorrespondenceAttachmentExt MapToExternal(CorrespondenceAttachmentEntity attachment)
     {
+        var fileName = attachment.Attachment.FileName;
+        var contentType = FileConstants.GetMIMEType(fileName);
+
         var content = new CorrespondenceAttachmentExt
         {
-            DataType = attachment.Attachment.DataType,
+            DataType = contentType,
             FileName = attachment.Attachment.FileName,
             Id = attachment.AttachmentId,
             IsEncrypted = attachment.Attachment.IsEncrypted,

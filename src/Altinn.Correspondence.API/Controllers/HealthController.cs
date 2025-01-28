@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Persistence;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Correspondence.Controllers

@@ -1,9 +1,11 @@
 ﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
@@ -16,17 +18,41 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<AltinnAccessManagementService> _logger;
+    private readonly IDistributedCache _cache;
+    private readonly DistributedCacheEntryOptions _cacheOptions;
     private readonly int _MAX_DEPTH_FOR_SUBUNITS = 20;
 
-    public AltinnAccessManagementService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnAccessManagementService> logger)
+    public AltinnAccessManagementService(
+        HttpClient httpClient, 
+        IOptions<AltinnOptions> altinnOptions, 
+        ILogger<AltinnAccessManagementService> logger,
+        IDistributedCache cache)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.AccessManagementSubscriptionKey);
         _httpClient = httpClient;
         _logger = logger;
+        _cache = cache;
+        _cacheOptions = new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
+        };
     }
 
     public async Task<List<PartyWithSubUnits>> GetAuthorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default)
     {
+        string cacheKey = $"AuthorizedParties_{partyToRequestFor.PartyId}";
+        try {
+            var cachedParties = await CacheHelpers.GetObjectFromCacheAsync<List<PartyWithSubUnits>>(cacheKey, _cache, cancellationToken);
+            if (cachedParties != null)
+            {
+                return cachedParties;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error retrieving authorized parties from cache in Access Management Service.");
+        }
+
         AuthorizedPartiesRequest request = new(partyToRequestFor);
         JsonSerializerOptions serializerOptions = new()
         {
@@ -62,6 +88,14 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             {
                 parties.AddRange(GetPartiesFromSubunits(p.subunits));
             }
+        }
+
+        try {
+            await CacheHelpers.StoreObjectInCacheAsync(cacheKey, parties, _cache, _cacheOptions, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error storing response content to cache when looking up authorized parties in Access Management Service.");
         }
 
         return parties;

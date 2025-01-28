@@ -187,14 +187,12 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>
         /// Meant for Receivers, but also available for Senders to track Correspondences
         /// </remarks>
-        /// <returns>A list of Correspondence ids and pagination metadata</returns>
+        /// <returns>A list of Correspondence ids</returns>
         [HttpGet]
         [Produces("application/json")]
         [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         public async Task<ActionResult<CorrespondencesExt>> GetCorrespondences(
             [FromQuery] string resourceId,
-            [FromQuery] int offset,
-            [FromQuery] int limit,
             [FromQuery] DateTimeOffset? from,
             [FromQuery] DateTimeOffset? to,
             [FromServices] GetCorrespondencesHandler handler,
@@ -210,8 +208,6 @@ namespace Altinn.Correspondence.API.Controllers
                 ResourceId = resourceId,
                 From = from,
                 To = to,
-                Limit = limit,
-                Offset = offset,
                 Status = status is null ? null : (CorrespondenceStatus)status,
                 Role = role,
                 OnBehalfOf = onBehalfOf
