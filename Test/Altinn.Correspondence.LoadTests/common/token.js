@@ -1,6 +1,8 @@
 import http from "k6/http";
 import encoding from "k6/encoding";
 import { tokenGeneratorEnv } from "./config.js";
+import { baseUrlDialogPortenEndUser } from "./config.js";
+import { expect } from "./testimports.js";
 
 const tokenUsername = __ENV.TOKEN_GENERATOR_USERNAME;
 const tokenPassword = __ENV.TOKEN_GENERATOR_PASSWORD;
@@ -38,7 +40,8 @@ export function fetchToken(url, tokenOptions, type) {
     let response = http.get(url, tokenRequestOptions);
 
     if (response.status != 200) {
-      throw new Error(`Failed getting ${type} token: ${response.status_text}`);
+        console.log(url);
+        throw new Error(`Failed getting ${type} token: ${response.status_text}`);
     }
     cachedTokens[cacheKey] = response.body;
     cachedTokensIssuedAt[cacheKey] = currentTime;
@@ -84,6 +87,27 @@ export function getPersonalTokenForServiceOwner(serviceOwner) {
     }
     const url = `https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=${tokenGeneratorEnv}&scopes=${encodeURIComponent(tokenOptions.scopes)}&pid=${tokenOptions.ssn}&ttl=${tokenTtl}`;
     return fetchToken(url, tokenOptions, `end user (ssn:${tokenOptions.ssn}, tokenGeneratorEnv:${tokenGeneratorEnv})`);
+  }
+
+  export function getDialogPortenToken(endUser, detailsResponse, traceparent) {
+    let correspondencesDetails = JSON.parse(detailsResponse.body);
+    let dialogPortenId = correspondencesDetails.externalReferences.find(ref => ref.referenceType === 'DialogportenDialogId');
+    const tokenOptions = {
+        scopes: 'digdir:dialogporten', 
+        ssn: endUser.ssn
+    }
+    let paramsWithToken = {
+        headers: {
+            Authorization: "Bearer " + getPersonalToken(tokenOptions),
+            traceparent: traceparent
+        },
+        tags: { name: 'enduser search' } 
+    }
+    const dpUrl = baseUrlDialogPortenEndUser + 'dialogs/' + dialogPortenId.referenceValue;
+    let r = http.get(dpUrl, paramsWithToken);
+    expect(r.status, 'response status').to.equal(200);
+    const dialogDetails = JSON.parse(r.body);
+    return dialogDetails.dialogToken;
   }
 
   

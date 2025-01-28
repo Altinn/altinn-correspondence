@@ -5,14 +5,14 @@
  */
 import http from 'k6/http';
 import exec from 'k6/execution';
-import { randomItem } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { describe } from "../common/describe.js";
 import { baseUrlCorrespondence } from '../common/config.js';
 import { expect } from "../common/testimports.js";
-import { endUsers, serviceOwners } from "../common/readTestdata.js";
+import { serviceOwners } from "../common/readTestdata.js";
 import { getCorrespondenceForm } from '../data/correspondence-form.js';
 import { getPersonalTokenForServiceOwner } from '../common/token.js';
 import { uuidv7 } from '../common/uuid.js';
+export { setup as setup } from "../common/readTestdata.js";
 
 export let options = {
     summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(95)', 'p(99)', 'p(99.5)', 'p(99.9)', 'count'],
@@ -25,20 +25,14 @@ export let options = {
 
 const traceCalls = (__ENV.traceCalls ?? 'false') === 'true';
 
-export default function() {
-    if (!endUsers || endUsers.length === 0) {
-        throw new Error('No end users loaded for testing');
-    }
-    if (!serviceOwners || serviceOwners.length === 0) {
-        throw new Error('No service owners loaded for testing');
-    } 
-    var ix = exec.vu.iterationInInstance%endUsers.length;
-    var soIx = exec.vu.iterationInInstance%serviceOwners.length;
-    //console.log("Iteration: " + exec.vu.iterationInInstance + ", endUser: " + ix + ", serviceOwner: " + soIx);
-    uploadCorrespondence(serviceOwners[soIx], endUsers[ix], traceCalls);  
-  }
+export default function(data) {
+    const myEndUsers = data[exec.vu.idInTest - 1];
+    const ix = exec.vu.iterationInInstance % myEndUsers.length;
+    var soIx = 0 //exec.vu.iterationInInstance%serviceOwners.length;
+    uploadCorrespondence(serviceOwners[soIx], myEndUsers[ix], traceCalls); 
+}
 
-  export function uploadCorrespondence(serviceOwner, endUser, traceCalls) {
+export function uploadCorrespondence(serviceOwner, endUser, traceCalls) {
     var traceparent = uuidv7();
     const formData = getCorrespondenceForm(serviceOwner.resource, serviceOwner.orgno, endUser.ssn);
     var paramsWithToken = {

@@ -18,11 +18,11 @@ export function getCorrespondenceJson(resource_id, sender, recipient) {
             propertyList: {},
             replyOptions: [
                 {
-                    linkURL: "www.test.no",
+                    linkURL: "https://www.test.no",
                     linkText: "test",
                 },
                 {
-                    linkURL: "test.no",
+                    linkURL: "https://test.no",
                     linkText: "test",
                 },
             ],
