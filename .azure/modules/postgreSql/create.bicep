@@ -38,7 +38,7 @@ module saveMigrationConnectionString '../keyvault/upsertSecret.bicep' = {
   }
 }
 
-resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-01-preview' = {
+resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   name: '${namePrefix}-dbserver'
   location: location
   properties: {
@@ -46,9 +46,9 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-01-preview'
     administratorLogin: databaseUser
     administratorLoginPassword: administratorLoginPassword
     storage: {
-      storageSizeGB: prodLikeEnvironment ? 512 : 32
+      storageSizeGB: prodLikeEnvironment ? 2048 : 32
       autoGrow: 'Enabled'
-      tier: prodLikeEnvironment ? 'P20': 'P4'
+      tier: prodLikeEnvironment ? 'P40': 'P4'
     }
     backup: { backupRetentionDays: 35 }
     authConfig: {
@@ -66,7 +66,7 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-01-preview'
   }
 }
 
-resource database 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-06-01-preview' = {
+resource database 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
   name: databaseName
   parent: postgres
   properties: {
@@ -75,7 +75,7 @@ resource database 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-06-0
   }
 }
 
-resource extensionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
+resource extensionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
   name: 'azure.extensions'
   parent: postgres
   dependsOn: [database]
@@ -85,7 +85,7 @@ resource extensionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/conf
   }
 }
 
-resource maxConnectionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
+resource maxConnectionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
   name: 'max_connections'
   parent: postgres
   dependsOn: [database, extensionsConfiguration]
@@ -95,7 +95,7 @@ resource maxConnectionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/
   }
 }
 
-resource workMemConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
+resource workMemConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
   name: 'work_mem'
   parent: postgres
   dependsOn: [database, maxConnectionsConfiguration]
@@ -105,7 +105,7 @@ resource workMemConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configu
   }
 }
 
-resource maintenanceWorkMemConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
+resource maintenanceWorkMemConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
   name: 'maintenance_work_mem'
   parent: postgres
   dependsOn: [database, workMemConfiguration]
