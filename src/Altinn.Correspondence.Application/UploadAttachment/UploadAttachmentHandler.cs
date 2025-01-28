@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -35,8 +36,7 @@ public class UploadAttachmentHandler(
         {
             return AuthorizationErrors.NoAccessToResource;
         }
-        var maxUploadSize = long.Parse(int.MaxValue.ToString());
-        if (request.ContentLength > maxUploadSize || request.ContentLength == 0)
+        if (request.ContentLength > ApplicationConstants.MaxFileUploadSize || request.ContentLength == 0)
         {
             return AttachmentErrors.InvalidFileSize;
         }
