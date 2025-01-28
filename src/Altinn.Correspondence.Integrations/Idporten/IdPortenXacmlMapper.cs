@@ -55,6 +55,10 @@ namespace Altinn.Correspondence.Integrations.Idporten
         }
         public static int? GetMinimumAuthLevel(XacmlJsonResponse response, ClaimsPrincipal user)
         {
+            if (!response.Response.Any())
+            {
+                return null;
+            }
             int? minimumAuthLevel = null;
             foreach (var result in response.Response)
             {
@@ -78,7 +82,7 @@ namespace Altinn.Correspondence.Integrations.Idporten
                 }
             }
 
-            return minimumAuthLevel;
+            return minimumAuthLevel ?? 0;
         }
 
 
