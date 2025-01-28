@@ -73,9 +73,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     });
     var altinnOptions = new AltinnOptions();
     config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
-    //services.AddExceptionHandler<SlackExceptionNotification>();
-    services.AddSingleton<IExceptionNotificationService, SlackExceptionNotificationService>();
-    services.AddExceptionHandler<ExceptionNotificationMiddleware>();
+    services.AddExceptionHandler<SlackExceptionNotification>();
     services.AddCors(options =>
     {
         options.AddPolicy(name: AuthorizationConstants.ArbeidsflateCors,
