@@ -39,14 +39,14 @@ on:
             testSuitePath:
                 description: 'Path to test suite to run'
                 required: true
-                default: 'tests/Altinn.Correspondence.LoadTests/correspondence/create-and-upload-correspondence.js'
+                default: 'Test/Altinn.Correspondence.LoadTests/correspondence/create-and-upload-correspondence.js'
                 type: choice
                 options:
-                - 'tests/Altinn.Correspondence.LoadTests/correspondence/create-and-upload-correspondence.js'
-                - 'tests/Altinn.Correspondence.LoadTests/correspondence/create-and-upload-correspondence-single-user.js'
-                - 'tests/Altinn.Correspondence.LoadTests/correspondence/create-correspondence.js'
-                - 'tests/Altinn.Correspondence.LoadTests/correspondence/get-correspondence.js'
-                - 'tests/Altinn.Correspondence.LoadTests/correspondence/get-correspondence-overview.js'
+                - 'Test/Altinn.Correspondence.LoadTests/correspondence/create-and-upload-correspondence.js'
+                - 'Test/Altinn.Correspondence.LoadTests/correspondence/create-and-upload-correspondence-single-user.js'
+                - 'Test/Altinn.Correspondence.LoadTests/correspondence/create-correspondence.js'
+                - 'Test/Altinn.Correspondence.LoadTests/correspondence/get-correspondence.js'
+                - 'Test/Altinn.Correspondence.LoadTests/correspondence/get-correspondence-overview.js'
 
 permissions:
   id-token: write
