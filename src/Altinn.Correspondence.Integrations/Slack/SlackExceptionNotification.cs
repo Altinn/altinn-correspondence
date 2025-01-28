@@ -1,7 +1,12 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Diagnostics;
 using Slack.Webhooks;
+using Microsoft.AspNetCore.Diagnostics;  
+using Slack.Webhooks;  
+using Microsoft.AspNetCore.Http;  
 
-namespace Altinn.Correspondence.Helpers;
+namespace Altinn.Correspondence.Integrations.Slack;
 public class SlackExceptionNotification : IExceptionHandler
 {
     private readonly ILogger<SlackExceptionNotification> _logger;

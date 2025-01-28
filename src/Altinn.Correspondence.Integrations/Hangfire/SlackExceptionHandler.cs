@@ -1,23 +1,24 @@
+using Microsoft.Extensions.Logging;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
 using Hangfire.Storage;
-using Microsoft.Extensions.Logging;
+using Hangfire.Server;
 using System;
 using System.Threading.Tasks;
-using Altinn.Correspondence.Helpers;
-using Hangfire.Server;
+using System.Threading;
+using Altinn.Correspondence.Integrations.Slack;
 
 namespace Altinn.Correspondence.Integrations.Hangfire
 {
     public class SlackExceptionHandler : JobFilterAttribute, IServerFilter
     {
-        private readonly SlackExceptionNotification _SlackExceptionNotification;
+        private readonly SlackExceptionNotification _slackExceptionNotification;
         private readonly ILogger<SlackExceptionHandler> _logger;
 
-        public SlackExceptionHandler(SlackExceptionNotification SlackExceptionNotification, ILogger<SlackExceptionHandler> logger)
+        public SlackExceptionHandler(SlackExceptionNotification slackExceptionNotification, ILogger<SlackExceptionHandler> logger)
         {
-            _SlackExceptionNotification = SlackExceptionNotification;
+            _slackExceptionNotification = slackExceptionNotification;
             _logger = logger;
         }
 
@@ -42,7 +43,7 @@ namespace Altinn.Correspondence.Integrations.Hangfire
                 _logger.LogError(exception, "Job {JobId} of type {JobName} failed", jobId, jobName);
 
                 // Send the exception details to Slack
-                Task.Run(() => _SlackExceptionNotification.TryHandleAsync(/* required parameters */)); 
+                Task.Run(() => _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception));
             }
         }
     }
