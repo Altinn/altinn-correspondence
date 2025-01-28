@@ -10,18 +10,6 @@ namespace Altinn.Correspondence.API.Models
     public class LegacyGetCorrespondencesRequestExt
     {
         /// <summary>
-        /// Pagination offset
-        /// </summary>
-        [JsonPropertyName("offset")]
-        public int Offset { get; set; }
-
-        /// <summary>
-        /// Pagination limit
-        /// </summary>
-        [JsonPropertyName("limit")]
-        public int Limit { get; set; }
-
-        /// <summary>
         /// A list of the parties/recipients that own the Correspondence instances
         /// </summary>
         [JsonPropertyName("instanceOwnerPartyIdList")]

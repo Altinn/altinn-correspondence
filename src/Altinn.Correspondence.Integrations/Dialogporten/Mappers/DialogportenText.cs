@@ -18,7 +18,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             DialogportenTextType.NotificationOrderCreated => "Varslingsordre opprettet.",
             DialogportenTextType.NotificationOrderCancelled => "Varslingsordre kansellert.",  
-            DialogportenTextType.DownloadStarted => string.Format("Startet nedlastning av vedlegg {name}", tokens),
+            DialogportenTextType.DownloadStarted => string.Format("Startet nedlastning av vedlegg {0}", tokens),
             DialogportenTextType.CorrespondencePublished => "Melding publisert.",
             DialogportenTextType.CorrespondenceConfirmed => "Melding bekreftet.",
             DialogportenTextType.CorrespondenceArchived => "Melding arkivert.",
@@ -30,7 +30,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             DialogportenTextType.NotificationOrderCreated => "Varslingsordre opprettet.",
             DialogportenTextType.NotificationOrderCancelled => "Varslingsordre kansellert.",
-            DialogportenTextType.DownloadStarted => string.Format("Startet nedlastning av vedlegg {name}", tokens),
+            DialogportenTextType.DownloadStarted => string.Format("Startet nedlastning av vedlegg {0}", tokens),
             DialogportenTextType.CorrespondencePublished => "Melding publisert.",
             DialogportenTextType.CorrespondenceConfirmed => "Melding bekreftet.",
             DialogportenTextType.CorrespondenceArchived => "Melding arkivert.",
@@ -42,7 +42,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             DialogportenTextType.NotificationOrderCreated => "Notification order created.",
             DialogportenTextType.NotificationOrderCancelled => "Notification order cancelled.",
-            DialogportenTextType.DownloadStarted => string.Format("Started downloading attachment {name}", tokens),
+            DialogportenTextType.DownloadStarted => string.Format("Started downloading attachment {0}", tokens),
             DialogportenTextType.CorrespondencePublished => "Message published.",
             DialogportenTextType.CorrespondenceConfirmed => "Message confirmed.",
             DialogportenTextType.CorrespondenceArchived => "Message archived.",

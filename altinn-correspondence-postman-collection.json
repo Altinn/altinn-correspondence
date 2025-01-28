@@ -1303,7 +1303,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{baseUrl}}/correspondence/api/v1/correspondence?from=2024-02-02T13:31:28.290518&to=2025-08-29T13:31:28.290518&offset=0&limit=30&status=2&resourceId={{resource_id}}&role=RecipientAndSender",
+							"raw": "{{baseUrl}}/correspondence/api/v1/correspondence?from=2024-02-02T13:31:28.290518&to=2025-08-29T13:31:28.290518&status=2&resourceId={{resource_id}}&role=RecipientAndSender",
 							"host": [
 								"{{baseUrl}}"
 							],
@@ -1321,14 +1321,6 @@
 								{
 									"key": "to",
 									"value": "2025-08-29T13:31:28.290518"
-								},
-								{
-									"key": "offset",
-									"value": "0"
-								},
-								{
-									"key": "limit",
-									"value": "30"
 								},
 								{
 									"key": "status",
