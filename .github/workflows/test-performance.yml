@@ -3,7 +3,7 @@ name: Test Performance
 on:
     push:
         branches:
-            - performance*
+            - 'performance/**'
 
 jobs:
     test-performance:
