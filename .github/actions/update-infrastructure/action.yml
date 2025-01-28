@@ -60,6 +60,10 @@ inputs:
     description: "Maskinporten Token Exchange Environment"
     required: false
     default: ""
+  RESOURCE_WHITELIST:
+    description: "Whitelist for approved resources"
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -110,6 +114,7 @@ runs:
         IDPORTEN_CLIENT_ID: ${{ inputs.IDPORTEN_CLIENT_ID }}
         IDPORTEN_CLIENT_SECRET: ${{ inputs.IDPORTEN_CLIENT_SECRET }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
+        RESOURCE_WHITELIST: ${{ inputs.RESOURCE_WHITELIST }}
       with:
         scope: subscription
         template: ./.azure/infrastructure/main.bicep
