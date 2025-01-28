@@ -48,6 +48,9 @@ on:
                 - 'tests/Altinn.Correspondence.LoadTests/correspondence/get-correspondence.js'
                 - 'tests/Altinn.Correspondence.LoadTests/correspondence/get-correspondence-overview.js'
 
+permissions:
+  id-token: write
+  contents: read
 run-name: ${{ inputs.tag }} ${{ inputs.vus }}/${{ inputs.duration }}/${{ inputs.parallelism }}
 jobs:
   k6-performance:
