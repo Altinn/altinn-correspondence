@@ -17,14 +17,14 @@ namespace Altinn.Correspondence.Application.CorrespondenceDueDate
         [AutomaticRetry(Attempts = 0)]
         public async Task Process(Guid correspondenceId, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                throw new NotImplementedException();
+            // try
+            // {
+                //throw new NotImplementedException();
                 logger.LogInformation("Due date for correspondence {correspondenceId} has expired", correspondenceId);
 
                 logger.LogInformation("Due date for correspondence {correspondenceId} has expired", correspondenceId);
                 var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
-                //correspondence = null;
+                correspondence = null;
                 if (correspondence == null)
                 {
                     throw new Exception("Correspondence " + correspondenceId + " not found for exipired due date");
@@ -48,12 +48,12 @@ namespace Altinn.Correspondence.Application.CorrespondenceDueDate
                     await eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
                     await eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
                 }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error processing due date for correspondence {correspondenceId}", correspondenceId);
-                throw; 
-            }
+            //}
+            // catch (Exception ex)
+            // {
+            //     logger.LogError(ex, "Error processing due date for correspondence {correspondenceId}", correspondenceId);
+            //     throw; 
+            // }
         }
     }
 }

@@ -7,7 +7,7 @@ using Slack.Webhooks;
 using Microsoft.AspNetCore.Http;  
 
 namespace Altinn.Correspondence.Integrations.Slack;
-public class SlackExceptionNotification : IExceptionHandler
+public class SlackExceptionNotification : IExceptionHandler, IExceptionNotificationService
 {
     private readonly ILogger<SlackExceptionNotification> _logger;
     private readonly ISlackClient _slackClient;
@@ -79,6 +79,34 @@ public class SlackExceptionNotification : IExceptionHandler
         }
     }   
 
+    public async Task NotifyAsync(Exception exception, string? context, CancellationToken cancellationToken)
+    {
+        var exceptionMessage = FormatExceptionMessage(exception, context);
+
+        _logger.LogError(
+            exception,
+            "Unhandled exception occurred. Context: {Context}, Type: {ExceptionType}, Message: {Message}",
+            context,
+            exception.GetType().Name,
+            exception.Message);
+
+        // Send the exception details to Slack
+        var slackMessage = new SlackMessage
+        {
+            Text = exceptionMessage,
+            Channel = TestChannel // Replace with your actual Slack channel
+        };
+
+        try
+        {
+            SendSlackNotificationWithMessage(exceptionMessage);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send Slack notification");
+        }
+    }
+
     private string FormatExceptionMessage(Exception exception, HttpContext context)
     {
         return $":warning: *Unhandled Exception*\n" +
@@ -96,6 +124,15 @@ public class SlackExceptionNotification : IExceptionHandler
         return $":warning: *Unhandled Exception*\n" +
                 $"*Job ID:* {jobId}\n" +
                 $"*Job Name:* {jobName}\n" +
+                $"*Type:* {exception.GetType().Name}\n" +
+                $"*Message:* {exception.Message}\n" +
+                $"*Stacktrace:* \n{exception.StackTrace}";
+    }
+
+    private string FormatExceptionMessage(Exception exception, string? context)
+    {
+        return $":warning: *Unhandled Exception*\n" +
+                $"*Context:* {context}\n" +
                 $"*Type:* {exception.GetType().Name}\n" +
                 $"*Message:* {exception.Message}\n" +
                 $"*Stacktrace:* \n{exception.StackTrace}";

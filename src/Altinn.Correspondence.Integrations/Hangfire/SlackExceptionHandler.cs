@@ -24,12 +24,18 @@ namespace Altinn.Correspondence.Integrations.Hangfire
 
         public void OnPerforming(PerformingContext filterContext)
         {
-            // No action needed before the job is performed
+            // Log the start of the job execution
+            var jobId = filterContext.BackgroundJob.Id;
+            var jobName = filterContext.BackgroundJob.Job.Type.Name;
+            _logger.LogInformation("Starting job {JobId} of type {JobName}", jobId, jobName);
         }
 
         public void OnPerformed(PerformedContext filterContext)
         {
-            // No action needed after the job is performed
+            // Log the completion of the job execution
+            var jobId = filterContext.BackgroundJob.Id;
+            var jobName = filterContext.BackgroundJob.Job.Type.Name;
+            _logger.LogInformation("Completed job {JobId} of type {JobName}", jobId, jobName);
         }
 
         public void OnStateElection(ElectStateContext context)
@@ -41,9 +47,9 @@ namespace Altinn.Correspondence.Integrations.Hangfire
                 var jobName = context.BackgroundJob.Job.Type.Name;
 
                 _logger.LogError(exception, "Job {JobId} of type {JobName} failed", jobId, jobName);
-
-                // Send the exception details to Slack
-                Task.Run(() => _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception, CancellationToken.None));
+                
+                // Add this line to send the Slack notification
+                _ = _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception, CancellationToken.None);
             }
         }
     }
