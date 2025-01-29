@@ -17,8 +17,8 @@ namespace Altinn.Correspondence.Application.CorrespondenceDueDate
         [AutomaticRetry(Attempts = 0)]
         public async Task Process(Guid correspondenceId, CancellationToken cancellationToken = default)
         {
-            // try
-            // {
+            try
+            {
                 //throw new NotImplementedException();
                 logger.LogInformation("Due date for correspondence {correspondenceId} has expired", correspondenceId);
 
@@ -48,12 +48,12 @@ namespace Altinn.Correspondence.Application.CorrespondenceDueDate
                     await eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
                     await eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
                 }
-            //}
-            // catch (Exception ex)
-            // {
-            //     logger.LogError(ex, "Error processing due date for correspondence {correspondenceId}", correspondenceId);
-            //     throw; 
-            // }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error processing due date for correspondence {correspondenceId}", correspondenceId);
+                throw; 
+            }
         }
     }
 }

@@ -39,8 +39,8 @@ static void BuildAndRun(string[] args)
     app.UseCors(AuthorizationConstants.ArbeidsflateCors);
     app.UseAuthentication();
     app.UseAuthorization();
-    app.MapControllers();
     app.UseMiddleware<SecurityHeadersMiddleware>();
+    app.MapControllers();
 
     if (app.Environment.IsDevelopment())
     {
