@@ -77,6 +77,10 @@ inputs:
     description: "Whitelist for approved resources"
     required: false
     default: ""
+  MASKINPORTEN_ENVIRONMENT:
+    description: "Maskinporten environment"
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -137,3 +141,4 @@ runs:
         STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}
         SBL_BRIDGE_BASE_URL: ${{ inputs.SBL_BRIDGE_BASE_URL }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
+        MASKINPORTEN_ENVIRONMENT: ${{ inputs.MASKINPORTEN_ENVIRONMENT }}
