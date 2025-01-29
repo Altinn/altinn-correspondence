@@ -79,7 +79,7 @@ inputs:
     default: ""
   MASKINPORTEN_ENVIRONMENT:
     description: "Maskinporten environment"
-    required: false
+    required: true
     default: ""
 
 runs:
