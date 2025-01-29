@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Npgsql;
 using System.Text.Json.Serialization;
+using Altinn.Correspondence.Integrations.Slack;
 
 BuildAndRun(args);
 
@@ -73,7 +74,10 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     });
     var altinnOptions = new AltinnOptions();
     config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
-    services.AddExceptionHandler<SlackExceptionNotification>();
+    //services.AddExceptionHandler<SlackExceptionNotification>();
+    services.AddSingleton<SlackExceptionNotification>();
+
+    services.AddSingleton<SlackExceptionHandler>();
     services.AddCors(options =>
     {
         options.AddPolicy(name: AuthorizationConstants.ArbeidsflateCors,

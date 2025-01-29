@@ -19,7 +19,6 @@ public class SlackExceptionNotification : IExceptionHandler
         _logger = logger;
         _slackClient = slackClient;
         _hostEnvironment = hostEnvironment;
-
     }
     public ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
@@ -49,6 +48,37 @@ public class SlackExceptionNotification : IExceptionHandler
         return ValueTask.FromResult(false);
     }
 
+    public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, CancellationToken cancellationToken)
+    {
+        var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception);
+
+        _logger.LogError(
+            exception,
+            "Unhandled exception occurred. Job ID: {JobId}, Job Name: {JobName}, Type: {ExceptionType}, Message: {Message}",
+            jobId,
+            jobName,
+            exception.GetType().Name,
+            exception.Message);
+
+        // Send the exception details to Slack
+        var slackMessage = new SlackMessage
+        {
+            Text = exceptionMessage,
+            Channel = TestChannel // Replace with your actual Slack channel
+        };
+
+        try
+        {
+            SendSlackNotificationWithMessage(exceptionMessage);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send Slack notification");
+            return false;
+        }
+    }   
+
     private string FormatExceptionMessage(Exception exception, HttpContext context)
     {
         return $":warning: *Unhandled Exception*\n" +
@@ -60,6 +90,17 @@ public class SlackExceptionNotification : IExceptionHandler
                $"*Time:* {DateTime.UtcNow:u}\n" +
                $"*Stacktrace:* \n{exception.StackTrace}";
     }
+
+    private string FormatExceptionMessage(string jobId, string jobName, Exception exception)
+    {
+        return $":warning: *Unhandled Exception*\n" +
+                $"*Job ID:* {jobId}\n" +
+                $"*Job Name:* {jobName}\n" +
+                $"*Type:* {exception.GetType().Name}\n" +
+                $"*Message:* {exception.Message}\n" +
+                $"*Stacktrace:* \n{exception.StackTrace}";
+    }
+
     private void SendSlackNotificationWithMessage(string message)
     {
         var slackMessage = new SlackMessage

@@ -43,7 +43,7 @@ namespace Altinn.Correspondence.Integrations.Hangfire
                 _logger.LogError(exception, "Job {JobId} of type {JobName} failed", jobId, jobName);
 
                 // Send the exception details to Slack
-                Task.Run(() => _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception));
+                Task.Run(() => _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception, CancellationToken.None));
             }
         }
     }
