@@ -1,16 +1,8 @@
 #!/bin/bash
 
-tokengenuser=${TOKEN_GENERATOR_USERNAME}
-tokengenpasswd=${TOKEN_GENERATOR_PASSWORD}
 failed=0
 
 kubectl config set-context --current --namespace=correspondence
-
-# Validate required environment variables
-if [ -z "$TOKEN_GENERATOR_USERNAME" ] || [ -z "$TOKEN_GENERATOR_PASSWORD" ]; then
-    echo "Error: TOKEN_GENERATOR_USERNAME and TOKEN_GENERATOR_PASSWORD must be set"
-    exit 1
-fi
 
 help() {
     echo "Usage: $0 [OPTIONS]"
@@ -106,7 +98,7 @@ fi
 testid="${name}_$(date '+%Y%m%dT%H%M%S')"
 
 # Create the k6 archive
-if ! k6 archive $filename -e API_VERSION=v1 -e API_ENVIRONMENT=yt01 -e TOKEN_GENERATOR_USERNAME=$tokengenuser -e TOKEN_GENERATOR_PASSWORD=$tokengenpasswd -e TESTID=$testid; then
+if ! k6 archive $filename -e API_VERSION=v1 -e API_ENVIRONMENT=yt01 -e TESTID=$testid; then
     echo "Error: Failed to create k6 archive"
     exit 1
 fi
@@ -125,7 +117,7 @@ metadata:
   name: $name
   namespace: correspondence
 spec:
-  arguments: --out experimental-prometheus-rw --vus=$vus --duration=$duration --tag testid=$testid
+  arguments: --out experimental-prometheus-rw --vus=$vus --duration=$duration --tag testid=$testid --log-output=none
   parallelism: $parallelism
   script:
     configMap:
@@ -137,6 +129,9 @@ spec:
         value: "http://kube-prometheus-stack-prometheus.monitoring:9090/api/v1/write"
       - name: K6_PROMETHEUS_RW_TREND_STATS
         value: "avg,min,med,max,p(95),p(99),p(99.5),p(99.9),count"
+    envFrom:
+    - secretRef:
+        name: "token-generator-creds"
     metadata:
       labels:
         k6-test: $name

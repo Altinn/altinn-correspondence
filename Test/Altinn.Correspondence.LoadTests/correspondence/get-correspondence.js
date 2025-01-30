@@ -36,7 +36,8 @@ const traceCalls = (__ENV.traceCalls ?? 'false') === 'true';
 
 export default function(data) {
     const myEndUsers = data[exec.vu.idInTest - 1];
-    getCorrespondence(serviceOwners[0], randomItem(myEndUsers), traceCalls);  
+    const ix = exec.vu.iterationInInstance % myEndUsers.length;
+    getCorrespondence(serviceOwners[0], myEndUsers[ix], traceCalls);  
 }
 
 function getCorrespondence(serviceOwner, endUser, traceCalls) {
@@ -74,7 +75,7 @@ function getCorrespondence(serviceOwner, endUser, traceCalls) {
 
 function getContent(response, endUser, traceparent, paramsWithToken) {
     let correspondences = JSON.parse(response.body);
-    if (correspondences.items.length === 0) {
+    if (correspondences.ids.length === 0) {
         console.log('No correspondence found for end user ' + endUser.ssn);
         return;
     }
@@ -85,11 +86,11 @@ function getContent(response, endUser, traceparent, paramsWithToken) {
     };
     
     describe('get correspondence details', () => {
-        let correspondenceId = correspondences.items[0]; //randomItem(correspondences.items);
+        let correspondenceId = correspondences.ids[0]; //randomItem(correspondences.items);
         let contentUrl = new URL(baseUrlCorrespondence + correspondenceId);
         let r = http.get(contentUrl.toString(), listParams);
         expect(r.status, 'response status').to.equal(200);
-        getCorrespondenceContent(correspondences.items, r, endUser, traceparent);
+        getCorrespondenceContent(correspondences.ids, r, endUser, traceparent);
     });
 }
 
