@@ -9,9 +9,11 @@ using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Azure.Identity;
 using Hangfire;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Npgsql;
+using Serilog;
 using System.Text.Json.Serialization;
 
 BuildAndRun(args);
@@ -19,7 +21,14 @@ BuildAndRun(args);
 static void BuildAndRun(string[] args)
 {
     var builder = WebApplication.CreateBuilder(args);
-
+    builder.Host.UseSerilog((context, services, configuration) => configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext()
+        .WriteTo.Console()
+        .WriteTo.ApplicationInsights(
+            services.GetRequiredService<TelemetryConfiguration>(),
+            TelemetryConverter.Traces));
     builder.Configuration
         .AddJsonFile("appsettings.json", true, true)
         .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", true, true)
@@ -51,7 +60,6 @@ static void BuildAndRun(string[] args)
         }
         app.UseHangfireDashboard();
     }
-
 
     app.Run();
 }
