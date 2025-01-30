@@ -227,13 +227,6 @@
 										"correspondence",
 										"{{correspondenceId}}",
 										"markasread"
-									],
-									"query": [
-										{
-											"key": "onBehalfOf",
-											"value": "",
-											"description": "(Optional) Specifies the identifier of the entity on whose behalf the current user is acting."
-										}
 									]
 								}
 							},
@@ -336,13 +329,6 @@
 										"correspondence",
 										"{{correspondenceId}}",
 										"confirm"
-									],
-									"query": [
-										{
-											"key": "onBehalfOf",
-											"value": "",
-											"description": "(Optional) Specifies the identifier of the entity on whose behalf the current user is acting."
-										}
 									]
 								}
 							},
@@ -445,13 +431,6 @@
 										"correspondence",
 										"{{correspondenceId}}",
 										"archive"
-									],
-									"query": [
-										{
-											"key": "onBehalfOf",
-											"value": "",
-											"description": "(Optional) Specifies the identifier of the entity on whose behalf the current user is acting."
-										}
 									]
 								}
 							},
@@ -537,13 +516,6 @@
 										"attachment",
 										"{{attachmentId}}",
 										"download"
-									],
-									"query": [
-										{
-											"key": "onBehalfOf",
-											"value": "",
-											"description": "(Optional) Specifies the identifier of the entity on whose behalf the current user is acting."
-										}
 									]
 								}
 							},
@@ -614,13 +586,6 @@
 										"correspondence",
 										"{{correspondenceId}}",
 										"purge"
-									],
-									"query": [
-										{
-											"key": "onBehalfOf",
-											"value": "",
-											"description": "(Optional) Specifies the identifier of the entity on whose behalf the current user is acting."
-										}
 									]
 								}
 							},
@@ -712,7 +677,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"Correspondence\": {\n        \"resourceId\": \"{{resource_id}}\",\n        \"sender\": \"0192:{{senderOrgNo}}\",\n        \"sendersReference\": \"1\",\n        \"content\": {\n            \"language\": \"nb\",\n            \"messageTitle\": \"Meldingstittel\",\n            \"messageSummary\": \"Ett sammendrag for meldingen\",\n            \"messageBody\": \"# meldingsteksten. Som kan være plain text eller markdown \",\n            \"attachments\": []\n        },\n        \"RequestedPublishTime\": \"2024-09-28T12:44:28.290518+00:00\",\n        \"allowSystemDeleteAfter\": \"2025-08-29T13:31:28.290518+00:00\",\n        \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n        \"externalReferences\": [\n            {\n                \"referenceValue\": \"1\",\n                \"referenceType\": \"AltinnBrokerFileTransfer\"\n            }\n        ],\n        \"propertyList\": {\n            \"deserunt_12\": \"1\",\n            \"culpa_852\": \"2\",\n            \"anim5\": \"3\",\n            \"Æ*'1??`  \": \"asdfgklasjd\"\n        },\n        \"replyOptions\": [\n            {\n                \"linkURL\": \"https://www.test.no\",\n                \"linkText\": \"test\"\n            },\n            {\n                \"linkURL\": \"https://test.no\",\n                \"linkText\": \"test\"\n            }\n        ],\n        \"notification\": {\n            \"notificationTemplate\": 0,\n            \"notificationChannel\": 3,\n            \"SendReminder\": true,\n            \"EmailBody\": \"Test av varsel\",\n            \"EmailSubject\": \"Dette er innholdet i ett varsel\",\n            \"SmsBody\": \"Dette er innholdet i ett testvarsel\",\n            \"ReminderEmailBody\": \"Dette er test av revarsling \",\n            \"ReminderEmailSubject\": \"Test av revarsel\",\n            \"ReminderSmsBody\": \"Dette er en test av revarslingl\"\n        },\n        \"IgnoreReservation\": true,\n        \"IsConfirmationNeeded\": false\n    },\n    \"Recipients\": [\n        \"0192:{{recipientOrgNo}}\"\n    ],\n    \"existingAttachments\": []\n}",
+							"raw": "{\n    \"Correspondence\": {\n        \"resourceId\": \"{{resource_id}}\",\n        \"sender\": \"urn:altinn:organization:identifier-no:{{senderOrgNo}}\",\n        \"sendersReference\": \"1\",\n        \"content\": {\n            \"language\": \"nb\",\n            \"messageTitle\": \"Meldingstittel\",\n            \"messageSummary\": \"Ett sammendrag for meldingen\",\n            \"messageBody\": \"# meldingsteksten. Som kan være plain text eller markdown \",\n            \"attachments\": []\n        },\n        \"RequestedPublishTime\": \"2024-09-28T12:44:28.290518+00:00\",\n        \"allowSystemDeleteAfter\": \"2025-08-29T13:31:28.290518+00:00\",\n        \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n        \"externalReferences\": [\n            {\n                \"referenceValue\": \"1\",\n                \"referenceType\": \"AltinnBrokerFileTransfer\"\n            }\n        ],\n        \"propertyList\": {\n            \"deserunt_12\": \"1\",\n            \"culpa_852\": \"2\",\n            \"anim5\": \"3\",\n            \"Æ*'1??`  \": \"asdfgklasjd\"\n        },\n        \"replyOptions\": [\n            {\n                \"linkURL\": \"https://www.test.no\",\n                \"linkText\": \"test\"\n            },\n            {\n                \"linkURL\": \"https://test.no\",\n                \"linkText\": \"test\"\n            }\n        ],\n        \"notification\": {\n            \"notificationTemplate\": 0,\n            \"notificationChannel\": 3,\n            \"SendReminder\": true,\n            \"EmailBody\": \"Test av varsel\",\n            \"EmailSubject\": \"Dette er innholdet i ett varsel\",\n            \"SmsBody\": \"Dette er innholdet i ett testvarsel\",\n            \"ReminderEmailBody\": \"Dette er test av revarsling \",\n            \"ReminderEmailSubject\": \"Test av revarsel\",\n            \"ReminderSmsBody\": \"Dette er en test av revarslingl\"\n        },\n        \"IgnoreReservation\": true,\n        \"IsConfirmationNeeded\": false\n    },\n    \"Recipients\": [\n        \"urn:altinn:organization:identifier-no:{{recipientOrgNo}}\"\n    ],\n    \"existingAttachments\": []\n}",
 							"options": {
 								"raw": {
 									"headerFamily": "json",
@@ -829,7 +794,7 @@
 							"formdata": [
 								{
 									"key": "Recipients[0]",
-									"value": "0192:{{recipientOrgNo}}",
+									"value": "urn:altinn:organization:identifier-no:{{recipientOrgNo}}",
 									"type": "text"
 								},
 								{
@@ -839,7 +804,7 @@
 								},
 								{
 									"key": "Correspondence.Sender",
-									"value": "0192:{{senderOrgNo}}",
+									"value": "urn:altinn:organization:identifier-no:{{senderOrgNo}}",
 									"type": "text"
 								},
 								{
@@ -1124,13 +1089,6 @@
 								"v1",
 								"correspondence",
 								"{{correspondenceId}}"
-							],
-							"query": [
-								{
-									"key": "onBehalfOf",
-									"value": "",
-									"description": "(Optional) Specifies the identifier of the entity on whose behalf the current user is acting."
-								}
 							]
 						}
 					},
@@ -1210,13 +1168,6 @@
 								"correspondence",
 								"{{correspondenceId}}",
 								"details"
-							],
-							"query": [
-								{
-									"key": "onBehalfOf",
-									"value": "",
-									"description": "(Optional) Specifies the identifier of the entity on whose behalf the current user is acting."
-								}
 							]
 						}
 					},
@@ -1303,7 +1254,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{baseUrl}}/correspondence/api/v1/correspondence?from=2024-02-02T13:31:28.290518&to=2025-08-29T13:31:28.290518&status=2&resourceId={{resource_id}}&role=RecipientAndSender",
+							"raw": "{{baseUrl}}/correspondence/api/v1/correspondence?from=2024-02-02T13:31:28.290518&to=2025-08-29T13:31:28.290518&status=2&resourceId={{resource_id}}&role=RecipientAndSender&onBehalfOf=",
 							"host": [
 								"{{baseUrl}}"
 							],
@@ -1439,7 +1390,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"dataType\": \"html\",\n  \"expirationTime\": \"2024-12-12\",\n  \"resourceId\": \"{{resource_id}}\",\n  \"name\": \"testFile\",\n  \"sender\": \"0192:{{senderOrgNo}}\",\n  \"sendersReference\": \"1234\",\n  \"fileName\": \"test-file\",\n  \"isEncrypted\": false\n}",
+							"raw": "{\n  \"expirationTime\": \"2024-12-12\",\n  \"resourceId\": \"{{resource_id}}\",\n  \"name\": \"testFile\",\n  \"sender\": \"0192:{{senderOrgNo}}\",\n  \"sendersReference\": \"1234\",\n  \"fileName\": \"test-file\",\n  \"isEncrypted\": false\n}",
 							"options": {
 								"raw": {
 									"headerFamily": "json",

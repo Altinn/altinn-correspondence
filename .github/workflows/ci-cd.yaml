@@ -80,6 +80,7 @@ jobs:
           SLACK_URL: ${{ secrets.SLACK_URL }}
           SBL_BRIDGE_BASE_URL: ${{ secrets.SBL_BRIDGE_BASE_URL }}
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
+          MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
 
   deploy-at22:
     name: deploy at22
