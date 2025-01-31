@@ -16,7 +16,21 @@ using Npgsql;
 using Serilog;
 using System.Text.Json.Serialization;
 
-BuildAndRun(args);
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+try
+{
+    BuildAndRun(args);
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
 
 static void BuildAndRun(string[] args)
 {
