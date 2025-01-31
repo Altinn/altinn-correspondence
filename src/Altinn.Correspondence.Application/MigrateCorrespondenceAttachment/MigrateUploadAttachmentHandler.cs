@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.MigrateUploadAttachment;
+using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -28,8 +29,7 @@ public class MigrateUploadAttachmentHandler(
         {
             return AuthorizationErrors.NoAccessToResource;
         }
-        var maxUploadSize = long.Parse(int.MaxValue.ToString());
-        if (request.ContentLength > maxUploadSize || request.ContentLength == 0)
+        if (request.ContentLength > ApplicationConstants.MaxFileUploadSize || request.ContentLength == 0)
         {
             return AttachmentErrors.InvalidFileSize;
         }
