@@ -39,7 +39,6 @@ static void BuildAndRun(string[] args)
     app.UseCors(AuthorizationConstants.ArbeidsflateCors);
     app.UseAuthentication();
     app.UseAuthorization();
-    //app.UseMiddleware<GlobalExceptionMiddleware>();
     app.UseMiddleware<SecurityHeadersMiddleware>();
     app.MapControllers();
 
@@ -52,8 +51,6 @@ static void BuildAndRun(string[] args)
             _Db.MigrateWithLock();
         }
         app.UseHangfireDashboard();
-        //var slackHandler = app.Services.GetRequiredService<GlobalExceptionMiddleware>();
-        //GlobalJobFilters.Filters.Add(slackHandler);
     }
 
     app.Run();

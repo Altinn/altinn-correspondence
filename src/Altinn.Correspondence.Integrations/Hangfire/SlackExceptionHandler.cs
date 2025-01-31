@@ -1,12 +1,7 @@
 using Microsoft.Extensions.Logging;
-using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
-using Hangfire.Storage;
 using Hangfire.Server;
-using System;
-using System.Threading.Tasks;
-using System.Threading;
 using Altinn.Correspondence.Integrations.Slack;
 
 namespace Altinn.Correspondence.Integrations.Hangfire
@@ -25,7 +20,6 @@ namespace Altinn.Correspondence.Integrations.Hangfire
         public void OnPerforming(PerformingContext filterContext)
         {
             // Log the start of the job execution
-            //Den går hit før hangfire er scheduled
             var jobId = filterContext.BackgroundJob.Id;
             var jobName = filterContext.BackgroundJob.Job.Type.Name;
             _logger.LogInformation("Starting job {JobId} of type {JobName}", jobId, jobName);
