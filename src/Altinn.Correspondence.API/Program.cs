@@ -51,8 +51,9 @@ static void BuildAndRun(string[] args)
             _Db.MigrateWithLock();
         }
         app.UseHangfireDashboard();
+        var slackHandler = app.Services.GetRequiredService<SlackExceptionHandler>();
+        GlobalJobFilters.Filters.Add(slackHandler);
     }
-
 
     app.Run();
 }

@@ -11,12 +11,14 @@
     <PackageReference Include="Altinn.Authorization.ABAC" Version="0.0.8" />
     <PackageReference Include="Altinn.Common.PEP" Version="4.1.2" />
     <PackageReference Include="Altinn.Platform.Models" Version="1.6.1" />
+    <PackageReference Include="Hangfire" Version="1.8.17" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.17" />
     <PackageReference Include="Hangfire.Core" Version="1.8.17" />
     <PackageReference Include="Hangfire.PostgreSql" Version="1.20.10" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.1" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.1" />
     <PackageReference Include="Slack.Webhooks" Version="1.1.5" />
@@ -28,5 +30,4 @@
     <ProjectReference Include="..\Altinn.Correspondence.Common\Altinn.Correspondence.Common.csproj" />
     <ProjectReference Include="..\Altinn.Correspondence.Persistence\Altinn.Correspondence.Persistence.csproj" />
   </ItemGroup>
-
 </Project>

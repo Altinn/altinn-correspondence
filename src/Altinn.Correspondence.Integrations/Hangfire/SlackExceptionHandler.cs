@@ -25,6 +25,7 @@ namespace Altinn.Correspondence.Integrations.Hangfire
         public void OnPerforming(PerformingContext filterContext)
         {
             // Log the start of the job execution
+            //Den går hit før hangfire er scheduled
             var jobId = filterContext.BackgroundJob.Id;
             var jobName = filterContext.BackgroundJob.Job.Type.Name;
             _logger.LogInformation("Starting job {JobId} of type {JobName}", jobId, jobName);
@@ -38,7 +39,7 @@ namespace Altinn.Correspondence.Integrations.Hangfire
             _logger.LogInformation("Completed job {JobId} of type {JobName}", jobId, jobName);
         }
 
-        public void OnStateElection(ElectStateContext context)
+        public async void OnStateElection(ElectStateContext context)
         {
             if (context.CandidateState is FailedState failedState)
             {
@@ -48,8 +49,8 @@ namespace Altinn.Correspondence.Integrations.Hangfire
 
                 _logger.LogError(exception, "Job {JobId} of type {JobName} failed", jobId, jobName);
                 
-                // Add this line to send the Slack notification
-                _ = _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception, CancellationToken.None);
+                // Properly await the notification
+                await _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception, CancellationToken.None);
             }
         }
     }
