@@ -39,6 +39,7 @@ static void BuildAndRun(string[] args)
     app.UseCors(AuthorizationConstants.ArbeidsflateCors);
     app.UseAuthentication();
     app.UseAuthorization();
+    //app.UseMiddleware<GlobalExceptionMiddleware>();
     app.UseMiddleware<SecurityHeadersMiddleware>();
     app.MapControllers();
 
@@ -51,8 +52,8 @@ static void BuildAndRun(string[] args)
             _Db.MigrateWithLock();
         }
         app.UseHangfireDashboard();
-        var slackHandler = app.Services.GetRequiredService<SlackExceptionHandler>();
-        GlobalJobFilters.Filters.Add(slackHandler);
+        //var slackHandler = app.Services.GetRequiredService<GlobalExceptionMiddleware>();
+        //GlobalJobFilters.Filters.Add(slackHandler);
     }
 
     app.Run();
@@ -76,6 +77,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     var altinnOptions = new AltinnOptions();
     config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
     services.AddSingleton<Altinn.Correspondence.Integrations.Slack.SlackExceptionNotification>();
+    services.AddExceptionHandler<SlackExceptionNotification>();
     services.AddCors(options =>
     {
         options.AddPolicy(name: AuthorizationConstants.ArbeidsflateCors,

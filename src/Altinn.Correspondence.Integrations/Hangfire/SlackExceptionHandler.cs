@@ -31,12 +31,18 @@ namespace Altinn.Correspondence.Integrations.Hangfire
             _logger.LogInformation("Starting job {JobId} of type {JobName}", jobId, jobName);
         }
 
-        public void OnPerformed(PerformedContext filterContext)
+        public async void OnPerformed(PerformedContext filterContext)
         {
             // Log the completion of the job execution
+            var exception = filterContext.Exception;
             var jobId = filterContext.BackgroundJob.Id;
             var jobName = filterContext.BackgroundJob.Job.Type.Name;
             _logger.LogInformation("Completed job {JobId} of type {JobName}", jobId, jobName);
+            
+            // Properly await the notification
+            if(exception != null) {
+                await _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception, CancellationToken.None);
+            }
         }
 
         public async void OnStateElection(ElectStateContext context)
