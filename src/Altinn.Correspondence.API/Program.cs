@@ -65,6 +65,8 @@ static void BuildAndRun(string[] args)
     app.MapControllers();
     app.UseMiddleware<SecurityHeadersMiddleware>();
     app.UseMiddleware<LogEnrichmentMiddleware>();
+    app.UseMiddleware<RequestLoggingMiddleware>();
+    app.UseSerilogRequestLogging();
 
     if (app.Environment.IsDevelopment())
     {
