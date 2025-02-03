@@ -34,6 +34,7 @@ internal static class InitializeCorrespondenceNotificationMapper
             ReminderNotificationChannel = (NotificationChannel?)correspondenceNotificationExt.ReminderNotificationChannel,
             SmsBody = correspondenceNotificationExt.SmsBody,
             SendReminder = correspondenceNotificationExt.SendReminder,
+            //CustomNotificationRecipients blir ikke populert fra API siden
             CustomNotificationRecipients = NotificationMapper.MapExternalRecipientsToRequest(correspondenceNotificationExt.CustomNotificationRecipients)
         };
         return notification;

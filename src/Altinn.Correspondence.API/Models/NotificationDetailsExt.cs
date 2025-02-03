@@ -7,6 +7,8 @@ namespace Altinn.Correspondence.API.Models;
 /// </summary>
 public class NotificationDetailsExt
 {
+    //DET ER DENNE LISTA SOM SKAL BRUKES
+
     /// <summary>
     /// The notification id
     /// </summary>

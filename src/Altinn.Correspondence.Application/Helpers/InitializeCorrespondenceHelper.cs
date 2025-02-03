@@ -155,6 +155,8 @@ namespace Altinn.Correspondence.Application.Helpers
         /// </summary>
         public Error? ValidateRecipientOverrides(NotificationRequest notification, List<string> recipients)
         {
+            //denne brukes
+            //CustomNotificationRecipients er tom
             var customRecipients = notification.CustomNotificationRecipients ?? [];
             if (customRecipients.Count == 0)
             {
