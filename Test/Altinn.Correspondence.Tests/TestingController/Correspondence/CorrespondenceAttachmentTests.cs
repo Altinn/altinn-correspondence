@@ -56,6 +56,66 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
         }
 
+        [Theory]
+        [InlineData(".doc")]
+        [InlineData(".xls")]
+        [InlineData(".docx")]
+        [InlineData(".xlsx")]
+        [InlineData(".ppt")]
+        [InlineData(".pps")]
+        [InlineData(".zip")]
+        [InlineData(".pdf")]
+        [InlineData(".html")]
+        [InlineData(".txt")]
+        [InlineData(".xml")]
+        [InlineData(".jpg")]
+        [InlineData(".gif")]
+        [InlineData(".bmp")]
+        [InlineData(".png")]
+        [InlineData(".json")]
+        public async Task UploadCorrespondence_Gives_Ok_For_All_Supported_FileTypes(string fileType)
+        {
+            // Arrange
+            using var stream = File.OpenRead("./Data/FiletypeTestFiles/test" + fileType);
+            var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+            var attachmentData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithAttachments([attachmentData])
+                .Build();
+            var formData = CorrespondenceToFormData(payload.Correspondence);
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
+            using var fileStream = file.OpenReadStream();
+            formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
+
+            // Act
+            var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+            // Assert
+            Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task UploadCorrespondence_Gives_BadRequest_When_Uploading_UnSupported_FileType()
+        {
+            // Arrange
+            using var stream = File.OpenRead("./Data/FiletypeTestFiles/test.text");
+            var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+            var attachmentData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithAttachments([attachmentData])
+                .Build();
+            var formData = CorrespondenceToFormData(payload.Correspondence);
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
+            using var fileStream = file.OpenReadStream();
+            formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
+
+            // Act
+            var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+            // Assert
+            Assert.True(uploadCorrespondenceResponse.StatusCode == HttpStatusCode.BadRequest, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
+        }
+
         [Fact]
         public async Task UploadCorrespondenceWithoutAttachments_Gives_Ok()
         {

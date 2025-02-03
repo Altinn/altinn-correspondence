@@ -16,6 +16,7 @@
     <None Remove="Data\MalwareScanResult_NoThreatFound.json" />
     <None Remove="Data\WebHookSubscriptionValidationTest.json" />
     <None Remove="Data\Markdown.txt" />
+    <None Remove="Data\FiletypeTestFiles\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -32,6 +33,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Data\test.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\FiletypeTestFiles\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
