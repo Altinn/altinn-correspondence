@@ -7,9 +7,9 @@ public static class HttpContextLogExtensions
 {
     public static void AddLogProperty(this HttpContext context, string name, object value)
     {
-        if (context.Items["LogContextDisposables"] is List<IDisposable> disposables)
+        if (context.Items["LogProperties"] is Dictionary<string, object> properties)
         {
-            disposables.Add(LogContext.PushProperty(name, value));
+            properties[name] = value;
         }
     }
 }
