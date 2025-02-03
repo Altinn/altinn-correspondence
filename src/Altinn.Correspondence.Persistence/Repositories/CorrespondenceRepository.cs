@@ -1,9 +1,9 @@
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Serilog.Context;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
@@ -15,12 +15,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             await _context.Correspondences.AddAsync(correspondence, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
+            LogContext.PushProperty("correspondenceId", correspondence.Id);
             return correspondence;
         }
         public async Task<List<CorrespondenceEntity>> CreateCorrespondences(List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken)
         {
             await _context.Correspondences.AddRangeAsync(correspondences, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
+            if (correspondences.Count == 1)
+            {
+                LogContext.PushProperty("correspondenceId", correspondences[0].Id);
+            }
             return correspondences;
         }
 
@@ -34,6 +39,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             CorrespondencesRoleType role,
             CancellationToken cancellationToken)
         {
+            LogContext.PushProperty("resourceId", resourceId);
             var correspondences = _context.Correspondences
                 .Where(c => c.ResourceId == resourceId)             // Correct id
                 .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
@@ -54,6 +60,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool includeContent,
             CancellationToken cancellationToken)
         {
+            LogContext.PushProperty("correspondenceId", guid);
             var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
             if (includeStatus)
             {
