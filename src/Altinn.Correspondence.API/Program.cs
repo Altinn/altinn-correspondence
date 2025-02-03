@@ -1,4 +1,5 @@
 using Altinn.Correspondence.API.Auth;
+using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Options;
@@ -63,6 +64,7 @@ static void BuildAndRun(string[] args)
     app.UseAuthorization();
     app.MapControllers();
     app.UseMiddleware<SecurityHeadersMiddleware>();
+    app.UseMiddleware<LogEnrichmentMiddleware>();
 
     if (app.Environment.IsDevelopment())
     {
