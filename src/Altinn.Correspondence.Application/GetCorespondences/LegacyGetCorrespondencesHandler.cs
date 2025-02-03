@@ -10,6 +10,8 @@ using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 using Altinn.Correspondence.Common.Constants;
 using Serilog.Context;
+using Microsoft.AspNetCore.Http;
+using Altinn.Correspondence.Common.Helpers;
 
 namespace Altinn.Correspondence.Application.GetCorrespondences;
 
@@ -20,6 +22,7 @@ public class LegacyGetCorrespondencesHandler(
     UserClaimsHelper userClaimsHelper,
     IAltinnRegisterService altinnRegisterService,
     IResourceRightsService resourceRightsService,
+    IHttpContextAccessor httpContextAccessor,
     ILogger<LegacyGetCorrespondencesHandler> logger) : IHandler<LegacyGetCorrespondencesRequest, LegacyGetCorrespondencesResponse>
 {
     private record PartyInfo(string Id, Party? Party);
@@ -38,7 +41,7 @@ public class LegacyGetCorrespondencesHandler(
         {
             return AuthorizationErrors.InvalidPartyId;
         }
-        LogContext.PushProperty("partyId", partyId);
+        httpContextAccessor.HttpContext?.AddLogProperty("partyId", partyId);
         var minAuthLevel = userClaimsHelper.GetMinimumAuthenticationLevel();
         var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))

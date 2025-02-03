@@ -1,13 +1,15 @@
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Helpers;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Serilog.Context;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
-    public class CorrespondenceRepository(ApplicationDbContext context) : ICorrespondenceRepository
+    public class CorrespondenceRepository(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor) : ICorrespondenceRepository
     {
         private readonly ApplicationDbContext _context = context;
 
@@ -15,7 +17,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             await _context.Correspondences.AddAsync(correspondence, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
-            LogContext.PushProperty("instanceId", correspondence.Id);
+            httpContextAccessor.HttpContext?.AddLogProperty("instanceId", correspondence.Id);
             return correspondence;
         }
         public async Task<List<CorrespondenceEntity>> CreateCorrespondences(List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken)
@@ -24,7 +26,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             await _context.SaveChangesAsync(cancellationToken);
             if (correspondences.Count == 1)
             {
-                LogContext.PushProperty("instanceId", correspondences[0].Id);
+                httpContextAccessor.HttpContext?.AddLogProperty("instanceId", correspondences[0].Id);
             }
             return correspondences;
         }
@@ -59,7 +61,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool includeContent,
             CancellationToken cancellationToken)
         {
-            LogContext.PushProperty("instanceId", guid); 
+            httpContextAccessor.HttpContext?.AddLogProperty("instanceId", guid); 
             var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
             if (includeStatus)
             {
@@ -72,7 +74,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             var correspondence = await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
             if (correspondence is not null)
             {
-                LogContext.PushProperty("resourceId", correspondence.ResourceId);
+                httpContextAccessor.HttpContext?.AddLogProperty("resourceId", correspondence.ResourceId);
             }
             return correspondence;
         }

@@ -41,7 +41,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] MigrateCorrespondenceHandler handler,
             CancellationToken cancellationToken)
         {
-            LogContextHelpers.EnrichLogsWithMigrateCorrespondence(migrateCorrespondence);
+            HttpContext.EnrichLogsWithMigrateCorrespondence(migrateCorrespondence);
             _logger.LogInformation("Initialize correspondence");
 
             var commandRequest = MigrateCorrespondenceMapper.MapToRequest(migrateCorrespondence);

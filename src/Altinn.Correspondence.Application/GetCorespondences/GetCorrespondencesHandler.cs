@@ -14,7 +14,7 @@ public class GetCorrespondencesHandler(
 {
     public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        LogContext.PushProperty("resourceId", request.ResourceId);
+        httpContextAccessor.HttpContext?.AddLogProperty("resourceId", request.ResourceId);
         const int limit = 1000;
         DateTimeOffset? to = request.To != null ? ((DateTimeOffset)request.To).ToUniversalTime() : null;
         DateTimeOffset? from = request.From != null ? ((DateTimeOffset)request.From).ToUniversalTime() : null;
