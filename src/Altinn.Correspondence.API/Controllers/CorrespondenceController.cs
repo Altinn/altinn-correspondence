@@ -157,7 +157,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns>Message body in markdown format</returns>
         [HttpGet]
         [Route("{correspondenceId}/content")]
-        [Produces("application/vnd.dialogporten.frontchannelembed+json;type=markdown")]
+        [Produces("text/plain")]
         [Authorize(AuthenticationSchemes = AuthorizationConstants.DialogportenScheme)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         public async Task<ActionResult> GetCorrespondenceContent(
@@ -174,7 +174,7 @@ namespace Altinn.Correspondence.API.Controllers
             return commandResult.Match(
                 data =>
                 {
-                    var messageBody = data.Content.MessageBody?.Replace("\n", "<br />");
+                    var messageBody = data.Content.MessageBody;
                     return Ok(messageBody);
                 },
                 Problem
