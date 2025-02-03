@@ -15,7 +15,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             await _context.Correspondences.AddAsync(correspondence, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
-            LogContext.PushProperty("correspondenceId", correspondence.Id);
+            LogContext.PushProperty("instanceId", correspondence.Id);
             return correspondence;
         }
         public async Task<List<CorrespondenceEntity>> CreateCorrespondences(List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken)
@@ -24,7 +24,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             await _context.SaveChangesAsync(cancellationToken);
             if (correspondences.Count == 1)
             {
-                LogContext.PushProperty("correspondenceId", correspondences[0].Id);
+                LogContext.PushProperty("instanceId", correspondences[0].Id);
             }
             return correspondences;
         }
@@ -39,7 +39,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             CorrespondencesRoleType role,
             CancellationToken cancellationToken)
         {
-            LogContext.PushProperty("resourceId", resourceId);
             var correspondences = _context.Correspondences
                 .Where(c => c.ResourceId == resourceId)             // Correct id
                 .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
@@ -60,7 +59,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool includeContent,
             CancellationToken cancellationToken)
         {
-            LogContext.PushProperty("correspondenceId", guid);
+            LogContext.PushProperty("instanceId", guid); 
             var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
             if (includeStatus)
             {
@@ -70,7 +69,12 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a.Statuses);
             }
-            return await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
+            var correspondence = await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
+            if (correspondence is not null)
+            {
+                LogContext.PushProperty("resourceId", correspondence.ResourceId);
+            }
+            return correspondence;
         }
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesByAttachmentId(Guid attachmentId, bool includeStatus, CancellationToken cancellationToken = default)
         {

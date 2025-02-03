@@ -2,6 +2,7 @@ using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.AspNetCore.Http;
 using OneOf;
+using Serilog.Context;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondences;
@@ -13,6 +14,7 @@ public class GetCorrespondencesHandler(
 {
     public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        LogContext.PushProperty("resourceId", request.ResourceId);
         const int limit = 1000;
         DateTimeOffset? to = request.To != null ? ((DateTimeOffset)request.To).ToUniversalTime() : null;
         DateTimeOffset? from = request.From != null ? ((DateTimeOffset)request.From).ToUniversalTime() : null;

@@ -9,6 +9,7 @@ using OneOf;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 using Altinn.Correspondence.Common.Constants;
+using Serilog.Context;
 
 namespace Altinn.Correspondence.Application.GetCorrespondences;
 
@@ -37,6 +38,7 @@ public class LegacyGetCorrespondencesHandler(
         {
             return AuthorizationErrors.InvalidPartyId;
         }
+        LogContext.PushProperty("partyId", partyId);
         var minAuthLevel = userClaimsHelper.GetMinimumAuthenticationLevel();
         var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
