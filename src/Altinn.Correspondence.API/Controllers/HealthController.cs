@@ -6,10 +6,9 @@ namespace Altinn.Correspondence.Controllers
     [ApiController]
     [Route("health")]
     [ApiExplorerSettings(IgnoreApi = true)]
-    public class HealthController(ApplicationDbContext dbContext, ILogger<HealthController> logger) : ControllerBase
+    public class HealthController(ApplicationDbContext dbContext) : ControllerBase
     {
         private readonly ApplicationDbContext _dbContext = dbContext;
-        private readonly ILogger<HealthController> _logger;
 
         [HttpGet]
         public async Task<ActionResult> HealthCheckAsync()
@@ -25,7 +24,6 @@ namespace Altinn.Correspondence.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError("Health check failed!)", ex);
                 return StatusCode(500, new
                 {
                     Status = "Unhealthy",
