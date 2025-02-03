@@ -21,7 +21,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task UploadCorrespondence_Gives_Ok()
         {
             // Arrange
-            using var stream = File.OpenRead("./Data/Markdown.text");
+            using var stream = File.OpenRead("./Data/Markdown.txt");
             var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
             var attachmentData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
             var payload = new CorrespondenceBuilder()
@@ -91,7 +91,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [Fact]
         public async Task UploadCorrespondence_With_Multiple_Files()
         {
-            using var stream = System.IO.File.OpenRead("./Data/Markdown.text");
+            using var stream = System.IO.File.OpenRead("./Data/Markdown.txt");
             var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
             using var fileStream = file.OpenReadStream();
             using var stream2 = System.IO.File.OpenRead("./Data/test.txt");
@@ -129,7 +129,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [Fact]
         public async Task UploadCorrespondences_With_Multiple_Files()
         {
-            using var stream = File.OpenRead("./Data/Markdown.text");
+            using var stream = File.OpenRead("./Data/Markdown.txt");
             var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
             using var fileStream = file.OpenReadStream();
             var attachmentMetaData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
