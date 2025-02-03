@@ -157,12 +157,7 @@ namespace Altinn.Correspondence.Application.Helpers
         {
             //denne brukes
             //CustomNotificationRecipients er tom
-            var customRecipients = notification.CustomNotificationRecipients ?? [];
-            if (customRecipients.Count == 0)
-            {
-                return null;
-            }
-            var recipientWithNumberOrEmail = customRecipients.Where(recipient => recipient.Recipients.Any(r => r.EmailAddress != null || r.MobileNumber != null)).ToList();
+rOrEmail = customRecipients.Where(recipient => recipient.Recipients.Any(r => r.EmailAddress != null || r.MobileNumber != null)).ToList();
             if (recipientWithNumberOrEmail.Count > 0)
             {
                 if (notification.NotificationTemplate != NotificationTemplate.CustomMessage)
