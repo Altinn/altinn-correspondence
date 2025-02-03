@@ -9,7 +9,6 @@ namespace Altinn.Correspondence.API.Helpers;
 public class LogEnrichmentMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly Dictionary<string, object> _properties = new();
 
     public LogEnrichmentMiddleware(RequestDelegate next)
     {
@@ -18,9 +17,10 @@ public class LogEnrichmentMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        context.Items["LogProperties"] = _properties;
+        var properties = new Dictionary<string, object>();
+        context.Items["LogProperties"] = properties;
 
-        using var logScope = CreateLogScope(_properties);
+        using var logScope = CreateLogScope(properties);
         await _next(context);
     }
 
