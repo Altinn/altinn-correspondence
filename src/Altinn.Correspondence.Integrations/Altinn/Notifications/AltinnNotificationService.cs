@@ -92,9 +92,10 @@ public class AltinnNotificationService : IAltinnNotificationService
                 throw new BadHttpRequestException("Failed to process response from Altinn Notification");
             }
             var data = await emailResponse.Content.ReadFromJsonAsync<EmailNotificationSummary>(cancellationToken);
+            notificationStatusResponse.NotificationsStatusDetails.Emails = data.Notifications;
             if (data?.Notifications.Count > 0) notificationStatusResponse.NotificationsStatusDetails.Email = data?.Notifications[0];
         }
-        else if (notificationSummary.NotificationsStatusSummary?.Sms != null)
+        if (notificationSummary.NotificationsStatusSummary?.Sms != null)
         {
             var smsResponse = await _httpClient.GetAsync(notificationSummary.NotificationsStatusSummary.Sms.Links.Self, cancellationToken: cancellationToken);
             if (!smsResponse.IsSuccessStatusCode)
@@ -104,6 +105,7 @@ public class AltinnNotificationService : IAltinnNotificationService
                 throw new BadHttpRequestException("Failed to process response from Altinn Notification");
             }
             var data = await smsResponse.Content.ReadFromJsonAsync<SmsNotificationSummary>(cancellationToken);
+            notificationStatusResponse.NotificationsStatusDetails.Smses = data.Notifications;
             if (data?.Notifications.Count > 0) notificationStatusResponse.NotificationsStatusDetails.Sms = data.Notifications[0];
         }
         return notificationStatusResponse;

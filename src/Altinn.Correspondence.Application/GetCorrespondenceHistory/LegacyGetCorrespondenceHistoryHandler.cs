@@ -61,19 +61,13 @@ public class LegacyGetCorrespondenceHistoryHandler(
 
             if (notificationDetails.NotificationsStatusDetails.Sms is not null)
             {
-                notificationHistory.Add(await GetNotificationStatus(
-                    notificationDetails.NotificationsStatusDetails.Sms.SendStatus,
-                    notificationDetails.NotificationsStatusDetails.Sms.Recipient,
-                    notification.IsReminder,
-                    cancellationToken));
+                var getNotificationStatusTasks = notificationDetails.NotificationsStatusDetails.Smses.Select(sms => GetNotificationStatus(sms.SendStatus, sms.Recipient, notification.IsReminder, cancellationToken));
+                notificationHistory.AddRange(await Task.WhenAll(getNotificationStatusTasks));
             }
             if (notificationDetails.NotificationsStatusDetails.Email is not null)
             {
-                notificationHistory.Add(await GetNotificationStatus(
-                    notificationDetails.NotificationsStatusDetails.Email.SendStatus,
-                    notificationDetails.NotificationsStatusDetails.Email.Recipient,
-                    notification.IsReminder,
-                    cancellationToken));
+                var getNotificationStatusTasks = notificationDetails.NotificationsStatusDetails.Emails.Select(email => GetNotificationStatus(email.SendStatus, email.Recipient, notification.IsReminder, cancellationToken));
+                notificationHistory.AddRange(await Task.WhenAll(getNotificationStatusTasks));
             }
         }
         List<LegacyGetCorrespondenceHistoryResponse> joinedList = [.. correspondenceHistory.Concat(notificationHistory).OrderByDescending(s => s.StatusChanged)];
