@@ -20,7 +20,7 @@ public class HangfireAppRequestFilter(TelemetryClient telemetryClient) : IServer
     {
         var operationName = new RequestTelemetry
         {
-            Name = $"{context.BackgroundJob.Job.Method.Name}"
+            Name = $"HANGFIRE {context.BackgroundJob.Job.Method.Name}"
         };
         _hangfireAppRequestLogger.Value = telemetryClient.StartOperation(operationName);
         _contextualLogger.Value = Serilog.Context.LogContext.PushProperty("JobId", context.BackgroundJob.Id, true);
