@@ -38,6 +38,23 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         }
 
         [Fact]
+        public async Task Delete_Published_IsConfirmedRequired_Correspondence_GivesOk()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().WithDueDateTime(DateTime.UtcNow.AddDays(5)).WithConfirmationNeeded(true).Build();
+
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+
+            // Act
+            var deleteResponse = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/purge");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
+            var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondence.CorrespondenceId}", _serializerOptions);
+            Assert.Equal(CorrespondenceStatusExt.PurgedByRecipient, overview.Status);
+        }
+
+        [Fact]
         public async Task Delete_Correspondence_InvalidParyId_Gives()
         {
             // Arrange
@@ -88,24 +105,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
 
             // Assert
             Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
-        }
-
-        [Fact]
-        public async Task Delete_Published_Correspondence_WithoutConfirmation_WhenConfirmationNeeded_ReturnsBadRequest()
-        {
-            // Arrange
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(1))
-                .WithConfirmationNeeded(true)
-                .Build();
-            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
-
-            // Act
-            var deleteResponse = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/purge");
-
-            // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, deleteResponse.StatusCode);
         }
 
         [Fact]

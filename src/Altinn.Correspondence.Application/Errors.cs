@@ -41,7 +41,7 @@ public static class AttachmentErrors
     public static Error AttachmentNotFound = new Error(2001, "The requested attachment was not found", HttpStatusCode.NotFound);
     public static Error UploadFailed = new Error(2002, "Error occurred during upload", HttpStatusCode.BadGateway);
     public static Error CantUploadToExistingCorrespondence = new Error(2003, "Cannot upload attachment to a correspondence that has been created", HttpStatusCode.BadRequest);
-    public static Error InvalidFileSize = new Error(2004, "File must have content and has a max file size of 2GB", HttpStatusCode.BadRequest);
+    public static Error InvalidFileSize = new Error(2004, "File must have content and has a max file size of 250 MB", HttpStatusCode.BadRequest);
     public static Error FileAlreadyUploaded = new Error(2005, "File has already been or is being uploaded", HttpStatusCode.BadRequest);
     public static Error FileHasBeenPurged = new Error(2006, "File has already been purged", HttpStatusCode.BadRequest);
     public static Error PurgeAttachmentWithExistingCorrespondence = new Error(2007, "Attachment cannot be purged as it is linked to at least one existing correspondence", HttpStatusCode.BadRequest);
@@ -50,6 +50,7 @@ public static class AttachmentErrors
     public static Error FilenameMissing = new Error(2010, "Filename is missing", HttpStatusCode.BadRequest);
     public static Error FilenameTooLong = new Error(2011, "Filename is too long", HttpStatusCode.BadRequest);
     public static Error FilenameInvalid = new Error(2012, "Filename contains invalid characters", HttpStatusCode.BadRequest);
+    public static Error FiletypeNotAllowed = new Error(2013, "Filetype not allowed", HttpStatusCode.BadRequest);
 }
 public static class NotificationErrors
 {
@@ -79,4 +80,5 @@ public static class AuthorizationErrors
     public static Error LegacyNotAccessToOwner(int partyId) { return new Error(4005, $"User does not have access to party with partyId {partyId}", HttpStatusCode.Unauthorized); }
     public static Error CouldNotDetermineCaller = new Error(4006, "Could not determine caller", HttpStatusCode.Unauthorized);
     public static Error CouldNotFindOrgNo = new Error(4007, "Could not identify orgnumber from user", HttpStatusCode.Unauthorized);
+    public static Error ResourceNotWhitelisted = new Error(4008, "Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no.", HttpStatusCode.Forbidden);
 }

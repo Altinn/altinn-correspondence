@@ -5,8 +5,6 @@ namespace Altinn.Correspondence.Application.GetCorrespondences;
 public class GetCorrespondencesRequest
 {
     public required string ResourceId { get; set; }
-    public int Offset { get; set; }
-    public int Limit { get; set; }
 
     public DateTimeOffset? From { get; set; }
 

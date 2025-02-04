@@ -21,7 +21,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task UploadCorrespondence_Gives_Ok()
         {
             // Arrange
-            using var stream = File.OpenRead("./Data/Markdown.text");
+            using var stream = File.OpenRead("./Data/Markdown.txt");
             var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
             var attachmentData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
             var payload = new CorrespondenceBuilder()
@@ -54,6 +54,76 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var uploadCorrespondenceResponse2 = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
             // Assert
             Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
+        }
+
+        [Theory]
+        [InlineData(".doc")]
+        [InlineData(".xls")]
+        [InlineData(".docx")]
+        [InlineData(".xlsx")]
+        [InlineData(".ppt")]
+        [InlineData(".pps")]
+        [InlineData(".zip")]
+        [InlineData(".pdf")]
+        [InlineData(".html")]
+        [InlineData(".txt")]
+        [InlineData(".xml")]
+        [InlineData(".jpg")]
+        [InlineData(".gif")]
+        [InlineData(".bmp")]
+        [InlineData(".png")]
+        [InlineData(".json")]
+        public async Task UploadCorrespondence_Gives_Ok_For_All_Supported_FileTypes(string filetype)
+        {
+            // Arrange
+            using var memoryStream = new MemoryStream();
+            memoryStream.Write("test"u8);
+            var file = new FormFile(memoryStream, 0, memoryStream.Length, "file", "test" + filetype);
+            var attachmentData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithAttachments([attachmentData])
+                .Build();
+            var formData = CorrespondenceToFormData(payload.Correspondence);
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
+            using var fileStream = file.OpenReadStream();
+            formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
+
+            // Act
+            var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+
+            // Assert
+            Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
+
+            // Tear down
+            memoryStream.Dispose();
+        }
+
+        [Fact]
+        public async Task UploadCorrespondence_Gives_BadRequest_When_Uploading_UnSupported_FileType()
+        {
+            // Arrange
+            using var memoryStream = new MemoryStream();
+            memoryStream.Write("test"u8);
+            var file = new FormFile(memoryStream, 0, memoryStream.Length, "file", "test.text");
+            var attachmentData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithAttachments([attachmentData])
+                .Build();
+            var formData = CorrespondenceToFormData(payload.Correspondence);
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
+            using var fileStream = file.OpenReadStream();
+            formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
+
+            // Act
+            var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+
+            // Assert
+            Assert.True(uploadCorrespondenceResponse.StatusCode == HttpStatusCode.BadRequest, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
+
+            // Tear down
+            memoryStream.Dispose();
         }
 
         [Fact]
@@ -91,7 +161,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [Fact]
         public async Task UploadCorrespondence_With_Multiple_Files()
         {
-            using var stream = System.IO.File.OpenRead("./Data/Markdown.text");
+            using var stream = System.IO.File.OpenRead("./Data/Markdown.txt");
             var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
             using var fileStream = file.OpenReadStream();
             using var stream2 = System.IO.File.OpenRead("./Data/test.txt");
@@ -129,7 +199,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [Fact]
         public async Task UploadCorrespondences_With_Multiple_Files()
         {
-            using var stream = File.OpenRead("./Data/Markdown.text");
+            using var stream = File.OpenRead("./Data/Markdown.txt");
             var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
             using var fileStream = file.OpenReadStream();
             var attachmentMetaData = AttachmentHelper.GetAttachmentMetaData(file.FileName);

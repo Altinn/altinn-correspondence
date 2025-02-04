@@ -77,7 +77,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <summary>
         /// Gets a list of Correspondences for the authenticated user based on complex search criteria
         /// </summary>
-        /// <returns>A list of overall Correspondence data and pagination metadata</returns>
+        /// <returns>A list of overall Correspondence data</returns>
         [HttpPost]
         public async Task<ActionResult<CorrespondencesExt>> GetCorrespondences(
             LegacyGetCorrespondencesRequestExt request,

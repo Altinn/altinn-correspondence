@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -83,6 +84,7 @@ namespace Altinn.Correspondence.Application.Helpers
         public Error? ValidateAttachmentName(AttachmentEntity attachment)
         {
             var filename = attachment.FileName;
+            var fileType = Path.GetExtension(filename)?.ToLowerInvariant();
             if (string.IsNullOrWhiteSpace(filename))
             {
                 return AttachmentErrors.FilenameMissing;
@@ -90,6 +92,10 @@ namespace Altinn.Correspondence.Application.Helpers
             if (filename.Length > 255)
             {
                 return AttachmentErrors.FilenameTooLong;
+            }
+            if (fileType == null || !ApplicationConstants.AllowedFileTypes.Contains(fileType))
+            {
+                return AttachmentErrors.FiletypeNotAllowed;
             }
             foreach (var c in Path.GetInvalidFileNameChars())
             {

@@ -49,6 +49,11 @@ inputs:
     description: "Environment for Maskinporten token exchange"
     required: false
     default: ""
+  MASKINPORTEN_ENVIRONMENT:
+    description: "Maskinporten environment"
+    required: true
+    default: ""
+
 
 runs:
   using: "composite"
@@ -82,6 +87,7 @@ runs:
         IDPORTEN_ISSUER: ${{ inputs.IDPORTEN_ISSUER }}
         SBL_BRIDGE_BASE_URL: ${{ inputs.SBL_BRIDGE_BASE_URL }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
+        MASKINPORTEN_ENVIRONMENT: ${{ inputs.MASKINPORTEN_ENVIRONMENT }}
       with:
         scope: subscription
         subscriptionId: ${{ inputs.AZURE_SUBSCRIPTION_ID }}

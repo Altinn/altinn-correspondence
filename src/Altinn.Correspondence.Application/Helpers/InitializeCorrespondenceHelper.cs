@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
+using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
@@ -359,7 +360,6 @@ namespace Altinn.Correspondence.Application.Helpers
         /// </summary>
         public Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments)
         {
-            var maxUploadSize = long.Parse(int.MaxValue.ToString());
             foreach (var attachment in attachments)
             {
                 if (attachment.Attachment?.DataLocationUrl != null) continue;
@@ -369,7 +369,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
                 var file = files.FirstOrDefault(a => a.FileName == attachment.Attachment?.FileName);
                 if (file == null) return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
-                if (file?.Length > maxUploadSize || file?.Length == 0) return AttachmentErrors.InvalidFileSize;
+                if (file?.Length > ApplicationConstants.MaxFileUploadSize || file?.Length == 0) return AttachmentErrors.InvalidFileSize;
             }
             return null;
         }
