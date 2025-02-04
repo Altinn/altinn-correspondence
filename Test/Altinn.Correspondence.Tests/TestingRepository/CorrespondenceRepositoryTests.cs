@@ -49,7 +49,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         {
             // Arrange
             await using var context = _fixture.CreateDbContext();
-            var correspondenceRepository = new CorrespondenceRepository(context, new HttpContextAccessor());
+            var correspondenceRepository = new CorrespondenceRepository(context);
             var from = DateTimeOffset.UtcNow.AddDays(-1);
             var to = DateTimeOffset.UtcNow.AddDays(1);
             var recipient = "0192:987654321";
