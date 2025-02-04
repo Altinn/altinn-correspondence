@@ -7,35 +7,24 @@ namespace Altinn.Correspondence.Integrations.Hangfire;
 
 public class HangfireAppRequestFilter(TelemetryClient telemetryClient) : IServerFilter
 {
-    public static string JobId
-    {
-        get { return _jobId; }
-        set { _jobId = value; }
-    }
+    private static AsyncLocal<IDisposable> _contextualLogger;
 
-    [ThreadStatic]
-    private static string _jobId;
-
-    [ThreadStatic]
-    private static IDisposable _contextualLogger;
-
-    [ThreadStatic]
-    private static IOperationHolder<RequestTelemetry> _hangfireAppRequestLogger;
+    private static AsyncLocal<IOperationHolder<RequestTelemetry>> _hangfireAppRequestLogger;
 
     public void OnPerformed(PerformedContext context)
     {
-        telemetryClient.StopOperation(_hangfireAppRequestLogger);
-        _contextualLogger?.Dispose();
+        telemetryClient.StopOperation(_hangfireAppRequestLogger.Value);
+        _contextualLogger.Value?.Dispose();
     }
 
     public void OnPerforming(PerformingContext context)
     {
         var operationName = new RequestTelemetry
         {
-            Name = $"{context.BackgroundJob.Job.Method.Name}"
+            Name = $"HANGFIRE {context.BackgroundJob.Job.Method.Name}"
         };
-        _hangfireAppRequestLogger = telemetryClient.StartOperation(operationName);
-        _contextualLogger = Serilog.Context.LogContext.PushProperty("JobId", JobId, true);
+        _hangfireAppRequestLogger = new AsyncLocal<IOperationHolder<RequestTelemetry>>((_) => telemetryClient.StartOperation(operationName));
+        _contextualLogger = new AsyncLocal<IDisposable>((_) => Serilog.Context.LogContext.PushProperty("JobId", context.BackgroundJob.Id, true));
     }
 
 }
