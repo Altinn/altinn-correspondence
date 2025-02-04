@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Npgsql;
 using Serilog;
+using Serilog.Filters;
 using System.Text.Json.Serialization;
 
 Log.Logger = new LoggerConfiguration()
@@ -40,8 +41,9 @@ static void BuildAndRun(string[] args)
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
-        .Enrich.With(new PropertyPropagationEnricher("instanceId"))
-        .WriteTo.Console(outputTemplate: "[{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+        .Filter.ByExcluding(Matching.WithProperty<string>("RequestPath", p => p.StartsWith("/health")))
+        .Enrich.With(new PropertyPropagationEnricher("instanceId", "resourceId"))
+        .WriteTo.Console()
         .WriteTo.ApplicationInsights(
             services.GetRequiredService<TelemetryConfiguration>(),
             TelemetryConverter.Traces));
