@@ -22,7 +22,6 @@ public class LegacyGetCorrespondencesHandler(
     UserClaimsHelper userClaimsHelper,
     IAltinnRegisterService altinnRegisterService,
     IResourceRightsService resourceRightsService,
-    IHttpContextAccessor httpContextAccessor,
     ILogger<LegacyGetCorrespondencesHandler> logger) : IHandler<LegacyGetCorrespondencesRequest, LegacyGetCorrespondencesResponse>
 {
     private record PartyInfo(string Id, Party? Party);
@@ -42,7 +41,6 @@ public class LegacyGetCorrespondencesHandler(
             return AuthorizationErrors.InvalidPartyId;
         }
         logger.LogInformation("Searching legacy for party {partyId}", partyId);
-        httpContextAccessor.HttpContext?.AddLogProperty("partyId", partyId);
         var minAuthLevel = userClaimsHelper.GetMinimumAuthenticationLevel();
         var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
