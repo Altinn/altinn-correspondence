@@ -3,7 +3,7 @@ using Hangfire.PostgreSql;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Slack.Webhooks;
-using Altinn.Correspondence.Integrations.Slack; // Add this line
+using Altinn.Correspondence.Integrations.Slack;
 using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Integrations.Hangfire;
