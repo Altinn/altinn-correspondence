@@ -106,7 +106,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] GetCorrespondenceOverviewHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Getting Correspondence overview for {correspondenceId}", correspondenceId.ToString());
+            _logger.LogInformation("Getting Correspondence overview for {instanceId}", correspondenceId.ToString());
 
             var commandResult = await handler.Process(new GetCorrespondenceOverviewRequest()
             {
@@ -135,7 +135,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] GetCorrespondenceDetailsHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Getting Correspondence details for {correspondenceId}", correspondenceId.ToString());
+            _logger.LogInformation("Getting Correspondence details for {instanceId}", correspondenceId.ToString());
 
             var commandResult = await handler.Process(new GetCorrespondenceDetailsRequest()
             {
@@ -165,7 +165,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] GetCorrespondenceOverviewHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Getting Correspondence content for {correspondenceId}", correspondenceId.ToString());
+            _logger.LogInformation("Getting Correspondence content for {instanceId}", correspondenceId.ToString());
 
             var commandResult = await handler.Process(new GetCorrespondenceOverviewRequest()
             {
@@ -234,7 +234,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] UpdateCorrespondenceStatusHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Marking Correspondence as read for {correspondenceId}", correspondenceId.ToString());
+            _logger.LogInformation("Marking Correspondence as read for {instanceId}", correspondenceId.ToString());
 
             var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
             {
@@ -264,7 +264,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] UpdateCorrespondenceStatusHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Marking Correspondence as confirmed for {correspondenceId}", correspondenceId.ToString());
+            _logger.LogInformation("Marking Correspondence as confirmed for {instanceId}", correspondenceId.ToString());
 
             var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
             {
@@ -294,7 +294,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] UpdateCorrespondenceStatusHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Archiving Correspondence with id: {correspondenceId}", correspondenceId.ToString());
+            _logger.LogInformation("Archiving Correspondence with id: {instanceId}", correspondenceId.ToString());
 
             var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
             {
@@ -324,7 +324,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] PurgeCorrespondenceHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Purging Correspondence with id: {correspondenceId}", correspondenceId.ToString());
+            _logger.LogInformation("Purging Correspondence with id: {instanceId}", correspondenceId.ToString());
 
             var commandResult = await handler.Process(new PurgeCorrespondenceRequest()
             {
@@ -375,7 +375,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] CheckNotificationHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Checking notification for Correspondence with id: {correspondenceId}", correspondenceId.ToString());
+            _logger.LogInformation("Checking notification for Correspondence with id: {instanceId}", correspondenceId.ToString());
             var commandResult = await handler.Process(correspondenceId, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
