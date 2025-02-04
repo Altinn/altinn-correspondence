@@ -19,7 +19,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
         if (correspondence is null)
         {
-            _logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+            logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
 
