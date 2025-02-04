@@ -29,7 +29,6 @@ export default function() {
 
 export function uploadCorrespondence(serviceOwner, endUser, traceCalls) {
     var traceparent = uuidv7();
-    console.log('uploadCorrespondence to enduser: ' + endUser.ssn + ' and serviceowner: ' + serviceOwner.resource);
     const formData = getCorrespondenceForm(serviceOwner.resource, serviceOwner.orgno, endUser.ssn);
     var paramsWithToken = {
         headers: {
