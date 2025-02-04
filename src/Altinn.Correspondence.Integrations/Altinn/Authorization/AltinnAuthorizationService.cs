@@ -118,6 +118,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
     private async Task<bool> CheckUserAccess(ClaimsPrincipal? user, string resourceId, string party, string? correspondenceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Checking access for organization {org} for resource {resourceId}", user?.GetCallerOrganizationId(), resourceId);
         if (user is null)
         {
             throw new InvalidOperationException("This operation cannot be called outside an authenticated HttpContext");
