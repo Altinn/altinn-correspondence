@@ -42,7 +42,7 @@ static void BuildAndRun(string[] args)
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
-        .Filter.ByExcluding(Matching.WithProperty<string>("OperationName", p => p == "GET Health/HealthCheck"))
+        .Filter.ByExcluding(Matching.WithProperty<string>("RequestPath", p => p.EndsWith("/health")))
         .Enrich.With(new PropertyPropagationEnricher("instanceId", "resourceId"))
         .WriteTo.Console()
 
@@ -69,7 +69,10 @@ static void BuildAndRun(string[] args)
     app.UseAuthorization();
     app.MapControllers();
     app.UseMiddleware<SecurityHeadersMiddleware>();
-    app.UseSerilogRequestLogging();
+    app.UseSerilogRequestLogging(options =>
+    {
+        options.
+    });
 
     if (app.Environment.IsDevelopment())
     {
