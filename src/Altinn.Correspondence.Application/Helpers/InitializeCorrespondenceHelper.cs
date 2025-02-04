@@ -181,6 +181,10 @@ namespace Altinn.Correspondence.Application.Helpers
                 {
                     return NotificationErrors.CouldNotFindRecipientToOverride(recipientToOverride.RecipientToOverride);
                 }
+                if (recipientToOverride.Recipients.Count == 0)
+                {
+                    return NotificationErrors.MissingRecipientsForRecipientOverride;
+                }
             }
 
             foreach (var recipientOverride in customRecipients)
