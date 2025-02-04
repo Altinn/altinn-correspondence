@@ -9,7 +9,7 @@ using Serilog.Context;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
-    public class CorrespondenceRepository(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor) : ICorrespondenceRepository
+    public class CorrespondenceRepository(ApplicationDbContext context) : ICorrespondenceRepository
     {
         private readonly ApplicationDbContext _context = context;
 
@@ -17,17 +17,12 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             await _context.Correspondences.AddAsync(correspondence, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
-            httpContextAccessor.HttpContext?.AddLogProperty("instanceId", correspondence.Id);
             return correspondence;
         }
         public async Task<List<CorrespondenceEntity>> CreateCorrespondences(List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken)
         {
             await _context.Correspondences.AddRangeAsync(correspondences, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
-            if (correspondences.Count == 1)
-            {
-                httpContextAccessor.HttpContext?.AddLogProperty("instanceId", correspondences[0].Id);
-            }
             return correspondences;
         }
 
@@ -61,7 +56,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool includeContent,
             CancellationToken cancellationToken)
         {
-            httpContextAccessor.HttpContext?.AddLogProperty("instanceId", guid); 
             var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
             if (includeStatus)
             {
@@ -72,10 +66,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a.Statuses);
             }
             var correspondence = await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
-            if (correspondence is not null)
-            {
-                httpContextAccessor.HttpContext?.AddLogProperty("resourceId", correspondence.ResourceId);
-            }
             return correspondence;
         }
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesByAttachmentId(Guid attachmentId, bool includeStatus, CancellationToken cancellationToken = default)

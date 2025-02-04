@@ -1,4 +1,5 @@
-﻿using Hangfire;
+﻿using Altinn.Correspondence.Common.Helpers;
+using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
@@ -14,6 +15,7 @@ public static class DependencyInjection
             config.UsePostgreSqlStorage(
                 c => c.UseConnectionFactory(services.BuildServiceProvider().GetService<IConnectionFactory>())
             );
+            config.UseSerilogLogProvider();
             config.UseSerializerSettings(new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
         });
         services.AddHangfireServer(options => options.SchedulePollingInterval = TimeSpan.FromSeconds(2));

@@ -1,6 +1,7 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Persistence.Repositories;
 using Altinn.Correspondence.Tests.Fixtures;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Tests.TestingRepository
@@ -48,7 +49,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         {
             // Arrange
             await using var context = _fixture.CreateDbContext();
-            var correspondenceRepository = new CorrespondenceRepository(context);
+            var correspondenceRepository = new CorrespondenceRepository(context, new HttpContextAccessor());
             var from = DateTimeOffset.UtcNow.AddDays(-1);
             var to = DateTimeOffset.UtcNow.AddDays(1);
             var recipient = "0192:987654321";

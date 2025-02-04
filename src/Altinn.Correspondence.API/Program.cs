@@ -40,7 +40,8 @@ static void BuildAndRun(string[] args)
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
-        .WriteTo.Console()
+        .Enrich.With(new PropertyPropagationEnricher("instanceId"))
+        .WriteTo.Console(outputTemplate: "[{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
         .WriteTo.ApplicationInsights(
             services.GetRequiredService<TelemetryConfiguration>(),
             TelemetryConverter.Traces));
@@ -64,7 +65,6 @@ static void BuildAndRun(string[] args)
     app.UseAuthorization();
     app.MapControllers();
     app.UseMiddleware<SecurityHeadersMiddleware>();
-    app.UseMiddleware<LogEnrichmentMiddleware>();
     app.UseMiddleware<RequestLoggingMiddleware>();
     app.UseSerilogRequestLogging();
 
