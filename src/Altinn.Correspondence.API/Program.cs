@@ -42,6 +42,7 @@ static void BuildAndRun(string[] args)
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
+        .Enrich.WithClientIp()
         .Filter.ByExcluding(Matching.WithProperty<string>("RequestPath", value => value.Contains("/health")))
         .Enrich.With(new PropertyPropagationEnricher("instanceId", "resourceId", "partyId"))
         .WriteTo.Console()
@@ -68,10 +69,7 @@ static void BuildAndRun(string[] args)
     app.UseAuthorization();
     app.MapControllers();
     app.UseMiddleware<SecurityHeadersMiddleware>();
-    app.UseSerilogRequestLogging(options =>
-    {
-        options.
-    });
+    app.UseSerilogRequestLogging();
 
     if (app.Environment.IsDevelopment())
     {
