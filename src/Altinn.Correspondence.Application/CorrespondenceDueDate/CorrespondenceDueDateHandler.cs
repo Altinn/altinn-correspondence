@@ -48,7 +48,6 @@ namespace Altinn.Correspondence.Application.CorrespondenceDueDate
             }
             catch (Exception ex)
             {
-                //go to slack integration from here
                 logger.LogError(ex, "Error processing due date for correspondence {correspondenceId}", correspondenceId);
                 throw; 
             }

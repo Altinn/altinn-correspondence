@@ -96,9 +96,10 @@ public class SlackExceptionNotification : IExceptionHandler
                 $"*Job Name:* {jobName}\n" +
                 $"*Type:* {exception.GetType().Name}\n" +
                 $"*Message:* {exception.Message}\n" +
-                $"*Stacktrace:* \n{exception.StackTrace}";
+                $"*Stacktrace:* \n{exception.StackTrace}\n" + 
+                $"*InnerStacktrace:* \n{exception.InnerException.StackTrace}";
     }
-
+    
 
     private void SendSlackNotificationWithMessage(string message)
     {
