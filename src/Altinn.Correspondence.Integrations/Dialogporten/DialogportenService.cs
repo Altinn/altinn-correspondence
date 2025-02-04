@@ -41,16 +41,11 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
     public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, params string[] tokens)
     {
-        var requestTelemetry = new RequestTelemetry
-        {
-            Name = $"CreateInformationActivity"
-        };
         logger.LogInformation("CreateInformationActivity {actorType} {textType} for correspondence {instanceId}",
             Enum.GetName(typeof(DialogportenActorType), actorType),
             Enum.GetName(typeof(DialogportenTextType), textType),
             correspondenceId
         );
-        var operation = telemetryClient.StartOperation(requestTelemetry);
         var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
@@ -71,7 +66,5 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         {
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         }
-
-        telemetryClient.StopOperation(operation);
     }
 }

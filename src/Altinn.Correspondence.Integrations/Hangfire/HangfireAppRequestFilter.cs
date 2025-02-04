@@ -1,33 +1,41 @@
-﻿using Hangfire;
-using Hangfire.Client;
-using Hangfire.Server;
-using Serilog;
-using Serilog.Context;
+﻿using Hangfire.Server;
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
+using Microsoft.ApplicationInsights.Extensibility;
 
 namespace Altinn.Correspondence.Integrations.Hangfire;
 
-/**
- * Filter to make Hangfire jobs app requests in our log tables.
- */
-public class HangfireAppRequestFilter : IServerFilter, IClientFilter
+public class HangfireAppRequestFilter(TelemetryClient telemetryClient) : IServerFilter
 {
-    public void OnCreated(CreatedContext context)
+    public static string JobId
     {
-        Log.Information("Hangfire job {jobId} has been created", context.BackgroundJob.Id);
+        get { return _jobId; }
+        set { _jobId = value; }
     }
 
-    public void OnCreating(CreatingContext context)
-    {
-        Log.Information("Hangfire job being created");
-    }
+    [ThreadStatic]
+    private static string _jobId;
+
+    [ThreadStatic]
+    private static IDisposable _contextualLogger;
+
+    [ThreadStatic]
+    private static IOperationHolder<RequestTelemetry> _hangfireAppRequestLogger;
 
     public void OnPerformed(PerformedContext context)
     {
-        Log.Information("Hangfire job {jobId} has been performed", context.BackgroundJob.Id);
+        telemetryClient.StopOperation(_hangfireAppRequestLogger);
+        _contextualLogger?.Dispose();
     }
 
     public void OnPerforming(PerformingContext context)
     {
-        Log.Information("Hangfire job {jobId} is performing", context.BackgroundJob.Id);
+        var operationName = new RequestTelemetry
+        {
+            Name = $"{context.BackgroundJob.Job.Method.Name}"
+        };
+        _hangfireAppRequestLogger = telemetryClient.StartOperation(operationName);
+        _contextualLogger = Serilog.Context.LogContext.PushProperty("JobId", JobId, true);
     }
+
 }
