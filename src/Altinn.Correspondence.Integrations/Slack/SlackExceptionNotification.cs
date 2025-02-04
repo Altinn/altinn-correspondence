@@ -35,15 +35,14 @@ public class SlackExceptionNotification : IExceptionHandler
         try
         {
             SendSlackNotificationWithMessage(exceptionMessage);
+            return ValueTask.FromResult(true); 
         }
         catch (Exception slackEx)
         {
             _logger.LogError(
                 slackEx,
                 "Failed to send Slack notification");
-        }
-
-        return ValueTask.FromResult(false);
+            return ValueTask.FromResult(false);        }
     }
 
     public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, CancellationToken cancellationToken)
