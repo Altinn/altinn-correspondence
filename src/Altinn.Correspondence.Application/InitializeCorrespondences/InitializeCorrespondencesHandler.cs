@@ -182,6 +182,7 @@ public class InitializeCorrespondencesHandler(
         foreach (var correspondence in correspondences)
         {
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
+            //throw new NotImplementedException();
             if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized ||
                 correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish)
             {
