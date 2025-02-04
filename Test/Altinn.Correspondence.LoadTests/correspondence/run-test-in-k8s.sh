@@ -94,6 +94,8 @@ if [ ${#missing_args[@]} -ne 0 ]; then
     help
     exit 1
 fi
+name=$(echo "$name" | tr '[:upper:]' '[:lower:]')
+configmapname=$(echo "$configmapname" | tr '[:upper:]' '[:lower:]')
 # Set testid to name + timestamp
 testid="${name}_$(date '+%Y%m%dT%H%M%S')"
 
