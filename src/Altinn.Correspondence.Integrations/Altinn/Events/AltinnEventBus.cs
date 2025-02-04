@@ -48,7 +48,6 @@ public class AltinnEventBus : IEventBus
 
     private CloudEvent CreateCloudEvent(AltinnEventType type, string resourceId, string itemId, string? partyId, string? alternativeSubject, string eventSource)
     {
-
         if (partyId == null && alternativeSubject == null)
         {
             throw new ArgumentException("Either partyId or alternativeSubject must be set");

@@ -17,7 +17,7 @@ namespace Altinn.Correspondence.Application.CorrespondenceDueDate
         [AutomaticRetry(Attempts = 0)]
         public async Task Process(Guid correspondenceId, CancellationToken cancellationToken = default)
         {
-            logger.LogInformation("Due date for correspondence {correspondenceId} has expired", correspondenceId);
+            logger.LogInformation("Due date for correspondence {instanceId} has expired", correspondenceId);
             var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
             if (correspondence == null)
             {
