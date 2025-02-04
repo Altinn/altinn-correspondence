@@ -5,7 +5,7 @@ using Slack.Webhooks;
 using Microsoft.AspNetCore.Http;  
 
 namespace Altinn.Correspondence.Integrations.Slack;
-public class SlackExceptionNotification : IExceptionHandler, IExceptionNotificationService
+public class SlackExceptionNotification : IExceptionHandler
 {
     private readonly ILogger<SlackExceptionNotification> _logger;
     private readonly ISlackClient _slackClient;
@@ -48,7 +48,6 @@ public class SlackExceptionNotification : IExceptionHandler, IExceptionNotificat
 
     public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, CancellationToken cancellationToken)
     {
-        //Det er her den kicker inn
         var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception);
 
         _logger.LogError(
@@ -59,11 +58,10 @@ public class SlackExceptionNotification : IExceptionHandler, IExceptionNotificat
             exception.GetType().Name,
             exception.Message);
 
-        // Send the exception details to Slack
         var slackMessage = new SlackMessage
         {
             Text = exceptionMessage,
-            Channel = TestChannel // Replace with your actual Slack channel
+            Channel = TestChannel
         };
 
         try
@@ -77,34 +75,6 @@ public class SlackExceptionNotification : IExceptionHandler, IExceptionNotificat
             return false;
         }
     }   
-
-    public async Task NotifyAsync(Exception exception, string? context, CancellationToken cancellationToken)
-    {
-        var exceptionMessage = FormatExceptionMessage(exception, context);
-
-        _logger.LogError(
-            exception,
-            "Unhandled exception occurred. Context: {Context}, Type: {ExceptionType}, Message: {Message}",
-            context,
-            exception.GetType().Name,
-            exception.Message);
-
-        // Send the exception details to Slack
-        var slackMessage = new SlackMessage
-        {
-            Text = exceptionMessage,
-            Channel = TestChannel // Replace with your actual Slack channel
-        };
-
-        try
-        {
-            SendSlackNotificationWithMessage(exceptionMessage);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send Slack notification");
-        }
-    }
 
     private string FormatExceptionMessage(Exception exception, HttpContext context)
     {
@@ -121,6 +91,7 @@ public class SlackExceptionNotification : IExceptionHandler, IExceptionNotificat
     private string FormatExceptionMessage(string jobId, string jobName, Exception exception)
     {
         return $":warning: *Unhandled Exception*\n" +
+                $"*Environment:* {_hostEnvironment.EnvironmentName}\n" +
                 $"*Job ID:* {jobId}\n" +
                 $"*Job Name:* {jobName}\n" +
                 $"*Type:* {exception.GetType().Name}\n" +
@@ -128,14 +99,6 @@ public class SlackExceptionNotification : IExceptionHandler, IExceptionNotificat
                 $"*Stacktrace:* \n{exception.StackTrace}";
     }
 
-    private string FormatExceptionMessage(Exception exception, string? context)
-    {
-        return $":warning: *Unhandled Exception*\n" +
-                $"*Context:* {context}\n" +
-                $"*Type:* {exception.GetType().Name}\n" +
-                $"*Message:* {exception.Message}\n" +
-                $"*Stacktrace:* \n{exception.StackTrace}";
-    }
 
     private void SendSlackNotificationWithMessage(string message)
     {

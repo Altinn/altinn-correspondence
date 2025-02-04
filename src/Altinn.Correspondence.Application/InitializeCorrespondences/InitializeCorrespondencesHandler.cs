@@ -182,7 +182,6 @@ public class InitializeCorrespondencesHandler(
         foreach (var correspondence in correspondences)
         {
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
-            //throw new NotImplementedException();
             if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized ||
                 correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish)
             {
@@ -202,8 +201,6 @@ public class InitializeCorrespondencesHandler(
             {
                 if (correspondence.DueDateTime is not null)
                 {
-                    //denne fungerer
-                    //throw new NotImplementedException();
                     backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), TimeSpan.FromHours(1));
                 }
                 await eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
