@@ -7,18 +7,18 @@ namespace Altinn.Correspondence.Helpers
 {
     public static class LogContextHelpers
     {
-        public static void EnrichLogsWithInsertCorrespondence(this HttpContext httpContext, BaseCorrespondenceExt initializeCorrespondenceExt)
+        public static void EnrichLogsWithInsertCorrespondence(BaseCorrespondenceExt initializeCorrespondenceExt)
         {
-            httpContext.AddLogProperty("sender", initializeCorrespondenceExt.Sender.WithoutPrefix());
-            httpContext.AddLogProperty("resourceId", initializeCorrespondenceExt.ResourceId);
-            httpContext.AddLogProperty("sendersReference", initializeCorrespondenceExt.SendersReference);
+            LogContext.PushProperty("sender", initializeCorrespondenceExt.Sender.WithoutPrefix());
+            LogContext.PushProperty("resourceId", initializeCorrespondenceExt.ResourceId);
+            LogContext.PushProperty("sendersReference", initializeCorrespondenceExt.SendersReference);
         }
 
-        public static void EnrichLogsWithMigrateCorrespondence(this HttpContext httpContext, MigrateCorrespondenceExt migrateCorrespondenceExt)
+        public static void EnrichLogsWithMigrateCorrespondence(MigrateCorrespondenceExt migrateCorrespondenceExt)
         {
-            httpContext.AddLogProperty("sender", migrateCorrespondenceExt.CorrespondenceData.Correspondence.Sender.WithoutPrefix());
-            httpContext.AddLogProperty("resourceId", migrateCorrespondenceExt.CorrespondenceData.Correspondence.ResourceId);
-            httpContext.AddLogProperty("sendersReference", migrateCorrespondenceExt.CorrespondenceData.Correspondence.SendersReference);
+            LogContext.PushProperty("sender", migrateCorrespondenceExt.CorrespondenceData.Correspondence.Sender.WithoutPrefix());
+            LogContext.PushProperty("resourceId", migrateCorrespondenceExt.CorrespondenceData.Correspondence.ResourceId);
+            LogContext.PushProperty("sendersReference", migrateCorrespondenceExt.CorrespondenceData.Correspondence.SendersReference);
         }
     }
 }

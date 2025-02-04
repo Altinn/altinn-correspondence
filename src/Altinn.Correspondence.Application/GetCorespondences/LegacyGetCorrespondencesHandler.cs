@@ -41,6 +41,7 @@ public class LegacyGetCorrespondencesHandler(
         {
             return AuthorizationErrors.InvalidPartyId;
         }
+        logger.LogInformation("Searching legacy for party {partyId}", partyId);
         httpContextAccessor.HttpContext?.AddLogProperty("partyId", partyId);
         var minAuthLevel = userClaimsHelper.GetMinimumAuthenticationLevel();
         var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
