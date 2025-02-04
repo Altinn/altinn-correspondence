@@ -42,7 +42,7 @@ static void BuildAndRun(string[] args)
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
-        .Filter.ByExcluding(Matching.WithProperty<string>("Url", p => p.EndsWith("/health")))
+        .Filter.ByExcluding(Matching.WithProperty<string>("RequestPath", p => p.EndsWith("/health")))
         .Enrich.With(new PropertyPropagationEnricher("instanceId", "resourceId", "partyId"))
         .WriteTo.Console()
 
