@@ -48,6 +48,7 @@ public class SlackExceptionNotification : IExceptionHandler, IExceptionNotificat
 
     public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, CancellationToken cancellationToken)
     {
+        //Det er her den kicker inn
         var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception);
 
         _logger.LogError(
