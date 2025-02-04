@@ -594,8 +594,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
         }
 
-        
-
         [Theory]
         [InlineData("97661466", null)]
         [InlineData(null, "test@example.com")]
