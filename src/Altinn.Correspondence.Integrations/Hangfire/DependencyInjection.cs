@@ -16,6 +16,7 @@ public static class DependencyInjection
                 c => c.UseConnectionFactory(services.BuildServiceProvider().GetService<IConnectionFactory>())
             );
             config.UseSerilogLogProvider();
+            config.UseFilter(new HangfireAppRequestFilter());
             config.UseSerializerSettings(new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
         });
         services.AddHangfireServer(options => options.SchedulePollingInterval = TimeSpan.FromSeconds(2));
