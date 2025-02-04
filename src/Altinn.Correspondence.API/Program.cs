@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Npgsql;
 using Serilog;
+using Serilog.Events;
 using Serilog.Filters;
 using System.Text.Json.Serialization;
 
@@ -41,9 +42,10 @@ static void BuildAndRun(string[] args)
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
-        .Filter.ByExcluding(Matching.WithProperty<string>("Name", p => p == "GET Health/HealthCheck"))
+        .Filter.ByExcluding(Matching.WithProperty<string>("OperationName", p => p == "GET Health/HealthCheck"))
         .Enrich.With(new PropertyPropagationEnricher("instanceId", "resourceId"))
         .WriteTo.Console()
+
         .WriteTo.ApplicationInsights(
             services.GetRequiredService<TelemetryConfiguration>(),
             TelemetryConverter.Traces));
