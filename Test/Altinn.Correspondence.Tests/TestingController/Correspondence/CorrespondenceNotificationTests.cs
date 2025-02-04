@@ -541,6 +541,30 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
+        public async Task Correspondence_CustomRecipient_EmptyNotificationRecipientList_GivesBadRequest()
+        {
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipients = new List<CustomNotificationRecipientExt>()
+            {
+                new CustomNotificationRecipientExt()
+                {
+                    RecipientToOverride = recipient,
+                    Recipients = []
+                }
+            };
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Sms)
+                .WithCustomNotificationRecipients(customRecipients)
+                .Build();
+
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+        }
+
+        [Fact]
         public async Task Correspondence_CustomRecipient_MissingMobileNumber_GivesBadRequest()
         {
             var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
