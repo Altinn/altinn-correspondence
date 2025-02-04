@@ -73,11 +73,12 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [InlineData(".bmp")]
         [InlineData(".png")]
         [InlineData(".json")]
-        public async Task UploadCorrespondence_Gives_Ok_For_All_Supported_FileTypes(string fileType)
+        public async Task UploadCorrespondence_Gives_Ok_For_All_Supported_FileTypes(string filetype)
         {
             // Arrange
-            using var stream = File.OpenRead("./Data/FiletypeTestFiles/test" + fileType);
-            var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+            using var memoryStream = new MemoryStream();
+            memoryStream.Write("test"u8);
+            var file = new FormFile(memoryStream, 0, memoryStream.Length, "file", "test" + filetype);
             var attachmentData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
@@ -90,16 +91,21 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Act
             var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+
             // Assert
             Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
+
+            // Tear down
+            memoryStream.Dispose();
         }
 
         [Fact]
         public async Task UploadCorrespondence_Gives_BadRequest_When_Uploading_UnSupported_FileType()
         {
             // Arrange
-            using var stream = File.OpenRead("./Data/FiletypeTestFiles/test.text");
-            var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+            using var memoryStream = new MemoryStream();
+            memoryStream.Write("test"u8);
+            var file = new FormFile(memoryStream, 0, memoryStream.Length, "file", "test.text");
             var attachmentData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
@@ -112,8 +118,12 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Act
             var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+
             // Assert
             Assert.True(uploadCorrespondenceResponse.StatusCode == HttpStatusCode.BadRequest, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
+
+            // Tear down
+            memoryStream.Dispose();
         }
 
         [Fact]
