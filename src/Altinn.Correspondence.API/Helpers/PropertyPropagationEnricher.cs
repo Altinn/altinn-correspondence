@@ -1,6 +1,8 @@
-﻿using Serilog.Context;
+﻿using Serilog;
+using Serilog.Context;
 using Serilog.Core;
 using Serilog.Events;
+using Serilog.Parsing;
 
 namespace Altinn.Correspondence.API.Helpers;
 
@@ -15,11 +17,15 @@ public class PropertyPropagationEnricher : ILogEventEnricher
 
     public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
     {
-        foreach (var propertyName in _propertiesToPropagate)
+        foreach (var token in logEvent.MessageTemplate.Tokens)
         {
-            if (logEvent.Properties.TryGetValue(propertyName, out var propertyValue))
+            if (token is PropertyToken propertyToken &&
+                _propertiesToPropagate.Contains(propertyToken.PropertyName))
             {
-                LogContext.PushProperty(propertyName, propertyValue);
+                if (logEvent.Properties.TryGetValue(propertyToken.PropertyName, out var value))
+                {
+                    LogContext.PushProperty(propertyToken.PropertyName, value);
+                }
             }
         }
     }
