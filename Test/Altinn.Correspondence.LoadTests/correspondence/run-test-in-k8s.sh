@@ -1,7 +1,8 @@
 #!/bin/bash
 
 failed=0
-
+API_VERSION=${API_VERSION:-v1}
+API_ENVIRONMENT=${API_ENVIRONMENT:-yt01}
 kubectl config set-context --current --namespace=correspondence
 
 help() {
@@ -100,7 +101,10 @@ configmapname=$(echo "$configmapname" | tr '[:upper:]' '[:lower:]')
 testid="${name}_$(date '+%Y%m%dT%H%M%S')"
 
 # Create the k6 archive
-if ! k6 archive $filename -e API_VERSION=v1 -e API_ENVIRONMENT=yt01 -e TESTID=$testid; then
+if ! k6 archive $filename \
+     -e API_VERSION="$API_VERSION" \
+     -e API_ENVIRONMENT="$API_ENVIRONMENT" \
+     -e TESTID="$testid"; then
     echo "Error: Failed to create k6 archive"
     exit 1
 fi
