@@ -59,15 +59,29 @@ public class LegacyGetCorrespondenceHistoryHandler(
 
             if (notificationDetails?.NotificationsStatusDetails is null) continue;
 
-            if (notificationDetails.NotificationsStatusDetails.Sms is not null)
+            var firstEmailDelivery = notificationDetails.NotificationsStatusDetails.Emails
+                .Where(email => email.Succeeded)
+                .OrderBy(email => email.SendStatus.LastUpdate)
+                .FirstOrDefault();
+            var firstSmsDelivery = notificationDetails.NotificationsStatusDetails.Smses
+                .Where(sms => sms.Succeeded)
+                .OrderBy(sms => sms.SendStatus.LastUpdate)
+                .FirstOrDefault();
+
+            var anySucceededDeliveryRecipient = firstEmailDelivery?.Recipient ?? firstSmsDelivery?.Recipient;
+            var anySucceededDeliveryStatus = firstEmailDelivery?.SendStatus ?? firstSmsDelivery?.SendStatus;
+            if (anySucceededDeliveryRecipient is not null && anySucceededDeliveryStatus is not null)
             {
-                var getNotificationStatusTasks = notificationDetails.NotificationsStatusDetails.Smses.Select(sms => GetNotificationStatus(sms.SendStatus, sms.Recipient, notification.IsReminder, cancellationToken));
-                notificationHistory.AddRange(await Task.WhenAll(getNotificationStatusTasks));
-            }
-            if (notificationDetails.NotificationsStatusDetails.Email is not null)
-            {
-                var getNotificationStatusTasks = notificationDetails.NotificationsStatusDetails.Emails.Select(email => GetNotificationStatus(email.SendStatus, email.Recipient, notification.IsReminder, cancellationToken));
-                notificationHistory.AddRange(await Task.WhenAll(getNotificationStatusTasks));
+                // Meant for the simplified view in Altinn 2 Inbox
+                var assemblededRecipient = new Recipient()
+                {
+                    IsReserved = anySucceededDeliveryRecipient.IsReserved,
+                    NationalIdentityNumber = anySucceededDeliveryRecipient.NationalIdentityNumber,
+                    OrganizationNumber = anySucceededDeliveryRecipient.OrganizationNumber,
+                    EmailAddress = string.Join(';', notificationDetails.NotificationsStatusDetails.Emails.Select(email => email.Recipient)),
+                    MobileNumber = string.Join(';', notificationDetails.NotificationsStatusDetails.Smses.Select(sms => sms.Recipient))
+                };
+                notificationHistory.Add(await GetNotificationStatus(anySucceededDeliveryStatus, assemblededRecipient, notification.IsReminder, cancellationToken));
             }
         }
         List<LegacyGetCorrespondenceHistoryResponse> joinedList = [.. correspondenceHistory.Concat(notificationHistory).OrderByDescending(s => s.StatusChanged)];
