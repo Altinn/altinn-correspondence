@@ -1,4 +1,8 @@
 export function getCorrespondenceJson(resource_id, sender, recipient) {
+    const now = new Date(); 
+    const visibleFrom = new Date();
+    const dueDateTime = new Date(now.setMonth(now.getMonth() + 1));
+    const deleteAfter = new Date(now.setMonth(now.getMonth() + 4));
     const data_without_attachment = {
         Correspondence: {
             resourceId: resource_id,
@@ -11,9 +15,9 @@ export function getCorrespondenceJson(resource_id, sender, recipient) {
                 messageBody: "# meldingsteksten. Som kan være plain text eller markdown ",
                 attachments: [],
             },
-            visibleFrom: "2024-09-28T12:44:28.290518+00:00",
-            allowSystemDeleteAfter: "2025-08-29T13:31:28.290518+00:00",
-            dueDateTime: "2025-05-29T13:31:28.290518+00:00",
+            visibleFrom: visibleFrom.toISOString(),
+            allowSystemDeleteAfter: deleteAfter.toISOString(),
+            dueDateTime: dueDateTime.toISOString(),
             externalReferences: [],
             propertyList: {},
             replyOptions: [
