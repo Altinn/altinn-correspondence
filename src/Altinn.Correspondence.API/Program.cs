@@ -63,6 +63,7 @@ static void BuildAndRun(string[] args)
     app.UseAuthorization();
     app.MapControllers();
     app.UseMiddleware<SecurityHeadersMiddleware>();
+    app.UseMiddleware<AcceptHeaderValidationMiddleware>();
 
     if (app.Environment.IsDevelopment())
     {
