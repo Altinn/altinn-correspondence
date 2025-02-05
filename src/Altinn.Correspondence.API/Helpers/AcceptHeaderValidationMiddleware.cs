@@ -43,9 +43,8 @@ public class AcceptHeaderValidationMiddleware
         await _next(context);
     }
 
-    private static bool IsValidAcceptHeader(string acceptHeader, List<string> validMimeTypes)
+    private static bool IsValidAcceptHeader(string acceptHeader, IEnumerable<string> validMimeTypes)
     {
-        validMimeTypes.Add("*/*");
-        return validMimeTypes.Any(acceptHeader.Contains);
+        return acceptHeader == "*/*" || validMimeTypes.Any(acceptHeader.Contains);
     }
 }
