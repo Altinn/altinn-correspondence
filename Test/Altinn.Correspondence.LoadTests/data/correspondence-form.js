@@ -4,6 +4,10 @@ import { FormData } from 'https://jslib.k6.io/formdata/0.0.2/index.js';
 const file = open("./testfile.txt", "b");
 
 export function getCorrespondenceForm(resource_id, sender, recipient) {
+    const now = new Date(); 
+    const visibleFrom = new Date();
+    const dueDateTime = new Date(now.setMonth(now.getMonth() + 1));
+    const deleteAfter = new Date(now.setMonth(now.getMonth() + 4));
     const formData = new FormData();
     formData.append('Recipients[0]', recipient);
     formData.append('Correspondence.ResourceId', resource_id);
@@ -20,9 +24,9 @@ export function getCorrespondenceForm(resource_id, sender, recipient) {
     formData.append('Correspondence.content.attachments[0].SendersReference', "1234");
     formData.append('Correspondence.content.attachments[0].FileName', "testfile.txt");
     formData.append('Correspondence.content.attachments[0].IsEncrypted', "true");
-    formData.append('Correspondence.visibleFrom', "2024-05-29T13:31:28.290518+00:00");
-    formData.append('Correspondence.allowSystemDeleteAfter', "2025-05-29T13:31:28.290518+00:00");
-    formData.append('Correspondence.dueDateTime', "2025-05-29T13:31:28.290518+00:00");
+    formData.append('Correspondence.visibleFrom', visibleFrom.toISOString());
+    formData.append('Correspondence.allowSystemDeleteAfter', deleteAfter.toISOString());
+    formData.append('Correspondence.dueDateTime', dueDateTime.toISOString());
     formData.append('Correspondence.content.externalReferences[0].referenceValue', "test");
     formData.append('Correspondence.content.externalReferences[0].referenceType', "AltinnBrokerFileTransfer");
     formData.append('Correspondence.content.propertyList.deserunt_12', "string");
