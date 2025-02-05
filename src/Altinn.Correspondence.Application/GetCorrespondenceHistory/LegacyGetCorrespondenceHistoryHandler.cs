@@ -78,8 +78,8 @@ public class LegacyGetCorrespondenceHistoryHandler(
                     IsReserved = anySucceededDeliveryRecipient.IsReserved,
                     NationalIdentityNumber = anySucceededDeliveryRecipient.NationalIdentityNumber,
                     OrganizationNumber = anySucceededDeliveryRecipient.OrganizationNumber,
-                    EmailAddress = string.Join(';', notificationDetails.NotificationsStatusDetails.Emails?.Select(email => email.Recipient.EmailAddress) ?? []),
-                    MobileNumber = string.Join(';', notificationDetails.NotificationsStatusDetails.Smses?.Select(sms => sms.Recipient.MobileNumber) ?? [])
+                    EmailAddress = string.Join("; ", notificationDetails.NotificationsStatusDetails.Emails?.Select(email => email.Recipient.EmailAddress) ?? []),
+                    MobileNumber = string.Join("; ", notificationDetails.NotificationsStatusDetails.Smses?.Select(sms => sms.Recipient.MobileNumber) ?? [])
                 };
                 notificationHistory.Add(await GetNotificationStatus(anySucceededDeliveryStatus, assemblededRecipient, notification.IsReminder, cancellationToken));
             }
