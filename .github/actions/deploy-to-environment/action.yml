@@ -73,6 +73,14 @@ inputs:
     description: "Maskinporten Token Exchange Environment"
     required: false
     default: ""
+  RESOURCE_WHITELIST:
+    description: "Whitelist for approved resources"
+    required: false
+    default: ""
+  MASKINPORTEN_ENVIRONMENT:
+    description: "Maskinporten environment"
+    required: true
+    default: ""
 
 runs:
   using: "composite"
@@ -100,6 +108,7 @@ runs:
         PLATFORM_SUBSCRIPTION_KEY: ${{ inputs.PLATFORM_SUBSCRIPTION_KEY }}
         SLACK_URL: ${{ inputs.SLACK_URL }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
+        RESOURCE_WHITELIST: ${{ inputs.RESOURCE_WHITELIST }}
 
     - name: Migrate database
       uses: ./.github/actions/migrate-database
@@ -132,3 +141,4 @@ runs:
         STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}
         SBL_BRIDGE_BASE_URL: ${{ inputs.SBL_BRIDGE_BASE_URL }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
+        MASKINPORTEN_ENVIRONMENT: ${{ inputs.MASKINPORTEN_ENVIRONMENT }}

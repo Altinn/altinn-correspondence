@@ -94,6 +94,6 @@ public class DialogportenTests
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, contentResponse.StatusCode);
-        Assert.Equal("application/vnd.dialogporten.frontchannelembed+json; type=markdown; charset=utf-8", contentResponse.Content.Headers.ContentType?.ToString());
+        Assert.Equal("text/plain; charset=utf-8", contentResponse.Content.Headers.ContentType?.ToString());
     }
 }

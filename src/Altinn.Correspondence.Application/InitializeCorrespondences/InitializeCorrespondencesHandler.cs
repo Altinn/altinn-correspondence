@@ -39,12 +39,19 @@ public class InitializeCorrespondencesHandler(
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        if (!string.IsNullOrWhiteSpace(generalSettings.Value.ResourceWhitelist))
+        {
+            if (!generalSettings.Value.ResourceWhitelist.Split(',').Contains(request.Correspondence.ResourceId))
+            {
+                return AuthorizationErrors.ResourceNotWhitelisted;
+            }
+        }
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
-            user,
-            request.Correspondence.ResourceId,
-            request.Correspondence.Sender.WithoutPrefix(),
-            null,
-            cancellationToken);
+        user,
+        request.Correspondence.ResourceId,
+        request.Correspondence.Sender.WithoutPrefix(),
+        null,
+        cancellationToken);
         if (!hasAccess)
         {
             return AuthorizationErrors.NoAccessToResource;
