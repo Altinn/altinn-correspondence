@@ -29,7 +29,7 @@ namespace Altinn.Correspondence.Application.CancelNotification
         public async Task Process(PerformContext context, Guid correspondenceId, ClaimsPrincipal? _, CancellationToken cancellationToken = default)
         {
             var retryAttempts = context.GetJobParameter<int>(RetryCountKey);
-            logger.LogInformation("Cancelling notifications for purged correspondence {instanceId}. Retry attempt: {retryAttempts}", retryAttempts, correspondenceId);
+            logger.LogInformation("Cancelling notifications for purged correspondence {correspondenceId}. Retry attempt: {retryAttempts}", retryAttempts, correspondenceId);
             var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, cancellationToken);
             var notificationEntities = correspondence?.Notifications ?? [];
             await CancelNotification(correspondenceId, notificationEntities, retryAttempts, cancellationToken);

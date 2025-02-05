@@ -24,6 +24,10 @@ public class PropertyPropagationEnricher : ILogEventEnricher
                 if (logEvent.Properties.TryGetValue(propertyToken.PropertyName, out var value))
                 {
                     LogContext.PushProperty(propertyToken.PropertyName, value);
+                    if (propertyToken.PropertyName == "correspondenceId") // For queries that work across multiple API's.
+                    {
+                        LogContext.PushProperty("instanceId", value);
+                    }
                 }
             }
         }

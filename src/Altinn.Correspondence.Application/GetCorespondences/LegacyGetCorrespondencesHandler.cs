@@ -1,17 +1,13 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Repositories;
-using OneOf;
-
 using Microsoft.Extensions.Logging;
+using OneOf;
 using System.Security.Claims;
-using Altinn.Correspondence.Common.Constants;
-using Serilog.Context;
-using Microsoft.AspNetCore.Http;
-using Altinn.Correspondence.Common.Helpers;
 
 namespace Altinn.Correspondence.Application.GetCorrespondences;
 

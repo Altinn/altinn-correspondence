@@ -41,7 +41,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
     public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, params string[] tokens)
     {
-        logger.LogInformation("CreateInformationActivity {actorType}: {textType} for correspondence {instanceId}",
+        logger.LogInformation("CreateInformationActivity {actorType}: {textType} for correspondence {correspondenceId}",
             Enum.GetName(typeof(DialogportenActorType), actorType),
             Enum.GetName(typeof(DialogportenTextType), textType),
             correspondenceId
