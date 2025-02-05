@@ -262,7 +262,7 @@ public class InitializeCorrespondencesHandler(
         return new InitializeCorrespondencesResponse()
         {
             Correspondences = initializedCorrespondences,
-            AttachmentIds = correspondences.SelectMany(c => c.Content?.Attachments.Select(a => a.AttachmentId)).ToList()
+            AttachmentIds = correspondences.SelectMany(c => c.Content?.Attachments.Select(a => a.AttachmentId)).Distinct().ToList()
         };
     }
 
