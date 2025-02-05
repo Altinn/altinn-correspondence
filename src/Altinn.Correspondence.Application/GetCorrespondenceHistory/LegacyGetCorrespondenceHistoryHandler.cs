@@ -59,11 +59,11 @@ public class LegacyGetCorrespondenceHistoryHandler(
 
             if (notificationDetails?.NotificationsStatusDetails is null) continue;
 
-            var firstEmailDelivery = notificationDetails.NotificationsStatusDetails.Emails
+            var firstEmailDelivery = notificationDetails.NotificationsStatusDetails.Emails?
                 .Where(email => email.Succeeded)
                 .OrderBy(email => email.SendStatus.LastUpdate)
                 .FirstOrDefault();
-            var firstSmsDelivery = notificationDetails.NotificationsStatusDetails.Smses
+            var firstSmsDelivery = notificationDetails.NotificationsStatusDetails.Smses?
                 .Where(sms => sms.Succeeded)
                 .OrderBy(sms => sms.SendStatus.LastUpdate)
                 .FirstOrDefault();
@@ -78,8 +78,8 @@ public class LegacyGetCorrespondenceHistoryHandler(
                     IsReserved = anySucceededDeliveryRecipient.IsReserved,
                     NationalIdentityNumber = anySucceededDeliveryRecipient.NationalIdentityNumber,
                     OrganizationNumber = anySucceededDeliveryRecipient.OrganizationNumber,
-                    EmailAddress = string.Join(';', notificationDetails.NotificationsStatusDetails.Emails.Select(email => email.Recipient)),
-                    MobileNumber = string.Join(';', notificationDetails.NotificationsStatusDetails.Smses.Select(sms => sms.Recipient))
+                    EmailAddress = string.Join(';', notificationDetails.NotificationsStatusDetails.Emails?.Select(email => email.Recipient.EmailAddress) ?? []),
+                    MobileNumber = string.Join(';', notificationDetails.NotificationsStatusDetails.Smses?.Select(sms => sms.Recipient.MobileNumber) ?? [])
                 };
                 notificationHistory.Add(await GetNotificationStatus(anySucceededDeliveryStatus, assemblededRecipient, notification.IsReminder, cancellationToken));
             }

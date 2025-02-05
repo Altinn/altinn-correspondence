@@ -6,7 +6,7 @@ public class NotificationsStatusDetails
 
     public SmsNotificationWithResult? Sms { get; set; }
 
-    public List<EmailNotificationWithResult> Emails { get; set; }
+    public List<EmailNotificationWithResult>? Emails { get; set; }
 
-    public List<SmsNotificationWithResult> Smses { get; set; }
+    public List<SmsNotificationWithResult>? Smses { get; set; }
 }
