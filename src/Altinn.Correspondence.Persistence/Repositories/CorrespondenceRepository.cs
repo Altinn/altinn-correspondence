@@ -1,11 +1,8 @@
-using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Helpers;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Serilog.Context;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
@@ -65,8 +62,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a.Statuses);
             }
-            var correspondence = await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
-            return correspondence;
+            return await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
         }
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesByAttachmentId(Guid attachmentId, bool includeStatus, CancellationToken cancellationToken = default)
         {
