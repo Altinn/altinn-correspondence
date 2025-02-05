@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -109,6 +110,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             { "Type", c.Type }, 
             { "Value", c.Value } 
         }).ToList();
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
         client.DefaultRequestHeaders.Add("X-Custom-Claims", JsonSerializer.Serialize(claimsData));
         return client;
     }
@@ -141,6 +143,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             { "Type", c.Type },
             { "Value", c.Value }
         }).ToList();
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
         client.DefaultRequestHeaders.Add("X-Custom-Claims", JsonSerializer.Serialize(claimsData));
         return client;
     }
