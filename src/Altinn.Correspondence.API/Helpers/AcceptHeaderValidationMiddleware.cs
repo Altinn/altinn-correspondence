@@ -23,12 +23,12 @@ public class AcceptHeaderValidationMiddleware
             
             if (producesAttribute != null)
             {
-                var validMimeTypes = producesAttribute?.ContentTypes.ToList() ?? new List<string>();
+                var validMimeTypes = producesAttribute.ContentTypes.ToList();
 
                 if (string.IsNullOrWhiteSpace(acceptHeader))
                 {
                     context.Response.StatusCode = StatusCodes.Status406NotAcceptable;
-                    await context.Response.WriteAsync("Invalid Accept header");
+                    await context.Response.WriteAsync("Accept header is required");
                     return;
                 }
                 if (!IsValidAcceptHeader(acceptHeader, validMimeTypes))
