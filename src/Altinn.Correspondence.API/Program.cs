@@ -42,9 +42,7 @@ static void BuildAndRun(string[] args)
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
-        .Enrich.WithClientIp()
-        .Filter.ByExcluding(Matching.WithProperty<string>("RequestPath", value => value.Contains("/health")))
-        .Enrich.With(new PropertyPropagationEnricher("instanceId", "resourceId", "partyId"))
+        .Enrich.With(new PropertyPropagationEnricher("correspondenceId", "instanceId", "resourceId", "partyId"))
         .WriteTo.Console()
         .WriteTo.ApplicationInsights(
             services.GetRequiredService<TelemetryConfiguration>(),
