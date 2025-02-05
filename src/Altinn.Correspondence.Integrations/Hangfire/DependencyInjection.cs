@@ -13,7 +13,7 @@ public static class DependencyInjection
         services.AddHangfire((provider, config) =>
         {
             config.UsePostgreSqlStorage(
-                c => c.UseConnectionFactory(services.BuildServiceProvider().GetService<IConnectionFactory>())
+                c => c.UseConnectionFactory(provider.GetService<IConnectionFactory>())
             );
             config.UseSerilogLogProvider();
             config.UseFilter(new HangfireAppRequestFilter(provider.GetRequiredService<TelemetryClient>()));
