@@ -15,25 +15,9 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Npgsql;
 using Serilog;
-using Serilog.Events;
-using Serilog.Filters;
 using System.Text.Json.Serialization;
 
-Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
-    .CreateBootstrapLogger();
-try
-{
-    BuildAndRun(args);
-}
-catch (Exception ex)
-{
-    Log.Fatal(ex, "Application terminated unexpectedly");
-}
-finally
-{
-    Log.CloseAndFlush();
-}
+BuildAndRun(args);
 
 static void BuildAndRun(string[] args)
 {
