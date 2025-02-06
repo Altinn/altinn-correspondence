@@ -60,6 +60,7 @@ static void BuildAndRun(string[] args)
 
     if (app.Environment.IsDevelopment())
     {
+        //want better descriptions for swagger
         app.UseSwagger();
         app.UseSwaggerUI();
     }
