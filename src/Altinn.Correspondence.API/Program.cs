@@ -1,4 +1,5 @@
 using Altinn.Correspondence.API.Auth;
+using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Options;
@@ -14,6 +15,8 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Npgsql;
 using Serilog;
+using Serilog.Events;
+using Serilog.Filters;
 using System.Text.Json.Serialization;
 
 Log.Logger = new LoggerConfiguration()
@@ -39,6 +42,8 @@ static void BuildAndRun(string[] args)
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
+        .Enrich.WithClientIp()
+        .Enrich.With(new PropertyPropagationEnricher("correspondenceId", "instanceId", "resourceId", "partyId"))
         .WriteTo.Console()
         .WriteTo.ApplicationInsights(
             services.GetRequiredService<TelemetryConfiguration>(),

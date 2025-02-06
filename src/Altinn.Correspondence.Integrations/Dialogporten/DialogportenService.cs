@@ -10,7 +10,7 @@ using System.Net.Http.Json;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
 
-public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IOptions<GeneralSettings> generalSettings, ILogger<DialogportenService> _logger) : IDialogportenService
+public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IOptions<GeneralSettings> generalSettings, ILogger<DialogportenService> logger) : IDialogportenService
 {
     public async Task<string> CreateCorrespondenceDialog(Guid correspondenceId)
     {
@@ -19,7 +19,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
         if (correspondence is null)
         {
-            _logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+            logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
 
@@ -39,12 +39,17 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
     public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, params string[] tokens)
     {
+        logger.LogInformation("CreateInformationActivity {actorType}: {textType} for correspondence {correspondenceId}",
+            Enum.GetName(typeof(DialogportenActorType), actorType),
+            Enum.GetName(typeof(DialogportenTextType), textType),
+            correspondenceId
+        );
         var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
         if (correspondence is null)
         {
-            _logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+            logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;

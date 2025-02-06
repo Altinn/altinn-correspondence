@@ -188,6 +188,7 @@ public class InitializeCorrespondencesHandler(
         var initializedCorrespondences = new List<InitializedCorrespondences>();
         foreach (var correspondence in correspondences)
         {
+            logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
             if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized ||
                 correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish)
@@ -262,7 +263,7 @@ public class InitializeCorrespondencesHandler(
         return new InitializeCorrespondencesResponse()
         {
             Correspondences = initializedCorrespondences,
-            AttachmentIds = correspondences.SelectMany(c => c.Content?.Attachments.Select(a => a.AttachmentId)).ToList()
+            AttachmentIds = correspondences.SelectMany(c => c.Content?.Attachments.Select(a => a.AttachmentId)).Distinct().ToList()
         };
     }
 

@@ -560,5 +560,23 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
         }
+        [Fact]
+        public async Task IntializeCorrespondence_WithMultipleRecipients_GivesUniqueAttachmentIds()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients(["01234567891", "01234567890"])
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+            var responseObject = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(responseObject);
+            Assert.Equal(responseObject.AttachmentIds.Count(), responseObject.AttachmentIds.Distinct().Count());
+        }
     }
 }
