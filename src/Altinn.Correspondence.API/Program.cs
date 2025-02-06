@@ -69,6 +69,7 @@ static void BuildAndRun(string[] args)
     app.MapControllers();
     app.UseMiddleware<SecurityHeadersMiddleware>();
     app.UseMiddleware<AcceptHeaderValidationMiddleware>();
+    app.UseSerilogRequestLogging();
 
     if (app.Environment.IsDevelopment())
     {
