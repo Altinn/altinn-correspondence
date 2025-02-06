@@ -23,7 +23,7 @@ public class AcceptHeaderValidationMiddleware
             
             if (producesAttribute != null)
             {
-                var validMimeTypes = producesAttribute?.ContentTypes.ToList() ?? new List<string>();
+                var validMimeTypes = producesAttribute.ContentTypes.ToList();
 
                 if (acceptHeaders.Length == 0)
                 {
