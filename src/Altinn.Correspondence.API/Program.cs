@@ -10,30 +10,15 @@ using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Azure.Identity;
 using Hangfire;
+using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Npgsql;
 using Serilog;
-using Serilog.Events;
-using Serilog.Filters;
 using System.Text.Json.Serialization;
 
-Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
-    .CreateBootstrapLogger();
-try
-{
-    BuildAndRun(args);
-}
-catch (Exception ex)
-{
-    Log.Fatal(ex, "Application terminated unexpectedly");
-}
-finally
-{
-    Log.CloseAndFlush();
-}
+BuildAndRun(args);
 
 static void BuildAndRun(string[] args)
 {
@@ -118,7 +103,10 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.ConfigureAuthorization(config);
     services.AddEndpointsApiExplorer();
     services.AddSwaggerGen();
-    services.AddApplicationInsightsTelemetry();
+    services.AddApplicationInsightsTelemetry(new ApplicationInsightsServiceOptions()
+    {
+        EnableAdaptiveSampling = false
+    });
 
     services.AddApplicationHandlers();
     services.AddPersistence(config);
