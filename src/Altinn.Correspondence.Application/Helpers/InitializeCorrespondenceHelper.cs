@@ -156,12 +156,9 @@ namespace Altinn.Correspondence.Application.Helpers
         /// </summary>
         public Error? ValidateRecipientOverrides(NotificationRequest notification, List<string> recipients)
         {
-            var customRecipients = notification.CustomNotificationRecipients ?? [];
-            if (customRecipients.Count == 0)
-            {
-                return null;
-            }
-            var recipientWithNumberOrEmail = customRecipients.Where(recipient => recipient.Recipients.Any(r => r.EmailAddress != null || r.MobileNumber != null)).ToList();
+            //denne brukes
+            //CustomNotificationRecipients er tom
+rOrEmail = customRecipients.Where(recipient => recipient.Recipients.Any(r => r.EmailAddress != null || r.MobileNumber != null)).ToList();
             if (recipientWithNumberOrEmail.Count > 0)
             {
                 if (notification.NotificationTemplate != NotificationTemplate.CustomMessage)
