@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Npgsql;
 using Serilog;
+using System.Reflection;
 using System.Text.Json.Serialization;
 
 BuildAndRun(args);
@@ -102,7 +103,12 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.ConfigureAuthentication(config, hostEnvironment);
     services.ConfigureAuthorization(config);
     services.AddEndpointsApiExplorer();
-    services.AddSwaggerGen();
+    services.AddSwaggerGen(options =>
+    {
+        var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+        options.IncludeXmlComments(xmlPath);
+    });
     services.AddApplicationInsightsTelemetry(new ApplicationInsightsServiceOptions()
     {
         EnableAdaptiveSampling = false
