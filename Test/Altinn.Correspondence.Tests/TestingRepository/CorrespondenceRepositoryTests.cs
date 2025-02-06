@@ -1,6 +1,7 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Persistence.Repositories;
 using Altinn.Correspondence.Tests.Fixtures;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Tests.TestingRepository

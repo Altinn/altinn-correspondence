@@ -1,7 +1,9 @@
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using OneOf;
+using Serilog.Context;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondences;
@@ -9,10 +11,12 @@ namespace Altinn.Correspondence.Application.GetCorrespondences;
 public class GetCorrespondencesHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     ICorrespondenceRepository correspondenceRepository,
-    IHttpContextAccessor httpContextAccessor) : IHandler<GetCorrespondencesRequest, GetCorrespondencesResponse>
+    IHttpContextAccessor httpContextAccessor,
+    ILogger<GetCorrespondencesHandler> logger) : IHandler<GetCorrespondencesRequest, GetCorrespondencesResponse>
 {
     public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Searching for correspondences of {resourceId}", request.ResourceId);
         const int limit = 1000;
         DateTimeOffset? to = request.To != null ? ((DateTimeOffset)request.To).ToUniversalTime() : null;
         DateTimeOffset? from = request.From != null ? ((DateTimeOffset)request.From).ToUniversalTime() : null;

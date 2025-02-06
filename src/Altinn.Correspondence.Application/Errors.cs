@@ -70,6 +70,7 @@ public static class NotificationErrors
     public static Error SsnWithOrgNoEmailOrMobile = new Error(3014, "National identity number cannot be combined with email address, mobile number, or organization number.", HttpStatusCode.BadRequest);
     public static Error RecipientOverridesWithNumberOrEmailNotAllowedWithCustomTemplate = new Error(3015, "Recipient overrides with email or mobile number are not allowed when using a custom notification template because of name lookup", HttpStatusCode.BadRequest);
     public static Error RecipientOverridesWithNumberOrEmailNotAllowedWithRecipientName = new Error(3016, "Recipient overrides with email or mobile number are not allowed when using recipient name because of name lookup", HttpStatusCode.BadRequest);
+    public static Error MissingRecipientsForRecipientOverride = new Error(3017, "No recipients provided for one or more recipient overrides", HttpStatusCode.BadRequest);
 }
 public static class AuthorizationErrors
 {
