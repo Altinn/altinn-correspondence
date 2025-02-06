@@ -16,22 +16,22 @@ public class AcceptHeaderValidationMiddleware
         var endpoint = context.GetEndpoint();
         if (endpoint != null)
         {
-            var acceptHeader = context.Request.Headers.Accept.ToString();
+            var acceptHeaders = context.Request.Headers.Accept.ToArray();
             var producesAttribute = endpoint.Metadata
                 .OfType<ProducesAttribute>()
                 .FirstOrDefault();
             
             if (producesAttribute != null)
             {
-                var validMimeTypes = producesAttribute.ContentTypes.ToList();
+                var validMimeTypes = producesAttribute?.ContentTypes.ToList() ?? new List<string>();
 
-                if (string.IsNullOrWhiteSpace(acceptHeader))
+                if (acceptHeaders.Length == 0)
                 {
                     context.Response.StatusCode = StatusCodes.Status406NotAcceptable;
                     await context.Response.WriteAsync("Accept header is required");
                     return;
                 }
-                if (!IsValidAcceptHeader(acceptHeader, validMimeTypes))
+                if (!acceptHeaders.Any(header => header != null && IsValidAcceptHeader(header, validMimeTypes)))
                 {
                     context.Response.StatusCode = StatusCodes.Status406NotAcceptable;
                     await context.Response.WriteAsync($"This endpoint does not support the requested Accept header. Supported Accept headers are: {string.Join(", ", validMimeTypes)}.");
@@ -45,6 +45,7 @@ public class AcceptHeaderValidationMiddleware
 
     private static bool IsValidAcceptHeader(string acceptHeader, IEnumerable<string> validMimeTypes)
     {
-        return acceptHeader == "*/*" || validMimeTypes.Any(acceptHeader.Contains);
+        var AcceptedMimeTypes = acceptHeader.Split(',').Select(x => x.Trim()).ToList();
+        return acceptHeader == "*/*" || AcceptedMimeTypes.Any(mimeType => validMimeTypes.Contains(mimeType.Split(';')[0].Trim()));
     }
 }
