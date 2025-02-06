@@ -15,8 +15,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Npgsql;
 using Serilog;
-using Serilog.Events;
-using Serilog.Filters;
+using System.Reflection;
 using System.Text.Json.Serialization;
 
 Log.Logger = new LoggerConfiguration()
@@ -60,7 +59,6 @@ static void BuildAndRun(string[] args)
 
     if (app.Environment.IsDevelopment())
     {
-        //want better descriptions for swagger
         app.UseSwagger();
         app.UseSwaggerUI();
     }
@@ -118,7 +116,12 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.ConfigureAuthentication(config, hostEnvironment);
     services.ConfigureAuthorization(config);
     services.AddEndpointsApiExplorer();
-    services.AddSwaggerGen();
+    services.AddSwaggerGen(options =>
+    {
+        var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+        options.IncludeXmlComments(xmlPath);
+    });
     services.AddApplicationInsightsTelemetry();
 
     services.AddApplicationHandlers();
