@@ -53,8 +53,8 @@ static void BuildAndRun(string[] args)
     app.UseCors(AuthorizationConstants.ArbeidsflateCors);
     app.UseAuthentication();
     app.UseAuthorization();
-    app.UseMiddleware<SecurityHeadersMiddleware>();
     app.MapControllers();
+    app.UseMiddleware<SecurityHeadersMiddleware>();
     app.UseMiddleware<AcceptHeaderValidationMiddleware>();
     app.UseSerilogRequestLogging();
 
