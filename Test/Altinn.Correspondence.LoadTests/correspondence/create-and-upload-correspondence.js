@@ -54,7 +54,6 @@ export function uploadCorrespondence(serviceOwner, endUser, traceCalls) {
 
     describe('upload correspondence', async () => {
         let r = await http.asyncRequest('POST', baseUrlCorrespondence + 'upload', formData.body(), paramsWithToken);
-        console.log(r.body);
         expect(r.status, 'response status').to.equal(200);
     });
 }
