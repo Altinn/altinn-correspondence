@@ -16,7 +16,7 @@ public class AcceptHeaderValidationMiddleware
         var endpoint = context.GetEndpoint();
         if (endpoint != null)
         {
-            var acceptHeader = context.Request.Headers.Accept.ToString();
+            var acceptHeaders = context.Request.Headers.Accept.ToArray();
             var producesAttribute = endpoint.Metadata
                 .OfType<ProducesAttribute>()
                 .FirstOrDefault();
@@ -25,13 +25,13 @@ public class AcceptHeaderValidationMiddleware
             {
                 var validMimeTypes = producesAttribute.ContentTypes.ToList();
 
-                if (string.IsNullOrWhiteSpace(acceptHeader))
+                if (acceptHeaders.Length == 0)
                 {
                     context.Response.StatusCode = StatusCodes.Status406NotAcceptable;
                     await context.Response.WriteAsync("Accept header is required");
                     return;
                 }
-                if (!IsValidAcceptHeader(acceptHeader, validMimeTypes))
+                if (!acceptHeaders.Any(header => header != null && IsValidAcceptHeader(header, validMimeTypes)))
                 {
                     context.Response.StatusCode = StatusCodes.Status406NotAcceptable;
                     await context.Response.WriteAsync($"This endpoint does not support the requested Accept header. Supported Accept headers are: {string.Join(", ", validMimeTypes)}.");
@@ -45,6 +45,14 @@ public class AcceptHeaderValidationMiddleware
 
     private static bool IsValidAcceptHeader(string acceptHeader, IEnumerable<string> validMimeTypes)
     {
-        return acceptHeader == "*/*" || validMimeTypes.Any(acceptHeader.Contains);
+        var acceptedMimeTypes = acceptHeader.Split(',')
+            .Select(x => x.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => {
+                var parts = x.Split(';');
+                return parts[0].Trim().ToLowerInvariant();
+            })
+            .ToList();
+        return acceptHeader == "*/*" || acceptedMimeTypes.Any(mimeType => validMimeTypes.Contains(mimeType));
     }
 }
