@@ -40,7 +40,7 @@ export function uploadCorrespondence(serviceOwner, endUser, traceCalls) {
             Authorization: "Bearer " + getPersonalTokenForServiceOwner(serviceOwner),
             traceparent: traceparent,
             'Content-Type': 'multipart/form-data; boundary=' + formData.boundary,
-            'Accept': '*/*, text/plain',
+            'Accept': '*/*, application/json',
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive'
         },
@@ -54,6 +54,7 @@ export function uploadCorrespondence(serviceOwner, endUser, traceCalls) {
 
     describe('upload correspondence', async () => {
         let r = await http.asyncRequest('POST', baseUrlCorrespondence + 'upload', formData.body(), paramsWithToken);
+        console.log(r.body);
         expect(r.status, 'response status').to.equal(200);
     });
 }
