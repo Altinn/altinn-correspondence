@@ -40,7 +40,7 @@ export function uploadCorrespondence(serviceOwner, endUser, traceCalls) {
             Authorization: "Bearer " + getPersonalTokenForServiceOwner(serviceOwner),
             traceparent: traceparent,
             'Content-Type': 'multipart/form-data; boundary=' + formData.boundary,
-            'Accept': '*/*, text/plain',
+            'Accept': '*/*, application/json',
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive'
         },
