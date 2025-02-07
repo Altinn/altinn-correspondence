@@ -10,31 +10,17 @@ using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Azure.Identity;
 using Hangfire;
+using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Npgsql;
 using Serilog;
-using Serilog.Events;
-using Serilog.Filters;
+using System.Reflection;
 using System.Text.Json.Serialization;
 using Altinn.Correspondence.Integrations.Slack;
 
-Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
-    .CreateBootstrapLogger();
-try
-{
-    BuildAndRun(args);
-}
-catch (Exception ex)
-{
-    Log.Fatal(ex, "Application terminated unexpectedly");
-}
-finally
-{
-    Log.CloseAndFlush();
-}
+BuildAndRun(args);
 
 static void BuildAndRun(string[] args)
 {
@@ -69,6 +55,7 @@ static void BuildAndRun(string[] args)
     app.UseAuthorization();
     app.UseMiddleware<SecurityHeadersMiddleware>();
     app.MapControllers();
+    app.UseMiddleware<AcceptHeaderValidationMiddleware>();
     app.UseSerilogRequestLogging();
 
     if (app.Environment.IsDevelopment())
@@ -118,8 +105,16 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.ConfigureAuthentication(config, hostEnvironment);
     services.ConfigureAuthorization(config);
     services.AddEndpointsApiExplorer();
-    services.AddSwaggerGen();
-    services.AddApplicationInsightsTelemetry();
+    services.AddSwaggerGen(options =>
+    {
+        var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+        options.IncludeXmlComments(xmlPath);
+    });
+    services.AddApplicationInsightsTelemetry(new ApplicationInsightsServiceOptions()
+    {
+        EnableAdaptiveSampling = false
+    });
 
     services.AddApplicationHandlers();
     services.AddPersistence(config);

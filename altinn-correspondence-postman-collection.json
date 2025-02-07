@@ -242,7 +242,7 @@
 											},
 											{
 												"key": "Accept",
-												"value": "text/plain"
+												"value": "application/json"
 											}
 										],
 										"body": {
@@ -344,7 +344,7 @@
 											},
 											{
 												"key": "Accept",
-												"value": "text/plain"
+												"value": "application/json"
 											}
 										],
 										"body": {
@@ -446,7 +446,7 @@
 											},
 											{
 												"key": "Accept",
-												"value": "text/plain"
+												"value": "application/json"
 											}
 										],
 										"body": {
@@ -597,7 +597,7 @@
 										"header": [
 											{
 												"key": "Accept",
-												"value": "text/plain"
+												"value": "application/json"
 											}
 										],
 										"url": {
@@ -672,7 +672,7 @@
 							},
 							{
 								"key": "Accept",
-								"value": "text/plain"
+								"value": "application/json"
 							}
 						],
 						"body": {
@@ -710,7 +710,7 @@
 									},
 									{
 										"key": "Accept",
-										"value": "text/plain"
+										"value": "application/json"
 									}
 								],
 								"body": {
@@ -786,7 +786,7 @@
 							},
 							{
 								"key": "Accept",
-								"value": "text/plain"
+								"value": "application/json"
 							}
 						],
 						"body": {
@@ -1005,7 +1005,7 @@
 									},
 									{
 										"key": "Accept",
-										"value": "text/plain"
+										"value": "application/json"
 									}
 								],
 								"body": {
@@ -1066,7 +1066,7 @@
 						"header": [
 							{
 								"key": "Accept",
-								"value": "text/plain"
+								"value": "application/json"
 							}
 						],
 						"body": {
@@ -1100,7 +1100,7 @@
 								"header": [
 									{
 										"key": "Accept",
-										"value": "text/plain"
+										"value": "application/json"
 									}
 								],
 								"url": {
@@ -1153,7 +1153,7 @@
 						"header": [
 							{
 								"key": "Accept",
-								"value": "text/plain"
+								"value": "application/json"
 							}
 						],
 						"url": {
@@ -1179,7 +1179,7 @@
 								"header": [
 									{
 										"key": "Accept",
-										"value": "text/plain"
+										"value": "application/json"
 									}
 								],
 								"url": {
@@ -1250,7 +1250,7 @@
 							},
 							{
 								"key": "Accept",
-								"value": "text/plain"
+								"value": "application/json"
 							}
 						],
 						"url": {
@@ -1305,7 +1305,7 @@
 									},
 									{
 										"key": "Accept",
-										"value": "text/plain"
+										"value": "application/json"
 									}
 								],
 								"body": {
@@ -1385,7 +1385,7 @@
 							},
 							{
 								"key": "Accept",
-								"value": "text/plain"
+								"value": "application/json"
 							}
 						],
 						"body": {
@@ -1423,7 +1423,7 @@
 									},
 									{
 										"key": "Accept",
-										"value": "text/plain"
+										"value": "application/json"
 									}
 								],
 								"body": {
@@ -1517,7 +1517,7 @@
 								"header": [
 									{
 										"key": "Accept",
-										"value": "text/plain"
+										"value": "application/json"
 									}
 								],
 								"url": {
@@ -1609,7 +1609,7 @@
 								"header": [
 									{
 										"key": "Accept",
-										"value": "text/plain"
+										"value": "application/json"
 									}
 								],
 								"url": {
@@ -1663,7 +1663,7 @@
 						"header": [
 							{
 								"key": "Accept",
-								"value": "text/plain"
+								"value": "application/json"
 							}
 						],
 						"url": {
@@ -1688,7 +1688,7 @@
 								"header": [
 									{
 										"key": "Accept",
-										"value": "text/plain"
+										"value": "application/json"
 									}
 								],
 								"url": {
@@ -1741,7 +1741,7 @@
 						"header": [
 							{
 								"key": "Accept",
-								"value": "text/plain"
+								"value": "application/json"
 							}
 						],
 						"url": {
@@ -1767,7 +1767,7 @@
 								"header": [
 									{
 										"key": "Accept",
-										"value": "text/plain"
+										"value": "application/json"
 									}
 								],
 								"url": {
@@ -1821,7 +1821,7 @@
 						"header": [
 							{
 								"key": "Accept",
-								"value": "text/plain"
+								"value": "application/json"
 							}
 						],
 						"url": {
@@ -1846,7 +1846,7 @@
 								"header": [
 									{
 										"key": "Accept",
-										"value": "text/plain"
+										"value": "application/json"
 									}
 								],
 								"url": {
