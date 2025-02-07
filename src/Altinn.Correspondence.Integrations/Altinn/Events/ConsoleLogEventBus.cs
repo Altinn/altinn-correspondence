@@ -13,7 +13,7 @@ public class ConsoleLogEventBus : IEventBus
         _logger = logger;
     }
 
-    public Task Publish(AltinnEventType type, string resourceId, string itemId, string eventSource, string? recipientId = null, CancellationToken cancellationToken = default)
+    public Task Publish(AltinnEventType type, string resourceId, string itemId, string eventSource, string? recipientId = null, CancellationToken cancellationToken = default, bool inBackground = true)
     {
         _logger.LogInformation("{CloudEventType} event raised on instance {eventSource} {itemId} for party with organization number or ssn: {recipientId}", type.ToString(), eventSource, itemId, recipientId);
         return Task.CompletedTask;
