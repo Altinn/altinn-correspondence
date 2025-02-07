@@ -18,6 +18,7 @@ using Npgsql;
 using Serilog;
 using System.Reflection;
 using System.Text.Json.Serialization;
+using Altinn.Correspondence.Integrations.Slack;
 
 BuildAndRun(args);
 
@@ -88,6 +89,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     });
     var altinnOptions = new AltinnOptions();
     config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
+    services.AddSingleton<Altinn.Correspondence.Integrations.Slack.SlackExceptionNotification>();
     services.AddExceptionHandler<SlackExceptionNotification>();
     services.AddCors(options =>
     {
