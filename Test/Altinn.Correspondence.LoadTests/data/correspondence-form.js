@@ -1,51 +1,81 @@
-import http from 'k6/http';
-import { FormData } from 'https://jslib.k6.io/formdata/0.0.2/index.js';
+function generateRandomData(sizeInBytes) {
+    const data = new Uint8Array(sizeInBytes);
+    for (let i = 0; i < sizeInBytes; i++) {
+        data[i] = Math.floor(Math.random() * 256); // Random byte (0-255)
+    }
+    return data;
+}
 
-const file = open("./testfile.txt", "b");
+function stringToUint8Array(str) {
+    const arr = new Uint8Array(str.length);
+    for (let i = 0; i < str.length; i++) {
+        arr[i] = str.charCodeAt(i);
+    }
+    return arr;
+}
 
 export function getCorrespondenceForm(resource_id, sender, recipient) {
-    const now = new Date(); 
+    const CRLF = '\r\n';
+    let body = '';
+    
+    function addFormField(name, value) {
+        body += `--${boundary}${CRLF}`;
+        body += `Content-Disposition: form-data; name="${name}"${CRLF}${CRLF}`;
+        body += `${value}${CRLF}`;
+    }
+
     const visibleFrom = new Date();
     const dueDateTime = new Date(now.setMonth(now.getMonth() + 1));
     const deleteAfter = new Date(now.setMonth(now.getMonth() + 4));
-    const formData = new FormData();
-    formData.append('Recipients[0]', recipient);
-    formData.append('Correspondence.ResourceId', resource_id);
-    formData.append('Correspondence.Sender', "0192:" +sender);
-    formData.append('Correspondence.sendersReference', "1234");
-    formData.append('Correspondence.content.language', "en");
-    formData.append('Correspondence.content.messageTitle', "Test");
-    formData.append('Correspondence.content.messageSummary', "Test");
-    formData.append('Correspondence.content.messageBody', "Test");
-    formData.append('Correspondence.content.attachments[0].DataLocationType', "ExistingExternalStorage");
-    formData.append('Correspondence.content.attachments[0].DataType', "1");
-    formData.append('Correspondence.content.attachments[0].Name', "testfile.txt");
-    formData.append('Correspondence.content.attachments[0].Sender', sender);
-    formData.append('Correspondence.content.attachments[0].SendersReference', "1234");
-    formData.append('Correspondence.content.attachments[0].FileName', "testfile.txt");
-    formData.append('Correspondence.content.attachments[0].IsEncrypted', "true");
-    formData.append('Correspondence.visibleFrom', visibleFrom.toISOString());
-    formData.append('Correspondence.allowSystemDeleteAfter', deleteAfter.toISOString());
-    formData.append('Correspondence.dueDateTime', dueDateTime.toISOString());
-    formData.append('Correspondence.content.externalReferences[0].referenceValue', "test");
-    formData.append('Correspondence.content.externalReferences[0].referenceType', "AltinnBrokerFileTransfer");
-    formData.append('Correspondence.content.propertyList.deserunt_12', "string");
-    formData.append('Correspondence.content.propertyList.culpa_852', "string");
-    formData.append('Correspondence.content.propertyList.anim5', "string");
-    formData.append('Correspondence.content.replyOptions[0].linkURL', "www.dgidir.no");
-    formData.append('Correspondence.content.replyOptions[0].linkText', "dgidir");
-    formData.append('Correspondence.content.replyOptions[1].linkURL', "www.dgidir.no");
-    formData.append('Correspondence.content.replyOptions[1].linkText', "dgidir");
-    formData.append('Correspondence.content.notification.notificationTemplate', "1");
-    formData.append('Correspondence.content.notification.notificationChannel', "2");
-    formData.append('Correspondence.content.notification.SendReminder', "true");
-    formData.append('Correspondence.content.notification.EmailBody', "Test av varsling");
-    formData.append('Correspondence.content.notification.EmailSubject', "Innholdet i ett testvarsel");
-    formData.append('Correspondence.content.notification.SmsBody', "Dette er ett testvarsel");
-    formData.append('Correspondence.content.notification.ReminderEmailSubject', "Revarsling ");
-    formData.append('Correspondence.content.notification.ReminderEmailBody', "Dette er revarsling av ett testvarsel");
-    formData.append('Correspondence.content.notification.ReminderSmsBody', "Dette er revarsel av ett test varsel");
-    formData.append('Correspondence.content.notification.isReservable', "true");
-    formData.append('Attachments', http.file(file, 'testfile.txt', 'text/plain'));
-    return formData;
+    
+    addFormField('Recipients[0]', recipient);
+    addFormField('Correspondence.ResourceId', resource_id);
+    addFormField('Correspondence.Sender', '0192:' + sender);
+    addFormField('Correspondence.sendersReference', '1234');
+    addFormField('Correspondence.content.language', 'en');
+    addFormField('Correspondence.content.messageTitle', 'Test');
+    addFormField('Correspondence.content.messageSummary', 'Test');
+    addFormField('Correspondence.content.messageBody', 'Test');
+    addFormField('Correspondence.content.attachments[0].DataLocationType', 'ExistingExternalStorage');
+    addFormField('Correspondence.content.attachments[0].Name', 'testfile.txt');
+    addFormField('Correspondence.content.attachments[0].Sender', '0192:' + sender);
+    addFormField('Correspondence.content.attachments[0].SendersReference', '1234');
+    addFormField('Correspondence.content.attachments[0].FileName', 'testfile.txt');
+    addFormField('Correspondence.content.attachments[0].IsEncrypted', 'true');
+    addFormField('Correspondence.visibleFrom', visibleFrom.toISOString());
+    addFormField('Correspondence.allowSystemDeleteAfter', deleteAfter.toISOString());
+    addFormField('Correspondence.dueDateTime', dueDateTime.toISOString());
+    addFormField('Correspondence.content.externalReferences[0].referenceValue', 'test');
+    addFormField('Correspondence.content.externalReferences[0].referenceType', 'AltinnBrokerFileTransfer');
+    addFormField('Correspondence.content.propertyList.deserunt_12', 'string');
+    addFormField('Correspondence.content.propertyList.culpa_852', 'string');
+    addFormField('Correspondence.content.propertyList.anim5', 'string');
+    addFormField('Correspondence.content.notification.notificationTemplate', '1');
+    addFormField('Correspondence.content.notification.notificationChannel', '2');
+    addFormField('Correspondence.content.notification.SendReminder', 'true');
+    addFormField('Correspondence.content.notification.EmailBody', 'Test av varsling');
+    addFormField('Correspondence.content.notification.EmailSubject', 'Innholdet i ett testvarsel');
+    addFormField('Correspondence.content.notification.SmsBody', 'Dette er ett testvarsel');
+    addFormField('Correspondence.content.notification.ReminderEmailSubject', 'Revarsling');
+    addFormField('Correspondence.content.notification.ReminderEmailBody', 'Dette er revarsling av ett testvarsel');
+    addFormField('Correspondence.content.notification.ReminderSmsBody', 'Dette er revarsel av ett test varsel');
+    addFormField('Correspondence.content.notification.isReservable', 'true');
+
+    body += `--${boundary}${CRLF}`;
+    body += `Content-Disposition: form-data; name="Attachments"; filename="testfile.txt"${CRLF}`;
+    body += `Content-Type: application/octet-stream${CRLF}${CRLF}`;
+    
+    let fileArray = new Uint8Array(generateRandomData(50 * 1024));
+    
+    let headerArray = stringToUint8Array(body);
+    let footerArray = stringToUint8Array(`${CRLF}--${boundary}--${CRLF}`);
+    
+    let totalSize = headerArray.length + fileArray.length + footerArray.length;
+    
+    let finalArray = new Uint8Array(totalSize);
+    finalArray.set(headerArray, 0);
+    finalArray.set(fileArray, headerArray.length);
+    finalArray.set(footerArray, headerArray.length + fileArray.length);
+    
+    return finalArray;
 }
