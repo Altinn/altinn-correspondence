@@ -14,7 +14,7 @@ function stringToUint8Array(str) {
     return arr;
 }
 
-export function getCorrespondenceForm(resource_id, sender, recipient) {
+export function getCorrespondenceForm(resource_id, sender, recipient, boundary) {
     const CRLF = '\r\n';
     let body = '';
     
@@ -24,6 +24,7 @@ export function getCorrespondenceForm(resource_id, sender, recipient) {
         body += `${value}${CRLF}`;
     }
 
+    const now = new Date(); 
     const visibleFrom = new Date();
     const dueDateTime = new Date(now.setMonth(now.getMonth() + 1));
     const deleteAfter = new Date(now.setMonth(now.getMonth() + 4));
