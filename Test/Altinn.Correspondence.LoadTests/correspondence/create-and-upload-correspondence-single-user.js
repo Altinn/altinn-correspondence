@@ -35,7 +35,7 @@ export function uploadCorrespondence(serviceOwner, endUser, traceCalls) {
         headers: {
             Authorization: "Bearer " + getPersonalTokenForServiceOwner(serviceOwner),
             traceparent: traceparent,
-            'Content-Type': 'multipart/form-data; boundary=' + formData,
+            'Content-Type': 'multipart/form-data; boundary=' + boundary,
             'Accept': '*/*, application/json',
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive'
