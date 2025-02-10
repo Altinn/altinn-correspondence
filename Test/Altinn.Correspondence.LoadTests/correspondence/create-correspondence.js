@@ -40,7 +40,7 @@ function createCorrespondence(serviceOwner, endUser, traceCalls) {
             Authorization: "Bearer " + getPersonalToken(serviceOwner),
             traceparent: traceparent,
             'Content-Type': 'application/json',
-            'Accept': '*/*, text/plain',
+            'Accept': '*/*, application/json',
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive'
         },

@@ -229,6 +229,7 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpPost]
         [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [Route("{correspondenceId}/markasread")]
+        [Produces("application/json")]
         public async Task<ActionResult> MarkAsRead(
             Guid correspondenceId,
             [FromServices] UpdateCorrespondenceStatusHandler handler,
@@ -259,6 +260,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         [Route("{correspondenceId}/confirm")]
+        [Produces("application/json")]
         public async Task<ActionResult> Confirm(
             Guid correspondenceId,
             [FromServices] UpdateCorrespondenceStatusHandler handler,
@@ -289,6 +291,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         [Route("{correspondenceId}/archive")]
+        [Produces("application/json")]
         public async Task<ActionResult> Archive(
             Guid correspondenceId,
             [FromServices] UpdateCorrespondenceStatusHandler handler,
@@ -319,6 +322,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("{correspondenceId}/purge")]
         [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
+        [Produces("application/json")]
         public async Task<ActionResult> Purge(
             Guid correspondenceId,
             [FromServices] PurgeCorrespondenceHandler handler,

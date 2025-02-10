@@ -21,16 +21,10 @@ public class AcceptHeaderValidationMiddleware
                 .OfType<ProducesAttribute>()
                 .FirstOrDefault();
             
-            if (producesAttribute != null)
+            if (producesAttribute != null && acceptHeaders.Length > 0)
             {
                 var validMimeTypes = producesAttribute.ContentTypes.ToList();
-
-                if (acceptHeaders.Length == 0)
-                {
-                    context.Response.StatusCode = StatusCodes.Status406NotAcceptable;
-                    await context.Response.WriteAsync("Accept header is required");
-                    return;
-                }
+                validMimeTypes.Add("*/*");
                 if (!acceptHeaders.Any(header => header != null && IsValidAcceptHeader(header, validMimeTypes)))
                 {
                     context.Response.StatusCode = StatusCodes.Status406NotAcceptable;
@@ -53,6 +47,6 @@ public class AcceptHeaderValidationMiddleware
                 return parts[0].Trim().ToLowerInvariant();
             })
             .ToList();
-        return acceptHeader == "*/*" || acceptedMimeTypes.Any(mimeType => validMimeTypes.Contains(mimeType));
+        return acceptedMimeTypes.Any(mimeType => validMimeTypes.Contains(mimeType));
     }
 }

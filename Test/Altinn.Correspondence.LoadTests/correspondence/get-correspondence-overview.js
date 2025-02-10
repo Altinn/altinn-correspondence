@@ -43,7 +43,7 @@ function getCorrespondence(serviceOwner, endUser, traceCalls) {
             Authorization: "Bearer " + getPersonalTokenForEndUser(serviceOwner, endUser),
             traceparent: traceparent,
             'Content-Type': 'application/json',
-            'Accept': '*/*, text/plain',
+            'Accept': '*/*, application/json',
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive'
         },
@@ -70,7 +70,7 @@ function getCorrespondence(serviceOwner, endUser, traceCalls) {
 
 function getOverview(response, endUser, paramsWithToken) {
     let correspondences = JSON.parse(response.body);
-    if (correspondences.items.length === 0) {
+    if (correspondences.ids.length === 0) {
         console.log('No correspondence found for end user ' + endUser.ssn);
         return;
     }
@@ -80,7 +80,7 @@ function getOverview(response, endUser, paramsWithToken) {
         tags: { ...paramsWithToken.tags, name: 'get correspondence details' }
     };
     
-    for (const correspondenceId of correspondences.items) {
+    for (const correspondenceId of correspondences.ids) {
         describe('get correspondence details', () => {
             let contentUrl = new URL(baseUrlCorrespondence + correspondenceId);
             let r = http.get(contentUrl.toString(), listParams);
