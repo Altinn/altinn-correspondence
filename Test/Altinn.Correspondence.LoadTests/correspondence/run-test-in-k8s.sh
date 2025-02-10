@@ -37,7 +37,6 @@ print_logs() {
             kubectl logs --tail=-1 $pod
             status=`kubectl get $pod -o jsonpath='{.status.phase}'`
             if [ "$status" != "Succeeded" ]; then
-                echo "Pod status was $status"
                 failed=1
             fi
             echo
