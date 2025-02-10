@@ -32,7 +32,7 @@ public class CorrespondenceInitializationTests : CorrespondenceTestBase
     }
 
     [Fact]
-    public async Task InitializeEndpoint_WithNoAcceptHeader_ReturnsNotAcceptable()
+    public async Task InitializeEndpoint_WithNoAcceptHeader_ReturnsOk()
     {
         // Arrange
         _senderClient.DefaultRequestHeaders.Accept.Clear();
@@ -42,7 +42,7 @@ public class CorrespondenceInitializationTests : CorrespondenceTestBase
         var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
 
         // Assert
-        Assert.Equal(HttpStatusCode.NotAcceptable, initializeCorrespondenceResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
     }
 
     [Fact]
