@@ -72,7 +72,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Authorize(Policy = AuthorizationConstants.Sender)]
         public async Task<ActionResult<InitializeCorrespondencesResponseExt>> UploadCorrespondences(
             [FromForm] InitializeCorrespondencesExt request,
-            IFormFileCollection attachments,
+            [FromForm] List<IFormFile> attachments,
             [FromServices] InitializeCorrespondencesHandler handler,
             CancellationToken cancellationToken)
         {

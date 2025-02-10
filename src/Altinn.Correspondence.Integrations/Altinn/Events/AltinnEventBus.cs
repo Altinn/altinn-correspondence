@@ -17,24 +17,17 @@ public class AltinnEventBus : IEventBus
     private readonly HttpClient _httpClient;
     private readonly ILogger<AltinnEventBus> _logger;
     private readonly IAltinnRegisterService _altinnRegisterService;
-    private readonly IBackgroundJobClient _backgroundJobClient;  
 
-    public AltinnEventBus(HttpClient httpClient, IAltinnRegisterService altinnRegisterService, IOptions<GeneralSettings> generalSettings, IBackgroundJobClient backgroundJobClient, ILogger<AltinnEventBus> logger)
+    public AltinnEventBus(HttpClient httpClient, IAltinnRegisterService altinnRegisterService, IOptions<GeneralSettings> generalSettings, ILogger<AltinnEventBus> logger)
     {
         _httpClient = httpClient;
         _generalSettings = generalSettings.Value;
         _altinnRegisterService = altinnRegisterService;
-        _backgroundJobClient = backgroundJobClient;
         _logger = logger;
     }
 
-    public async Task Publish(AltinnEventType type, string resourceId, string itemId, string eventSource, string? recipientId, CancellationToken cancellationToken = default, bool inBackground = true)
+    public async Task Publish(AltinnEventType type, string resourceId, string itemId, string eventSource, string? recipientId, CancellationToken cancellationToken = default)
     {
-        if (inBackground)
-        {
-            _backgroundJobClient.Enqueue(() => Publish(type, resourceId, itemId, eventSource, recipientId, cancellationToken, false));
-            return;
-        }
         string? partyId = null;
         if (recipientId != null)
         {
