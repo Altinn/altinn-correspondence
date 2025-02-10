@@ -109,9 +109,21 @@ if ! k6 archive $filename \
     echo "Error: Failed to create k6 archive"
     exit 1
 fi
+
+# Verify archive.tar exists
+if [ ! -f "archive.tar" ]; then
+    echo "Error: archive.tar not found after k6 archive command"
+    exit 1
+fi
+
+# Delete existing configmap if it exists
+kubectl delete configmap $configmapname -n correspondence --ignore-not-found
+
 # Create the configmap from the archive
-if ! kubectl create configmap $configmapname --from-file=archive.tar; then
-    echo "Error: Failed to create configmap"
+if ! kubectl create configmap $configmapname --from-file=archive.tar -n correspondence; then
+    echo "Error: Failed to create configmap. Checking kubectl context..."
+    kubectl config current-context
+    kubectl auth can-i create configmap -n correspondence
     rm archive.tar
     exit 1
 fi
