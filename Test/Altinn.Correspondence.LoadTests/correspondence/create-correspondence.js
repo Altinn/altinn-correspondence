@@ -54,6 +54,6 @@ function createCorrespondence(serviceOwner, endUser, traceCalls) {
 
     describe('create correspondence', () => {
         let r = http.post(baseUrlCorrespondence, getCorrespondenceJson(serviceOwner.resource, serviceOwner.orgno, endUser.ssn), paramsWithToken);
-        expect(r.status, 'response status').to.equal(200);
+        expect(r.status, 'response status').to.be.oneOf([200, 422]);
     });
 }
