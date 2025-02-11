@@ -6,26 +6,32 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Azure;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
-    public class AttachmentHelper(IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository, IStorageRepository storageRepository, IHostEnvironment hostEnvironment)
+    public class AttachmentHelper(IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository, IStorageRepository storageRepository, IHostEnvironment hostEnvironment, ILogger<AttachmentHelper> logger)
     {
         public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, CancellationToken cancellationToken)
         {
+            logger.LogInformation("Start upload of attachment {attachmentId} for party {partyUuid}", attachmentId, partyUuid);
             var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
             if (attachment == null)
             {
                 return AttachmentErrors.AttachmentNotFound;
             }
+            logger.LogInformation("Retrieved attachment {attachmentId} from db", attachmentId);
 
             var currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.UploadProcessing, partyUuid, cancellationToken);
+            logger.LogInformation("Set attachment status of {attachmentId} to UploadProcessing", attachmentId);
             try
             {
                 var (dataLocationUrl, checksum) = await storageRepository.UploadAttachment(attachment, file, cancellationToken);
+                logger.LogInformation("Uploaded {attachmentId} to Azure Storage", attachmentId);
 
                 var isValidUpdate = await attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
+                logger.LogInformation("Set dataLocationUrl of {attachmentId}", attachmentId);
 
                 if (string.IsNullOrWhiteSpace(attachment.Checksum))
                 {
@@ -59,6 +65,7 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.Published, partyUuid, cancellationToken);
             }
+            logger.LogInformation("Finished upload of attachment {attachmentId} for party {partyUuid}", attachmentId, partyUuid);
 
             return new UploadAttachmentResponse()
             {
