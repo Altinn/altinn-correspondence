@@ -1,11 +1,11 @@
-﻿using Hangfire;
+﻿using Altinn.Correspondence.Integrations.Slack;
+using Hangfire;
+using Hangfire.MemoryStorage;
 using Hangfire.PostgreSql;
 using Microsoft.ApplicationInsights;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
-using Slack.Webhooks;
-using Altinn.Correspondence.Integrations.Slack;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace Altinn.Correspondence.Integrations.Hangfire;
 public static class DependencyInjection
@@ -15,9 +15,7 @@ public static class DependencyInjection
         services.AddSingleton<IConnectionFactory, HangfireConnectionFactory>();
         services.AddHangfire((provider, config) =>
         {
-            config.UsePostgreSqlStorage(
-                c => c.UseConnectionFactory(provider.GetService<IConnectionFactory>())
-            );
+            config.UseMemoryStorage();
             config.UseSerilogLogProvider();
             config.UseFilter(new HangfireAppRequestFilter(provider.GetRequiredService<TelemetryClient>()));
             config.UseSerializerSettings(new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
