@@ -30,10 +30,13 @@ public static class DependencyInjection
 
     private static NpgsqlDataSource BuildAzureNpgsqlDataSource(IConfiguration config)
     {
-        var databaseOptions = new DatabaseOptions() { ConnectionString = "" };
+        var databaseOptions = new DatabaseOptions() { 
+            ConnectionString = "" 
+        };
         config.GetSection(nameof(DatabaseOptions)).Bind(databaseOptions);
         var dataSourceBuilder = new NpgsqlDataSourceBuilder();
         dataSourceBuilder.ConnectionStringBuilder.ConnectionString = databaseOptions.ConnectionString;
+        dataSourceBuilder.EnableParameterLogging();
         if (!string.IsNullOrWhiteSpace(dataSourceBuilder.ConnectionStringBuilder.Password))
         {
             return dataSourceBuilder.Build();
