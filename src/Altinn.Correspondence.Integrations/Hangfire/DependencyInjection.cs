@@ -1,6 +1,5 @@
 ﻿using Altinn.Correspondence.Integrations.Slack;
 using Hangfire;
-using Hangfire.MemoryStorage;
 using Hangfire.PostgreSql;
 using Microsoft.ApplicationInsights;
 using Microsoft.Extensions.DependencyInjection;
