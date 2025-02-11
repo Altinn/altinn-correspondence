@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddDbContext<ApplicationDbContext>(entityFrameworkConfig =>
         {
             entityFrameworkConfig.UseNpgsql();
+            entityFrameworkConfig.EnableSensitiveDataLogging();
         });
         services.AddScoped<IAttachmentRepository, AttachmentRepository>();
         services.AddScoped<IAttachmentStatusRepository, AttachmentStatusRepository>();
