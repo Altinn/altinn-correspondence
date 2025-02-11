@@ -15,7 +15,9 @@ public static class DependencyInjection
         services.AddSingleton<IConnectionFactory, HangfireConnectionFactory>();
         services.AddHangfire((provider, config) =>
         {
-            config.UseMemoryStorage();
+            config.UsePostgreSqlStorage(
+                c => c.UseConnectionFactory(provider.GetService<IConnectionFactory>())
+            );
             config.UseSerilogLogProvider();
             config.UseFilter(new HangfireAppRequestFilter(provider.GetRequiredService<TelemetryClient>()));
             config.UseSerializerSettings(new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });

@@ -150,7 +150,10 @@ public class InitializeCorrespondencesHandler(
             return uploadError;
         }
 
-        return await InitializeCorrespondences(request, attachmentsToBeUploaded, notificationContents, partyUuid, reservedRecipients, cancellationToken);
+        return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
+        {
+            return await InitializeCorrespondences(request, attachmentsToBeUploaded, notificationContents, partyUuid, reservedRecipients, cancellationToken);
+        }, logger, cancellationToken);
     }
 
     private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<NotificationContent>? notificationContents, Guid partyUuid, List<string> reservedRecipients, CancellationToken cancellationToken)
