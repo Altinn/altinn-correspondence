@@ -22,7 +22,7 @@ public class MigrateCorrespondenceHandler(
             return AuthorizationErrors.NoAccessToResource;
         }
 
-        var contentError = initializeCorrespondenceHelper.ValidateCorrespondenceContent(request.CorrespondenceEntity.Content);
+        var contentError = MigrationValidateCorrespondenceContent(request.CorrespondenceEntity.Content);
         if (contentError != null)
         {
             return contentError;
@@ -63,5 +63,40 @@ public class MigrateCorrespondenceHandler(
             };
         }, logger, cancellationToken);
 
+    }
+
+    public Error? MigrationValidateCorrespondenceContent(CorrespondenceContentEntity? content)
+    {
+        if (content == null)
+        {
+            return CorrespondenceErrors.MissingContent;
+        }
+        if (string.IsNullOrWhiteSpace(content.MessageTitle))
+        {
+            return CorrespondenceErrors.MessageTitleEmpty;
+        }
+        if (!TextValidation.ValidatePlainText(content.MessageTitle))
+        {
+            return CorrespondenceErrors.MessageTitleIsNotPlainText;
+        }
+        if (string.IsNullOrWhiteSpace(content.MessageBody))
+        {
+            return CorrespondenceErrors.MessageBodyEmpty;
+        }
+        if (string.IsNullOrWhiteSpace(content.MessageSummary))
+        {
+            return CorrespondenceErrors.MessageSummaryEmpty;
+        }
+        if (!IsLanguageValid(content.Language))
+        {
+            return CorrespondenceErrors.InvalidLanguage;
+        }
+
+        return null;
+    }
+    private static bool IsLanguageValid(string language)
+    {
+        List<string> supportedLanguages = ["nb", "nn", "en"];
+        return supportedLanguages.Contains(language.ToLower());
     }
 }
