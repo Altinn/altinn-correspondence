@@ -215,7 +215,7 @@ public class InitializeCorrespondencesHandler(
 
                 if (request.Notification != null)
                 {
-                    var notifications = await CreateNotifications(request.Notification, correspondence, notificationContents);
+                    var notifications = await CreateNotifications(request.Notification, correspondence, notificationContents, cancellationToken);
                     foreach (var notification in notifications)
                     {
                         var notificationOrder = await altinnNotificationService.CreateNotification(notification, cancellationToken);
@@ -267,7 +267,7 @@ public class InitializeCorrespondencesHandler(
         };
     }
 
-    private async Task<List<NotificationOrderRequest>> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents)
+    private async Task<List<NotificationOrderRequest>> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
     {
         var notifications = new List<NotificationOrderRequest>();
         string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
@@ -306,7 +306,7 @@ public class InitializeCorrespondencesHandler(
         {
             content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person) ?? contents.FirstOrDefault(c => c.RecipientType == null);
         }
-        await SetRecipientNameOnNotificationContent(content, correspondence.Recipient);
+        await SetRecipientNameOnNotificationContent(content, correspondence.Recipient, cancellationToken);
         var notificationOrder = new NotificationOrderRequest
         {
             IgnoreReservation = correspondence.IgnoreReservation,
@@ -350,13 +350,13 @@ public class InitializeCorrespondencesHandler(
         }
         return notifications;
     }
-    private async Task SetRecipientNameOnNotificationContent(NotificationContent? content, string recipient)
+    private async Task SetRecipientNameOnNotificationContent(NotificationContent? content, string recipient, CancellationToken cancellationToken)
     {
         if (content == null)
         {
             return;
         }
-        var recipientName = await altinnRegisterService.LookUpName(recipient.WithoutPrefix(), CancellationToken.None);
+        var recipientName = await altinnRegisterService.LookUpName(recipient.WithoutPrefix(), cancellationToken);
         if (string.IsNullOrEmpty(recipientName))
         {
             return;
