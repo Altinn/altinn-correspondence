@@ -595,9 +595,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Theory]
-        [InlineData("97661466", null)]
+        [InlineData("+4791702158", null)]
         [InlineData(null, "test@example.com")]
-        public async Task Correspondence_CustomRecipient_WithPhoneNumberOrEmailAndRecipientTag_GivesBadRequest(string? number, string? email)
+        public async Task Correspondence_CustomRecipient_WithPhoneNumberOrEmailAndRecipientTag_GivesOk(string? number, string? email)
         {
             var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
             var customRecipients = new List<CustomNotificationRecipientExt>()
@@ -624,13 +624,13 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build();
 
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
-            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, initResponse.StatusCode);
         }
 
         [Theory]
-        [InlineData("97661466", null)]
+        [InlineData("+4797661466", null)]
         [InlineData(null, "test@example.com")]
-        public async Task Correspondence_CustomRecipient_WithNumberOrEmailAndCustomRecipientTag_GivesBadRequest(string? number, string? email)
+        public async Task Correspondence_CustomRecipient_WithNumberOrEmailAndCustomRecipientTag_GivesOK(string? number, string? email)
         {
             var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
             var customRecipients = new List<CustomNotificationRecipientExt>()
@@ -660,7 +660,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             payload.Correspondence.Notification.EmailBody = email != null ? "Test $recipientName$" : null;
 
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
-            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, initResponse.StatusCode);
         }
 
         [Fact]
