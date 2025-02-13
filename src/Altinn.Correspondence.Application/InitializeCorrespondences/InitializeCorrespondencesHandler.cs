@@ -27,6 +27,7 @@ public class InitializeCorrespondencesHandler(
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     INotificationTemplateRepository notificationTemplateRepository,
+    ICorrespondenceStatusRepository correspondenceStatusRepository,
     IEventBus eventBus,
     IBackgroundJobClient backgroundJobClient,
     IDialogportenService dialogportenService,
