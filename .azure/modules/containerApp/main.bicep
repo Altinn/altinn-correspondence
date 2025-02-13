@@ -104,6 +104,7 @@ var containerAppEnvVarsdefault = [
   { name: 'GeneralSettings__SlackUrl', secretRef: 'slack-url' }
   { name: 'GeneralSettings__AltinnSblBridgeBaseUrl', value: sblBridgeBaseUrl }
   { name: 'GeneralSettings__ResourceWhitelist', secretRef: 'resource-whitelist' }
+  { name: 'GeneralSettings__MalwarescanSecretæ', secretRef: 'malwarescan-secret' }
   { name: 'DialogportenSettings__Issuer', value: dialogportenIssuer }
   { name: 'IdportenSettings__Issuer', value: idportenIssuer }
   { name: 'IdportenSettings__ClientId', secretRef: 'idporten-client-id' }
@@ -195,6 +196,11 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           identity: principal_id
           keyVaultUrl: '${keyVaultUrl}/secrets/resource-whitelist'
           name: 'resource-whitelist'
+        }
+        {
+          identity: principal_id
+          keyVaultUrl: '${keyVaultUrl}/secret/malwarescan-secret'
+          name: 'malwarescan-secret'
         }
       ]
     }

@@ -26,6 +26,8 @@ param slackUrl string
 param idportenClientId string
 @secure()
 param idportenClientSecret string
+@secure()
+param malwarescanSecret string
 
 @secure()
 param storageAccountName string
@@ -85,6 +87,10 @@ var secrets = [
   {
     name: 'resource-whitelist'
     value: resourceWhiteList
+  }
+  {
+    name: 'malwarescan-secret'
+    value: malwarescanSecret
   }
 ]
 

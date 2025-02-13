@@ -10,4 +10,5 @@ public class GeneralSettings
     public string RedisConnectionString { get; set; } = string.Empty;
     public string ContactReservationRegistryBaseUrl { get; set; } = string.Empty;
     public string ResourceWhitelist { get; set; } = string.Empty;
+    public string MalwarescanSecret { get; set; } = string.Empty;
 }

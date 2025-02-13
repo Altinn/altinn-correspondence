@@ -5,6 +5,8 @@ param namePrefix string
 param storageAccountName string
 @secure()
 param containerAppIngress string
+@secure()
+param malwarescanSecret string
 
 resource eventgrid_topic 'Microsoft.EventGrid/topics@2022-06-15' = {
   name: '${namePrefix}-malware-scan-event-topic'
@@ -19,6 +21,9 @@ resource eventgrid_event_subscription 'Microsoft.EventGrid/topics/eventSubscript
       endpointType: 'WebHook'
       properties: {
         endpointUrl: 'https://${containerAppIngress}/correspondence/api/v1/webhooks/malwarescanresults'
+        headers: {
+          'Authorization': malwarescanSecret
+        }
       }
     }
   }
