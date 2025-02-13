@@ -1,6 +1,6 @@
+using Altinn.Correspondence.Core.Models.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Core.Models.Entities
 {
@@ -31,5 +31,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public string? NotificationAddress { get; set; }
 
         public int? Altinn2NotificationId { get; set; }
+
+        public string OrderRequest { get; set; }
     }
 }
