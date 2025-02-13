@@ -26,7 +26,6 @@ public class InitializeCorrespondencesHandler(
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
-    ICorrespondenceStatusRepository correspondenceStatusRepository,
     INotificationTemplateRepository notificationTemplateRepository,
     IEventBus eventBus,
     IBackgroundJobClient backgroundJobClient,
@@ -157,7 +156,7 @@ public class InitializeCorrespondencesHandler(
         }, logger, cancellationToken);
     }
 
-    private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> uploadedAttachments, List<NotificationContent>? notificationContents, Guid partyUuid, List<string> reservedRecipients, CancellationToken cancellationToken)
+    private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<NotificationContent>? notificationContents, Guid partyUuid, List<string> reservedRecipients, CancellationToken cancellationToken)
     {
         var correspondences = new List<CorrespondenceEntity>();
         var recipientsToSearch = request.Recipients.Select(r => r.WithoutPrefix()).ToList();
@@ -182,7 +181,7 @@ public class InitializeCorrespondencesHandler(
         {
             var isReserved = reservedRecipients.Contains(recipient.WithoutPrefix());
             var recipientParty = recipientDetails.FirstOrDefault(r => r.SSN == recipient.WithoutPrefix() || r.OrgNumber == recipient.WithoutPrefix());
-            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, uploadedAttachments, partyUuid, recipientParty, isReserved);
+            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, attachmentsToBeUploaded, partyUuid, recipientParty, isReserved);
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
@@ -195,8 +194,11 @@ public class InitializeCorrespondencesHandler(
             {
                 var publishTime = correspondence.RequestedPublishTime;
 
-                //Adds a 1 minute delay for malware scan to finish
-                publishTime = correspondence.RequestedPublishTime.UtcDateTime.AddSeconds(-30) < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow.AddMinutes(1) : correspondence.RequestedPublishTime.UtcDateTime;
+                if (!hostEnvironment.IsDevelopment())
+                {
+                    //Adds a 1 minute delay for malware scan to finish if not running locally
+                    publishTime = correspondence.RequestedPublishTime.UtcDateTime.AddSeconds(-30) < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow.AddMinutes(1) : correspondence.RequestedPublishTime.UtcDateTime;
+                }
 
                 backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), publishTime);
             }
@@ -247,20 +249,6 @@ public class InitializeCorrespondencesHandler(
                         backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJob, (dialogportenService) => dialogportenService.CreateInformationActivity(correspondence.Id, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, notification.RequestedSendTime.ToString("yyyy-MM-dd HH:mm")));
                     }
                 }
-            }
-            if (await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
-            {
-                await correspondenceStatusRepository.AddCorrespondenceStatus(
-                    new CorrespondenceStatusEntity
-                    {
-                        CorrespondenceId = correspondence.Id,
-                        Status = CorrespondenceStatus.ReadyForPublish,
-                        StatusChanged = DateTime.UtcNow,
-                        StatusText = CorrespondenceStatus.ReadyForPublish.ToString(),
-                        PartyUuid = partyUuid
-                    },
-                    cancellationToken
-                );
             }
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {

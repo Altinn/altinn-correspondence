@@ -432,8 +432,25 @@ namespace Altinn.Correspondence.Application.Helpers
                     uploadResponse = await attachmentHelper.UploadAttachment(f, attachment.Id, partyUuid, cancellationToken);
                 }
                 uploadResponse.Match(
-                    successfulUploadResponse =>
-                    {
+                    successfulUploadResponse => 
+                    { 
+                        if (hostEnvironment.IsDevelopment())
+                        {
+                            // Simulate virus scan when running locally
+                            backgroundJobClient.Enqueue<MalwareScanResultHandler>((handler) => handler.Process(new MalwareScanResult.Models.ScanResultData()
+                            {
+                                ScanResultType = "No threats found",
+                                BlobUri = attachment.DataLocationUrl,
+                                CorrelationId = Guid.NewGuid().ToString(),
+                                ETag = Guid.NewGuid().ToString(),
+                                ScanFinishedTimeUtc = DateTime.UtcNow,
+                                ScanResultDetails = new MalwareScanResult.Models.ScanResultDetails()
+                                {
+                                    MalwareNamesFound = new List<string>(),
+                                    Sha256 = Guid.NewGuid().ToString()
+                                }
+                            }, null, cancellationToken));
+                        }
                         return null; 
                     },
                     error => 

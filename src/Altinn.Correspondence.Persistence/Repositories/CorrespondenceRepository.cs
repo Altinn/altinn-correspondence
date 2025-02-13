@@ -140,13 +140,5 @@ namespace Altinn.Correspondence.Persistence.Repositories
             var result = await correspondences.Take(limit).ToListAsync(cancellationToken);
             return result;
         }
-        public async Task<bool> AreAllAttachmentsPublished(Guid correspondenceId, CancellationToken cancellationToken = default)
-        {
-            return await _context.CorrespondenceContents
-                .Where(content => content.CorrespondenceId == correspondenceId)
-                .Select(content => content.Attachments
-                    .All(correspondenceAttachment => correspondenceAttachment.Attachment!.Statuses.Any(status => status.Status == AttachmentStatus.Published)))
-                .SingleOrDefaultAsync(cancellationToken);
-        }
     }
 }

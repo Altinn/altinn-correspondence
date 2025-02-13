@@ -5,13 +5,12 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Azure;
-using Hangfire;
 using Microsoft.Extensions.Hosting;
 using OneOf;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
-    public class AttachmentHelper(IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository, IStorageRepository storageRepository, IHostEnvironment hostEnvironment, IBackgroundJobClient backgroundJobClient)
+    public class AttachmentHelper(IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository, IStorageRepository storageRepository, IHostEnvironment hostEnvironment)
     {
         public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, CancellationToken cancellationToken)
         {
@@ -56,23 +55,6 @@ namespace Altinn.Correspondence.Application.Helpers
                 return AttachmentErrors.UploadFailed;
             }
 
-            if (hostEnvironment.IsDevelopment())
-            {
-                // Simulate virus scan when running locally
-                backgroundJobClient.Enqueue<MalwareScanResultHandler>((handler) => handler.Process(new MalwareScanResult.Models.ScanResultData()
-                {
-                    ScanResultType = "No threats found",
-                    BlobUri = attachment.DataLocationUrl,
-                    CorrelationId = Guid.NewGuid().ToString(),
-                    ETag = Guid.NewGuid().ToString(),
-                    ScanFinishedTimeUtc = DateTime.UtcNow,
-                    ScanResultDetails = new MalwareScanResult.Models.ScanResultDetails()
-                    {
-                        MalwareNamesFound = new List<string>(),
-                        Sha256 = Guid.NewGuid().ToString()
-                    }
-                }, null, cancellationToken));
-            }
             return new UploadAttachmentResponse()
             {
                 AttachmentId = attachment.Id,
