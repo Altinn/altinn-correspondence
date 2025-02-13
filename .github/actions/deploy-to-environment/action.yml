@@ -81,7 +81,7 @@ inputs:
     description: "Maskinporten environment"
     required: true
     default: ""
-  MALWARESCAN_SECRET
+  MALWARESCAN_SECRET:
     description: "Shared secret for malwarescan endpoint" 
     required: true
     default: ""
