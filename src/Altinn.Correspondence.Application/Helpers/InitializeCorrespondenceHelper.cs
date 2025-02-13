@@ -9,6 +9,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Notifications.Core.Helpers;
+using Hangfire;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -21,6 +22,7 @@ namespace Altinn.Correspondence.Application.Helpers
         IHostEnvironment hostEnvironment,
         AttachmentHelper attachmentHelper,
         MobileNumberHelper mobileNumberHelper,
+        IBackgroundJobClient backgroundJobClient,
         ILogger<InitializeCorrespondenceHelper> logger)
     {
         private static readonly Regex emailRegex = new Regex(@"((""[^\\""]+"")|(([a-zA-Z0-9!#$%&'*+\-=?\^_`{|}~])+(\.([a-zA-Z0-9!#$%&'*+\-=?\^_`{|}~])+)*))@((((([a-zA-Z0-9æøåÆØÅ]([a-zA-Z0-9\-æøåÆØÅ]{0,61})[a-zA-Z0-9æøåÆØÅ]\.)|[a-zA-Z0-9æøåÆØÅ]\.){1,9})([a-zA-Z]{2,14}))|((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})))");
@@ -409,8 +411,7 @@ namespace Altinn.Correspondence.Application.Helpers
             var status = correspondence.Statuses.LastOrDefault()?.Status ?? CorrespondenceStatus.Initialized;
             if (correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.StatusHasBeen(AttachmentStatus.Published)))
             {
-                if (hostEnvironment.IsDevelopment() && correspondence.RequestedPublishTime < DateTimeOffset.UtcNow) status = CorrespondenceStatus.Published; // used to test on published correspondences in development
-                else status = CorrespondenceStatus.ReadyForPublish;
+                status = CorrespondenceStatus.ReadyForPublish;
             }
             return status;
         }
@@ -430,11 +431,33 @@ namespace Altinn.Correspondence.Application.Helpers
                 {
                     uploadResponse = await attachmentHelper.UploadAttachment(f, attachment.Id, partyUuid, cancellationToken);
                 }
-                var error = uploadResponse.Match(
-                    _ => { return null; },
-                    error => { return error; }
+                uploadResponse.Match(
+                    successfulUploadResponse => 
+                    { 
+                        if (hostEnvironment.IsDevelopment())
+                        {
+                            // Simulate virus scan when running locally
+                            backgroundJobClient.Enqueue<MalwareScanResultHandler>((handler) => handler.Process(new MalwareScanResult.Models.ScanResultData()
+                            {
+                                ScanResultType = "No threats found",
+                                BlobUri = attachment.DataLocationUrl,
+                                CorrelationId = Guid.NewGuid().ToString(),
+                                ETag = Guid.NewGuid().ToString(),
+                                ScanFinishedTimeUtc = DateTime.UtcNow,
+                                ScanResultDetails = new MalwareScanResult.Models.ScanResultDetails()
+                                {
+                                    MalwareNamesFound = new List<string>(),
+                                    Sha256 = Guid.NewGuid().ToString()
+                                }
+                            }, null, cancellationToken));
+                        }
+                        return null; 
+                    },
+                    error => 
+                    { 
+                        return error; 
+                    }
                 );
-                if (error != null) return error;
             }
             return null;
         }
