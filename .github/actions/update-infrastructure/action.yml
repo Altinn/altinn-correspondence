@@ -64,6 +64,10 @@ inputs:
     description: "Whitelist for approved resources"
     required: false
     default: ""
+  MALWARESCAN_SECRET:
+    description: "Shared secret for malwarescan endpoint" 
+    required: true
+    default: ""
 
 runs:
   using: "composite"
@@ -115,6 +119,7 @@ runs:
         IDPORTEN_CLIENT_SECRET: ${{ inputs.IDPORTEN_CLIENT_SECRET }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
         RESOURCE_WHITELIST: ${{ inputs.RESOURCE_WHITELIST }}
+        MALWARESCAN_SECRET: ${{ inputs.MALWARESCAN_SECRET }}
       with:
         scope: subscription
         template: ./.azure/infrastructure/main.bicep

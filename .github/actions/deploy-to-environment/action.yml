@@ -81,6 +81,11 @@ inputs:
     description: "Maskinporten environment"
     required: true
     default: ""
+  MALWARESCAN_SECRET
+    description: "Shared secret for malwarescan endpoint" 
+    required: true
+    default: ""
+
 
 runs:
   using: "composite"
@@ -109,6 +114,7 @@ runs:
         SLACK_URL: ${{ inputs.SLACK_URL }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
         RESOURCE_WHITELIST: ${{ inputs.RESOURCE_WHITELIST }}
+        MALWARESCAN_SECRET: ${{ inputs.MALWARESCAN_SECRET }}
 
     - name: Migrate database
       uses: ./.github/actions/migrate-database
@@ -142,3 +148,4 @@ runs:
         SBL_BRIDGE_BASE_URL: ${{ inputs.SBL_BRIDGE_BASE_URL }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
         MASKINPORTEN_ENVIRONMENT: ${{ inputs.MASKINPORTEN_ENVIRONMENT }}
+        MALWARESCAN_SECRET: ${{ inputs.MALWARESCAN_SECRET }}

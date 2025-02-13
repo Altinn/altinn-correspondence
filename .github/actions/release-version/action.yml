@@ -53,6 +53,10 @@ inputs:
     description: "Maskinporten environment"
     required: true
     default: ""
+  MALWARESCAN_SECRET:
+    description: "Shared secret for malwarescan endpoint" 
+    required: true
+    default: ""
 
 
 runs:
@@ -88,6 +92,7 @@ runs:
         SBL_BRIDGE_BASE_URL: ${{ inputs.SBL_BRIDGE_BASE_URL }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
         MASKINPORTEN_ENVIRONMENT: ${{ inputs.MASKINPORTEN_ENVIRONMENT }}
+        MALWARESCAN_SECRET: ${{ inputs.MALWARESCAN_SECRET }}
       with:
         scope: subscription
         subscriptionId: ${{ inputs.AZURE_SUBSCRIPTION_ID }}

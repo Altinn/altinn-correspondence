@@ -21,6 +21,8 @@ param storageAccountName string
 param sblBridgeBaseUrl string
 @minLength(3)
 param maskinporten_environment string
+@secure()
+param malwarescanSecret string
 param correspondenceBaseUrl string
 param contactReservationRegistryBaseUrl string
 param idportenIssuer string
@@ -114,6 +116,7 @@ module virusScan '../../modules/virusScan/create.bicep' = {
     location: location
     namePrefix: namePrefix
     storageAccountName: storageAccountName
+    malwarescanSecret: malwarescanSecret
   }
 }
 
