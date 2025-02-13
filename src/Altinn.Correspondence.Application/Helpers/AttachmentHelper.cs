@@ -56,9 +56,22 @@ namespace Altinn.Correspondence.Application.Helpers
                 return AttachmentErrors.UploadFailed;
             }
 
-            if (hostEnvironment.IsDevelopment()) // No malware scan when running locally
+            if (hostEnvironment.IsDevelopment())
             {
-                currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.Published, partyUuid, cancellationToken);
+                // Simulate virus scan when running locally
+                backgroundJobClient.Enqueue<MalwareScanResultHandler>((handler) => handler.Process(new MalwareScanResult.Models.ScanResultData()
+                {
+                    ScanResultType = "No threats found",
+                    BlobUri = attachment.DataLocationUrl,
+                    CorrelationId = Guid.NewGuid().ToString(),
+                    ETag = Guid.NewGuid().ToString(),
+                    ScanFinishedTimeUtc = DateTime.UtcNow,
+                    ScanResultDetails = new MalwareScanResult.Models.ScanResultDetails()
+                    {
+                        MalwareNamesFound = new List<string>(),
+                        Sha256 = Guid.NewGuid().ToString()
+                    }
+                }, null, cancellationToken));
             }
             return new UploadAttachmentResponse()
             {
