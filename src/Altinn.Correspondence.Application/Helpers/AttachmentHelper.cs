@@ -55,6 +55,11 @@ namespace Altinn.Correspondence.Application.Helpers
                 return AttachmentErrors.UploadFailed;
             }
 
+            if (hostEnvironment.IsDevelopment()) // No malware scan when running locally
+            {
+                currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.Published, partyUuid, cancellationToken);
+            }
+
             return new UploadAttachmentResponse()
             {
                 AttachmentId = attachment.Id,
