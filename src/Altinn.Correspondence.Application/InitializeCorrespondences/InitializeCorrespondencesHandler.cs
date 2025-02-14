@@ -362,12 +362,12 @@ public class InitializeCorrespondencesHandler(
             return;
         }
         recipientName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(recipientName.ToLower());
-        content.EmailBody = content.EmailBody?.Replace("$recipientName$", recipientName);
-        content.EmailSubject = content.EmailSubject?.Replace("$recipientName$", recipientName);
-        content.SmsBody = content.SmsBody?.Replace("$recipientName$", recipientName);
-        content.ReminderEmailBody = content.ReminderEmailBody?.Replace("$recipientName$", recipientName);
-        content.ReminderEmailSubject = content.ReminderEmailSubject?.Replace("$recipientName$", recipientName);
-        content.ReminderSmsBody = content.ReminderSmsBody?.Replace("$recipientName$", recipientName);
+        content.EmailBody = content.EmailBody?.Replace("$correspondenceRecipientName$", recipientName);
+        content.EmailSubject = content.EmailSubject?.Replace("$correspondenceRecipientName$", recipientName);
+        content.SmsBody = content.SmsBody?.Replace("$correspondenceRecipientName$", recipientName);
+        content.ReminderEmailBody = content.ReminderEmailBody?.Replace("$correspondenceRecipientName$", recipientName);
+        content.ReminderEmailSubject = content.ReminderEmailSubject?.Replace("$correspondenceRecipientName$", recipientName);
+        content.ReminderSmsBody = content.ReminderSmsBody?.Replace("$correspondenceRecipientName$", recipientName);
     }
     private async Task<List<NotificationContent>> GetNotificationContent(NotificationRequest request, List<NotificationTemplateEntity> templates, CorrespondenceEntity correspondence, CancellationToken cancellationToken, string? language = null)
     {

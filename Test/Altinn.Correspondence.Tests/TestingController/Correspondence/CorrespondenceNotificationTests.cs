@@ -656,8 +656,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithCustomNotificationRecipients(customRecipients)
                 .Build();
 
-            payload.Correspondence.Notification.SmsBody = number != null ? "Test $recipientName$" : null;
-            payload.Correspondence.Notification.EmailBody = email != null ? "Test $recipientName$" : null;
+            payload.Correspondence.Notification.SmsBody = number != null ? "Test $correspondenceRecipientName$" : null;
+            payload.Correspondence.Notification.EmailBody = email != null ? "Test $correspondenceRecipientName$" : null;
 
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             Assert.Equal(HttpStatusCode.OK, initResponse.StatusCode);
