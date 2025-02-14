@@ -43,5 +43,8 @@ namespace Altinn.Correspondence.Core.Models.Entities
         [Required]
         public required DateTimeOffset Created { get; set; }
 
+        [Required]
+        public long AttachmentSize { get; set; }
+
     }
 }

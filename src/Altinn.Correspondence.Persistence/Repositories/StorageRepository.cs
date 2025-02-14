@@ -32,7 +32,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return blobClient;
         }
 
-        public async Task<(string locationUrl, string hash)> UploadAttachment(AttachmentEntity attachment, Stream stream, CancellationToken cancellationToken)
+        public async Task<(string locationUrl, string hash, long size)> UploadAttachment(AttachmentEntity attachment, Stream stream, CancellationToken cancellationToken)
         {
             BlobClient blobClient = InitializeBlobClient(attachment.Id);
             var locationUrl = blobClient.Uri.ToString() ?? throw new DataLocationUrlException("Could not get data location url");
@@ -45,15 +45,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 var blobMetadata = await blobClient.UploadAsync(stream, options, cancellationToken);
                 var metadata = blobMetadata.Value;
                 var hash = Convert.ToHexString(metadata.ContentHash).ToLowerInvariant();
+                var blob = await blobClient.GetPropertiesAsync(cancellationToken: cancellationToken);
+                var size = blob.Value.ContentLength;
                 if (string.IsNullOrWhiteSpace(attachment.Checksum))
                 {
-                    return (locationUrl, hash);
+                    return (locationUrl, hash, size);
                 }
                 if (!string.Equals(hash, attachment.Checksum, StringComparison.InvariantCultureIgnoreCase))
                 {
                     throw new HashMismatchException("Hash mismatch");
                 }
-                return (locationUrl, hash);
+                return (locationUrl, hash, size);
             }
             catch (RequestFailedException requestFailedException)
             {
