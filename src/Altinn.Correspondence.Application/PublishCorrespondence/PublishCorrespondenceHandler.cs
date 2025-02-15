@@ -22,6 +22,7 @@ public class PublishCorrespondenceHandler(
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IContactReservationRegistryService contactReservationRegistryService,
+    IDialogportenService dialogportenService,
     IEventBus eventBus,
     IHostEnvironment hostEnvironment,
     IBackgroundJobClient backgroundJobClient) : IHandler<Guid, Task>
@@ -98,6 +99,7 @@ public class PublishCorrespondenceHandler(
                 {
                     backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
                 }
+                backgroundJobClient.Enqueue<IDialogportenService>(dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
             }
             else
             {

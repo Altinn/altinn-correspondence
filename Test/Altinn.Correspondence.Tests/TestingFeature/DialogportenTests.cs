@@ -1,4 +1,6 @@
 ﻿using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.Application.InitializeCorrespondences;
+using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
@@ -95,5 +97,50 @@ public class DialogportenTests
         // Assert
         Assert.Equal(HttpStatusCode.OK, contentResponse.StatusCode);
         Assert.Equal("text/plain; charset=utf-8", contentResponse.Content.Headers.ContentType?.ToString());
+    }
+
+    [Fact]
+    public async Task FailedPublish_DialogIsPurged() {
+        // Arrange
+        var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+        var contactReservationRegistry = new Mock<IContactReservationRegistryService>();
+        contactReservationRegistry.Setup(contactReservationRegistry => contactReservationRegistry.IsPersonReserved(It.IsAny<string>())).ReturnsAsync(true);
+        contactReservationRegistry.Setup(contactReservationRegistry => contactReservationRegistry.GetReservedRecipients(It.IsAny<List<string>>())).ReturnsAsync(new List<string>());
+        var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+        {
+            services.AddSingleton(hangfireBackgroundJobClient.Object);
+            services.AddSingleton(contactReservationRegistry.Object);
+        });
+
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
+        var testClient = testFactory.CreateSenderClient();
+
+        // Act
+        using var scope = testFactory.Services.CreateScope();
+        var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+        var initializedCorrespondence = await correspondenceRepository.CreateCorrespondence(new Core.Models.Entities.CorrespondenceEntity()
+        {
+            Created = DateTimeOffset.UtcNow,
+            Recipient = correspondence.Recipients[0],
+            RequestedPublishTime = DateTimeOffset.UtcNow,
+            ResourceId = correspondence.Correspondence.ResourceId,
+            Sender = correspondence.Correspondence.Sender,
+            SendersReference = correspondence.Correspondence.SendersReference,
+            Statuses = new List<Core.Models.Entities.CorrespondenceStatusEntity>()
+            {
+                new Core.Models.Entities.CorrespondenceStatusEntity()
+                {
+                    Status = Core.Models.Enums.CorrespondenceStatus.Initialized,
+                    StatusChanged = DateTimeOffset.UtcNow
+                }
+            }
+        }, CancellationToken.None);
+        var correspondenceId = initializedCorrespondence.Id;
+        Assert.NotNull(correspondenceId);
+        var handler = scope.ServiceProvider.GetRequiredService<PublishCorrespondenceHandler>();
+        await handler.Process(correspondenceId, null, CancellationToken.None);
+
+        // Assert
+        Assert.True(hangfireBackgroundJobClient.Invocations.Any(invocation => invocation.Arguments[0].ToString() == "IDialogportenService.PurgeCorrespondenceDialog"));
     }
 }

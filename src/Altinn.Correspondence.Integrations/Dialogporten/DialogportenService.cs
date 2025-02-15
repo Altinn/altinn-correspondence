@@ -65,4 +65,26 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         }
     }
+    public async Task PurgeCorrespondenceDialog(Guid correspondenceId)
+    {
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
+        if (correspondence is null)
+        {
+            logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+        var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        if (dialogId is null)
+        {
+            throw new ArgumentException($"No dialog found on on correspondence with id {correspondenceId}");
+        }
+
+        var response = await _httpClient.PostAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/actions/purge", null, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        }
+    }
 }
