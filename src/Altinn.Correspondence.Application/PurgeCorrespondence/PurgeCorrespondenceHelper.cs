@@ -84,11 +84,16 @@ public class PurgeCorrespondenceHelper
     }
     public void ReportActivityToDialogporten(bool isSender, Guid correspondenceId)
     {
-        var activityJobId = isSender ?
-            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Sender, DialogportenTextType.CorrespondencePurged, "avsender"))
-          : _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondencePurged, "mottaker"));
-        _backgroundJobClient.ContinueJobWith<IDialogportenService>(activityJobId, (dialogportenService) => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
+        if (isSender)
+        {
+            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Sender, DialogportenTextType.CorrespondencePurged, "avsender"));
+        }
+        else
+        {
+            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondencePurged, "mottaker"));
+        }
     }
+
     public void CancelNotification(Guid correspondenceId, CancellationToken cancellationToken)
     {
         _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));

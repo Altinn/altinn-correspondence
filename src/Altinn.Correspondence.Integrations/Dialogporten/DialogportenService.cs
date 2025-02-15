@@ -88,7 +88,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
     }
 
-    public async Task SoftDeleteDialog(Guid dialogId)
+    public async Task SoftDeleteDialog(string dialogId)
     {
         var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;

@@ -17,6 +17,7 @@ public class PurgeCorrespondenceHandler(
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IEventBus eventBus,
+    IDialogportenService dialogportenService,
     PurgeCorrespondenceHelper purgeCorrespondenceHelper,
     ILogger<PurgeCorrespondenceHandler> logger) : IHandler<PurgeCorrespondenceRequest, Guid>
 {
@@ -74,6 +75,11 @@ public class PurgeCorrespondenceHandler(
             await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondenceId, partyUuid, cancellationToken);
             purgeCorrespondenceHelper.ReportActivityToDialogporten(isSender: isSender, correspondenceId);
             purgeCorrespondenceHelper.CancelNotification(correspondenceId, cancellationToken);
+            var dialogId = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
+            if (dialogId is not null)
+            {
+                await dialogportenService.SoftDeleteDialog(dialogId.ReferenceValue);
+            }
             return correspondenceId;
         }, logger, cancellationToken);
     }
