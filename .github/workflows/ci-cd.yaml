@@ -87,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: test
     if: always() && !failure() && !cancelled() 
-    needs: [get-version, publish, test]
+    needs: [get-version, publish, test, deploy-test]
     permissions: 
       id-token: write
       contents: read
