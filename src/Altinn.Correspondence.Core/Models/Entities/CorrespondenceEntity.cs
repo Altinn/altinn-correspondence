@@ -1,8 +1,14 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using Altinn.Correspondence.Common.Constants;
+using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Core.Models.Entities
 {
+    [Index(nameof(ResourceId))]
+    [Index(nameof(Recipient))]
+    [Index(nameof(Sender))]
+    [Index(nameof(Created))]
     public class CorrespondenceEntity
     {
         [Key]
