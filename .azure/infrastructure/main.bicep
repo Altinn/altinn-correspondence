@@ -37,7 +37,7 @@ var prodLikeEnvironment = environment == 'production' || maskinporten_token_exch
 var resourceGroupName = '${namePrefix}-rg'
 
 // Create resource groups
-resource resourceGroup 'Microsoft.Resources/resourceGroups@2023-07-01' = {
+resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
   name: '${namePrefix}-rg'
   location: location
 }
