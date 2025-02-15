@@ -6,7 +6,7 @@ param tenant_id string
 @secure()
 param test_client_id string
 
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
+resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' = {
   name: vaultName
   location: location
   properties: {
