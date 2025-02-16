@@ -9,11 +9,13 @@ using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Azure.Core;
 using Hangfire;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
+using OneOf.Types;
 using System.Globalization;
 using System.Security.Claims;
 
@@ -70,11 +72,10 @@ public class InitializeCorrespondencesHandler(
         {
             return CorrespondenceErrors.DueDateRequired;
         }
-        var reservedRecipients = await contactReservationRegistryService.GetReservedRecipients(request.Recipients.Where(recipient => recipient.IsSocialSecurityNumber()).ToList());
-        if (request.Correspondence.IgnoreReservation != true && request.Recipients.Count == 1 && reservedRecipients.Count == 1)
+        var contactReservation = await HandleContactReservation(request);
+        if(contactReservation.TryPickT1(out var error, out var reservedRecipients))
         {
-            logger.LogInformation("Recipient reserved from correspondences in KRR");
-            return CorrespondenceErrors.RecipientReserved(request.Recipients.First());
+            return error;
         }
         var dateError = initializeCorrespondenceHelper.ValidateDateConstraints(request.Correspondence);
         if (dateError != null)
@@ -157,6 +158,30 @@ public class InitializeCorrespondencesHandler(
         }, logger, cancellationToken);
     }
 
+    private async Task<OneOf<List<string>, Error>> HandleContactReservation(InitializeCorrespondencesRequest request)
+    {
+        try
+        {
+            var reservedRecipients = await contactReservationRegistryService.GetReservedRecipients(request.Recipients.Where(recipient => recipient.IsSocialSecurityNumber()).ToList());
+            if (request.Correspondence.IgnoreReservation != true && request.Recipients.Count == 1 && reservedRecipients.Count == 1)
+            {
+                logger.LogInformation("Recipient reserved from correspondences in KRR");
+                return CorrespondenceErrors.RecipientReserved(request.Recipients.First());
+            }
+            return reservedRecipients;
+        }
+        catch (HttpRequestException e)
+        {
+            logger.LogError(e, "Failed to get reserved recipients from KRR");
+            logger.LogWarning("KRR not working. Correspondence was still created as it will fail on publish.");
+        }
+        catch (TimeoutException e)
+        {
+            logger.LogError(e, "Timeout when getting reserved recipients from KRR");
+            logger.LogWarning("KRR not working. Correspondence was still created as it will fail on publish.");
+        }
+        return new List<string>();
+    }
     private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<NotificationContent>? notificationContents, Guid partyUuid, List<string> reservedRecipients, CancellationToken cancellationToken)
     {
         logger.LogInformation("Initializing {correspondenceCount} correspondences for {resourceId}", request.Recipients.Count, request.Correspondence.ResourceId);
