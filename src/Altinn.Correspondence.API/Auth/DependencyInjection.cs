@@ -143,7 +143,7 @@ namespace Altinn.Correspondence.API.Auth
                         }
                     };
                 })
-                .AddMicrosoftIdentityWebApi(config.GetSection("AzureAd"));
+                .AddMicrosoftIdentityWebApi(config.GetSection("AzureAd"), AuthorizationConstants.ValidateEventGridOrigin);
         }
 
         public static void ConfigureAuthorization(this IServiceCollection services, IConfiguration config)
