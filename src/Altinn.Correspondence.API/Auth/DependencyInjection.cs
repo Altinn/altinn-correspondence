@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Identity.Web;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 
@@ -141,11 +142,13 @@ namespace Altinn.Correspondence.API.Auth
                             context.Properties.RedirectUri = CascadeAuthenticationHandler.AppendSessionToUrl($"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{context.Properties.RedirectUri}", sessionId);
                         }
                     };
-                });
+                })
+                .AddMicrosoftIdentityWebApi(config.GetSection("AzureAd"));
         }
 
         public static void ConfigureAuthorization(this IServiceCollection services, IConfiguration config)
         {
+            var azureAdConfig = config.GetSection("AzureAd").Get<AzureAdOptions>();
             services.AddTransient<IAuthorizationHandler, ScopeAccessHandler>();
             services.AddAuthorization(options =>
             {
@@ -164,6 +167,8 @@ namespace Altinn.Correspondence.API.Auth
                     policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope)
                           .AddAuthenticationSchemes(AuthorizationConstants.AllSchemes));
                 options.AddPolicy(AuthorizationConstants.Legacy, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.LegacyScope)).AddAuthenticationSchemes(AuthorizationConstants.LegacyScheme));
+                options.AddPolicy(AuthorizationConstants.ValidateEventGridOrigin, policy =>
+                    policy.RequireClaim("aud", azureAdConfig.ClientId)); 
             });
         }
     }

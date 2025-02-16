@@ -9,6 +9,7 @@ public static class AuthorizationConstants
     public const string SenderOrRecipient = "SenderOrRecipient";
     public const string Migrate = "Migrate";
     public const string Legacy = "Legacy";
+    public const string ValidateEventGridOrigin = "ValidateEventGridOrigin";
     public const string DialogportenPolicy = "DialogportenPolicy";
     public const string DialogportenScheme = "DialogportenScheme";
     public const string NotificationCheck = "NotificationCheck";
