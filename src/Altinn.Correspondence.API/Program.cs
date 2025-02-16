@@ -51,6 +51,7 @@ static void BuildAndRun(string[] args)
         app.UseSwaggerUI();
     }
     app.UseCors(AuthorizationConstants.ArbeidsflateCors);
+    app.UseAuthLogging();
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
