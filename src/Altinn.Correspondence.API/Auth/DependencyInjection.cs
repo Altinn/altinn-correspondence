@@ -25,6 +25,8 @@ namespace Altinn.Correspondence.API.Auth
             config.GetSection(nameof(DialogportenSettings)).Bind(dialogportenSettings);
             var generalSettings = new GeneralSettings();
             config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
+            var azureAdOptions = new AzureAdOptions();
+            config.GetSection(nameof(AzureAdOptions)).Bind(azureAdOptions);
             services.AddStackExchangeRedisCache(options =>
             {
                 options.Configuration = generalSettings.RedisConnectionString;
@@ -143,7 +145,21 @@ namespace Altinn.Correspondence.API.Auth
                         }
                     };
                 })
-                .AddMicrosoftIdentityWebApi(config.GetSection("AzureAd"), AuthorizationConstants.ValidateEventGridOrigin);
+                .AddJwtBearer(AuthorizationConstants.ValidateEventGridOrigin, options =>
+                {
+                    options.SaveToken = true;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidAudience = azureAdOptions.ClientId,
+                        ValidIssuer = $"https://sts.windows.net/{azureAdOptions.TenantId}/",
+                        RequireExpirationTime = true,
+                        ValidateLifetime = !hostEnvironment.IsDevelopment(),
+                        ClockSkew = TimeSpan.Zero
+                    };
+                });
         }
 
         public static void ConfigureAuthorization(this IServiceCollection services, IConfiguration config)
