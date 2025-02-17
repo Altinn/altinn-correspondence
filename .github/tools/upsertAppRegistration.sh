@@ -2,6 +2,7 @@
 
 # Parameters
 DISPLAY_NAME="$1"
+echo "Now upserting $DISPLAY_NAME"
 
 # Get tenant ID
 tenant_id=$(az account show --query tenantId -o tsv)
