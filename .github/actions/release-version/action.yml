@@ -75,10 +75,9 @@ runs:
         timeout-minutes: 3
         azcliversion: 2.56.0
         inlineScript: |
-          chmod +x ./.github/tools/upsertAppRegistration.sh
-          while IFS= read -r line; do
-            echo "$line" >> $GITHUB_ENV
-          done < <(./.github/tools/upsertAppRegistration.sh "EventGridSecuredAPI")
+          ./upsert-app-registration.sh "EventGridSecuredAPI" >> $GITHUB_ENV
+          echo "EVENT_GRID_CLIENT_ID exists: ${{ env.EVENT_GRID_CLIENT_ID != '' }}"
+          echo "EVENT_GRID_TENANT_ID exists: ${{ env.EVENT_GRID_TENANT_ID != '' }}"
 
     - name: Deploy app
       uses: azure/arm-deploy@v2
