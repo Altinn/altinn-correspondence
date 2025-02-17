@@ -2,10 +2,10 @@
 
 # Parameters
 DISPLAY_NAME="$1"
-echo "Now upserting $DISPLAY_NAME"
 
 # Get tenant ID
 tenant_id=$(az account show --query tenantId -o tsv)
+echo "Now upserting $tenant_id"
 
 # Check if app registration exists
 existing_app=$(az ad app list --display-name "$DISPLAY_NAME" --query "[0]" -o json)
