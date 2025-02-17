@@ -111,6 +111,8 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     dialogportenIssuer: dialogportenIssuer
     sblBridgeBaseUrl: sblBridgeBaseUrl
     maskinporten_token_exchange_environment: maskinporten_token_exchange_environment
+    eventGridClientId: eventGridApp.outputs.clientId
+    eventGridTenantId: eventGridApp.outputs.tenantId
   }
 }
 
