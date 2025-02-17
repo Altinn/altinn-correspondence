@@ -14,6 +14,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="9.0.0-preview.1.24081.5" />
   </ItemGroup>
 
   <ItemGroup>

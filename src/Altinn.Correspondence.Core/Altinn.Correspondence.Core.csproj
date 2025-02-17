@@ -16,6 +16,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.2" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.2" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="9.0.0-preview.1.24081.5" />
   </ItemGroup>
 
   <ItemGroup>
