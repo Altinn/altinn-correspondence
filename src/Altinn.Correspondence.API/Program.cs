@@ -19,7 +19,7 @@ using Serilog;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Altinn.Correspondence.Integrations.Slack;
-using HybridCache; // Replace with the actual namespace if different
+using Microsoft.Extensions.Caching.Hybrid;
 
 BuildAndRun(args);
 
