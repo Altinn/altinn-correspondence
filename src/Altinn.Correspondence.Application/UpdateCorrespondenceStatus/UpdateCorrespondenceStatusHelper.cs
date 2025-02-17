@@ -72,13 +72,14 @@ public class UpdateCorrespondenceStatusHelper(
     {
         if (status == CorrespondenceStatus.Confirmed)
         {
-            await eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
+            backgroundJobClient.Enqueue(() => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken));
         }
         else if (status == CorrespondenceStatus.Read)
         {
-            await eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
+            backgroundJobClient.Enqueue(() => eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken));
         }
     }
+
     /// <summary>
     /// Reports activity to Dialogporten based on the correspondence status update.
     /// </summary>

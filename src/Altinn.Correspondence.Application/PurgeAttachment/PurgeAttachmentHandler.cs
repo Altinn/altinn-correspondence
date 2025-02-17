@@ -8,6 +8,7 @@ using OneOf;
 using System.Security.Claims;
 using Microsoft.Extensions.Logging;
 using Altinn.Correspondence.Common.Helpers;
+using Hangfire;
 
 namespace Altinn.Correspondence.Application.PurgeAttachment;
 
@@ -19,6 +20,7 @@ public class PurgeAttachmentHandler(
     IStorageRepository storageRepository,
     ICorrespondenceRepository correspondenceRepository,
     IEventBus eventBus,
+    IBackgroundJobClient backgroundJobClient,
     ILogger<PurgeAttachmentHandler> logger) : IHandler<Guid, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -72,7 +74,7 @@ public class PurgeAttachmentHandler(
                 PartyUuid = partyUuid
             }, cancellationToken);
 
-            await eventBus.Publish(AltinnEventType.AttachmentPurged, attachment.ResourceId, attachmentId.ToString(), "attachment", attachment.Sender, cancellationToken);
+            backgroundJobClient.Enqueue(() => eventBus.Publish(AltinnEventType.AttachmentPurged, attachment.ResourceId, attachmentId.ToString(), "attachment", attachment.Sender, cancellationToken));
 
             return attachmentId;
         }, logger, cancellationToken);

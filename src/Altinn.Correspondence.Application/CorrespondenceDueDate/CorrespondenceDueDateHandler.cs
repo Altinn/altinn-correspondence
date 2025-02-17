@@ -11,6 +11,7 @@ namespace Altinn.Correspondence.Application.CorrespondenceDueDate
     public class CorrespondenceDueDateHandler(
         ILogger<CorrespondenceDueDateHandler> logger,
         ICorrespondenceRepository correspondenceRepository,
+        IBackgroundJobClient backgroundJobClient,
         IEventBus eventBus)
     {
 
@@ -35,13 +36,13 @@ namespace Altinn.Correspondence.Application.CorrespondenceDueDate
 
                 if (!correspondence.StatusHasBeen(CorrespondenceStatus.Read))
                 {
-                    await eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
-                    await eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
+                    backgroundJobClient.Enqueue(() => eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken));
+                    backgroundJobClient.Enqueue(() => eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken));
                 }
                 if (correspondence.IsConfirmationNeeded && !correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
                 {
-                    await eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
-                    await eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
+                    backgroundJobClient.Enqueue(() => eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken));
+                    backgroundJobClient.Enqueue(() => eventBus.Publish(AltinnEventType.CorrespondenceReceiverNeverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken));
                 }
         }
     }
