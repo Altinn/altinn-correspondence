@@ -81,6 +81,8 @@ jobs:
           SBL_BRIDGE_BASE_URL: ${{ secrets.SBL_BRIDGE_BASE_URL }}
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
+          EVENT_GRID_CLIENT_ID: ${{ secrets.EVENT_GRID_CLIENT_ID }}
+          EVENT_GRID_TENANT_ID: ${{ secrets.EVENT_GRID_TENANT_ID }}
 
   deploy-at22:
     name: deploy at22

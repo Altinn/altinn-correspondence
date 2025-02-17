@@ -53,7 +53,14 @@ inputs:
     description: "Maskinporten environment"
     required: true
     default: ""
-
+  EVENT_GRID_CLIENT_ID:
+    description: "Event grid app id"
+    required: true
+    default: ""
+  EVENT_GRID_TENANT_ID:
+    description: "Event grid tenant id"
+    required: true
+    default: ""
 
 runs:
   using: "composite"
@@ -67,17 +74,6 @@ runs:
         client-id: ${{ inputs.AZURE_CLIENT_ID }}
         tenant-id: ${{ inputs.AZURE_TENANT_ID }}
         subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
-
-    - name: Upsert App Registration
-      uses: azure/CLI@v2
-      id: upsert-app-registration
-      with:
-        azcliversion: 2.56.0
-        inlineScript: |
-          chmod +x ./.github/tools/upsertAppRegistration.sh
-          ./.github/tools/upsertAppRegistration.sh ${{ inputs.AZURE_NAME_PREFIX }}App >> $GITHUB_ENV
-          echo "EVENT_GRID_CLIENT_ID exists: ${{ env.EVENT_GRID_CLIENT_ID != '' }}"
-          echo "EVENT_GRID_TENANT_ID exists: ${{ env.EVENT_GRID_TENANT_ID != '' }}"
 
     - name: Deploy app
       uses: azure/arm-deploy@v2
@@ -99,8 +95,8 @@ runs:
         SBL_BRIDGE_BASE_URL: ${{ inputs.SBL_BRIDGE_BASE_URL }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
         MASKINPORTEN_ENVIRONMENT: ${{ inputs.MASKINPORTEN_ENVIRONMENT }}
-        EVENT_GRID_CLIENT_ID: ${{ env.EVENT_GRID_CLIENT_ID }}
-        EVENT_GRID_TENANT_ID: ${{ env.EVENT_GRID_TENANT_ID }}
+        EVENT_GRID_CLIENT_ID: ${{ inputs.EVENT_GRID_CLIENT_ID }}
+        EVENT_GRID_TENANT_ID: ${{ inputs.EVENT_GRID_TENANT_ID }}
       with:
         scope: subscription
         subscriptionId: ${{ inputs.AZURE_SUBSCRIPTION_ID }}

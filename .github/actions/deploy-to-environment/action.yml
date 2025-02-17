@@ -81,6 +81,14 @@ inputs:
     description: "Maskinporten environment"
     required: true
     default: ""
+  EVENT_GRID_CLIENT_ID:
+    description: "Event grid app id"
+    required: true
+    default: ""
+  EVENT_GRID_TENANT_ID:
+    description: "Event grid tenant id"
+    required: true
+    default: ""
 
 runs:
   using: "composite"
@@ -142,3 +150,5 @@ runs:
         SBL_BRIDGE_BASE_URL: ${{ inputs.SBL_BRIDGE_BASE_URL }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
         MASKINPORTEN_ENVIRONMENT: ${{ inputs.MASKINPORTEN_ENVIRONMENT }}
+        EVENT_GRID_CLIENT_ID: ${{ inputs.EVENT_GRID_CLIENT_ID }}
+        EVENT_GRID_TENANT_ID: ${{ inputs.EVENT_GRID_TENANT_ID }}
