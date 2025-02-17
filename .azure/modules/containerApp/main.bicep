@@ -24,6 +24,10 @@ param keyVaultUrl string
 param userIdentityClientId string
 @secure()
 param containerAppEnvId string
+@secure()
+param eventGridClientId string
+@secure()
+param eventGridTenantId string
 
 type ContainerAppScale = {
     minReplicas: int
@@ -108,7 +112,19 @@ var containerAppEnvVarsdefault = [
   { name: 'IdportenSettings__Issuer', value: idportenIssuer }
   { name: 'IdportenSettings__ClientId', secretRef: 'idporten-client-id' }
   { name: 'IdportenSettings__ClientSecret', secretRef: 'idporten-client-secret' }
+  { name: 'AzureAdOptions__Instance', value: 'https://login.microsoftonline.com/'}
+  { name: 'AzureAdOptions__TenantId', value: eventGridTenantId }
+  { name: 'AzureAdOptions__ClientId', value: eventGridClientId }
+  { name: 'AzureAdOptions__Audience', value: eventGridClientId }
 ]
+
+
+"AzureAd": {
+  "Instance": "https://login.microsoftonline.com/",
+  "TenantId": "your-tenant-id",
+  "ClientId": "your-api-client-id",
+  "Audience": "api://your-api-client-id"
+}
 
 var containerAppEnvVars = concat(
   containerAppEnvVarsdefault,

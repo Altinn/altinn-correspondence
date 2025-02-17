@@ -81,6 +81,14 @@ resource keyvault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   scope: resourceGroup
 }
 
+module eventGridApp '../../modules/appRegistration/create.bicep' = {
+  name: 'eventGridApp'
+  scope: resourceGroup
+  params: {
+    displayName: 'EventGridSecuredAPI'
+  }
+}
+
 module containerApp '../../modules/containerApp/main.bicep' = {
   name: containerAppName
   scope: resourceGroup
@@ -114,6 +122,8 @@ module virusScan '../../modules/virusScan/create.bicep' = {
     location: location
     namePrefix: namePrefix
     storageAccountName: storageAccountName
+    appId: eventGridApp.outputs.clientId
+    tenantId: eventGridApp.outputs.tenantId
   }
 }
 
