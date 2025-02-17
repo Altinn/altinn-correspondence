@@ -29,7 +29,7 @@ public class CheckNotificationHandler(ICorrespondenceRepository correspondenceRe
         }
         if (!correspondence.StatusHasBeen(CorrespondenceStatus.Published))
         {
-            backgroundJobClient.Schedule<EnsureNotificationHandler>(handler => handler.Process(correspondenceId, null, cancellationToken), DateTimeOffset.Now.AddHours(1));
+            backgroundJobClient.Schedule<EnsureNotificationHandler>(handler => handler.Process(correspondenceId, null, CancellationToken.None), DateTimeOffset.Now.AddHours(1));
             response.SendNotification = false;
         }
         return response;
