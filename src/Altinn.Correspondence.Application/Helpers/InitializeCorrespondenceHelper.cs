@@ -403,6 +403,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public async Task<Error?> UploadAttachments(List<AttachmentEntity> correspondenceAttachments, List<IFormFile> files, Guid partyUuid, CancellationToken cancellationToken)
         {
+            logger.LogInformation($"Uploading {correspondenceAttachments.Count} correspondence attachments.");
             foreach (var file in files)
             {
                 var attachment = correspondenceAttachments.FirstOrDefault(a => a.FileName.ToLower() == file.FileName.ToLower());
@@ -422,6 +423,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 );
                 if (error != null) return error;
             }
+            logger.LogInformation($"Uploaded {correspondenceAttachments.Count} correspondence attachments.");
             return null;
         }
 

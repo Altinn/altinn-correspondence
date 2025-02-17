@@ -27,6 +27,7 @@ public class InitializeCorrespondencesHandler(
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     INotificationTemplateRepository notificationTemplateRepository,
+    ICorrespondenceStatusRepository correspondenceStatusRepository,
     IEventBus eventBus,
     IBackgroundJobClient backgroundJobClient,
     IDialogportenService dialogportenService,
@@ -158,6 +159,7 @@ public class InitializeCorrespondencesHandler(
 
     private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<NotificationContent>? notificationContents, Guid partyUuid, List<string> reservedRecipients, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Initializing {correspondenceCount} correspondences for {resourceId}", request.Recipients.Count, request.Correspondence.ResourceId);
         var correspondences = new List<CorrespondenceEntity>();
         var recipientsToSearch = request.Recipients.Select(r => r.WithoutPrefix()).ToList();
         var recipientDetails = new List<Party>();
@@ -259,6 +261,7 @@ public class InitializeCorrespondencesHandler(
                 Notifications = notificationDetails
             });
         }
+        logger.LogInformation("Initialized {correspondenceCount} correspondences for {resourceId}", request.Recipients.Count, request.Correspondence.ResourceId);
 
         return new InitializeCorrespondencesResponse()
         {

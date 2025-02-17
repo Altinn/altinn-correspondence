@@ -12,12 +12,13 @@ internal static class MigrateCorrespondenceMapper
     {
         var correspondence = new CorrespondenceEntity
         {
-            Statuses = migrateCorrespondenceExt.EventHistory.Select(eh => new CorrespondenceStatusEntity() 
+            Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId,
+            Statuses = [.. migrateCorrespondenceExt.EventHistory.Select(eh => new CorrespondenceStatusEntity() 
             { 
                 Status = (CorrespondenceStatus)eh.Status, 
                 StatusChanged = eh.StatusChanged, 
                 StatusText = eh.StatusText ?? eh.Status.ToString()
-            }).ToList(),
+            })],
             Notifications = migrateCorrespondenceExt.NotificationHistory.Select(n => new CorrespondenceNotificationEntity() 
             {
                 Created = n.NotificationSent,

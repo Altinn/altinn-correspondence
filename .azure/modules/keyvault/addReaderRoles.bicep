@@ -14,7 +14,7 @@ var readerAccessPoliciesArray = [
   }
 ]
 
-resource keyvault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource keyvault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: keyvaultName
   resource readerAccessPolicies 'accessPolicies' = {
     name: 'add'

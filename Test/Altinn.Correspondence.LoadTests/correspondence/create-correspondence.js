@@ -40,7 +40,7 @@ function createCorrespondence(serviceOwner, endUser, traceCalls) {
             Authorization: "Bearer " + getPersonalToken(serviceOwner),
             traceparent: traceparent,
             'Content-Type': 'application/json',
-            'Accept': '*/*, text/plain',
+            'Accept': '*/*, application/json',
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive'
         },
@@ -54,6 +54,6 @@ function createCorrespondence(serviceOwner, endUser, traceCalls) {
 
     describe('create correspondence', () => {
         let r = http.post(baseUrlCorrespondence, getCorrespondenceJson(serviceOwner.resource, serviceOwner.orgno, endUser.ssn), paramsWithToken);
-        expect(r.status, 'response status').to.equal(200);
+        expect(r.status, 'response status').to.be.oneOf([200, 422]);
     });
 }

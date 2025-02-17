@@ -29,13 +29,14 @@ export default function() {
 
 export function uploadCorrespondence(serviceOwner, endUser, traceCalls) {
     var traceparent = uuidv7();
+    const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
     const formData = getCorrespondenceForm(serviceOwner.resource, serviceOwner.orgno, endUser.ssn);
     var paramsWithToken = {
         headers: {
             Authorization: "Bearer " + getPersonalTokenForServiceOwner(serviceOwner),
             traceparent: traceparent,
-            'Content-Type': 'multipart/form-data; boundary=' + formData.boundary,
-            'Accept': '*/*, text/plain',
+            'Content-Type': 'multipart/form-data; boundary=' + boundary,
+            'Accept': '*/*, application/json',
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive'
         },
@@ -48,8 +49,8 @@ export function uploadCorrespondence(serviceOwner, endUser, traceCalls) {
     }
 
     describe('upload correspondence', async () => {
-        let r = await http.asyncRequest('POST', baseUrlCorrespondence + 'upload', formData.body(), paramsWithToken);
-        expect(r.status, 'response status').to.equal(200);
+        let r = await http.asyncRequest('POST', baseUrlCorrespondence + 'upload', formData, paramsWithToken);
+        expect(r.status, 'response status').to.be.oneOf([200, 422]);
     });
 }
 

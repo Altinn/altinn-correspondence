@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Altinn.Correspondence.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,14 +13,16 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250214073107_Add attachmentSize")]
+    partial class AddattachmentSize
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("correspondence")
-                .HasAnnotation("ProductVersion", "9.0.2")
+                .HasAnnotation("ProductVersion", "9.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "hstore");
@@ -225,14 +228,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Created");
-
-                    b.HasIndex("Recipient");
-
-                    b.HasIndex("ResourceId");
-
-                    b.HasIndex("Sender");
-
                     b.ToTable("Correspondences", "correspondence");
                 });
 
@@ -327,8 +322,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CorrespondenceId");
-
-                    b.HasIndex("Status");
 
                     b.ToTable("CorrespondenceStatuses", "correspondence");
                 });
