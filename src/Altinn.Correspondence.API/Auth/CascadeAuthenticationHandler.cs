@@ -10,14 +10,16 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Web;
+using Microsoft.Extensions.Caching.Hybrid;
 
 public class CascadeAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>, IAuthenticationSignInHandler
 {
     private readonly IAuthenticationSchemeProvider _schemeProvider;
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly IDistributedCache _cache;
+    //private readonly IDistributedCache _cache;
     private readonly GeneralSettings _generalSettings;
     private readonly IdportenTokenValidator _tokenValidator;
+    private readonly IHybridCache _cache; // Add this line
 
     public CascadeAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
