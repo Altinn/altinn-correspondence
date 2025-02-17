@@ -32,6 +32,6 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         public int? Altinn2NotificationId { get; set; }
 
-        public string OrderRequest { get; set; }
+        public string? OrderRequest { get; set; }
     }
 }

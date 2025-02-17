@@ -259,7 +259,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("OrderRequest")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("RequestedSendTime")

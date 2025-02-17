@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250213201903_NotificationOrderRequest")]
-    partial class NotificationOrderRequest
+    [Migration("20250217124036_Notification_Order_Request")]
+    partial class Notification_Order_Request
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -262,7 +262,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("OrderRequest")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("RequestedSendTime")
