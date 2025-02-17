@@ -19,6 +19,7 @@ using Serilog;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Altinn.Correspondence.Integrations.Slack;
+using HybridCache; // Replace with the actual namespace if different
 
 BuildAndRun(args);
 
@@ -40,6 +41,7 @@ static void BuildAndRun(string[] args)
         .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", true, true)
         .AddJsonFile("appsettings.local.json", true, true);
     ConfigureServices(builder.Services, builder.Configuration, builder.Environment);
+    builder.Services.AddHybridCache();
 
     var app = builder.Build();
 
