@@ -78,7 +78,7 @@ runs:
           chmod +x ./upsert-app-registration.sh
           while IFS= read -r line; do
             echo "$line" >> $GITHUB_ENV
-          done < <(./upsert-app-registration.sh "EventGridSecuredAPI" "https://test.no")
+          done < <(./upsert-app-registration.sh "EventGridSecuredAPI")
 
     - name: Deploy app
       uses: azure/arm-deploy@v2
