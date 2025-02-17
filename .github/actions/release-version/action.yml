@@ -75,10 +75,10 @@ runs:
         timeout-minutes: 3
         azcliversion: 2.56.0
         inlineScript: |
-          chmod +x ./.github/tools/upsert-app-registration.sh
+          chmod +x ./.github/tools/upsertAppRegistration.sh
           while IFS= read -r line; do
             echo "$line" >> $GITHUB_ENV
-          done < <(./.github/tools/upsert-app-registration.sh "EventGridSecuredAPI")
+          done < <(./.github/tools/upsertAppRegistration.sh "EventGridSecuredAPI")
 
     - name: Deploy app
       uses: azure/arm-deploy@v2
