@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # Parameters
 DISPLAY_NAME="$1"
 
