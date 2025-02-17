@@ -16,7 +16,6 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.2" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.3" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.5.0" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="9.0.0-preview.1.24081.5" />
   </ItemGroup>
     <ItemGroup>
     <ProjectReference Include="..\Altinn.Correspondence.Core\Altinn.Correspondence.Core.csproj" />
