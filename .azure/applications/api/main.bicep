@@ -26,6 +26,10 @@ param contactReservationRegistryBaseUrl string
 param idportenIssuer string
 param dialogportenIssuer string
 param maskinporten_token_exchange_environment string
+@secure()
+param eventGridClientId string
+@secure()
+param eventGridTenantId string
 
 var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'
@@ -81,14 +85,6 @@ resource keyvault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   scope: resourceGroup
 }
 
-module eventGridApp '../../modules/appRegistration/create.bicep' = {
-  name: 'eventGridApp'
-  scope: resourceGroup
-  params: {
-    displayName: 'EventGridSecuredAPI'
-  }
-}
-
 module containerApp '../../modules/containerApp/main.bicep' = {
   name: containerAppName
   scope: resourceGroup
@@ -111,8 +107,8 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     dialogportenIssuer: dialogportenIssuer
     sblBridgeBaseUrl: sblBridgeBaseUrl
     maskinporten_token_exchange_environment: maskinporten_token_exchange_environment
-    eventGridClientId: eventGridApp.outputs.clientId
-    eventGridTenantId: eventGridApp.outputs.tenantId
+    eventGridClientId: eventGridClientId
+    eventGridTenantId: eventGridTenantId
   }
 }
 
@@ -124,8 +120,8 @@ module virusScan '../../modules/virusScan/create.bicep' = {
     location: location
     namePrefix: namePrefix
     storageAccountName: storageAccountName
-    appId: eventGridApp.outputs.clientId
-    tenantId: eventGridApp.outputs.tenantId
+    appId: eventGridClientId
+    tenantId: eventGridTenantId
   }
 }
 

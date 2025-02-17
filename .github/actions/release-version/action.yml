@@ -68,6 +68,15 @@ runs:
         tenant-id: ${{ inputs.AZURE_TENANT_ID }}
         subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
 
+    - name: Upsert App Registration
+      timeout-minutes: 3
+      azcliversion: 2.56.0
+      inlineScript: |
+        chmod +x ./upsert-app-registration.sh
+        while IFS= read -r line; do
+          echo "$line" >> $GITHUB_ENV
+        done < <(./upsert-app-registration.sh "EventGridSecuredAPI" "https://test.no")
+
     - name: Deploy app
       uses: azure/arm-deploy@v2
       id: deploy

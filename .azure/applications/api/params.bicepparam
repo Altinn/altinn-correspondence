@@ -16,3 +16,5 @@ param maskinporten_token_exchange_environment = readEnvironmentVariable('MASKINP
 param sourceKeyVaultName = readEnvironmentVariable('KEY_VAULT_NAME')
 param keyVaultUrl = readEnvironmentVariable('KEY_VAULT_URL')
 param storageAccountName = readEnvironmentVariable('STORAGE_ACCOUNT_NAME')
+param eventGridClientId = readEnvironmentVariable('EVENT_GRID_CLIENT_ID')
+param eventGridTenantId = readEnvironmentVariable('EVENT_GRID_TENANT_ID')
