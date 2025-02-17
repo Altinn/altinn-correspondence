@@ -93,6 +93,7 @@ public class PurgeCorrespondenceHelper
             _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondencePurged, "mottaker"));
         }
     }
+
     public void CancelNotification(Guid correspondenceId, CancellationToken cancellationToken)
     {
         _backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
