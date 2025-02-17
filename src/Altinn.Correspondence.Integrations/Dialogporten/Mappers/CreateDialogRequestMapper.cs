@@ -218,7 +218,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                             Value = "Confirm"
                         },
                     },
-                    Action = "write",
+                    Action = "read",
                     Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/confirm",
                     HttpMethod = "POST",
                     Priority = "Primary"
@@ -246,7 +246,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                             Value = "Archive"
                         },
                     },
-                    Action = "write",
+                    Action = "read",
                     Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive",
                     HttpMethod = "POST",
                     Priority = "Secondary"
@@ -274,7 +274,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                             Value = "Mark as read"
                         },
                     },
-                    Action = "write",
+                    Action = "read",
                     Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/markasread",
                     HttpMethod = "POST",
                     Priority = "Tertiary"
@@ -302,7 +302,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                             Value = "Purge"
                         },
                     },
-                    Action = "write",
+                    Action = "read",
                     IsDeleteDialogAction = true,
                     Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/purge",
                     HttpMethod = "DELETE",
