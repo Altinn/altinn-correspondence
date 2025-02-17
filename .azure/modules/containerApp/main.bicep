@@ -118,14 +118,6 @@ var containerAppEnvVarsdefault = [
   { name: 'AzureAdOptions__Audience', value: eventGridClientId }
 ]
 
-
-"AzureAd": {
-  "Instance": "https://login.microsoftonline.com/",
-  "TenantId": "your-tenant-id",
-  "ClientId": "your-api-client-id",
-  "Audience": "api://your-api-client-id"
-}
-
 var containerAppEnvVars = concat(
   containerAppEnvVarsdefault,
   maskinporten_token_exchange_environment != '' && maskinporten_token_exchange_environment != null
