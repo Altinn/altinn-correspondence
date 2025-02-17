@@ -75,6 +75,7 @@ runs:
         timeout-minutes: 3
         azcliversion: 2.56.0
         inlineScript: |
+          chmod +x ./.github/tools/upsertAppRegistration.sh
           ./.github/tools/upsertAppRegistration.sh "EventGridSecuredAPI" >> $GITHUB_ENV
           echo "EVENT_GRID_CLIENT_ID exists: ${{ env.EVENT_GRID_CLIENT_ID != '' }}"
           echo "EVENT_GRID_TENANT_ID exists: ${{ env.EVENT_GRID_TENANT_ID != '' }}"
