@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Identity.Web;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 
@@ -148,6 +147,7 @@ namespace Altinn.Correspondence.API.Auth
                 .AddJwtBearer(AuthorizationConstants.ValidateEventGridOrigin, options =>
                 {
                     options.SaveToken = true;
+                    options.MetadataAddress = $"https://sts.windows.net/{azureAdOptions.TenantId}/.well-known/openid-configuration";
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuerSigningKey = true,
@@ -157,14 +157,16 @@ namespace Altinn.Correspondence.API.Auth
                         ValidIssuer = $"https://sts.windows.net/{azureAdOptions.TenantId}/",
                         RequireExpirationTime = true,
                         ValidateLifetime = !hostEnvironment.IsDevelopment(),
-                        ClockSkew = TimeSpan.Zero
+                        ClockSkew = TimeSpan.Zero,
+                        RequireSignedTokens = true,
                     };
                 });
         }
 
         public static void ConfigureAuthorization(this IServiceCollection services, IConfiguration config)
         {
-            var azureAdConfig = config.GetSection("AzureAd").Get<AzureAdOptions>();
+            var azureAdOptions = new AzureAdOptions();
+            config.GetSection(nameof(AzureAdOptions)).Bind(azureAdOptions);
             services.AddTransient<IAuthorizationHandler, ScopeAccessHandler>();
             services.AddAuthorization(options =>
             {
@@ -183,8 +185,7 @@ namespace Altinn.Correspondence.API.Auth
                     policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope)
                           .AddAuthenticationSchemes(AuthorizationConstants.AllSchemes));
                 options.AddPolicy(AuthorizationConstants.Legacy, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.LegacyScope)).AddAuthenticationSchemes(AuthorizationConstants.LegacyScheme));
-                options.AddPolicy(AuthorizationConstants.ValidateEventGridOrigin, policy =>
-                    policy.RequireClaim("aud", azureAdConfig.ClientId)); 
+                options.AddPolicy(AuthorizationConstants.ValidateEventGridOrigin, policy => policy.RequireAuthenticatedUser().RequireClaim("aud", azureAdOptions.ClientId));
             });
         }
     }
