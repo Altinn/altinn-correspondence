@@ -85,12 +85,12 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
             return AuthenticateResult.NoResult();
         }
 
-        var token = await _cache.GetStringAsync(sessionId);
+        var token = await _cache.GetOrCreateAsync(sessionId);
         if (string.IsNullOrEmpty(token))
         {
             return AuthenticateResult.NoResult();
         }
-        _cache.Remove(sessionId);
+        _cache.RemoveAsync(sessionId);
 
         var principal = await _tokenValidator.ValidateTokenAsync(token);
         if (principal is not null)
@@ -105,7 +105,7 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
     public async Task SignInAsync(ClaimsPrincipal user, AuthenticationProperties? properties)
     {
         var sessionId = Guid.NewGuid().ToString();        
-        await _cache.SetStringAsync(sessionId, properties.Items[".Token.access_token"] ?? throw new SecurityTokenMalformedException("Token should have contained an access token"), new DistributedCacheEntryOptions
+        await _cache.GetOrCreateAsync(sessionId, properties.Items[".Token.access_token"] ?? throw new SecurityTokenMalformedException("Token should have contained an access token"), new DistributedCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(10)
         });
@@ -119,7 +119,7 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
     {
         if (Request.Query.TryGetValue("session", out var sessionId))
         {
-            _cache.Remove(sessionId);
+            _cache.RemoveAsync(sessionId);
         }
         return Task.CompletedTask;
     }
