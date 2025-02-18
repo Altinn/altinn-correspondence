@@ -56,7 +56,7 @@ public class InitializeAttachmentHandler(
         {
             var initializedAttachment = await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
             await attachmentHelper.SetAttachmentStatus(initializedAttachment.Id, AttachmentStatus.Initialized, partyUuid, cancellationToken);
-            backgroundJobClient.Enqueue(() => eventBus.Publish(AltinnEventType.AttachmentInitialized, initializedAttachment.ResourceId, initializedAttachment.Id.ToString(), "attachment", initializedAttachment.Sender, cancellationToken));
+            backgroundJobClient.Enqueue(() => eventBus.Publish(AltinnEventType.AttachmentInitialized, initializedAttachment.ResourceId, initializedAttachment.Id.ToString(), "attachment", initializedAttachment.Sender, CancellationToken.None));
 
             return initializedAttachment.Id;
         }, logger, cancellationToken);

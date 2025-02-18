@@ -74,7 +74,7 @@ public class PurgeAttachmentHandler(
                 PartyUuid = partyUuid
             }, cancellationToken);
 
-            backgroundJobClient.Enqueue(() => eventBus.Publish(AltinnEventType.AttachmentPurged, attachment.ResourceId, attachmentId.ToString(), "attachment", attachment.Sender, cancellationToken));
+            backgroundJobClient.Enqueue(() => eventBus.Publish(AltinnEventType.AttachmentPurged, attachment.ResourceId, attachmentId.ToString(), "attachment", attachment.Sender, CancellationToken.None));
 
             return attachmentId;
         }, logger, cancellationToken);

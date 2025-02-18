@@ -117,8 +117,8 @@ public class PublishCorrespondenceHandler(
             }
 
             await correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
-            backgroundJobClient.Enqueue(() => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken));
-            if (status.Status == CorrespondenceStatus.Published) backgroundJobClient.Enqueue(() => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken));
+            backgroundJobClient.Enqueue(() => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+            if (status.Status == CorrespondenceStatus.Published) backgroundJobClient.Enqueue(() => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, CancellationToken.None));
             return Task.CompletedTask;
         }, logger, cancellationToken);
     }

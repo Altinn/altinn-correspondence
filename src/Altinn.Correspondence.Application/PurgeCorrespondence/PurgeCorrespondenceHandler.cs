@@ -73,7 +73,7 @@ public class PurgeCorrespondenceHandler(
                 PartyUuid = partyUuid
             }, cancellationToken);
 
-            backgroundJobClient.Enqueue(() => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, cancellationToken));
+            backgroundJobClient.Enqueue(() => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
             await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondenceId, partyUuid, cancellationToken);
             purgeCorrespondenceHelper.ReportActivityToDialogporten(isSender: isSender, correspondenceId);
             purgeCorrespondenceHelper.CancelNotification(correspondenceId, cancellationToken);
