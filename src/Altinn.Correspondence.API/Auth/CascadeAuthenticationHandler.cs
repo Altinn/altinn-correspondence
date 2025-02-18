@@ -9,8 +9,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
-using System.Web;
-using Microsoft.Extensions.Caching.Hybrid;
+using System.Web; 
+using HybridCache = Microsoft.Extensions.Caching.Hybrid.HybridCache; // Fully qualify the type name
 
 public class CascadeAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>, IAuthenticationSignInHandler
 {
@@ -19,7 +19,7 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
     //private readonly IDistributedCache _cache;
     private readonly GeneralSettings _generalSettings;
     private readonly IdportenTokenValidator _tokenValidator;
-    private readonly IHybridCache _cache; // Add this line
+    private readonly HybridCache _cache;
 
     public CascadeAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
