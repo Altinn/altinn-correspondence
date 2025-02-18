@@ -19,7 +19,6 @@ public class PurgeAttachmentHandler(
     IAttachmentStatusRepository attachmentStatusRepository,
     IStorageRepository storageRepository,
     ICorrespondenceRepository correspondenceRepository,
-    IEventBus eventBus,
     IBackgroundJobClient backgroundJobClient,
     ILogger<PurgeAttachmentHandler> logger) : IHandler<Guid, Guid>
 {
@@ -74,7 +73,7 @@ public class PurgeAttachmentHandler(
                 PartyUuid = partyUuid
             }, cancellationToken);
 
-            backgroundJobClient.Enqueue(() => eventBus.Publish(AltinnEventType.AttachmentPurged, attachment.ResourceId, attachmentId.ToString(), "attachment", attachment.Sender, CancellationToken.None));
+            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.AttachmentPurged, attachment.ResourceId, attachmentId.ToString(), "attachment", attachment.Sender, CancellationToken.None));
 
             return attachmentId;
         }, logger, cancellationToken);

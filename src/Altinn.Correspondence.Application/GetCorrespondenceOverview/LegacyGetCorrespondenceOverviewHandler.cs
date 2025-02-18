@@ -17,8 +17,7 @@ public class LegacyGetCorrespondenceOverviewHandler(
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
     UserClaimsHelper userClaimsHelper,
-    ILogger<LegacyGetCorrespondenceOverviewHandler> logger,
-    IEventBus eventBus) : IHandler<Guid, LegacyGetCorrespondenceOverviewResponse>
+    ILogger<LegacyGetCorrespondenceOverviewHandler> logger) : IHandler<Guid, LegacyGetCorrespondenceOverviewResponse>
 {
     public async Task<OneOf<LegacyGetCorrespondenceOverviewResponse, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -103,7 +102,7 @@ public class LegacyGetCorrespondenceOverviewHandler(
                     StatusText = CorrespondenceStatus.Read.ToString(),
                     PartyUuid = partyUuid
                 }, cancellationToken);
-                await updateCorrespondenceStatusHelper.PublishEvent(eventBus, correspondence, CorrespondenceStatus.Read, cancellationToken);
+                updateCorrespondenceStatusHelper.PublishEvent(correspondence, CorrespondenceStatus.Read);
             }
             catch (Exception e)
             {

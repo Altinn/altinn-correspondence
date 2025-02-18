@@ -17,7 +17,6 @@ public class InitializeAttachmentHandler(
     IAltinnRegisterService altinnRegisterService,
     IAttachmentRepository attachmentRepository,
     IAttachmentStatusRepository attachmentStatusRepository,
-    IEventBus eventBus,
     IAltinnAuthorizationService altinnAuthorizationService,
     ILogger<InitializeAttachmentHandler> logger,
     IBackgroundJobClient backgroundJobClient,
@@ -56,7 +55,7 @@ public class InitializeAttachmentHandler(
         {
             var initializedAttachment = await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
             await attachmentHelper.SetAttachmentStatus(initializedAttachment.Id, AttachmentStatus.Initialized, partyUuid, cancellationToken);
-            backgroundJobClient.Enqueue(() => eventBus.Publish(AltinnEventType.AttachmentInitialized, initializedAttachment.ResourceId, initializedAttachment.Id.ToString(), "attachment", initializedAttachment.Sender, CancellationToken.None));
+            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.AttachmentInitialized, initializedAttachment.ResourceId, initializedAttachment.Id.ToString(), "attachment", initializedAttachment.Sender, CancellationToken.None));
 
             return initializedAttachment.Id;
         }, logger, cancellationToken);

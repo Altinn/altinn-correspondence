@@ -15,7 +15,6 @@ public class LegacyPurgeCorrespondenceHandler(
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
-    IEventBus eventBus,
     PurgeCorrespondenceHelper purgeCorrespondenceHelper,
     UserClaimsHelper userClaimsHelper,
     IBackgroundJobClient backgroundJobClient,
@@ -62,7 +61,7 @@ public class LegacyPurgeCorrespondenceHandler(
                 PartyUuid = partyUuid,
             }, cancellationToken);
 
-            backgroundJobClient.Enqueue(() => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
             await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondenceId, partyUuid, cancellationToken);
             purgeCorrespondenceHelper.ReportActivityToDialogporten(isSender: false, correspondenceId);
             purgeCorrespondenceHelper.CancelNotification(correspondenceId, cancellationToken);
