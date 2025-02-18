@@ -10,7 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Web; 
-using HybridCache = Microsoft.Extensions.Caching.Hybrid.HybridCache; // Fully qualify the type name
+using HybridCache = Microsoft.Extensions.Caching.Hybrid.HybridCache;
 
 public class CascadeAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>, IAuthenticationSignInHandler
 {
@@ -30,7 +30,7 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
         IHttpContextAccessor httpContextAccessor,
         IOptions<GeneralSettings> generalSettings,
         IdportenTokenValidator tokenValidator,
-        IDistributedCache cache)
+        HybridCache cache)  // Change this from IDistributedCache to HybridCache
         : base(options, logger, encoder, clock)
     {
         _httpContextAccessor = httpContextAccessor;
