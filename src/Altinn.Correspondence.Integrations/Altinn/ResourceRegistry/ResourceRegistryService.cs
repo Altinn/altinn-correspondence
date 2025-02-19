@@ -84,7 +84,7 @@ public class ResourceRegistryService : IResourceRegistryService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error storing resource type to cache when looking up resource type in Resource Rights Service.");
+            _logger.LogWarning(ex, "Error storing resource to cache when looking up resource in Resource Rights Service.");
         }
         return altinnResourceResponse;
     }
@@ -95,7 +95,7 @@ public class ResourceRegistryService : IResourceRegistryService
         string? name = null;
         foreach (var nameAttribute in nameAttributes)
         {
-            if (resourceResponse.HasCompetentAuthority.Name?.ContainsKey(nameAttribute) == true)
+            if (resourceResponse.HasCompetentAuthority?.Name?.ContainsKey(nameAttribute) == true)
             {
                 name = resourceResponse.HasCompetentAuthority.Name[nameAttribute];
                 break;

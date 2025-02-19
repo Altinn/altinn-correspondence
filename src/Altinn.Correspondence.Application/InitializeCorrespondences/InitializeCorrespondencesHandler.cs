@@ -61,7 +61,7 @@ public class InitializeCorrespondencesHandler(
         var resourceType = await resourceRightsService.GetResourceType(request.Correspondence.ResourceId, cancellationToken);
         if (resourceType is null)
         {
-            throw new Exception("Resource type not found for {resourceId}. This should be impossible as authorization worked.");
+            throw new Exception($"Resource type not found for {request.Correspondence.ResourceId}. This should be impossible as authorization worked.");
         }
         if (resourceType != "GenericAccessResource" && resourceType != "CorrespondenceService")
         {
