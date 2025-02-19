@@ -85,12 +85,19 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
             return AuthenticateResult.NoResult();
         }
 
-        var token = await _cache.GetOrCreateAsync(sessionId);
+        var token = await _cache.GetOrCreateAsync(sessionId, async entry =>
+        {
+            var cacheEntryOptions = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+            };
+            return await Task.FromResult<string>(null);
+        });
         if (string.IsNullOrEmpty(token))
         {
             return AuthenticateResult.NoResult();
         }
-        _cache.RemoveAsync(sessionId);
+        _cache.RemoveAsync((string)sessionId, CancellationToken.None);
 
         var principal = await _tokenValidator.ValidateTokenAsync(token);
         if (principal is not null)
@@ -105,10 +112,15 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
     public async Task SignInAsync(ClaimsPrincipal user, AuthenticationProperties? properties)
     {
         var sessionId = Guid.NewGuid().ToString();        
-        await _cache.GetOrCreateAsync(sessionId, properties.Items[".Token.access_token"] ?? throw new SecurityTokenMalformedException("Token should have contained an access token"), new DistributedCacheEntryOptions
+        await _cache.GetOrCreateAsync<string, string>(
+            sessionId, 
+            properties.Items[".Token.access_token"] ?? throw new SecurityTokenMalformedException("Token should have contained an access token"), 
+            (key, token) => new ValueTask<string>(string.Empty),
+            new HybridCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(10)
-        });
+        }
+        );
 
         var redirectUrl = properties?.Items["endpoint"] ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
         redirectUrl = AppendSessionToUrl($"{_generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}", sessionId);
@@ -119,7 +131,7 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
     {
         if (Request.Query.TryGetValue("session", out var sessionId))
         {
-            _cache.RemoveAsync(sessionId);
+            _cache.RemoveAsync((string)sessionId, CancellationToken.None);
         }
         return Task.CompletedTask;
     }
