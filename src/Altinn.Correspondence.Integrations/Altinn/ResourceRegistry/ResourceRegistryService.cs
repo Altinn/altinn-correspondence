@@ -59,7 +59,7 @@ public class ResourceRegistryService : IResourceRegistryService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error retrieving resource type from cache when looking up resource type in Resource Rights Service.");
+            _logger.LogWarning(ex, "Error retrieving resource from cache.");
         }
         var response = await _client.GetAsync($"resourceregistry/api/v1/resource/{resourceId}", cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.NoContent)
@@ -84,7 +84,7 @@ public class ResourceRegistryService : IResourceRegistryService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error storing resource to cache when looking up resource in Resource Rights Service.");
+            _logger.LogWarning(ex, "Error storing resource to cache when looking up resource in Resource Registry Service.");
         }
         return altinnResourceResponse;
     }

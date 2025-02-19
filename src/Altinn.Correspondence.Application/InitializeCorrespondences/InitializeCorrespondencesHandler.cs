@@ -28,7 +28,7 @@ public class InitializeCorrespondencesHandler(
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     INotificationTemplateRepository notificationTemplateRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
-    IResourceRegistryService resourceRightsService,
+    IResourceRegistryService resourceRegistryService,
     IEventBus eventBus,
     IBackgroundJobClient backgroundJobClient,
     IDialogportenService dialogportenService,
@@ -58,7 +58,7 @@ public class InitializeCorrespondencesHandler(
         {
             return AuthorizationErrors.NoAccessToResource;
         }
-        var resourceType = await resourceRightsService.GetResourceType(request.Correspondence.ResourceId, cancellationToken);
+        var resourceType = await resourceRegistryService.GetResourceType(request.Correspondence.ResourceId, cancellationToken);
         if (resourceType is null)
         {
             throw new Exception($"Resource type not found for {request.Correspondence.ResourceId}. This should be impossible as authorization worked.");
