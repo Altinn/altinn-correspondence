@@ -217,7 +217,7 @@ public class InitializeCorrespondencesHandler(
 
                 if (request.Notification != null)
                 {
-                    var notifications = CreateNotifications(request.Notification, correspondence, notificationContents);
+                    var notifications = await CreateNotifications(request.Notification, correspondence, notificationContents, cancellationToken);
                     foreach (var notification in notifications)
                     {
                         var notificationOrder = await altinnNotificationService.CreateNotification(notification, cancellationToken);
@@ -270,7 +270,7 @@ public class InitializeCorrespondencesHandler(
         };
     }
 
-    private List<NotificationOrderRequest> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents)
+    private async Task<List<NotificationOrderRequest>> CreateNotifications(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
     {
         var notifications = new List<NotificationOrderRequest>();
         string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
@@ -309,6 +309,7 @@ public class InitializeCorrespondencesHandler(
         {
             content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person) ?? contents.FirstOrDefault(c => c.RecipientType == null);
         }
+        await SetRecipientNameOnNotificationContent(content, correspondence.Recipient, cancellationToken);
         var notificationOrder = new NotificationOrderRequest
         {
             IgnoreReservation = correspondence.IgnoreReservation,
@@ -352,6 +353,24 @@ public class InitializeCorrespondencesHandler(
         }
         return notifications;
     }
+    private async Task SetRecipientNameOnNotificationContent(NotificationContent? content, string recipient, CancellationToken cancellationToken)
+    {
+        if (content == null)
+        {
+            return;
+        }
+        var recipientName = await altinnRegisterService.LookUpName(recipient.WithoutPrefix(), cancellationToken);
+        if (string.IsNullOrEmpty(recipientName))
+        {
+            return;
+        }
+        content.EmailBody = content.EmailBody?.Replace("$correspondenceRecipientName$", recipientName);
+        content.EmailSubject = content.EmailSubject?.Replace("$correspondenceRecipientName$", recipientName);
+        content.SmsBody = content.SmsBody?.Replace("$correspondenceRecipientName$", recipientName);
+        content.ReminderEmailBody = content.ReminderEmailBody?.Replace("$correspondenceRecipientName$", recipientName);
+        content.ReminderEmailSubject = content.ReminderEmailSubject?.Replace("$correspondenceRecipientName$", recipientName);
+        content.ReminderSmsBody = content.ReminderSmsBody?.Replace("$correspondenceRecipientName$", recipientName);
+    }
     private async Task<List<NotificationContent>> GetNotificationContent(NotificationRequest request, List<NotificationTemplateEntity> templates, CorrespondenceEntity correspondence, CancellationToken cancellationToken, string? language = null)
     {
         var content = new List<NotificationContent>();
@@ -359,7 +378,6 @@ public class InitializeCorrespondencesHandler(
         if (string.IsNullOrEmpty(sendersName))
         {
             sendersName = await altinnRegisterService.LookUpName(correspondence.Sender.WithoutPrefix(), cancellationToken);
-            sendersName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(sendersName.ToLower());
         }
         foreach (var template in templates)
         {
