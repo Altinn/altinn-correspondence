@@ -60,6 +60,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddScoped(_ => mockContactReservationRegistryService.Object);
             var resourceRightsService = new Mock<IResourceRegistryService>();
             resourceRightsService.Setup(x => x.GetServiceOwnerOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
+            resourceRightsService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("CorrespondenceService");
             services.AddScoped(_ => resourceRightsService.Object);
         });
         if (CustomServices is not null)
