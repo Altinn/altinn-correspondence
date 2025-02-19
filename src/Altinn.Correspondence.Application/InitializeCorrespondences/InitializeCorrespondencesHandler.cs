@@ -9,6 +9,7 @@ using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Repositories;
 using Hangfire;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -28,6 +29,7 @@ public class InitializeCorrespondencesHandler(
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     INotificationTemplateRepository notificationTemplateRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
+    IResourceRightsService resourceRightsService,
     IEventBus eventBus,
     IBackgroundJobClient backgroundJobClient,
     IDialogportenService dialogportenService,
@@ -56,6 +58,15 @@ public class InitializeCorrespondencesHandler(
         if (!hasAccess)
         {
             return AuthorizationErrors.NoAccessToResource;
+        }
+        var resourceType = await resourceRightsService.GetResourceType(request.Correspondence.ResourceId, cancellationToken);
+        if (resourceType is null)
+        {
+            throw new Exception("Resource type not found for {resourceId}. This should be impossible as authorization worked.");
+        }
+        if (resourceType != "GenericAccessResource" && resourceType != "CorrespondenceService")
+        {
+            return AuthorizationErrors.IncorrectResourceType;
         }
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)

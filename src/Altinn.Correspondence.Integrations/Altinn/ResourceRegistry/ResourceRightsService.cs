@@ -16,6 +16,7 @@ public class ResourceRightsService : IResourceRightsService
     
     private readonly IDistributedCache _cache;
     private readonly DistributedCacheEntryOptions _cacheOptions;
+    private string CacheKey(string resourceId) => $"ResourceInfo_{resourceId}";
 
     public ResourceRightsService(HttpClient httpClient, IOptions<AltinnOptions> options, ILogger<ResourceRightsService> logger, IDistributedCache cache)
     {
@@ -29,12 +30,28 @@ public class ResourceRightsService : IResourceRightsService
         };
     }
 
+    public async Task<string?> GetResourceType(string resourceId, CancellationToken cancellationToken)
+    {
+        var altinnResourceResponse = await GetResource(resourceId, cancellationToken);
+        return altinnResourceResponse?.ResourceType;
+    }
+
     public async Task<string?> GetServiceOwnerOfResource(string resourceId, CancellationToken cancellationToken)
     {
-        string cacheKey = $"ServiceOwnerOfResource_{resourceId}";
-        try 
+        var altinnResourceResponse = await GetResource(resourceId, cancellationToken);
+        if (altinnResourceResponse is null)
         {
-            string? cachedResource = await CacheHelpers.GetObjectFromCacheAsync<string>(cacheKey, _cache, cancellationToken);
+            return null;
+        }
+        return GetNameOfResourceResponse(altinnResourceResponse);
+    }
+
+    private async Task<GetResourceResponse?> GetResource(string resourceId, CancellationToken cancellationToken)
+    {
+        string cacheKey = CacheKey(resourceId);
+        try
+        {
+            var cachedResource = await CacheHelpers.GetObjectFromCacheAsync<GetResourceResponse>(cacheKey, _cache, cancellationToken);
             if (cachedResource != null)
             {
                 return cachedResource;
@@ -42,9 +59,8 @@ public class ResourceRightsService : IResourceRightsService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error retrieving service owner from cache when looking up service owner of resource in Resource Rights Service.");
+            _logger.LogWarning(ex, "Error retrieving resource type from cache when looking up resource type in Resource Rights Service.");
         }
-
         var response = await _client.GetAsync($"resourceregistry/api/v1/resource/{resourceId}", cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.NoContent)
         {
@@ -62,30 +78,29 @@ public class ResourceRightsService : IResourceRightsService
             _logger.LogError("Failed to deserialize response from Altinn Resource Registry");
             throw new BadHttpRequestException("Failed to process response from Altinn Resource Registry");
         }
+        try
+        {
+            await CacheHelpers.StoreObjectInCacheAsync(cacheKey, altinnResourceResponse, _cache, _cacheOptions, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error storing resource type to cache when looking up resource type in Resource Rights Service.");
+        }
+        return altinnResourceResponse;
+    }
+
+    private string GetNameOfResourceResponse(GetResourceResponse resourceResponse)
+    {
         var nameAttributes = new List<string> { "en", "nb-no", "nn-no" };
         string? name = null;
         foreach (var nameAttribute in nameAttributes)
         {
-            if (altinnResourceResponse.HasCompetentAuthority.Name?.ContainsKey(nameAttribute) == true)
+            if (resourceResponse.HasCompetentAuthority.Name?.ContainsKey(nameAttribute) == true)
             {
-                name = altinnResourceResponse.HasCompetentAuthority.Name[nameAttribute];
+                name = resourceResponse.HasCompetentAuthority.Name[nameAttribute];
                 break;
             }
         }
-        if (name == null)
-        {
-            return name;
-        }
-
-        try
-        {
-            await CacheHelpers.StoreObjectInCacheAsync(cacheKey, name, _cache, _cacheOptions, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Error storing service owner name to cache when looking up service owner of resource in Resource Rights Service.");
-        }
-
-        return name;
+        return name ?? string.Empty;
     }
 }
