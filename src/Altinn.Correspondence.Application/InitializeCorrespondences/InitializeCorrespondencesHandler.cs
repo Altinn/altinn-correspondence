@@ -28,6 +28,7 @@ public class InitializeCorrespondencesHandler(
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     INotificationTemplateRepository notificationTemplateRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
+    IResourceRegistryService resourceRegistryService,
     IEventBus eventBus,
     IBackgroundJobClient backgroundJobClient,
     IDialogportenService dialogportenService,
@@ -56,6 +57,15 @@ public class InitializeCorrespondencesHandler(
         if (!hasAccess)
         {
             return AuthorizationErrors.NoAccessToResource;
+        }
+        var resourceType = await resourceRegistryService.GetResourceType(request.Correspondence.ResourceId, cancellationToken);
+        if (resourceType is null)
+        {
+            throw new Exception($"Resource type not found for {request.Correspondence.ResourceId}. This should be impossible as authorization worked.");
+        }
+        if (resourceType != "GenericAccessResource" && resourceType != "CorrespondenceService")
+        {
+            return AuthorizationErrors.IncorrectResourceType;
         }
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)

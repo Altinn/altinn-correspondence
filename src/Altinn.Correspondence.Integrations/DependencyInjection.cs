@@ -14,7 +14,6 @@ using Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 using Altinn.Correspondence.Integrations.Altinn.Storage;
 using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Integrations.Slack;
-using Altinn.Correspondence.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Slack.Webhooks;
@@ -28,7 +27,7 @@ public static class DependencyInjection
         config.GetSection(nameof(MaskinportenSettings)).Bind(maskinportenSettings);
         var generalSettings = new GeneralSettings();
         config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
-        services.AddScoped<IResourceRightsService, ResourceRightsService>();
+        services.AddScoped<IResourceRegistryService, ResourceRegistryService>();
         if (string.IsNullOrWhiteSpace(maskinportenSettings.ClientId))
         {
             services.AddScoped<IEventBus, ConsoleLogEventBus>();
@@ -45,7 +44,7 @@ public static class DependencyInjection
             var altinnOptions = new AltinnOptions();
             config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnAuthorizationService, AltinnAuthorizationService>(maskinportenSettings, altinnOptions);
-            services.RegisterAltinnHttpClient<IResourceRightsService, ResourceRightsService>(maskinportenSettings, altinnOptions);
+            services.RegisterAltinnHttpClient<IResourceRegistryService, ResourceRegistryService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnRegisterService, AltinnRegisterService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnAccessManagementService, AltinnAccessManagementService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IEventBus, AltinnEventBus>(maskinportenSettings, altinnOptions);
