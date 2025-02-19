@@ -23,7 +23,11 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <summary>
     /// Initialize a new Attachment to be shared in correspondences
     /// </summary>
-    /// <remarks>Only required if the attachment is to be shared, otherwise this is done as part of the Initialize Correspondence operation</remarks>
+    /// <remarks>
+    /// Scopes: <br/>
+    /// - altinn:correspondence.send <br/>
+    /// Only required if the attachment is to be shared, otherwise this is done as part of the Initialize Correspondence operation
+    /// </remarks>
     /// <returns></returns>
     [HttpPost]
     [Consumes("application/json")]
@@ -45,6 +49,8 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     }
 
     /// <summary>
+    /// Scopes: <br/>
+    /// - altinn:correspondence.send <br/>
     /// Upload attachment data to Altinn Correspondence blob storage
     /// </summary>
     /// <returns></returns>
@@ -83,6 +89,10 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <summary>
     /// Get information about the attachment and its current status
     /// </summary>
+    /// <remarks>
+    /// Scopes: <br/>
+    /// - altinn:correspondence.send <br/>
+    /// </remarks>
     /// <returns>AttachmentOverviewExt</returns>
     [HttpGet]
     [Route("{attachmentId}")]
@@ -106,6 +116,10 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <summary>
     /// Get information about the attachment and its current status
     /// </summary>
+    /// <remarks>
+    /// Scopes: <br/>
+    /// - altinn:correspondence.send <br/>
+    /// </remarks>
     /// <returns></returns>
     [HttpGet]
     [Produces("application/json")]
@@ -131,7 +145,8 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// Deletes the attachment
     /// </summary>
     /// <remarks>
-    /// TODO: Consider if this should not be a hard delete, but rather a soft delete and if it should then be a different HTTP operation
+    /// Scopes: <br/>
+    /// - altinn:correspondence.send <br/>
     /// </remarks>
     /// <returns></returns>
     [HttpDelete]
@@ -155,6 +170,10 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <summary>
     /// Downloads the attachment data
     /// </summary>
+    /// <remarks>
+    /// Scopes: <br/>
+    /// - altinn:correspondence.send <br/>
+    /// </remarks>
     /// <returns></returns>
     [HttpGet]
     [Route("{attachmentId}/download")]

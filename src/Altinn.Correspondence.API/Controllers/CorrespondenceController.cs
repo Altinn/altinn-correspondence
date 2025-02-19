@@ -36,13 +36,13 @@ namespace Altinn.Correspondence.API.Controllers
         /// Initialize Correspondences
         /// </summary>
         /// <remarks>
+        /// Scopes: <br />
+        /// - altinn:correspondence.send <br />
         /// Requires uploads of specified attachments if any before it can be Published
         /// </remarks>
         [HttpPost]
         [Consumes("application/json")]
         [Produces("application/json")]
-        [ProducesResponseType(typeof(InitializeCorrespondencesResponseExt), 200)]
-        [ProducesResponseType(typeof(ProblemDetails), 400, "test")]
         [Authorize(Policy = AuthorizationConstants.Sender)]
         public async Task<ActionResult<InitializeCorrespondencesResponseExt>> InitializeCorrespondences(
             InitializeCorrespondencesExt request,
@@ -64,6 +64,10 @@ namespace Altinn.Correspondence.API.Controllers
         /// <summary>
         /// Initialize Correspondences and uploads attachments in the same request
         /// </summary>
+        /// <remarks>
+        /// Scopes: <br />
+        /// - altinn:correspondence.send
+        /// </remarks>
         /// <returns>
         /// CorrespondenceIds
         /// </returns>
@@ -96,10 +100,10 @@ namespace Altinn.Correspondence.API.Controllers
         /// <summary>
         /// Get information about the Correspondence and its current status
         /// </summary>
-        /// <securty>
-        /// Scopes: Correspondence.Read
-        /// </securty>
         /// <remarks>
+        ///  Scopes: <br />
+        ///  - altinn:correspondence.read <br />
+        ///  - altinn:correspondence.send <br />
         /// Mostly for use by recipients and occasional status checks
         /// </remarks>
         /// <returns></returns>
@@ -129,6 +133,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// Get more detailed information about the Correspondence and its current status as well as noticiation statuses, if available
         /// </summary>
         /// <remarks>
+        ///  Scopes: <br />
+        ///  - altinn:correspondence.read <br />
+        ///  - altinn:correspondence.send <br />
         /// Meant for Senders that want a complete overview of the status and history of the Correspondence, but also available for Receivers
         /// </remarks>
         /// <returns>Detailed information about the correspondence with current status and status history</returns>
@@ -166,6 +173,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Produces("text/plain")]
         [Authorize(AuthenticationSchemes = AuthorizationConstants.DialogportenScheme)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
+        [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<ActionResult> GetCorrespondenceContent(
             Guid correspondenceId,
             [FromServices] GetCorrespondenceOverviewHandler handler,
@@ -191,6 +199,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// Gets a list of Correspondences for the authenticated user
         /// </summary>
         /// <remarks>
+        /// Scopes: <br />
+        /// - altinn:correspondence.read <br />
+        /// - altinn:correspondence.send <br />
         /// Meant for Receivers, but also available for Senders to track Correspondences
         /// </remarks>
         /// <returns>A list of Correspondence ids</returns>
@@ -229,7 +240,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// Mark Correspondence found by ID as read
         /// </summary>
         /// <remarks>
-        /// Meant for Receivers
+        /// Scopes: <br />
+        /// - altinn:correspondence.read <br />
         /// </remarks>
         /// <returns>StatusId</returns>
         [HttpPost]
@@ -259,7 +271,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// Mark Correspondence found by ID as confirmed
         /// </summary>
         /// <remarks>
-        /// Meant for Receivers
+        /// Scopes: <br />
+        /// - altinn:correspondence.read <br />
         /// </remarks>
         /// <returns>StatusId</returns>
         [HttpPost]
@@ -290,7 +303,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// Mark Correspondence found by ID as archived
         /// </summary>
         /// <remarks>
-        /// Meant for Receivers
+        /// Scopes: <br />
+        /// - altinn:correspondence.read <br />
         /// </remarks>
         /// <returns>StatusId</returns>
         [HttpPost]
@@ -321,7 +335,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// Delete Correspondence found by ID
         /// </summary>
         /// <remarks>
-        /// Meant for Receivers
+        /// Scopes: <br />
+        /// - altinn:correspondence.read <br />
+        /// - altinn:correspondence.send <br /> (Can only purge before the correspondence is published)
         /// </remarks>
         /// <returns>Ok</returns>
         [HttpDelete]
@@ -351,6 +367,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// <summary>
         /// Downloads the attachment data
         /// </summary>
+        /// <remarks>
+        /// Scopes: <br />
+        /// - altinn:correspondence.read <br />
         /// <returns></returns>
         [HttpGet]
         [Route("{correspondenceId}/attachment/{attachmentId}/download")]
