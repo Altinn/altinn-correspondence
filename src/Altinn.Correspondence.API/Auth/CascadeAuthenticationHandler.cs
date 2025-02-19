@@ -111,16 +111,28 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
 
     public async Task SignInAsync(ClaimsPrincipal user, AuthenticationProperties? properties)
     {
+
+        // var token = await _cache.GetOrCreateAsync(sessionId, async entry =>
+        // {
+        //     var cacheEntryOptions = new DistributedCacheEntryOptions
+        //     {
+        //         AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+        //     };
+        //     return await Task.FromResult<string>(null);
+        // });
+
         var sessionId = Guid.NewGuid().ToString();        
-        await _cache.GetOrCreateAsync<string, string>(
-            sessionId, 
-            properties.Items[".Token.access_token"] ?? throw new SecurityTokenMalformedException("Token should have contained an access token"), 
-            (key, token) => new ValueTask<string>(string.Empty),
-            new HybridCacheEntryOptions
+await _cache.GetOrCreateAsync(
+    sessionId,
+    async token =>
+    {
+        var cacheEntryOptions = new DistributedCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(10)
-        }
-        );
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+        };
+        return properties.Items[".Token.access_token"] 
+            ?? throw new SecurityTokenMalformedException("Token should have contained an access token");
+    });
 
         var redirectUrl = properties?.Items["endpoint"] ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
         redirectUrl = AppendSessionToUrl($"{_generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}", sessionId);
