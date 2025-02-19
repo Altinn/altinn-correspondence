@@ -19,7 +19,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
                 { "Name", "John" },
                 { "Age", 30 }
             };
-            var cacheOptions = new DistributedCacheEntryOptions();
+            var cacheOptions = new HybridCacheEntryOptions();
             var cancellationToken = CancellationToken.None;
             var serializedDataString = JsonSerializer.Serialize(value);
             var mockCache = new Mock<HybridCache>();
@@ -28,7 +28,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
                 key,
                 It.Is<byte[]>(bytes => bytes != null && bytes.Length > 0),
                 cacheOptions,
-                cancellationToken
+                null
             )).Returns(Task.CompletedTask);
 
             // Act
@@ -39,7 +39,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
                 key, 
                 It.Is<byte[]>(bytes => bytes.SequenceEqual(Encoding.UTF8.GetBytes(serializedDataString))),
                 cacheOptions, 
-                cancellationToken),
+                null),
                 Times.Once);
         }
 
