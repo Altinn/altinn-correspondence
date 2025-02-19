@@ -49,10 +49,12 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     }
 
     /// <summary>
-    /// Scopes: <br/>
-    /// - altinn:correspondence.send <br/>
     /// Upload attachment data to Altinn Correspondence blob storage
     /// </summary>
+    /// <remarks>
+    /// Scopes: <br/>
+    /// - altinn:correspondence.send <br/>
+    /// </remarks>
     /// <returns></returns>
     [HttpPost]
     [Produces("application/json")]
