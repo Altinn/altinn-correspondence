@@ -16,14 +16,6 @@ namespace Altinn.Correspondence.Common.Helpers
                 null, // Tags (optional, can be null)
                 cancellationToken); // CancellationToken
         }
-        // var token = await _cache.GetOrCreateAsync(sessionId, async entry =>
-        // {
-        //     var cacheEntryOptions = new DistributedCacheEntryOptions
-        //     {
-        //         AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
-        //     };
-        //     return await Task.FromResult<string>(null);
-        // });
         public static async Task<T?> GetObjectFromCacheAsync<T>(string key, HybridCache cache, CancellationToken cancellationToken = default)
         {
             string? cachedDataString = await cache.GetOrCreateAsync<string>(
