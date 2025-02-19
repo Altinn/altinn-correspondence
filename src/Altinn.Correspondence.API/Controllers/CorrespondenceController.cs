@@ -43,6 +43,12 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpPost]
         [Consumes("application/json")]
         [Produces("application/json")]
+        [ProducesResponseType(typeof(InitializeCorrespondencesResponseExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
         [Authorize(Policy = AuthorizationConstants.Sender)]
         public async Task<ActionResult<InitializeCorrespondencesResponseExt>> InitializeCorrespondences(
             InitializeCorrespondencesExt request,
@@ -75,6 +81,12 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("upload")]
         [Consumes("multipart/form-data")]
         [Produces("application/json")]
+        [ProducesResponseType(typeof(InitializeCorrespondencesResponseExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
         [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
         [Authorize(Policy = AuthorizationConstants.Sender)]
         public async Task<ActionResult<InitializeCorrespondencesResponseExt>> UploadCorrespondences(
@@ -110,6 +122,10 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpGet]
         [Route("{correspondenceId}")]
         [Produces("application/json")]
+        [ProducesResponseType(typeof(CorrespondenceOverviewExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
             Guid correspondenceId,
@@ -141,6 +157,10 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns>Detailed information about the correspondence with current status and status history</returns>
         [HttpGet]
         [Produces("application/json")]
+        [ProducesResponseType(typeof(CorrespondenceDetailsExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Route("{correspondenceId}/details")]
         [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         public async Task<ActionResult<CorrespondenceDetailsExt>> GetCorrespondenceDetails(
@@ -207,6 +227,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns>A list of Correspondence ids</returns>
         [HttpGet]
         [Produces("application/json")]
+        [ProducesResponseType(typeof(CorrespondencesExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         public async Task<ActionResult<CorrespondencesExt>> GetCorrespondences(
             [FromQuery] string resourceId,
@@ -245,9 +268,13 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>StatusId</returns>
         [HttpPost]
+        [Produces("application/json")]
+        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [Route("{correspondenceId}/markasread")]
-        [Produces("application/json")]
+
         public async Task<ActionResult> MarkAsRead(
             Guid correspondenceId,
             [FromServices] UpdateCorrespondenceStatusHandler handler,
@@ -276,10 +303,13 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>StatusId</returns>
         [HttpPost]
+        [Produces("application/json")]
+        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         [Route("{correspondenceId}/confirm")]
-        [Produces("application/json")]
         public async Task<ActionResult> Confirm(
             Guid correspondenceId,
             [FromServices] UpdateCorrespondenceStatusHandler handler,
@@ -308,10 +338,13 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>StatusId</returns>
         [HttpPost]
+        [Produces("application/json")]
+        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         [Route("{correspondenceId}/archive")]
-        [Produces("application/json")]
         public async Task<ActionResult> Archive(
             Guid correspondenceId,
             [FromServices] UpdateCorrespondenceStatusHandler handler,
@@ -341,10 +374,14 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <returns>Ok</returns>
         [HttpDelete]
+        [Produces("application/json")]
+        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Route("{correspondenceId}/purge")]
         [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
-        [Produces("application/json")]
         public async Task<ActionResult> Purge(
             Guid correspondenceId,
             [FromServices] PurgeCorrespondenceHandler handler,
@@ -372,6 +409,10 @@ namespace Altinn.Correspondence.API.Controllers
         /// - altinn:correspondence.read <br />
         /// <returns></returns>
         [HttpGet]
+        [Produces("application/octet-stream")]
+        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Route("{correspondenceId}/attachment/{attachmentId}/download")]
         [Authorize(Policy = AuthorizationConstants.DownloadAttachmentPolicy, AuthenticationSchemes = AuthorizationConstants.AllSchemes)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
