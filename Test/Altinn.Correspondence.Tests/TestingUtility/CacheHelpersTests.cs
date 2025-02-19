@@ -28,8 +28,8 @@ namespace Altinn.Correspondence.Tests.TestingUtility
                 key,
                 It.Is<byte[]>(bytes => bytes != null && bytes.Length > 0),
                 cacheOptions,
-                null
-            )).Returns(Task.CompletedTask);
+                cancellationToken
+            )).Returns(new ValueTask());
 
             // Act
             await CacheHelpers.StoreObjectInCacheAsync(key, value, mockCache.Object, cacheOptions, cancellationToken);
@@ -39,7 +39,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
                 key, 
                 It.Is<byte[]>(bytes => bytes.SequenceEqual(Encoding.UTF8.GetBytes(serializedDataString))),
                 cacheOptions, 
-                null),
+                cancellationToken),
                 Times.Once);
         }
 

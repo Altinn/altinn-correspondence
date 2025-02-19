@@ -83,8 +83,8 @@ namespace Altinn.Correspondence.Tests.TestingFeature
                 key,
                 It.Is<byte[]>(bytes => bytes.SequenceEqual(Encoding.UTF8.GetBytes(serializedValue))),
                 It.IsAny<HybridCacheEntryOptions>(),
-                null
-            )).Returns(Task.CompletedTask);
+                cancellationToken
+            )).Returns(new ValueTask());
         }
 
         private void MockSetupSimulateCacheHit(string key, string serializedValue, CancellationToken cancellationToken)
@@ -121,7 +121,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
                 cacheKey,
                 It.Is<byte[]>(bytes => bytes.SequenceEqual(Encoding.UTF8.GetBytes(expectedResultSerialized))),
                 It.IsAny<HybridCacheEntryOptions>(), 
-                null),
+                cancellationToken),
                 Times.Once);
         }
 
@@ -177,7 +177,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
                 cacheKey,
                 It.IsAny<byte[]>(),
                 It.IsAny<HybridCacheEntryOptions>(),
-                null
+                cancellationToken
             ), Times.Never);
         }
     }
