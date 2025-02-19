@@ -82,7 +82,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             _mockCache.Setup(cache => cache.SetAsync(
                 key,
                 It.Is<byte[]>(bytes => bytes.SequenceEqual(Encoding.UTF8.GetBytes(serializedValue))),
-                It.IsAny<HybridCacheEntryOptions>(),
+                new HybridCacheEntryOptions(),
                 cancellationToken
             )).Returns(new ValueTask());
         }
@@ -120,7 +120,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             _mockCache.Verify(cache => cache.SetAsync(
                 cacheKey,
                 It.Is<byte[]>(bytes => bytes.SequenceEqual(Encoding.UTF8.GetBytes(expectedResultSerialized))),
-                It.IsAny<HybridCacheEntryOptions>(), 
+                new HybridCacheEntryOptions(), 
                 It.IsAny<CancellationToken>()),
                 Times.Once);
         }
@@ -187,7 +187,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             _mockCache.Verify(cache => cache.SetAsync(
                 cacheKey,
                 It.IsAny<byte[]>(),
-                It.IsAny<HybridCacheEntryOptions>(),
+                new HybridCacheEntryOptions(),
                 cancellationToken
             ), Times.Never);
         }
