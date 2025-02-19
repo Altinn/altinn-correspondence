@@ -9,7 +9,6 @@ using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Repositories;
 using Hangfire;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -29,7 +28,7 @@ public class InitializeCorrespondencesHandler(
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     INotificationTemplateRepository notificationTemplateRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
-    IResourceRightsService resourceRightsService,
+    IResourceRegistryService resourceRightsService,
     IEventBus eventBus,
     IBackgroundJobClient backgroundJobClient,
     IDialogportenService dialogportenService,

@@ -6,7 +6,6 @@ using Altinn.Correspondence.Integrations.Altinn.Events;
 using Altinn.Correspondence.Integrations.Altinn.Notifications;
 using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Dialogporten;
-using Altinn.Correspondence.Repositories;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.MemoryStorage;
@@ -59,7 +58,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             mockContactReservationRegistryService.Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => recipients.Contains(ReservedSsn)))).ReturnsAsync([ReservedSsn]);
             mockContactReservationRegistryService.Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => !recipients.Contains(ReservedSsn)))).ReturnsAsync([]);
             services.AddScoped(_ => mockContactReservationRegistryService.Object);
-            var resourceRightsService = new Mock<IResourceRightsService>();
+            var resourceRightsService = new Mock<IResourceRegistryService>();
             resourceRightsService.Setup(x => x.GetServiceOwnerOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
             services.AddScoped(_ => resourceRightsService.Object);
         });

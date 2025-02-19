@@ -16,9 +16,9 @@ namespace Altinn.Correspondence.Tests.TestingFeature
         private readonly Mock<HttpMessageHandler> _mockHandler;
         private readonly Mock<IDistributedCache> _mockCache;
         private readonly HttpClient _httpClient;
-        private readonly Mock<ILogger<ResourceRightsService>> _mockLogger;
+        private readonly Mock<ILogger<ResourceRegistryService>> _mockLogger;
         private readonly Mock<IOptions<AltinnOptions>> _mockOptions;
-        private readonly ResourceRightsService _service;
+        private readonly ResourceRegistryService _service;
 
         public ResourceRightsServiceTests()
         {
@@ -26,12 +26,12 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             SetupMessageHandler();
             _httpClient = new HttpClient(_mockHandler.Object);
             _mockCache = new Mock<IDistributedCache>();
-            _mockLogger = new Mock<ILogger<ResourceRightsService>>();
+            _mockLogger = new Mock<ILogger<ResourceRegistryService>>();
             _mockOptions = new Mock<IOptions<AltinnOptions>>();
             
             _mockOptions.Setup(o => o.Value).Returns(new AltinnOptions { PlatformGatewayUrl = "https://example.com" });
 
-            _service = new ResourceRightsService(_httpClient, _mockOptions.Object, _mockLogger.Object, _mockCache.Object);
+            _service = new ResourceRegistryService(_httpClient, _mockOptions.Object, _mockLogger.Object, _mockCache.Object);
         }
 
         private void SetupMessageHandler()

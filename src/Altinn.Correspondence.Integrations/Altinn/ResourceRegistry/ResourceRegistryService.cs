@@ -1,24 +1,24 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
-using Altinn.Correspondence.Repositories;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Altinn.Correspondence.Common.Helpers;
 using Microsoft.Extensions.Caching.Distributed;
+using Altinn.Correspondence.Core.Services;
 
 namespace Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
-public class ResourceRightsService : IResourceRightsService
+public class ResourceRegistryService : IResourceRegistryService
 {
     private readonly HttpClient _client;
-    private readonly ILogger<ResourceRightsService> _logger;
+    private readonly ILogger<ResourceRegistryService> _logger;
     
     private readonly IDistributedCache _cache;
     private readonly DistributedCacheEntryOptions _cacheOptions;
     private string CacheKey(string resourceId) => $"ResourceInfo_{resourceId}";
 
-    public ResourceRightsService(HttpClient httpClient, IOptions<AltinnOptions> options, ILogger<ResourceRightsService> logger, IDistributedCache cache)
+    public ResourceRegistryService(HttpClient httpClient, IOptions<AltinnOptions> options, ILogger<ResourceRegistryService> logger, IDistributedCache cache)
     {
         httpClient.BaseAddress = new Uri(options.Value.PlatformGatewayUrl);
         _client = httpClient;

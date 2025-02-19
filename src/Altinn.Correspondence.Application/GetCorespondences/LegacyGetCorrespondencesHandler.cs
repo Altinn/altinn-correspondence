@@ -4,7 +4,6 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Repositories;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -17,7 +16,7 @@ public class LegacyGetCorrespondencesHandler(
     ICorrespondenceRepository correspondenceRepository,
     UserClaimsHelper userClaimsHelper,
     IAltinnRegisterService altinnRegisterService,
-    IResourceRightsService resourceRightsService,
+    IResourceRegistryService resourceRightsService,
     ILogger<LegacyGetCorrespondencesHandler> logger) : IHandler<LegacyGetCorrespondencesRequest, LegacyGetCorrespondencesResponse>
 {
     private record PartyInfo(string Id, Party? Party);
