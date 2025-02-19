@@ -120,7 +120,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             _mockCache.Verify(cache => cache.SetAsync(
                 cacheKey,
                 It.Is<byte[]>(bytes => bytes.SequenceEqual(Encoding.UTF8.GetBytes(expectedResultSerialized))),
-                It.IsAny<DistributedCacheEntryOptions>(), 
+                It.IsAny<HybridCacheEntryOptions>(), 
                 It.IsAny<CancellationToken>()),
                 Times.Once);
         }
