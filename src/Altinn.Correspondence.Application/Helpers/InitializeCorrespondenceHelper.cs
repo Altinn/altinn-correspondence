@@ -164,10 +164,6 @@ namespace Altinn.Correspondence.Application.Helpers
             var recipientWithNumberOrEmail = customRecipients.Where(recipient => recipient.Recipients.Any(r => r.EmailAddress != null || r.MobileNumber != null)).ToList();
             if (recipientWithNumberOrEmail.Count > 0)
             {
-                if (notification.NotificationTemplate != NotificationTemplate.CustomMessage)
-                {
-                    return NotificationErrors.RecipientOverridesWithNumberOrEmailNotAllowedWithCustomTemplate;
-                }
                 if (TextContainsTag(notification.EmailBody, "$recipientName$") || TextContainsTag(notification.SmsBody, "$recipientName$")
                     || TextContainsTag(notification.EmailSubject, "$recipientName$") || TextContainsTag(notification.ReminderEmailBody, "$recipientName$")
                     || TextContainsTag(notification.ReminderSmsBody, "$recipientName$") || TextContainsTag(notification.ReminderEmailSubject, "$recipientName$"))
