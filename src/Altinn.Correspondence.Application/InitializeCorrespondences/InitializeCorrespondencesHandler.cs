@@ -364,7 +364,6 @@ public class InitializeCorrespondencesHandler(
         {
             return;
         }
-        recipientName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(recipientName.ToLower());
         content.EmailBody = content.EmailBody?.Replace("$correspondenceRecipientName$", recipientName);
         content.EmailSubject = content.EmailSubject?.Replace("$correspondenceRecipientName$", recipientName);
         content.SmsBody = content.SmsBody?.Replace("$correspondenceRecipientName$", recipientName);
@@ -379,7 +378,6 @@ public class InitializeCorrespondencesHandler(
         if (string.IsNullOrEmpty(sendersName))
         {
             sendersName = await altinnRegisterService.LookUpName(correspondence.Sender.WithoutPrefix(), cancellationToken);
-            sendersName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(sendersName.ToLower());
         }
         foreach (var template in templates)
         {
