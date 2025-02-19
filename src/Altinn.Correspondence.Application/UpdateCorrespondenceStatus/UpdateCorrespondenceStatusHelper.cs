@@ -89,11 +89,11 @@ public class UpdateCorrespondenceStatusHelper(
     {
         if (status == CorrespondenceStatus.Confirmed)
         {
-            _backgroundJobClient.Enqueue(() => _dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondenceConfirmed));
+            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondenceConfirmed));
         }
         else if (status == CorrespondenceStatus.Archived)
         {
-            _backgroundJobClient.Enqueue(() => _dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondenceArchived));
+            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondenceArchived));
         }
         return;
     }
