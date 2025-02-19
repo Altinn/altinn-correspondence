@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 
@@ -132,11 +133,13 @@ namespace Altinn.Correspondence.API.Auth
                         OnTokenValidated = async context =>
                         {
                             var sessionId = Guid.NewGuid().ToString();
-                            var cache = context.HttpContext.RequestServices.GetRequiredService<IDistributedCache>();
-                            await cache.SetStringAsync(sessionId, context.TokenEndpointResponse.AccessToken,
-                                new DistributedCacheEntryOptions
+                            var cache = context.HttpContext.RequestServices.GetRequiredService<HybridCache>();
+                            await cache.SetAsync(
+                                sessionId,
+                                context.TokenEndpointResponse.AccessToken,
+                                new HybridCacheEntryOptions
                                 {
-                                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                                    Expiration = TimeSpan.FromMinutes(5) // Correct expiration setting
                                 });
                             context.Properties.RedirectUri = CascadeAuthenticationHandler.AppendSessionToUrl($"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{context.Properties.RedirectUri}", sessionId);
                         }

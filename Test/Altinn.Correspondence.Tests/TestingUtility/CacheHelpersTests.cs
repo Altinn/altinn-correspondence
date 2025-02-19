@@ -3,6 +3,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Altinn.Correspondence.Common.Helpers;
 using System.Text.Json;
 using System.Text;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Altinn.Correspondence.Tests.TestingUtility
 {
@@ -21,7 +22,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             var cacheOptions = new DistributedCacheEntryOptions();
             var cancellationToken = CancellationToken.None;
             var serializedDataString = JsonSerializer.Serialize(value);
-            var mockCache = new Mock<IDistributedCache>();
+            var mockCache = new Mock<HybridCache>();
 
             mockCache.Setup(cache => cache.SetAsync(
                 key,
@@ -50,7 +51,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             string storedValue = "John";
             var serializedData = JsonSerializer.Serialize(storedValue);
             var cancellationToken = CancellationToken.None;
-            var mockCache = new Mock<IDistributedCache>();
+            var mockCache = new Mock<HybridCache>();
             
             mockCache.Setup(cache => cache.GetAsync(key, cancellationToken))
                 .ReturnsAsync(Encoding.UTF8.GetBytes(serializedData));
@@ -69,7 +70,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             // Arrange
             var key = "unknownKey";
             var cancellationToken = CancellationToken.None;
-            var mockCache = new Mock<IDistributedCache>();
+            var mockCache = new Mock<HybridCache>();
 
             mockCache.Setup(cache => cache.GetAsync(key, cancellationToken))
                 .ReturnsAsync(Array.Empty<byte>());

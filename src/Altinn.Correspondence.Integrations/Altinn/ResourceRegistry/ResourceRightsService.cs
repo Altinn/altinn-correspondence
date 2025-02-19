@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Altinn.Correspondence.Common.Helpers;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 public class ResourceRightsService : IResourceRightsService
@@ -14,19 +15,19 @@ public class ResourceRightsService : IResourceRightsService
     private readonly HttpClient _client;
     private readonly ILogger<ResourceRightsService> _logger;
     
-    private readonly IDistributedCache _cache;
-    private readonly DistributedCacheEntryOptions _cacheOptions;
+    private readonly HybridCache _cache;
+    private readonly HybridCacheEntryOptions _cacheOptions;
 
-    public ResourceRightsService(HttpClient httpClient, IOptions<AltinnOptions> options, ILogger<ResourceRightsService> logger, IDistributedCache cache)
+    public ResourceRightsService(HttpClient httpClient, IOptions<AltinnOptions> options, ILogger<ResourceRightsService> logger, HybridCache cache)
     {
         httpClient.BaseAddress = new Uri(options.Value.PlatformGatewayUrl);
         _client = httpClient;
         _logger = logger;
         _cache = cache;
-        _cacheOptions = new DistributedCacheEntryOptions
+        _cacheOptions = new HybridCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24)
-        };
+            Expiration = TimeSpan.FromHours(24), // Sets expiration for the distributed cache
+            LocalCacheExpiration = TimeSpan.FromMinutes(2)         };
     }
 
     public async Task<string?> GetServiceOwnerOfResource(string resourceId, CancellationToken cancellationToken)

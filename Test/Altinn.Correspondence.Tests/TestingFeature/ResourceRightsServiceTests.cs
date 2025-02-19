@@ -8,13 +8,14 @@ using Microsoft.Extensions.Options;
 using Altinn.Correspondence.Core.Options;
 using System.Net;
 using Moq.Protected;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Altinn.Correspondence.Tests.TestingFeature
 {
     public class ResourceRightsServiceTests
     {
         private readonly Mock<HttpMessageHandler> _mockHandler;
-        private readonly Mock<IDistributedCache> _mockCache;
+        private readonly Mock<HybridCache> _mockCache;
         private readonly HttpClient _httpClient;
         private readonly Mock<ILogger<ResourceRightsService>> _mockLogger;
         private readonly Mock<IOptions<AltinnOptions>> _mockOptions;
@@ -25,7 +26,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             _mockHandler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
             SetupMessageHandler();
             _httpClient = new HttpClient(_mockHandler.Object);
-            _mockCache = new Mock<IDistributedCache>();
+            _mockCache = new Mock<HybridCache>();
             _mockLogger = new Mock<ILogger<ResourceRightsService>>();
             _mockOptions = new Mock<IOptions<AltinnOptions>>();
             

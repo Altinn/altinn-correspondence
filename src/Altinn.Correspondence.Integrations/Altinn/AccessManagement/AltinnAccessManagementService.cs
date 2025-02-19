@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
@@ -18,23 +19,24 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<AltinnAccessManagementService> _logger;
-    private readonly IDistributedCache _cache;
-    private readonly DistributedCacheEntryOptions _cacheOptions;
+    private readonly HybridCache _cache;
+    private readonly HybridCacheEntryOptions _cacheOptions;
     private readonly int _MAX_DEPTH_FOR_SUBUNITS = 20;
 
     public AltinnAccessManagementService(
         HttpClient httpClient, 
         IOptions<AltinnOptions> altinnOptions, 
         ILogger<AltinnAccessManagementService> logger,
-        IDistributedCache cache)
+        HybridCache cache)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.AccessManagementSubscriptionKey);
         _httpClient = httpClient;
         _logger = logger;
         _cache = cache;
-        _cacheOptions = new DistributedCacheEntryOptions
+        _cacheOptions = new HybridCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
+            Expiration = TimeSpan.FromHours(24), // Sets expiration for the distributed cache
+            LocalCacheExpiration = TimeSpan.FromMinutes(2) 
         };
     }
 
