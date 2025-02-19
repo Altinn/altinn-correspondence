@@ -12,69 +12,64 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Which of the notification templates to use for this notification
         /// </summary>
-        /// <remarks>
-        /// Assumed valid variants:
-        /// Email, SMS, EmailReminder, SMSReminder
-        /// Reminders sent after 14 days if Correspondence not confirmed
-        /// </remarks>
         [JsonPropertyName("notificationTemplate")]
         public required NotificationTemplateExt NotificationTemplate { get; set; }
 
         /// <summary>
-        /// The email template to use for this notification
+        /// The emais subject for the main notification
         /// </summary>
         [JsonPropertyName("emailSubject")]
         [StringLength(128, MinimumLength = 0)]
         public string? EmailSubject { get; set; }
 
         /// <summary>
-        /// The email template to use for this notification
+        /// The email body for the main notification
         /// </summary>
         [JsonPropertyName("emailBody")]
         [StringLength(1024, MinimumLength = 0)]
         public string? EmailBody { get; set; }
 
         /// <summary>
-        /// The sms template to use for this notification
+        /// The sms body for the main notification
         /// </summary>
         [JsonPropertyName("smsBody")]
         [StringLength(160, MinimumLength = 0)]
         public string? SmsBody { get; set; }
 
         /// <summary>
-        /// Should a reminder be sent if the notification is not confirmed
+        /// Should a reminder be sent if the notification is not confirmed or opened
         /// </summary>
         [JsonPropertyName("sendReminder")]
         public bool SendReminder { get; set; }
 
         /// <summary>
-        /// The email template to use for this notification
+        /// The email subject to use for the reminder notification
         /// </summary>
         [JsonPropertyName("reminderEmailSubject")]
         [StringLength(128, MinimumLength = 0)]
         public string? ReminderEmailSubject { get; set; }
 
         /// <summary>
-        /// The email template to use for this notification
+        /// The email body to use for the reminder notification
         /// </summary>
         [JsonPropertyName("reminderEmailBody")]
         [StringLength(1024, MinimumLength = 0)]
         public string? ReminderEmailBody { get; set; }
 
         /// <summary>
-        /// The sms template to use for this notification
+        /// The sms body to use for the reminder notification
         /// </summary>
         [JsonPropertyName("reminderSmsBody")]
         [StringLength(160, MinimumLength = 0)]
         public string? ReminderSmsBody { get; set; }
 
         /// <summary>
-        /// Where to send the notification
+        /// Specifies the notification channel to use for the main notification
         /// </summary>
         public NotificationChannelExt NotificationChannel { get; set; }
 
         /// <summary>
-        /// Where to send the reminder notification
+        ///  Specifies the notification channel to use for the reminder notification
         /// </summary>
         public NotificationChannelExt? ReminderNotificationChannel { get; set; }
 

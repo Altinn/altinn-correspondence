@@ -38,10 +38,11 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>
         /// Requires uploads of specified attachments if any before it can be Published
         /// </remarks>
-        /// <returns>CorrespondenceIds</returns>
         [HttpPost]
         [Consumes("application/json")]
         [Produces("application/json")]
+        [ProducesResponseType(typeof(InitializeCorrespondencesResponseExt), 200)]
+        [ProducesResponseType(typeof(ProblemDetails), 400, "test")]
         [Authorize(Policy = AuthorizationConstants.Sender)]
         public async Task<ActionResult<InitializeCorrespondencesResponseExt>> InitializeCorrespondences(
             InitializeCorrespondencesExt request,
@@ -61,9 +62,11 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Initialize Correspondences with attachment data
+        /// Initialize Correspondences and uploads attachments in the same request
         /// </summary>
-        /// <returns>CorrespondenceIds/returns>
+        /// <returns>
+        /// CorrespondenceIds
+        /// </returns>
         [HttpPost]
         [Route("upload")]
         [Consumes("multipart/form-data")]
@@ -93,6 +96,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// <summary>
         /// Get information about the Correspondence and its current status
         /// </summary>
+        /// <securty>
+        /// Scopes: Correspondence.Read
+        /// </securty>
         /// <remarks>
         /// Mostly for use by recipients and occasional status checks
         /// </remarks>

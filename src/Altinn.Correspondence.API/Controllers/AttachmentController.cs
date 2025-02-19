@@ -21,7 +21,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     private readonly ILogger<CorrespondenceController> _logger = logger;
 
     /// <summary>
-    /// Initialize a new Attachment
+    /// Initialize a new Attachment to be shared in correspondences
     /// </summary>
     /// <remarks>Only required if the attachment is to be shared, otherwise this is done as part of the Initialize Correspondence operation</remarks>
     /// <returns></returns>
@@ -81,7 +81,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     }
 
     /// <summary>
-    /// Get information about the file and its current status
+    /// Get information about the attachment and its current status
     /// </summary>
     /// <returns>AttachmentOverviewExt</returns>
     [HttpGet]
@@ -104,7 +104,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     }
 
     /// <summary>
-    /// Get information about the file and its current status
+    /// Get information about the attachment and its current status
     /// </summary>
     /// <returns></returns>
     [HttpGet]

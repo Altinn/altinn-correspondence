@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models;
 /// <summary>
-/// Information about the notifications that were created for the correspondence
+/// Information about a notification that were created for the correspondence
 /// </summary>
 public class InitializedCorrespondencesNotificationsExt
 {
