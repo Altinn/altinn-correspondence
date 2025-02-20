@@ -29,7 +29,6 @@ public class InitializeCorrespondencesHandler(
     INotificationTemplateRepository notificationTemplateRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IResourceRegistryService resourceRegistryService,
-    IEventBus eventBus,
     IBackgroundJobClient backgroundJobClient,
     IDialogportenService dialogportenService,
     IContactReservationRegistryService contactReservationRegistryService,
@@ -223,7 +222,7 @@ public class InitializeCorrespondencesHandler(
                 {
                     backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
                 }
-                await eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
+                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
 
                 if (request.Notification != null)
                 {

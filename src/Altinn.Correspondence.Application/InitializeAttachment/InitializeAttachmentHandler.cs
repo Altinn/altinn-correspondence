@@ -6,7 +6,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -18,9 +18,9 @@ public class InitializeAttachmentHandler(
     IAttachmentRepository attachmentRepository,
     IAttachmentStatusRepository attachmentStatusRepository,
     IResourceRegistryService resourceRegistryService,
-    IEventBus eventBus,
     IAltinnAuthorizationService altinnAuthorizationService,
     ILogger<InitializeAttachmentHandler> logger,
+    IBackgroundJobClient backgroundJobClient,
     AttachmentHelper attachmentHelper) : IHandler<InitializeAttachmentRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -65,7 +65,7 @@ public class InitializeAttachmentHandler(
         {
             var initializedAttachment = await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
             await attachmentHelper.SetAttachmentStatus(initializedAttachment.Id, AttachmentStatus.Initialized, partyUuid, cancellationToken);
-            await eventBus.Publish(AltinnEventType.AttachmentInitialized, initializedAttachment.ResourceId, initializedAttachment.Id.ToString(), "attachment", initializedAttachment.Sender, cancellationToken);
+            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.AttachmentInitialized, initializedAttachment.ResourceId, initializedAttachment.Id.ToString(), "attachment", initializedAttachment.Sender, CancellationToken.None));
 
             return initializedAttachment.Id;
         }, logger, cancellationToken);

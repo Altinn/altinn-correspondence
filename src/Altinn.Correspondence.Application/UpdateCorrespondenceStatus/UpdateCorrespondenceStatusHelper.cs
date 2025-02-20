@@ -63,22 +63,20 @@ public class UpdateCorrespondenceStatusHelper(
     /// <summary>
     /// Publishes appropriate events based on the correspondence status update.
     /// </summary>
-    /// <param name="eventBus">The event bus service.</param>
     /// <param name="correspondence">The correspondence entity being updated.</param>
     /// <param name="status">The new status being set.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task PublishEvent(IEventBus eventBus, CorrespondenceEntity correspondence, CorrespondenceStatus status, CancellationToken cancellationToken)
+    public void PublishEvent(CorrespondenceEntity correspondence, CorrespondenceStatus status)
     {
         if (status == CorrespondenceStatus.Confirmed)
         {
-            await eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
+            _backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
         }
         else if (status == CorrespondenceStatus.Read)
         {
-            await eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
+            _backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
         }
     }
+
     /// <summary>
     /// Reports activity to Dialogporten based on the correspondence status update.
     /// </summary>
