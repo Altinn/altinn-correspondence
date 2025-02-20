@@ -17,6 +17,7 @@ public class InitializeAttachmentHandler(
     IAltinnRegisterService altinnRegisterService,
     IAttachmentRepository attachmentRepository,
     IAttachmentStatusRepository attachmentStatusRepository,
+    IResourceRegistryService resourceRegistryService,
     IAltinnAuthorizationService altinnAuthorizationService,
     ILogger<InitializeAttachmentHandler> logger,
     IBackgroundJobClient backgroundJobClient,
@@ -33,6 +34,15 @@ public class InitializeAttachmentHandler(
         if (!hasAccess)
         {
             return AuthorizationErrors.NoAccessToResource;
+        }
+        var resourceType = await resourceRegistryService.GetResourceType(request.Attachment.ResourceId, cancellationToken);
+        if (resourceType is null)
+        {
+            throw new Exception($"Resource type not found for {request.Attachment.ResourceId}. This should be impossible as authorization worked.");
+        }
+        if (resourceType != "GenericAccessResource" && resourceType != "CorrespondenceService")
+        {
+            return AuthorizationErrors.IncorrectResourceType;
         }
 
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);

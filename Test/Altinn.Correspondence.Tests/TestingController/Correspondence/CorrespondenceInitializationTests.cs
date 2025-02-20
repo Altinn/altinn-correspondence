@@ -2,10 +2,14 @@
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -577,6 +581,31 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var responseObject = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
             Assert.NotNull(responseObject);
             Assert.Equal(responseObject.AttachmentIds.Count(), responseObject.AttachmentIds.Distinct().Count());
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithABrokerService_FailsWithBadRequest()
+        {
+            // Arrange
+            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var resourceRegistryService = new Mock<IResourceRegistryService>();
+                resourceRegistryService.Setup(x => x.GetServiceOwnerOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-broker-test-resource");
+                resourceRegistryService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("BrokerService");
+                services.AddSingleton(resourceRegistryService.Object);
+            });
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .Build();
+
+            // Act
+            var unitSenderClient = testFactory.CreateSenderClient();
+            var initializeCorrespondenceResponse = await unitSenderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+            var responseObject = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<ProblemDetails>(_responseSerializerOptions);
+            Assert.NotNull(responseObject);
         }
     }
 }
