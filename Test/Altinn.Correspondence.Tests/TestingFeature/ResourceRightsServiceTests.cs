@@ -79,10 +79,12 @@ namespace Altinn.Correspondence.Tests.TestingFeature
 
         private void MockSetupSimulateStoreInCache(string key, string serializedValue, CancellationToken cancellationToken)
         {
+            var cacheOptions = new HybridCacheEntryOptions();
+
             _mockCache.Setup(cache => cache.SetAsync(
                 key,
                 It.Is<byte[]>(bytes => bytes.SequenceEqual(Encoding.UTF8.GetBytes(serializedValue))),
-                new HybridCacheEntryOptions(),
+                cacheOptions,
                 cancellationToken
             )).Returns(new ValueTask());
         }
@@ -102,6 +104,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             string expectedResult = CreateTestResourceResponse().HasCompetentAuthority?.Name?["en"] ?? string.Empty;
             string expectedResultSerialized = JsonSerializer.Serialize(expectedResult);
             var cancellationToken = CancellationToken.None;
+            var cacheOptions = new HybridCacheEntryOptions();
 
             MockSetupSimulateCacheMiss(cacheKey, cancellationToken);
             MockSetupSimulateStoreInCache(cacheKey, expectedResultSerialized, cancellationToken);
@@ -120,7 +123,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             _mockCache.Verify(cache => cache.SetAsync(
                 cacheKey,
                 It.Is<byte[]>(bytes => bytes.SequenceEqual(Encoding.UTF8.GetBytes(expectedResultSerialized))),
-                new HybridCacheEntryOptions(), 
+                cacheOptions,                
                 It.IsAny<CancellationToken>()),
                 Times.Once);
         }
@@ -169,6 +172,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             string resourceId = "12345";
             string cacheKey = $"ResourceInfo_{resourceId}";
             var cancellationToken = CancellationToken.None;
+            var cacheOptions = new HybridCacheEntryOptions();
 
             _mockHandler
                 .Protected()
@@ -187,7 +191,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             _mockCache.Verify(cache => cache.SetAsync(
                 cacheKey,
                 It.IsAny<byte[]>(),
-                new HybridCacheEntryOptions(),
+                cacheOptions,
                 cancellationToken
             ), Times.Never);
         }
