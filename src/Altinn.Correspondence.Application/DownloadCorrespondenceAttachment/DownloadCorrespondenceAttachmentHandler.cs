@@ -39,7 +39,7 @@ public class DownloadCorrespondenceAttachmentHandler(
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
         var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, cancellationToken);
-        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, DialogportenActorType.Recipient, DialogportenTextType.DownloadStarted, attachment.FileName ?? attachment.Name));
+        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, DialogportenActorType.Recipient, DialogportenTextType.DownloadStarted, attachment.FileName));
         return new DownloadCorrespondenceAttachmentResponse(){
             FileName = attachment.FileName,
             Stream = attachmentStream
