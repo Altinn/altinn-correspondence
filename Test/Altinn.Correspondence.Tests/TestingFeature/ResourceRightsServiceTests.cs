@@ -73,8 +73,13 @@ namespace Altinn.Correspondence.Tests.TestingFeature
 
         private void MockSetupSimulateCacheMiss(string key, CancellationToken cancellationToken)
         {
-            _mockCache.Setup(cache => cache.GetAsync(key, cancellationToken))
-                .ReturnsAsync(null as byte[]);
+            _mockCache.Setup(cache => cache.GetOrCreateAsync(
+                It.IsAny<string>(), // key
+                It.IsAny<Func<CancellationToken, ValueTask<byte>>>(), // factory
+                It.IsAny<HybridCacheEntryOptions?>(), // options
+                It.IsAny<IEnumerable<string>?>(), // tags
+                It.IsAny<CancellationToken>() // cancellationToken
+            )).ReturnsAsync(default(byte));
         }
 
         private void MockSetupSimulateStoreInCache(string key, string serializedValue, CancellationToken cancellationToken)
@@ -85,14 +90,19 @@ namespace Altinn.Correspondence.Tests.TestingFeature
                 key,
                 It.Is<byte[]>(bytes => bytes.SequenceEqual(Encoding.UTF8.GetBytes(serializedValue))),
                 cacheOptions,
+                null,
                 cancellationToken
             )).Returns(new ValueTask());
         }
-
         private void MockSetupSimulateCacheHit(string key, string serializedValue, CancellationToken cancellationToken)
         {
-            _mockCache.Setup(cache => cache.GetAsync(key, cancellationToken))
-                .ReturnsAsync(Encoding.UTF8.GetBytes(serializedValue));
+            _mockCache.Setup(cache => cache.GetOrCreateAsync(
+                It.IsAny<string>(), // key
+                It.IsAny<Func<CancellationToken, ValueTask<byte>>>(), // factory
+                It.IsAny<HybridCacheEntryOptions?>(), // options
+                It.IsAny<IEnumerable<string>?>(), // tags
+                It.IsAny<CancellationToken>() // cancellationToken
+            )).ReturnsAsync(default(byte));
         }
 
         [Fact]
@@ -124,7 +134,8 @@ namespace Altinn.Correspondence.Tests.TestingFeature
                 cacheKey,
                 It.Is<byte[]>(bytes => bytes.SequenceEqual(Encoding.UTF8.GetBytes(expectedResultSerialized))),
                 cacheOptions,                
-                It.IsAny<CancellationToken>()),
+                null,
+                CancellationToken.None),
                 Times.Once);
         }
 
@@ -156,7 +167,13 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             var result = await _service.GetServiceOwnerOfResource(resourceId, cancellationToken);
 
             // Assert
-            _mockCache.Verify(cache => cache.GetAsync(cacheKey, cancellationToken), Times.Once);
+            _mockCache.Verify(cache => cache.GetOrCreateAsync(
+                cacheKey,
+                It.IsAny<Func<CancellationToken, ValueTask<byte[]>>>(), // Factory function
+                It.IsAny<HybridCacheEntryOptions?>(), // Matches any options or null
+                It.IsAny<IEnumerable<string>?>(),     // Matches any tags or null
+                cancellationToken                     // Your specific cancellation token
+            ), Times.Once);            
             _mockHandler.Protected().Verify(
                 "SendAsync",
                 Times.Never(),
@@ -192,7 +209,8 @@ namespace Altinn.Correspondence.Tests.TestingFeature
                 cacheKey,
                 It.IsAny<byte[]>(),
                 cacheOptions,
-                cancellationToken
+                null,
+                CancellationToken.None
             ), Times.Never);
         }
     }

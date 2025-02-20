@@ -85,7 +85,7 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
             return AuthenticateResult.NoResult();
         }
 
-        var token = await _cache.GetOrCreateAsync(sessionId, async entry =>
+        var token = _cache.GetOrCreateAsync(sessionId, async entry =>
         {
             var cacheEntryOptions = new DistributedCacheEntryOptions
             {
@@ -93,13 +93,13 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
             };
             return await Task.FromResult<string>(null);
         });
-        if (string.IsNullOrEmpty(token))
+        if (string.IsNullOrEmpty(await token.AsTask()))
         {
             return AuthenticateResult.NoResult();
         }
         _cache.RemoveAsync((string)sessionId, CancellationToken.None);
 
-        var principal = await _tokenValidator.ValidateTokenAsync(token);
+        var principal = await _tokenValidator.ValidateTokenAsync(await token.AsTask());
         if (principal is not null)
         {
             var ticket = new AuthenticationTicket(principal, Scheme.Name);

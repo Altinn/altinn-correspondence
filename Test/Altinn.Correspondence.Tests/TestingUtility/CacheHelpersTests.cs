@@ -28,8 +28,9 @@ namespace Altinn.Correspondence.Tests.TestingUtility
                 key,
                 It.Is<byte[]>(bytes => bytes != null && bytes.Length > 0),
                 cacheOptions,
-                cancellationToken
-            )).Returns(new ValueTask());
+                null,
+                CancellationToken.None
+            )).Returns(ValueTask.CompletedTask);
 
             // Act
             await CacheHelpers.StoreObjectInCacheAsync(key, value, mockCache.Object, cacheOptions, cancellationToken);
@@ -39,7 +40,8 @@ namespace Altinn.Correspondence.Tests.TestingUtility
                 key, 
                 It.Is<byte[]>(bytes => bytes.SequenceEqual(Encoding.UTF8.GetBytes(serializedDataString))),
                 cacheOptions, 
-                cancellationToken),
+                null,
+                CancellationToken.None),
                 Times.Once);
         }
 
@@ -53,9 +55,15 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             var cancellationToken = CancellationToken.None;
             var mockCache = new Mock<HybridCache>();
             
-            mockCache.Setup(cache => cache.GetAsync(key, cancellationToken))
-                .ReturnsAsync(Encoding.UTF8.GetBytes(serializedData));
-
+            mockCache.Setup(cache => cache.GetOrCreateAsync(
+                    key,//nøkkel som identifiserer dataen i cache
+                    It.IsAny<Func<CancellationToken, ValueTask<byte[]>>>(), // Factory function
+                    It.IsAny<HybridCacheEntryOptions?>(), // Optional cache entry options
+                    It.IsAny<IEnumerable<string>?>(), // Optional tags
+                    It.IsAny<CancellationToken>() // Cancellation token
+                ))
+                .ReturnsAsync(Encoding.UTF8.GetBytes(serializedData)); // Mock return value
+                
             // Act
             var result = await CacheHelpers.GetObjectFromCacheAsync<string>(key, mockCache.Object, cancellationToken);
 
@@ -71,9 +79,15 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             var key = "unknownKey";
             var cancellationToken = CancellationToken.None;
             var mockCache = new Mock<HybridCache>();
-
-            mockCache.Setup(cache => cache.GetAsync(key, cancellationToken))
-                .ReturnsAsync(Array.Empty<byte>());
+            
+            mockCache.Setup(cache => cache.GetOrCreateAsync(
+                    key,
+                    It.IsAny<Func<CancellationToken, ValueTask<byte[]>>>(), // Factory function
+                    It.IsAny<HybridCacheEntryOptions?>(), // Optional cache entry options
+                    It.IsAny<IEnumerable<string>?>(), // Optional tags
+                    It.IsAny<CancellationToken>() // Cancellation token
+                ))
+                    .ReturnsAsync(Array.Empty<byte>());
 
             // Act
             var result = await CacheHelpers.GetObjectFromCacheAsync<object>(key, mockCache.Object, cancellationToken);
