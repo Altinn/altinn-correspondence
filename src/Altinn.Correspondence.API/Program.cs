@@ -19,6 +19,8 @@ using Serilog;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Altinn.Correspondence.Integrations.Slack;
+using Microsoft.Extensions.Caching.Hybrid;
+using Altinn.Correspondence.Common.Caching;
 
 BuildAndRun(args);
 
@@ -40,6 +42,10 @@ static void BuildAndRun(string[] args)
         .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", true, true)
         .AddJsonFile("appsettings.local.json", true, true);
     ConfigureServices(builder.Services, builder.Configuration, builder.Environment);
+    #pragma warning disable EXTEXP0018
+    builder.Services.AddHybridCache();
+    #pragma warning restore EXTEXP0018
+    builder.Services.AddSingleton<IHybridCacheWrapper, HybridCacheWrapper>();
 
     var app = builder.Build();
 
