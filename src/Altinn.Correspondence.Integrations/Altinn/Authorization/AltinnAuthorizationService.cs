@@ -6,9 +6,9 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Idporten;
-using Altinn.Correspondence.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -22,14 +22,14 @@ namespace Altinn.Correspondence.Integrations.Altinn.Authorization;
 public class AltinnAuthorizationService : IAltinnAuthorizationService
 {
     private readonly HttpClient _httpClient;
-    private readonly IResourceRightsService _resourceRepository;
+    private readonly IResourceRegistryService _resourceRepository;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly AltinnOptions _altinnOptions;
     private readonly DialogportenSettings _dialogportenSettings;
     private readonly IdportenSettings _idPortenSettings;
     private readonly ILogger<AltinnAuthorizationService> _logger;
 
-    public AltinnAuthorizationService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, IOptions<DialogportenSettings> dialogportenSettings, IOptions<IdportenSettings> idPortenSettings, IResourceRightsService resourceRepository, IHostEnvironment hostEnvironment, ILogger<AltinnAuthorizationService> logger)
+    public AltinnAuthorizationService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, IOptions<DialogportenSettings> dialogportenSettings, IOptions<IdportenSettings> idPortenSettings, IResourceRegistryService resourceRepository, IHostEnvironment hostEnvironment, ILogger<AltinnAuthorizationService> logger)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.PlatformSubscriptionKey);
         _altinnOptions = altinnOptions.Value;

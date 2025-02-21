@@ -61,7 +61,7 @@ public class MigrateUploadAttachmentHandler(
             {
                 AttachmentId = attachment.Id,
                 ResourceId = attachment.ResourceId,
-                Name = attachment.Name,
+                Name = attachment.FileName,
                 Checksum = attachment.Checksum,
                 Status = attachmentStatus.Status,
                 StatusText = attachmentStatus.StatusText,

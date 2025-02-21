@@ -69,9 +69,8 @@ public static class NotificationErrors
     public static Error InvalidMobileNumberProvided = new Error(3012, "Invalid mobile number provided. Mobile number can contain only '+' and numeric characters, and it must adhere to the E.164 standard.", HttpStatusCode.BadRequest);
     public static Error OrgNumberWithSsnEmailOrMobile = new Error(3013, "Organization number cannot be combined with email address, mobile number, or national identity number.", HttpStatusCode.BadRequest);
     public static Error SsnWithOrgNoEmailOrMobile = new Error(3014, "National identity number cannot be combined with email address, mobile number, or organization number.", HttpStatusCode.BadRequest);
-    public static Error RecipientOverridesWithNumberOrEmailNotAllowedWithCustomTemplate = new Error(3015, "Recipient overrides with email or mobile number are not allowed when using a custom notification template because of name lookup", HttpStatusCode.BadRequest);
-    public static Error RecipientOverridesWithNumberOrEmailNotAllowedWithRecipientName = new Error(3016, "Recipient overrides with email or mobile number are not allowed when using recipient name because of name lookup", HttpStatusCode.BadRequest);
-    public static Error MissingRecipientsForRecipientOverride = new Error(3017, "No recipients provided for one or more recipient overrides", HttpStatusCode.BadRequest);
+    public static Error RecipientOverridesWithNumberOrEmailNotAllowedWithRecipientName = new Error(3015, "Recipient overrides with email or mobile number are not allowed when using notification recipient name because of name lookup", HttpStatusCode.BadRequest);
+    public static Error MissingRecipientsForRecipientOverride = new Error(3016, "No recipients provided for one or more recipient overrides", HttpStatusCode.BadRequest);
 }
 public static class AuthorizationErrors
 {
@@ -83,4 +82,5 @@ public static class AuthorizationErrors
     public static Error CouldNotDetermineCaller = new Error(4006, "Could not determine caller", HttpStatusCode.Unauthorized);
     public static Error CouldNotFindOrgNo = new Error(4007, "Could not identify orgnumber from user", HttpStatusCode.Unauthorized);
     public static Error ResourceNotWhitelisted = new Error(4008, "Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no.", HttpStatusCode.Forbidden);
+    public static Error IncorrectResourceType = new Error(4009, "Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService.", HttpStatusCode.BadRequest);
 }

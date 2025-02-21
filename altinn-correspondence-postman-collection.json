@@ -3,7 +3,7 @@
 		"_postman_id": "0990ec3d-32ae-4af6-adc6-23ff0ea2cf5c",
 		"name": "Altinn.Correspondence.API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "34552244"
+		"_exporter_id": "7106668"
 	},
 	"item": [
 		{
@@ -781,10 +781,6 @@
 						"method": "POST",
 						"header": [
 							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
 								"key": "Accept",
 								"value": "application/json"
 							}
@@ -835,11 +831,6 @@
 								{
 									"key": "Correspondence.content.attachments[0].DataLocationType",
 									"value": "ExistingExternalStorage",
-									"type": "text"
-								},
-								{
-									"key": "Correspondence.content.attachments[0].Name",
-									"value": "testfile.txt",
 									"type": "text"
 								},
 								{
@@ -1390,7 +1381,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"expirationTime\": \"2024-12-12\",\n  \"resourceId\": \"{{resource_id}}\",\n  \"name\": \"testFile\",\n  \"sender\": \"0192:{{senderOrgNo}}\",\n  \"sendersReference\": \"1234\",\n  \"fileName\": \"test-file\",\n  \"isEncrypted\": false\n}",
+							"raw": "{\n  \"expirationTime\": \"2024-12-12\",\n  \"resourceId\": \"{{resource_id}}\",\n  \"sender\": \"0192:{{senderOrgNo}}\",\n  \"sendersReference\": \"1234\",\n  \"fileName\": \"test-file\",\n  \"isEncrypted\": false\n}",
 							"options": {
 								"raw": {
 									"headerFamily": "json",

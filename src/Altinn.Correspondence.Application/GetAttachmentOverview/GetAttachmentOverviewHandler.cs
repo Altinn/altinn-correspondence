@@ -35,7 +35,6 @@ public class GetAttachmentOverviewHandler(
         {
             AttachmentId = attachment.Id,
             ResourceId = attachment.ResourceId,
-            Name = attachment.Name,
             Checksum = attachment.Checksum,
             Status = attachmentStatus.Status,
             StatusText = attachmentStatus.StatusText,

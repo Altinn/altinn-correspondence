@@ -23,7 +23,6 @@ public class PublishCorrespondenceHandler(
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IContactReservationRegistryService contactReservationRegistryService,
     IDialogportenService dialogportenService,
-    IEventBus eventBus,
     IHostEnvironment hostEnvironment,
     IBackgroundJobClient backgroundJobClient) : IHandler<Guid, Task>
 {
@@ -117,8 +116,8 @@ public class PublishCorrespondenceHandler(
             }
 
             await correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
-            await eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
-            if (status.Status == CorrespondenceStatus.Published) await eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
+            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+            if (status.Status == CorrespondenceStatus.Published) backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, CancellationToken.None));
             return Task.CompletedTask;
         }, logger, cancellationToken);
     }
