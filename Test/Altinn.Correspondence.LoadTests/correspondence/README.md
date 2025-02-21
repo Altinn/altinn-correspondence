@@ -1,4 +1,4 @@
-## Correspondance Performance Test
+## Correspondence Performance Test
 
 This performance test directory focuses on evaluating the GET and POST endpoints of the `correspondence` API. The test files associated with this performance test are `create-correspondence.js`, `create-and-upload-corespondence.js`, `get-correspondence.js`, and `get-correspondence-overview.js`. These files are designed to measure the performance and scalability of the API endpoints under different scenarios. By running these tests, you can gain insights into the system's response time, throughput, and resource utilization. Use the instructions below to execute the performance test and analyze the results.
 
