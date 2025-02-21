@@ -8,19 +8,19 @@ namespace Altinn.Correspondence.API.Models;
 public class NotificationProcessStatusExt
 {
     /// <summary>
-    /// Gets or sets the status
+    /// The actual status of the notification
     /// </summary>
     [JsonPropertyName("status")]
     public string Status { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the description
+    /// The description of the status
     /// </summary>
     [JsonPropertyName("description")]
     public string? StatusDescription { get; set; }
 
     /// <summary>
-    /// Gets or sets the date time of when the status was last updated
+    /// The date time of when the status was last updated
     /// </summary>
     [JsonPropertyName("lastUpdate")]
     public DateTime LastUpdate { get; set; }

@@ -15,7 +15,7 @@ public class InitializedCorrespondencesExt
     public Guid CorrespondenceId { get; set; }
 
     /// <summary>
-    /// The status of the correspondence
+    /// The current status of the correspondence
     /// </summary>
     [JsonPropertyName("status")]
     public CorrespondenceStatusExt Status { get; set; }

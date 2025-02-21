@@ -14,7 +14,7 @@ public class InitializeCorrespondencesExt
     public required BaseCorrespondenceExt Correspondence { get; set; }
 
     /// <summary>
-    /// List of recipients for the correspondence, either as organization or national identity number
+    /// List of recipients for the correspondence, either as organization(urn:altinn:organization:identifier-no:ORGNR) or national identity number(urn:altinn:person:identifier-no:SSN)
     /// </summary>
     [JsonPropertyName("recipients")]
     [Required]

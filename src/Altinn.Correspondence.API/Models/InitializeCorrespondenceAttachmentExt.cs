@@ -11,7 +11,7 @@ namespace Altinn.Correspondence.API.Models
     {
         /// <summary>
         /// A unique id for the correspondence attachment.
-        /// 
+        /// </summary>
         [JsonPropertyName("id")]
         public Guid Id { get; set; }
 

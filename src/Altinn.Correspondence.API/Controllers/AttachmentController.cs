@@ -21,13 +21,20 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     private readonly ILogger<CorrespondenceController> _logger = logger;
 
     /// <summary>
-    /// Initialize a new Attachment
+    /// Initialize a new Attachment to be shared in correspondences
     /// </summary>
-    /// <remarks>Only required if the attachment is to be shared, otherwise this is done as part of the Initialize Correspondence operation</remarks>
+    /// <remarks>
+    /// Scopes: <br/>
+    /// - altinn:correspondence.send <br/>
+    /// Only required if the attachment is to be shared, otherwise this is done as part of the Initialize Correspondence operation
+    /// </remarks>
     /// <returns></returns>
     [HttpPost]
     [Consumes("application/json")]
     [Produces("application/json")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<Guid>> InitializeAttachment(
         InitializeAttachmentExt InitializeAttachmentExt,
@@ -47,11 +54,20 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <summary>
     /// Upload attachment data to Altinn Correspondence blob storage
     /// </summary>
+    /// <remarks>
+    /// Scopes: <br/>
+    /// - altinn:correspondence.send <br/>
+    /// </remarks>
     /// <returns></returns>
     [HttpPost]
     [Produces("application/json")]
     [Route("{attachmentId}/upload")]
     [Consumes("application/octet-stream")]
+    [ProducesResponseType(typeof(AttachmentOverviewExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
     [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<AttachmentOverviewExt>> UploadAttachmentData(
         Guid attachmentId,
@@ -81,12 +97,19 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     }
 
     /// <summary>
-    /// Get information about the file and its current status
+    /// Get information about the attachment and its current status
     /// </summary>
+    /// <remarks>
+    /// Scopes: <br/>
+    /// - altinn:correspondence.send <br/>
+    /// </remarks>
     /// <returns>AttachmentOverviewExt</returns>
     [HttpGet]
     [Route("{attachmentId}")]
     [Produces("application/json")]
+    [ProducesResponseType(typeof(AttachmentOverviewExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<AttachmentOverviewExt>> GetAttachmentOverview(
         Guid attachmentId,
@@ -104,11 +127,18 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     }
 
     /// <summary>
-    /// Get information about the file and its current status
+    /// Get information about the attachment and its current status
     /// </summary>
+    /// <remarks>
+    /// Scopes: <br/>
+    /// - altinn:correspondence.send <br/>
+    /// </remarks>
     /// <returns></returns>
     [HttpGet]
     [Produces("application/json")]
+    [ProducesResponseType(typeof(AttachmentDetailsExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [Route("{attachmentId}/details")]
     [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<AttachmentDetailsExt>> GetAttachmentDetails(
@@ -131,12 +161,17 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// Deletes the attachment
     /// </summary>
     /// <remarks>
-    /// TODO: Consider if this should not be a hard delete, but rather a soft delete and if it should then be a different HTTP operation
+    /// Scopes: <br/>
+    /// - altinn:correspondence.send <br/>
     /// </remarks>
     /// <returns></returns>
     [HttpDelete]
     [Route("{attachmentId}")]
     [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<AttachmentOverviewExt>> DeleteAttachment(
         Guid attachmentId,
@@ -155,8 +190,17 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <summary>
     /// Downloads the attachment data
     /// </summary>
+    /// <remarks>
+    /// Scopes: <br/>
+    /// - altinn:correspondence.send <br/>
+    /// </remarks>
     /// <returns></returns>
     [HttpGet]
+    [Produces("application/octet-stream")]
+    [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [Route("{attachmentId}/download")]
     [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult> DownloadAttachmentData(

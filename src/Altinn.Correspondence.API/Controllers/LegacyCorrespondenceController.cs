@@ -147,6 +147,7 @@ namespace Altinn.Correspondence.API.Controllers
             );
         }
 
+        /// <summary>
         /// Mark Correspondence found by ID as confirmed
         /// </summary>
         /// <remarks>
