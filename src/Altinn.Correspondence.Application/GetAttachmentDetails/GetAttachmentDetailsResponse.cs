@@ -19,8 +19,6 @@ public class GetAttachmentDetailsResponse
 
     public string FileName { get; set; } = string.Empty;
 
-    public string? Name { get; set; } = string.Empty;
-
     public string Sender { get; set; } = string.Empty;
 
     public string SendersReference { get; set; } = string.Empty;

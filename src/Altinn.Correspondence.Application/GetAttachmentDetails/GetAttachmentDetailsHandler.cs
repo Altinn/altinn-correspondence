@@ -41,7 +41,6 @@ public class GetAttachmentDetailsHandler(
         {
             ResourceId = attachment.ResourceId,
             AttachmentId = attachment.Id,
-            Name = attachment.Name,
             Status = attachmentStatus.Status,
             Statuses = attachment.Statuses,
             StatusText = attachmentStatus.StatusText,
