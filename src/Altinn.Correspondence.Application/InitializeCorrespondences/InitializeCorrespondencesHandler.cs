@@ -160,10 +160,11 @@ public class InitializeCorrespondencesHandler(
 
     private async Task<OneOf<List<string>, Error>> HandleContactReservation(InitializeCorrespondencesRequest request)
     {
+        var ignoreReservation = request.Correspondence.IgnoreReservation == true;
         try
         {
             var reservedRecipients = await contactReservationRegistryService.GetReservedRecipients(request.Recipients.Where(recipient => recipient.IsSocialSecurityNumber()).ToList());
-            if (request.Correspondence.IgnoreReservation != true && request.Recipients.Count == 1 && reservedRecipients.Count == 1)
+            if (!ignoreReservation && request.Recipients.Count == 1 && reservedRecipients.Count == 1)
             {
                 logger.LogInformation("Recipient reserved from correspondences in KRR");
                 return CorrespondenceErrors.RecipientReserved(request.Recipients.First());
@@ -179,6 +180,10 @@ public class InitializeCorrespondencesHandler(
         {
             logger.LogError(e, "Timeout when getting reserved recipients from KRR");
             logger.LogWarning("KRR not working. Correspondence was still created as it will fail on publish.");
+        }
+        if (!ignoreReservation)
+        {
+            return CorrespondenceErrors.FailureWhenLookingUpKRR;
         }
         return new List<string>();
     }
