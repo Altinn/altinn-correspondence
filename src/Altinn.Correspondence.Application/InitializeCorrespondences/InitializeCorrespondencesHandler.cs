@@ -16,6 +16,7 @@ using Microsoft.Extensions.Options;
 using OneOf;
 using System.Globalization;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
@@ -248,6 +249,7 @@ public class InitializeCorrespondencesHandler(
                             NotificationOrderId = notificationOrder.OrderId,
                             RequestedSendTime = notification.RequestedSendTime,
                             IsReminder = notification.RequestedSendTime != notifications[0].RequestedSendTime,
+                            OrderRequest = JsonSerializer.Serialize(notification)
                         };
 
                         notificationDetails.Add(new InitializedCorrespondencesNotifications()
@@ -326,6 +328,7 @@ public class InitializeCorrespondencesHandler(
             ResourceId = correspondence.ResourceId,
             RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(5) : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
             SendersReference = correspondence.SendersReference,
+            ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString()),
             NotificationChannel = notification.NotificationChannel,
             EmailTemplate = !string.IsNullOrWhiteSpace(content.EmailSubject) && !string.IsNullOrWhiteSpace(content.EmailBody) ? new EmailTemplate
             {
