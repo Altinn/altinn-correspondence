@@ -16,18 +16,18 @@ The test files associated with this performance test are
 - `get-correspondence.js`
 - `get-correspondence-overview.js`
 
-## Test description
-### Create correspndence
+### Test description
+#### Create correspondence
 For each iteration
 1. Get service and serviceowner and random enduser
 2. Post correspondence json 
 
-### Create and upload correspndence
+#### Create and upload correspondence
 For each iteration
 1. Get service and serviceowner and random enduser
 2. Post correspondence form-data with content
 
-### Get correspondence
+#### Get correspondence
 For each iteration:
 1. get a random enduser with token
 2. get correspondences for the enduser
@@ -36,7 +36,7 @@ For each iteration:
 5. Ask dialogporten for dialogdetails, get token from response
 6. Use token from 5. when asking for /content for each correspondence from 2
 
-### Get correspondence overview
+#### Get correspondence overview
 For each iteration:
 1. get a random enduser with token
 2. get correspondences for the enduser
