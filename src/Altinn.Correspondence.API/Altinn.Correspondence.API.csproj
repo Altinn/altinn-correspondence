@@ -6,13 +6,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    <EnablePreviewVersions>true</EnablePreviewVersions>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.4.0" />   
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.17" />
     <PackageReference Include="Hangfire.MemoryStorage" Version="1.8.1.1" />
-    <PackageReference Include="Hangfire.PostgreSql" Version="1.20.10" />     
+    <PackageReference Include="Hangfire.PostgreSql" Version="1.20.10" />
     <PackageReference Include="Microsoft.ApplicationInsights" Version="2.22.0" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.2" />
@@ -35,6 +36,7 @@
     </PackageReference>
     <PackageReference Include="StackExchange.Redis" Version="2.8.24" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="9.2.0-preview.1.25105.6" />
   </ItemGroup>
 
   <ItemGroup>

@@ -8,13 +8,16 @@ using Microsoft.Extensions.Options;
 using Altinn.Correspondence.Core.Options;
 using System.Net;
 using Moq.Protected;
+using Microsoft.Extensions.Caching.Hybrid;
+using Altinn.Correspondence.Common.Caching;
+
 
 namespace Altinn.Correspondence.Tests.TestingFeature
 {
     public class ResourceRightsServiceTests
     {
         private readonly Mock<HttpMessageHandler> _mockHandler;
-        private readonly Mock<IDistributedCache> _mockCache;
+        private readonly Mock<IHybridCacheWrapper> _mockCache;
         private readonly HttpClient _httpClient;
         private readonly Mock<ILogger<ResourceRegistryService>> _mockLogger;
         private readonly Mock<IOptions<AltinnOptions>> _mockOptions;
@@ -25,7 +28,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             _mockHandler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
             SetupMessageHandler();
             _httpClient = new HttpClient(_mockHandler.Object);
-            _mockCache = new Mock<IDistributedCache>();
+            _mockCache = new Mock<IHybridCacheWrapper>();
             _mockLogger = new Mock<ILogger<ResourceRegistryService>>();
             _mockOptions = new Mock<IOptions<AltinnOptions>>();
             
@@ -72,24 +75,53 @@ namespace Altinn.Correspondence.Tests.TestingFeature
 
         private void MockSetupSimulateCacheMiss(string key, CancellationToken cancellationToken)
         {
-            _mockCache.Setup(cache => cache.GetAsync(key, cancellationToken))
-                .ReturnsAsync(null as byte[]);
+            //første
+            _mockCache.Setup(cache => cache.GetOrCreateAsync(
+                key,
+                It.IsAny<Func<CancellationToken, ValueTask<byte>>>(),
+                It.IsAny<HybridCacheEntryOptions?>(),
+                It.IsAny<IEnumerable<string>?>(),
+                It.IsAny<CancellationToken>()
+            )).ReturnsAsync(default(byte)); // Cleaner async return
         }
 
+        // GetOrCreateAsync<T>(
+        //     String, 
+        //     Func<CancellationToken,ValueTask<T>>, 
+        //     HybridCacheEntryOptions, 
+        //     IEnumerable<String>, 
+        //     CancellationToken
+        // )
         private void MockSetupSimulateStoreInCache(string key, string serializedValue, CancellationToken cancellationToken)
         {
+            var cacheOptions = new HybridCacheEntryOptions();
+
             _mockCache.Setup(cache => cache.SetAsync(
                 key,
                 It.Is<byte[]>(bytes => bytes.SequenceEqual(Encoding.UTF8.GetBytes(serializedValue))),
-                It.IsAny<DistributedCacheEntryOptions>(),
+                cacheOptions,
+                null,
                 cancellationToken
             )).Returns(Task.CompletedTask);
         }
-
         private void MockSetupSimulateCacheHit(string key, string serializedValue, CancellationToken cancellationToken)
         {
-            _mockCache.Setup(cache => cache.GetAsync(key, cancellationToken))
-                .ReturnsAsync(Encoding.UTF8.GetBytes(serializedValue));
+            //den tryner her pga not supported
+            _mockCache.Setup(cache => cache.GetOrCreateAsync(
+                key, // key
+                It.IsAny<Func<CancellationToken, ValueTask<byte>>>(), // factory
+                It.IsAny<HybridCacheEntryOptions?>(), // options
+                It.IsAny<IEnumerable<string>?>(), // tags
+                It.IsAny<CancellationToken>() // cancellationToken
+            )).ReturnsAsync(default(byte));
+            
+            // GetOrCreateAsync<T>(
+            //     String, 
+            //     Func<CancellationToken,ValueTask<T>>, 
+            //     HybridCacheEntryOptions, 
+            //     IEnumerable<String>, 
+            //     CancellationToken)    
+
         }
 
         [Fact]
@@ -101,6 +133,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             string expectedResult = CreateTestResourceResponse().HasCompetentAuthority?.Name?["en"] ?? string.Empty;
             string expectedResultSerialized = JsonSerializer.Serialize(expectedResult);
             var cancellationToken = CancellationToken.None;
+            var cacheOptions = new HybridCacheEntryOptions();
 
             MockSetupSimulateCacheMiss(cacheKey, cancellationToken);
             MockSetupSimulateStoreInCache(cacheKey, expectedResultSerialized, cancellationToken);
@@ -116,11 +149,13 @@ namespace Altinn.Correspondence.Tests.TestingFeature
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>()
             );
+            //setAsync
             _mockCache.Verify(cache => cache.SetAsync(
                 cacheKey,
-                It.IsAny<byte[]>(),
-                It.IsAny<DistributedCacheEntryOptions>(), 
-                It.IsAny<CancellationToken>()),
+                It.Is<byte[]>(bytes => bytes.SequenceEqual(Encoding.UTF8.GetBytes(expectedResultSerialized))),
+                cacheOptions,                
+                null,
+                CancellationToken.None),
                 Times.Once);
         }
 
@@ -152,7 +187,15 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             var result = await _service.GetServiceOwnerOfResource(resourceId, cancellationToken);
 
             // Assert
-            _mockCache.Verify(cache => cache.GetAsync(cacheKey, cancellationToken), Times.Once);
+            //denne tryner nå
+            _mockCache.Verify(cache => cache.GetOrCreateAsync(
+                It.IsAny<string>(),
+                It.IsAny<Func<CancellationToken, ValueTask<byte[]>>>(),
+                It.IsAny<HybridCacheEntryOptions?>(),
+                It.IsAny<IEnumerable<string>?>(),
+                It.IsAny<CancellationToken>()
+            ), Times.Once);
+            //mulig den tryner her
             _mockHandler.Protected().Verify(
                 "SendAsync",
                 Times.Never(),
@@ -168,6 +211,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             string resourceId = "12345";
             string cacheKey = $"ResourceInfo_{resourceId}";
             var cancellationToken = CancellationToken.None;
+            var cacheOptions = new HybridCacheEntryOptions();
 
             _mockHandler
                 .Protected()
@@ -186,8 +230,9 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             _mockCache.Verify(cache => cache.SetAsync(
                 cacheKey,
                 It.IsAny<byte[]>(),
-                It.IsAny<DistributedCacheEntryOptions>(),
-                It.IsAny<CancellationToken>()
+                cacheOptions,
+                null,
+                CancellationToken.None
             ), Times.Never);
         }
     }
