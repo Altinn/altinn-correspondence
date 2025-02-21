@@ -27,6 +27,7 @@ public class ContactReservationRegistryService(HttpClient httpClient, ILogger<Co
             return new List<string>();
         }
         var request = new ContactReservationPersonRequest { Personidentifikatorer = recipients };
+        httpClient.Timeout = TimeSpan.FromSeconds(1);
         var response = await httpClient.PostAsJsonAsync("rest/v2/personer", request);
         if (!response.IsSuccessStatusCode)
         {

@@ -507,6 +507,54 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
+        public async Task InitializeCorrespondence_KRRFails_CorrespondenceFails()
+        {
+            var contactReservationRegistry = new Mock<IContactReservationRegistryService>();
+            contactReservationRegistry.Setup(contactReservationRegistry => contactReservationRegistry.GetReservedRecipients(It.IsAny<List<string>>())).Throws<HttpRequestException>();
+            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                services.AddSingleton(contactReservationRegistry.Object);
+            });
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([CustomWebApplicationFactory.ReservedSsn])
+                .WithIgnoreReservation(false)
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await testFactory.CreateSenderClient().PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.InternalServerError, initializeCorrespondenceResponse.StatusCode);
+            var body = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<ProblemDetails>();
+            Assert.Equal(body.Status, (int)HttpStatusCode.InternalServerError);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_KRRFailsButIgnoreReservation_Succeeds()
+        {
+            var contactReservationRegistry = new Mock<IContactReservationRegistryService>();
+            contactReservationRegistry.Setup(contactReservationRegistry => contactReservationRegistry.GetReservedRecipients(It.IsAny<List<string>>())).Throws<HttpRequestException>();
+            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                services.AddSingleton(contactReservationRegistry.Object);
+            });
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([CustomWebApplicationFactory.ReservedSsn])
+                .WithIgnoreReservation(true)
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await testFactory.CreateSenderClient().PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
         public async Task IntializeCorrespondence_WithValidReplyOptions_ReturnsOK()
         {
             // Arrange
