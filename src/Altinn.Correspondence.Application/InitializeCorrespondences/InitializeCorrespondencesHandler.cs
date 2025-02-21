@@ -9,14 +9,11 @@ using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Azure.Core;
 using Hangfire;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
-using OneOf.Types;
-using System.Globalization;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
@@ -172,6 +169,7 @@ public class InitializeCorrespondencesHandler(
         var ignoreReservation = request.Correspondence.IgnoreReservation == true;
         try
         {
+            ignoreReservation = false;
             var reservedRecipients = await contactReservationRegistryService.GetReservedRecipients(request.Recipients.Where(recipient => recipient.IsSocialSecurityNumber()).ToList());
             if (!ignoreReservation && request.Recipients.Count == 1 && reservedRecipients.Count == 1)
             {
@@ -183,16 +181,18 @@ public class InitializeCorrespondencesHandler(
         catch (HttpRequestException e)
         {
             logger.LogError(e, "Failed to get reserved recipients from KRR");
-            logger.LogWarning("KRR not working. Correspondence was still created as it will fail on publish.");
+            if (!ignoreReservation)
+            {
+                throw;
+            }
         }
         catch (TimeoutException e)
         {
             logger.LogError(e, "Timeout when getting reserved recipients from KRR");
-            logger.LogWarning("KRR not working. Correspondence was still created as it will fail on publish.");
-        }
-        if (!ignoreReservation)
-        {
-            return CorrespondenceErrors.FailureWhenLookingUpKRR;
+            if (!ignoreReservation)
+            {
+                throw;
+            }
         }
         return new List<string>();
     }

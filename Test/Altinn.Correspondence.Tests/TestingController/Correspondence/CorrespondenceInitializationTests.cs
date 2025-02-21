@@ -526,7 +526,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initializeCorrespondenceResponse = await testFactory.CreateSenderClient().PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
             // Assert
-            Assert.Equal(HttpStatusCode.BadGateway, initializeCorrespondenceResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.InternalServerError, initializeCorrespondenceResponse.StatusCode);
+            var body = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<ProblemDetails>();
+            Assert.Equal(body.Status, (int)HttpStatusCode.BadGateway);
         }
 
         [Fact]
