@@ -16,6 +16,34 @@ The test files associated with this performance test are
 - `get-correspondence.js`
 - `get-correspondence-overview.js`
 
+## Test description
+### Create correspndence
+For each iteration
+1. Get service and serviceowner and random enduser
+2. Post correspondence json 
+
+### Create and upload correspndence
+For each iteration
+1. Get service and serviceowner and random enduser
+2. Post correspondence form-data with content
+
+### Get correspondence
+For each iteration:
+1. get a random enduser with token
+2. get correspondences for the enduser
+3. Get the details of the first correspondence in the list from 2. 
+4. Get the reference to dialog in dialogporten from 3.
+5. Ask dialogporten for dialogdetails, get token from response
+6. Use token from 5. when asking for /content for each correspondence from 2
+
+### Get correspondence overview
+For each iteration:
+1. get a random enduser with token
+2. get correspondences for the enduser
+3. Get the details of every correspondence in the list from 2.
+
+
+
 ### Run Test
 To run the performance test, follow the instructions below:
 
@@ -67,4 +95,4 @@ act workflow_dispatch -j k6-performance -s GITHUB_TOKEN=`gh auth token` \
 ```
 
 ### Test Results
-The test results can be found in the GitHub Actions run log, grafana and in App Insights.
+The test results can be found in the [GitHub Actions](https://github.com/Altinn/altinn-correspondence/actions/workflows/test-performance.yml) run log, grafana and in App Insights.
