@@ -4,6 +4,7 @@ using Altinn.Correspondence.Common.Helpers;
 using System.Text.Json;
 using System.Text;
 using Microsoft.Extensions.Caching.Hybrid;
+using Altinn.Correspondence.Common.Caching;
 
 namespace Altinn.Correspondence.Tests.TestingUtility
 {
@@ -22,7 +23,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             var cacheOptions = new HybridCacheEntryOptions();
             var cancellationToken = CancellationToken.None;
             var serializedDataString = JsonSerializer.Serialize(value);
-            var mockCache = new Mock<HybridCache>();
+            var mockCache = new Mock<IHybridCacheWrapper>();
 
             mockCache.Setup(cache => cache.SetAsync(
                 key,
@@ -30,7 +31,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
                 cacheOptions,
                 null,
                 CancellationToken.None
-            )).Returns(ValueTask.CompletedTask);
+            )).Returns(Task.CompletedTask);
 
             // Act
             await CacheHelpers.StoreObjectInCacheAsync(key, value, mockCache.Object, cacheOptions, cancellationToken);
@@ -53,7 +54,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             string storedValue = "John";
             var serializedData = JsonSerializer.Serialize(storedValue);
             var cancellationToken = CancellationToken.None;
-            var mockCache = new Mock<HybridCache>();
+            var mockCache = new Mock<IHybridCacheWrapper>();
             
             mockCache.Setup(cache => cache.GetOrCreateAsync(
                     key,//nøkkel som identifiserer dataen i cache
@@ -78,7 +79,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             // Arrange
             var key = "unknownKey";
             var cancellationToken = CancellationToken.None;
-            var mockCache = new Mock<HybridCache>();
+            var mockCache = new Mock<IHybridCacheWrapper>();
             
             mockCache.Setup(cache => cache.GetOrCreateAsync(
                     key,

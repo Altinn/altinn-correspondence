@@ -8,6 +8,8 @@ using Altinn.Correspondence.Common.Helpers;
 using Microsoft.Extensions.Caching.Distributed;
 using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Caching.Hybrid;
+using Altinn.Correspondence.Common.Caching;
+
 
 namespace Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 public class ResourceRegistryService : IResourceRegistryService
@@ -15,11 +17,11 @@ public class ResourceRegistryService : IResourceRegistryService
     private readonly HttpClient _client;
     private readonly ILogger<ResourceRegistryService> _logger;
     
-    private readonly HybridCache _cache;
+    private readonly IHybridCacheWrapper _cache;
     private readonly HybridCacheEntryOptions _cacheOptions;
     private string CacheKey(string resourceId) => $"ResourceInfo_{resourceId}";
 
-    public ResourceRegistryService(HttpClient httpClient, IOptions<AltinnOptions> options, ILogger<ResourceRegistryService> logger, HybridCache cache)
+    public ResourceRegistryService(HttpClient httpClient, IOptions<AltinnOptions> options, ILogger<ResourceRegistryService> logger, IHybridCacheWrapper cache)
     {
         httpClient.BaseAddress = new Uri(options.Value.PlatformGatewayUrl);
         _client = httpClient;

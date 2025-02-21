@@ -20,6 +20,7 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using Altinn.Correspondence.Integrations.Slack;
 using Microsoft.Extensions.Caching.Hybrid;
+using Altinn.Correspondence.Common.Caching;
 
 BuildAndRun(args);
 
@@ -44,6 +45,7 @@ static void BuildAndRun(string[] args)
     #pragma warning disable EXTEXP0018
     builder.Services.AddHybridCache();
     #pragma warning restore EXTEXP0018
+    builder.Services.AddSingleton<IHybridCacheWrapper, HybridCacheWrapper>(); // ✅ Register the wrapper
 
     var app = builder.Build();
 

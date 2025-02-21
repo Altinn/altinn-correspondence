@@ -1,12 +1,13 @@
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Hybrid;
+using Altinn.Correspondence.Common.Caching;
 
 namespace Altinn.Correspondence.Common.Helpers
 {
     public static class CacheHelpers
     {
-        public static async Task StoreObjectInCacheAsync<T>(string key, T value, HybridCache cache, HybridCacheEntryOptions cacheOptions, CancellationToken cancellationToken = default)
+        public static async Task StoreObjectInCacheAsync<T>(string key, T value, IHybridCacheWrapper cache, HybridCacheEntryOptions cacheOptions, CancellationToken cancellationToken = default)
         {
             string serializedDataString = JsonSerializer.Serialize(value);
             await cache.GetOrCreateAsync<string>(
@@ -16,7 +17,7 @@ namespace Altinn.Correspondence.Common.Helpers
                 null, // Tags (optional, can be null)
                 cancellationToken); // CancellationToken
         }
-        public static async Task<T?> GetObjectFromCacheAsync<T>(string key, HybridCache cache, CancellationToken cancellationToken = default)
+        public static async Task<T?> GetObjectFromCacheAsync<T>(string key, IHybridCacheWrapper cache, CancellationToken cancellationToken = default)
         {
             string? cachedDataString = await cache.GetOrCreateAsync<string>(
     key,
