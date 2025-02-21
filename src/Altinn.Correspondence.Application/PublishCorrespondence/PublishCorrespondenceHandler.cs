@@ -22,7 +22,7 @@ public class PublishCorrespondenceHandler(
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IContactReservationRegistryService contactReservationRegistryService,
-    IEventBus eventBus,
+    IDialogportenService dialogportenService,
     IHostEnvironment hostEnvironment,
     IBackgroundJobClient backgroundJobClient) : IHandler<Guid, Task>
 {
@@ -30,6 +30,11 @@ public class PublishCorrespondenceHandler(
     {
         logger.LogInformation("Publish correspondence {correspondenceId}", correspondenceId);
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
+        var party = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
+        if (party?.PartyUuid is not Guid partyUuid)
+        {
+            return AuthorizationErrors.CouldNotFindPartyUuid;
+        }
         var errorMessage = "";
         if (correspondence == null)
         {
@@ -41,7 +46,24 @@ public class PublishCorrespondenceHandler(
         }
         else if (correspondence.GetHighestStatus()?.Status != CorrespondenceStatus.ReadyForPublish)
         {
-            errorMessage = $"Correspondence {correspondenceId} not ready for publish";
+            if (await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+            {
+                await correspondenceStatusRepository.AddCorrespondenceStatus(
+                    new CorrespondenceStatusEntity
+                    {
+                        CorrespondenceId = correspondence.Id,
+                        Status = CorrespondenceStatus.ReadyForPublish,
+                        StatusChanged = DateTime.UtcNow,
+                        StatusText = CorrespondenceStatus.ReadyForPublish.ToString(),
+                        PartyUuid = partyUuid
+                    },
+                    cancellationToken
+                );
+            } 
+            else
+            {
+                errorMessage = $"Correspondence {correspondenceId} not ready for publish";
+            }
         }
         else if (correspondence.RequestedPublishTime > DateTimeOffset.UtcNow)
         {
@@ -57,15 +79,9 @@ public class PublishCorrespondenceHandler(
         }
         CorrespondenceStatusEntity status;
         AltinnEventType eventType = AltinnEventType.CorrespondencePublished;
-        var party = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
-        if (party?.PartyUuid is not Guid partyUuid)
-        {
-            return AuthorizationErrors.CouldNotFindPartyUuid;
-        }
 
         return await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
         {
-
             if (errorMessage.Length > 0)
             {
                 logger.LogError(errorMessage);
@@ -82,6 +98,7 @@ public class PublishCorrespondenceHandler(
                 {
                     backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
                 }
+                backgroundJobClient.Enqueue<IDialogportenService>(dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
             }
             else
             {
@@ -99,8 +116,8 @@ public class PublishCorrespondenceHandler(
             }
 
             await correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
-            await eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, cancellationToken);
-            if (status.Status == CorrespondenceStatus.Published) await eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, cancellationToken);
+            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+            if (status.Status == CorrespondenceStatus.Published) backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, CancellationToken.None));
             return Task.CompletedTask;
         }, logger, cancellationToken);
     }

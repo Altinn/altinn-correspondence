@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -16,9 +17,10 @@ public class InitializeAttachmentHandler(
     IAltinnRegisterService altinnRegisterService,
     IAttachmentRepository attachmentRepository,
     IAttachmentStatusRepository attachmentStatusRepository,
-    IEventBus eventBus,
+    IResourceRegistryService resourceRegistryService,
     IAltinnAuthorizationService altinnAuthorizationService,
     ILogger<InitializeAttachmentHandler> logger,
+    IBackgroundJobClient backgroundJobClient,
     AttachmentHelper attachmentHelper) : IHandler<InitializeAttachmentRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -32,6 +34,15 @@ public class InitializeAttachmentHandler(
         if (!hasAccess)
         {
             return AuthorizationErrors.NoAccessToResource;
+        }
+        var resourceType = await resourceRegistryService.GetResourceType(request.Attachment.ResourceId, cancellationToken);
+        if (resourceType is null)
+        {
+            throw new Exception($"Resource type not found for {request.Attachment.ResourceId}. This should be impossible as authorization worked.");
+        }
+        if (resourceType != "GenericAccessResource" && resourceType != "CorrespondenceService")
+        {
+            return AuthorizationErrors.IncorrectResourceType;
         }
 
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
@@ -54,7 +65,7 @@ public class InitializeAttachmentHandler(
         {
             var initializedAttachment = await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
             await attachmentHelper.SetAttachmentStatus(initializedAttachment.Id, AttachmentStatus.Initialized, partyUuid, cancellationToken);
-            await eventBus.Publish(AltinnEventType.AttachmentInitialized, initializedAttachment.ResourceId, initializedAttachment.Id.ToString(), "attachment", initializedAttachment.Sender, cancellationToken);
+            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.AttachmentInitialized, initializedAttachment.ResourceId, initializedAttachment.Id.ToString(), "attachment", initializedAttachment.Sender, CancellationToken.None));
 
             return initializedAttachment.Id;
         }, logger, cancellationToken);

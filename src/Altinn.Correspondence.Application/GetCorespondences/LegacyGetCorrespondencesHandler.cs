@@ -4,7 +4,6 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Repositories;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -17,7 +16,7 @@ public class LegacyGetCorrespondencesHandler(
     ICorrespondenceRepository correspondenceRepository,
     UserClaimsHelper userClaimsHelper,
     IAltinnRegisterService altinnRegisterService,
-    IResourceRightsService resourceRightsService,
+    IResourceRegistryService resourceRegistryService,
     ILogger<LegacyGetCorrespondencesHandler> logger) : IHandler<LegacyGetCorrespondencesRequest, LegacyGetCorrespondencesResponse>
 {
     private record PartyInfo(string Id, Party? Party);
@@ -91,7 +90,7 @@ public class LegacyGetCorrespondencesHandler(
         var resourceOwners = new Dictionary<string, string>();
         foreach (var resource in correspondences.Select(c => c.ResourceId).Distinct().ToList())
         {
-            var resourceOwner = await resourceRightsService.GetServiceOwnerOfResource(resource, cancellationToken);
+            var resourceOwner = await resourceRegistryService.GetServiceOwnerOfResource(resource, cancellationToken);
             if (resourceOwner == null)
             {
                 logger.LogError("Failed to get resource owner for resource {Resource}", resource);

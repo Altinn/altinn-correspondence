@@ -53,6 +53,13 @@ namespace Altinn.Correspondence.Persistence.Repositories
             var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
             return rowsUpdated == 1;
         }
+        public async Task<bool> SetAttachmentSize(AttachmentEntity attachmentEntity, long size, CancellationToken cancellationToken)
+        {
+            attachmentEntity.AttachmentSize = size;
+            var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
+            return rowsUpdated == 1;
+        }
+
 
         public async Task<bool> CanAttachmentBeDeleted(Guid attachmentId, CancellationToken cancellationToken)
         {

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Altinn.Correspondence.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250215161840_AddIndicesForPerformancet")]
+    partial class AddIndicesForPerformancet
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,6 +55,11 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.Property<bool>("IsEncrypted")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<string>("ResourceId")
                         .IsRequired()
@@ -263,9 +271,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.Property<int>("NotificationTemplate")
                         .HasColumnType("integer");
-
-                    b.Property<string>("OrderRequest")
-                        .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("RequestedSendTime")
                         .HasColumnType("timestamp with time zone");

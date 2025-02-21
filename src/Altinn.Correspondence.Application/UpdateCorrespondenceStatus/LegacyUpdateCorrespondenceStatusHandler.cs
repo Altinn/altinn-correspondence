@@ -11,7 +11,6 @@ public class LegacyUpdateCorrespondenceStatusHandler(
     ICorrespondenceRepository correspondenceRepository,
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
-    IEventBus eventBus,
     UserClaimsHelper userClaimsHelper,
     UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
     ILogger<LegacyUpdateCorrespondenceStatusHandler> logger) : IHandler<UpdateCorrespondenceStatusRequest, Guid>
@@ -61,7 +60,7 @@ public class LegacyUpdateCorrespondenceStatusHandler(
         {
             await updateCorrespondenceStatusHelper.AddCorrespondenceStatus(correspondence, request.Status, partyUuid, cancellationToken);
             updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
-            await updateCorrespondenceStatusHelper.PublishEvent(eventBus, correspondence, request.Status, cancellationToken);
+            updateCorrespondenceStatusHelper.PublishEvent(correspondence, request.Status);
             return request.CorrespondenceId;
         }, logger, cancellationToken);
     }

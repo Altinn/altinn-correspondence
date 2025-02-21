@@ -31,7 +31,7 @@ var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'
 
 var resourceGroupName = '${namePrefix}-rg'
-resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-03-01' = {
+resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
   name: resourceGroupName
   location: location
 }
@@ -76,7 +76,7 @@ module databaseAccess '../../modules/postgreSql/AddAdministrationAccess.bicep' =
   }
 }
 
-resource keyvault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource keyvault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: sourceKeyVaultName
   scope: resourceGroup
 }

@@ -1,9 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Altinn.Correspondence.Core.Models.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Core.Models.Entities
 {
+    [Index(nameof(Status))]
     public class CorrespondenceStatusEntity
     {
         [Key]

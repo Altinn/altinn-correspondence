@@ -14,5 +14,15 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         {
             return Task.CompletedTask;
         }
+
+        public Task PurgeCorrespondenceDialog(Guid correspondenceId)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task SoftDeleteDialog(string dialogId)
+        {
+            return Task.CompletedTask;
+        }
     }
 }

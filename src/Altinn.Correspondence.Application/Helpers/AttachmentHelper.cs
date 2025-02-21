@@ -27,7 +27,7 @@ namespace Altinn.Correspondence.Application.Helpers
             logger.LogInformation("Set attachment status of {attachmentId} to UploadProcessing", attachmentId);
             try
             {
-                var (dataLocationUrl, checksum) = await storageRepository.UploadAttachment(attachment, file, cancellationToken);
+                var (dataLocationUrl, checksum, size) = await storageRepository.UploadAttachment(attachment, file, cancellationToken);
                 logger.LogInformation("Uploaded {attachmentId} to Azure Storage", attachmentId);
 
                 var isValidUpdate = await attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
@@ -37,6 +37,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 {
                     isValidUpdate |= await attachmentRepository.SetChecksum(attachment, checksum, cancellationToken);
                 }
+                isValidUpdate |= await attachmentRepository.SetAttachmentSize(attachment, size, cancellationToken);
 
                 if (!isValidUpdate)
                 {

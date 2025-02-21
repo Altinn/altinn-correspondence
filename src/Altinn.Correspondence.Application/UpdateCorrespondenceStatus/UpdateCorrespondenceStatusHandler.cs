@@ -13,7 +13,6 @@ public class UpdateCorrespondenceStatusHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
-    IEventBus eventBus,
     UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
     ILogger<UpdateCorrespondenceStatusHandler> logger) : IHandler<UpdateCorrespondenceStatusRequest, Guid>
 {
@@ -52,7 +51,7 @@ public class UpdateCorrespondenceStatusHandler(
         {
             await updateCorrespondenceStatusHelper.AddCorrespondenceStatus(correspondence, request.Status, partyUuid, cancellationToken);
             updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
-            await updateCorrespondenceStatusHelper.PublishEvent(eventBus, correspondence, request.Status, cancellationToken);
+            updateCorrespondenceStatusHelper.PublishEvent(correspondence, request.Status);
             return Task.CompletedTask;
         },logger, cancellationToken);
 

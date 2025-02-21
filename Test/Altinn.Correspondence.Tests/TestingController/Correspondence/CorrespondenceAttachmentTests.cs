@@ -350,7 +350,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             correspondence.Content.Attachments.Select((attachment, index) => new[]
             {
             new { Key = $"correspondence.content.Attachments[{index}].DataLocationType", Value = attachment.DataLocationType.ToString() },
-            new { Key = $"correspondence.content.Attachments[{index}].Name", Value = attachment.Name },
             new { Key = $"correspondence.content.Attachments[{index}].FileName", Value = attachment.FileName ?? "" },
             new { Key = $"correspondence.content.Attachments[{index}].SendersReference", Value = attachment.SendersReference },
             new { Key = $"correspondence.content.Attachments[{index}].IsEncrypted", Value = attachment.IsEncrypted.ToString() }

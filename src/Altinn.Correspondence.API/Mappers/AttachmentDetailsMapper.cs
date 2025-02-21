@@ -16,7 +16,6 @@ internal static class AttachmentDetailsMapper
             AttachmentId = AttachmentDetails.AttachmentId,
             Status = (AttachmentStatusExt)AttachmentDetails.Status,
             FileName = AttachmentDetails.FileName,
-            Name = AttachmentDetails.Name,
             Sender = AttachmentDetails.Sender,
             StatusText = AttachmentDetails.StatusText,
             StatusChanged = AttachmentDetails.StatusChanged,
