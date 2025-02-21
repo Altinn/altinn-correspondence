@@ -10,29 +10,21 @@ namespace Altinn.Correspondence.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<string>(
+            migrationBuilder.AddColumn<string>(
                 name: "OrderRequest",
                 schema: "correspondence",
                 table: "CorrespondenceNotifications",
                 type: "text",
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "text");
+                nullable: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<string>(
+            migrationBuilder.DropColumn(
                 name: "OrderRequest",
                 schema: "correspondence",
-                table: "CorrespondenceNotifications",
-                type: "text",
-                nullable: false,
-                defaultValue: "",
-                oldClrType: typeof(string),
-                oldType: "text",
-                oldNullable: true);
+                table: "CorrespondenceNotifications");
         }
     }
 }
