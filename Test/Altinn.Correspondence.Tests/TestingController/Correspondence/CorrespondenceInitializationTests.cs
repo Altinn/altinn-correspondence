@@ -528,7 +528,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.InternalServerError, initializeCorrespondenceResponse.StatusCode);
             var body = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<ProblemDetails>();
-            Assert.Equal(body.Status, (int)HttpStatusCode.BadGateway);
+            Assert.Equal(body.Status, (int)HttpStatusCode.InternalServerError);
         }
 
         [Fact]
