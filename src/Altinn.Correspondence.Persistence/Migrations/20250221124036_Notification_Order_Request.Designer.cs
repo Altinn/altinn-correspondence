@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250217124036_Notification_Order_Request")]
+    [Migration("20250221124036_Notification_Order_Request")]
     partial class Notification_Order_Request
     {
         /// <inheritdoc />
