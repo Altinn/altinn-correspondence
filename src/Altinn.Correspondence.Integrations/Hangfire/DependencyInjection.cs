@@ -20,7 +20,7 @@ public static class DependencyInjection
             config.UseSerilogLogProvider();
             config.UseFilter(new HangfireAppRequestFilter(provider.GetRequiredService<TelemetryClient>()));
             config.UseSerializerSettings(new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
-            config.UseFilter(new SlackExceptionHandler(services.BuildServiceProvider().GetService<SlackExceptionNotification>(), 
+            config.UseFilter(new SlackExceptionHandler(services.BuildServiceProvider().GetService<SlackExceptionNotificationHandler>(), 
                                 services.BuildServiceProvider().GetService<ILogger<SlackExceptionHandler>>()));
         });
         services.AddHangfireServer(options => options.SchedulePollingInterval = TimeSpan.FromSeconds(2));

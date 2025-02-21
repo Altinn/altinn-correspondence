@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
 namespace Altinn.Correspondence.Integrations.Slack;
-public class SlackExceptionNotification(ILogger<SlackExceptionNotification> logger, ISlackClient slackClient, IProblemDetailsService problemDetailsService, IHostEnvironment hostEnvironment) : IExceptionHandler
+public class SlackExceptionNotificationHandler(ILogger<SlackExceptionNotificationHandler> logger, ISlackClient slackClient, IProblemDetailsService problemDetailsService, IHostEnvironment hostEnvironment) : IExceptionHandler
 {
     private const string TestChannel = "#test-varslinger";
 
