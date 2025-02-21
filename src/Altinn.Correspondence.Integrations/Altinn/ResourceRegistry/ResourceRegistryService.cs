@@ -13,7 +13,7 @@ public class ResourceRegistryService : IResourceRegistryService
 {
     private readonly HttpClient _client;
     private readonly ILogger<ResourceRegistryService> _logger;
-    
+
     private readonly IDistributedCache _cache;
     private readonly DistributedCacheEntryOptions _cacheOptions;
     private string CacheKey(string resourceId) => $"ResourceInfo_{resourceId}";
@@ -26,7 +26,7 @@ public class ResourceRegistryService : IResourceRegistryService
         _cache = cache;
         _cacheOptions = new DistributedCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24)
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
         };
     }
 
