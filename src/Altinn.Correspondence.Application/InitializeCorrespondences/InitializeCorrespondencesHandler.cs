@@ -169,7 +169,6 @@ public class InitializeCorrespondencesHandler(
         var ignoreReservation = request.Correspondence.IgnoreReservation == true;
         try
         {
-            ignoreReservation = false;
             var reservedRecipients = await contactReservationRegistryService.GetReservedRecipients(request.Recipients.Where(recipient => recipient.IsSocialSecurityNumber()).ToList());
             if (!ignoreReservation && request.Recipients.Count == 1 && reservedRecipients.Count == 1)
             {
@@ -178,23 +177,16 @@ public class InitializeCorrespondencesHandler(
             }
             return reservedRecipients;
         }
-        catch (HttpRequestException e)
+        catch (Exception e)
         {
-            logger.LogError(e, "Failed to get reserved recipients from KRR");
-            if (!ignoreReservation)
+            logger.LogError(e, $"Failed to get reserved recipients from KRR: {e.Message}");
+            if (ignoreReservation)
             {
-                throw;
+                logger.LogWarning(e, "Processing anyway because ignoreReservation flag is set to true");
+                return new List<string>();
             }
+            throw;
         }
-        catch (TimeoutException e)
-        {
-            logger.LogError(e, "Timeout when getting reserved recipients from KRR");
-            if (!ignoreReservation)
-            {
-                throw;
-            }
-        }
-        return new List<string>();
     }
     private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<NotificationContent>? notificationContents, Guid partyUuid, List<string> reservedRecipients, CancellationToken cancellationToken)
     {
