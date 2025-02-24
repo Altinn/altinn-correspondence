@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Altinn.Correspondence.Common.Helpers;
-using Microsoft.Extensions.Caching.Distributed;
 using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Caching.Hybrid;
 

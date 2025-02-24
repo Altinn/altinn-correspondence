@@ -1,5 +1,4 @@
 using Moq;
-using Microsoft.Extensions.Caching.Distributed;
 using Altinn.Correspondence.Common.Helpers;
 using System.Text.Json;
 using System.Text;
