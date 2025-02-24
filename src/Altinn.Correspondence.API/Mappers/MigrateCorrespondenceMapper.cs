@@ -50,13 +50,14 @@ internal static class MigrateCorrespondenceMapper
                 Attachments = []
             } : null,
             IsConfirmationNeeded = migrateCorrespondenceExt.CorrespondenceData.Correspondence.IsConfirmationNeeded,
+            IsMigrating = migrateCorrespondenceExt.IsMigrating
         };
         
         return new MigrateCorrespondenceRequest()
         {
             CorrespondenceEntity = correspondence,
             Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId,
-            ExistingAttachments = migrateCorrespondenceExt.CorrespondenceData.ExistingAttachments ?? new List<Guid>(),
+            ExistingAttachments = migrateCorrespondenceExt.CorrespondenceData.ExistingAttachments ?? new List<Guid>()
         };
     }
 

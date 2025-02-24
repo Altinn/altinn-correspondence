@@ -1,11 +1,14 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Altinn.Correspondence.Core.Models.Entities;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Correspondence.Tests.TestingController.Migration;
 
@@ -209,5 +212,41 @@ public class MigrationControllerTests
         Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
         Assert.True(uploadResponse2.IsSuccessStatusCode, uploadResponse2.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, initializeCorrespondenceResponse.ReasonPhrase + ":" + await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task InitializeMigrateCorrespondence_IsMigrateTrue_SetsFlagToTrue()
+    {
+        // Arrange
+        var basicCorrespondence = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .Build();
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new()
+        {
+            CorrespondenceData = basicCorrespondence,
+            Altinn2CorrespondenceId = 12345,
+            EventHistory =
+            [
+                new CorrespondenceStatusEventExt()
+                {
+                    Status = CorrespondenceStatusExt.Initialized,
+                    StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
+                }
+            ],
+            IsMigrating = true
+        };
+
+        // Act
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+        CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        Assert.NotNull(result);
+        var scope = _factory.Services.CreateScope();
+        var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+        CorrespondenceEntity? correspondence = await correspondenceRepository.GetCorrespondenceById(result.CorrespondenceId, true, true, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(correspondence);
+        Assert.True(correspondence.IsMigrating);
     }
 }
