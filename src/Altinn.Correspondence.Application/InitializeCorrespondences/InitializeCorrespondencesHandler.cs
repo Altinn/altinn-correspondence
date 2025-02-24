@@ -14,7 +14,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
-using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -80,11 +79,10 @@ public class InitializeCorrespondencesHandler(
         {
             return CorrespondenceErrors.DueDateRequired;
         }
-        var reservedRecipients = await contactReservationRegistryService.GetReservedRecipients(request.Recipients.Where(recipient => recipient.IsSocialSecurityNumber()).ToList());
-        if (request.Correspondence.IgnoreReservation != true && request.Recipients.Count == 1 && reservedRecipients.Count == 1)
+        var contactReservation = await HandleContactReservation(request);
+        if(contactReservation.TryPickT1(out var error, out var reservedRecipients))
         {
-            logger.LogInformation("Recipient reserved from correspondences in KRR");
-            return CorrespondenceErrors.RecipientReserved(request.Recipients.First());
+            return error;
         }
         var dateError = initializeCorrespondenceHelper.ValidateDateConstraints(request.Correspondence);
         if (dateError != null)
@@ -167,6 +165,30 @@ public class InitializeCorrespondencesHandler(
         }, logger, cancellationToken);
     }
 
+    private async Task<OneOf<List<string>, Error>> HandleContactReservation(InitializeCorrespondencesRequest request)
+    {
+        var ignoreReservation = request.Correspondence.IgnoreReservation == true;
+        try
+        {
+            var reservedRecipients = await contactReservationRegistryService.GetReservedRecipients(request.Recipients.Where(recipient => recipient.IsSocialSecurityNumber()).ToList());
+            if (!ignoreReservation && request.Recipients.Count == 1 && reservedRecipients.Count == 1)
+            {
+                logger.LogInformation("Recipient reserved from correspondences in KRR");
+                return CorrespondenceErrors.RecipientReserved(request.Recipients.First());
+            }
+            return reservedRecipients;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, $"Failed to get reserved recipients from KRR: {e.Message}");
+            if (ignoreReservation)
+            {
+                logger.LogWarning(e, "Processing anyway because ignoreReservation flag is set to true");
+                return new List<string>();
+            }
+            throw;
+        }
+    }
     private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, List<NotificationContent>? notificationContents, Guid partyUuid, List<string> reservedRecipients, CancellationToken cancellationToken)
     {
         logger.LogInformation("Initializing {correspondenceCount} correspondences for {resourceId}", request.Recipients.Count, request.Correspondence.ResourceId);

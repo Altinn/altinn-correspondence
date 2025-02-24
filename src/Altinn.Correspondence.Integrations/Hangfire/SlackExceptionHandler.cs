@@ -8,10 +8,10 @@ namespace Altinn.Correspondence.Integrations.Hangfire
 {
     public class SlackExceptionHandler : JobFilterAttribute, IServerFilter
     {
-        private readonly SlackExceptionNotification _slackExceptionNotification;
+        private readonly SlackExceptionNotificationHandler _slackExceptionNotification;
         private readonly ILogger<SlackExceptionHandler> _logger;
 
-        public SlackExceptionHandler(SlackExceptionNotification slackExceptionNotification, ILogger<SlackExceptionHandler> logger)
+        public SlackExceptionHandler(SlackExceptionNotificationHandler slackExceptionNotification, ILogger<SlackExceptionHandler> logger)
         {
             _slackExceptionNotification = slackExceptionNotification;
             _logger = logger;
