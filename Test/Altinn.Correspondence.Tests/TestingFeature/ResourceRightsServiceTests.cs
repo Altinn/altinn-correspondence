@@ -129,7 +129,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>()
             );
-            _mockCache.Verify(cache => cache.SetAsync(
+            _mockCache.Verify(cache => cache.GetOrCreateAsync(
                     cacheKey, // Only verifying the key
                     It.IsAny<Func<CancellationToken, ValueTask<byte[]>>>(),
                     It.IsAny<HybridCacheEntryOptions>(),
