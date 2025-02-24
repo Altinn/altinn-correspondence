@@ -11,6 +11,8 @@ using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Altinn.Correspondence.Common.Caching;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Altinn.Correspondence.Integrations.Altinn.AccessManagement;
 
@@ -18,23 +20,23 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<AltinnAccessManagementService> _logger;
-    private readonly IDistributedCache _cache;
-    private readonly DistributedCacheEntryOptions _cacheOptions;
+    private readonly IHybridCacheWrapper _cache;
+    private readonly HybridCacheEntryOptions _cacheOptions;
     private readonly int _MAX_DEPTH_FOR_SUBUNITS = 20;
 
     public AltinnAccessManagementService(
         HttpClient httpClient, 
         IOptions<AltinnOptions> altinnOptions, 
         ILogger<AltinnAccessManagementService> logger,
-        IDistributedCache cache)
+        IHybridCacheWrapper cache)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.AccessManagementSubscriptionKey);
         _httpClient = httpClient;
         _logger = logger;
         _cache = cache;
-        _cacheOptions = new DistributedCacheEntryOptions
+        _cacheOptions = new HybridCacheEntryOptions()
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
+            Expiration = TimeSpan.FromMinutes(15)
         };
     }
 

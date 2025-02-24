@@ -1,10 +1,12 @@
 ﻿using System.Globalization;
 using System.Net.Http.Json;
+using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Platform.Register.Models;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Party = Altinn.Correspondence.Core.Models.Entities.Party;
@@ -14,18 +16,18 @@ public class AltinnRegisterService : IAltinnRegisterService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<AltinnRegisterService> _logger;
-    private readonly IDistributedCache _cache;
-    private readonly DistributedCacheEntryOptions _cacheOptions;
+    private readonly IHybridCacheWrapper _cache;
+    private readonly HybridCacheEntryOptions _cacheOptions;
 
-    public AltinnRegisterService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnRegisterService> logger, IDistributedCache cache)
+    public AltinnRegisterService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnRegisterService> logger, IHybridCacheWrapper cache)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.PlatformSubscriptionKey);
         _httpClient = httpClient;
         _logger = logger;
         _cache = cache;
-        _cacheOptions = new DistributedCacheEntryOptions
+        _cacheOptions = new HybridCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24)
+            Expiration = TimeSpan.FromHours(24)
         };
     }
 
