@@ -62,5 +62,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public DateTimeOffset? Published { get; set; }
 
         public bool IsConfirmationNeeded { get; set; }
+
+        public bool IsMigrating { get; set; }
     }
 }
