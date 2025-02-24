@@ -98,7 +98,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
         {
             _mockCache.Setup(cache => cache.GetOrCreateAsync(
                 key,
-                It.IsAny<Func<CancellationToken, ValueTask<byte[]>>>(), // ✅ Handles factory function
+                It.IsAny<Func<CancellationToken, ValueTask<byte[]>>>(),
                 It.IsAny<HybridCacheEntryOptions>(),
                 It.IsAny<IEnumerable<string>?>(),
                 It.IsAny<CancellationToken>()
