@@ -4,18 +4,19 @@ using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Web;
+using Altinn.Correspondence.Common.Caching;
+using Microsoft.Extensions.Caching.Hybrid;
 
 public class CascadeAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>, IAuthenticationSignInHandler
 {
     private readonly IAuthenticationSchemeProvider _schemeProvider;
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly IDistributedCache _cache;
+    private readonly IHybridCacheWrapper _cache;
     private readonly GeneralSettings _generalSettings;
     private readonly IdportenTokenValidator _tokenValidator;
 
@@ -28,7 +29,7 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
         IHttpContextAccessor httpContextAccessor,
         IOptions<GeneralSettings> generalSettings,
         IdportenTokenValidator tokenValidator,
-        IDistributedCache cache)
+        IHybridCacheWrapper cache)
         : base(options, logger, encoder, clock)
     {
         _httpContextAccessor = httpContextAccessor;
@@ -83,12 +84,16 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
             return AuthenticateResult.NoResult();
         }
 
-        var token = await _cache.GetStringAsync(sessionId);
+        var token = await _cache.GetOrCreateAsync(
+            sessionId, 
+            ct => ValueTask.FromResult<string?>(null)
+        );
+        
         if (string.IsNullOrEmpty(token))
         {
             return AuthenticateResult.NoResult();
         }
-        _cache.Remove(sessionId);
+        await _cache.RemoveAsync(sessionId);
 
         var principal = await _tokenValidator.ValidateTokenAsync(token);
         if (principal is not null)
@@ -103,23 +108,29 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
     public async Task SignInAsync(ClaimsPrincipal user, AuthenticationProperties? properties)
     {
         var sessionId = Guid.NewGuid().ToString();        
-        await _cache.SetStringAsync(sessionId, properties.Items[".Token.access_token"] ?? throw new SecurityTokenMalformedException("Token should have contained an access token"), new DistributedCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(10)
-        });
-
+        await _cache.GetOrCreateAsync(
+            sessionId,
+            token => new ValueTask<string>(
+                properties.Items[".Token.access_token"]
+                ?? throw new SecurityTokenMalformedException("Token should have contained an access token")
+            ),
+            new HybridCacheEntryOptions
+            {
+                Expiration = TimeSpan.FromMinutes(5)
+            });
+        
         var redirectUrl = properties?.Items["endpoint"] ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
         redirectUrl = AppendSessionToUrl($"{_generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}", sessionId);
         Response.Redirect(redirectUrl);
     }
 
-    public Task SignOutAsync(AuthenticationProperties? properties)
+    public async Task SignOutAsync(AuthenticationProperties? properties)
     {
         if (Request.Query.TryGetValue("session", out var sessionId))
         {
-            _cache.Remove(sessionId);
+            await _cache.RemoveAsync(sessionId);
         }
-        return Task.CompletedTask;
+        await Task.CompletedTask;
     }
 
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)

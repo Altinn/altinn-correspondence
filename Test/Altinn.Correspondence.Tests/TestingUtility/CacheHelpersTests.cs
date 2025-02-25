@@ -1,8 +1,9 @@
 using Moq;
-using Microsoft.Extensions.Caching.Distributed;
 using Altinn.Correspondence.Common.Helpers;
 using System.Text.Json;
 using System.Text;
+using Altinn.Correspondence.Common.Caching;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Altinn.Correspondence.Tests.TestingUtility
 {
@@ -18,18 +19,19 @@ namespace Altinn.Correspondence.Tests.TestingUtility
                 { "Name", "John" },
                 { "Age", 30 }
             };
-            var cacheOptions = new DistributedCacheEntryOptions();
+            var cacheOptions = new HybridCacheEntryOptions();
             var cancellationToken = CancellationToken.None;
             var serializedDataString = JsonSerializer.Serialize(value);
-            var mockCache = new Mock<IDistributedCache>();
+            var mockCache = new Mock<IHybridCacheWrapper>();
 
             mockCache.Setup(cache => cache.SetAsync(
                 key,
                 It.Is<byte[]>(bytes => bytes != null && bytes.Length > 0),
                 cacheOptions,
+                null,
                 cancellationToken
             )).Returns(Task.CompletedTask);
-
+            
             // Act
             await CacheHelpers.StoreObjectInCacheAsync(key, value, mockCache.Object, cacheOptions, cancellationToken);
 
@@ -38,6 +40,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
                 key, 
                 It.Is<byte[]>(bytes => bytes.SequenceEqual(Encoding.UTF8.GetBytes(serializedDataString))),
                 cacheOptions, 
+                null,
                 cancellationToken),
                 Times.Once);
         }
@@ -50,10 +53,15 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             string storedValue = "John";
             var serializedData = JsonSerializer.Serialize(storedValue);
             var cancellationToken = CancellationToken.None;
-            var mockCache = new Mock<IDistributedCache>();
+            var mockCache = new Mock<IHybridCacheWrapper>();
             
-            mockCache.Setup(cache => cache.GetAsync(key, cancellationToken))
-                .ReturnsAsync(Encoding.UTF8.GetBytes(serializedData));
+            mockCache.Setup(cache => cache.GetOrCreateAsync(
+                key,
+                It.IsAny<Func<CancellationToken, ValueTask<byte[]>>>(),
+                It.IsAny<HybridCacheEntryOptions>(),
+                It.IsAny<IEnumerable<string>?>(),
+                It.IsAny<CancellationToken>()
+            )).ReturnsAsync(Encoding.UTF8.GetBytes(serializedData));
 
             // Act
             var result = await CacheHelpers.GetObjectFromCacheAsync<string>(key, mockCache.Object, cancellationToken);
@@ -69,10 +77,15 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             // Arrange
             var key = "unknownKey";
             var cancellationToken = CancellationToken.None;
-            var mockCache = new Mock<IDistributedCache>();
+            var mockCache = new Mock<IHybridCacheWrapper>();
 
-            mockCache.Setup(cache => cache.GetAsync(key, cancellationToken))
-                .ReturnsAsync(Array.Empty<byte>());
+            mockCache.Setup(cache => cache.GetOrCreateAsync(
+                key,
+                It.IsAny<Func<CancellationToken, ValueTask<byte[]>>>(),
+                It.IsAny<HybridCacheEntryOptions>(),
+                It.IsAny<IEnumerable<string>?>(),
+                It.IsAny<CancellationToken>()
+            )).ReturnsAsync(Array.Empty<byte>());
 
             // Act
             var result = await CacheHelpers.GetObjectFromCacheAsync<object>(key, mockCache.Object, cancellationToken);

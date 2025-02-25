@@ -1,12 +1,13 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
+using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Altinn.Correspondence.Common.Helpers;
-using Microsoft.Extensions.Caching.Distributed;
 using Altinn.Correspondence.Core.Services;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 public class ResourceRegistryService : IResourceRegistryService
@@ -14,19 +15,19 @@ public class ResourceRegistryService : IResourceRegistryService
     private readonly HttpClient _client;
     private readonly ILogger<ResourceRegistryService> _logger;
 
-    private readonly IDistributedCache _cache;
-    private readonly DistributedCacheEntryOptions _cacheOptions;
+    private readonly IHybridCacheWrapper _cache;
+    private readonly HybridCacheEntryOptions _cacheOptions;
     private string CacheKey(string resourceId) => $"ResourceInfo_{resourceId}";
 
-    public ResourceRegistryService(HttpClient httpClient, IOptions<AltinnOptions> options, ILogger<ResourceRegistryService> logger, IDistributedCache cache)
+    public ResourceRegistryService(HttpClient httpClient, IOptions<AltinnOptions> options, ILogger<ResourceRegistryService> logger, IHybridCacheWrapper cache)
     {
         httpClient.BaseAddress = new Uri(options.Value.PlatformGatewayUrl);
         _client = httpClient;
         _logger = logger;
         _cache = cache;
-        _cacheOptions = new DistributedCacheEntryOptions
+        _cacheOptions = new HybridCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+            Expiration = TimeSpan.FromMinutes(10)
         };
     }
 
