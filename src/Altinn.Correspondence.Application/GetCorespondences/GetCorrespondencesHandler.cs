@@ -51,7 +51,7 @@ public class GetCorrespondencesHandler(
             cancellationToken);
         var response = new GetCorrespondencesResponse
         {
-            Ids = correspondences.Item1,
+            Ids = correspondences,
         };
         return response;
     }
