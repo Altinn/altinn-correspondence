@@ -84,18 +84,18 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
             return AuthenticateResult.NoResult();
         }
 
-        var token = _cache.GetOrCreateAsync(
+        var token = await _cache.GetOrCreateAsync(
             sessionId, 
             ct => ValueTask.FromResult<string?>(null)
         );
         
-        if (string.IsNullOrEmpty(await token))
+        if (string.IsNullOrEmpty(token))
         {
             return AuthenticateResult.NoResult();
         }
-        _cache.RemoveAsync(sessionId);
+        await _cache.RemoveAsync(sessionId);
 
-        var principal = await _tokenValidator.ValidateTokenAsync(await token);
+        var principal = await _tokenValidator.ValidateTokenAsync(token);
         if (principal is not null)
         {
             var ticket = new AuthenticationTicket(principal, Scheme.Name);
@@ -110,28 +110,27 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
         var sessionId = Guid.NewGuid().ToString();        
         await _cache.GetOrCreateAsync(
             sessionId,
-            async token =>
+            token => new ValueTask<string>(
+                properties.Items[".Token.access_token"]
+                ?? throw new SecurityTokenMalformedException("Token should have contained an access token")
+            ),
+            new HybridCacheEntryOptions
             {
-                var cacheEntryOptions = new HybridCacheEntryOptions
-                {
-                    Expiration = TimeSpan.FromMinutes(5)
-                };
-            return properties.Items[".Token.access_token"] 
-                   ?? throw new SecurityTokenMalformedException("Token should have contained an access token");
-        });
-
+                Expiration = TimeSpan.FromMinutes(5)
+            });
+        
         var redirectUrl = properties?.Items["endpoint"] ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
         redirectUrl = AppendSessionToUrl($"{_generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}", sessionId);
         Response.Redirect(redirectUrl);
     }
 
-    public Task SignOutAsync(AuthenticationProperties? properties)
+    public async Task SignOutAsync(AuthenticationProperties? properties)
     {
         if (Request.Query.TryGetValue("session", out var sessionId))
         {
-            _cache.RemoveAsync(sessionId);
+            await _cache.RemoveAsync(sessionId);
         }
-        return Task.CompletedTask;
+        await Task.CompletedTask;
     }
 
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)
