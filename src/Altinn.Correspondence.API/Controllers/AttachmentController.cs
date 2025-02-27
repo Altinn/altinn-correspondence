@@ -196,6 +196,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// </remarks>
     /// <returns></returns>
     [HttpGet]
+    [Produces("application/octet-stream")]
     [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

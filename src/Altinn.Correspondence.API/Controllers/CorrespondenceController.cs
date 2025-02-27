@@ -409,6 +409,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// - altinn:correspondence.read <br />
         /// <returns></returns>
         [HttpGet]
+        [Produces("application/octet-stream")]
         [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
