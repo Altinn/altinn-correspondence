@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 namespace Altinn.Correspondence.API.Models
 {
     /// <summary>
-    /// Represents the content of a reportee element of the type correspondence.
+    /// Represents the content of a Correspondence.
     /// </summary>
     public class InitializeCorrespondenceContentExt
     {
@@ -19,18 +19,12 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Gets or sets the correspondence message title. Subject.
         /// </summary>
-        /// <remarks>
-        /// TODO: Length restriction?
-        /// </remarks>
         [JsonPropertyName("messageTitle")]
         public required string MessageTitle { get; set; }
 
         /// <summary>
         /// Gets or sets a summary text of the correspondence.
         /// </summary>
-        /// <remarks>
-        /// TODO: Length restriction?
-        /// </remarks>
         [JsonPropertyName("messageSummary")]
         public required string MessageSummary { get; set; }
 
@@ -42,9 +36,6 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Gets or sets a list of attachments.
         /// </summary>
-        /// <remarks>
-        /// TODO: Number restriction?
-        /// </remarks>
         [JsonPropertyName("attachments")]
         public List<InitializeCorrespondenceAttachmentExt> Attachments { get; set; } = new List<InitializeCorrespondenceAttachmentExt>();
     }

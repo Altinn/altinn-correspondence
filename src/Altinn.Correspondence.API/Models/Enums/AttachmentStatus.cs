@@ -11,22 +11,22 @@
         Initialized = 0,
 
         /// <summary>
-        /// Awaiting processing of upload
+        /// Attachment is awaiting processing of upload
         /// </summary>
         UploadProcessing = 1,
 
-        // <summary>
-        /// Published and available for download
+        /// <summary>
+        /// Attachment is published and available for download
         /// </summary>
         Published = 2,
 
         /// <summary>
-        /// Purged
+        /// Attachment has been purged
         /// </summary>
         Purged = 3,
 
         /// <summary>
-        /// Failed
+        /// Attachment has failed during processing
         /// </summary>
         Failed = 4
     }

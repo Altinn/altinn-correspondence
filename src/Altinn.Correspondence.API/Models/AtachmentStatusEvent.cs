@@ -9,7 +9,7 @@ namespace Altinn.Correspondence.API.Models
     public class AttachmentStatusEvent
     {
         /// <summary>
-        /// Attachment status
+        /// The attachment status
         /// </summary>
         [JsonPropertyName("status")]
         public AttachmentStatusExt Status { get; set; }
