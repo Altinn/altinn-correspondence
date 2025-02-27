@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Persistence;
 using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,7 +14,14 @@ builder.Services.AddApplicationInsightsTelemetry(new ApplicationInsightsServiceO
 {
     EnableAdaptiveSampling = false
 });
-builder.Services.ConfigureHangfire();
+builder.Services.AddSingleton<IConnectionFactory, HangfireConnectionFactory>();
+builder.Services.AddHangfire((provider, config) =>
+    {
+        config.UsePostgreSqlStorage(
+            c => c.UseConnectionFactory(provider.GetService<IConnectionFactory>())
+        );
+        config.UseSerilogLogProvider();
+});
 
 var app = builder.Build();
 
