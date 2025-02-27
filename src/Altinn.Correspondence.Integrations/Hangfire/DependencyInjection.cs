@@ -1,11 +1,8 @@
-﻿using Altinn.Correspondence.Integrations.Slack;
-using Hangfire;
+﻿using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.ApplicationInsights;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Serilog.Core;
 
 namespace Altinn.Correspondence.Integrations.Hangfire;
 public static class DependencyInjection
@@ -21,11 +18,6 @@ public static class DependencyInjection
             config.UseSerilogLogProvider();
             config.UseFilter(new HangfireAppRequestFilter(provider.GetRequiredService<TelemetryClient>()));
             config.UseSerializerSettings(new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
-            config.UseFilter(
-                new SlackExceptionHandler(
-                    provider.GetRequiredService<SlackExceptionNotificationHandler>(),
-                    provider.GetRequiredService<ILogger<SlackExceptionHandler>>())
-                );
     });
         services.AddHangfireServer(options => options.SchedulePollingInterval = TimeSpan.FromSeconds(2));
     }
