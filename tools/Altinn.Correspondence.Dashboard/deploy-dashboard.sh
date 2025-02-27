@@ -60,9 +60,9 @@ gh auth setup-git
 echo "Our username"
 echo $(gh api user --jq '.login')
 echo "Our password"
-echo $(gh auth token)
+#echo $(gh auth status -t 2>&1 | grep Token | cut -d':' -f2 | xargs)
 
-docker login ghcr.io -u $(gh api user --jq '.login') -p $(gh auth token)
+docker login ghcr.io -u $(gh api user --jq '.login') -p $(gh auth status -t 2>&1 | grep Token | cut -d':' -f2 | xargs)
 
 # Push the image
 echo "Pushing image to GitHub packages..."
@@ -88,30 +88,25 @@ az ad sp create --id $APP_ID
 echo "Generating client secret..."
 CLIENT_SECRET=$(az ad app credential reset --id $APP_ID --query password --output tsv)
 
-# Create Container Apps Environment if it doesn't exist
-echo "Creating Container Apps Environment..."
-az containerapp env create \
-    --name "$ENVIRONMENT_NAME" \
-    --resource-group "$RESOURCE_GROUP" \
-    --location "$LOCATION"
-
 # Create the Container App
 echo "Creating Container App..."
 az containerapp create \
     --name "$APP_NAME" \
     --resource-group "$RESOURCE_GROUP" \
-    --environment "$ENVIRONMENT_NAME" \
+    --environment "altinn-corr-$ENVIRONMENT_NAME-env" \
     --image "$DOCKER_IMAGE_NAME" \
     --target-port 80 \
     --ingress external
 
 # Configure authentication
 echo "Configuring authentication..."
+TENANT_ID=${az account show --query tenantId -o tsv}
 az containerapp auth microsoft update \
     --name "$APP_NAME" \
     --resource-group "$RESOURCE_GROUP" \
     --client-id "$APP_ID" \
     --client-secret "$CLIENT_SECRET" \
+    --tenant-id "$TENANT_ID" \
     --allowed-audiences "api://$APP_ID"
 
 echo "Container App deployment complete!"
