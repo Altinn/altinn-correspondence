@@ -23,7 +23,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return correspondences;
         }
 
-        public async Task<(List<Guid>, int)> GetCorrespondences(
+        public async Task<List<Guid>> GetCorrespondences(
             string resourceId,
             int limit,
             DateTimeOffset? from,
@@ -42,9 +42,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .OrderByDescending(c => c.RequestedPublishTime)              // Sort by RequestedPublishTime
                 .Select(c => c.Id);
 
-            var totalItems = await correspondences.CountAsync(cancellationToken);
             var result = await correspondences.Take(limit).ToListAsync(cancellationToken);
-            return (result, totalItems);
+            return result;
         }
 
         public async Task<CorrespondenceEntity?> GetCorrespondenceById(
