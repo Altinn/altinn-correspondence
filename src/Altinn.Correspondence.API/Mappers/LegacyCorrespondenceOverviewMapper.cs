@@ -21,7 +21,7 @@ internal static class LegacyCorrespondenceOverviewMapper
             Notifications = correspondenceOverview.Notifications,
             Recipient = correspondenceOverview.Recipient,
             Content = null,
-            Attachments = CorrespondenceAttachmentMapper.MapListToExternal(correspondenceOverview.Attachments),
+            Attachments = CorrespondenceAttachmentMapper.MapListToExternalLegacy(correspondenceOverview.Attachments),
             Language = correspondenceOverview.Language,
             MessageTitle = correspondenceOverview.MessageTitle,
             MessageSummary = correspondenceOverview.MessageSummary,

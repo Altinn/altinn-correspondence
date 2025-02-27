@@ -83,7 +83,7 @@ namespace Altinn.Correspondence.API.Models
         public required string MessageBody { get; set; }
 
         [JsonPropertyName("attachments")]
-        public required new List<CorrespondenceAttachmentExt> Attachments { get; set; }
+        public required new List<LegacyCorrespondenceAttachmentExt> Attachments { get; set; }
 
         /// <summary>
         /// Instance owner party id
