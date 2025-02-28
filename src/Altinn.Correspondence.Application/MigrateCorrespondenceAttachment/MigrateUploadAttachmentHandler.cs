@@ -69,6 +69,7 @@ public class MigrateUploadAttachmentHandler(
                 DataLocationType = attachment.DataLocationType,
                 SendersReference = attachment.SendersReference,
                 FileName = attachment.FileName,
+                DisplayName = attachment.DisplayName,
                 Sender = attachment.Sender,
             };
         }, logger, cancellationToken);
