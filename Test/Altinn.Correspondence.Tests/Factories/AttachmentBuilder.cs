@@ -20,6 +20,7 @@ namespace Altinn.Correspondence.Tests.Factories
                 Sender = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
                 SendersReference = "1234",
                 FileName = "test-file.txt",
+                DisplayName = "Test file",
                 IsEncrypted = false
             };
             return this;
@@ -32,6 +33,11 @@ namespace Altinn.Correspondence.Tests.Factories
         public AttachmentBuilder WithFileName(string fileName)
         {
             _attachment.FileName = fileName;
+            return this;
+        }
+        public AttachmentBuilder WithDisplayName(string? displayName)
+        {
+            _attachment.DisplayName = displayName;
             return this;
         }
         public AttachmentBuilder WithChecksum(byte[] byteData)

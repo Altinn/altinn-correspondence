@@ -34,7 +34,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
             Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
         }
-        public async Task InitializeAttachment_FileNameTooLong_ReturnsBadRequest(string fileName)
+        [Fact]
+        public async Task InitializeAttachment_FileNameTooLong_ReturnsBadRequest()
         {
             string namewith300chars = new string('a', 300);
             var attachment = new AttachmentBuilder()
@@ -44,6 +45,28 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
             Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
         }
+        [Fact]
+        public async Task InitializeAttachment_DisplayFileNameTooLong_ReturnsBadRequest()
+        {
+            string namewith300chars = new string('a', 300);
+            var attachment = new AttachmentBuilder()
+                .CreateAttachment()
+                .WithDisplayName(namewith300chars)
+                .Build();
+            var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+            Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
+        }
+        [Fact]
+        public async Task InitializeAttachment_DisplayFileNameIsNull_Returns_OK()
+        {
+            var attachment = new AttachmentBuilder()
+                .CreateAttachment()
+                .WithDisplayName(null)
+                .Build();
+            var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+            Assert.Equal(HttpStatusCode.OK, initializeAttachmentResponse.StatusCode);
+        }
+
         [Fact]
         public async Task InitializeAttachment_AsRecipient_ReturnsForbidden()
         {

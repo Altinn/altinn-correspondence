@@ -16,7 +16,9 @@ public class GetAttachmentOverviewResponse
     public DateTimeOffset StatusChanged { get; set; }
 
     public string FileName { get; set; } = string.Empty;
-    
+
+    public string DisplayName { get; set; } = string.Empty;
+
     public string? Checksum { get; set; } = string.Empty;
 
     public string Sender { get; set; } = string.Empty;

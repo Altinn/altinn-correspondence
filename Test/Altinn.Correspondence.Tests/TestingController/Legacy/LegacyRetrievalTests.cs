@@ -142,6 +142,21 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         }
 
         [Fact]
+        public async Task LegacyGetCorrespondenceHistory_Attachment_Contains_name()
+        {
+
+            // Arrange
+            var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _serializerOptions);
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().WithExistingAttachments([attachmentId]).Build();
+
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+            var response = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview");
+            var content = await response.Content.ReadFromJsonAsync<LegacyCorrespondenceOverviewExt>(_serializerOptions);
+            Assert.NotNull(content);
+            Assert.Equal("Test file", content.Attachments.First().Name);
+        }
+
+        [Fact]
         public async Task LegacyGetCorrespondenceHistory_InvalidPartyId_ReturnsUnauthorized()
         {
             // Arrange

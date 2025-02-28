@@ -24,7 +24,7 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
         {
             return AuthorizationErrors.InvalidPartyId;
         }
-        var party = await altinnRegisterService.LookUpPartyByPartyId(partyId.Value, cancellationToken); 
+        var party = await altinnRegisterService.LookUpPartyByPartyId(partyId.Value, cancellationToken);
         if (party is null || (string.IsNullOrEmpty(party.SSN) && string.IsNullOrEmpty(party.OrgNumber)))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
@@ -46,8 +46,9 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
         var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, cancellationToken);
-        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, DialogportenActorType.Recipient, DialogportenTextType.DownloadStarted, attachment.FileName));
-        return new DownloadCorrespondenceAttachmentResponse(){
+        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, DialogportenActorType.Recipient, DialogportenTextType.DownloadStarted, attachment.DisplayName ?? attachment.FileName));
+        return new DownloadCorrespondenceAttachmentResponse()
+        {
             FileName = attachment.FileName,
             Stream = attachmentStream
         };

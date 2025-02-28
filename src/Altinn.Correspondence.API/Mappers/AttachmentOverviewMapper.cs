@@ -19,6 +19,7 @@ internal static class AttachmentOverviewMapper
             AttachmentId = attachmentOverview.AttachmentId,
             Sender = attachmentOverview.Sender,
             FileName = attachmentOverview.FileName,
+            DisplayName = attachmentOverview.DisplayName,
             Status = (AttachmentStatusExt)attachmentOverview.Status,
             StatusText = attachmentOverview.StatusText,
             Checksum = attachmentOverview.Checksum,

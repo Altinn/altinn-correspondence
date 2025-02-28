@@ -43,6 +43,7 @@ public class GetAttachmentOverviewHandler(
             SendersReference = attachment.SendersReference,
             CorrespondenceIds = correspondenceIds,
             FileName = attachment.FileName,
+            DisplayName = attachment.DisplayName,
             Sender = attachment.Sender,
         };
         return response;

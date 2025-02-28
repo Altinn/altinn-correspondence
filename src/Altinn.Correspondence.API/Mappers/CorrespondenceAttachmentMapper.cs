@@ -18,6 +18,7 @@ internal static class CorrespondenceAttachmentMapper
         {
             DataType = contentType,
             FileName = attachment.Attachment.FileName,
+            DisplayName = attachment.Attachment.DisplayName,
             Id = attachment.AttachmentId,
             IsEncrypted = attachment.Attachment.IsEncrypted,
             SendersReference = attachment.Attachment.SendersReference,
@@ -40,7 +41,7 @@ internal static class CorrespondenceAttachmentMapper
         {
             DataType = contentType,
             FileName = attachment.Attachment.FileName,
-            Name = attachment.Attachment.FileName,
+            Name = attachment.Attachment.DisplayName ?? attachment.Attachment.FileName,
             Id = attachment.AttachmentId,
             IsEncrypted = attachment.Attachment.IsEncrypted,
             SendersReference = attachment.Attachment.SendersReference,

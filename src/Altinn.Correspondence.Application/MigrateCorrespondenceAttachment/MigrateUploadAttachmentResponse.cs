@@ -17,6 +17,8 @@ public class MigrateUploadAttachmentResponse
 
     public string FileName { get; set; } = string.Empty;
 
+    public string DisplayName { get; set; } = string.Empty;
+
     public string? Name { get; set; } = string.Empty;
 
     public string? Checksum { get; set; } = string.Empty;

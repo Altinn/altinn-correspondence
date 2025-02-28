@@ -321,7 +321,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     new DisplayName
                     {
                         LanguageCode = correspondence.Content.Language,
-                        Value = attachment.Attachment.FileName
+                        Value = attachment.Attachment.DisplayName ?? attachment.Attachment.FileName
                     }
                 },
                 Urls = new List<DialogUrl>
