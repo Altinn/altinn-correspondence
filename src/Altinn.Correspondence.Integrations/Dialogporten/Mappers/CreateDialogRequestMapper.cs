@@ -56,17 +56,18 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     }
                 }
             },
-            SenderName = new ContentValue()
-            {
-                MediaType = "text/plain",
-                Value = new List<DialogValue> {
+            SenderName = String.IsNullOrWhiteSpace(correspondence.MessageSender) ? null :
+             new ContentValue()
+             {
+                 MediaType = "text/plain",
+                 Value = new List<DialogValue> {
                     new DialogValue()
                     {
                         Value = correspondence.MessageSender ?? correspondence.Sender,
                         LanguageCode = correspondence.Content.Language
                     }
                 }
-            },
+             },
             MainContentReference = new ContentValue()
             {
                 MediaType = "application/vnd.dialogporten.frontchannelembed+json;type=markdown",
