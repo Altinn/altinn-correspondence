@@ -7,11 +7,6 @@ resource keyVault 'Microsoft.KeyVault/vaults@2021-06-01-preview' existing = {
   name: keyVaultName
 }
 
-resource secret 'Microsoft.KeyVault/vaults/secrets@2021-06-01-preview' existing = {
-  parent: keyVault
-  name: 'correspondence-migration-connection-string'
-}
-
 resource keyVaultAccessPolicy 'Microsoft.KeyVault/vaults/accessPolicies@2022-07-01' = {
   name: '${keyVaultName}/add'
   properties: {
@@ -31,7 +26,7 @@ resource keyVaultAccessPolicy 'Microsoft.KeyVault/vaults/accessPolicies@2022-07-
 }
 
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
-  name: 'dashboard'
+  name: '${azureNamePrefix}-dashboard'
   location: location
   identity: {
     type: 'SystemAssigned'
