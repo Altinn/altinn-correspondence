@@ -63,3 +63,7 @@ jobs:
             AZURE_NAME_PREFIX: ${{ secrets.AZURE_NAME_PREFIX }}
             containerImage=ghcr.io/altinn/altinn-correspondence-dashboard:${{ github.sha }}
             AZURE_ENVIRONMENT_KEY_VAULT_NAME: ${{ secrets.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
+            AZURE_APP_REGISTRATION_ID: ${{ secrets.AZURE_APP_REGISTRATION_ID }}
+            AZURE_APP_REGISTRATION_CLIENT_SECRET: ${{ secrets.AZURE_APP_REGISTRATION_CLIENT_SECRET }}
+            AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+            DASHBOARD_ALLOWED_GROUP_ID: ${{ secrets.AZURE_TEST_ACCESS_CLIENT_ID }}

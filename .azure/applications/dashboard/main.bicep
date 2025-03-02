@@ -2,6 +2,10 @@ param location string
 param containerImage string
 param azureNamePrefix string
 param keyVaultName string
+param appRegistrationId string
+param appRegistrationClientSecret string
+param tenantId string
+param allowedGroupId string
 
 resource keyVault 'Microsoft.KeyVault/vaults@2021-06-01-preview' existing = {
   name: keyVaultName
@@ -45,6 +49,10 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           keyVaultUrl: '${keyVault.properties.vaultUri}secrets/correspondence-migration-connection-string'
           identity: 'System'
         }
+        {
+          name: 'app-registration-client-secret'
+          value: appRegistrationClientSecret
+        }
       ]
     }
     template: {
@@ -54,7 +62,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           image: containerImage
           env: [
             {
-              name: 'DatabsaeOptions__ConnectionString'
+              name: 'DatabaseOptions__ConnectionString'
               secretRef: 'correspondence-migration-connection-string'
             }
           ]
@@ -64,6 +72,42 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
         minReplicas: 1
         maxReplicas: 1
       }
+    }
+  }
+}
+
+// Configure authentication for Container App
+resource containerAppAuth 'Microsoft.App/containerApps/authConfigs@2023-05-01' = {
+  name: 'current'
+  parent: containerApp
+  properties: {
+    platform: {
+      enabled: true
+    }
+    identityProviders: {
+      azureActiveDirectory: {
+        enabled: true
+        registration: {
+          clientId: appRegistrationId
+          clientSecretSettingName: 'app-registration-client-secret'
+          openIdIssuer: 'https://sts.windows.net/${tenantId}/'
+        }
+        validation: {
+          allowedAudiences: [
+            'api://${appRegistrationId}'
+          ]
+          defaultAuthorizationPolicy: {
+            allowedPrincipals: {
+              groups: [
+                allowedGroupId
+              ]
+            }
+          }
+        }
+      }
+    }
+    globalValidation: {
+      unauthenticatedClientAction: 'RedirectToLoginPage'
     }
   }
 }
