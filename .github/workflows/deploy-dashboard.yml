@@ -60,7 +60,6 @@ jobs:
           resourceGroupName: ${{ secrets.RESOURCE_GROUP }}
           template: .azure/applications/dashboard.bicep
           parameters: >
-            location=${{ secrets.LOCATION }}
-            environment=${{ github.event.inputs.environment }}
-            containerAppEnvironmentName=${{ secrets.CONTAINER_APP_ENVIRONMENT }}
+            AZURE_NAME_PREFIX: ${{ secrets.AZURE_NAME_PREFIX }}
             containerImage=ghcr.io/altinn/altinn-correspondence-dashboard:${{ github.sha }}
+            AZURE_ENVIRONMENT_KEY_VAULT_NAME: ${{ secrets.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
