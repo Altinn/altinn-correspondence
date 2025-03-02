@@ -1,3 +1,5 @@
+using './main.bicep'
+
 param azureNamePrefix = readEnvironmentVariable('AZURE_NAME_PREFIX')
 param location = 'Norway East'
 param containerImage = readEnvironmentVariable('containerImage')

@@ -12,34 +12,45 @@ resource secret 'Microsoft.KeyVault/vaults/secrets@2021-06-01-preview' existing 
   name: 'correspondence-migration-connection-string'
 }
 
-// Register the secret with the container app environment
-resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2023-05-01' = {
-  name: '${azureNamePrefix}-env'
-  location: location
+resource keyVaultAccessPolicy 'Microsoft.KeyVault/vaults/accessPolicies@2022-07-01' = {
+  name: '${keyVaultName}/add'
   properties: {
-    appLogsConfiguration: {
-      destination: 'log-analytics'
-    }
-    secrets: [
+    accessPolicies: [
       {
-        name: 'correspondence-migration-connection-string'
-        value: secret.properties.value
+        objectId: containerApp.identity.principalId
+        tenantId: subscription().tenantId
+        permissions: {
+          secrets: [
+            'get'
+            'list'
+          ]
+        }
       }
     ]
   }
-} 
+}
 
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: 'dashboard'
   location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
-    environmentId: '${azureNamePrefix}-env'
+    environmentId: resourceId('Microsoft.App/managedEnvironments', '${azureNamePrefix}-env')
     configuration: {
       ingress: {
         external: true
         targetPort: 2526
         allowInsecure: false
       }
+      secrets: [
+        {
+          name: 'correspondence-migration-connection-string'
+          keyVaultUrl: '${keyVault.properties.vaultUri}secrets/correspondence-migration-connection-string'
+          identity: 'System'
+        }
+      ]
     }
     template: {
       containers: [
@@ -49,7 +60,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           env: [
             {
               name: 'DatabsaeOptions__ConnectionString'
-              value: secret.properties.value
+              secretRef: 'correspondence-migration-connection-string'
             }
           ]
         }
@@ -61,5 +72,3 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
     }
   }
 }
-
-output dashboardUrl string = containerApp.outputs.url 
