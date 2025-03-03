@@ -12,14 +12,20 @@ public class PurgeCorrespondenceHelper
 {
     private readonly IAttachmentRepository _attachmentRepository;
     private readonly IStorageRepository _storageRepository;
+    private readonly ICorrespondenceRepository _correspondenceRepository;
+    private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository;
     private readonly IBackgroundJobClient _backgroundJobClient;
-    public PurgeCorrespondenceHelper(IAttachmentRepository attachmentRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, IBackgroundJobClient backgroundJobClient)
+    IDialogportenService _dialogportenService;
+    public PurgeCorrespondenceHelper(IAttachmentRepository attachmentRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IDialogportenService dialogportenService, IBackgroundJobClient backgroundJobClient)
     {
         _attachmentRepository = attachmentRepository;
         _storageRepository = storageRepository;
         _attachmentStatusRepository = attachmentStatusRepository;
         _backgroundJobClient = backgroundJobClient;
+        _correspondenceRepository = correspondenceRepository;
+        _correspondenceStatusRepository = correspondenceStatusRepository;
+        _dialogportenService = dialogportenService;
     }
     public Error? ValidatePurgeRequestSender(CorrespondenceEntity correspondence)
     {
@@ -81,6 +87,30 @@ public class PurgeCorrespondenceHelper
             };
             await _attachmentStatusRepository.AddAttachmentStatus(attachmentStatus, cancellationToken);
         }
+    }
+
+    public async Task<Guid> PurgeCorrespondence(CorrespondenceEntity correspondence, bool isSender, Guid partyUuid, CancellationToken cancellationToken)
+    {
+        var status = isSender ? CorrespondenceStatus.PurgedByAltinn : CorrespondenceStatus.PurgedByRecipient;
+        await _correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity()
+        {
+            CorrespondenceId = correspondence.Id,
+            Status = status,
+            StatusChanged = DateTimeOffset.UtcNow,
+            StatusText = status.ToString(),
+            PartyUuid = partyUuid
+        }, cancellationToken);
+
+        _backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+        await CheckAndPurgeAttachments(correspondence.Id, partyUuid, cancellationToken);
+        ReportActivityToDialogporten(isSender: isSender, correspondence.Id);
+        CancelNotification(correspondence.Id, cancellationToken);
+        var dialogId = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
+        if (dialogId is not null)
+        {
+            await _dialogportenService.SoftDeleteDialog(dialogId.ReferenceValue);
+        }
+        return correspondence.Id;
     }
     public void ReportActivityToDialogporten(bool isSender, Guid correspondenceId)
     {
