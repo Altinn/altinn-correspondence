@@ -58,7 +58,7 @@ jobs:
         with:
           scope: resourcegroup
           resourceGroupName: ${{ secrets.RESOURCE_GROUP }}
-          template: .azure/applications/dashboard.bicep
+          template: .azure/applications/dashboard/main.bicep
           parameters: >
             AZURE_NAME_PREFIX: ${{ secrets.AZURE_NAME_PREFIX }}
             containerImage=ghcr.io/altinn/altinn-correspondence-dashboard:${{ github.sha }}
