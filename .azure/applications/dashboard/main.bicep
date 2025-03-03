@@ -87,6 +87,9 @@ resource containerAppAuth 'Microsoft.App/containerApps/authConfigs@2023-05-01' =
     identityProviders: {
       azureActiveDirectory: {
         enabled: true
+        login: {
+          disableWWWAuthenticate: false
+        }
         registration: {
           clientId: appRegistrationId
           clientSecretSettingName: 'app-registration-client-secret'
@@ -101,13 +104,24 @@ resource containerAppAuth 'Microsoft.App/containerApps/authConfigs@2023-05-01' =
               groups: [
                 allowedGroupId
               ]
+              identities: [
+                allowedGroupId
+              ]
             }
+            allowedApplications: [
+              '${appRegistrationId}'
+            ]
+          }
+          jwtClaimChecks: {
+            allowedClientApplications: [
+              '${appRegistrationId}'
+            ]
+            allowedGroups: [
+              allowedGroupId
+            ]
           }
         }
       }
-    }
-    globalValidation: {
-      unauthenticatedClientAction: 'RedirectToLoginPage'
     }
   }
 }
