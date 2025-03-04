@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Slack.Webhooks;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
+using Altinn.Correspondence.Core.Options;
 
 [assembly: InternalsVisibleTo("Altinn.Correspondence.Tests")]
 namespace Altinn.Correspondence.Application.CancelNotification
@@ -19,9 +20,10 @@ namespace Altinn.Correspondence.Application.CancelNotification
         IAltinnNotificationService altinnNotificationService,
         ISlackClient slackClient,
         IBackgroundJobClient backgroundJobClient,
-        IHostEnvironment hostEnvironment)
+        IHostEnvironment hostEnvironment,
+        SlackSettings slackSettings)
     {
-        private const string TestChannel = "#test-varslinger";
+        private string Channel => slackSettings.NotificationChannel;
         private const string RetryCountKey = "RetryCount";
         private const int MaxRetries = 10;
 
@@ -68,7 +70,7 @@ namespace Altinn.Correspondence.Application.CancelNotification
             var slackMessage = new SlackMessage
             {
                 Text = message,
-                Channel = TestChannel,
+                Channel = Channel,
             };
             slackClient.Post(slackMessage);
         }
