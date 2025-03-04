@@ -88,7 +88,7 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// A list of recipients for the notification. If not set, the notification will be sent to the recipient of the Correspondence
         /// </summary>
-        [JsonPropertyName("recipients")]
+        [JsonPropertyName("customNotificationRecipients")]
         public List<CustomNotificationRecipientExt>? CustomNotificationRecipients { get; set; }
     }
 }
