@@ -10,7 +10,7 @@ using System.Net;
 namespace Altinn.Correspondence.Integrations.Slack;
 public class SlackExceptionNotificationHandler(ILogger<SlackExceptionNotificationHandler> logger, ISlackClient slackClient, IProblemDetailsService problemDetailsService, IHostEnvironment hostEnvironment) : IExceptionHandler
 {
-    private const string TestChannel = "#test-varslinger";
+    private string Channel => hostEnvironment.IsProduction() ? "#mf-varsling-critical" : "#test-varslinger";
 
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
@@ -73,7 +73,7 @@ public class SlackExceptionNotificationHandler(ILogger<SlackExceptionNotificatio
         var slackMessage = new SlackMessage
         {
             Text = exceptionMessage,
-            Channel = TestChannel
+            Channel = Channel
         };
 
         try
@@ -118,7 +118,7 @@ public class SlackExceptionNotificationHandler(ILogger<SlackExceptionNotificatio
         var slackMessage = new SlackMessage
         {
             Text = message,
-            Channel = TestChannel,
+            Channel = Channel,
         };
         await slackClient.PostAsync(slackMessage);
     }
