@@ -6,11 +6,17 @@ using Microsoft.AspNetCore.Http;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using Altinn.Correspondence.Core.Options;
 
 namespace Altinn.Correspondence.Integrations.Slack;
-public class SlackExceptionNotificationHandler(ILogger<SlackExceptionNotificationHandler> logger, ISlackClient slackClient, IProblemDetailsService problemDetailsService, IHostEnvironment hostEnvironment) : IExceptionHandler
+public class SlackExceptionNotificationHandler(
+    ILogger<SlackExceptionNotificationHandler> logger,
+    ISlackClient slackClient,
+    IProblemDetailsService problemDetailsService,
+    IHostEnvironment hostEnvironment,
+    SlackSettings slackSettings) : IExceptionHandler
 {
-    private const string TestChannel = "#test-varslinger";
+    private string Channel => slackSettings.NotificationChannel;
 
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
@@ -73,7 +79,7 @@ public class SlackExceptionNotificationHandler(ILogger<SlackExceptionNotificatio
         var slackMessage = new SlackMessage
         {
             Text = exceptionMessage,
-            Channel = TestChannel
+            Channel = Channel
         };
 
         try
@@ -118,7 +124,7 @@ public class SlackExceptionNotificationHandler(ILogger<SlackExceptionNotificatio
         var slackMessage = new SlackMessage
         {
             Text = message,
-            Channel = TestChannel,
+            Channel = Channel,
         };
         await slackClient.PostAsync(slackMessage);
     }
