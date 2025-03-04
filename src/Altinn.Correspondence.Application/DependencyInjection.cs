@@ -11,6 +11,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.InitializeCorrespondence;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
+using Altinn.Correspondence.Application.OneTimeJobs;
 using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Application.PurgeAttachment;
@@ -18,6 +19,7 @@ using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Notifications.Core.Helpers;
+using Hangfire;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Correspondence.Application;
@@ -70,5 +72,12 @@ public static class DependencyInjection
         services.AddScoped<MigrateInitializeAttachmentHandler>();
         services.AddScoped<MigrateUploadAttachmentHandler>();
         services.AddScoped<MigrateCorrespondenceHandler>();
+
+        RecurringJob.AddOrUpdate("RecipientNameFix", (DialogportenFixes handler) => handler.ScheduleRecipientNameFixForAll(false, default), Cron.Never);
+        RecurringJob.AddOrUpdate("RecipientNameFixDryRun", (DialogportenFixes handler) => handler.ScheduleRecipientNameFixForAll(true, default), Cron.Never);
+        RecurringJob.AddOrUpdate("ReadStatus", (DialogportenFixes handler) => handler.ScheduleReadStatusFixForAll(false, default), Cron.Never);
+        RecurringJob.AddOrUpdate("ReadStatusDryRun", (DialogportenFixes handler) => handler.ScheduleReadStatusFixForAll(true, default), Cron.Never);
+        RecurringJob.AddOrUpdate("ConfirmationFix", (DialogportenFixes handler) => handler.ScheduleConfirmationFixForAll(false, default), Cron.Never);
+        RecurringJob.AddOrUpdate("ConfirmationFixDryRun", (DialogportenFixes handler) => handler.ScheduleConfirmationFixForAll(true, default), Cron.Never);
     }
 }
