@@ -8,46 +8,29 @@ using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Application.OneTimeJobs;
 
-public class DialogportenFixes
+public class DialogportenFixes(
+    ILogger<DialogportenFixes> logger,
+    IDialogportenService dialogportenService,
+    IOneTimeFixesRepository oneTimeFixesRepository)
 {
-    private readonly ILogger<DialogportenFixes> _logger;
-    private readonly IBackgroundJobClient _backgroundJobClient;
-    private readonly IDialogportenService _dialogportenService;
-    private readonly ICorrespondenceRepository _correspondenceRepository;
-    private readonly IOneTimeFixesRepository _oneTimeFixesRepository;
-
-    public DialogportenFixes(
-        ILogger<DialogportenFixes> logger,
-        IBackgroundJobClient backgroundJobClient,
-        IDialogportenService dialogportenService,
-        ICorrespondenceRepository correspondenceRepository,
-        IOneTimeFixesRepository oneTimeFixesRepository)
-    {
-        _logger = logger;
-        _backgroundJobClient = backgroundJobClient;
-        _dialogportenService = dialogportenService;
-        _correspondenceRepository = correspondenceRepository;
-        _oneTimeFixesRepository = oneTimeFixesRepository;
-    }
-
     [AutomaticRetry(Attempts = 0)]
     public async Task ScheduleRecipientNameFixForAll(bool dryRun, CancellationToken cancellationToken)
     {
-        var correspondences = await _oneTimeFixesRepository.GetCorrespondenceForNameFix(cancellationToken);
+        var correspondences = await oneTimeFixesRepository.GetCorrespondenceForNameFix(cancellationToken);
         await ProcessDialogBatches(correspondences, GetRecipientNameFixPatches, dryRun, cancellationToken);
     }
 
     [AutomaticRetry(Attempts = 0)]
     public async Task ScheduleReadStatusFixForAll(bool dryRun, CancellationToken cancellationToken)
     {
-        var correspondences = await _oneTimeFixesRepository.GetCorrespondences(cancellationToken);
+        var correspondences = await oneTimeFixesRepository.GetCorrespondences(cancellationToken);
         await ProcessDialogBatches(correspondences, GetReadStatusPatches, dryRun, cancellationToken);
     }
 
     [AutomaticRetry(Attempts = 0)]
     public async Task ScheduleConfirmationFixForAll(bool dryRun, CancellationToken cancellationToken)
     {
-        var correspondences = await _oneTimeFixesRepository.GetCorrespondencesWithoutConfirmation(cancellationToken);
+        var correspondences = await oneTimeFixesRepository.GetCorrespondencesWithoutConfirmation(cancellationToken);
         await ProcessDialogBatches(correspondences, GetConfirmationPatches, dryRun, cancellationToken);
     }
 
@@ -65,7 +48,7 @@ public class DialogportenFixes
             var dialogId = GetDialogId(entity);
             if (dialogId == null)
             {
-                _logger.LogWarning("Correspondence {correspondenceId} has no DialogportenDialogId", entity.Id);
+                logger.LogWarning("Correspondence {correspondenceId} has no DialogportenDialogId", entity.Id);
                 continue;
             }
 
@@ -87,7 +70,7 @@ public class DialogportenFixes
 
         if (dryRun)
         {
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Dry run, would have patched {correspondenceCount} correspondences across {dialogCount} dialogs with {patchCount} patches",
                 totalCorrespondences,
                 dialogGroups.Count,
@@ -105,7 +88,7 @@ public class DialogportenFixes
         int totalCorrespondences = dialogGroups.Sum(g => g.Value.Count);
         int totalPatches = dialogGroups.Sum(g => g.Value.Sum(item => item.patches.Count));
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Patching {correspondenceCount} correspondences across {dialogCount} dialogs with {patchCount} patches",
             totalCorrespondences,
             dialogGroups.Count,
@@ -116,12 +99,12 @@ public class DialogportenFixes
         {
             foreach (var (entity, patches) in correspondenceGroups)
             {
-                _logger.LogDebug("Applying {patchCount} patches for correspondence {correspondenceId} in dialog {dialogId}",
+                logger.LogDebug("Applying {patchCount} patches for correspondence {correspondenceId} in dialog {dialogId}",
                     patches.Count, entity.Id, dialogId);
 
                 foreach (var patch in patches)
                 {
-                    await _dialogportenService.PatchData(dialogId, patch);
+                    await dialogportenService.PatchData(dialogId, patch);
                 }
             }
         }
