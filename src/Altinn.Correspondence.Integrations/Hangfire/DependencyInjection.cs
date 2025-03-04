@@ -5,7 +5,6 @@ using Microsoft.ApplicationInsights;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Serilog.Core;
 
 namespace Altinn.Correspondence.Integrations.Hangfire;
 public static class DependencyInjection
@@ -26,7 +25,7 @@ public static class DependencyInjection
                     provider.GetRequiredService<SlackExceptionNotificationHandler>(),
                     provider.GetRequiredService<ILogger<SlackExceptionHandler>>())
                 );
-    });
+        });
         services.AddHangfireServer(options => options.SchedulePollingInterval = TimeSpan.FromSeconds(2));
     }
 }
