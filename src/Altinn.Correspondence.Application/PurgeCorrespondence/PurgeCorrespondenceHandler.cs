@@ -16,10 +16,7 @@ public class PurgeCorrespondenceHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
-    ICorrespondenceStatusRepository correspondenceStatusRepository,
-    IDialogportenService dialogportenService,
     PurgeCorrespondenceHelper purgeCorrespondenceHelper,
-    IBackgroundJobClient backgroundJobClient,
     ILogger<PurgeCorrespondenceHandler> logger) : IHandler<PurgeCorrespondenceRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(PurgeCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -62,26 +59,7 @@ public class PurgeCorrespondenceHandler(
 
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            var status = isSender ? CorrespondenceStatus.PurgedByAltinn : CorrespondenceStatus.PurgedByRecipient;
-            await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity()
-            {
-                CorrespondenceId = correspondenceId,
-                Status = status,
-                StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = status.ToString(),
-                PartyUuid = partyUuid
-            }, cancellationToken);
-
-            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondenceId.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-            await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondenceId, partyUuid, cancellationToken);
-            purgeCorrespondenceHelper.ReportActivityToDialogporten(isSender: isSender, correspondenceId);
-            purgeCorrespondenceHelper.CancelNotification(correspondenceId, cancellationToken);
-            var dialogId = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
-            if (dialogId is not null)
-            {
-                await dialogportenService.SoftDeleteDialog(dialogId.ReferenceValue);
-            }
-            return correspondenceId;
+            return await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, isSender, partyUuid, cancellationToken);
         }, logger, cancellationToken);
     }
     private Error? CheckUserPermissions(ClaimsPrincipal user, CorrespondenceEntity correspondence, bool hasAccessAsSender, bool hasAccessAsRecipient, out bool isSender)
@@ -100,7 +78,7 @@ public class PurgeCorrespondenceHandler(
                 return senderError;
             }
         }
-        else if ((hasAccessAsRecipient && user.CallingAsRecipient()) || (!hasAccessAsSender && hasAccessAsRecipient)) 
+        else if ((hasAccessAsRecipient && user.CallingAsRecipient()) || (!hasAccessAsSender && hasAccessAsRecipient))
         {
             var recipientError = purgeCorrespondenceHelper.ValidatePurgeRequestRecipient(correspondence);
             if (recipientError is not null)
@@ -108,7 +86,7 @@ public class PurgeCorrespondenceHandler(
                 return recipientError;
             }
         }
-        else 
+        else
         {// User has delegated permissions to both sender and recipient
             // Try as sender first
             var senderError = purgeCorrespondenceHelper.ValidatePurgeRequestSender(correspondence);
