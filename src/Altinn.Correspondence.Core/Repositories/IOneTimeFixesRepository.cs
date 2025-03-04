@@ -7,5 +7,9 @@ namespace Altinn.Correspondence.Core.Repositories
     public interface IOneTimeFixesRepository
     {
         Task<List<CorrespondenceEntity>> GetCorrespondenceForNameFix(CancellationToken cancellationToken);
+
+        Task<List<CorrespondenceEntity>> GetCorrespondencesWithoutConfirmation(CancellationToken cancellationToken);
+
+        Task<List<CorrespondenceEntity>> GetCorrespondences(CancellationToken cancellationToken);
     }
 }

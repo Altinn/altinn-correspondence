@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
-    public class OneTimeFixesRepository(ApplicationDbContext context)
+    public class OneTimeFixesRepository(ApplicationDbContext context) : IOneTimeFixesRepository
     {
         private readonly ApplicationDbContext _context = context;
 
@@ -14,6 +14,18 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<List<CorrespondenceEntity>> GetCorrespondenceForNameFix(CancellationToken cancellationToken)
         {
             var correspondences = await _context.Correspondences.Where(c => c.MessageSender != null).Include(c => c.ExternalReferences).ToListAsync(cancellationToken);
+            return correspondences;
+        }
+
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesWithoutConfirmation(CancellationToken cancellationToken)
+        {
+            var correspondences = await _context.Correspondences.Where(c => !c.IsConfirmationNeeded).Include(c => c.ExternalReferences).ToListAsync(cancellationToken);
+            return correspondences;
+        }
+
+        public async Task<List<CorrespondenceEntity>> GetCorrespondences(CancellationToken cancellationToken)
+        {
+            var correspondences = await _context.Correspondences.Include(c => c.ExternalReferences).ToListAsync(cancellationToken);
             return correspondences;
         }
     }
