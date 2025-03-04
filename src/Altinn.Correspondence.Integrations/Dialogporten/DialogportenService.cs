@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Models.Enums;
+﻿using Altinn.Correspondence.Core.Models.Dialogporten;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -94,6 +95,17 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var cancellationToken = cancellationTokenSource.Token;
 
         var response = await _httpClient.DeleteAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        }
+    }
+    public async Task PatchData(string dialogId, PatchData data)
+    {
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+
+        var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs?dialogId={dialogId}", data, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
