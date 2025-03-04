@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Services.Enums;
+﻿using Altinn.Correspondence.Core.Models.Dialogporten;
+using Altinn.Correspondence.Core.Services.Enums;
 
 namespace Altinn.Correspondence.Core.Services;
 
@@ -10,4 +11,5 @@ public interface IDialogportenService
 
     Task PurgeCorrespondenceDialog(Guid correspondenceId);
     Task SoftDeleteDialog(string dialogId);
+    Task PatchData(string dialogId, PatchData data);
 }
