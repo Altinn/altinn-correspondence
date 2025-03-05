@@ -33,17 +33,6 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Test endpoint that triggers an exception to test Slack notifications
-        /// </summary>
-        [HttpGet]
-        [Route("test-exception")]
-        [ApiExplorerSettings(IgnoreApi = true)]
-        public ActionResult TestException()
-        {
-            throw new NotImplementedException("This is a test exception to verify Slack notifications");
-        }
-
-        /// <summary>
         /// Initialize Correspondences
         /// </summary>
         /// <remarks>
