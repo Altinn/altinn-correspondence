@@ -54,7 +54,7 @@ jobs:
         uses: azure/arm-deploy@v1
         with:
           scope: resourcegroup
-          resourceGroupName: ${{ secrets.RESOURCE_GROUP }}
+          resourceGroupName: ${{ secrets.AZURE_NAME_PREFIX }}-rg
           template: .azure/applications/dashboard/main.bicep
           parameters: >
             AZURE_NAME_PREFIX: ${{ secrets.AZURE_NAME_PREFIX }}
