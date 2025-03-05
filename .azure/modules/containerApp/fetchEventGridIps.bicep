@@ -27,7 +27,7 @@ resource deploymentScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
       $DeploymentScriptOutputs = @{}
       $DeploymentScriptOutputs['eventGridIps'] = $output
     '''
-    arguments: '-location ${location} - subscriptionId ${subscriptionId}'
+    arguments: '-location ${location} -subscriptionId ${subscriptionId}'
     forceUpdateTag: '1'
     retentionInterval: 'PT2H'
   }
