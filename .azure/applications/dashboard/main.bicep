@@ -12,7 +12,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2021-06-01-preview' existing = {
 }
 
 resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
-  name: '${azureNamePrefix}-id'
+  name: '${azureNamePrefix}-identity'
 }
 
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
