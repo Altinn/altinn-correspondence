@@ -52,15 +52,16 @@ jobs:
 
       - name: Deploy Bicep
         uses: azure/arm-deploy@v1
+        env:
+          AZURE_NAME_PREFIX: ${{ secrets.AZURE_NAME_PREFIX }}
+          containerImage: ghcr.io/altinn/altinn-correspondence/altinn-correspondence-dashboard:${{ github.sha }}
+          AZURE_ENVIRONMENT_KEY_VAULT_NAME: ${{ secrets.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
+          AZURE_APP_REGISTRATION_ID: ${{ secrets.AZURE_APP_REGISTRATION_ID }}
+          AZURE_APP_REGISTRATION_CLIENT_SECRET: ${{ secrets.AZURE_APP_REGISTRATION_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          DASHBOARD_ALLOWED_GROUP_ID: ${{ secrets.AZURE_TEST_ACCESS_CLIENT_ID }}
         with:
           scope: resourcegroup
           resourceGroupName: ${{ secrets.AZURE_NAME_PREFIX }}-rg
           template: .azure/applications/dashboard/main.bicep
-          parameters: >
-            AZURE_NAME_PREFIX: ${{ secrets.AZURE_NAME_PREFIX }}
-            containerImage=ghcr.io/altinn/altinn-correspondence/altinn-correspondence-dashboard:${{ github.sha }}
-            AZURE_ENVIRONMENT_KEY_VAULT_NAME: ${{ secrets.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
-            AZURE_APP_REGISTRATION_ID: ${{ secrets.AZURE_APP_REGISTRATION_ID }}
-            AZURE_APP_REGISTRATION_CLIENT_SECRET: ${{ secrets.AZURE_APP_REGISTRATION_CLIENT_SECRET }}
-            AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-            DASHBOARD_ALLOWED_GROUP_ID: ${{ secrets.AZURE_TEST_ACCESS_CLIENT_ID }}
+          parameters: .azure/applications/dashboard/main.bicepparam
