@@ -77,7 +77,6 @@ static void BuildAndRun(string[] args)
         app.UseHangfireDashboard();
     }
 
-    app.Services.GetRequiredService<IBackgroundJobClient>().Enqueue<IpSecurityRestrictionUpdater>(handler => handler.UpdateIpRestrictions());
     app.Services.GetRequiredService<IRecurringJobManager>().AddOrUpdate<IpSecurityRestrictionUpdater>("Update IP restrictions to apimIp and current EventGrid IPs", handler => handler.UpdateIpRestrictions(), Cron.Daily());
 
     app.Run();
