@@ -33,16 +33,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: tools/Altinn.Correspondence.Dashboard/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/altinn/altinn-correspondence-dashboard:${{ github.sha }}
-            ghcr.io/altinn/altinn-correspondence-dashboard:latest
+            
+      - name: Push image to registry
+        shell: bash
+        run: |
+          # Construct the image tag using the Git hash
+          IMAGE=ghcr.io/altinn/altinn-correspondence-dashboard:${{ github.sha }}
+          docker build . --tag $IMAGE
+          docker push $IMAGE
 
       - name: Azure Login
         uses: azure/login@v1
