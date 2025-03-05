@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Slack.Webhooks;
+using Altinn.Correspondence.Core.Options;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
@@ -22,8 +23,17 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var slackClientMock = new Mock<ISlackClient>();
             var backgroundJobClient = new Mock<IBackgroundJobClient>();
             var hostEnvironment = new Mock<IHostEnvironment>();
+            var slackSettings = new SlackSettings(hostEnvironment.Object);
 
-            var cancelNotificationHandler = new CancelNotificationHandler(loggerMock.Object, correspondenceRepositoryMock.Object, altinnNotificationServiceMock.Object, slackClientMock.Object, backgroundJobClient.Object, hostEnvironment.Object);
+            var cancelNotificationHandler = new CancelNotificationHandler(
+                loggerMock.Object, 
+                correspondenceRepositoryMock.Object, 
+                altinnNotificationServiceMock.Object, 
+                slackClientMock.Object, 
+                backgroundJobClient.Object, 
+                hostEnvironment.Object,
+                slackSettings);
+
             var notificationEntities = correspondence.Notifications;
             notificationEntities.ForEach(notification =>
             {
