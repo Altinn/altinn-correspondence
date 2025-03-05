@@ -1,9 +1,14 @@
 param location string
 param containerImage string
+@secure()
 param azureNamePrefix string
+@secure()
 param keyVaultName string
+@secure()
 param appRegistrationId string
+@secure()
 param appRegistrationClientSecret string
+@secure()
 param tenantId string
 param allowedGroupId string
 
@@ -86,7 +91,7 @@ resource containerAppAuth 'Microsoft.App/containerApps/authConfigs@2023-05-01' =
         registration: {
           clientId: appRegistrationId
           clientSecretSettingName: 'app-registration-client-secret'
-          openIdIssuer: 'https://sts.windows.net/${tenantId}/'
+          openIdIssuer: 'https://sts.windows.net/${tenantId}/v2.0'
         }
         validation: {
           allowedAudiences: [
