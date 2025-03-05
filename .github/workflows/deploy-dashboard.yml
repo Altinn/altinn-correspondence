@@ -39,8 +39,8 @@ jobs:
         shell: bash
         run: |
           # Construct the image tag using the Git hash
-          IMAGE=ghcr.io/altinn/altinn-correspondence-dashboard:${{ github.sha }}
-          docker build . --tag $IMAGE
+          IMAGE=ghcr.io/altinn/altinn-correspondence/altinn-correspondence-dashboard:${{ github.sha }}
+          docker build -f tools/Altinn.Correspondence.Dashboard/Dockerfile . --tag $IMAGE
           docker push $IMAGE
 
       - name: Azure Login
@@ -58,7 +58,7 @@ jobs:
           template: .azure/applications/dashboard/main.bicep
           parameters: >
             AZURE_NAME_PREFIX: ${{ secrets.AZURE_NAME_PREFIX }}
-            containerImage=ghcr.io/altinn/altinn-correspondence-dashboard:${{ github.sha }}
+            containerImage=ghcr.io/altinn/altinn-correspondence/altinn-correspondence-dashboard:${{ github.sha }}
             AZURE_ENVIRONMENT_KEY_VAULT_NAME: ${{ secrets.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
             AZURE_APP_REGISTRATION_ID: ${{ secrets.AZURE_APP_REGISTRATION_ID }}
             AZURE_APP_REGISTRATION_CLIENT_SECRET: ${{ secrets.AZURE_APP_REGISTRATION_CLIENT_SECRET }}
