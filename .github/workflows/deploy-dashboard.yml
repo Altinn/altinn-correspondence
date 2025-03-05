@@ -16,14 +16,15 @@ on:
           - at23
           - at24
 
+permissions: 
+  id-token: write
+  contents: read
+  packages: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
-    permissions: 
-      id-token: write
-      contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v4
 
