@@ -11,29 +11,18 @@ resource keyVault 'Microsoft.KeyVault/vaults@2021-06-01-preview' existing = {
   name: keyVaultName
 }
 
-resource keyVaultAccessPolicy 'Microsoft.KeyVault/vaults/accessPolicies@2022-07-01' = {
-  name: '${keyVaultName}/add'
-  properties: {
-    accessPolicies: [
-      {
-        objectId: containerApp.identity.principalId
-        tenantId: subscription().tenantId
-        permissions: {
-          secrets: [
-            'get'
-            'list'
-          ]
-        }
-      }
-    ]
-  }
+resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
+  name: '${azureNamePrefix}-id'
 }
 
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: '${azureNamePrefix}-dashboard'
   location: location
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${userAssignedIdentity.id}': {}
+    }
   }
   properties: {
     environmentId: resourceId('Microsoft.App/managedEnvironments', '${azureNamePrefix}-env')
@@ -47,7 +36,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
         {
           name: 'correspondence-migration-connection-string'
           keyVaultUrl: '${keyVault.properties.vaultUri}secrets/correspondence-migration-connection-string'
-          identity: 'System'
+          identity: userAssignedIdentity.id
         }
         {
           name: 'app-registration-client-secret'
@@ -64,6 +53,10 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
             {
               name: 'DatabaseOptions__ConnectionString'
               secretRef: 'correspondence-migration-connection-string'
+            }
+            {
+              name: 'AZURE_CLIENT_ID'
+              value: userAssignedIdentity.properties.clientId
             }
           ]
         }
