@@ -16,11 +16,6 @@ on:
           - at23
           - at24
 
-permissions:
-  id-token: write
-  contents: read
-  packages: write
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
