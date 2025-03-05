@@ -61,6 +61,8 @@ public static class DependencyInjection
         {
             services.AddSingleton<ISlackClient>(new SlackClient(generalSettings.SlackUrl));
         }
+        
+        services.AddSingleton<SlackSettings>();
     }
 
     public static void RegisterAltinnHttpClient<TClient, TImplementation>(this IServiceCollection services, MaskinportenSettings maskinportenSettings, AltinnOptions altinnOptions)
