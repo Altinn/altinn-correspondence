@@ -90,7 +90,6 @@ module fetchEventGridIpsScript '../../modules/containerApp/fetchEventGridIps.bic
   dependsOn: [keyVaultReaderAccessPolicyUserIdentity, databaseAccess]
   params: {
     location: location
-    subscriptionId: subscription().subscriptionId
     principal_id: appIdentity.outputs.id
   }
 }
