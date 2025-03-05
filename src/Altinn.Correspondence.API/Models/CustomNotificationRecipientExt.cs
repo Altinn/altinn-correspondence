@@ -19,6 +19,6 @@ public class CustomNotificationRecipientExt
     /// <summary>
     /// List of custom recipients to override the default recipients
     /// </summary>
-    [JsonPropertyName("notificationRecipient")]
+    [JsonPropertyName("recipients")]
     public required List<NotificationRecipientExt> Recipients { get; set; }
 }
