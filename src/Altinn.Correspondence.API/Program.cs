@@ -1,11 +1,14 @@
 using Altinn.Correspondence.API.Auth;
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.OneTimeJobs;
+using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Integrations;
 using Altinn.Correspondence.Integrations.Hangfire;
+using Altinn.Correspondence.Integrations.Slack;
 using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Azure.Identity;
@@ -18,9 +21,6 @@ using Npgsql;
 using Serilog;
 using System.Reflection;
 using System.Text.Json.Serialization;
-using Altinn.Correspondence.Integrations.Slack;
-using Microsoft.Extensions.Caching.Hybrid;
-using Altinn.Correspondence.Common.Caching;
 
 BuildAndRun(args);
 
@@ -74,6 +74,12 @@ static void BuildAndRun(string[] args)
         }
         app.UseHangfireDashboard();
     }
+    app.Services.GetService<IRecurringJobManager>().AddOrUpdate<DialogportenFixes>("RecipientNameFix", (DialogportenFixes handler) => handler.ScheduleRecipientNameFixForAll(false, default), Cron.Never);
+    app.Services.GetService<IRecurringJobManager>().AddOrUpdate<DialogportenFixes>("RecipientNameFixDryRun", (DialogportenFixes handler) => handler.ScheduleRecipientNameFixForAll(true, default), Cron.Never);
+    app.Services.GetService<IRecurringJobManager>().AddOrUpdate<DialogportenFixes>("ReadStatus", (DialogportenFixes handler) => handler.ScheduleReadStatusFixForAll(false, default), Cron.Never);
+    app.Services.GetService<IRecurringJobManager>().AddOrUpdate<DialogportenFixes>("ReadStatusDryRun", (DialogportenFixes handler) => handler.ScheduleReadStatusFixForAll(true, default), Cron.Never);
+    app.Services.GetService<IRecurringJobManager>().AddOrUpdate<DialogportenFixes>("ConfirmationFix", (DialogportenFixes handler) => handler.ScheduleConfirmationFixForAll(false, default), Cron.Never);
+    app.Services.GetService<IRecurringJobManager>().AddOrUpdate<DialogportenFixes>("ConfirmationFixDryRun", (DialogportenFixes handler) => handler.ScheduleConfirmationFixForAll(true, default), Cron.Never);
 
     app.Run();
 }

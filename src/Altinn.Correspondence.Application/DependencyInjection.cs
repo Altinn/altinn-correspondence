@@ -73,11 +73,7 @@ public static class DependencyInjection
         services.AddScoped<MigrateUploadAttachmentHandler>();
         services.AddScoped<MigrateCorrespondenceHandler>();
 
-        RecurringJob.AddOrUpdate("RecipientNameFix", (DialogportenFixes handler) => handler.ScheduleRecipientNameFixForAll(false, default), Cron.Never);
-        RecurringJob.AddOrUpdate("RecipientNameFixDryRun", (DialogportenFixes handler) => handler.ScheduleRecipientNameFixForAll(true, default), Cron.Never);
-        RecurringJob.AddOrUpdate("ReadStatus", (DialogportenFixes handler) => handler.ScheduleReadStatusFixForAll(false, default), Cron.Never);
-        RecurringJob.AddOrUpdate("ReadStatusDryRun", (DialogportenFixes handler) => handler.ScheduleReadStatusFixForAll(true, default), Cron.Never);
-        RecurringJob.AddOrUpdate("ConfirmationFix", (DialogportenFixes handler) => handler.ScheduleConfirmationFixForAll(false, default), Cron.Never);
-        RecurringJob.AddOrUpdate("ConfirmationFixDryRun", (DialogportenFixes handler) => handler.ScheduleConfirmationFixForAll(true, default), Cron.Never);
+        // One time jobs
+        services.AddScoped<DialogportenFixes>();
     }
 }
