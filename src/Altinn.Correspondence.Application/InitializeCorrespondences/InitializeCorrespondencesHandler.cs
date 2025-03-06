@@ -223,7 +223,8 @@ public class InitializeCorrespondencesHandler(
         foreach (var correspondence in correspondences)
         {
             logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
-            var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
+            var dialogJob = backgroundJobClient.Schedule(() => CreateDialogportenDialog(correspondence), DateTimeOffset.UtcNow.AddMinutes(2));
+            //backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
             if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized ||
                 correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish)
             {
