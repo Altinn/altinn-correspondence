@@ -71,7 +71,7 @@ public class PublishCorrespondenceHandler(
         }
         else if (!correspondence.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId))
         {
-            errorMessage = $"Dialogporten dialog not yet created for correspondence {correspondenceId}";
+            errorMessage = $"Dialogporten dialog not created for correspondence {correspondenceId}";
         }
         else if (correspondence.IgnoreReservation != true && correspondence.GetRecipientUrn().IsSocialSecurityNumber())
         {
