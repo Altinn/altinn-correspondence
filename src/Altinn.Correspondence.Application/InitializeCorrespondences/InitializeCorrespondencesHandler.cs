@@ -235,7 +235,7 @@ public class InitializeCorrespondencesHandler(
                     //Adds a 1 minute delay for malware scan to finish if not running locally
                     publishTime = correspondence.RequestedPublishTime.UtcDateTime.AddSeconds(-30) < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow.AddMinutes(1) : correspondence.RequestedPublishTime.UtcDateTime;
                 }
-                backgroundJobClient.ContinueJobWith(dialogJob, () => backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), publishTime));
+                backgroundJobClient.ContinueJobWith<IBackgroundJobClient>(dialogJob, (BackgroundJobClient) => backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), publishTime));
             }
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
             var notificationDetails = new List<InitializedCorrespondencesNotifications>();

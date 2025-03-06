@@ -193,6 +193,6 @@ public class DialogportenTests
         Assert.NotNull(processedCorrespondence);
         Assert.Contains(processedCorrespondence.Statuses, s => s.Status == Core.Models.Enums.CorrespondenceStatus.Failed);
         var failedStatus = processedCorrespondence.Statuses.Find(s => s.Status == Core.Models.Enums.CorrespondenceStatus.Failed);
-        Assert.Equal($"Dialogporten dialog not yet created for correspondence {correspondenceId}", failedStatus?.StatusText);
+        Assert.Equal($"Dialogporten dialog not created for correspondence {correspondenceId}", failedStatus?.StatusText);
     }
 }
