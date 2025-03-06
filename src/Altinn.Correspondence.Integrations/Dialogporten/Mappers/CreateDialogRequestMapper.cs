@@ -194,9 +194,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static List<GuiAction> GetGuiActionsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
         {
-            var guiActions = new List<GuiAction>
+            var guiActions = new List<GuiAction>();
+            
+            if (correspondence.IsConfirmationNeeded)
             {
-                new GuiAction()
+                guiActions.Add(new GuiAction()
                 {
                     Title = new List<Title>()
                     {
@@ -223,93 +225,97 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/confirm",
                     HttpMethod = "POST",
                     Priority = "Primary"
-                },
-                new GuiAction()
+                });
+            }
+
+            guiActions.Add(new GuiAction()
+            {
+                Title = new List<Title>()
                 {
-                    Title = new List<Title>()
+                    new Title()
                     {
-                        new Title()
-                        {
-                            LanguageCode = "nb",
-                            MediaType = "text/plain",
-                            Value = "Arkiver"
-                        },
-                        new Title()
-                        {
-                            LanguageCode = "nn",
-                            MediaType = "text/plain",
-                            Value = "Arkiver"
-                        },
-                        new Title()
-                        {
-                            LanguageCode = "en",
-                            MediaType = "text/plain",
-                            Value = "Archive"
-                        },
+                        LanguageCode = "nb",
+                        MediaType = "text/plain",
+                        Value = "Arkiver"
                     },
-                    Action = "read",
-                    Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive",
-                    HttpMethod = "POST",
-                    Priority = "Secondary"
+                    new Title()
+                    {
+                        LanguageCode = "nn",
+                        MediaType = "text/plain",
+                        Value = "Arkiver"
+                    },
+                    new Title()
+                    {
+                        LanguageCode = "en",
+                        MediaType = "text/plain",
+                        Value = "Archive"
+                    },
                 },
-                new GuiAction()
+                Action = "read",
+                Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive",
+                HttpMethod = "POST",
+                Priority = "Secondary"
+            });
+
+            guiActions.Add(new GuiAction()
+            {
+                Title = new List<Title>()
                 {
-                    Title = new List<Title>()
+                    new Title()
                     {
-                        new Title()
-                        {
-                            LanguageCode = "nb",
-                            MediaType = "text/plain",
-                            Value = "Marker som lest"
-                        },
-                        new Title()
-                        {
-                            LanguageCode = "nn",
-                            MediaType = "text/plain",
-                            Value = "Mark som lest"
-                        },
-                        new Title()
-                        {
-                            LanguageCode = "en",
-                            MediaType = "text/plain",
-                            Value = "Mark as read"
-                        },
+                        LanguageCode = "nb",
+                        MediaType = "text/plain",
+                        Value = "Marker som lest"
                     },
-                    Action = "read",
-                    Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/markasread",
-                    HttpMethod = "POST",
-                    Priority = "Tertiary"
+                    new Title()
+                    {
+                        LanguageCode = "nn",
+                        MediaType = "text/plain",
+                        Value = "Mark som lest"
+                    },
+                    new Title()
+                    {
+                        LanguageCode = "en",
+                        MediaType = "text/plain",
+                        Value = "Mark as read"
+                    },
                 },
-                new GuiAction()
+                Action = "read",
+                Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/markasread",
+                HttpMethod = "POST",
+                Priority = "Tertiary"
+            });
+
+            guiActions.Add(new GuiAction()
+            {
+                Title = new List<Title>()
                 {
-                    Title = new List<Title>()
+                    new Title()
                     {
-                        new Title()
-                        {
-                            LanguageCode = "nb",
-                            MediaType = "text/plain",
-                            Value = "Slett"
-                        },
-                        new Title()
-                        {
-                            LanguageCode = "nn",
-                            MediaType = "text/plain",
-                            Value = "Slett"
-                        },
-                        new Title()
-                        {
-                            LanguageCode = "en",
-                            MediaType = "text/plain",
-                            Value = "Purge"
-                        },
+                        LanguageCode = "nb",
+                        MediaType = "text/plain",
+                        Value = "Slett"
                     },
-                    Action = "read",
-                    IsDeleteDialogAction = true,
-                    Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/purge",
-                    HttpMethod = "DELETE",
-                    Priority = "Tertiary"
-                }
-            };
+                    new Title()
+                    {
+                        LanguageCode = "nn",
+                        MediaType = "text/plain",
+                        Value = "Slett"
+                    },
+                    new Title()
+                    {
+                        LanguageCode = "en",
+                        MediaType = "text/plain",
+                        Value = "Purge"
+                    },
+                },
+                Action = "read",
+                IsDeleteDialogAction = true,
+                Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/purge",
+                HttpMethod = "DELETE",
+                Priority = "Tertiary"
+            });
+
             return guiActions;
         }
 
