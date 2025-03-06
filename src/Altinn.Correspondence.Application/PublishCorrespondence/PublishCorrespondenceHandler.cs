@@ -69,6 +69,10 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Correspondence {correspondenceId} not visible yet";
         }
+        else if (!correspondence.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId))
+        {
+            errorMessage = $"Dialogporten dialog not yet created for correspondence {correspondenceId}";
+        }
         else if (correspondence.IgnoreReservation != true && correspondence.GetRecipientUrn().IsSocialSecurityNumber())
         {
             var isReserved = await contactReservationRegistryService.IsPersonReserved(correspondence.GetRecipientUrn().WithoutPrefix());
