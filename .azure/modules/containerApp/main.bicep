@@ -134,9 +134,6 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
         targetPort: 2525
         external: true
         transport: 'Auto'
-        tls: {
-          minTlsVersion: '1.2'
-        }
       }
       secrets: [
         {
