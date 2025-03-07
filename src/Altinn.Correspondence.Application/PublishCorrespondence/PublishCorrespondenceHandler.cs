@@ -35,6 +35,7 @@ public class PublishCorrespondenceHandler(
         {
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
+        bool hasDialogportenDialog = correspondence.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
         var errorMessage = "";
         if (correspondence == null)
         {
@@ -69,6 +70,10 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Correspondence {correspondenceId} not visible yet";
         }
+        else if (!hasDialogportenDialog)
+        {
+            errorMessage = $"Dialogporten dialog not created for correspondence {correspondenceId}";
+        }
         else if (correspondence.IgnoreReservation != true && correspondence.GetRecipientUrn().IsSocialSecurityNumber())
         {
             var isReserved = await contactReservationRegistryService.IsPersonReserved(correspondence.GetRecipientUrn().WithoutPrefix());
@@ -98,7 +103,10 @@ public class PublishCorrespondenceHandler(
                 {
                     backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
                 }
-                backgroundJobClient.Enqueue<IDialogportenService>(dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
+                if (hasDialogportenDialog)
+                {
+                    backgroundJobClient.Enqueue<IDialogportenService>(dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
+                }
             }
             else
             {

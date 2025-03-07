@@ -234,8 +234,7 @@ public class InitializeCorrespondencesHandler(
                     //Adds a 1 minute delay for malware scan to finish if not running locally
                     publishTime = correspondence.RequestedPublishTime.UtcDateTime.AddSeconds(-30) < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow.AddMinutes(1) : correspondence.RequestedPublishTime.UtcDateTime;
                 }
-                
-                backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), publishTime);
+                backgroundJobClient.ContinueJobWith(dialogJob, () => SchedulePublish(correspondence.Id, publishTime, cancellationToken), JobContinuationOptions.OnAnyFinishedState);
             }
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
             var notificationDetails = new List<InitializedCorrespondencesNotifications>();
@@ -450,6 +449,11 @@ public class InitializeCorrespondencesHandler(
     {
         var dialogId = await dialogportenService.CreateCorrespondenceDialog(correspondence.Id);
         await correspondenceRepository.AddExternalReference(correspondence.Id, ReferenceType.DialogportenDialogId, dialogId);
+    }
+
+    public void SchedulePublish(Guid correspondenceId, DateTimeOffset publishTime, CancellationToken cancellationToken)
+    {
+        backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondenceId, null, cancellationToken), publishTime);
     }
 
     internal class NotificationContent
