@@ -21,6 +21,8 @@ using System.Text.Json.Serialization;
 using Altinn.Correspondence.Integrations.Slack;
 using Microsoft.Extensions.Caching.Hybrid;
 using Altinn.Correspondence.Common.Caching;
+using Altinn.Correspondence.Integrations.Azure;
+using Altinn.Correspondence.Application.IpSecurityRestrictionsUpdater;
 
 BuildAndRun(args);
 
@@ -75,6 +77,8 @@ static void BuildAndRun(string[] args)
         app.UseHangfireDashboard();
     }
 
+    app.Services.GetRequiredService<IRecurringJobManager>().AddOrUpdate<IpSecurityRestrictionUpdater>("Update IP restrictions to apimIp and current EventGrid IPs", handler => handler.UpdateIpRestrictions(), Cron.Daily());
+
     app.Run();
 }
 
@@ -85,6 +89,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.AddHostedService<EdDsaSecurityKeysCacheService>();
     services.Configure<AttachmentStorageOptions>(config.GetSection(key: nameof(AttachmentStorageOptions)));
     services.Configure<AltinnOptions>(config.GetSection(key: nameof(AltinnOptions)));
+    services.Configure<AzureResourceManagerOptions>(config.GetSection(key: nameof(AzureResourceManagerOptions)));
     services.Configure<DialogportenSettings>(config.GetSection(key: nameof(DialogportenSettings)));
     services.Configure<IdportenSettings>(config.GetSection(key: nameof(IdportenSettings)));
     services.Configure<GeneralSettings>(config.GetSection(key: nameof(GeneralSettings)));

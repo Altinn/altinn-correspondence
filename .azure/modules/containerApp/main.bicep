@@ -10,6 +10,7 @@ param contactReservationRegistryBaseUrl string
 param idportenIssuer string
 param dialogportenIssuer string
 param maskinporten_token_exchange_environment string
+param eventGridIps array
 
 @secure()
 param sblBridgeBaseUrl string
@@ -24,6 +25,8 @@ param keyVaultUrl string
 param userIdentityClientId string
 @secure()
 param containerAppEnvId string
+@secure()
+param apimIp string
 
 type ContainerAppScale = {
     minReplicas: int
@@ -79,6 +82,8 @@ var containerAppEnvVarsdefault = [
   { name: 'AzureResourceManagerOptions__Location', value: 'norwayeast' }
   { name: 'AzureResourceManagerOptions__Environment', value: environment }
   { name: 'AzureResourceManagerOptions__ApplicationResourceGroupName', value: '${namePrefix}-rg' }
+  { name: 'AzureResourceManagerOptions__ContainerAppName', value: '${namePrefix}-app' }
+  { name: 'AzureResourceManagerOptions__ApimIP', value: apimIp }
   { name: 'AZURE_CLIENT_ID', value: userIdentityClientId }
   {
     name: 'AltinnOptions__OpenIdWellKnown'
@@ -119,6 +124,23 @@ var containerAppEnvVars = concat(
     : []
 )
 
+var EventGridIpRestrictions = map(eventGridIps, (ipRange, index) => {
+  name: 'AzureEventGrid'
+  action: 'Allow'
+  ipAddressRange: ipRange!
+})
+
+var apimIpRestrictions = empty(apimIp)
+  ? []
+  : [
+      {
+        name: 'apim'
+        action: 'Allow'
+        ipAddressRange: apimIp!
+      }
+    ]
+var ipSecurityRestrictions = concat(apimIpRestrictions, EventGridIpRestrictions)
+
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: '${namePrefix}-app'
   location: location
@@ -134,6 +156,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
         targetPort: 2525
         external: true
         transport: 'Auto'
+        ipSecurityRestrictions: ipSecurityRestrictions
       }
       secrets: [
         {
