@@ -225,6 +225,23 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
+        public async Task GetCorrespondenceDetailsOnArchived_AsSender_FailsWithNotFound()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            initializeCorrespondenceResponse.EnsureSuccessStatusCode();
+            var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var archiveCorrespondenceResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondence?.Correspondences.FirstOrDefault().CorrespondenceId}/archive", null);
+
+            // Act
+            var getCorrespondenceDetailsResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.Correspondences.FirstOrDefault().CorrespondenceId}/details");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceDetailsResponse.StatusCode);
+        }
+
+        [Fact]
         public async Task PersonalCorrespondence_RetrievableWithRecipientPersonalToken()
         {
             // Arrange

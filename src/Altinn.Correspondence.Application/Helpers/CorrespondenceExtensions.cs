@@ -34,8 +34,8 @@ public static class CorrespondenceStatusExtensions
         List<CorrespondenceStatus> validStatuses =
         [
             CorrespondenceStatus.Initialized, CorrespondenceStatus.ReadyForPublish, CorrespondenceStatus.Failed,
-            CorrespondenceStatus.Published, CorrespondenceStatus.Fetched, CorrespondenceStatus.Read, CorrespondenceStatus.Replied,
-            CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived, CorrespondenceStatus.Reserved
+            CorrespondenceStatus.Published, CorrespondenceStatus.Fetched, CorrespondenceStatus.Read, 
+            CorrespondenceStatus.Confirmed, CorrespondenceStatus.Replied, CorrespondenceStatus.Reserved
         ];
         return validStatuses.Contains(correspondenceStatus);
     }
