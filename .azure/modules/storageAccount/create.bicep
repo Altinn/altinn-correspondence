@@ -12,6 +12,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2021-04-01' = {
   }
   properties: {
     accessTier: 'Cool'
+    minimumTlsVersion: 'TLS1_2'
   }
 }
 
