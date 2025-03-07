@@ -60,6 +60,7 @@ jobs:
           AZURE_APP_REGISTRATION_CLIENT_SECRET: ${{ secrets.AZURE_APP_REGISTRATION_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           DASHBOARD_ALLOWED_GROUP_ID: ${{ secrets.AZURE_TEST_ACCESS_CLIENT_ID }}
+          AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
         with:
           scope: resourcegroup
           resourceGroupName: ${{ secrets.AZURE_NAME_PREFIX }}-rg

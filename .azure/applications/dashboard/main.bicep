@@ -10,7 +10,10 @@ param appRegistrationId string
 param appRegistrationClientSecret string
 @secure()
 param tenantId string
+@secure()
 param allowedGroupId string
+@secure()
+param storageAccountName string
 
 resource keyVault 'Microsoft.KeyVault/vaults@2021-06-01-preview' existing = {
   name: keyVaultName
@@ -20,6 +23,26 @@ resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@
   name: '${azureNamePrefix}-app-identity'
 }
 
+resource storageAccount 'Microsoft.Storage/storageAccounts@2022-09-01' existing = {
+  name: storageAccountName
+}
+
+// Get the blob service for the storage account
+resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2022-09-01' existing = {
+  name: 'default'
+  parent: storageAccount
+}
+
+// Create a container for token storage
+resource tokenContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-09-01' = {
+  name: 'auth-tokens'
+  parent: blobService
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
+// Instead of generating SAS inline with utcNow, use the storage account's existing blob container URI
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: '${azureNamePrefix}-dashboard'
   location: location
@@ -74,13 +97,26 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   }
 }
 
-// Configure authentication for Container App
-resource containerAppAuth 'Microsoft.App/containerApps/authConfigs@2023-05-01' = {
+// Configure authentication for Container App with updated token store
+resource containerAppAuth 'Microsoft.App/containerApps/authConfigs@2024-10-02-preview' = {
   name: 'current'
   parent: containerApp
   properties: {
+    globalValidation: {
+      redirectToProvider: 'AzureActiveDirectory'
+      unauthenticatedClientAction: 'RedirectToLoginPage'
+    }
     platform: {
       enabled: true
+    }
+    login: {
+      tokenStore: {
+        enabled: true
+        azureBlobStorage: {
+          blobContainerUri: 'https://${storageAccountName}.blob.${environment().suffixes.storage}/${tokenContainer.name}'
+          managedIdentityResourceId: userAssignedIdentity.id
+        }
+      }
     }
     identityProviders: {
       azureActiveDirectory: {
@@ -121,5 +157,16 @@ resource containerAppAuth 'Microsoft.App/containerApps/authConfigs@2023-05-01' =
         }
       }
     }
+  }
+}
+
+// Role assignment to allow the managed identity to access the storage container
+resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(resourceGroup().id, userAssignedIdentity.id, 'StorageBlobDataContributor')
+  scope: tokenContainer
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe') // Storage Blob Data Contributor
+    principalId: userAssignedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
   }
 }
