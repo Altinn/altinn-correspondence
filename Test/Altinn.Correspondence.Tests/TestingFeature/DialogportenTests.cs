@@ -135,6 +135,14 @@ public class DialogportenTests
                     Status = Core.Models.Enums.CorrespondenceStatus.Initialized,
                     StatusChanged = DateTimeOffset.UtcNow
                 }
+            },
+            ExternalReferences = new List<Core.Models.Entities.ExternalReferenceEntity>()
+            {
+                new Core.Models.Entities.ExternalReferenceEntity()
+                {
+                    ReferenceType = Core.Models.Enums.ReferenceType.DialogportenDialogId,
+                    ReferenceValue = "dialogId"
+                }
             }
         }, CancellationToken.None);
         var correspondenceId = initializedCorrespondence.Id;
@@ -194,5 +202,6 @@ public class DialogportenTests
         Assert.Contains(processedCorrespondence.Statuses, s => s.Status == Core.Models.Enums.CorrespondenceStatus.Failed);
         var failedStatus = processedCorrespondence.Statuses.Find(s => s.Status == Core.Models.Enums.CorrespondenceStatus.Failed);
         Assert.Equal($"Dialogporten dialog not created for correspondence {correspondenceId}", failedStatus?.StatusText);
+        Assert.DoesNotContain(hangfireBackgroundJobClient.Invocations, invocation => invocation.Arguments[0].ToString() == "IDialogportenService.PurgeCorrespondenceDialog");
     }
 }
