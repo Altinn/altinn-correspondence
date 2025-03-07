@@ -1,9 +1,12 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Globalization;
+using System.Text.RegularExpressions;
 namespace Altinn.Correspondence.Common.Helpers;
 public static class StringExtensions
 {
     private static readonly Regex SsnPattern = new(@"^\d{11}$");
     private static readonly Regex OrgPattern = new(@"^(?:\d{9}|0192:\d{9})$");
+    private static readonly int[] SocialSecurityNumberWeights1 = [3, 7, 6, 1, 8, 9, 4, 5, 2, 1];
+    private static readonly int[] SocialSecurityNumberWeights2 = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2, 1];
 
     /// <summary>
     /// Checks if the provided string is a valid social security number format.
@@ -12,7 +15,7 @@ public static class StringExtensions
     /// <returns>True if the string matches a 11-digit format.</returns>
     public static bool IsSocialSecurityNumber(this string identifier)
     {
-        return (!string.IsNullOrWhiteSpace(identifier) && SsnPattern.IsMatch(identifier));
+        return (!string.IsNullOrWhiteSpace(identifier) && IsValidSocialSecurityNumber(identifier));
     }
 
     /// <summary>
@@ -36,5 +39,19 @@ public static class StringExtensions
             return string.Empty;
         }
         return orgOrSsnNumber.Split(":").Last();
+    }
+
+    /// <summary>
+    /// Checks if a social security number is valid.
+    /// </summary>
+    /// <param name="identifier">The string to validate.</param>
+    /// <returns></returns>
+    public static bool IsValidSocialSecurityNumber(this string identifier)
+    {
+        return SsnPattern.IsMatch(identifier)
+            && Mod11.TryCalculateControlDigit(identifier.AsSpan()[..9], SocialSecurityNumberWeights1, out var control1)
+            && Mod11.TryCalculateControlDigit(identifier.AsSpan()[..10], SocialSecurityNumberWeights2, out var control2)
+            && control1 == int.Parse(identifier[9..10], CultureInfo.InvariantCulture)
+            && control2 == int.Parse(identifier[10..11], CultureInfo.InvariantCulture);
     }
 }

@@ -25,7 +25,7 @@ namespace Altinn.Correspondence.Tests.Helpers;
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
     internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
-    public const string ReservedSsn = "12345123451";
+    public const string ReservedSsn = "08900499559";
     public Action<IServiceCollection>? CustomServices;
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)

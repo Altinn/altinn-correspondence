@@ -430,7 +430,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             // Arrange
             var orgRecipient = "0192:123456789";
-            var personRecipient = "01234567890";
+            var personRecipient = "08900499559";
             var sender = "0192:991825827";
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
