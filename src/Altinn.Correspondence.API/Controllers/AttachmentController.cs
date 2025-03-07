@@ -25,7 +25,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// </summary>
     /// <remarks>
     /// Scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// - altinn:correspondence.write <br/>
     /// Only required if the attachment is to be shared, otherwise this is done as part of the Initialize Correspondence operation
     /// </remarks>
     /// <returns></returns>
@@ -56,7 +56,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// </summary>
     /// <remarks>
     /// Scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <returns></returns>
     [HttpPost]
@@ -101,7 +101,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// </summary>
     /// <remarks>
     /// Scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <returns>AttachmentOverviewExt</returns>
     [HttpGet]
@@ -131,7 +131,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// </summary>
     /// <remarks>
     /// Scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <returns></returns>
     [HttpGet]
@@ -162,7 +162,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// </summary>
     /// <remarks>
     /// Scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <returns></returns>
     [HttpDelete]
@@ -192,7 +192,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// </summary>
     /// <remarks>
     /// Scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <returns></returns>
     [HttpGet]
