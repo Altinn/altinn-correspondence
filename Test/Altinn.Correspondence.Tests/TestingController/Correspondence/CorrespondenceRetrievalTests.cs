@@ -213,7 +213,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Arrange
             var correspondence = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithRecipients(["11015699332"])
+                .WithRecipients(["26818099001"])
                 .Build();
 
             // Act
@@ -235,7 +235,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Arrange
             var correspondence = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithRecipients(["11015699332"])
+                .WithRecipients(["26818099001"])
                 .Build();
 
             // Act
