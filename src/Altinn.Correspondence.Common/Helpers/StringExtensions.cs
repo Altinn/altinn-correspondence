@@ -12,10 +12,15 @@ public static class StringExtensions
     /// Checks if the provided string is a valid social security number format.
     /// </summary>
     /// <param name="identifier">The string to validate.</param>
-    /// <returns>True if the string matches a 11-digit format.</returns>
+    /// <returns>True if the string matches a 11-digit format and passes mod11 validation.</returns>
     public static bool IsSocialSecurityNumber(this string identifier)
     {
-        return (!string.IsNullOrWhiteSpace(identifier) && IsValidSocialSecurityNumber(identifier));
+        return !string.IsNullOrWhiteSpace(identifier) 
+            && SsnPattern.IsMatch(identifier)
+            && Mod11.TryCalculateControlDigit(identifier.AsSpan()[..9], SocialSecurityNumberWeights1, out var control1)
+            && Mod11.TryCalculateControlDigit(identifier.AsSpan()[..10], SocialSecurityNumberWeights2, out var control2)
+            && control1 == int.Parse(identifier[9..10], CultureInfo.InvariantCulture)
+            && control2 == int.Parse(identifier[10..11], CultureInfo.InvariantCulture);
     }
 
     /// <summary>
@@ -39,19 +44,5 @@ public static class StringExtensions
             return string.Empty;
         }
         return orgOrSsnNumber.Split(":").Last();
-    }
-
-    /// <summary>
-    /// Checks if a social security number is valid.
-    /// </summary>
-    /// <param name="identifier">The string to validate.</param>
-    /// <returns></returns>
-    public static bool IsValidSocialSecurityNumber(this string identifier)
-    {
-        return SsnPattern.IsMatch(identifier)
-            && Mod11.TryCalculateControlDigit(identifier.AsSpan()[..9], SocialSecurityNumberWeights1, out var control1)
-            && Mod11.TryCalculateControlDigit(identifier.AsSpan()[..10], SocialSecurityNumberWeights2, out var control2)
-            && control1 == int.Parse(identifier[9..10], CultureInfo.InvariantCulture)
-            && control2 == int.Parse(identifier[10..11], CultureInfo.InvariantCulture);
     }
 }
