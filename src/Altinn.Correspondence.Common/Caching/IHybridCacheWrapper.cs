@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Hybrid; // Ensure correct namespace for HybridCacheEntryOptions
 
 namespace Altinn.Correspondence.Common.Caching;
