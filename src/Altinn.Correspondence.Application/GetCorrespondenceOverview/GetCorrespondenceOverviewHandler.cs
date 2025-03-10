@@ -1,9 +1,12 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Dialogporten.Mappers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Dialogporten;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -15,6 +18,7 @@ public class GetCorrespondenceOverviewHandler(
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
+    IDialogportenService dialogportenService,
     ILogger<GetCorrespondenceOverviewHandler> logger) : IHandler<GetCorrespondenceOverviewRequest, GetCorrespondenceOverviewResponse>
 {
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(GetCorrespondenceOverviewRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -65,7 +69,7 @@ public class GetCorrespondenceOverviewHandler(
                     StatusChanged = DateTimeOffset.UtcNow,
                     PartyUuid = partyUuid
                 }, cancellationToken);
-
+                await dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient);
             }
             var notificationsOverview = new List<CorrespondenceNotificationOverview>();
             foreach (var notification in correspondence.Notifications)
