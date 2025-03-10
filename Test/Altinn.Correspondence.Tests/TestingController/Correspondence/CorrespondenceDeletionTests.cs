@@ -28,24 +28,16 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
             Assert.NotNull(correspondenceResponse);
-            var correspondenceId = correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId;
-
-            // Verify correspondence exists before deletion
-            var getResponseBeforePurge = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
-            Assert.Equal(HttpStatusCode.OK, getResponseBeforePurge.StatusCode);
 
             // Act (Call recipient first to ensure that the correspondence is not purged)
-            var recipientResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
-            var senderResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
+            var recipientResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}/purge");
+            var senderResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}/purge");
 
             // Assert
             Assert.Equal(HttpStatusCode.NotFound, recipientResponse.StatusCode);
             Assert.Equal(HttpStatusCode.OK, senderResponse.StatusCode);
-
-            // Since we can no longer check the status directly after purging, we'll verify by confirming
-            // that attempting to get the correspondence now returns a 404 (Not Found)
-            var getResponseAfterPurge = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
-            Assert.Equal(HttpStatusCode.NotFound, getResponseAfterPurge.StatusCode);
+            var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}", _responseSerializerOptions);
+            Assert.Equal(overview?.Status, CorrespondenceStatusExt.PurgedByAltinn);
         }
 
         [Fact]
@@ -57,24 +49,16 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
             Assert.NotNull(correspondenceResponse);
-            var correspondenceId = correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId;
-
-            // Verify correspondence exists before deletion
-            var getResponseBeforePurge = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
-            Assert.Equal(HttpStatusCode.OK, getResponseBeforePurge.StatusCode);
 
             // Act (Call sender first to ensure that the correspondence is not purged)
-            var senderResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
-            var recipientResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
+            var senderResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}/purge");
+            var recipientResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}/purge");
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, senderResponse.StatusCode);
             Assert.Equal(HttpStatusCode.OK, recipientResponse.StatusCode);
-
-            // Since we can no longer check the status directly after purging, we'll verify by confirming
-            // that attempting to get the correspondence now returns a 404 (Not Found)
-            var getResponseAfterPurge = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
-            Assert.Equal(HttpStatusCode.NotFound, getResponseAfterPurge.StatusCode);
+            var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}", _responseSerializerOptions);
+            Assert.Equal(overview?.Status, CorrespondenceStatusExt.PurgedByRecipient);
         }
 
         [Fact]
@@ -131,23 +115,19 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var correspondenceResponse = await CreateCorrespondenceWithAttachment(attachmentId, DateTimeOffset.UtcNow.AddDays(1));
             Assert.NotNull(correspondenceResponse);
 
-            // Store all correspondenceIds for later verification
-            var correspondenceIds = correspondenceResponse.Correspondences.Select(c => c.CorrespondenceId).ToList();
-
-            // Act - delete all correspondences
-            foreach (var correspondenceId in correspondenceIds)
+            // Act
+            foreach (var correspondence in correspondenceResponse.Correspondences)
             {
+                var correspondenceId = correspondence.CorrespondenceId;
                 var response = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
                 Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-                // Verify correspondence is not found after deletion
-                var getResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
-                Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+                var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceId}", _responseSerializerOptions);
+                Assert.Equal(overview?.Status, CorrespondenceStatusExt.PurgedByAltinn);
             }
 
-            // Assert - Verify attachment status indirectly (attempt to download should fail)
-            var attachmentDownloadResponse = await _senderClient.GetAsync($"correspondence/api/v1/attachment/{correspondenceResponse.AttachmentIds.FirstOrDefault()}/content");
-            Assert.Equal(HttpStatusCode.NotFound, attachmentDownloadResponse.StatusCode);
+            // Assert
+            var attachment = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{correspondenceResponse.AttachmentIds.FirstOrDefault()}", _responseSerializerOptions);
+            Assert.Equal(attachment?.Status, AttachmentStatusExt.Purged);
         }
 
         [Fact]
@@ -158,13 +138,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initializeCorrespondenceResponse1 = await CreateCorrespondenceWithAttachment(attachmentId, DateTimeOffset.UtcNow.AddDays(1));
             var initializeCorrespondenceResponse2 = await CreateCorrespondenceWithAttachment(attachmentId, DateTimeOffset.UtcNow.AddDays(1));
 
-            // Delete the first correspondence
             var deleteResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{initializeCorrespondenceResponse1.Correspondences.FirstOrDefault().CorrespondenceId}/purge");
             Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
 
-            // The attachment should still exist and be accessible since it's used by the second correspondence
-            var attachmentDownloadResponse = await _senderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}");
-            Assert.Equal(HttpStatusCode.OK, attachmentDownloadResponse.StatusCode);
+            var attachmentOverview = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{initializeCorrespondenceResponse2.AttachmentIds.FirstOrDefault()}", _responseSerializerOptions);
+            Assert.NotEqual(attachmentOverview?.Status, AttachmentStatusExt.Purged);
         }
 
         [Fact]

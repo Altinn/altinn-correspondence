@@ -43,11 +43,6 @@ public class GetCorrespondenceDetailsHandler(
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        if (!hasAccessAsRecipient && !latestStatus.Status.IsAvailableForSender())
-        {
-            logger.LogInformation("Caller has access to endpoint only as sender, but correspondence is not available for sender due to status.");
-            return CorrespondenceErrors.CorrespondenceNotFound;
-        }
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
@@ -97,7 +92,10 @@ public class GetCorrespondenceDetailsHandler(
                 Content = correspondence.Content!,
                 ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
                 Notifications = notificationHistory,
-                StatusHistory = correspondence.Statuses?.OrderBy(s => s.StatusChanged).ToList() ?? new List<CorrespondenceStatusEntity>(),
+                StatusHistory = correspondence.Statuses
+                    .Where(statusEntity => hasAccessAsRecipient ? true : statusEntity.Status.IsAvailableForSender())
+                    .OrderBy(s => s.StatusChanged)
+                    .ToList(),
                 ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
                 ResourceId = correspondence.ResourceId,
                 RequestedPublishTime = correspondence.RequestedPublishTime,

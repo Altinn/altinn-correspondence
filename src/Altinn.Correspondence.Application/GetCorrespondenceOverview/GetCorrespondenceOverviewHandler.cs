@@ -43,11 +43,6 @@ public class GetCorrespondenceOverviewHandler(
             logger.LogWarning("Latest status not found for correspondence");
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        if (!hasAccessAsRecipient && !latestStatus.Status.IsAvailableForSender())
-        {
-            logger.LogInformation("Caller has access to endpoint only as sender, but correspondence is not available for sender due to status.");
-            return CorrespondenceErrors.CorrespondenceNotFound;
-        }
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
