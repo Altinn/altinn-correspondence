@@ -13,8 +13,7 @@ internal static class AttachmentStatusMapper
         {
             Status = (AttachmentStatusExt)AttachmentStatus.Status,
             StatusText = AttachmentStatus.StatusText,
-            StatusChanged = AttachmentStatus.StatusChanged,
-            PartyUuid = AttachmentStatus.PartyUuid,
+            StatusChanged = AttachmentStatus.StatusChanged
         };
         return attachment;
     }

@@ -7,6 +7,7 @@ using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
+using System.Linq;
 
 namespace Altinn.Correspondence.Application.GetCorrespondenceOverview;
 
