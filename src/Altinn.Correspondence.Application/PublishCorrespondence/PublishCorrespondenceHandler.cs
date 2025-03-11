@@ -106,7 +106,7 @@ public class PublishCorrespondenceHandler(
                 var slackSent = await SlackHelper.SendSlackNotificationWithMessage("Correspondence failed", errorMessage, slackClient, slackSettings.NotificationChannel, hostEnvironment.EnvironmentName);
                 if (!slackSent)
                 {
-                    logger.LogError("Failed to send Slack notification");
+                    logger.LogError($"Failed to send Slack notification for failed correspondence: {errorMessage}");
                 }
                 eventType = AltinnEventType.CorrespondencePublishFailed;
                 foreach (var notification in correspondence.Notifications)
