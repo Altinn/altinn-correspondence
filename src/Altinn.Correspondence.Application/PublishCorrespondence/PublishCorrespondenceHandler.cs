@@ -103,7 +103,11 @@ public class PublishCorrespondenceHandler(
                     StatusText = errorMessage,
                     PartyUuid = partyUuid
                 };
-                await SlackHelper.SendSlackNotificationWithMessage("Correspondence failed", errorMessage, slackClient, slackSettings.NotificationChannel, hostEnvironment.EnvironmentName);
+                var slackSent = await SlackHelper.SendSlackNotificationWithMessage("Correspondence failed", errorMessage, slackClient, slackSettings.NotificationChannel, hostEnvironment.EnvironmentName);
+                if (!slackSent)
+                {
+                    logger.LogError("Failed to send Slack notification");
+                }
                 eventType = AltinnEventType.CorrespondencePublishFailed;
                 foreach (var notification in correspondence.Notifications)
                 {

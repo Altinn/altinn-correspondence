@@ -5,11 +5,11 @@ using Slack.Webhooks;
 namespace Altinn.Correspondence.Helpers
 {
     /// <summary>
-    /// Helper class for all mobile number related actions
+    /// Helper class for Slack notification functionality
     /// </summary>
     public class SlackHelper
     {
-        public static async Task SendSlackNotificationWithMessage(string title, string message, ISlackClient slackClient, string Channel, string hostEnvironment)
+        public static async Task<bool> SendSlackNotificationWithMessage(string title, string message, ISlackClient slackClient, string Channel, string hostEnvironment)
         {
             Console.WriteLine("Sending slack message: " + message);
             var text = $":warning: *{title}*\n" +
@@ -22,7 +22,15 @@ namespace Altinn.Correspondence.Helpers
                 Text = text,
                 Channel = Channel,
             };
-            await slackClient.PostAsync(slackMessage);
+            try
+            {
+                await slackClient.PostAsync(slackMessage);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
         }
     }
 }
