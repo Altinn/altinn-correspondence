@@ -655,5 +655,17 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var responseObject = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<ProblemDetails>(_responseSerializerOptions);
             Assert.NotNull(responseObject);
         }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithoutAttachments_SchedulesPublish()
+        {
+            throw new NotImplementedException();
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithAttachments_DoesNotSchedulePublish()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
