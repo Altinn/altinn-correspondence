@@ -12,6 +12,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Net;
 using System.Net.Http.Json;
+using Hangfire;
+using Hangfire.Common;
+using Hangfire.States;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -659,13 +662,51 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [Fact]
         public async Task InitializeCorrespondence_WithoutAttachments_SchedulesPublish()
         {
-            throw new NotImplementedException();
+            // Arrange
+            var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                services.AddSingleton(hangfireBackgroundJobClient.Object);
+            });
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .Build();
+
+            // Act
+            var senderClient = testFactory.CreateSenderClient();
+            var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+            hangfireBackgroundJobClient.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == "PublishCorrespondence"),
+                It.IsAny<IState>()), Times.Once);
         }
 
         [Fact]
         public async Task InitializeCorrespondence_WithAttachments_DoesNotSchedulePublish()
         {
-            throw new NotImplementedException();
+            // Arrange
+            var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                services.AddSingleton(hangfireBackgroundJobClient.Object);
+            });
+            var attachmentId = await AttachmentHelper.GetInitializedAttachment(testFactory.CreateSenderClient(), _responseSerializerOptions);
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments([attachmentId])
+                .Build();
+
+            // Act
+            var senderClient = testFactory.CreateSenderClient();
+            var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+            hangfireBackgroundJobClient.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == "PublishCorrespondence"),
+                It.IsAny<IState>()), Times.Never);
         }
     }
 }
