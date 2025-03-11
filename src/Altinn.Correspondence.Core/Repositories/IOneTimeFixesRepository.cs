@@ -11,5 +11,7 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<List<CorrespondenceEntity>> GetCorrespondencesWithoutConfirmation(CancellationToken cancellationToken);
 
         Task<List<CorrespondenceEntity>> GetCorrespondences(CancellationToken cancellationToken);
+        Task<List<CorrespondenceEntity>> GetCorrespondencesWithoutOpenedStatus(CancellationToken cancellationToken);
+        Task<List<CorrespondenceEntity>> GetCorrespondencesWithArchivedAction(CancellationToken cancellationToken);
     }
 }

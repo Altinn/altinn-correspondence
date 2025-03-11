@@ -34,6 +34,20 @@ public class DialogportenFixes(
         await ProcessDialogBatches(correspondences, GetConfirmationPatches, dryRun, cancellationToken);
     }
 
+    [AutomaticRetry(Attempts = 0)]
+    public async Task ScheduleRemoveArchiveEndpoint(bool dryRun, CancellationToken cancellationToken)
+    {
+        var correspondences = await oneTimeFixesRepository.GetCorrespondencesWithArchivedAction(cancellationToken);
+        await ProcessDialogBatches(correspondences, GetRemoveArchivePatches, dryRun, cancellationToken);
+    }
+
+    [AutomaticRetry(Attempts = 0)]
+    public async Task ScheduleAddOpenedStatus(bool dryRun, CancellationToken cancellationToken)
+    {
+        var correspondences = await oneTimeFixesRepository.GetCorrespondencesWithoutOpenedStatus(cancellationToken);
+        await ProcessDialogBatches(correspondences, GetAddOpenedPatches, dryRun, cancellationToken);
+    }
+
     private async Task ProcessDialogBatches(
         List<CorrespondenceEntity> correspondences,
         Func<CorrespondenceEntity, List<PatchData>> getPatchesFunc,
@@ -163,5 +177,13 @@ public class DialogportenFixes(
         }
 
         return [];
+    }
+    private List<PatchData> GetRemoveArchivePatches(CorrespondenceEntity entity)
+    {
+        throw new NotImplementedException();
+    }
+    private List<PatchData> GetAddOpenedPatches(CorrespondenceEntity entity)
+    {
+        throw new NotImplementedException();
     }
 }

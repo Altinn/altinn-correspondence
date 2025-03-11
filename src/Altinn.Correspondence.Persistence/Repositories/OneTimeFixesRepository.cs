@@ -28,5 +28,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
             var correspondences = await _context.Correspondences.Include(c => c.ExternalReferences).ToListAsync(cancellationToken);
             return correspondences;
         }
+
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesWithoutOpenedStatus(CancellationToken cancellationToken)
+        {
+            var timeFixForNewWasCreated = DateTime.Now; // TODO, set date filter, also, consider using DialogId instead as it is more accurate to dialog creation time and should be sortable
+            return await _context.Correspondences.Where(c => c.Created < DateTime.Now).Include(c => c.ExternalReferences).ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesWithArchivedAction(CancellationToken cancellationToken)
+        {
+            var timeFixForNewWasCreated = DateTime.Now; // TODO, set date filter, also, consider using DialogId instead as it is more accurate to dialog creation time and should be sortable
+            return await _context.Correspondences.Where(c => c.Created < DateTime.Now).Include(c => c.ExternalReferences).ToListAsync(cancellationToken);
+        }
     }
 }
