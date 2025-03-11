@@ -72,7 +72,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return await correspondence.ToListAsync(cancellationToken);
         }
 
-        public async Task<List<Guid>> GetNonPublishedCorrespondencesByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default)
+        public async Task<List<CorrespondenceEntity>> GetNonPublishedCorrespondencesByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default)
         {
             var correspondences = await _context.Correspondences
                 .Where(correspondence =>
@@ -82,7 +82,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                      && correspondence.Content.Attachments.All(correspondenceAttachment => // All attachments of correspondence are published
                             correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Published) // All attachments must be published
                          && !correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Purged))) // No attachments can be purged
-                .Select(correspondence => correspondence.Id)
                 .ToListAsync(cancellationToken);
 
             return correspondences;
