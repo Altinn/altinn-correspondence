@@ -81,6 +81,7 @@ jobs:
           SBL_BRIDGE_BASE_URL: ${{ secrets.SBL_BRIDGE_BASE_URL }}
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
+          APIM_IP: ${{ secrets.APIM_IP }}
 
   deploy-at22:
     name: deploy at22
@@ -124,6 +125,7 @@ jobs:
           CONTACT_RESERVATION_REGISTRY_BASE_URL: ${{ secrets.CONTACT_RESERVATION_REGISTRY_BASE_URL }} 
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
+          APIM_IP: ${{ secrets.APIM_IP }}
 
   deploy-staging:
     name: Internal staging
@@ -170,6 +172,7 @@ jobs:
           MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ secrets.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
+          APIM_IP: ${{ secrets.APIM_IP }}
 
   deploy-production:
     name: Production
@@ -216,6 +219,7 @@ jobs:
           MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ secrets.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
+          APIM_IP: ${{ secrets.APIM_IP }}
 
   release-to-git:  
     name: Release to git
