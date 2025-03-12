@@ -191,7 +191,7 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpGet]
         [Route("{correspondenceId}/content")]
         [Produces("text/plain")]
-        [Authorize(AuthenticationSchemes = AuthorizationConstants.DialogportenScheme)]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<ActionResult> GetCorrespondenceContent(
