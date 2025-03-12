@@ -49,4 +49,7 @@ public class HybridCacheWrapper : IHybridCacheWrapper
     {
         return _hybridCache.RemoveAsync(key, cancellationToken).AsTask();
     }
+
+    public Task<T?> GetAsync<T>(string key, HybridCacheEntryOptions? options = null, IEnumerable<string>? tags = null, CancellationToken cancellationToken = default)
+        => GetOrCreateAsync(key, ct => ValueTask.FromResult<T?>(default), options, tags, cancellationToken);
 }

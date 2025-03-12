@@ -84,10 +84,7 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
             return AuthenticateResult.NoResult();
         }
 
-        var token = await _cache.GetOrCreateAsync(
-            sessionId, 
-            ct => ValueTask.FromResult<string?>(null)
-        );
+        var token = await _cache.GetAsync<string>(sessionId);
         
         if (string.IsNullOrEmpty(token))
         {
