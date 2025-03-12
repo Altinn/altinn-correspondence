@@ -262,7 +262,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithRecipients(["0192:123456789", "12345678901"])
+                .WithRecipients(["0192:123456789", "07827199405"])
                 .Build();
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             initializeCorrespondenceResponse.EnsureSuccessStatusCode();
@@ -430,7 +430,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             // Arrange
             var orgRecipient = "0192:123456789";
-            var personRecipient = "01234567890";
+            var personRecipient = "08900499559";
             var sender = "0192:991825827";
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
@@ -459,7 +459,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Arrange
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithRecipients([CustomWebApplicationFactory.ReservedSsn, "01234567890"])
+                .WithRecipients([CustomWebApplicationFactory.ReservedSsn, "07827199405"])
                 .Build();
 
             // Act
@@ -618,7 +618,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Arrange
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithRecipients(["01234567891", "01234567890"])
+                .WithRecipients(["26818099001", "07827199405"])
                 .Build();
 
             // Act
