@@ -36,8 +36,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// Initialize Correspondences
         /// </summary>
         /// <remarks>
-        /// One of the scopes: <br/>
-        /// - altinn:correspondence.send <br />
+        /// One of the scopes: <br/>/>
+        /// - altinn:correspondence.write <br />
         /// Requires uploads of specified attachments if any before it can be Published
         /// </remarks>
         /// <response code="200">Returns metadata about the initialized correspondence</response>
@@ -112,7 +112,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </summary>
         /// <remarks>
         /// One of the scopes: <br/>
-        /// - altinn:correspondence.send
+        /// - altinn:correspondence.write
         /// </remarks>
         /// <response code="200">Returns metadata about the initialized correspondence</response>
         /// <response code="400"><ul>
@@ -192,7 +192,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>
         ///  One of the scopes: <br />
         ///  - altinn:correspondence.read <br />
-        ///  - altinn:correspondence.send <br />
+        ///  - altinn:correspondence.write <br />
         /// Mostly for use by recipients and occasional status checks
         /// </remarks>
         /// <response code="200">Returns an overview of metadata about the published correspondence</response>
@@ -231,7 +231,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>
         ///  One of the scopes: <br />
         ///  - altinn:correspondence.read <br />
-        ///  - altinn:correspondence.send <br />
+        ///  - altinn:correspondence.write <br />
         /// Meant for Senders that want a complete overview of the status and history of the Correspondence, but also available for Receivers
         /// </remarks>
         /// <response code="200">Detailed information about the correspondence with current status and status history</response>
@@ -274,7 +274,7 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpGet]
         [Route("{correspondenceId}/content")]
         [Produces("text/plain")]
-        [Authorize(AuthenticationSchemes = AuthorizationConstants.DialogportenScheme)]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<ActionResult> GetCorrespondenceContent(
@@ -304,7 +304,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>
         /// One of the scopes: <br />
         /// - altinn:correspondence.read <br />
-        /// - altinn:correspondence.send <br />
+        /// - altinn:correspondence.write <br />
         /// Meant for Receivers, but also available for Senders to track Correspondences
         /// </remarks>
         /// <response code="200">Returns a list of Correspondences</response>   
@@ -473,7 +473,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>
         /// One of the scopes: <br/>
         /// - altinn:correspondence.read <br />
-        /// - altinn:correspondence.send <br /> (Can only purge before the correspondence is published)
+        /// - altinn:correspondence.write <br /> (Can only purge before the correspondence is published)
         /// </remarks>
         /// <response code="200">the Id of the correspondence</response>
         /// <response code="400"><ul>

@@ -9,7 +9,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
 {
     internal class CreateDialogActivityRequestMapper
     {
-        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType textType, params string[] tokens)
+        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, params string[] tokens)
         {
             var dialogActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString(); // Dialogporten requires time-stamped GUIDs, not supported natively until .NET 9.0
             var urnActorId = actorType switch
@@ -19,35 +19,50 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 DialogportenActorType.Recipient => correspondence.GetRecipientUrn(),
                 _ => throw new NotImplementedException()
             };
-            return new CreateDialogActivityRequest()
+
+            var createDialogActivityRequest = new CreateDialogActivityRequest()
             {
                 Id = dialogActivityId,
                 CreatedAt = DateTime.UtcNow,
-                Description = new List<ActivityDescription>()
-                {
-                    new ActivityDescription()
-                    {
-                        LanguageCode = "nb",
-                        Value = DialogportenText.GetDialogportenText(textType, DialogportenLanguageCode.NB, tokens)
-                    },
-                    new ActivityDescription()
-                    {
-                        LanguageCode = "nn",
-                        Value = DialogportenText.GetDialogportenText(textType, DialogportenLanguageCode.NN, tokens)
-                    },
-                    new ActivityDescription()
-                    {
-                        LanguageCode = "en",
-                        Value = DialogportenText.GetDialogportenText(textType, DialogportenLanguageCode.EN, tokens)
-                    }
-                },
                 PerformedBy = new ActivityPerformedBy()
                 {
                     ActorType = actorType == DialogportenActorType.ServiceOwner ? "ServiceOwner" : "PartyRepresentative",
                     ActorId = urnActorId
                 },
-                Type = ActivityType.Information
+                Type = type
             };
+
+            if (type == ActivityType.Information)
+            {
+                if (textType is null)
+                {
+                    throw new ArgumentException("TextType must be set when creating an information activity");
+                }
+                createDialogActivityRequest.Description = new List<ActivityDescription>()
+                {
+                    new ActivityDescription()
+                    {
+                        LanguageCode = "nb",
+                        Value = DialogportenText.GetDialogportenText(textType.Value, DialogportenLanguageCode.NB, tokens)
+                    },
+                    new ActivityDescription()
+                    {
+                        LanguageCode = "nn",
+                        Value = DialogportenText.GetDialogportenText(textType.Value, DialogportenLanguageCode.NN, tokens)
+                    },
+                    new ActivityDescription()
+                    {
+                        LanguageCode = "en",
+                        Value = DialogportenText.GetDialogportenText(textType.Value, DialogportenLanguageCode.EN, tokens)
+                    }
+                };
+            }
+            else 
+            {
+                createDialogActivityRequest.Description = new();
+            }
+
+            return createDialogActivityRequest;
         }
     }
 }

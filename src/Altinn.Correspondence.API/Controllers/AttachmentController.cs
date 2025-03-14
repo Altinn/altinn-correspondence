@@ -25,7 +25,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// </summary>
     /// <remarks>
     /// One of the scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// - altinn:correspondence.write <br/>
     /// Only required if the attachment is to be shared, otherwise this is done as part of the Initialize Correspondence operation
     /// </remarks>
     /// <response code="200">Returns the attachment id</response>
@@ -67,7 +67,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// </summary>
     /// <remarks>
     /// One of the scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <response code="200">Returns attachment metadata</response>
     /// <response code="400">
@@ -125,7 +125,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// </summary>
     /// <remarks>
     /// One of the scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <response code="200">Returns attachment metadata</response>
     /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
@@ -157,7 +157,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// </summary>
     /// <remarks>
     /// One of the scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <response code="200">Returns attachment metadata</response>
     /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
@@ -190,7 +190,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// </summary>
     /// <remarks>
     /// One of the scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <response code="200">Returns no data</response>
     /// <response code="400">
@@ -229,7 +229,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// </summary>
     /// <remarks>
     /// One of the scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <response code="200">Returns the attachment</response>
     /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
