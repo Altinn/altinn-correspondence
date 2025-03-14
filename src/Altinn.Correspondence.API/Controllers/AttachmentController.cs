@@ -24,7 +24,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// Initialize a new Attachment to be shared in correspondences
     /// </summary>
     /// <remarks>
-    /// Scopes: <br/>
+    /// One of the scopes: <br/>
     /// - altinn:correspondence.send <br/>
     /// Only required if the attachment is to be shared, otherwise this is done as part of the Initialize Correspondence operation
     /// </remarks>
@@ -66,7 +66,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// Upload attachment data to Altinn Correspondence blob storage
     /// </summary>
     /// <remarks>
-    /// Scopes: <br/>
+    /// One of the scopes: <br/>
     /// - altinn:correspondence.send <br/>
     /// </remarks>
     /// <response code="200">Returns attachment metadata</response>
@@ -124,7 +124,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// Get information about the attachment and its current status
     /// </summary>
     /// <remarks>
-    /// Scopes: <br/>
+    /// One of the scopes: <br/>
     /// - altinn:correspondence.send <br/>
     /// </remarks>
     /// <response code="200">Returns attachment metadata</response>
@@ -156,7 +156,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// Get information about the attachment and its current status
     /// </summary>
     /// <remarks>
-    /// Scopes: <br/>
+    /// One of the scopes: <br/>
     /// - altinn:correspondence.send <br/>
     /// </remarks>
     /// <response code="200">Returns attachment metadata</response>
@@ -189,7 +189,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// Deletes the attachment
     /// </summary>
     /// <remarks>
-    /// Scopes: <br/>
+    /// One of the scopes: <br/>
     /// - altinn:correspondence.send <br/>
     /// </remarks>
     /// <response code="200">Returns no data</response>
@@ -228,7 +228,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// Downloads the attachment data
     /// </summary>
     /// <remarks>
-    /// Scopes: <br/>
+    /// One of the scopes: <br/>
     /// - altinn:correspondence.send <br/>
     /// </remarks>
     /// <response code="200">Returns the attachment</response>

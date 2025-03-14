@@ -36,7 +36,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// Initialize Correspondences
         /// </summary>
         /// <remarks>
-        /// Scopes: <br />
+        /// One of the scopes: <br/>
         /// - altinn:correspondence.send <br />
         /// Requires uploads of specified attachments if any before it can be Published
         /// </remarks>
@@ -111,7 +111,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// Initialize Correspondences and uploads attachments in the same request
         /// </summary>
         /// <remarks>
-        /// Scopes: <br />
+        /// One of the scopes: <br/>
         /// - altinn:correspondence.send
         /// </remarks>
         /// <response code="200">Returns metadata about the initialized correspondence</response>
@@ -354,7 +354,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// Mark Correspondence found by ID as read
         /// </summary>
         /// <remarks>
-        /// Scopes: <br />
+        /// One of the scopes: <br/>
         /// - altinn:correspondence.read <br />
         /// </remarks>
         /// <response code="200">the Id of the correspondence</response>
@@ -393,7 +393,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// Mark Correspondence found by ID as confirmed
         /// </summary>
         /// <remarks>
-        /// Scopes: <br />
+        /// One of the scopes: <br/>
         /// - altinn:correspondence.read <br />
         /// </remarks>
         /// <response code="200">the Id of the correspondence</response>
@@ -432,7 +432,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// Mark Correspondence found by ID as archived
         /// </summary>
         /// <remarks>
-        /// Scopes: <br />
+        /// One of the scopes: <br/>
         /// - altinn:correspondence.read <br />
         /// </remarks>
         /// <response code="200">the Id of the correspondence</response>
@@ -471,7 +471,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// Delete Correspondence found by ID
         /// </summary>
         /// <remarks>
-        /// Scopes: <br />
+        /// One of the scopes: <br/>
         /// - altinn:correspondence.read <br />
         /// - altinn:correspondence.send <br /> (Can only purge before the correspondence is published)
         /// </remarks>
@@ -517,7 +517,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// Downloads the attachment data
         /// </summary>
         /// <remarks>
-        /// Scopes: <br />
+        /// One of the scopes: <br/>
         /// - altinn:correspondence.read <br />
         /// </remarks>
         /// <response code="200">Returns the attachment file</response>
