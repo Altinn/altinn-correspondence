@@ -1,11 +1,13 @@
 ﻿using Altinn.Common.PEP.Authorization;
 using Altinn.Correspondence.API.Helpers;
+using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 
@@ -131,6 +133,15 @@ namespace Altinn.Correspondence.API.Auth
                         OnTokenValidated = async context =>
                         {
                             var sessionId = Guid.NewGuid().ToString();
+                            var cache = context.HttpContext.RequestServices.GetRequiredService<IHybridCacheWrapper>();
+                            await cache.SetAsync(
+                                sessionId, 
+                                context.TokenEndpointResponse.AccessToken,
+                                new Microsoft.Extensions.Caching.Hybrid.HybridCacheEntryOptions
+                                {
+                                    Expiration = TimeSpan.FromMinutes(5)
+                                }
+                            );
                             context.Properties.RedirectUri = CascadeAuthenticationHandler.AppendSessionToUrl($"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{context.Properties.RedirectUri}", sessionId);
                         }
                     };

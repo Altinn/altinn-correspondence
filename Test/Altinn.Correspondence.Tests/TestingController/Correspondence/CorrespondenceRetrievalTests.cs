@@ -213,7 +213,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Arrange
             var correspondence = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithRecipients(["11015699332"])
+                .WithRecipients(["26818099001"])
                 .Build();
 
             // Act
@@ -235,7 +235,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Arrange
             var correspondence = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithRecipients(["11015699332"])
+                .WithRecipients(["26818099001"])
                 .Build();
 
             // Act
@@ -253,6 +253,51 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.Unauthorized, getCorrespondenceResponse.StatusCode);
+        }
+        [Fact]
+        public async Task CorrespondenceIsArchived_StatusNotVisibleForSender()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            initializeCorrespondenceResponse.EnsureSuccessStatusCode();
+            var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var correspondenceId = correspondence?.Correspondences.FirstOrDefault().CorrespondenceId;
+
+            // Archive the correspondence
+            var archiveResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/archive", null);
+            archiveResponse.EnsureSuccessStatusCode();
+
+            // Act
+            // Try to access the correspondence as sender
+            var getCorrespondenceDetailsResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+            var detailsResponse = await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+
+            // Assert
+            Assert.False(detailsResponse.StatusHistory.Any(statusEntity => statusEntity.Status == CorrespondenceStatusExt.Archived));
+        }
+
+        [Fact]
+        public async Task CorrespondenceIsPurgedByRecipient_StatusNotVisibleForSender()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            initializeCorrespondenceResponse.EnsureSuccessStatusCode();
+            var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var correspondenceId = correspondence?.Correspondences.FirstOrDefault().CorrespondenceId;
+
+            // Purge the correspondence
+            var purgeResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
+            purgeResponse.EnsureSuccessStatusCode();
+
+            // Act
+            // Try to access the correspondence as sender
+            var getCorrespondenceDetailsResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+            var detailsResponse = await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+
+            // Assert
+            Assert.False(detailsResponse.StatusHistory.Any(statusEntity => statusEntity.Status == CorrespondenceStatusExt.PurgedByRecipient));
         }
     }
 }

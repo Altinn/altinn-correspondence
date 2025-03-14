@@ -53,6 +53,9 @@ inputs:
     description: "Maskinporten environment"
     required: true
     default: ""
+  APIM_IP:
+    description: "IP address for APIM"
+    required: true
 
 
 runs:
@@ -88,6 +91,7 @@ runs:
         SBL_BRIDGE_BASE_URL: ${{ inputs.SBL_BRIDGE_BASE_URL }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
         MASKINPORTEN_ENVIRONMENT: ${{ inputs.MASKINPORTEN_ENVIRONMENT }}
+        APIM_IP: ${{ inputs.APIM_IP }}
       with:
         scope: subscription
         subscriptionId: ${{ inputs.AZURE_SUBSCRIPTION_ID }}

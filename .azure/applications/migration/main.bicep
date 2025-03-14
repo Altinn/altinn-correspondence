@@ -8,6 +8,8 @@ param keyVaultUrl string
 param keyVaultName string
 @minLength(3)
 param environment string
+@secure()
+param apimIp string
 
 var containerAppJobName = '${namePrefix}-migration'
 var containerAppEnvName = '${namePrefix}-env'
@@ -63,6 +65,8 @@ var containerAppEnvVars = [
   { name: 'AzureResourceManagerOptions__Location', value: 'norwayeast' }
   { name: 'AzureResourceManagerOptions__Environment', value: environment }
   { name: 'AzureResourceManagerOptions__ApplicationResourceGroupName', value: '${namePrefix}-rg' }
+  { name: 'AzureResourceManagerOptions__ContainerAppName', value: '${namePrefix}-app' }
+  { name: 'AzureResourceManagerOptions__ApimIP', value: apimIp }
   { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.properties.clientId }
 ]
 

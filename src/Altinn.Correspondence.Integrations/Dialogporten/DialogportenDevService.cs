@@ -14,6 +14,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         {
             return Task.CompletedTask;
         }
+        
+        public Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType)
+        {
+            return Task.CompletedTask;
+        }
 
         public Task PurgeCorrespondenceDialog(Guid correspondenceId)
         {

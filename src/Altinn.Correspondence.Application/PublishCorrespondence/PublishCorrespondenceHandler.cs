@@ -4,14 +4,17 @@ using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
+using Altinn.Correspondence.Helpers;
 using Hangfire;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
+using Slack.Webhooks;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
@@ -24,6 +27,8 @@ public class PublishCorrespondenceHandler(
     IContactReservationRegistryService contactReservationRegistryService,
     IDialogportenService dialogportenService,
     IHostEnvironment hostEnvironment,
+    ISlackClient slackClient,
+    SlackSettings slackSettings,
     IBackgroundJobClient backgroundJobClient) : IHandler<Guid, Task>
 {
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -60,7 +65,7 @@ public class PublishCorrespondenceHandler(
                     },
                     cancellationToken
                 );
-            } 
+            }
             else
             {
                 errorMessage = $"Correspondence {correspondenceId} not ready for publish";
@@ -98,6 +103,11 @@ public class PublishCorrespondenceHandler(
                     StatusText = errorMessage,
                     PartyUuid = partyUuid
                 };
+                var slackSent = await SlackHelper.SendSlackNotificationWithMessage("Correspondence failed", errorMessage, slackClient, slackSettings.NotificationChannel, hostEnvironment.EnvironmentName);
+                if (!slackSent)
+                {
+                    logger.LogError($"Failed to send Slack notification for failed correspondence: {errorMessage}");
+                }
                 eventType = AltinnEventType.CorrespondencePublishFailed;
                 foreach (var notification in correspondence.Notifications)
                 {
