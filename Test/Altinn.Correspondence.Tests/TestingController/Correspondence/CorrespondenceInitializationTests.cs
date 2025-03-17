@@ -663,12 +663,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task InitializeCorrespondence_WithoutAttachments_SchedulesPublish()
         {
             // Arrange
-            var expectedJobId = "123456";
             var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
             hangfireBackgroundJobClient.Setup(x => x.Create(
                 It.IsAny<Job>(),
                 It.IsAny<IState>()))
-                .Returns(expectedJobId);
+                .Returns("123456");
                 
             var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
@@ -694,11 +693,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             // Arrange
             var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            hangfireBackgroundJobClient.Setup(x => x.Create(
+                It.IsAny<Job>(),
+                It.IsAny<IState>()))
+                .Returns("123456");
             var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 services.AddSingleton(hangfireBackgroundJobClient.Object);
             });
-            var attachmentId = await AttachmentHelper.GetInitializedAttachment(testFactory.CreateSenderClient(), _responseSerializerOptions);
+            var attachmentId = await AttachmentHelper.GetPublishedAttachment(testFactory.CreateSenderClient(), _responseSerializerOptions);
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithExistingAttachments([attachmentId])
