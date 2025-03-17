@@ -229,7 +229,8 @@ public class InitializeCorrespondencesHandler(
             logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
             if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized ||
-                correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish)
+                correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish ||
+                correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Published)
             {
                 if (request.Correspondence.Content.Attachments.Count == 0) 
                 {
