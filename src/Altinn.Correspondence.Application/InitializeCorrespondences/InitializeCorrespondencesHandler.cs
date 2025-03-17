@@ -233,7 +233,7 @@ public class InitializeCorrespondencesHandler(
             {
                 if (request.Correspondence.Content.Attachments.Count == 0) 
                 {
-                    backgroundJobClient.ContinueJobWith(dialogJob, () => hangfireScheduleHelper.SchedulePublish(correspondence.Id, correspondence.RequestedPublishTime, cancellationToken), JobContinuationOptions.OnAnyFinishedState);
+                    backgroundJobClient.ContinueJobWith(dialogJob, () => hangfireScheduleHelper.SchedulePublish(correspondence.Id, correspondence.RequestedPublishTime, cancellationToken), JobContinuationOptions.OnlyOnSucceededState);
                 }
                 else
                 {
