@@ -144,18 +144,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     {
                         new Endpoint()
                         {
-                            HttpMethod = "POST",
-                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive"
-                        }
-                    }
-                },
-                new ApiAction()
-                {
-                    Action = "write",
-                    Endpoints = new List<Endpoint>()
-                    {
-                        new Endpoint()
-                        {
                             HttpMethod = "DELETE",
                             Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/purge"
                         }
@@ -227,35 +215,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     Priority = "Primary"
                 });
             }
-
-            guiActions.Add(new GuiAction()
-            {
-                Title = new List<Title>()
-                {
-                    new Title()
-                    {
-                        LanguageCode = "nb",
-                        MediaType = "text/plain",
-                        Value = "Arkiver"
-                    },
-                    new Title()
-                    {
-                        LanguageCode = "nn",
-                        MediaType = "text/plain",
-                        Value = "Arkiver"
-                    },
-                    new Title()
-                    {
-                        LanguageCode = "en",
-                        MediaType = "text/plain",
-                        Value = "Archive"
-                    },
-                },
-                Action = "read",
-                Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive",
-                HttpMethod = "POST",
-                Priority = "Secondary"
-            });
 
             guiActions.Add(new GuiAction()
             {
