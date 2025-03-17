@@ -8,7 +8,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public void SchedulePublish(Guid correspondenceId, DateTimeOffset publishTime, CancellationToken cancellationToken)
         {
-            var actualPublishTime = publishTime.AddSeconds(-30) < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow : publishTime; // If in past, do now
+            var actualPublishTime = publishTime < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow : publishTime; // If in past, do now
             backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondenceId, null, cancellationToken), publishTime);
         }
     }
