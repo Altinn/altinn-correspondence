@@ -330,41 +330,6 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Mark Correspondence found by ID as archived
-        /// </summary>
-        /// <remarks>
-        /// Scopes: <br />
-        /// - altinn:correspondence.read <br />
-        /// </remarks>
-        /// <returns>StatusId</returns>
-        [HttpPost]
-        [Produces("application/json")]
-        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
-        [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
-        [Route("{correspondenceId}/archive")]
-        public async Task<ActionResult> Archive(
-            Guid correspondenceId,
-            [FromServices] UpdateCorrespondenceStatusHandler handler,
-            CancellationToken cancellationToken)
-        {
-            _logger.LogInformation("Archiving Correspondence with id: {correspondenceId}", correspondenceId.ToString());
-
-            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
-            {
-                CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Archived,
-            }, HttpContext.User, cancellationToken);
-
-            return commandResult.Match(
-                data => Ok(data),
-                Problem
-            );
-        }
-
-        /// <summary>
         /// Delete Correspondence found by ID
         /// </summary>
         /// <remarks>
