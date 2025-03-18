@@ -94,9 +94,17 @@ public class LegacyGetCorrespondenceHistoryHandler(
         List<CorrespondenceStatus> statusBySender =
         [
             CorrespondenceStatus.Published,
-        ];
-        var partyId = statusBySender.Contains(status.Status) ? senderParty.PartyId : recipientParty.PartyId;
-        var party = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
+        ];        
+        
+        var party = (Party?)null;
+        if (statusBySender.Contains(status.Status))
+        {
+            party = senderParty;
+        }
+        else
+        {
+            party = await altinnRegisterService.LookUpPartyByPartyUuid(status.PartyUuid, cancellationToken);
+        }        
 
         return new LegacyGetCorrespondenceHistoryResponse
         {
@@ -105,8 +113,8 @@ public class LegacyGetCorrespondenceHistoryHandler(
             StatusText = $"[Correspondence] {status.StatusText}",
             User = new LegacyUser
             {
-                PartyId = party?.PartyId,
-                NationalIdentityNumber = party?.SSN,
+                PartyId = party?.PartyId,                
+                NationalIdentityNumber = party?.SSN,                
                 Name = party?.Name
             }
         };

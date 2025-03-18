@@ -67,28 +67,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         }
 
         [Fact]
-        public async Task LegacyGetCorrespondenceOverview_ShouldAddFetchedToStatusHistory()
-        {
-            // Arrange
-            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
-            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
-
-            // Act
-            var overviewResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview");
-            Assert.Equal(HttpStatusCode.OK, overviewResponse.StatusCode);
-            var overviewContent = await overviewResponse.Content.ReadFromJsonAsync<LegacyCorrespondenceOverviewExt>(_serializerOptions);
-            Assert.NotNull(overviewContent);
-            Assert.NotEqual(CorrespondenceStatusExt.Fetched, overviewContent.Status);
-
-            // Assert
-            var historyResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/history");
-            Assert.Equal(HttpStatusCode.OK, historyResponse.StatusCode);
-            var historyData = await historyResponse.Content.ReadFromJsonAsync<List<LegacyGetCorrespondenceHistoryResponse>>();
-            Assert.NotNull(historyData);
-            Assert.Contains(historyData, status => status.Status.Contains(CorrespondenceStatus.Fetched.ToString()));
-        }
-
-        [Fact]
         public async Task LegacyGetCorrespondenceHistory_WithValidRequest_ReturnsOk()
         {
             // Arrange
@@ -136,9 +114,71 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             Assert.NotNull(content);
             Assert.Contains(content, status => status.User.PartyId == _digdirPartyId);
             Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Published.ToString()));
-            Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Fetched.ToString()));
             Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Confirmed.ToString()));
             Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Archived.ToString()));
+        }
+
+        [Fact]
+        public async Task LegacyGetCorrespondenceHistory_WithCorrespondenceActionsByDifferentParties_IncludesStatuses()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+            int secondPartyId = 100;
+            var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockRegisterService = new Mock<IAltinnRegisterService>();
+                mockRegisterService
+                    .Setup(service => service.LookUpPartyByPartyId(100, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(new Party
+                    {
+                        PartyId = secondPartyId,
+                        OrgNumber = "",
+                        SSN = "01018045678",
+                        Resources = new List<string>(),
+                        PartyTypeName = PartyType.Person,
+                        UnitType = "Person",
+                        Name = "Delegert test bruker",
+                        PartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920")
+                    });
+                mockRegisterService
+                    .Setup(service => service.LookUpPartyByPartyUuid(new Guid("358C48B4-74A7-461F-A86F-48801DEEC920"), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(new Party
+                    {
+                        PartyId = secondPartyId,
+                        OrgNumber = "",
+                        SSN = "01018045678",
+                        Resources = new List<string>(),
+                        PartyTypeName = PartyType.Person,
+                        UnitType = "Person",
+                        Name = "Delegert test bruker",
+                        PartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920")
+                    });
+                services.AddSingleton(mockRegisterService.Object);
+            });
+            
+
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);            
+            await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview");
+            await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/markAsRead", null);
+            var secondClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.LegacyScope), (_partyIdClaim, secondPartyId.ToString()));
+            await secondClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/markasread", null);
+            await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/confirm", null);
+            await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/archive", null);
+
+            // Act
+            var response = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/history");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            // Assert
+            var content = await response.Content.ReadFromJsonAsync<List<LegacyGetCorrespondenceHistoryResponse>>(_serializerOptions);
+            Assert.NotNull(content);
+            Assert.Contains(content, status => status.User.PartyId == _digdirPartyId);
+            Assert.Contains(content, status => (status.User.PartyId == _digdirPartyId && status.Status.Contains(CorrespondenceStatus.Published.ToString())));
+            Assert.Contains(content, status => (status.User.PartyId == _digdirPartyId && status.Status.Contains(CorrespondenceStatus.Read.ToString())));
+            Assert.Contains(content, status => (status.User.PartyId == _digdirPartyId && status.Status.Contains(CorrespondenceStatus.Confirmed.ToString())));
+            Assert.Contains(content, status => (status.User.PartyId == _digdirPartyId && status.Status.Contains(CorrespondenceStatus.Archived.ToString())));
+            Assert.Contains(content, status => status.User.PartyId == secondPartyId);
+            Assert.Contains(content, status => (status.User.PartyId == secondPartyId && status.Status.Contains(CorrespondenceStatus.Read.ToString())));
         }
 
         [Fact]

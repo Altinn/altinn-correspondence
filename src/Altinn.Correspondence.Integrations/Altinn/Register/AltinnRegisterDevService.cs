@@ -10,6 +10,8 @@ public class AltinnRegisterDevService : IAltinnRegisterService
     private const string _identificationIDPattern = @"^(?:\d{11}|\d{9}|0192:\d{9})$";
     private static readonly Regex IdentificationIDRegex = new(_identificationIDPattern);
     private readonly int _digdirPartyId = 50952483;
+    private readonly Guid _digdirPartyUuid = new Guid("36E2BCC6-D5B8-4399-AA90-4AFEB2D1A0BF");
+
     public Task<int?> LookUpPartyId(string identificationId, CancellationToken cancellationToken)
     {
         if (IdentificationIDRegex.IsMatch(identificationId))
@@ -40,7 +42,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyTypeName = PartyType.Organization,
                 UnitType = "Virksomhet",
                 Name = "Digitaliseringsdirektoratet",
-                PartyUuid = Guid.NewGuid(),
+                PartyUuid = _digdirPartyUuid,
             });
         }
         return Task.FromResult<Party?>(null);
@@ -57,10 +59,27 @@ public class AltinnRegisterDevService : IAltinnRegisterService
             PartyTypeName = PartyType.Organization,
             UnitType = "Virksomhet",
             Name = "Digitaliseringsdirektoratet",
-            PartyUuid = Guid.NewGuid(),
+            PartyUuid = _digdirPartyUuid,
         };
         return Task.FromResult<Party?>(party);
     }
+
+    public Task<Party?> LookUpPartyByPartyUuid(Guid partyUuid, CancellationToken cancellationToken)
+    {
+        var party = new Party
+        {
+            PartyId = _digdirPartyId,
+            OrgNumber = "991825827",
+            SSN = "",
+            Resources = new List<string>(),
+            PartyTypeName = PartyType.Organization,
+            UnitType = "Virksomhet",
+            Name = "Digitaliseringsdirektoratet",
+            PartyUuid = _digdirPartyUuid,
+        }; 
+        return Task.FromResult<Party?>(party);
+    }
+
     public Task<List<Party>?> LookUpPartiesByIds(List<string> identificationIds, CancellationToken cancellationToken)
     {
         var parties = new List<Party>();

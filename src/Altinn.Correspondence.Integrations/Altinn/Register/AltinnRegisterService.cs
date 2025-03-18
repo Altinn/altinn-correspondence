@@ -89,6 +89,47 @@ public class AltinnRegisterService : IAltinnRegisterService
         return party;
     }
 
+    public async Task<Party?> LookUpPartyByPartyUuid(Guid partyUuid, CancellationToken cancellationToken = default)
+    {
+        string cacheKey = $"PartyByPartyUuid_{partyUuid}";
+        try
+        {
+            var cachedParty = await CacheHelpers.GetObjectFromCacheAsync<Party>(cacheKey, _cache, cancellationToken);
+            if (cachedParty != null)
+            {
+                return cachedParty;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error retrieving Party by Uuid from cache when looking up Party in Altinn Register Service.");
+        }
+
+        var response = await _httpClient.GetAsync($"register/api/v1/parties/byuuid/{partyUuid}", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Error when looking up party by Uuid in Altinn Register.Statuscode was: {statusCode}, error was: {error}", response.StatusCode, await response.Content.ReadAsStringAsync());
+            return null;
+        }
+        var party = await response.Content.ReadFromJsonAsync<Party>();
+        if (party is null)
+        {
+            _logger.LogError("Unexpected json response when looking up Party by Uuid in Altinn Register");
+            return null;
+        }
+
+        try
+        {
+            await CacheHelpers.StoreObjectInCacheAsync(cacheKey, party, _cache, _cacheOptions, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error storing response content to cache when looking up Party in Altinn Register Service.");
+        }
+
+        return party;
+    }
+
     public async Task<Party?> LookUpPartyById(string identificationId, CancellationToken cancellationToken = default)
     {
         string cacheKey = $"PartyById_{identificationId}";
