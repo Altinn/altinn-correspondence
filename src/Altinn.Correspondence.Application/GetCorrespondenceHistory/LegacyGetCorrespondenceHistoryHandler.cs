@@ -113,8 +113,8 @@ public class LegacyGetCorrespondenceHistoryHandler(
             StatusText = $"[Correspondence] {status.StatusText}",
             User = new LegacyUser
             {
-                PartyId = party?.PartyId,                
-                NationalIdentityNumber = party?.SSN,                
+                PartyId = party?.PartyId,
+                NationalIdentityNumber = party?.SSN,
                 Name = party?.Name
             }
         };

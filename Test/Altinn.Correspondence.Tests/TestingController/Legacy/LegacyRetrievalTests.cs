@@ -17,11 +17,8 @@ using Altinn.Correspondence.Tests.Fixtures;
 namespace Altinn.Correspondence.Tests.TestingController.Legacy
 {
     [Collection(nameof(CustomWebApplicationTestsCollection))]
-    public class LegacyRetrievalTests : LegacyTestBase
+    public class LegacyRetrievalTests(CustomWebApplicationFactory factory) : LegacyTestBase(factory)
     {
-        public LegacyRetrievalTests(CustomWebApplicationFactory factory) : base(factory)
-        {
-        }
         [Fact]
         public async Task LegacyGetCorrespondenceOverview_WithValidRequest_ReturnsOk()
         {
