@@ -11,6 +11,8 @@ public class AltinnRegisterDevService : IAltinnRegisterService
     private static readonly Regex IdentificationIDRegex = new(_identificationIDPattern);
     private readonly int _digdirPartyId = 50952483;
     private readonly Guid _digdirPartyUuid = new Guid("36E2BCC6-D5B8-4399-AA90-4AFEB2D1A0BF");
+    private readonly int _delegatedUserPartyid = 100;
+    private readonly Guid _delegatedUserPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920");
 
     public Task<int?> LookUpPartyId(string identificationId, CancellationToken cancellationToken)
     {
@@ -50,33 +52,70 @@ public class AltinnRegisterDevService : IAltinnRegisterService
 
     public Task<Party?> LookUpPartyByPartyId(int partyId, CancellationToken cancellationToken)
     {
-        var party = new Party
+        var party = (Party?)null;
+        if (partyId == _digdirPartyId)
         {
-            PartyId = _digdirPartyId,
-            OrgNumber = "991825827",
-            SSN = "",
-            Resources = new List<string>(),
-            PartyTypeName = PartyType.Organization,
-            UnitType = "Virksomhet",
-            Name = "Digitaliseringsdirektoratet",
-            PartyUuid = _digdirPartyUuid,
-        };
+            party = new Party
+            {
+                PartyId = _digdirPartyId,
+                OrgNumber = "991825827",
+                SSN = "",
+                Resources = new List<string>(),
+                PartyTypeName = PartyType.Organization,
+                UnitType = "Virksomhet",
+                Name = "Digitaliseringsdirektoratet",
+                PartyUuid = _digdirPartyUuid,
+            };
+        }
+        else if (partyId == _delegatedUserPartyid)
+        {
+            party = new Party
+            {
+                PartyId = _delegatedUserPartyid,
+                OrgNumber = "",
+                SSN = "01018045678",
+                Resources = new List<string>(),
+                PartyTypeName = PartyType.Person,
+                UnitType = "Person",
+                Name = "Delegert test bruker",
+                PartyUuid = _delegatedUserPartyUuid,
+            };
+        }
         return Task.FromResult<Party?>(party);
     }
 
     public Task<Party?> LookUpPartyByPartyUuid(Guid partyUuid, CancellationToken cancellationToken)
     {
-        var party = new Party
+        var party = (Party?)null;
+        if (partyUuid == _digdirPartyUuid)
         {
-            PartyId = _digdirPartyId,
-            OrgNumber = "991825827",
-            SSN = "",
-            Resources = new List<string>(),
-            PartyTypeName = PartyType.Organization,
-            UnitType = "Virksomhet",
-            Name = "Digitaliseringsdirektoratet",
-            PartyUuid = _digdirPartyUuid,
-        }; 
+            party = new Party
+            {
+                PartyId = _digdirPartyId,
+                OrgNumber = "991825827",
+                SSN = "",
+                Resources = new List<string>(),
+                PartyTypeName = PartyType.Organization,
+                UnitType = "Virksomhet",
+                Name = "Digitaliseringsdirektoratet",
+                PartyUuid = _digdirPartyUuid,
+            };
+        }
+        else if (partyUuid == _delegatedUserPartyUuid)
+        {
+            party = new Party
+            {
+                PartyId = _delegatedUserPartyid,
+                OrgNumber = "",
+                SSN = "01018045678",
+                Resources = new List<string>(),
+                PartyTypeName = PartyType.Person,
+                UnitType = "Person",
+                Name = "Delegert test bruker",
+                PartyUuid = _delegatedUserPartyUuid,
+            };
+        }
+
         return Task.FromResult<Party?>(party);
     }
 
