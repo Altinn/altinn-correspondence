@@ -3,7 +3,7 @@ using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.API.Models
 {
-    public class MigrateCorrespondenceForwardingEventExt
+    public class LegacyCorrespondenceForwardingEventExt
     {
         /// <summary>
         /// The date and time for when the correspondence was forwarded.
@@ -14,16 +14,14 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// PartyId of user that performed the forwarding action.
         /// </summary>
-        [JsonPropertyName("forwardedByUser")]
-        [PersonIdentifier]
-        public string ForwardedByUser { get; set; }
+        [JsonPropertyName("forwardedByUserPartyId")]
+        public Guid ForwardedByUserPartyId { get; set; }
 
         /// <summary>
         /// Optional PartyId of user that the correspondence was forwarded to.
         /// </summary>
-        [JsonPropertyName("forwardedToUser")]
-        [PersonIdentifier]
-        public string? ForwardedToUser { get; set; }
+        [JsonPropertyName("forwardedToUserPartyId")]
+        public Guid? ForwardedToUserPartyId { get; set; }
 
         /// <summary>
         /// Optional Text used when forwarding the correspondence.
@@ -41,7 +39,7 @@ namespace Altinn.Correspondence.API.Models
         /// Optional Org number for the Mailbox supplier that the correspondence was forwarded to.
         /// </summary>
         [JsonPropertyName("mailboxSupplier")]
-        [OrganizationNumber(ErrorMessage = $"Organization numbers should be on the format '{UrnConstants.OrganizationNumberAttribute}:organizationnumber' or the format countrycode:organizationnumber, for instance 0192:910753614")]
+        [OrganizationNumber(ErrorMessage = $"Organization numbers should be on the format '{UrnConstants.OrganizationNumberAttribute}:organizationnumber' or the format countrycode:organizationnumber, for instance 0192:910753614")]        
         public string? MailboxSupplier { get; set; }
     }
 }
