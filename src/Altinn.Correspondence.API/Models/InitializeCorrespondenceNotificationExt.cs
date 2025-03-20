@@ -16,7 +16,7 @@ namespace Altinn.Correspondence.API.Models
         public required NotificationTemplateExt NotificationTemplate { get; set; }
 
         /// <summary>
-        /// The emais subject for the main notification
+        /// The emails subject for the main notification
         /// </summary>
         [JsonPropertyName("emailSubject")]
         [StringLength(128, MinimumLength = 0)]
