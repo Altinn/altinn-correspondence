@@ -241,7 +241,7 @@ public class InitializeCorrespondencesHandler(
                     // Will be published by MalwarescanResultHandler
                     await hybridCacheWrapper.SetAsync("dialogJobId_" + correspondence.Id, dialogJob, new HybridCacheEntryOptions
                     {
-                        Expiration = TimeSpan.FromHours(3)
+                        Expiration = TimeSpan.FromHours(24)
                     }); 
                 }
             }

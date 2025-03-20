@@ -689,7 +689,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task InitializeCorrespondence_WithAttachments_DoesNotSchedulePublish()
+        public async Task InitializeCorrespondence_WithPublishedAttachment_SchedulesPublishCorrespondenceJob()
         {
             // Arrange
             var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
@@ -697,25 +697,28 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 It.IsAny<Job>(),
                 It.IsAny<IState>()))
                 .Returns("123456");
+                
             var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 services.AddSingleton(hangfireBackgroundJobClient.Object);
             });
-            var attachmentId = await AttachmentHelper.GetPublishedAttachment(testFactory.CreateSenderClient(), _responseSerializerOptions);
+            
+            var senderClient = testFactory.CreateSenderClient();
+            var attachmentId = await AttachmentHelper.GetPublishedAttachment(senderClient, _responseSerializerOptions);
+            
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithExistingAttachments([attachmentId])
                 .Build();
 
             // Act
-            var senderClient = testFactory.CreateSenderClient();
             var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             hangfireBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "PublishCorrespondence"),
-                It.IsAny<IState>()), Times.Never);
+                It.Is<Job>(job => job.Method.Name == "SchedulePublish"),
+                It.IsAny<IState>()), Times.Once);
         }
     }
 }
