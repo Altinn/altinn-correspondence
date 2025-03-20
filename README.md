@@ -27,3 +27,9 @@ Formatting of the code base is handled by Dotnet format. [See how to configure i
 
 ## Deploy
 The build and push workflow produces a docker image that is pushed to Github packages. This image is then used by the release action. Read more here: [Readme-infrastructure](/README-infrastructure.md)
+
+## Test
+### Performance tests
+For information about the performance tests, see the following README files:
+
+- [Correspondence](./Test/Altinn.Correspondence.LoadTests/correspondence/README.md)
