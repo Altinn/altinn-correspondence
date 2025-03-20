@@ -13,6 +13,8 @@ using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
+using Hangfire.Common;
+using Hangfire.States;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -48,6 +50,10 @@ public class DialogportenTests
             .Setup(x => x.CreateCorrespondenceDialog(It.IsAny<Guid>()))
             .ReturnsAsync("mocked-dialog-id");
         var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+        hangfireBackgroundJobClient.Setup(x => x.Create(
+            It.IsAny<Job>(),
+            It.IsAny<IState>()))
+            .Returns("123456");
         var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
         {
             services.AddSingleton(mockDialogportenService.Object);
