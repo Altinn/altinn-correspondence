@@ -55,8 +55,8 @@ public class InitializeCorrespondencesExt
             {
                 var orgRegex = new Regex($@"^(?:0192:|{UrnConstants.OrganizationNumberAttribute}:)\d{{9}}$");
                 var personRegex = new Regex($@"^(?:{UrnConstants.PersonIdAttribute}:)?\d{{11}}$");
-                var urnPersonRegex = new Regex(@"^urn:altinn:person:identifier-no:urn:\d{11}$");
-                var urnOrgRegex = new Regex(@"^urn:altinn:organization:identifier-no:urn:\d{9}$");
+                var urnPersonRegex = new Regex($@"^{UrnConstants.PersonIdAttribute}:\d{{11}}$");
+                var urnOrgRegex = new Regex($@"^{UrnConstants.OrganizationNumberAttribute}:\d{{9}}$");
 
                 if (!orgRegex.IsMatch(recipient) &&
                     !personRegex.IsMatch(recipient) &&
@@ -78,15 +78,18 @@ public class InitializeCorrespondencesExt
             return ValidationResult.Success;
         }
 
+        // Helper method to extract and validate person identifiers from both formats
         private bool IsValidPersonIdentifier(string recipient)
         {
             if (recipient.StartsWith("urn:altinn:person:identifier-no:urn:"))
             {
+                // Extract the 11 digits from the URN format
                 string personId = recipient.Substring(recipient.Length - 11);
                 return personId.IsSocialSecurityNumber();
             }
             else
             {
+                // Use the existing validation for the original format
                 return recipient.IsSocialSecurityNumber();
             }
         }
