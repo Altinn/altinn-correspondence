@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Services;
+﻿using Altinn.Correspondence.Core.Models.Dialogporten;
+using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten
@@ -16,6 +17,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         }
         
         public Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task PatchData(string dialogId, PatchData data)
         {
             return Task.CompletedTask;
         }
