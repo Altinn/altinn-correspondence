@@ -53,7 +53,7 @@ namespace Altinn.Correspondence.API.Models
                 }
                 if (!strValue.StartsWith(httpsPrefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    return new ValidationResult($"LinkURL must start with{httpsPrefix}");
+                    return new ValidationResult($"LinkURL must start with {httpsPrefix}");
                 }
                 return ValidationResult.Success;
             }
