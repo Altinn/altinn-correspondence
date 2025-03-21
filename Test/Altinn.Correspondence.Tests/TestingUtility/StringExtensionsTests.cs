@@ -29,5 +29,18 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             // Assert
             Assert.True(isValid);
         }
+
+        [Fact]
+        public void IsSocialSecurityNumber_ReturnsTrue_IfIdentifierValidSSNWithPrefix()
+        {
+            // Arrange
+            string socialSecurityNumber = "urn:altinn:person:identifier-no:08900499559"; //Syntethic valid social security number
+
+            // Act
+            bool isValid = StringExtensions.IsSocialSecurityNumber(socialSecurityNumber);
+
+            // Assert
+            Assert.True(isValid);
+        }
     }
 }
