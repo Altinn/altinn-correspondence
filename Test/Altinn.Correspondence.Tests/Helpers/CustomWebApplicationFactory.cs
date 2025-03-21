@@ -23,9 +23,9 @@ using System.Text.Json;
 namespace Altinn.Correspondence.Tests.Helpers;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
-    {
+{
     internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
-    public const string ReservedSsn = "12345123451";
+    public const string ReservedSsn = "08900499559";
     public Action<IServiceCollection>? CustomServices;
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)
@@ -43,8 +43,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                        );
             HangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
             HangfireBackgroundJobClient.Setup(x => x.Create(
-                It.IsAny<Job>(), 
-                It.IsAny<IState>())).Returns("1"); 
+                It.IsAny<Job>(),
+                It.IsAny<IState>())).Returns("1");
             services.AddSingleton(HangfireBackgroundJobClient.Object);
             services.AddScoped<IEventBus, ConsoleLogEventBus>();
             services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
@@ -105,10 +105,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             }
         }
         var client = CreateClient();
-        var claimsData = defaultClaims.Select(c => new Dictionary<string, string> 
-        { 
-            { "Type", c.Type }, 
-            { "Value", c.Value } 
+        var claimsData = defaultClaims.Select(c => new Dictionary<string, string>
+        {
+            { "Type", c.Type },
+            { "Value", c.Value }
         }).ToList();
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
         client.DefaultRequestHeaders.Add("X-Custom-Claims", JsonSerializer.Serialize(claimsData));

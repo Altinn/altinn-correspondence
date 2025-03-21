@@ -12,6 +12,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Net;
 using System.Net.Http.Json;
+using Hangfire;
+using Hangfire.Common;
+using Hangfire.States;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -262,7 +265,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithRecipients(["0192:123456789", "12345678901"])
+                .WithRecipients(["0192:123456789", "07827199405"])
                 .Build();
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             initializeCorrespondenceResponse.EnsureSuccessStatusCode();
@@ -430,7 +433,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             // Arrange
             var orgRecipient = "0192:123456789";
-            var personRecipient = "01234567890";
+            var personRecipient = "08900499559";
             var sender = "0192:991825827";
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
@@ -459,7 +462,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Arrange
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithRecipients([CustomWebApplicationFactory.ReservedSsn, "01234567890"])
+                .WithRecipients([CustomWebApplicationFactory.ReservedSsn, "07827199405"])
                 .Build();
 
             // Act
@@ -618,7 +621,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Arrange
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithRecipients(["01234567891", "01234567890"])
+                .WithRecipients(["26818099001", "07827199405"])
                 .Build();
 
             // Act
@@ -654,6 +657,68 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
             var responseObject = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<ProblemDetails>(_responseSerializerOptions);
             Assert.NotNull(responseObject);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithoutAttachments_SchedulesPublish()
+        {
+            // Arrange
+            var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            hangfireBackgroundJobClient.Setup(x => x.Create(
+                It.IsAny<Job>(),
+                It.IsAny<IState>()))
+                .Returns("123456");
+                
+            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                services.AddSingleton(hangfireBackgroundJobClient.Object);
+            });
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .Build();
+
+            // Act
+            var senderClient = testFactory.CreateSenderClient();
+            var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+            hangfireBackgroundJobClient.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == "SchedulePublish"),
+                It.IsAny<IState>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithPublishedAttachment_SchedulesPublishCorrespondenceJob()
+        {
+            // Arrange
+            var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            hangfireBackgroundJobClient.Setup(x => x.Create(
+                It.IsAny<Job>(),
+                It.IsAny<IState>()))
+                .Returns("123456");
+                
+            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                services.AddSingleton(hangfireBackgroundJobClient.Object);
+            });
+            
+            var senderClient = testFactory.CreateSenderClient();
+            var attachmentId = await AttachmentHelper.GetPublishedAttachment(senderClient, _responseSerializerOptions);
+            
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments([attachmentId])
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+            hangfireBackgroundJobClient.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == "SchedulePublish"),
+                It.IsAny<IState>()), Times.Once);
         }
     }
 }

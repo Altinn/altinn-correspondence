@@ -16,7 +16,7 @@ namespace Altinn.Correspondence.API.Models
         public required NotificationTemplateExt NotificationTemplate { get; set; }
 
         /// <summary>
-        /// The emais subject for the main notification
+        /// The emails subject for the main notification
         /// </summary>
         [JsonPropertyName("emailSubject")]
         [StringLength(128, MinimumLength = 0)]
@@ -88,7 +88,7 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// A list of recipients for the notification. If not set, the notification will be sent to the recipient of the Correspondence
         /// </summary>
-        [JsonPropertyName("recipients")]
+        [JsonPropertyName("customNotificationRecipients")]
         public List<CustomNotificationRecipientExt>? CustomNotificationRecipients { get; set; }
     }
 }

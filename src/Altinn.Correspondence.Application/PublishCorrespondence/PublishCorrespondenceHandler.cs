@@ -4,14 +4,17 @@ using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
+using Altinn.Correspondence.Helpers;
 using Hangfire;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
+using Slack.Webhooks;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
@@ -24,6 +27,8 @@ public class PublishCorrespondenceHandler(
     IContactReservationRegistryService contactReservationRegistryService,
     IDialogportenService dialogportenService,
     IHostEnvironment hostEnvironment,
+    ISlackClient slackClient,
+    SlackSettings slackSettings,
     IBackgroundJobClient backgroundJobClient) : IHandler<Guid, Task>
 {
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -35,6 +40,7 @@ public class PublishCorrespondenceHandler(
         {
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
+        bool hasDialogportenDialog = correspondence.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
         var errorMessage = "";
         if (correspondence == null)
         {
@@ -59,7 +65,7 @@ public class PublishCorrespondenceHandler(
                     },
                     cancellationToken
                 );
-            } 
+            }
             else
             {
                 errorMessage = $"Correspondence {correspondenceId} not ready for publish";
@@ -68,6 +74,10 @@ public class PublishCorrespondenceHandler(
         else if (correspondence.RequestedPublishTime > DateTimeOffset.UtcNow)
         {
             errorMessage = $"Correspondence {correspondenceId} not visible yet";
+        }
+        else if (!hasDialogportenDialog)
+        {
+            errorMessage = $"Dialogporten dialog not created for correspondence {correspondenceId}";
         }
         else if (correspondence.IgnoreReservation != true && correspondence.GetRecipientUrn().IsSocialSecurityNumber())
         {
@@ -93,12 +103,20 @@ public class PublishCorrespondenceHandler(
                     StatusText = errorMessage,
                     PartyUuid = partyUuid
                 };
+                var slackSent = await SlackHelper.SendSlackNotificationWithMessage("Correspondence failed", errorMessage, slackClient, slackSettings.NotificationChannel, hostEnvironment.EnvironmentName);
+                if (!slackSent)
+                {
+                    logger.LogError($"Failed to send Slack notification for failed correspondence: {errorMessage}");
+                }
                 eventType = AltinnEventType.CorrespondencePublishFailed;
                 foreach (var notification in correspondence.Notifications)
                 {
                     backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
                 }
-                backgroundJobClient.Enqueue<IDialogportenService>(dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
+                if (hasDialogportenDialog)
+                {
+                    backgroundJobClient.Enqueue<IDialogportenService>(dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
+                }
             }
             else
             {

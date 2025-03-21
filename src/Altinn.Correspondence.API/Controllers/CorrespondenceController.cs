@@ -36,10 +36,50 @@ namespace Altinn.Correspondence.API.Controllers
         /// Initialize Correspondences
         /// </summary>
         /// <remarks>
-        /// Scopes: <br />
-        /// - altinn:correspondence.send <br />
+        /// One of the scopes: <br/>/>
+        /// - altinn:correspondence.write <br />
         /// Requires uploads of specified attachments if any before it can be Published
         /// </remarks>
+        /// <response code="200">Returns metadata about the initialized correspondence</response>
+        /// <response code="400"><ul>
+        /// <li>Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService</li>
+        /// <li>Could not retrieve party uuid from lookup in Altinn Register</li>
+        /// <li>Recipients must be unique</li>
+        /// <li>DueDateTime is required when confirmation is needed</li>
+        /// <li>DueDateTime cannot be prior to today</li>
+        /// <li>DueDateTime cannot be prior to RequestedPublishTime</li>
+        /// <li>AllowSystemDelete cannot be prior to today</li>
+        /// <li>AllowSystemDelete cannot be prior to RequestedPublishTime</li>
+        /// <li>The Content field must be provided for the correspondence</li>
+        /// <li>Message title cannot be empty</li>
+        /// <li>Message title must be plain text</li>
+        /// <li>Message body cannot be empty</li>
+        /// <li>Message body must be markdown</li>
+        /// <li>Message summary cannot be empty</li>
+        /// <li>Message summary must be markdown</li>
+        /// <li>Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)</li>
+        /// <li>Recipient overrides with email or mobile number are not allowed when using notification recipient name because of name lookup</li>
+        /// <li>Could not find recipient with id: {id} to override</li>
+        /// <li>No recipients provided for one or more recipient overrides</li>
+        /// <li>Missing email information for custom recipient. Add email or use the OrganizationNumber or NationalIdentityNumber fields for contact information</li>
+        /// <li>Missing mobile number for custom recipient. Add mobile number or use the OrganizationNumber or NationalIdentityNumber fields for contact information</li>
+        /// <li>Organization number cannot be combined with email address, mobile number, or national identity number</li>
+        /// <li>National identity number cannot be combined with email address, mobile number, or organization number.</li>
+        /// <li>Invalid email provided for custom recipient</li>
+        /// <li>Invalid mobile number provided. Mobile number can contain only '+' and numeric characters, and it must adhere to the E.164 standard</li>
+        /// <li>Mismatch between uploaded files and attachment metadata</li>
+        /// <li>File must have content and has a max file size of 250 MB</li>
+        /// <li>The sender of the correspondence must be equal the sender of existing attachments</li>
+        /// <li>Existing attachment not found</li>
+        /// <li>Attachment is not published</li>
+        /// </ul></response>
+        /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="403">Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no</response>
+        /// <response code="404"><ul>
+        /// <li>Could not find partyId for the following recipients: {recipients}</li> 
+        /// <li>The requested notification template with the given language was not found</li>
+        /// </ul></response>
+        /// <response code="422">Recipient {recipientId} has reserved themselves from public correspondences. Can be overridden using the 'IgnoreReservation' flag</response>
         [HttpPost]
         [Consumes("application/json")]
         [Produces("application/json")]
@@ -71,12 +111,49 @@ namespace Altinn.Correspondence.API.Controllers
         /// Initialize Correspondences and uploads attachments in the same request
         /// </summary>
         /// <remarks>
-        /// Scopes: <br />
-        /// - altinn:correspondence.send
+        /// One of the scopes: <br/>
+        /// - altinn:correspondence.write
         /// </remarks>
-        /// <returns>
-        /// CorrespondenceIds
-        /// </returns>
+        /// <response code="200">Returns metadata about the initialized correspondence</response>
+        /// <response code="400"><ul>
+        /// <li>Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService</li>
+        /// <li>Could not retrieve party uuid from lookup in Altinn Register</li>
+        /// <li>Recipients must be unique</li>
+        /// <li>DueDateTime is required when confirmation is needed</li>
+        /// <li>DueDateTime cannot be prior to today</li>
+        /// <li>DueDateTime cannot be prior to RequestedPublishTime</li>
+        /// <li>AllowSystemDelete cannot be prior to today</li>
+        /// <li>AllowSystemDelete cannot be prior to RequestedPublishTime</li>
+        /// <li>The Content field must be provided for the correspondence</li>
+        /// <li>Message title cannot be empty</li>
+        /// <li>Message title must be plain text</li>
+        /// <li>Message body cannot be empty</li>
+        /// <li>Message body must be markdown</li>
+        /// <li>Message summary cannot be empty</li>
+        /// <li>Message summary must be markdown</li>
+        /// <li>Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)</li>
+        /// <li>Recipient overrides with email or mobile number are not allowed when using notification recipient name because of name lookup</li>
+        /// <li>Could not find recipient with id: {id} to override</li>
+        /// <li>No recipients provided for one or more recipient overrides</li>
+        /// <li>Missing email information for custom recipient. Add email or use the OrganizationNumber or NationalIdentityNumber fields for contact information</li>
+        /// <li>Missing mobile number for custom recipient. Add mobile number or use the OrganizationNumber or NationalIdentityNumber fields for contact information</li>
+        /// <li>Organization number cannot be combined with email address, mobile number, or national identity number</li>
+        /// <li>National identity number cannot be combined with email address, mobile number, or organization number.</li>
+        /// <li>Invalid email provided for custom recipient</li>
+        /// <li>Invalid mobile number provided. Mobile number can contain only '+' and numeric characters, and it must adhere to the E.164 standard</li>
+        /// <li>Mismatch between uploaded files and attachment metadata</li>
+        /// <li>File must have content and has a max file size of 250 MB</li>
+        /// <li>The sender of the correspondence must be equal the sender of existing attachments</li>
+        /// <li>Existing attachment not found</li>
+        /// <li>Attachment is not published</li>
+        /// </ul></response>
+        /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="403">Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no</response>
+        /// <response code="404"><ul>
+        /// <li>Could not find partyId for the following recipients: {recipients}</li> 
+        /// <li>The requested notification template with the given language was not found</li>
+        /// </ul></response>
+        /// <response code="422">Recipient {recipientId} has reserved themselves from public correspondences. Can be overridden using the 'IgnoreReservation' flag</response>
         [HttpPost]
         [Route("upload")]
         [Consumes("multipart/form-data")]
@@ -113,12 +190,15 @@ namespace Altinn.Correspondence.API.Controllers
         /// Get information about the Correspondence and its current status
         /// </summary>
         /// <remarks>
-        ///  Scopes: <br />
+        ///  One of the scopes: <br />
         ///  - altinn:correspondence.read <br />
-        ///  - altinn:correspondence.send <br />
+        ///  - altinn:correspondence.write <br />
         /// Mostly for use by recipients and occasional status checks
         /// </remarks>
-        /// <returns></returns>
+        /// <response code="200">Returns an overview of metadata about the published correspondence</response>
+        /// <response code="400">Could not retrieve party uuid from lookup in Altinn Register</response>
+        /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="404">The requested correspondence was not found</response>
         [HttpGet]
         [Route("{correspondenceId}")]
         [Produces("application/json")]
@@ -149,12 +229,15 @@ namespace Altinn.Correspondence.API.Controllers
         /// Get more detailed information about the Correspondence and its current status as well as noticiation statuses, if available
         /// </summary>
         /// <remarks>
-        ///  Scopes: <br />
+        ///  One of the scopes: <br />
         ///  - altinn:correspondence.read <br />
-        ///  - altinn:correspondence.send <br />
+        ///  - altinn:correspondence.write <br />
         /// Meant for Senders that want a complete overview of the status and history of the Correspondence, but also available for Receivers
         /// </remarks>
-        /// <returns>Detailed information about the correspondence with current status and status history</returns>
+        /// <response code="200">Detailed information about the correspondence with current status and status history</response>
+        /// <response code="400">Could not retrieve party uuid from lookup in Altinn Register</response>
+        /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="404">The requested correspondence was not found</response>
         [HttpGet]
         [Produces("application/json")]
         [ProducesResponseType(typeof(CorrespondenceDetailsExt), StatusCodes.Status200OK)]
@@ -191,7 +274,7 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpGet]
         [Route("{correspondenceId}/content")]
         [Produces("text/plain")]
-        [Authorize(AuthenticationSchemes = AuthorizationConstants.DialogportenScheme)]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<ActionResult> GetCorrespondenceContent(
@@ -219,12 +302,20 @@ namespace Altinn.Correspondence.API.Controllers
         /// Gets a list of Correspondences for the authenticated user
         /// </summary>
         /// <remarks>
-        /// Scopes: <br />
+        /// One of the scopes: <br />
         /// - altinn:correspondence.read <br />
-        /// - altinn:correspondence.send <br />
+        /// - altinn:correspondence.write <br />
         /// Meant for Receivers, but also available for Senders to track Correspondences
         /// </remarks>
-        /// <returns>A list of Correspondence ids</returns>
+        /// <response code="200">Returns a list of Correspondences</response>   
+        /// <response code="400"><ul>
+        /// <li>Could not retrieve party uuid from lookup in Altinn Register</li>
+        /// <li>From date cannot be after to date</li>
+        /// </ul></response>
+        /// <response code="401"><ul>
+        /// <li>You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</li>
+        /// <li>Could not determine the caller</li>
+        /// </ul></response>
         [HttpGet]
         [Produces("application/json")]
         [ProducesResponseType(typeof(CorrespondencesExt), StatusCodes.Status200OK)]
@@ -263,15 +354,19 @@ namespace Altinn.Correspondence.API.Controllers
         /// Mark Correspondence found by ID as read
         /// </summary>
         /// <remarks>
-        /// Scopes: <br />
+        /// One of the scopes: <br/>
         /// - altinn:correspondence.read <br />
         /// </remarks>
-        /// <returns>StatusId</returns>
+        /// <response code="200">the Id of the correspondence</response>
+        /// <response code="400">Could not retrieve party uuid from lookup in Altinn Register</response>
+        /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="404">The requested correspondence was not found</response>
         [HttpPost]
         [Produces("application/json")]
         [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [Route("{correspondenceId}/markasread")]
 
@@ -298,15 +393,19 @@ namespace Altinn.Correspondence.API.Controllers
         /// Mark Correspondence found by ID as confirmed
         /// </summary>
         /// <remarks>
-        /// Scopes: <br />
+        /// One of the scopes: <br/>
         /// - altinn:correspondence.read <br />
         /// </remarks>
-        /// <returns>StatusId</returns>
+        /// <response code="200">the Id of the correspondence</response>
+        /// <response code="400">Could not retrieve party uuid from lookup in Altinn Register</response>
+        /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="404">The requested correspondence was not found</response>
         [HttpPost]
         [Produces("application/json")]
         [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         [Route("{correspondenceId}/confirm")]
@@ -330,49 +429,23 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Mark Correspondence found by ID as archived
-        /// </summary>
-        /// <remarks>
-        /// Scopes: <br />
-        /// - altinn:correspondence.read <br />
-        /// </remarks>
-        /// <returns>StatusId</returns>
-        [HttpPost]
-        [Produces("application/json")]
-        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
-        [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
-        [Route("{correspondenceId}/archive")]
-        public async Task<ActionResult> Archive(
-            Guid correspondenceId,
-            [FromServices] UpdateCorrespondenceStatusHandler handler,
-            CancellationToken cancellationToken)
-        {
-            _logger.LogInformation("Archiving Correspondence with id: {correspondenceId}", correspondenceId.ToString());
-
-            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
-            {
-                CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Archived,
-            }, HttpContext.User, cancellationToken);
-
-            return commandResult.Match(
-                data => Ok(data),
-                Problem
-            );
-        }
-
-        /// <summary>
         /// Delete Correspondence found by ID
         /// </summary>
         /// <remarks>
-        /// Scopes: <br />
+        /// One of the scopes: <br/>
         /// - altinn:correspondence.read <br />
-        /// - altinn:correspondence.send <br /> (Can only purge before the correspondence is published)
+        /// - altinn:correspondence.write <br /> (Can only purge before the correspondence is published)
         /// </remarks>
-        /// <returns>Ok</returns>
+        /// <response code="200">the Id of the correspondence</response>
+        /// <response code="400"><ul>
+        /// <li>Could not retrieve party uuid from lookup in Altinn Register</li>
+        /// <li>Could not retrieve highest status for correspondence</li>
+        /// <li>Correspondence has already been purged</li>
+        /// <li>Sender cannot delete correspondence that has been published</li>
+        /// <li>Cannot archive or delete a correspondence which has not been confirmed when confirmation is required</li>
+        /// </ul></response>
+        /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="404">The requested correspondence was not found</response>
         [HttpDelete]
         [Produces("application/json")]
         [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
@@ -405,9 +478,15 @@ namespace Altinn.Correspondence.API.Controllers
         /// Downloads the attachment data
         /// </summary>
         /// <remarks>
-        /// Scopes: <br />
+        /// One of the scopes: <br/>
         /// - altinn:correspondence.read <br />
-        /// <returns></returns>
+        /// </remarks>
+        /// <response code="200">Returns the attachment file</response>
+        /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="404"><ul>
+        /// <li>The requested correspondence was not found</li>
+        /// <li>The requested attachment was not found</li>
+        /// </ul></response>
         [HttpGet]
         [Produces("application/octet-stream")]
         [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]

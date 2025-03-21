@@ -28,6 +28,18 @@ public static class CorrespondenceStatusExtensions
             .OrderByDescending(s => s.StatusChanged).FirstOrDefault();
         return statusEntity;
     }
+
+    public static bool IsAvailableForSender(this CorrespondenceStatus correspondenceStatus)
+    {
+        List<CorrespondenceStatus> validStatuses =
+        [
+            CorrespondenceStatus.Initialized, CorrespondenceStatus.ReadyForPublish, CorrespondenceStatus.Failed,
+            CorrespondenceStatus.Published, CorrespondenceStatus.Fetched, CorrespondenceStatus.Read, 
+            CorrespondenceStatus.Confirmed, CorrespondenceStatus.Replied, CorrespondenceStatus.Reserved
+        ];
+        return validStatuses.Contains(correspondenceStatus);
+    }
+
     public static bool IsAvailableForRecipient(this CorrespondenceStatus correspondenceStatus)
     {
         List<CorrespondenceStatus> validStatuses =
@@ -41,7 +53,7 @@ public static class CorrespondenceStatusExtensions
     {
         List<CorrespondenceStatus> validStatuses =
         [
-            CorrespondenceStatus.Published, CorrespondenceStatus.Fetched, CorrespondenceStatus.Read, CorrespondenceStatus.Replied,
+            CorrespondenceStatus.Published, CorrespondenceStatus.Read, CorrespondenceStatus.Replied,
             CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived, CorrespondenceStatus.Reserved, CorrespondenceStatus.PurgedByAltinn, CorrespondenceStatus.PurgedByRecipient
         ];
         return validStatuses.Contains(correspondenceStatus);

@@ -81,6 +81,9 @@ inputs:
     description: "Maskinporten environment"
     required: true
     default: ""
+  APIM_IP:
+    description: "IP address for APIM"
+    required: true
 
 runs:
   using: "composite"
@@ -121,6 +124,7 @@ runs:
         AZURE_STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}
         AZURE_SUBSCRIPTION_ID: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
         AZURE_TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
+        APIM_IP: ${{ inputs.APIM_IP }}
 
     - name: Release version
       uses: ./.github/actions/release-version
@@ -142,3 +146,4 @@ runs:
         SBL_BRIDGE_BASE_URL: ${{ inputs.SBL_BRIDGE_BASE_URL }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
         MASKINPORTEN_ENVIRONMENT: ${{ inputs.MASKINPORTEN_ENVIRONMENT }}
+        APIM_IP: ${{ inputs.APIM_IP }}

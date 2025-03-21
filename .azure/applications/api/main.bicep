@@ -26,6 +26,9 @@ param contactReservationRegistryBaseUrl string
 param idportenIssuer string
 param dialogportenIssuer string
 param maskinporten_token_exchange_environment string
+@secure()
+@minLength(3)
+param apimIp string
 
 var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'
@@ -81,15 +84,27 @@ resource keyvault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   scope: resourceGroup
 }
 
+module fetchEventGridIpsScript '../../modules/containerApp/fetchEventGridIps.bicep' = {
+  name: 'fetchAzureEventGridIpsScript'
+  scope: resourceGroup
+  dependsOn: [keyVaultReaderAccessPolicyUserIdentity, databaseAccess]
+  params: {
+    location: location
+    principal_id: appIdentity.outputs.id
+  }
+}
+
 module containerApp '../../modules/containerApp/main.bicep' = {
   name: containerAppName
   scope: resourceGroup
   dependsOn: [keyVaultReaderAccessPolicyUserIdentity, databaseAccess]
   params: {
+    eventGridIps: fetchEventGridIpsScript.outputs.eventGridIps!
     namePrefix: namePrefix
     image: image
     location: location
     environment: environment
+    apimIp: apimIp
     subscription_id: subscription().subscriptionId
     principal_id: appIdentity.outputs.id
     platform_base_url: platform_base_url

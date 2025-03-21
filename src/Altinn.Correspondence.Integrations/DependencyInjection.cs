@@ -12,6 +12,7 @@ using Altinn.Correspondence.Integrations.Altinn.Notifications;
 using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 using Altinn.Correspondence.Integrations.Altinn.Storage;
+using Altinn.Correspondence.Integrations.Azure;
 using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Integrations.Slack;
 using Microsoft.Extensions.Configuration;
@@ -27,6 +28,7 @@ public static class DependencyInjection
         config.GetSection(nameof(MaskinportenSettings)).Bind(maskinportenSettings);
         var generalSettings = new GeneralSettings();
         config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
+        services.AddSingleton<IResourceManager, AzureResourceManagerService>();
         services.AddScoped<IResourceRegistryService, ResourceRegistryService>();
         if (string.IsNullOrWhiteSpace(maskinportenSettings.ClientId))
         {
@@ -61,6 +63,8 @@ public static class DependencyInjection
         {
             services.AddSingleton<ISlackClient>(new SlackClient(generalSettings.SlackUrl));
         }
+        
+        services.AddSingleton<SlackSettings>();
     }
 
     public static void RegisterAltinnHttpClient<TClient, TImplementation>(this IServiceCollection services, MaskinportenSettings maskinportenSettings, AltinnOptions altinnOptions)

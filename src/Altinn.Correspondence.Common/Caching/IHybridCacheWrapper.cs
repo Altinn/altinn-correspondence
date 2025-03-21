@@ -1,13 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Hybrid; // Ensure correct namespace for HybridCacheEntryOptions
 
 namespace Altinn.Correspondence.Common.Caching;
 
 public interface IHybridCacheWrapper
 {
+    Task<T?> GetAsync<T>(
+        string key,
+        HybridCacheEntryOptions? options = null,
+        IEnumerable<string>? tags = null,
+        CancellationToken cancellationToken = default);
+
     Task<T> GetOrCreateAsync<T>(
         string key,
         Func<CancellationToken, ValueTask<T>> factory,

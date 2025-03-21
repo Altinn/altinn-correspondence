@@ -24,11 +24,22 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// Initialize a new Attachment to be shared in correspondences
     /// </summary>
     /// <remarks>
-    /// Scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// One of the scopes: <br/>
+    /// - altinn:correspondence.write <br/>
     /// Only required if the attachment is to be shared, otherwise this is done as part of the Initialize Correspondence operation
     /// </remarks>
-    /// <returns></returns>
+    /// <response code="200">Returns the attachment id</response>
+    /// <response code="400">
+    /// <ul>
+    /// <li>Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService. </li>
+    /// <li>Could not retrieve party uuid from lookup in Altinn Register </li>
+    /// <li>Filename is missing</li>
+    /// <li>Filename is too long</li>
+    /// <li>Filename contains invalid characters</li>
+    /// <li>Filetype not allowed</li>
+    /// </ul>
+    /// </response>
+    /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
     [HttpPost]
     [Consumes("application/json")]
     [Produces("application/json")]
@@ -55,10 +66,23 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// Upload attachment data to Altinn Correspondence blob storage
     /// </summary>
     /// <remarks>
-    /// Scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// One of the scopes: <br/>
+    /// - altinn:correspondence.write <br/>
     /// </remarks>
-    /// <returns></returns>
+    /// <response code="200">Returns attachment metadata</response>
+    /// <response code="400">
+    /// <ul>
+    /// <li>File must have content and has a max file size of 250 MB</li>
+    /// <li>File has already been or is being uploaded</li>
+    /// <li>Cannot upload attachment to a correspondence that has been created</li>
+    /// <li>Could not retrieve party uuid from lookup in Altinn Register</li>
+    /// <li>Could not get data location url</li>  
+    /// <li>Checksum mismatch</li>
+    /// </ul>
+    /// </response>
+    /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+    /// <response code="404">The requested attachment was not found</response>
+    /// <response code="502">Error occurred during upload</response>
     [HttpPost]
     [Produces("application/json")]
     [Route("{attachmentId}/upload")]
@@ -100,10 +124,12 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// Get information about the attachment and its current status
     /// </summary>
     /// <remarks>
-    /// Scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// One of the scopes: <br/>
+    /// - altinn:correspondence.write <br/>
     /// </remarks>
-    /// <returns>AttachmentOverviewExt</returns>
+    /// <response code="200">Returns attachment metadata</response>
+    /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+    /// <response code="404">The requested attachment was not found</response>
     [HttpGet]
     [Route("{attachmentId}")]
     [Produces("application/json")]
@@ -130,10 +156,12 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// Get information about the attachment and its current status
     /// </summary>
     /// <remarks>
-    /// Scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// One of the scopes: <br/>
+    /// - altinn:correspondence.write <br/>
     /// </remarks>
-    /// <returns></returns>
+    /// <response code="200">Returns attachment metadata</response>
+    /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+    /// <response code="404">The requested attachment was not found</response>
     [HttpGet]
     [Produces("application/json")]
     [ProducesResponseType(typeof(AttachmentDetailsExt), StatusCodes.Status200OK)]
@@ -161,10 +189,19 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// Deletes the attachment
     /// </summary>
     /// <remarks>
-    /// Scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// One of the scopes: <br/>
+    /// - altinn:correspondence.write <br/>
     /// </remarks>
-    /// <returns></returns>
+    /// <response code="200">Returns no data</response>
+    /// <response code="400">
+    /// <ul> 
+    /// <li>File has already been purged</li>
+    /// <li>Attachment cannot be purged as it is linked to at least one existing correspondence</li>
+    /// <li>Could not retrieve party uuid from lookup in Altinn Register</li>
+    /// </ul>
+    /// </response>
+    /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+    /// <response code="404">The requested attachment was not found</response>
     [HttpDelete]
     [Route("{attachmentId}")]
     [Produces("application/json")]
@@ -191,14 +228,15 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// Downloads the attachment data
     /// </summary>
     /// <remarks>
-    /// Scopes: <br/>
-    /// - altinn:correspondence.send <br/>
+    /// One of the scopes: <br/>
+    /// - altinn:correspondence.write <br/>
     /// </remarks>
-    /// <returns></returns>
+    /// <response code="200">Returns the attachment</response>
+    /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+    /// <response code="404">The requested attachment was not found</response>
     [HttpGet]
     [Produces("application/octet-stream")]
     [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [Route("{attachmentId}/download")]
