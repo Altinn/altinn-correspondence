@@ -144,6 +144,18 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     {
                         new Endpoint()
                         {
+                            HttpMethod = "POST",
+                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive"
+                        }
+                    }
+                },
+                new ApiAction()
+                {
+                    Action = "write",
+                    Endpoints = new List<Endpoint>()
+                    {
+                        new Endpoint()
+                        {
                             HttpMethod = "DELETE",
                             Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/purge"
                         }
@@ -184,8 +196,45 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             var guiActions = new List<GuiAction>();
             
-            if (correspondence.IsConfirmationNeeded)
+            // Add ReplyOptions as GUI actions first
+            if (correspondence.ReplyOptions != null && correspondence.ReplyOptions.Any())
             {
+                // Add each ReplyOption from the request
+                foreach (var replyOption in correspondence.ReplyOptions)
+                {
+                    guiActions.Add(new GuiAction()
+                    {
+                        Title = new List<Title>()
+                        {
+                            new Title()
+                            {
+                                LanguageCode = "nb",
+                                MediaType = "text/plain",
+                                Value = replyOption.LinkText ?? "Gå til tjeneste"
+                            },
+                            new Title()
+                            {
+                                LanguageCode = "nn",
+                                MediaType = "text/plain",
+                                Value = replyOption.LinkText ?? "Gå til teneste"
+                            },
+                            new Title()
+                            {
+                                LanguageCode = "en",
+                                MediaType = "text/plain",
+                                Value = replyOption.LinkText ?? "Go to service"
+                            }
+                        },
+                        Action = "read",
+                        Url = replyOption.LinkURL,
+                        HttpMethod = "GET",
+                        Priority = guiActions.Count == 0 ? "Primary" : "Tertiary"
+                    });
+                }
+            }
+            else if (correspondence.IsConfirmationNeeded)
+            {
+                // If no ReplyOptions but confirmation is needed, confirm becomes the primary action
                 guiActions.Add(new GuiAction()
                 {
                     Title = new List<Title>()
@@ -216,6 +265,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 });
             }
 
+            // Add mark as read as tertiary
             guiActions.Add(new GuiAction()
             {
                 Title = new List<Title>()
@@ -245,6 +295,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Priority = "Tertiary"
             });
 
+            // Add delete as tertiary
             guiActions.Add(new GuiAction()
             {
                 Title = new List<Title>()
