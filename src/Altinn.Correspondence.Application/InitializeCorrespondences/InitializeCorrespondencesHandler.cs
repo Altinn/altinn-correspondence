@@ -174,7 +174,7 @@ public class InitializeCorrespondencesHandler(
         var ignoreReservation = request.Correspondence.IgnoreReservation == true;
         try
         {
-            var reservedRecipients = await contactReservationRegistryService.GetReservedRecipients(request.Recipients.Where(recipient => recipient.IsSocialSecurityNumber()).ToList());
+            var reservedRecipients = await contactReservationRegistryService.GetReservedRecipients(request.Recipients.Where(recipient => recipient.IsSocialSecurityNumberWithNoPrefix()).ToList());
             if (!ignoreReservation && request.Recipients.Count == 1 && reservedRecipients.Count == 1)
             {
                 logger.LogInformation("Recipient reserved from correspondences in KRR");
