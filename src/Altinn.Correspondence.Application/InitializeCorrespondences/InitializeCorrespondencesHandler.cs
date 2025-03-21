@@ -227,7 +227,7 @@ public class InitializeCorrespondencesHandler(
         foreach (var correspondence in correspondences)
         {
             logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
-            var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
+            var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
             if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized ||
                 correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish ||
                 correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Published)
@@ -454,10 +454,16 @@ public class InitializeCorrespondencesHandler(
     }
 
     // Must be public to be run by Hangfire
+    [Obsolete("Use the CreateDialogportenDialog(Guid correspondenceId) overload instead to reduce database storage. Delete this method after the new method has been dpeloyed.")]
     public async Task CreateDialogportenDialog(CorrespondenceEntity correspondence)
     {
         var dialogId = await dialogportenService.CreateCorrespondenceDialog(correspondence.Id);
         await correspondenceRepository.AddExternalReference(correspondence.Id, ReferenceType.DialogportenDialogId, dialogId);
+    }
+    public async Task CreateDialogportenDialog(Guid correspondenceId)
+    {
+        var dialogId = await dialogportenService.CreateCorrespondenceDialog(correspondenceId);
+        await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
     }
 
     public void SchedulePublish(Guid correspondenceId, DateTimeOffset publishTime, CancellationToken cancellationToken)

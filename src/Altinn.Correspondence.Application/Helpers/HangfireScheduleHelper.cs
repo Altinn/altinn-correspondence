@@ -3,7 +3,7 @@ using Hangfire;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
-    public class HangfireScheduleHelper(IBackgroundJobClient backgroundJobClient, PublishCorrespondenceHandler publishCorrespondenceHandler)
+    public class HangfireScheduleHelper(IBackgroundJobClient backgroundJobClient)
     {
 
         public void SchedulePublish(Guid correspondenceId, DateTimeOffset publishTime, CancellationToken cancellationToken)
