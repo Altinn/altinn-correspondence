@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models;
 
-public partial class InitializeCorrespondencesExt
+public class InitializeCorrespondencesExt
 {
     /// <summary>
     /// The correspondence object that should be created

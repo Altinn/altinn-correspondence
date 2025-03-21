@@ -12,14 +12,14 @@ namespace Altinn.Correspondence.API.Models
         public required DateTimeOffset ForwardedOnDate { get; set; }
 
         /// <summary>
-        /// PartyId of user that performed the forwarding action.
+        /// Person Identifier for Person that performed the forwarding action.
         /// </summary>
         [JsonPropertyName("forwardedByUser")]
         [PersonIdentifier]
         public string ForwardedByUser { get; set; }
 
         /// <summary>
-        /// Optional PartyId of user that the correspondence was forwarded to.
+        /// Person Identifier of user that the correspondence was forwarded to.
         /// </summary>
         [JsonPropertyName("forwardedToUser")]
         [PersonIdentifier]
@@ -34,8 +34,8 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Optional Email address that was used to notify the user that the correspondence was forwarded to.
         /// </summary>
-        [JsonPropertyName("forwardedToEmailAddress")]
-        public string? ForwardedToEmailAddress { get; set; }
+        [JsonPropertyName("forwardedToEmail")]
+        public string? ForwardedToEmail { get; set; }
 
         /// <summary>
         /// Optional Org number for the Mailbox supplier that the correspondence was forwarded to.
