@@ -199,73 +199,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             // Add ReplyOptions as GUI actions first
             if (correspondence.ReplyOptions != null && correspondence.ReplyOptions.Any())
             {
-                // If we have ReplyOptions, the first one becomes the primary action
-                var firstReplyOption = correspondence.ReplyOptions.First();
-                guiActions.Add(new GuiAction()
-                {
-                    Title = new List<Title>()
-                    {
-                        new Title()
-                        {
-                            LanguageCode = "nb",
-                            MediaType = "text/plain",
-                            Value = firstReplyOption.LinkText ?? "Gå til tjeneste"
-                        },
-                        new Title()
-                        {
-                            LanguageCode = "nn",
-                            MediaType = "text/plain",
-                            Value = firstReplyOption.LinkText ?? "Gå til teneste"
-                        },
-                        new Title()
-                        {
-                            LanguageCode = "en",
-                            MediaType = "text/plain",
-                            Value = firstReplyOption.LinkText ?? "Go to service"
-                        }
-                    },
-                    Action = "read",
-                    Url = firstReplyOption.LinkURL,
-                    HttpMethod = "GET",
-                    Priority = "Primary"
-                });
-
-                // If we have a second ReplyOption, it becomes the secondary action
-                var secondReplyOption = correspondence.ReplyOptions.Skip(1).FirstOrDefault();
-                if (secondReplyOption != null)
-                {
-                    guiActions.Add(new GuiAction()
-                    {
-                        Title = new List<Title>()
-                        {
-                            new Title()
-                            {
-                                LanguageCode = "nb",
-                                MediaType = "text/plain",
-                                Value = secondReplyOption.LinkText ?? "Gå til tjeneste"
-                            },
-                            new Title()
-                            {
-                                LanguageCode = "nn",
-                                MediaType = "text/plain",
-                                Value = secondReplyOption.LinkText ?? "Gå til teneste"
-                            },
-                            new Title()
-                            {
-                                LanguageCode = "en",
-                                MediaType = "text/plain",
-                                Value = secondReplyOption.LinkText ?? "Go to service"
-                            }
-                        },
-                        Action = "read",
-                        Url = secondReplyOption.LinkURL,
-                        HttpMethod = "GET",
-                        Priority = "Secondary"
-                    });
-                }
-
-                // Any additional ReplyOptions become tertiary actions
-                foreach (var replyOption in correspondence.ReplyOptions.Skip(2))
+                // Add each ReplyOption from the request
+                foreach (var replyOption in correspondence.ReplyOptions)
                 {
                     guiActions.Add(new GuiAction()
                     {
@@ -293,7 +228,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                         Action = "read",
                         Url = replyOption.LinkURL,
                         HttpMethod = "GET",
-                        Priority = "Tertiary"
+                        Priority = guiActions.Count == 0 ? "Primary" : "Tertiary"
                     });
                 }
 
