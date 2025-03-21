@@ -208,21 +208,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                         {
                             new Title()
                             {
-                                LanguageCode = "nb",
                                 MediaType = "text/plain",
-                                Value = replyOption.LinkText ?? "Gå til tjeneste"
-                            },
-                            new Title()
-                            {
-                                LanguageCode = "nn",
-                                MediaType = "text/plain",
-                                Value = replyOption.LinkText ?? "Gå til teneste"
-                            },
-                            new Title()
-                            {
-                                LanguageCode = "en",
-                                MediaType = "text/plain",
-                                Value = replyOption.LinkText ?? "Go to service"
+                                Value = replyOption.LinkText
                             }
                         },
                         Action = "read",
