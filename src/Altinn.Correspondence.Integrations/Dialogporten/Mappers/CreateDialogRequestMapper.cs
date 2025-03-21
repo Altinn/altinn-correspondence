@@ -224,35 +224,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     {
                         LanguageCode = "nb",
                         MediaType = "text/plain",
-                        Value = "Marker som lest"
-                    },
-                    new Title()
-                    {
-                        LanguageCode = "nn",
-                        MediaType = "text/plain",
-                        Value = "Mark som lest"
-                    },
-                    new Title()
-                    {
-                        LanguageCode = "en",
-                        MediaType = "text/plain",
-                        Value = "Mark as read"
-                    },
-                },
-                Action = "read",
-                Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/markasread",
-                HttpMethod = "POST",
-                Priority = "Tertiary"
-            });
-
-            guiActions.Add(new GuiAction()
-            {
-                Title = new List<Title>()
-                {
-                    new Title()
-                    {
-                        LanguageCode = "nb",
-                        MediaType = "text/plain",
                         Value = "Slett"
                     },
                     new Title()
