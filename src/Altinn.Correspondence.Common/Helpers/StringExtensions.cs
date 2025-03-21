@@ -19,7 +19,7 @@ public static class StringExtensions
     }
 
     /// <summary>
-    /// Checks if the provided string is a valid social security number.
+    /// Checks if the provided string is a valid social security number and that it has no prefix.
     /// </summary>
     /// <param name="identifier">The string to validate.</param>
     /// <returns>True if the string matches a 11-digit format and passes mod11 validation.</returns>
