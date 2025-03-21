@@ -306,7 +306,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 recipient = $"{UrnConstants.OrganizationNumberAttribute}:{recipient.WithoutPrefix()}";
                 logger.LogInformation($"'0192:' prefix detected for recipient in creation of correspondence. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
             }
-            else if (recipient.IsSocialSecurityNumber())
+            else if (recipient.IsSocialSecurityNumberWithNoPrefix())
             {
                 recipient = $"{UrnConstants.PersonIdAttribute}:{recipient}";
                 logger.LogInformation($"Social security number without urn prefix detected for recipient in creation of correspondece. Adding {UrnConstants.PersonIdAttribute} prefix to recipient.");
