@@ -15,12 +15,13 @@ public static class StringExtensions
     /// <returns>True if the string matches a 11-digit format and passes mod11 validation.</returns>
     public static bool IsSocialSecurityNumber(this string identifier)
     {
-        return !string.IsNullOrWhiteSpace(identifier) 
-            && SsnPattern.IsMatch(identifier)
-            && Mod11.TryCalculateControlDigit(identifier.AsSpan()[..9], SocialSecurityNumberWeights1, out var control1)
-            && Mod11.TryCalculateControlDigit(identifier.AsSpan()[..10], SocialSecurityNumberWeights2, out var control2)
-            && control1 == int.Parse(identifier[9..10], CultureInfo.InvariantCulture)
-            && control2 == int.Parse(identifier[10..11], CultureInfo.InvariantCulture);
+        string socialSecurityNumber = identifier.WithoutPrefix();
+        return !string.IsNullOrWhiteSpace(socialSecurityNumber)
+            && SsnPattern.IsMatch(socialSecurityNumber)
+            && Mod11.TryCalculateControlDigit(socialSecurityNumber.AsSpan()[..9], SocialSecurityNumberWeights1, out var control1)
+            && Mod11.TryCalculateControlDigit(socialSecurityNumber.AsSpan()[..10], SocialSecurityNumberWeights2, out var control2)
+            && control1 == int.Parse(socialSecurityNumber[9..10], CultureInfo.InvariantCulture)
+            && control2 == int.Parse(socialSecurityNumber[10..11], CultureInfo.InvariantCulture);
     }
 
     /// <summary>
