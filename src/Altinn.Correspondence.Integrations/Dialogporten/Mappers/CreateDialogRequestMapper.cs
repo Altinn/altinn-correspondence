@@ -144,6 +144,18 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     {
                         new Endpoint()
                         {
+                            HttpMethod = "POST",
+                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive"
+                        }
+                    }
+                },
+                new ApiAction()
+                {
+                    Action = "write",
+                    Endpoints = new List<Endpoint>()
+                    {
+                        new Endpoint()
+                        {
                             HttpMethod = "DELETE",
                             Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/purge"
                         }
@@ -196,8 +208,21 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                         {
                             new Title()
                             {
+                                LanguageCode = "nb",
                                 MediaType = "text/plain",
-                                Value = replyOption.LinkText
+                                Value = replyOption.LinkText ?? "Gå til tjeneste"
+                            },
+                            new Title()
+                            {
+                                LanguageCode = "nn",
+                                MediaType = "text/plain",
+                                Value = replyOption.LinkText ?? "Gå til teneste"
+                            },
+                            new Title()
+                            {
+                                LanguageCode = "en",
+                                MediaType = "text/plain",
+                                Value = replyOption.LinkText ?? "Go to service"
                             }
                         },
                         Action = "read",
