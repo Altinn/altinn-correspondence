@@ -16,7 +16,7 @@ on:
           - at23
           - at24
 
-permissions: 
+permissions:
   id-token: write
   contents: read
   packages: write
@@ -25,6 +25,10 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
+    permissions: 
+      id-token: write
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
@@ -34,14 +38,16 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-            
-      - name: Push image to registry
-        shell: bash
-        run: |
-          # Construct the image tag using the Git hash
-          IMAGE=ghcr.io/altinn/altinn-correspondence/altinn-correspondence-dashboard:${{ github.sha }}
-          docker build -f tools/Altinn.Correspondence.Dashboard/Dockerfile . --tag $IMAGE
-          docker push $IMAGE
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: tools/Altinn.Correspondence.Dashboard/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/altinn/altinn-correspondence-dashboard:${{ github.sha }}
+            ghcr.io/altinn/altinn-correspondence-dashboard:latest
 
       - name: Azure Login
         uses: azure/login@v1
@@ -52,17 +58,15 @@ jobs:
 
       - name: Deploy Bicep
         uses: azure/arm-deploy@v1
-        env:
-          AZURE_NAME_PREFIX: ${{ secrets.AZURE_NAME_PREFIX }}
-          containerImage: ghcr.io/altinn/altinn-correspondence/altinn-correspondence-dashboard:${{ github.sha }}
-          AZURE_ENVIRONMENT_KEY_VAULT_NAME: ${{ secrets.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
-          AZURE_APP_REGISTRATION_ID: ${{ secrets.AZURE_APP_REGISTRATION_ID }}
-          AZURE_APP_REGISTRATION_CLIENT_SECRET: ${{ secrets.AZURE_APP_REGISTRATION_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          DASHBOARD_ALLOWED_GROUP_ID: ${{ secrets.AZURE_TEST_ACCESS_CLIENT_ID }}
-          AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
         with:
           scope: resourcegroup
-          resourceGroupName: ${{ secrets.AZURE_NAME_PREFIX }}-rg
+          resourceGroupName: ${{ secrets.RESOURCE_GROUP }}
           template: .azure/applications/dashboard/main.bicep
-          parameters: .azure/applications/dashboard/main.bicepparam
+          parameters: >
+            AZURE_NAME_PREFIX: ${{ secrets.AZURE_NAME_PREFIX }}
+            containerImage=ghcr.io/altinn/altinn-correspondence-dashboard:${{ github.sha }}
+            AZURE_ENVIRONMENT_KEY_VAULT_NAME: ${{ secrets.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
+            AZURE_APP_REGISTRATION_ID: ${{ secrets.AZURE_APP_REGISTRATION_ID }}
+            AZURE_APP_REGISTRATION_CLIENT_SECRET: ${{ secrets.AZURE_APP_REGISTRATION_CLIENT_SECRET }}
+            AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+            DASHBOARD_ALLOWED_GROUP_ID: ${{ secrets.AZURE_TEST_ACCESS_CLIENT_ID }}

@@ -1,57 +1,127 @@
 param location string
 param containerImage string
-@secure()
 param azureNamePrefix string
-@secure()
 param keyVaultName string
-@secure()
 param appRegistrationId string
-@secure()
 param appRegistrationClientSecret string
-@secure()
 param tenantId string
-@secure()
 param allowedGroupId string
-@secure()
-param storageAccountName string
 
-
-module appIdentity '../../modules/identity/create.bicep' = {
-  name: 'dashboardIdentity'
-  params: {
-    namePrefix: '${azureNamePrefix}-dashboard'
-    location: location
-  }
+resource keyVault 'Microsoft.KeyVault/vaults@2021-06-01-preview' existing = {
+  name: keyVaultName
 }
 
-module keyvaultAccess '../../modules/keyvault/addReaderRoles.bicep' = {
-  name: 'keyvaultAccess'
-  params: {
-    keyvaultName: keyVaultName
-    principalIds: [
-      appIdentity.outputs.principalId
+resource keyVaultAccessPolicy 'Microsoft.KeyVault/vaults/accessPolicies@2022-07-01' = {
+  name: '${keyVaultName}/add'
+  properties: {
+    accessPolicies: [
+      {
+        objectId: containerApp.identity.principalId
+        tenantId: subscription().tenantId
+        permissions: {
+          secrets: [
+            'get'
+            'list'
+          ]
+        }
+      }
     ]
-    tenantId: tenantId
   }
 }
 
-module dashboard '../../modules/containerApp/dashboard.bicep' = {
-  name: 'dashboard'
-  dependsOn: [
-    keyvaultAccess
-  ]
-  params: {
-    containerImage: containerImage
-    location: location
-    azureNamePrefix: azureNamePrefix
-    keyVaultName: keyVaultName
-    appRegistrationId: appRegistrationId
-    appRegistrationClientSecret: appRegistrationClientSecret
-    tenantId: tenantId
-    allowedGroupId: allowedGroupId
-    storageAccountName: storageAccountName
-    userAssignedIdentityId: appIdentity.outputs.id
-    userAssignedIdentityClientId: appIdentity.outputs.clientId
-    userAssignedIdentityPrincipalId: appIdentity.outputs.principalId
+resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
+  name: '${azureNamePrefix}-dashboard'
+  location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    environmentId: resourceId('Microsoft.App/managedEnvironments', '${azureNamePrefix}-env')
+    configuration: {
+      ingress: {
+        external: true
+        targetPort: 2526
+        allowInsecure: false
+      }
+      secrets: [
+        {
+          name: 'correspondence-migration-connection-string'
+          keyVaultUrl: '${keyVault.properties.vaultUri}secrets/correspondence-migration-connection-string'
+          identity: 'System'
+        }
+        {
+          name: 'app-registration-client-secret'
+          value: appRegistrationClientSecret
+        }
+      ]
+    }
+    template: {
+      containers: [
+        {
+          name: 'dashboard'
+          image: containerImage
+          env: [
+            {
+              name: 'DatabaseOptions__ConnectionString'
+              secretRef: 'correspondence-migration-connection-string'
+            }
+          ]
+        }
+      ]
+      scale: {
+        minReplicas: 1
+        maxReplicas: 1
+      }
+    }
+  }
+}
+
+// Configure authentication for Container App
+resource containerAppAuth 'Microsoft.App/containerApps/authConfigs@2023-05-01' = {
+  name: 'current'
+  parent: containerApp
+  properties: {
+    platform: {
+      enabled: true
+    }
+    identityProviders: {
+      azureActiveDirectory: {
+        enabled: true
+        login: {
+          disableWWWAuthenticate: false
+        }
+        registration: {
+          clientId: appRegistrationId
+          clientSecretSettingName: 'app-registration-client-secret'
+          openIdIssuer: 'https://sts.windows.net/${tenantId}/'
+        }
+        validation: {
+          allowedAudiences: [
+            'api://${appRegistrationId}'
+          ]
+          defaultAuthorizationPolicy: {
+            allowedPrincipals: {
+              groups: [
+                allowedGroupId
+              ]
+              identities: [
+                allowedGroupId
+              ]
+            }
+            allowedApplications: [
+              '${appRegistrationId}'
+            ]
+          }
+          jwtClaimChecks: {
+            allowedClientApplications: [
+              '${appRegistrationId}'
+            ]
+            allowedGroups: [
+              allowedGroupId
+            ]
+          }
+        }
+      }
+    }
   }
 }
