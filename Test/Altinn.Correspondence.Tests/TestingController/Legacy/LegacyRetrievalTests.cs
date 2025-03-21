@@ -17,11 +17,8 @@ using Altinn.Correspondence.Tests.Fixtures;
 namespace Altinn.Correspondence.Tests.TestingController.Legacy
 {
     [Collection(nameof(CustomWebApplicationTestsCollection))]
-    public class LegacyRetrievalTests : LegacyTestBase
+    public class LegacyRetrievalTests(CustomWebApplicationFactory factory) : LegacyTestBase(factory)
     {
-        public LegacyRetrievalTests(CustomWebApplicationFactory factory) : base(factory)
-        {
-        }
         [Fact]
         public async Task LegacyGetCorrespondenceOverview_WithValidRequest_ReturnsOk()
         {
@@ -64,28 +61,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var response = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview");
             // Assert
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        }
-
-        [Fact]
-        public async Task LegacyGetCorrespondenceOverview_ShouldAddFetchedToStatusHistory()
-        {
-            // Arrange
-            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
-            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
-
-            // Act
-            var overviewResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview");
-            Assert.Equal(HttpStatusCode.OK, overviewResponse.StatusCode);
-            var overviewContent = await overviewResponse.Content.ReadFromJsonAsync<LegacyCorrespondenceOverviewExt>(_serializerOptions);
-            Assert.NotNull(overviewContent);
-            Assert.NotEqual(CorrespondenceStatusExt.Fetched, overviewContent.Status);
-
-            // Assert
-            var historyResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/history");
-            Assert.Equal(HttpStatusCode.OK, historyResponse.StatusCode);
-            var historyData = await historyResponse.Content.ReadFromJsonAsync<List<LegacyGetCorrespondenceHistoryResponse>>();
-            Assert.NotNull(historyData);
-            Assert.Contains(historyData, status => status.Status.Contains(CorrespondenceStatus.Fetched.ToString()));
         }
 
         [Fact]
@@ -136,9 +111,37 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             Assert.NotNull(content);
             Assert.Contains(content, status => status.User.PartyId == _digdirPartyId);
             Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Published.ToString()));
-            Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Fetched.ToString()));
             Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Confirmed.ToString()));
             Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Archived.ToString()));
+        }
+
+        [Fact]
+        public async Task LegacyGetCorrespondenceHistory_WithCorrespondenceActionsByDifferentParties_IncludesStatuses()
+        {
+            // Arrange
+            // TODO: Calls from LegacyClient / Altinn 2 Portal will always refer to the PartyID of the person logged in, so all these tests should be rewritten to refelct that reality.
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+                        
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+            await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview");
+            await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/markAsRead", null);
+            var secondClient = CreateLegacyTestClient(_delegatedUserPartyid);
+            await secondClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/markasread", null);
+            await secondClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/confirm", null);
+
+            // Act
+            var response = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/history");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            // Assert
+            var content = await response.Content.ReadFromJsonAsync<List<LegacyGetCorrespondenceHistoryResponse>>(_serializerOptions);
+            Assert.NotNull(content);
+            Assert.Contains(content, status => status.User.PartyId == _digdirPartyId);
+            Assert.Contains(content, status => status.User.PartyId == _digdirPartyId && status.Status.Contains(CorrespondenceStatus.Published.ToString()));
+            Assert.Contains(content, status => status.User.PartyId == _digdirPartyId && status.Status.Contains(CorrespondenceStatus.Read.ToString()));
+            Assert.Contains(content, status => status.User.PartyId == _delegatedUserPartyid);
+            Assert.Contains(content, status => status.User.PartyId == _delegatedUserPartyid && status.Status.Contains(CorrespondenceStatus.Read.ToString()));
+            Assert.Contains(content, status => status.User.PartyId == _delegatedUserPartyid && status.Status.Contains(CorrespondenceStatus.Confirmed.ToString()));
         }
 
         [Fact]

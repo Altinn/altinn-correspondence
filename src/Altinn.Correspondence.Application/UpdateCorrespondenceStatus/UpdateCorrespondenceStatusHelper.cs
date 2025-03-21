@@ -89,10 +89,6 @@ public class UpdateCorrespondenceStatusHelper(
         {
             _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondenceConfirmed));
         }
-        else if (status == CorrespondenceStatus.Archived)
-        {
-            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondenceArchived));
-        }
         return;
     }
 

@@ -406,7 +406,8 @@ namespace Altinn.Correspondence.Application.Helpers
             if (correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.StatusHasBeen(AttachmentStatus.Published)))
             {
                 if (hostEnvironment.IsDevelopment() && correspondence.RequestedPublishTime < DateTimeOffset.UtcNow) status = CorrespondenceStatus.Published; // used to test on published correspondences in development
-                else status = CorrespondenceStatus.ReadyForPublish;
+                else 
+                status = CorrespondenceStatus.ReadyForPublish;
             }
             return status;
         }

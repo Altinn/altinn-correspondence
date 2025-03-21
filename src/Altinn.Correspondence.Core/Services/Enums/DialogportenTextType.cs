@@ -7,7 +7,6 @@
         DownloadStarted,
         CorrespondencePublished,
         CorrespondenceConfirmed,
-        CorrespondenceArchived,
         CorrespondencePurged
     }
 }

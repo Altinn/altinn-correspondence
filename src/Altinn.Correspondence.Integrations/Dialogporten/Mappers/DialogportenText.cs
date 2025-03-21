@@ -21,7 +21,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.DownloadStarted => string.Format("Startet nedlastning av vedlegg {0}", tokens),
             DialogportenTextType.CorrespondencePublished => "Melding publisert.",
             DialogportenTextType.CorrespondenceConfirmed => "Melding bekreftet.",
-            DialogportenTextType.CorrespondenceArchived => "Melding arkivert.",
             DialogportenTextType.CorrespondencePurged => "Melding slettet.",
             _ => throw new ArgumentException("Invalid text type")
         };
@@ -33,7 +32,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.DownloadStarted => string.Format("Startet nedlastning av vedlegg {0}", tokens),
             DialogportenTextType.CorrespondencePublished => "Melding publisert.",
             DialogportenTextType.CorrespondenceConfirmed => "Melding bekreftet.",
-            DialogportenTextType.CorrespondenceArchived => "Melding arkivert.",
             DialogportenTextType.CorrespondencePurged => "Melding slettet.",
             _ => throw new ArgumentException("Invalid text type")
         };
@@ -45,7 +43,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.DownloadStarted => string.Format("Started downloading attachment {0}", tokens),
             DialogportenTextType.CorrespondencePublished => "Message published.",
             DialogportenTextType.CorrespondenceConfirmed => "Message confirmed.",
-            DialogportenTextType.CorrespondenceArchived => "Message archived.",
             DialogportenTextType.CorrespondencePurged => "Message deleted.",
             _ => throw new ArgumentException("Invalid text type")
         };

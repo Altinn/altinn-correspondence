@@ -13,6 +13,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy.Base
         public readonly HttpClient _senderClient;
         public readonly string _partyIdClaim = "urn:altinn:partyid";
         public readonly int _digdirPartyId = 50952483;
+        public readonly int _delegatedUserPartyid = 100;
 
         public LegacyTestBase(CustomWebApplicationFactory factory)
         {
@@ -27,6 +28,13 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy.Base
             _legacyClient = _factory.CreateClientWithAddedClaims(
                 ("scope", AuthorizationConstants.LegacyScope),
                 (_partyIdClaim, _digdirPartyId.ToString()));
+        }
+
+        public HttpClient CreateLegacyTestClient(int legacyPartyId)
+        {
+            return _factory.CreateClientWithAddedClaims(
+                ("scope", AuthorizationConstants.LegacyScope),
+                (_partyIdClaim, legacyPartyId.ToString()));
         }
     }
 }

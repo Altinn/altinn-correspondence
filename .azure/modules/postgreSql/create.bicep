@@ -34,7 +34,7 @@ module saveMigrationConnectionString '../keyvault/upsertSecret.bicep' = {
   params: {
     destKeyVaultName: srcKeyVault.name
     secretName: migrationConnectionStringName
-    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${databaseUser};Password=${administratorLoginPassword};options=-c role=azure_pg_admin;'
+    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${databaseUser};Password=${administratorLoginPassword};'
   }
 }
 
@@ -48,7 +48,7 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
     storage: {
       storageSizeGB: prodLikeEnvironment ? 2048 : 32
       autoGrow: 'Enabled'
-      tier: prodLikeEnvironment ? 'P40': 'P4'
+      tier: prodLikeEnvironment ? 'P40' : 'P4'
     }
     backup: { backupRetentionDays: 35 }
     authConfig: {
@@ -57,13 +57,15 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
       tenantId: tenantId
     }
   }
-  sku: prodLikeEnvironment ? {
-    name: 'Standard_D8ads_v5'
-    tier: 'GeneralPurpose'
-  } : {
-    name: 'Standard_B1ms'
-    tier: 'Burstable'
-  }
+  sku: prodLikeEnvironment
+    ? {
+        name: 'Standard_D8ads_v5'
+        tier: 'GeneralPurpose'
+      }
+    : {
+        name: 'Standard_B1ms'
+        tier: 'Burstable'
+      }
 }
 
 resource database 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {

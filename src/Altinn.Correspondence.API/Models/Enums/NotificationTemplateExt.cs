@@ -1,7 +1,7 @@
 namespace Altinn.Correspondence.API.Models.Enums
 {
     /// <summary>
-    /// Enum describing available notification channels.
+    /// Enum describing available notification templates.
     /// </summary>
     public enum NotificationTemplateExt
     {

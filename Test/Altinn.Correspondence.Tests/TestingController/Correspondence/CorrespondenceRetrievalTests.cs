@@ -255,7 +255,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.Unauthorized, getCorrespondenceResponse.StatusCode);
         }
         [Fact]
-        public async Task CorrespondenceIsArchived_StatusNotVisibleForSender()
+        public async Task CorrespondenceIsPurged_StatusNotVisibleForSender()
         {
             // Arrange
             var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
@@ -264,9 +264,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
             var correspondenceId = correspondence?.Correspondences.FirstOrDefault().CorrespondenceId;
 
-            // Archive the correspondence
-            var archiveResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/archive", null);
-            archiveResponse.EnsureSuccessStatusCode();
+            // Purge the correspondence
+            var purgeResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
+            purgeResponse.EnsureSuccessStatusCode();
 
             // Act
             // Try to access the correspondence as sender
@@ -274,7 +274,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var detailsResponse = await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
 
             // Assert
-            Assert.False(detailsResponse.StatusHistory.Any(statusEntity => statusEntity.Status == CorrespondenceStatusExt.Archived));
+            Assert.False(detailsResponse.StatusHistory.Any(statusEntity => statusEntity.Status == CorrespondenceStatusExt.PurgedByRecipient));
         }
 
         [Fact]
