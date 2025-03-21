@@ -63,7 +63,7 @@ public class InitializeCorrespondencesExt
                 {
                     return new ValidationResult($"Recipient should be an organization number in the format '{UrnConstants.OrganizationNumberAttribute}:organizationnumber' or the format countrycode:organizationnumber, for instance 0192:910753614, or a national identity number");
                 }
-                if (personRegex.IsMatch(recipient) && !recipient.IsSocialSecurityNumber())
+                if (personRegex.IsMatch(recipient) && !recipient.WithoutPrefix().IsSocialSecurityNumber())
                 {
                     return new ValidationResult("The given Recipient national identity number is not valid");
                 }
