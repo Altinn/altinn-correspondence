@@ -124,6 +124,7 @@ runs:
         AZURE_STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}
         AZURE_SUBSCRIPTION_ID: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
         AZURE_TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
+        APIM_IP: ${{ inputs.APIM_IP }}
 
     - name: Release version
       uses: ./.github/actions/release-version
