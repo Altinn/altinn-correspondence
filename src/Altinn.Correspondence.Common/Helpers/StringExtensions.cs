@@ -12,16 +12,25 @@ public static class StringExtensions
     /// Checks if the provided string is a valid social security number format.
     /// </summary>
     /// <param name="identifier">The string to validate.</param>
-    /// <returns>True if the string matches a 11-digit format and passes mod11 validation.</returns>
+    /// <returns>True if the social security number of the identifier matches a 11-digit format and passes mod11 validation.</returns>
     public static bool IsSocialSecurityNumber(this string identifier)
     {
-        string socialSecurityNumber = identifier.WithoutPrefix();
-        return !string.IsNullOrWhiteSpace(socialSecurityNumber)
-            && SsnPattern.IsMatch(socialSecurityNumber)
-            && Mod11.TryCalculateControlDigit(socialSecurityNumber.AsSpan()[..9], SocialSecurityNumberWeights1, out var control1)
-            && Mod11.TryCalculateControlDigit(socialSecurityNumber.AsSpan()[..10], SocialSecurityNumberWeights2, out var control2)
-            && control1 == int.Parse(socialSecurityNumber[9..10], CultureInfo.InvariantCulture)
-            && control2 == int.Parse(socialSecurityNumber[10..11], CultureInfo.InvariantCulture);
+        return IsSocialSecurityNumberWithNoPrefix(identifier.WithoutPrefix());
+    }
+
+    /// <summary>
+    /// Checks if the provided string is a valid social security number.
+    /// </summary>
+    /// <param name="identifier">The string to validate.</param>
+    /// <returns>True if the string matches a 11-digit format and passes mod11 validation.</returns>
+    public static bool IsSocialSecurityNumberWithNoPrefix(this string identifier)
+    {
+        return !string.IsNullOrWhiteSpace(identifier)
+            && SsnPattern.IsMatch(identifier)
+            && Mod11.TryCalculateControlDigit(identifier.AsSpan()[..9], SocialSecurityNumberWeights1, out var control1)
+            && Mod11.TryCalculateControlDigit(identifier.AsSpan()[..10], SocialSecurityNumberWeights2, out var control2)
+            && control1 == int.Parse(identifier[9..10], CultureInfo.InvariantCulture)
+            && control2 == int.Parse(identifier[10..11], CultureInfo.InvariantCulture);
     }
 
     /// <summary>
