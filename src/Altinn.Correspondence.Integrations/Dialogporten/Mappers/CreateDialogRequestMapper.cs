@@ -144,18 +144,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     {
                         new Endpoint()
                         {
-                            HttpMethod = "POST",
-                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive"
-                        }
-                    }
-                },
-                new ApiAction()
-                {
-                    Action = "write",
-                    Endpoints = new List<Endpoint>()
-                    {
-                        new Endpoint()
-                        {
                             HttpMethod = "DELETE",
                             Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/purge"
                         }
@@ -218,36 +206,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                         Priority = guiActions.Count == 0 ? "Primary" : "Tertiary"
                     });
                 }
-
-                // Archive becomes the tertiary action after all ReplyOptions
-                guiActions.Add(new GuiAction()
-                {
-                    Title = new List<Title>()
-                    {
-                        new Title()
-                        {
-                            LanguageCode = "nb",
-                            MediaType = "text/plain",
-                            Value = "Arkiver"
-                        },
-                        new Title()
-                        {
-                            LanguageCode = "nn",
-                            MediaType = "text/plain",
-                            Value = "Arkiver"
-                        },
-                        new Title()
-                        {
-                            LanguageCode = "en",
-                            MediaType = "text/plain",
-                            Value = "Archive"
-                        },
-                    },
-                    Action = "read",
-                    Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive",
-                    HttpMethod = "POST",
-                    Priority = "Tertiary"
-                });
             }
             else if (correspondence.IsConfirmationNeeded)
             {
@@ -277,68 +235,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     },
                     Action = "read",
                     Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/confirm",
-                    HttpMethod = "POST",
-                    Priority = "Primary"
-                });
-
-                // Archive becomes the secondary action
-                guiActions.Add(new GuiAction()
-                {
-                    Title = new List<Title>()
-                    {
-                        new Title()
-                        {
-                            LanguageCode = "nb",
-                            MediaType = "text/plain",
-                            Value = "Arkiver"
-                        },
-                        new Title()
-                        {
-                            LanguageCode = "nn",
-                            MediaType = "text/plain",
-                            Value = "Arkiver"
-                        },
-                        new Title()
-                        {
-                            LanguageCode = "en",
-                            MediaType = "text/plain",
-                            Value = "Archive"
-                        },
-                    },
-                    Action = "read",
-                    Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive",
-                    HttpMethod = "POST",
-                    Priority = "Secondary"
-                });
-            }
-            else
-            {
-                // If no ReplyOptions and no confirmation needed, archive becomes the primary action
-                guiActions.Add(new GuiAction()
-                {
-                    Title = new List<Title>()
-                    {
-                        new Title()
-                        {
-                            LanguageCode = "nb",
-                            MediaType = "text/plain",
-                            Value = "Arkiver"
-                        },
-                        new Title()
-                        {
-                            LanguageCode = "nn",
-                            MediaType = "text/plain",
-                            Value = "Arkiver"
-                        },
-                        new Title()
-                        {
-                            LanguageCode = "en",
-                            MediaType = "text/plain",
-                            Value = "Archive"
-                        },
-                    },
-                    Action = "read",
-                    Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive",
                     HttpMethod = "POST",
                     Priority = "Primary"
                 });
