@@ -16,7 +16,7 @@ public class PurgeCorrespondenceHelper
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository;
     private readonly IBackgroundJobClient _backgroundJobClient;
-    IDialogportenService _dialogportenService;
+    private readonly IDialogportenService _dialogportenService;
     public PurgeCorrespondenceHelper(IAttachmentRepository attachmentRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IDialogportenService dialogportenService, IBackgroundJobClient backgroundJobClient)
     {
         _attachmentRepository = attachmentRepository;
@@ -116,11 +116,11 @@ public class PurgeCorrespondenceHelper
     {
         if (isSender)
         {
-            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Sender, DialogportenTextType.CorrespondencePurged, "avsender"));
+            _dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Sender, DialogportenTextType.CorrespondencePurged, "avsender");
         }
         else
         {
-            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondencePurged, "mottaker"));
+            _dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondencePurged, "mottaker");
         }
     }
 
