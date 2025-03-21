@@ -230,74 +230,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     Priority = "Primary"
                 });
 
-                // If we have a second ReplyOption, it becomes the secondary action
-                var secondReplyOption = correspondence.ReplyOptions.Skip(1).FirstOrDefault();
-                if (secondReplyOption != null)
-                {
-                    guiActions.Add(new GuiAction()
-                    {
-                        Title = new List<Title>()
-                        {
-                            new Title()
-                            {
-                                LanguageCode = "nb",
-                                MediaType = "text/plain",
-                                Value = secondReplyOption.LinkText ?? "Gå til tjeneste"
-                            },
-                            new Title()
-                            {
-                                LanguageCode = "nn",
-                                MediaType = "text/plain",
-                                Value = secondReplyOption.LinkText ?? "Gå til teneste"
-                            },
-                            new Title()
-                            {
-                                LanguageCode = "en",
-                                MediaType = "text/plain",
-                                Value = secondReplyOption.LinkText ?? "Go to service"
-                            }
-                        },
-                        Action = "read",
-                        Url = secondReplyOption.LinkURL,
-                        HttpMethod = "GET",
-                        Priority = "Secondary"
-                    });
-                }
-                else
-                {
-                    // If no second ReplyOption, archive becomes the secondary action
-                    guiActions.Add(new GuiAction()
-                    {
-                        Title = new List<Title>()
-                        {
-                            new Title()
-                            {
-                                LanguageCode = "nb",
-                                MediaType = "text/plain",
-                                Value = "Arkiver"
-                            },
-                            new Title()
-                            {
-                                LanguageCode = "nn",
-                                MediaType = "text/plain",
-                                Value = "Arkiver"
-                            },
-                            new Title()
-                            {
-                                LanguageCode = "en",
-                                MediaType = "text/plain",
-                                Value = "Archive"
-                            },
-                        },
-                        Action = "read",
-                        Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive",
-                        HttpMethod = "POST",
-                        Priority = "Secondary"
-                    });
-                }
-
                 // Any additional ReplyOptions become tertiary actions
-                foreach (var replyOption in correspondence.ReplyOptions.Skip(2))
+                foreach (var replyOption in correspondence.ReplyOptions.Skip(1))
                 {
                     guiActions.Add(new GuiAction()
                     {
@@ -328,6 +262,36 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                         Priority = "Tertiary"
                     });
                 }
+
+                // Archive becomes the secondary action after all ReplyOptions
+                guiActions.Add(new GuiAction()
+                {
+                    Title = new List<Title>()
+                    {
+                        new Title()
+                        {
+                            LanguageCode = "nb",
+                            MediaType = "text/plain",
+                            Value = "Arkiver"
+                        },
+                        new Title()
+                        {
+                            LanguageCode = "nn",
+                            MediaType = "text/plain",
+                            Value = "Arkiver"
+                        },
+                        new Title()
+                        {
+                            LanguageCode = "en",
+                            MediaType = "text/plain",
+                            Value = "Archive"
+                        },
+                    },
+                    Action = "read",
+                    Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive",
+                    HttpMethod = "POST",
+                    Priority = "Secondary"
+                });
             }
             else if (correspondence.IsConfirmationNeeded)
             {
