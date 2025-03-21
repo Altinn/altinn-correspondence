@@ -196,8 +196,142 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             var guiActions = new List<GuiAction>();
             
-            if (correspondence.IsConfirmationNeeded)
+            // Add ReplyOptions as GUI actions first
+            if (correspondence.ReplyOptions != null && correspondence.ReplyOptions.Any())
             {
+                // If we have ReplyOptions, the first one becomes the primary action
+                var firstReplyOption = correspondence.ReplyOptions.First();
+                guiActions.Add(new GuiAction()
+                {
+                    Title = new List<Title>()
+                    {
+                        new Title()
+                        {
+                            LanguageCode = "nb",
+                            MediaType = "text/plain",
+                            Value = firstReplyOption.LinkText ?? "Gå til tjeneste"
+                        },
+                        new Title()
+                        {
+                            LanguageCode = "nn",
+                            MediaType = "text/plain",
+                            Value = firstReplyOption.LinkText ?? "Gå til teneste"
+                        },
+                        new Title()
+                        {
+                            LanguageCode = "en",
+                            MediaType = "text/plain",
+                            Value = firstReplyOption.LinkText ?? "Go to service"
+                        }
+                    },
+                    Action = "read",
+                    Url = firstReplyOption.LinkURL,
+                    HttpMethod = "GET",
+                    Priority = "Primary"
+                });
+
+                // If we have a second ReplyOption, it becomes the secondary action
+                var secondReplyOption = correspondence.ReplyOptions.Skip(1).FirstOrDefault();
+                if (secondReplyOption != null)
+                {
+                    guiActions.Add(new GuiAction()
+                    {
+                        Title = new List<Title>()
+                        {
+                            new Title()
+                            {
+                                LanguageCode = "nb",
+                                MediaType = "text/plain",
+                                Value = secondReplyOption.LinkText ?? "Gå til tjeneste"
+                            },
+                            new Title()
+                            {
+                                LanguageCode = "nn",
+                                MediaType = "text/plain",
+                                Value = secondReplyOption.LinkText ?? "Gå til teneste"
+                            },
+                            new Title()
+                            {
+                                LanguageCode = "en",
+                                MediaType = "text/plain",
+                                Value = secondReplyOption.LinkText ?? "Go to service"
+                            }
+                        },
+                        Action = "read",
+                        Url = secondReplyOption.LinkURL,
+                        HttpMethod = "GET",
+                        Priority = "Secondary"
+                    });
+                }
+                else
+                {
+                    // If no second ReplyOption, archive becomes the secondary action
+                    guiActions.Add(new GuiAction()
+                    {
+                        Title = new List<Title>()
+                        {
+                            new Title()
+                            {
+                                LanguageCode = "nb",
+                                MediaType = "text/plain",
+                                Value = "Arkiver"
+                            },
+                            new Title()
+                            {
+                                LanguageCode = "nn",
+                                MediaType = "text/plain",
+                                Value = "Arkiver"
+                            },
+                            new Title()
+                            {
+                                LanguageCode = "en",
+                                MediaType = "text/plain",
+                                Value = "Archive"
+                            },
+                        },
+                        Action = "read",
+                        Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive",
+                        HttpMethod = "POST",
+                        Priority = "Secondary"
+                    });
+                }
+
+                // Any additional ReplyOptions become tertiary actions
+                foreach (var replyOption in correspondence.ReplyOptions.Skip(2))
+                {
+                    guiActions.Add(new GuiAction()
+                    {
+                        Title = new List<Title>()
+                        {
+                            new Title()
+                            {
+                                LanguageCode = "nb",
+                                MediaType = "text/plain",
+                                Value = replyOption.LinkText ?? "Gå til tjeneste"
+                            },
+                            new Title()
+                            {
+                                LanguageCode = "nn",
+                                MediaType = "text/plain",
+                                Value = replyOption.LinkText ?? "Gå til teneste"
+                            },
+                            new Title()
+                            {
+                                LanguageCode = "en",
+                                MediaType = "text/plain",
+                                Value = replyOption.LinkText ?? "Go to service"
+                            }
+                        },
+                        Action = "read",
+                        Url = replyOption.LinkURL,
+                        HttpMethod = "GET",
+                        Priority = "Tertiary"
+                    });
+                }
+            }
+            else if (correspondence.IsConfirmationNeeded)
+            {
+                // If no ReplyOptions but confirmation is needed, confirm becomes the primary action
                 guiActions.Add(new GuiAction()
                 {
                     Title = new List<Title>()
@@ -226,37 +360,71 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     HttpMethod = "POST",
                     Priority = "Primary"
                 });
+
+                // Archive becomes the secondary action
+                guiActions.Add(new GuiAction()
+                {
+                    Title = new List<Title>()
+                    {
+                        new Title()
+                        {
+                            LanguageCode = "nb",
+                            MediaType = "text/plain",
+                            Value = "Arkiver"
+                        },
+                        new Title()
+                        {
+                            LanguageCode = "nn",
+                            MediaType = "text/plain",
+                            Value = "Arkiver"
+                        },
+                        new Title()
+                        {
+                            LanguageCode = "en",
+                            MediaType = "text/plain",
+                            Value = "Archive"
+                        },
+                    },
+                    Action = "read",
+                    Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive",
+                    HttpMethod = "POST",
+                    Priority = "Secondary"
+                });
+            }
+            else
+            {
+                // If no ReplyOptions and no confirmation needed, archive becomes the primary action
+                guiActions.Add(new GuiAction()
+                {
+                    Title = new List<Title>()
+                    {
+                        new Title()
+                        {
+                            LanguageCode = "nb",
+                            MediaType = "text/plain",
+                            Value = "Arkiver"
+                        },
+                        new Title()
+                        {
+                            LanguageCode = "nn",
+                            MediaType = "text/plain",
+                            Value = "Arkiver"
+                        },
+                        new Title()
+                        {
+                            LanguageCode = "en",
+                            MediaType = "text/plain",
+                            Value = "Archive"
+                        },
+                    },
+                    Action = "read",
+                    Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive",
+                    HttpMethod = "POST",
+                    Priority = "Primary"
+                });
             }
 
-            guiActions.Add(new GuiAction()
-            {
-                Title = new List<Title>()
-                {
-                    new Title()
-                    {
-                        LanguageCode = "nb",
-                        MediaType = "text/plain",
-                        Value = "Arkiver"
-                    },
-                    new Title()
-                    {
-                        LanguageCode = "nn",
-                        MediaType = "text/plain",
-                        Value = "Arkiver"
-                    },
-                    new Title()
-                    {
-                        LanguageCode = "en",
-                        MediaType = "text/plain",
-                        Value = "Archive"
-                    },
-                },
-                Action = "read",
-                Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive",
-                HttpMethod = "POST",
-                Priority = "Secondary"
-            });
-
+            // Add mark as read as tertiary
             guiActions.Add(new GuiAction()
             {
                 Title = new List<Title>()
@@ -286,6 +454,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Priority = "Tertiary"
             });
 
+            // Add delete as tertiary
             guiActions.Add(new GuiAction()
             {
                 Title = new List<Title>()
