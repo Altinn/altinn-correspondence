@@ -144,18 +144,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     {
                         new Endpoint()
                         {
-                            HttpMethod = "POST",
-                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/archive"
-                        }
-                    }
-                },
-                new ApiAction()
-                {
-                    Action = "write",
-                    Endpoints = new List<Endpoint>()
-                    {
-                        new Endpoint()
-                        {
                             HttpMethod = "DELETE",
                             Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/purge"
                         }
@@ -232,7 +220,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     });
                 }
             }
-            else if (correspondence.IsConfirmationNeeded)
+            if (correspondence.IsConfirmationNeeded)
             {
                 // If no ReplyOptions but confirmation is needed, confirm becomes the primary action
                 guiActions.Add(new GuiAction()
@@ -261,7 +249,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     Action = "read",
                     Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/confirm",
                     HttpMethod = "POST",
-                    Priority = "Primary"
+                    Priority = "Tertiary"
                 });
             }
 
