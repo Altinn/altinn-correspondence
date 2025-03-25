@@ -222,7 +222,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             }
             if (correspondence.IsConfirmationNeeded)
             {
-                // If no ReplyOptions but confirmation is needed, confirm becomes the primary action
                 guiActions.Add(new GuiAction()
                 {
                     Title = new List<Title>()
@@ -253,7 +252,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 });
             }
 
-            // Add mark as read as tertiary
             guiActions.Add(new GuiAction()
             {
                 Title = new List<Title>()
@@ -262,39 +260,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     {
                         LanguageCode = "nb",
                         MediaType = "text/plain",
-<<<<<<< HEAD
-                        Value = "Marker som lest"
-                    },
-                    new Title()
-                    {
-                        LanguageCode = "nn",
-                        MediaType = "text/plain",
-                        Value = "Mark som lest"
-                    },
-                    new Title()
-                    {
-                        LanguageCode = "en",
-                        MediaType = "text/plain",
-                        Value = "Mark as read"
-                    },
-                },
-                Action = "read",
-                Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/markasread",
-                HttpMethod = "POST",
-                Priority = "Tertiary"
-            });
-
-            // Add delete as tertiary
-            guiActions.Add(new GuiAction()
-            {
-                Title = new List<Title>()
-                {
-                    new Title()
-                    {
-                        LanguageCode = "nb",
-                        MediaType = "text/plain",
-=======
->>>>>>> main
                         Value = "Slett"
                     },
                     new Title()
