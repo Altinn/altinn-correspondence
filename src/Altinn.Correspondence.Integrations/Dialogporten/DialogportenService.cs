@@ -53,15 +53,20 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         {
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
+        var patchRequest = new DialogPatchRequestBuilder();
         var dialog = await GetDialog(dialogId);
-        var guiActionIndexToDelete = dialog.GuiActions.FindIndex(dialog => dialog.Url == $"{generalSettings.Value.CorrespondenceBaseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/confirm");
-        if (guiActionIndexToDelete == -1)
+        string confirmEndpointUrl = $"{generalSettings.Value.CorrespondenceBaseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/confirm";
+        var guiActionIndexToDelete = dialog.GuiActions.FindIndex(dialog => dialog.Url == confirmEndpointUrl);
+        var apiActionIndexToDelete = dialog.ApiActions.FindIndex(dialog => dialog.Endpoints.Any(endpoint => endpoint.Url == confirmEndpointUrl));
+        if (guiActionIndexToDelete != -1)
         {
-            logger.LogInformation("No confirm guiAction found on dialog {dialogId} for correspondence {correspondenceId} when attempting to remove confirm guiAction", dialogId, correspondenceId);
-            return;
+            patchRequest.WithRemoveGuiActionOperation(guiActionIndexToDelete);
         }
-        var patchDialogRequest = PatchDialogRequestMapper.CreateRemoveGuiActionPatchRequest(guiActionIndexToDelete);
-        var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", patchDialogRequest, cancellationToken);
+        if (apiActionIndexToDelete != -1)
+        {
+            patchRequest.WithRemoveApiActionOperation(apiActionIndexToDelete);
+        }
+        var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", patchRequest.Build(), cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
