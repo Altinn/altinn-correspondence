@@ -53,20 +53,26 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         {
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
-        var patchRequest = new DialogPatchRequestBuilder();
+        var patchRequestBuilder = new DialogPatchRequestBuilder();
         var dialog = await GetDialog(dialogId);
         string confirmEndpointUrl = $"{generalSettings.Value.CorrespondenceBaseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/confirm";
-        var guiActionIndexToDelete = dialog.GuiActions.FindIndex(dialog => dialog.Url == confirmEndpointUrl);
-        var apiActionIndexToDelete = dialog.ApiActions.FindIndex(dialog => dialog.Endpoints.Any(endpoint => endpoint.Url == confirmEndpointUrl));
+        var guiActionIndexToDelete = dialog.GuiActions?.FindIndex(dialog => dialog.Url == confirmEndpointUrl) ?? -1;
+        var apiActionIndexToDelete = dialog.ApiActions?.FindIndex(dialog => dialog.Endpoints.Any(endpoint => endpoint.Url == confirmEndpointUrl)) ?? -1;
         if (guiActionIndexToDelete != -1)
         {
-            patchRequest.WithRemoveGuiActionOperation(guiActionIndexToDelete);
+            patchRequestBuilder.WithRemoveGuiActionOperation(guiActionIndexToDelete);
         }
         if (apiActionIndexToDelete != -1)
         {
-            patchRequest.WithRemoveApiActionOperation(apiActionIndexToDelete);
+            patchRequestBuilder.WithRemoveApiActionOperation(apiActionIndexToDelete);
         }
-        var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", patchRequest.Build(), cancellationToken);
+        var patchRequest = patchRequestBuilder.Build();
+        if (patchRequest.Count == 0)
+        {
+            logger.LogInformation("No actions to remove from dialog {dialogId} for correspondence {correspondenceId}", dialogId, correspondenceId);
+            return;
+        }
+        var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", patchRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
