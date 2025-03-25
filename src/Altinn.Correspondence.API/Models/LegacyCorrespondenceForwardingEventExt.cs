@@ -12,16 +12,16 @@ namespace Altinn.Correspondence.API.Models
         public string? ForwardingText { get; set; }
 
         /// <summary>
-        /// The name of the user that performed the forwarding action.
+        /// User Id of the user that performed the forwarding action.
         /// </summary>
-        [JsonPropertyName("forwardedBy")]
-        public string ForwardedBy{ get; set; }
+        [JsonPropertyName("forwardedByUserId")]
+        public int ForwardedByUserId { get; set; }
 
         /// <summary>
-        /// The name of the user that the correspondence was forwarded to.
+        /// User Id of the user that the correspondence was forwarded to.
         /// </summary>
-        [JsonPropertyName("forwardedTo")]
-        public string? ForwardedTo { get; set; }       
+        [JsonPropertyName("forwardedToUserId")]
+        public int? ForwardedToUserId { get; set; }       
 
         /// <summary>
         /// Optional Email address that was used to notify the user that the correspondence was forwarded to.

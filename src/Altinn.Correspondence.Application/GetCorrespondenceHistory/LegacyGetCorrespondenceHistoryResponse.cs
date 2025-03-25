@@ -25,8 +25,10 @@ namespace Altinn.Correspondence.Application.GetCorrespondenceHistory
 
     public class LegacyForwardingAction
     {
-        public required string ForwardedBy { get; set; }
-        public string? ForwardedTo { get; set; }
+        public required int ForwardedByUserId { get; set; }
+        public required Guid ForwardedByUserUuid { get; set; }
+        public int? ForwardedToUserId { get; set; }
+        public Guid? ForwardedToUserUuid { get; set; }
         public string? ForwardingText { get; set; }
         public string? ForwardedToEmail { get; set; }
         public string? MailboxSupplier { get; set; }

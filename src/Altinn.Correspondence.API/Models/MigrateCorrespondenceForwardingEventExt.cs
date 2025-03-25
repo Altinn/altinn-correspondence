@@ -12,18 +12,28 @@ namespace Altinn.Correspondence.API.Models
         public required DateTimeOffset ForwardedOnDate { get; set; }
 
         /// <summary>
-        /// Person Identifier for Person that performed the forwarding action.
+        /// User ID of user that performed the forwarding action.
         /// </summary>
-        [JsonPropertyName("forwardedByUser")]
-        [PersonIdentifier]
-        public string ForwardedByUser { get; set; }
+        [JsonPropertyName("forwardedByUserId")]
+        public int ForwardedByUserId { get; set; }
 
         /// <summary>
-        /// Person Identifier of user that the correspondence was forwarded to.
+        /// User UuID of user that performed the forwarding action.
         /// </summary>
-        [JsonPropertyName("forwardedToUser")]
-        [PersonIdentifier]
-        public string? ForwardedToUser { get; set; }
+        [JsonPropertyName("forwardedByUserUuid")]
+        public Guid ForwardedByUserUuid { get; set; }
+
+        /// <summary>
+        /// User Id of user that the correspondence was forwarded to.
+        /// </summary>
+        [JsonPropertyName("forwardedToUserId")]
+        public int? ForwardedToUserId { get; set; }
+
+        /// <summary>
+        /// User Id of user that the correspondence was forwarded to.
+        /// </summary>
+        [JsonPropertyName("forwardedToUserUuid")]
+        public Guid? ForwardedToUserUuid { get; set; }
 
         /// <summary>
         /// Optional Text used when forwarding the correspondence.

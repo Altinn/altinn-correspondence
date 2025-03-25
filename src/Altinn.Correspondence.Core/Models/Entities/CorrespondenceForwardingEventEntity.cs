@@ -3,18 +3,25 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Altinn.Correspondence.Core.Models.Entities
 {
-    public class CorrespondenceForwadingEventEntity
+    public class CorrespondenceForwardingEventEntity
     {
         [Key]
         public Guid Id { get; set; }
+
+        public Guid CorrespondenceId { get; set; }
 
         [Required]
         public DateTimeOffset ForwardedOnDate { get; set; }
 
         [Required]
-        public Guid ForwardedByUserPartyUuid { get; set; }
+        public int ForwardedByUserId { get; set; }
 
-        public Guid? ForwardedToUserPartyUuid { get; set; }
+        [Required]
+        public Guid ForwardedByUserUuid { get; set; }        
+
+        public Guid? ForwardedToUserId { get; set; }
+
+        public Guid? ForwardedToUserUuid { get; set; }
 
         public string? ForwardingText { get; set; }
 

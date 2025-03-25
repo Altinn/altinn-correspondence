@@ -38,8 +38,8 @@ internal static class LegacyCorrespondenceHistoryMapper
             } : null,
             ForwardingAction = historyResponse.ForwardingAction != null ? new LegacyCorrespondenceForwardingEventExt
             {
-                ForwardedBy = historyResponse.ForwardingAction.ForwardedBy,
-                ForwardedTo = historyResponse.ForwardingAction.ForwardedTo,
+                ForwardedByUserId = historyResponse.ForwardingAction.ForwardedByUserId,
+                ForwardedToUserId = historyResponse.ForwardingAction.ForwardedToUserId,
                 ForwardingText = historyResponse.ForwardingAction.ForwardingText,
                 ForwardedToEmail = historyResponse.ForwardingAction.ForwardedToEmail,
                 MailboxSupplier = historyResponse.ForwardingAction.MailboxSupplier
