@@ -134,51 +134,5 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
         }
-
-        [Fact]
-        public async Task UpdateCorrespondenceStatus_ToArchived_WithoutConfirmation_WhenConfirmationNeeded_ReturnsBadRequest()
-        {
-            //  Arrange
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(1))
-                .WithConfirmationNeeded(true)
-                .Build();
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-            var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            Assert.Equal(CorrespondenceStatusExt.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
-            var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
-
-            //  Act
-            var archiveResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/archive", null);
-
-            // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, archiveResponse.StatusCode);
-        }
-
-        [Fact]
-        public async Task UpdateCorrespondenceStatus_ToArchived_WithConfirmation_WhenConfirmationNeeded_GivesOk()
-        {
-            //  Arrange
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(1))
-                .WithConfirmationNeeded(true)
-                .Build();
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-            var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            Assert.Equal(CorrespondenceStatusExt.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
-            var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
-
-            //  Act
-            var fetchResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}"); // Fetch in order to be able to Confirm
-            Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
-            var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null); // Update to Confirmed in order to be able to Archive
-            Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
-            var archiveResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/archive", null);
-
-            // Assert
-            Assert.Equal(HttpStatusCode.OK, archiveResponse.StatusCode);
-        }
     }
 }

@@ -306,7 +306,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 recipient = $"{UrnConstants.OrganizationNumberAttribute}:{recipient.WithoutPrefix()}";
                 logger.LogInformation($"'0192:' prefix detected for recipient in creation of correspondence. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
             }
-            else if (recipient.IsSocialSecurityNumber())
+            else if (recipient.IsSocialSecurityNumberWithNoPrefix())
             {
                 recipient = $"{UrnConstants.PersonIdAttribute}:{recipient}";
                 logger.LogInformation($"Social security number without urn prefix detected for recipient in creation of correspondece. Adding {UrnConstants.PersonIdAttribute} prefix to recipient.");
@@ -406,7 +406,8 @@ namespace Altinn.Correspondence.Application.Helpers
             if (correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.StatusHasBeen(AttachmentStatus.Published)))
             {
                 if (hostEnvironment.IsDevelopment() && correspondence.RequestedPublishTime < DateTimeOffset.UtcNow) status = CorrespondenceStatus.Published; // used to test on published correspondences in development
-                else status = CorrespondenceStatus.ReadyForPublish;
+                else 
+                status = CorrespondenceStatus.ReadyForPublish;
             }
             return status;
         }

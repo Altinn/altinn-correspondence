@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.PublishCorrespondence;
+using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -10,6 +11,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -33,6 +35,8 @@ public class InitializeCorrespondencesHandler(
     IDialogportenService dialogportenService,
     IContactReservationRegistryService contactReservationRegistryService,
     IHostEnvironment hostEnvironment,
+    IHybridCacheWrapper hybridCacheWrapper,
+    HangfireScheduleHelper hangfireScheduleHelper,
     IOptions<GeneralSettings> generalSettings,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
@@ -223,18 +227,23 @@ public class InitializeCorrespondencesHandler(
         foreach (var correspondence in correspondences)
         {
             logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
-            var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence));
+            var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
             if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized ||
-                correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish)
+                correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish ||
+                correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Published)
             {
-                var publishTime = correspondence.RequestedPublishTime;
-
-                if (!hostEnvironment.IsDevelopment())
+                if (request.Correspondence.Content.Attachments.Count == 0) 
                 {
-                    //Adds a 1 minute delay for malware scan to finish if not running locally
-                    publishTime = correspondence.RequestedPublishTime.UtcDateTime.AddSeconds(-30) < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow.AddMinutes(1) : correspondence.RequestedPublishTime.UtcDateTime;
+                    backgroundJobClient.ContinueJobWith(dialogJob, () => hangfireScheduleHelper.SchedulePublish(correspondence.Id, correspondence.RequestedPublishTime, cancellationToken), JobContinuationOptions.OnlyOnSucceededState);
                 }
-                backgroundJobClient.ContinueJobWith(dialogJob, () => SchedulePublish(correspondence.Id, publishTime, cancellationToken), JobContinuationOptions.OnAnyFinishedState);
+                else
+                {
+                    // Will be published by MalwarescanResultHandler
+                    await hybridCacheWrapper.SetAsync("dialogJobId_" + correspondence.Id, dialogJob, new HybridCacheEntryOptions
+                    {
+                        Expiration = TimeSpan.FromHours(24)
+                    }); 
+                }
             }
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
             var notificationDetails = new List<InitializedCorrespondencesNotifications>();
@@ -445,10 +454,16 @@ public class InitializeCorrespondencesHandler(
     }
 
     // Must be public to be run by Hangfire
+    [Obsolete("Use the CreateDialogportenDialog(Guid correspondenceId) overload instead to reduce database storage. Delete this method after the new method has been dpeloyed.")]
     public async Task CreateDialogportenDialog(CorrespondenceEntity correspondence)
     {
         var dialogId = await dialogportenService.CreateCorrespondenceDialog(correspondence.Id);
         await correspondenceRepository.AddExternalReference(correspondence.Id, ReferenceType.DialogportenDialogId, dialogId);
+    }
+    public async Task CreateDialogportenDialog(Guid correspondenceId)
+    {
+        var dialogId = await dialogportenService.CreateCorrespondenceDialog(correspondenceId);
+        await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
     }
 
     public void SchedulePublish(Guid correspondenceId, DateTimeOffset publishTime, CancellationToken cancellationToken)

@@ -12,10 +12,20 @@ public static class StringExtensions
     /// Checks if the provided string is a valid social security number format.
     /// </summary>
     /// <param name="identifier">The string to validate.</param>
-    /// <returns>True if the string matches a 11-digit format and passes mod11 validation.</returns>
+    /// <returns>True if the social security number of the identifier matches a 11-digit format and passes mod11 validation.</returns>
     public static bool IsSocialSecurityNumber(this string identifier)
     {
-        return !string.IsNullOrWhiteSpace(identifier) 
+        return IsSocialSecurityNumberWithNoPrefix(identifier.WithoutPrefix());
+    }
+
+    /// <summary>
+    /// Checks if the provided string is a valid social security number and that it has no prefix.
+    /// </summary>
+    /// <param name="identifier">The string to validate.</param>
+    /// <returns>True if the string matches a 11-digit format and passes mod11 validation.</returns>
+    public static bool IsSocialSecurityNumberWithNoPrefix(this string identifier)
+    {
+        return !string.IsNullOrWhiteSpace(identifier)
             && SsnPattern.IsMatch(identifier)
             && Mod11.TryCalculateControlDigit(identifier.AsSpan()[..9], SocialSecurityNumberWeights1, out var control1)
             && Mod11.TryCalculateControlDigit(identifier.AsSpan()[..10], SocialSecurityNumberWeights2, out var control2)

@@ -21,6 +21,9 @@ inputs:
   AZURE_STORAGE_ACCOUNT_NAME:
     description: "Name of the storage account used for attachments and migrations"
     required: true
+  APIM_IP:
+    description: "IP address for APIM"
+    required: true
 
 runs:
   using: "composite"
@@ -54,6 +57,7 @@ runs:
         NAME_PREFIX: ${{ inputs.AZURE_NAME_PREFIX }}
         APP_VERSION: ${{ steps.get-version.outputs.imageTag }}
         ENVIRONMENT: ${{ inputs.environment }}
+        APIM_IP: ${{ inputs.APIM_IP }}
       with:
         scope: resourcegroup
         template: ./.azure/applications/migration/main.bicep
@@ -66,9 +70,9 @@ runs:
 
     - name: Install EF Core CLI
       shell: bash
-      run: | 
+      run: |
         dotnet tool install --global dotnet-ef 
-        dotnet tool restore 
+        dotnet tool restore
 
     - name: Create migration script
       shell: bash

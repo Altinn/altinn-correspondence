@@ -28,7 +28,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .CreateCorrespondence()
                 .WithAttachments([attachmentData])
                 .Build();
-            var formData = CorrespondenceToFormData(payload.Correspondence);
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
             formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
             using var fileStream = file.OpenReadStream();
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
@@ -47,7 +47,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .CreateCorrespondence()
                 .WithAttachments([attachmentData, newAttachmentData])
                 .Build();
-            formData = CorrespondenceToFormData(payload2.Correspondence);
+            formData = CorrespondenceHelper.CorrespondenceToFormData(payload2.Correspondence);
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
 
             // Act
@@ -84,7 +84,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .CreateCorrespondence()
                 .WithAttachments([attachmentData])
                 .Build();
-            var formData = CorrespondenceToFormData(payload.Correspondence);
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
             formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
             using var fileStream = file.OpenReadStream();
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
@@ -111,7 +111,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .CreateCorrespondence()
                 .WithAttachments([attachmentData])
                 .Build();
-            var formData = CorrespondenceToFormData(payload.Correspondence);
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
             formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
             using var fileStream = file.OpenReadStream();
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
@@ -133,7 +133,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .Build();
-            var formData = CorrespondenceToFormData(payload.Correspondence);
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
             formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
 
             // Act
@@ -175,7 +175,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithRecipients([$"{UrnConstants.OrganizationNumberAttribute}:986252932"])
                 .WithAttachments([attachmentMetaData, attachmentMetaData2])
                 .Build();
-            var formData = CorrespondenceToFormData(payload.Correspondence);
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
             formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
             formData.Add(new StreamContent(fileStream2), "attachments", file2.FileName);
@@ -191,7 +191,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .CreateCorrespondence()
                 .WithAttachments([])
                 .Build();
-            var formData = CorrespondenceToFormData(payload.Correspondence);
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
             var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
             Assert.Equal(HttpStatusCode.BadRequest, uploadCorrespondenceResponse.StatusCode);
         }
@@ -215,7 +215,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithAttachments([attachmentMetaData, attachmentMetaData2])
                 .Build();
 
-            var formData = CorrespondenceToFormData(payload.Correspondence);
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
             formData.Add(new StreamContent(fileStream2), "attachments", file2.FileName);
             formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
@@ -317,62 +317,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
-        }
-
-        private MultipartFormDataContent CorrespondenceToFormData(BaseCorrespondenceExt correspondence)
-        {
-            var formData = new MultipartFormDataContent(){
-            { new StringContent(correspondence.ResourceId), "correspondence.resourceId" },
-            { new StringContent(correspondence.Sender), "correspondence.sender" },
-            { new StringContent(correspondence.SendersReference), "correspondence.sendersReference" },
-            { new StringContent(correspondence.RequestedPublishTime.ToString()), "correspondence.RequestedPublishTime" },
-            { new StringContent(correspondence.DueDateTime.ToString()), "correspondence.dueDateTime" },
-            { new StringContent(correspondence.AllowSystemDeleteAfter.ToString()), "correspondence.AllowSystemDeleteAfter" },
-            { new StringContent(correspondence.Content.MessageTitle), "correspondence.content.MessageTitle" },
-            { new StringContent(correspondence.Content.MessageSummary), "correspondence.content.MessageSummary" },
-            { new StringContent(correspondence.Content.MessageBody), "correspondence.content.MessageBody" },
-            { new StringContent(correspondence.Content.Language), "correspondence.content.Language" },
-            { new StringContent((correspondence.IgnoreReservation ?? false).ToString()), "correspondence.IgnoreReservation" },
-        };
-            if (correspondence.Notification != null)
-            {
-                formData.Add(new StringContent(correspondence.Notification.NotificationTemplate.ToString()), "correspondence.Notification.NotificationTemplate");
-                formData.Add(new StringContent(correspondence.Notification.SendReminder.ToString()), "correspondence.Notification.SendReminder");
-                if (correspondence.Notification.RequestedSendTime != null) formData.Add(new StringContent(correspondence.Notification.RequestedSendTime.ToString()), "correspondence.Notification.RequestedSendTime");
-                if (correspondence.Notification.EmailBody != null) formData.Add(new StringContent(correspondence.Notification.EmailBody), "correspondence.Notification.EmailBody");
-                if (correspondence.Notification.EmailSubject != null) formData.Add(new StringContent(correspondence.Notification.EmailSubject), "correspondence.Notification.EmailSubject");
-                if (correspondence.Notification.ReminderEmailBody != null) formData.Add(new StringContent(correspondence.Notification.ReminderEmailBody), "correspondence.Notification.ReminderEmailBody");
-                if (correspondence.Notification.ReminderEmailSubject != null) formData.Add(new StringContent(correspondence.Notification.ReminderEmailSubject), "correspondence.Notification.ReminderEmailSubject");
-                if (correspondence.Notification.SmsBody != null) formData.Add(new StringContent(correspondence.Notification.SmsBody), "correspondence.Notification.SmsBody");
-                if (correspondence.Notification.ReminderSmsBody != null) formData.Add(new StringContent(correspondence.Notification.ReminderSmsBody), "correspondence.Notification.ReminderSmsBody");
-            }
-
-            correspondence.Content.Attachments.Select((attachment, index) => new[]
-            {
-            new { Key = $"correspondence.content.Attachments[{index}].DataLocationType", Value = attachment.DataLocationType.ToString() },
-            new { Key = $"correspondence.content.Attachments[{index}].FileName", Value = attachment.FileName ?? "" },
-            new { Key = $"correspondence.content.Attachments[{index}].SendersReference", Value = attachment.SendersReference },
-            new { Key = $"correspondence.content.Attachments[{index}].IsEncrypted", Value = attachment.IsEncrypted.ToString() }
-        }).SelectMany(x => x).ToList()
-            .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
-
-            correspondence.ExternalReferences?.Select((externalReference, index) => new[]
-            {
-            new { Key = $"correspondence.ExternalReference[{index}].ReferenceType", Value = externalReference.ReferenceType.ToString() },
-            new { Key = $"correspondence.ExternalReference[{index}].ReferenceValue", Value = externalReference.ReferenceValue },
-        }).SelectMany(x => x).ToList()
-            .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
-
-            correspondence.ReplyOptions.Select((replyOption, index) => new[]
-            {
-            new { Key = $"correspondence.ReplyOptions[{index}].LinkURL", Value = replyOption.LinkURL },
-            new { Key = $"correspondence.ReplyOptions[{index}].LinkText", Value = replyOption.LinkText ?? "" }
-        }).SelectMany(x => x).ToList()
-            .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
-
-            correspondence.PropertyList.ToList()
-            .ForEach((item) => formData.Add(new StringContent(item.Value), "correspondence.propertyLists." + item.Key));
-            return formData;
         }
     }
 }

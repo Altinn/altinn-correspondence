@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Services;
+﻿using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System.Net.Http.Json;
@@ -26,7 +27,7 @@ public class ContactReservationRegistryService(HttpClient httpClient, ILogger<Co
         {
             return new List<string>();
         }
-        var request = new ContactReservationPersonRequest { Personidentifikatorer = recipients };
+        var request = new ContactReservationPersonRequest { Personidentifikatorer = recipients.Select(r => r.WithoutPrefix()).ToList() };
         httpClient.Timeout = TimeSpan.FromSeconds(1);
         var response = await httpClient.PostAsJsonAsync("rest/v2/personer", request);
         if (!response.IsSuccessStatusCode)

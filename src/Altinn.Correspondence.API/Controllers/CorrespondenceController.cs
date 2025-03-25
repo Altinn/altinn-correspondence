@@ -429,45 +429,6 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Mark Correspondence found by ID as archived
-        /// </summary>
-        /// <remarks>
-        /// One of the scopes: <br/>
-        /// - altinn:correspondence.read <br />
-        /// </remarks>
-        /// <response code="200">the Id of the correspondence</response>
-        /// <response code="400">Could not retrieve party uuid from lookup in Altinn Register</response>
-        /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
-        /// <response code="404">The requested correspondence was not found</response>
-        [HttpPost]
-        [Produces("application/json")]
-        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
-        [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
-        [Route("{correspondenceId}/archive")]
-        public async Task<ActionResult> Archive(
-            Guid correspondenceId,
-            [FromServices] UpdateCorrespondenceStatusHandler handler,
-            CancellationToken cancellationToken)
-        {
-            _logger.LogInformation("Archiving Correspondence with id: {correspondenceId}", correspondenceId.ToString());
-
-            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
-            {
-                CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Archived,
-            }, HttpContext.User, cancellationToken);
-
-            return commandResult.Match(
-                data => Ok(data),
-                Problem
-            );
-        }
-
-        /// <summary>
         /// Delete Correspondence found by ID
         /// </summary>
         /// <remarks>
