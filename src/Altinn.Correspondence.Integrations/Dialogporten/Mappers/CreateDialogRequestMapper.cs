@@ -216,7 +216,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                         Action = "read",
                         Url = replyOption.LinkURL,
                         HttpMethod = "GET",
-                        Priority = guiActions.Count == 0 ? "Primary" : "Tertiary"
+                        Priority = "Tertiary"
                     });
                 }
             }
@@ -248,7 +248,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     Action = "read",
                     Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/confirm",
                     HttpMethod = "POST",
-                    Priority = !correspondence.ReplyOptions?.Any() ?? true ? "Primary" : "Tertiary"
+                    Priority = "Tertiary"
                 });
             }
 
