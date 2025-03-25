@@ -8,11 +8,9 @@ using Hangfire;
 
 namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 public class UpdateCorrespondenceStatusHelper(
-    IDialogportenService dialogportenService,
     IBackgroundJobClient backgroundJobClient,
     ICorrespondenceStatusRepository correspondenceStatusRepository)
 {
-    private readonly IDialogportenService _dialogportenService = dialogportenService;
     private readonly IBackgroundJobClient _backgroundJobClient = backgroundJobClient;
 
     /// <summary>
@@ -88,6 +86,20 @@ public class UpdateCorrespondenceStatusHelper(
         if (status == CorrespondenceStatus.Confirmed)
         {
             _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondenceConfirmed));
+        }
+        return;
+    }
+
+    /// <summary>
+    /// Updates the dialogporten dialog for the correspondence based on the correspondence status update.
+    /// </summary>
+    /// <param name="correspondenceId">The correspondence id</param>
+    /// <param name="status">The new status</param>
+    public void PatchCorrespondenceDialog(Guid correspondenceId, CorrespondenceStatus status)
+    {
+        if (status == CorrespondenceStatus.Confirmed)
+        {
+            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondenceId));
         }
         return;
     }
