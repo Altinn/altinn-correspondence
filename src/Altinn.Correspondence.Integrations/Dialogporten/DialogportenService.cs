@@ -51,7 +51,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
-            throw new ArgumentException($"No dialog found on on correspondence with id {correspondenceId}");
+            throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
         var dialog = await GetDialog(dialogId);
         var guiActionIndexToDelete = dialog.GuiActions.FindIndex(dialog => dialog.Url == $"{generalSettings.Value.CorrespondenceBaseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/confirm");
