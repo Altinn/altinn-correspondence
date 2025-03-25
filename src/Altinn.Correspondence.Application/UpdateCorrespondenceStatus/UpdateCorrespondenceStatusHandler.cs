@@ -14,6 +14,7 @@ public class UpdateCorrespondenceStatusHandler(
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
+    IDialogportenService dialogportenService,
     ILogger<UpdateCorrespondenceStatusHandler> logger) : IHandler<UpdateCorrespondenceStatusRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -50,6 +51,10 @@ public class UpdateCorrespondenceStatusHandler(
         await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
         {
             await updateCorrespondenceStatusHelper.AddCorrespondenceStatus(correspondence, request.Status, partyUuid, cancellationToken);
+            if (request.Status == CorrespondenceStatus.Confirmed)
+            {
+                await dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondence.Id);
+            }
             updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
             updateCorrespondenceStatusHelper.PublishEvent(correspondence, request.Status);
             return Task.CompletedTask;
