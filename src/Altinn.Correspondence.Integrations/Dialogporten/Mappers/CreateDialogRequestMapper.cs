@@ -248,7 +248,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     Action = "read",
                     Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/confirm",
                     HttpMethod = "POST",
-                    Priority = "Tertiary"
+                    Priority = "Primary"
                 });
             }
 
