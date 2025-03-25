@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.API.Models
@@ -39,12 +40,14 @@ namespace Altinn.Correspondence.API.Models
         /// Optional Text used when forwarding the correspondence.
         /// </summary>
         [JsonPropertyName("forwardingText")]
+        [StringLength(4000)]
         public string? ForwardingText { get; set; }
 
         /// <summary>
         /// Optional Email address that was used to notify the user that the correspondence was forwarded to.
         /// </summary>
         [JsonPropertyName("forwardedToEmail")]
+        [StringLength(1000)]
         public string? ForwardedToEmail { get; set; }
 
         /// <summary>

@@ -23,8 +23,10 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         public Guid? ForwardedToUserUuid { get; set; }
 
+        [MaxLength(4000)]
         public string? ForwardingText { get; set; }
 
+        [MaxLength(1000)]
         public string? ForwardedToEmailAddress { get; set; }
 
         [RegularExpression($@"^(?:0192:|{UrnConstants.OrganizationNumberAttribute}):\d{{9}}$", ErrorMessage = "Organization numbers should be on the format countrycode:organizationnumber, for instance 0192:910753614")]
