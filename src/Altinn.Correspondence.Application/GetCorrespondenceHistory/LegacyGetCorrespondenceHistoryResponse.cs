@@ -12,7 +12,6 @@ namespace Altinn.Correspondence.Application.GetCorrespondenceHistory
     public class LegacyUser
     {
         public int? PartyId { get; set; }
-        public string? NationalIdentityNumber { get; set; }
         public string? Name { get; set; }
     }
     public class LegacyNotification
@@ -25,6 +24,7 @@ namespace Altinn.Correspondence.Application.GetCorrespondenceHistory
 
     public class LegacyForwardingAction
     {
+        public required Guid ForwardedByPartyUuid { get; set; }
         public required int ForwardedByUserId { get; set; }
         public required Guid ForwardedByUserUuid { get; set; }
         public int? ForwardedToUserId { get; set; }

@@ -1,5 +1,6 @@
 ﻿using Altinn.Correspondence.Common.Constants;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Altinn.Correspondence.Core.Models.Entities
 {
@@ -8,18 +9,18 @@ namespace Altinn.Correspondence.Core.Models.Entities
         [Key]
         public Guid Id { get; set; }
 
-        public Guid CorrespondenceId { get; set; }
-
         [Required]
         public DateTimeOffset ForwardedOnDate { get; set; }
 
         [Required]
+        public Guid ForwardedByPartyUuid { get; set; }
+        
         public int ForwardedByUserId { get; set; }
 
         [Required]
-        public Guid ForwardedByUserUuid { get; set; }        
+        public Guid ForwardedByUserUuid { get; set; }
 
-        public Guid? ForwardedToUserId { get; set; }
+        public int? ForwardedToUserId { get; set; }
 
         public Guid? ForwardedToUserUuid { get; set; }
 
@@ -31,5 +32,10 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         [RegularExpression($@"^(?:0192:|{UrnConstants.OrganizationNumberAttribute}):\d{{9}}$", ErrorMessage = "Organization numbers should be on the format countrycode:organizationnumber, for instance 0192:910753614")]
         public string? MailboxSupplier { get; set; }
+
+        public Guid CorrespondenceId { get; set; }
+
+        [ForeignKey("CorrespondenceId")]
+        public CorrespondenceEntity? Correspondence { get; set; }
     }
 }

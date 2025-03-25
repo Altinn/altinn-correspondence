@@ -94,7 +94,7 @@ public class DialogportenTests
         var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondenceToBeMade);
         var initializedCorrespondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
         using var scope = _factory.Services.CreateScope();
-        var correspondence = await scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>().GetCorrespondenceById(initializedCorrespondence.Correspondences[0].CorrespondenceId, false, false, CancellationToken.None);
+        var correspondence = await scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>().GetCorrespondenceById(initializedCorrespondence.Correspondences[0].CorrespondenceId, false, false, false, CancellationToken.None);
         var config = _factory.Services.GetService<IConfiguration>();
         var dialogportenSettings = new DialogportenSettings();
         config.GetSection(nameof(DialogportenSettings)).Bind(dialogportenSettings);
@@ -203,7 +203,7 @@ public class DialogportenTests
         var handler = scope.ServiceProvider.GetRequiredService<PublishCorrespondenceHandler>();
         var result = await handler.Process(correspondenceId, null, CancellationToken.None);
 
-        var processedCorrespondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, CancellationToken.None);
+        var processedCorrespondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, CancellationToken.None);
 
         // Assert
         Assert.NotNull(processedCorrespondence);
@@ -257,7 +257,7 @@ public class DialogportenTests
             .AddCorrespondenceStatus(It.IsAny<Core.Models.Entities.CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Guid());
         correspondenceRepository.Setup(correspondenceRepository => correspondenceRepository
-            .GetCorrespondenceById(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .GetCorrespondenceById(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(testCorrespondence);
         altinnRegisterService.Setup(altinnRegisterService => altinnRegisterService.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Core.Models.Entities.Party
         {

@@ -25,8 +25,7 @@ internal static class LegacyCorrespondenceHistoryMapper
             StatusText = historyResponse.StatusText,
             User = new LegacyUserExt
             {
-                PartyId = historyResponse.User.PartyId,
-                NationalIdentityNumber = historyResponse.User.NationalIdentityNumber,
+                PartyId = historyResponse.User.PartyId,                
                 Name = historyResponse.User.Name
             },
             Notification = historyResponse.Notification != null ? new LegacyNotificationExt

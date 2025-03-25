@@ -243,7 +243,7 @@ public class MigrationControllerTests
         Assert.NotNull(result);
         var scope = _factory.Services.CreateScope();
         var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
-        CorrespondenceEntity? correspondence = await correspondenceRepository.GetCorrespondenceById(result.CorrespondenceId, true, true, CancellationToken.None);
+        CorrespondenceEntity? correspondence = await correspondenceRepository.GetCorrespondenceById(result.CorrespondenceId, true, true, false, CancellationToken.None);
 
         // Assert
         Assert.NotNull(correspondence);

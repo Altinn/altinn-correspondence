@@ -26,7 +26,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, true, cancellationToken);
         if (correspondence is null)
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
@@ -84,7 +84,14 @@ public class LegacyGetCorrespondenceHistoryHandler(
                 notificationHistory.Add(await GetNotificationStatus(anySucceededDeliveryStatus, assemblededRecipient, notification.IsReminder, cancellationToken));
             }
         }
-        List<LegacyGetCorrespondenceHistoryResponse> joinedList = [.. correspondenceHistory.Concat(notificationHistory).OrderByDescending(s => s.StatusChanged)];
+
+        var forwardingEventHistory = new List<LegacyGetCorrespondenceHistoryResponse>();
+        foreach (var forwardingEvent in correspondence.ForwardingEvents)
+        {
+            forwardingEventHistory.Add(await GetForwardingEvent(forwardingEvent, cancellationToken));
+        }
+
+        List<LegacyGetCorrespondenceHistoryResponse> joinedList = [.. correspondenceHistory.Concat(notificationHistory).Concat(forwardingEventHistory).OrderByDescending(s => s.StatusChanged)];
 
         return joinedList;
     }
@@ -114,7 +121,6 @@ public class LegacyGetCorrespondenceHistoryHandler(
             User = new LegacyUser
             {
                 PartyId = party?.PartyId,
-                NationalIdentityNumber = party?.SSN,
                 Name = party?.Name
             }
         };
@@ -144,10 +150,39 @@ public class LegacyGetCorrespondenceHistoryHandler(
             response.User = new LegacyUser
             {
                 PartyId = party?.PartyId,
-                NationalIdentityNumber = recipient.NationalIdentityNumber,
                 Name = party?.Name
             };
         }
+
+        return response;
+    }
+
+    private async Task<LegacyGetCorrespondenceHistoryResponse> GetForwardingEvent(CorrespondenceForwardingEventEntity forwardingEventEntity, CancellationToken cancellationToken)
+    {
+        var response = new LegacyGetCorrespondenceHistoryResponse
+        {
+            Status = "ElementForwarded",
+            StatusChanged = forwardingEventEntity.ForwardedOnDate,
+            StatusText = "[Correspondence] Forwarded",
+            User =  new LegacyUser(),
+            ForwardingAction = new LegacyForwardingAction
+            {
+                ForwardedByPartyUuid = forwardingEventEntity.ForwardedByPartyUuid,
+                ForwardedByUserId = forwardingEventEntity.ForwardedByUserId,
+                ForwardedByUserUuid = forwardingEventEntity.ForwardedByUserUuid,
+                ForwardedToUserId = forwardingEventEntity.ForwardedToUserId,
+                ForwardedToUserUuid = forwardingEventEntity.ForwardedToUserUuid,
+                ForwardedToEmail = forwardingEventEntity.ForwardedToEmailAddress,
+                ForwardingText = forwardingEventEntity.ForwardingText,
+                MailboxSupplier = forwardingEventEntity.MailboxSupplier
+            }
+        };
+        var party = await altinnRegisterService.LookUpPartyByPartyUuid(forwardingEventEntity.ForwardedByPartyUuid, cancellationToken);
+        response.User = new LegacyUser
+        {
+            PartyId = party?.PartyId,
+            Name = party?.Name
+        };
 
         return response;
     }

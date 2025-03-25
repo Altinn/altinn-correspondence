@@ -14,12 +14,6 @@ namespace Altinn.Correspondence.API.Models
         public int? PartyId { get; set; }
 
         /// <summary>
-        /// The SSSN of the user
-        /// </summary>
-        [JsonPropertyName("nationalIdentityNumber")]
-        public string? NationalIdentityNumber { get; set; }
-
-        /// <summary>
         /// The name of the user
         /// </summary>
         [JsonPropertyName("name")]

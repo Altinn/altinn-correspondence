@@ -15,7 +15,7 @@ public class EnsureNotificationHandler(
 {
     public async Task<OneOf<bool, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         if (correspondence == null)
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
