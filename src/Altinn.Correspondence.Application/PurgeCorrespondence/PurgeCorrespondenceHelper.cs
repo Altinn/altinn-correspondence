@@ -16,7 +16,7 @@ public class PurgeCorrespondenceHelper
     private readonly ICorrespondenceStatusRepository _correspondenceStatusRepository;
     private readonly IAttachmentStatusRepository _attachmentStatusRepository;
     private readonly IBackgroundJobClient _backgroundJobClient;
-    IDialogportenService _dialogportenService;
+    private readonly IDialogportenService _dialogportenService;
     public PurgeCorrespondenceHelper(IAttachmentRepository attachmentRepository, IStorageRepository storageRepository, IAttachmentStatusRepository attachmentStatusRepository, ICorrespondenceRepository correspondenceRepository, ICorrespondenceStatusRepository correspondenceStatusRepository, IDialogportenService dialogportenService, IBackgroundJobClient backgroundJobClient)
     {
         _attachmentRepository = attachmentRepository;
@@ -103,7 +103,7 @@ public class PurgeCorrespondenceHelper
 
         _backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
         await CheckAndPurgeAttachments(correspondence.Id, partyUuid, cancellationToken);
-        ReportActivityToDialogporten(isSender: isSender, correspondence.Id);
+        await ReportActivityToDialogporten(isSender: isSender, correspondence.Id);
         CancelNotification(correspondence.Id, cancellationToken);
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
         if (dialogId is not null)
@@ -112,15 +112,15 @@ public class PurgeCorrespondenceHelper
         }
         return correspondence.Id;
     }
-    public void ReportActivityToDialogporten(bool isSender, Guid correspondenceId)
+    public async Task ReportActivityToDialogporten(bool isSender, Guid correspondenceId)
     {
         if (isSender)
         {
-            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Sender, DialogportenTextType.CorrespondencePurged, "avsender"));
+            await _dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Sender, DialogportenTextType.CorrespondencePurged, "avsender");
         }
         else
         {
-            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondencePurged, "mottaker"));
+            await _dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondencePurged, "mottaker");
         }
     }
 

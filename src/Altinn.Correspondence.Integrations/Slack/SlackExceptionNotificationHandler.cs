@@ -115,7 +115,7 @@ public class SlackExceptionNotificationHandler(
                 $"*Type:* {exception.GetType().Name}\n" +
                 $"*Message:* {exception.Message}\n" +
                 $"*Stacktrace:* \n{exception.StackTrace}\n" + 
-                $"*InnerStacktrace:* \n{exception.InnerException.StackTrace}";
+                $"*InnerStacktrace:* \n{exception.InnerException?.StackTrace}";
     }
     
 

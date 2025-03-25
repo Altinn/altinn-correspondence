@@ -262,6 +262,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     {
                         LanguageCode = "nb",
                         MediaType = "text/plain",
+<<<<<<< HEAD
                         Value = "Marker som lest"
                     },
                     new Title()
@@ -292,6 +293,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     {
                         LanguageCode = "nb",
                         MediaType = "text/plain",
+=======
+>>>>>>> main
                         Value = "Slett"
                     },
                     new Title()

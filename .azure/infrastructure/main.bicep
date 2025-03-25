@@ -143,6 +143,7 @@ module reddis '../modules/redis/main.bicep' = {
     location: location
     namePrefix: namePrefix
     keyVaultName: sourceKeyVaultName
+    prodLikeEnvironment: prodLikeEnvironment
   }
 }
 
