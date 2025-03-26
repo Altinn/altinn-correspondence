@@ -47,4 +47,3 @@ resource deploymentScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
 }
 
 output eventGridIps array = deploymentScript.properties.outputs.eventGridIps
-output errorMessage string = deploymentScript.properties.outputs.errorMessage
