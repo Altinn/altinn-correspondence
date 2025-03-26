@@ -17,11 +17,28 @@ resource deploymentScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
     azPowerShellVersion: '13.0'
     scriptContent: '''
       param([string] $location)
-      $serviceTags = Get-AzNetworkServiceTag -Location $location
-      $EventgridIps = $serviceTags.Values | Where-Object { $_.Name -eq "AzureEventGrid" }
-      $output = $EventgridIps.Properties.AddressPrefixes | Where-Object { $_ -notmatch ":" }
-      $DeploymentScriptOutputs = @{}
-      $DeploymentScriptOutputs['eventGridIps'] = $output
+      try {
+        $serviceTags = Get-AzNetworkServiceTag -Location $location
+        $EventgridIps = $serviceTags.Values | Where-Object { $_.Name -eq "AzureEventGrid" }
+        
+        if ($EventgridIps -eq $null) {
+          throw "AzureEventGrid service tag not found for the location: $location"
+        }
+
+        $output = $EventgridIps.Properties.AddressPrefixes | Where-Object { $_ -notmatch ":" }
+        
+        $DeploymentScriptOutputs = @{
+          'eventGridIps' = $output
+        }
+        
+        return $DeploymentScriptOutputs
+      } catch {
+        # Catch any errors and output them
+        $DeploymentScriptOutputs = @{
+          'errorMessage' = $_.Exception.Message
+        }
+        return $DeploymentScriptOutputs
+      }
     '''
     arguments: '-location ${location}'
     forceUpdateTag: '1'
@@ -30,3 +47,4 @@ resource deploymentScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
 }
 
 output eventGridIps array = deploymentScript.properties.outputs.eventGridIps
+output errorMessage string = deploymentScript.properties.outputs.errorMessage
