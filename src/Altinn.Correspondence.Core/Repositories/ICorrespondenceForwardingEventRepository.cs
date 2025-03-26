@@ -5,6 +5,6 @@ namespace Altinn.Correspondence.Core.Repositories
     public interface ICorrespondenceForwardingEventRepository
     {
         Task<Guid> AddForwardingEvent(CorrespondenceForwardingEventEntity forwardingEvent, CancellationToken cancellationToken);
-        Task<List<CorrespondenceForwardingEventEntity>> GetForwardingEvents(Guid correspondenceId, CancellationToken cancellationToken);
+        Task<List<CorrespondenceForwardingEventEntity>> GetForwardingEventsForCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken);
     }
 }

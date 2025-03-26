@@ -338,6 +338,62 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.ToTable("CorrespondenceStatuses", "correspondence");
                 });
 
+            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.CorrespondenceForwardingEventEntity", b =>
+            {
+                b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("uuid");
+
+                b.Property<DateTimeOffset>("ForwardedOnDate")
+                    .IsRequired()
+                    .HasColumnType("timestamp with time zone");
+
+                b.Property<Guid>("ForwardedByPartyUuid")
+                    .IsRequired()
+                    .HasColumnType("uuid");
+
+                b.Property<int>("ForwardedByUserId")
+                    .HasColumnType("integer");
+
+                b.Property<Guid>("ForwardedByUserUuid")
+                    .IsRequired()
+                    .HasColumnType("uuid");
+
+                b.Property<int?>("ForwardedToUserId")
+                    .HasColumnType("integer");
+
+                b.Property<Guid?>("ForwardedToUserUuid")
+                    .HasColumnType("uuid");
+
+                b.Property<string?>("ForwardingText")
+                    .HasMaxLength(4000)
+                    .HasColumnType("character varying(4000)");
+
+                b.Property<string?>("ForwardedToEmailAddress")
+                    .HasMaxLength(1000)
+                    .HasColumnType("character varying(1000)");
+
+                b.Property<string?>("MailboxSupplier")
+                    .HasColumnType("text");
+
+                b.Property<Guid>("CorrespondenceId")
+                    .HasColumnType("uuid");
+
+                b.HasKey("Id");
+
+                b.HasIndex("CorrespondenceId");
+
+                b.ToTable("CorrespondenceForwardingEvents", "correspondence");
+
+                b.HasOne("Altinn.Correspondence.Core.Models.Entities.CorrespondenceEntity", "Correspondence")
+                    .WithMany("ForwardingEvents")
+                    .HasForeignKey("CorrespondenceId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired();
+
+                b.Navigation("Correspondence");
+            });
+
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.ExternalReferenceEntity", b =>
                 {
                     b.Property<Guid>("Id")

@@ -1,5 +1,6 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,14 +11,18 @@ namespace Altinn.Correspondence.Persistence.Repositories
 {
     internal class CorrespondenceForwardingEventRepository(ApplicationDbContext context) : ICorrespondenceForwardingEventRepository
     {
-        public Task<Guid> AddForwardingEvent(CorrespondenceForwardingEventEntity forwardingEvent, CancellationToken cancellationToken)
+        private readonly ApplicationDbContext _context = context;
+
+        public async Task<Guid> AddForwardingEvent(CorrespondenceForwardingEventEntity forwardingEvent, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            await _context.CorrespondenceForwardingEvents.AddAsync(forwardingEvent, cancellationToken);
+            await _context.SaveChangesAsync();
+            return forwardingEvent.Id;
         }
 
-        public Task<List<CorrespondenceForwardingEventEntity>> GetForwardingEvents(Guid correspondenceId, CancellationToken cancellationToken)
+        public async Task<List<CorrespondenceForwardingEventEntity>> GetForwardingEventsForCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            return _context.CorrespondenceForwardingEvents.Where(e => e.CorrespondenceId == correspondenceId).ToList();
         }
     }
 }
