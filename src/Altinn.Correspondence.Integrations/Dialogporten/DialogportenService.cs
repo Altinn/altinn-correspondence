@@ -42,7 +42,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     {
         var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         if (correspondence is null)
         {
             logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
