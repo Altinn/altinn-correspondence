@@ -1,6 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
-using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Logging;
@@ -46,11 +45,12 @@ public class UpdateCorrespondenceStatusHandler(
         {
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
-        
+
         await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
         {
             await updateCorrespondenceStatusHelper.AddCorrespondenceStatus(correspondence, request.Status, partyUuid, cancellationToken);
             updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
+            updateCorrespondenceStatusHelper.PatchCorrespondenceDialog(request.CorrespondenceId, request.Status);
             updateCorrespondenceStatusHelper.PublishEvent(correspondence, request.Status);
             return Task.CompletedTask;
         },logger, cancellationToken);

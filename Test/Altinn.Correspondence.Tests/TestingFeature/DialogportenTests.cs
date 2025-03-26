@@ -4,7 +4,9 @@ using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.PublishCorrespondence;
+using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -140,7 +142,7 @@ public class DialogportenTests
             {
                 new Core.Models.Entities.CorrespondenceStatusEntity()
                 {
-                    Status = Core.Models.Enums.CorrespondenceStatus.Initialized,
+                    Status = CorrespondenceStatus.Initialized,
                     StatusChanged = DateTimeOffset.UtcNow
                 }
             },
@@ -148,7 +150,7 @@ public class DialogportenTests
             {
                 new Core.Models.Entities.ExternalReferenceEntity()
                 {
-                    ReferenceType = Core.Models.Enums.ReferenceType.DialogportenDialogId,
+                    ReferenceType = ReferenceType.DialogportenDialogId,
                     ReferenceValue = "dialogId"
                 }
             }
@@ -194,7 +196,7 @@ public class DialogportenTests
             {
                 new Core.Models.Entities.CorrespondenceStatusEntity()
                 {
-                    Status = Core.Models.Enums.CorrespondenceStatus.ReadyForPublish,
+                    Status = CorrespondenceStatus.ReadyForPublish,
                     StatusChanged = DateTimeOffset.UtcNow
                 }
             },
@@ -207,8 +209,8 @@ public class DialogportenTests
 
         // Assert
         Assert.NotNull(processedCorrespondence);
-        Assert.Contains(processedCorrespondence.Statuses, s => s.Status == Core.Models.Enums.CorrespondenceStatus.Failed);
-        var failedStatus = processedCorrespondence.Statuses.Find(s => s.Status == Core.Models.Enums.CorrespondenceStatus.Failed);
+        Assert.Contains(processedCorrespondence.Statuses, s => s.Status == CorrespondenceStatus.Failed);
+        var failedStatus = processedCorrespondence.Statuses.Find(s => s.Status == CorrespondenceStatus.Failed);
         Assert.Equal($"Dialogporten dialog not created for correspondence {correspondenceId}", failedStatus?.StatusText);
         Assert.DoesNotContain(hangfireBackgroundJobClient.Invocations, invocation => invocation.Arguments[0].ToString() == "IDialogportenService.PurgeCorrespondenceDialog");
     }
@@ -217,38 +219,12 @@ public class DialogportenTests
     public async Task  GetCorrespondenceContent_CreatesDialogPortenOpenedActivity()
     {
         // Arrange
-        var testCorrespondence = new Core.Models.Entities.CorrespondenceEntity()
-        {
-            Id = Guid.NewGuid(),
-            Created = DateTimeOffset.UtcNow,
-            Recipient = "test-recipient",
-            RequestedPublishTime = DateTimeOffset.UtcNow,
-            ResourceId = "test-resource-id",
-            Sender = "test-sender",
-            SendersReference = "test-senders-reference",
-            Statuses = new List<Core.Models.Entities.CorrespondenceStatusEntity>()
-            {
-                new Core.Models.Entities.CorrespondenceStatusEntity()
-                {
-                    Status = Core.Models.Enums.CorrespondenceStatus.ReadyForPublish,
-                    StatusChanged = DateTimeOffset.UtcNow
-                },
-                new Core.Models.Entities.CorrespondenceStatusEntity()
-                {
-                    Status = Core.Models.Enums.CorrespondenceStatus.Published,
-                    StatusChanged = DateTimeOffset.UtcNow
-                },
-
-            },
-            ExternalReferences = new List<Core.Models.Entities.ExternalReferenceEntity>()
-            {
-                new Core.Models.Entities.ExternalReferenceEntity()
-                {
-                    ReferenceType = Core.Models.Enums.ReferenceType.DialogportenDialogId,
-                    ReferenceValue = "dialogId"
-                }
-            }
-        };
+        var correspondenceEntityBuilder = new CorrespondenceEntityBuilder();
+        var testCorrespondence = correspondenceEntityBuilder
+            .WithStatus(CorrespondenceStatus.ReadyForPublish)
+            .WithStatus(CorrespondenceStatus.Published)
+            .WithExternalReference(ReferenceType.DialogportenDialogId, "dialogId")
+            .Build();
         var correspondenceRepository = new Mock<ICorrespondenceRepository>();
         var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
         var altinnRegisterService = new Mock<IAltinnRegisterService>();
@@ -288,5 +264,56 @@ public class DialogportenTests
         // Assert
         Assert.Single(hangfireBackgroundJobClient.Invocations);
         Assert.Contains(hangfireBackgroundJobClient.Invocations, invocation => invocation.Arguments[0].ToString() == "IDialogportenService.CreateOpenedActivity");
+    }
+
+    [Fact]
+    public async Task ConfirmCorrespondence_PatchesDialogToConfirmed()
+    {
+        // Arrange
+        var correspondenceEntityBuilder = new CorrespondenceEntityBuilder();
+        var testCorrespondence = correspondenceEntityBuilder
+            .WithStatus(CorrespondenceStatus.ReadyForPublish)
+            .WithStatus(CorrespondenceStatus.Published)
+            .WithStatus(CorrespondenceStatus.Fetched)
+            .WithExternalReference(ReferenceType.DialogportenDialogId, "dialogId")
+            .Build();
+        var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+        var correspondenceRepository = new Mock<ICorrespondenceRepository>();
+        var altinnRegisterService = new Mock<IAltinnRegisterService>();
+        var correspondenceStatusRepository = new Mock<ICorrespondenceStatusRepository>();
+        correspondenceStatusRepository.Setup(correspondenceStatusRepository => correspondenceStatusRepository
+            .AddCorrespondenceStatus(It.IsAny<Core.Models.Entities.CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Guid());
+        correspondenceRepository.Setup(correspondenceRepository => correspondenceRepository
+            .GetCorrespondenceById(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testCorrespondence);
+        altinnRegisterService.Setup(altinnRegisterService => altinnRegisterService.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Core.Models.Entities.Party
+        {
+            PartyUuid = Guid.NewGuid()
+        });
+        var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+        {
+            services.AddSingleton(correspondenceRepository.Object);
+            services.AddSingleton(altinnRegisterService.Object);
+            services.AddSingleton(correspondenceStatusRepository.Object);
+            services.AddSingleton(hangfireBackgroundJobClient.Object);
+        });
+
+        var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
+        var testClient = testFactory.CreateSenderClient();
+
+        // Act
+        using var scope = testFactory.Services.CreateScope();
+        UpdateCorrespondenceStatusRequest request = new()
+        {
+            CorrespondenceId = testCorrespondence.Id,
+            Status = CorrespondenceStatus.Confirmed
+        };
+        var handler = scope.ServiceProvider.GetRequiredService<UpdateCorrespondenceStatusHandler>();
+        var result = await handler.Process(request, new(), CancellationToken.None);
+
+        // Assert
+        Assert.IsType<Guid>(result.Value);
+        Assert.Contains(hangfireBackgroundJobClient.Invocations, invocation => invocation.Arguments[0].ToString() == "IDialogportenService.PatchCorrespondenceDialogToConfirmed");
     }
 }

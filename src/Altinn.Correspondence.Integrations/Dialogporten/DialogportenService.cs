@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
+using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
@@ -35,6 +36,47 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new Exception("Dialogporten did not return a dialogId");
         }
         return dialogResponse;
+    }
+
+    public async Task PatchCorrespondenceDialogToConfirmed(Guid correspondenceId)
+    {
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
+        if (correspondence is null)
+        {
+            logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+        var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        if (dialogId is null)
+        {
+            throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
+        }
+        var patchRequestBuilder = new DialogPatchRequestBuilder();
+        var dialog = await GetDialog(dialogId);
+        string confirmEndpointUrl = $"{generalSettings.Value.CorrespondenceBaseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/confirm";
+        var guiActionIndexToDelete = dialog.GuiActions?.FindIndex(dialog => dialog.Url == confirmEndpointUrl) ?? -1;
+        var apiActionIndexToDelete = dialog.ApiActions?.FindIndex(dialog => dialog.Endpoints.Any(endpoint => endpoint.Url == confirmEndpointUrl)) ?? -1;
+        if (guiActionIndexToDelete != -1)
+        {
+            patchRequestBuilder.WithRemoveGuiActionOperation(guiActionIndexToDelete);
+        }
+        if (apiActionIndexToDelete != -1)
+        {
+            patchRequestBuilder.WithRemoveApiActionOperation(apiActionIndexToDelete);
+        }
+        var patchRequest = patchRequestBuilder.Build();
+        if (patchRequest.Count == 0)
+        {
+            logger.LogInformation("No actions to remove from dialog {dialogId} for correspondence {correspondenceId}", dialogId, correspondenceId);
+            return;
+        }
+        var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", patchRequest, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        }
     }
 
     public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, params string[] tokens)
@@ -126,5 +168,23 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         {
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         }
+    }
+
+    public async Task<CreateDialogRequest> GetDialog(string dialogId)
+    {
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+
+        var response = await _httpClient.GetAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        }
+        var dialogRequest = await response.Content.ReadFromJsonAsync<CreateDialogRequest>(cancellationToken);
+        if (dialogRequest is null)
+        {
+            throw new Exception("Failed to deserialize the dialog request from the response.");
+        }
+        return dialogRequest;
     }
 }
