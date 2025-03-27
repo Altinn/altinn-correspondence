@@ -135,7 +135,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                             HttpMethod = "GET",
                             Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}"
                         }
-                    }
+                    },
+                    
                 },
                 new ApiAction()
                 {
@@ -174,6 +175,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                         }
                     }
             });
+                    
             foreach (var attachment in correspondence.Content?.Attachments)
             {
                 apiActions.Add(new ApiAction()
