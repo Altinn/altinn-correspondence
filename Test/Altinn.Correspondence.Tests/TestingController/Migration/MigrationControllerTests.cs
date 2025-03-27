@@ -129,6 +129,139 @@ public class MigrationControllerTests
     }
 
     [Fact]
+    public async Task InitializeMigrateCorrespondence_WithForwarded()
+    {
+        var basicCorrespondence = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .Build();
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+        basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new()
+        {
+            CorrespondenceData = basicCorrespondence,
+            Altinn2CorrespondenceId = 12345,
+            EventHistory =
+        [
+            new CorrespondenceStatusEventExt()
+            {
+                Status = CorrespondenceStatusExt.Initialized,
+                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
+            },
+            new CorrespondenceStatusEventExt()
+            {
+                Status = CorrespondenceStatusExt.Read,
+                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6))
+            },
+            new CorrespondenceStatusEventExt()
+            {
+                Status = CorrespondenceStatusExt.Archived,
+                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 7))
+            }
+        ]
+        };
+
+        migrateCorrespondenceExt.NotificationHistory =
+        [
+            new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 1,
+                NotificationAddress = "testemail@altinn.no",
+                NotificationChannel = NotificationChannelExt.Email,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+            },
+            new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 2,
+                NotificationAddress = "testemail2@altinn.no",
+                NotificationChannel = NotificationChannelExt.Email,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+            },
+            new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 3,
+                NotificationAddress = "testemail3@altinn.no",
+                NotificationChannel = NotificationChannelExt.Email,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+            },
+            new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 4,
+                NotificationAddress = "testemail4@altinn.no",
+                NotificationChannel = NotificationChannelExt.Email,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+            },
+            new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 5,
+                NotificationAddress = "123456789",
+                NotificationChannel = NotificationChannelExt.Sms,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+            },
+            new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 6,
+                NotificationAddress = "223456789",
+                NotificationChannel = NotificationChannelExt.Sms,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+            },
+            new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 7,
+                NotificationAddress = "323456789",
+                NotificationChannel = NotificationChannelExt.Sms,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+            },
+            new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 754537533,
+                NotificationAddress = "423456789",
+                NotificationChannel = NotificationChannelExt.Sms,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+            }
+        ];
+
+        migrateCorrespondenceExt.ForwardingHistory = new List<MigrateCorrespondenceForwardingEventExt>
+        {
+            new MigrateCorrespondenceForwardingEventExt
+            {
+               // Example of Copy sendt to own email address
+               ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 5)),
+               ForwardedByPartyUuid = new Guid("25C6E04A-4A1E-4122-A929-0168255B7E99"),
+               ForwardedByUserId = 123,
+               ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+               ForwardedToEmail = "user1@awesometestusers.com",
+               ForwardingText = "Keep this as a backup in my email."
+            },
+            new MigrateCorrespondenceForwardingEventExt
+            {
+               // Example of Copy sendt to own digital mailbox
+               ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 5)),
+               ForwardedByPartyUuid = new Guid("25C6E04A-4A1E-4122-A929-0168255B7E99"),
+               ForwardedByUserId = 123,
+               ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+               MailboxSupplier = "urn:altinn:organization:identifier-no:123456789"
+            },
+            new MigrateCorrespondenceForwardingEventExt
+            {
+               // Example of Instance Delegation
+               ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 5)),
+               ForwardedByPartyUuid = new Guid("25C6E04A-4A1E-4122-A929-0168255B7E99"),
+               ForwardedByUserId = 123,
+               ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+               ForwardedToUserId = 456,
+               ForwardedToUserUuid = new Guid("1D5FD16E-2905-414A-AC97-844929975F17"),
+               ForwardingText = "User2, - please look into this for me please. - User1",
+               ForwardedToEmail = "user2@awesometestusers.com"
+            }
+        };
+
+        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
+    }
+
+    [Fact]
     public async Task InitializeMigrateCorrespondence_NotReadNoNotifications()
     {
         var basicCorrespondence = new CorrespondenceBuilder()

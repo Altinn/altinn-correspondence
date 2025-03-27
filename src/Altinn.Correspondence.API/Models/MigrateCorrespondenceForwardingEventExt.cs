@@ -60,7 +60,7 @@ namespace Altinn.Correspondence.API.Models
         /// Optional Org number for the Mailbox supplier that the correspondence was forwarded to.
         /// </summary>
         [JsonPropertyName("mailboxSupplier")]
-        [OrganizationNumber(ErrorMessage = $"Organization numbers should be on the format '{UrnConstants.OrganizationNumberAttribute}:organizationnumber' or the format countrycode:organizationnumber, for instance 0192:910753614")]
+        [OrganizationNumberOptional(ErrorMessage = $"Organization numbers should be on the format '{UrnConstants.OrganizationNumberAttribute}:organizationnumber' or the format countrycode:organizationnumber, for instance 0192:910753614")]
         public string? MailboxSupplier { get; set; }
     }
 }
