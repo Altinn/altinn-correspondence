@@ -333,8 +333,7 @@ public class DialogportenTests
         altinnRegisterService.Setup(altinnRegisterService => altinnRegisterService.LookUpPartyByPartyId(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Core.Models.Entities.Party
         {
             PartyUuid = Guid.NewGuid(),
-            OrgNumber = "991825827"
-            PartyUuid = Guid.NewGuid()
+            OrgNumber = "991825827",
         });
         var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
         {
@@ -365,7 +364,9 @@ public class DialogportenTests
             // Assert
             Assert.Contains(hangfireBackgroundJobClient.Invocations, invocation => invocation.Arguments[0].ToString() == "IDialogportenService.CreateOpenedActivity");
         }
+    }
 
+    [Fact]
     public async Task ConfirmCorrespondence_PatchesDialogToConfirmed()
     {
         // Arrange
@@ -379,17 +380,25 @@ public class DialogportenTests
         var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
         var correspondenceRepository = new Mock<ICorrespondenceRepository>();
         var altinnRegisterService = new Mock<IAltinnRegisterService>();
-              services.AddSingleton(altinnRegisterService.Object);
+        var correspondenceStatusRepository = new Mock<ICorrespondenceStatusRepository>();
+        correspondenceStatusRepository.Setup(correspondenceStatusRepository => correspondenceStatusRepository
+            .AddCorrespondenceStatus(It.IsAny<Core.Models.Entities.CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Guid());
+        correspondenceRepository.Setup(correspondenceRepository => correspondenceRepository
+            .GetCorrespondenceById(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testCorrespondence);
+        altinnRegisterService.Setup(altinnRegisterService => altinnRegisterService.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Core.Models.Entities.Party
+        {
+            PartyUuid = Guid.NewGuid()
+        });
+        var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+        {
+            services.AddSingleton(correspondenceRepository.Object);
+            services.AddSingleton(altinnRegisterService.Object);
             services.AddSingleton(correspondenceStatusRepository.Object);
             services.AddSingleton(hangfireBackgroundJobClient.Object);
         });
-        altinnRegisterService.Setup(altinnRegisterService => altinnRegisterService.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Core.Models.Entities.Party
-        {
-            PartyUuid = Guid.NewGuid(),
-            OrgNumber = "991825827",
-            Name = "Digdir",
-            PartyId = 1234
-        });
+
         var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
         var testClient = testFactory.CreateSenderClient();
 
@@ -408,3 +417,4 @@ public class DialogportenTests
         Assert.Contains(hangfireBackgroundJobClient.Invocations, invocation => invocation.Arguments[0].ToString() == "IDialogportenService.PatchCorrespondenceDialogToConfirmed");
     }
 }
+
