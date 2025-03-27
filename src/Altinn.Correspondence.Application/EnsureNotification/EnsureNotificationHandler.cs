@@ -38,7 +38,7 @@ public class EnsureNotificationHandler(
             var orderRequest = JsonSerializer.Deserialize<NotificationOrderRequest>(primaryNotification.OrderRequest);
             orderRequest.RequestedSendTime = DateTime.Now;
             await altinnNotificationService.CreateNotification(orderRequest, cancellationToken);
-            await correspondenceNotificationRepository.WipeOrder(correspondenceId, cancellationToken);
+            await correspondenceNotificationRepository.WipeOrder(primaryNotification.Id, cancellationToken);
             return true;
         }
         else

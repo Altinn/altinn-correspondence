@@ -184,6 +184,42 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             var guiActions = new List<GuiAction>();
             
+            // Add ReplyOptions as GUI actions first
+            if (correspondence.ReplyOptions != null && correspondence.ReplyOptions.Any())
+            {
+                // Add each ReplyOption from the request
+                foreach (var replyOption in correspondence.ReplyOptions)
+                {
+                    guiActions.Add(new GuiAction()
+                    {
+                        Title = new List<Title>()
+                        {
+                            new Title()
+                            {
+                                LanguageCode = "nb",
+                                MediaType = "text/plain",
+                                Value = replyOption.LinkText ?? "Gå til tjeneste"
+                            },
+                            new Title()
+                            {
+                                LanguageCode = "nn",
+                                MediaType = "text/plain",
+                                Value = replyOption.LinkText ?? "Gå til teneste"
+                            },
+                            new Title()
+                            {
+                                LanguageCode = "en",
+                                MediaType = "text/plain",
+                                Value = replyOption.LinkText ?? "Go to service"
+                            }
+                        },
+                        Action = "read",
+                        Url = replyOption.LinkURL,
+                        HttpMethod = "GET",
+                        Priority = "Tertiary"
+                    });
+                }
+            }
             if (correspondence.IsConfirmationNeeded)
             {
                 guiActions.Add(new GuiAction()
@@ -215,35 +251,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     Priority = "Primary"
                 });
             }
-
-            guiActions.Add(new GuiAction()
-            {
-                Title = new List<Title>()
-                {
-                    new Title()
-                    {
-                        LanguageCode = "nb",
-                        MediaType = "text/plain",
-                        Value = "Marker som lest"
-                    },
-                    new Title()
-                    {
-                        LanguageCode = "nn",
-                        MediaType = "text/plain",
-                        Value = "Mark som lest"
-                    },
-                    new Title()
-                    {
-                        LanguageCode = "en",
-                        MediaType = "text/plain",
-                        Value = "Mark as read"
-                    },
-                },
-                Action = "read",
-                Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/markasread",
-                HttpMethod = "POST",
-                Priority = "Tertiary"
-            });
 
             guiActions.Add(new GuiAction()
             {
