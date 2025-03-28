@@ -114,14 +114,9 @@ public class PurgeCorrespondenceHelper
     }
     public async Task ReportActivityToDialogporten(bool isSender, Guid correspondenceId)
     {
-        if (isSender)
-        {
-            await _dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Sender, DialogportenTextType.CorrespondencePurged, "avsender");
-        }
-        else
-        {
-            await _dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondencePurged, "mottaker");
-        }
+        var actorType = isSender ? DialogportenActorType.Sender : DialogportenActorType.Recipient;
+        var actorName = isSender ? "avsender" : "mottaker";
+        await _dialogportenService.CreateDialogDeletedActivity(correspondenceId, actorType, actorName);
     }
 
     public void CancelNotification(Guid correspondenceId, CancellationToken cancellationToken)

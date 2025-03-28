@@ -34,5 +34,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         {
             return Task.CompletedTask;
         }
+
+        public Task CreateDialogDeletedActivity(Guid correspondenceId, DialogportenActorType actorType, string actorName)
+        {
+            return Task.CompletedTask;
+        }
     }
 }
