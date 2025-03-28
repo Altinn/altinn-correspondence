@@ -140,18 +140,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 },
                 new ApiAction()
                 {
-                    Action = "read",
-                    Endpoints = new List<Endpoint>()
-                    {
-                        new Endpoint()
-                        {
-                            HttpMethod = "GET",
-                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/details"
-                        }
-                    }
-                },
-                new ApiAction()
-                {
                     Action = "write",
                     Endpoints = new List<Endpoint>()
                     {
