@@ -13,7 +13,7 @@ public class CheckNotificationHandler(ICorrespondenceRepository correspondenceRe
 
     public async Task<OneOf<CheckNotificationResponse, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         var response = new CheckNotificationResponse
         {
             SendNotification = true

@@ -37,6 +37,7 @@ namespace Altinn.Correspondence.Core.Repositories
             Guid guid,
             bool includeStatus,
             bool includeContent,
+            bool includeForwardingEvents,
             CancellationToken cancellationToken);
 
         Task<List<CorrespondenceEntity>> GetCorrespondencesByAttachmentId(Guid attachmentId, bool includeStatus, CancellationToken cancellationToken = default);

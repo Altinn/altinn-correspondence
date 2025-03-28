@@ -59,7 +59,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </summary>
         [HttpGet]
         [Route("{correspondenceId}/history")]
-        public async Task<ActionResult<LegacyGetCorrespondenceHistoryResponse>> GetCorrespondenceHistory( // TODO: Should this be LegacyCorrespondenceHistoryExt? 
+        public async Task<ActionResult<LegacyCorrespondenceHistoryExt>> GetCorrespondenceHistory(
             Guid correspondenceId,
             [FromServices] LegacyGetCorrespondenceHistoryHandler handler,
             CancellationToken cancellationToken)
@@ -69,7 +69,7 @@ namespace Altinn.Correspondence.API.Controllers
             var commandResult = await handler.Process(correspondenceId, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
-                data => Ok(data),
+                data => Ok(LegacyCorrespondenceHistoryMapper.MapToExternal(data)),
                 Problem
             );
         }

@@ -28,6 +28,19 @@ internal static class MigrateCorrespondenceMapper
                 NotificationAddress = n.NotificationAddress,
                 Altinn2NotificationId = n.Altinn2NotificationId
             }).ToList(),
+            ForwardingEvents = migrateCorrespondenceExt.ForwardingHistory.Select(fh => new CorrespondenceForwardingEventEntity()
+            {
+                ForwardedOnDate = fh.ForwardedOnDate,
+                ForwardedByPartyUuid = fh.ForwardedByPartyUuid,
+                ForwardedByUserId = fh.ForwardedByUserId,
+                ForwardedByUserUuid = fh.ForwardedByUserUuid,
+                ForwardedToUserId = fh.ForwardedToUserId,
+                ForwardedToUserUuid = fh.ForwardedToUserUuid,
+                ForwardingText = fh.ForwardingText,
+                ForwardedToEmailAddress = fh.ForwardedToEmail,
+                MailboxSupplier = fh.MailboxSupplier                
+
+            }).ToList(),
             SendersReference = migrateCorrespondenceExt.CorrespondenceData.Correspondence.SendersReference,
             Recipient = migrateCorrespondenceExt.CorrespondenceData.Recipients.First(),
             ResourceId = migrateCorrespondenceExt.CorrespondenceData.Correspondence.ResourceId,

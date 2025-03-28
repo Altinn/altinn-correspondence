@@ -50,6 +50,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             Guid guid,
             bool includeStatus,
             bool includeContent,
+            bool includeForwardingEvents,
             CancellationToken cancellationToken)
         {
             var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
@@ -61,6 +62,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a.Statuses);
             }
+            if(includeForwardingEvents)
+            {
+                correspondences = correspondences.Include(c => c.ForwardingEvents);
+            }
+
             return await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
         }
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesByAttachmentId(Guid attachmentId, bool includeStatus, CancellationToken cancellationToken = default)
