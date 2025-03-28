@@ -14,6 +14,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy.Base
         public readonly string _partyIdClaim = "urn:altinn:partyid";
         public readonly int _digdirPartyId = 50952483;
         public readonly int _delegatedUserPartyid = 100;
+        public readonly Guid _delegatedUserPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920");
+        public readonly string _delegatedUserName = "Delegert test bruker";
 
         public LegacyTestBase(CustomWebApplicationFactory factory)
         {

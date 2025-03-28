@@ -226,7 +226,7 @@ public class MigrationControllerTests
             new MigrateCorrespondenceForwardingEventExt
             {
                // Example of Copy sendt to own email address
-               ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 5)),
+               ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11 ,0 ,0)),
                ForwardedByPartyUuid = new Guid("25C6E04A-4A1E-4122-A929-0168255B7E99"),
                ForwardedByUserId = 123,
                ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
@@ -236,7 +236,7 @@ public class MigrationControllerTests
             new MigrateCorrespondenceForwardingEventExt
             {
                // Example of Copy sendt to own digital mailbox
-               ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 5)),
+               ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11 ,5 ,0)),
                ForwardedByPartyUuid = new Guid("25C6E04A-4A1E-4122-A929-0168255B7E99"),
                ForwardedByUserId = 123,
                ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
@@ -244,15 +244,15 @@ public class MigrationControllerTests
             },
             new MigrateCorrespondenceForwardingEventExt
             {
-               // Example of Instance Delegation
-               ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 5)),
-               ForwardedByPartyUuid = new Guid("25C6E04A-4A1E-4122-A929-0168255B7E99"),
-               ForwardedByUserId = 123,
+               // Example of Instance Delegation by User 2 to User 3
+               ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 12, 15 ,0)),
+               ForwardedByPartyUuid = new Guid("966A0220-1332-43C4-A405-4C1060B213E7"),
+               ForwardedByUserId = 222,
                ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
                ForwardedToUserId = 456,
                ForwardedToUserUuid = new Guid("1D5FD16E-2905-414A-AC97-844929975F17"),
-               ForwardingText = "User2, - please look into this for me please. - User1",
-               ForwardedToEmail = "user2@awesometestusers.com"
+               ForwardingText = "User3, - please look into this for me please. - User2",
+               ForwardedToEmail = "user3@awesometestusers.com"
             }
         };
 
