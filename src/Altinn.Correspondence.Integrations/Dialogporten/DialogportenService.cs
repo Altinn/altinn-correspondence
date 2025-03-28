@@ -170,9 +170,9 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
     }
 
-    public async Task CreateDialogDeletedActivity(Guid correspondenceId, DialogportenActorType actorType, string actorName)
+    public async Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType, string actorName)
     {
-        logger.LogInformation("CreateDialogDeletedActivity by {actorType} for correspondence {correspondenceId}",
+        logger.LogInformation("CreateCorrespondencePurgedActivity by {actorType}: for correspondence {correspondenceId}",
             Enum.GetName(typeof(DialogportenActorType), actorType),
             correspondenceId
         );

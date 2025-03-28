@@ -116,7 +116,7 @@ public class PurgeCorrespondenceHelper
     {
         var actorType = isSender ? DialogportenActorType.Sender : DialogportenActorType.Recipient;
         var actorName = isSender ? "avsender" : "mottaker";
-        await _dialogportenService.CreateDialogDeletedActivity(correspondenceId, actorType, actorName);
+        await _dialogportenService.CreateCorrespondencePurgedActivity(correspondenceId, actorType, actorName);
     }
 
     public void CancelNotification(Guid correspondenceId, CancellationToken cancellationToken)
