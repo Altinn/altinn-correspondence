@@ -4,6 +4,8 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -17,6 +19,7 @@ public class LegacyGetCorrespondenceOverviewHandler(
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
     UserClaimsHelper userClaimsHelper,
+    IBackgroundJobClient backgroundJobClient,
     ILogger<LegacyGetCorrespondenceOverviewHandler> logger) : IHandler<Guid, LegacyGetCorrespondenceOverviewResponse>
 {
     public async Task<OneOf<LegacyGetCorrespondenceOverviewResponse, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -102,6 +105,7 @@ public class LegacyGetCorrespondenceOverviewHandler(
                     StatusText = CorrespondenceStatus.Read.ToString(),
                     PartyUuid = partyUuid
                 }, cancellationToken);
+                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient));
                 updateCorrespondenceStatusHelper.PublishEvent(correspondence, CorrespondenceStatus.Read);
             }
             catch (Exception e)
