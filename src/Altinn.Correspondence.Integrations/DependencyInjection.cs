@@ -69,6 +69,7 @@ public static class DependencyInjection
         services.AddSingleton<ErrorAggregationService>();
         services.AddSingleton<SlackNotificationService>();
         services.AddSingleton<IExceptionHandler, SlackExceptionNotificationHandler>();
+        services.AddHostedService<ErrorSummaryService>();
     }
 
     public static void RegisterAltinnHttpClient<TClient, TImplementation>(this IServiceCollection services, MaskinportenSettings maskinportenSettings, AltinnOptions altinnOptions)
