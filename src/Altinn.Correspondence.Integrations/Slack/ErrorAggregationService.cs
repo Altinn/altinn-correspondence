@@ -18,7 +18,7 @@ public class ErrorAggregationService
         _logger = logger;
     }
 
-    public async Task<bool> ShouldSendNotification(string message)
+    public async Task<(bool ShouldSend, int Count)> ShouldSendNotification(string message)
     {
         var key = $"error:{message}";
         var count = await GetErrorCount(key);
@@ -31,18 +31,18 @@ public class ErrorAggregationService
         if (count == 1)
         {
             _logger.LogInformation("First occurrence of error: {Message}", message);
-            return true;
+            return (true, count);
         }
 
         // Send summary when count is a multiple of 5
         if (count % 5 == 0)
         {
             _logger.LogInformation("Error count reached {Count} for message: {Message}", count, message);
-            return true;
+            return (true, count);
         }
 
         _logger.LogInformation("Error count is {Count} for message: {Message}", count, message);
-        return false;
+        return (false, count);
     }
 
     private async Task<int> GetErrorCount(string key)
