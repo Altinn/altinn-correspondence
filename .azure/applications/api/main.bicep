@@ -48,12 +48,12 @@ module appIdentity '../../modules/identity/create.bicep' = {
   }
 }
 
-/*module addContributorAccess '../../modules/identity/addContributorAccess.bicep' = {
+module addContributorAccess '../../modules/identity/addContributorAccess.bicep' = {
   name: 'appDeployToAzureAccess'
   params: {
     userAssignedIdentityPrincipalId: appIdentity.outputs.principalId
   }
-}*/
+}
 
 module keyVaultReaderAccessPolicyUserIdentity '../../modules/keyvault/addReaderRoles.bicep' = {
   name: 'kvreader-${namePrefix}-app'
