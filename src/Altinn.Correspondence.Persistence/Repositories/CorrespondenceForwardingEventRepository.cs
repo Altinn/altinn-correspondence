@@ -16,7 +16,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<Guid> AddForwardingEvent(CorrespondenceForwardingEventEntity forwardingEvent, CancellationToken cancellationToken)
         {
             await _context.CorrespondenceForwardingEvents.AddAsync(forwardingEvent, cancellationToken);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
             return forwardingEvent.Id;
         }
 
