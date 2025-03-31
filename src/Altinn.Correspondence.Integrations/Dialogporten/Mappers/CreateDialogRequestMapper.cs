@@ -127,15 +127,16 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 new ApiAction()
                 {
-                    Action = "write",
+                    Action = "read",
                     Endpoints = new List<Endpoint>()
                     {
                         new Endpoint()
                         {
-                            HttpMethod = "POST",
-                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/confirm"
+                            HttpMethod = "GET",
+                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}"
                         }
-                    }
+                    },
+                    
                 },
                 new ApiAction()
                 {
@@ -148,20 +149,21 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                             Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/purge"
                         }
                     }
-                },
-                new ApiAction()
-                {
-                    Action = "write",
-                    Endpoints = new List<Endpoint>()
+                }
+            };
+            if (correspondence.IsConfirmationNeeded) apiActions.Add(new ApiAction()
+            {
+                Action = "write",
+                Endpoints = new List<Endpoint>()
                     {
                         new Endpoint()
                         {
                             HttpMethod = "POST",
-                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/markasread"
+                            Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/confirm"
                         }
                     }
-                }
-            };
+            });
+                    
             foreach (var attachment in correspondence.Content?.Attachments)
             {
                 apiActions.Add(new ApiAction()
@@ -183,7 +185,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         private static List<GuiAction> GetGuiActionsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
         {
             var guiActions = new List<GuiAction>();
-            
+
             // Add ReplyOptions as GUI actions first
             if (correspondence.ReplyOptions != null && correspondence.ReplyOptions.Any())
             {
