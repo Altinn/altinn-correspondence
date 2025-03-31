@@ -321,7 +321,7 @@ public class DialogportenTests
             .AddCorrespondenceStatus(It.IsAny<Core.Models.Entities.CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Guid());
         correspondenceRepository.Setup(correspondenceRepository => correspondenceRepository
-            .GetCorrespondenceById(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .GetCorrespondenceById(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(testCorrespondence);
         altinnRegisterService.Setup(altinnRegisterService => altinnRegisterService.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Core.Models.Entities.Party
         {
