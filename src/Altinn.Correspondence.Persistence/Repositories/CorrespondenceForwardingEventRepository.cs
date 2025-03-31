@@ -16,13 +16,13 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<Guid> AddForwardingEvent(CorrespondenceForwardingEventEntity forwardingEvent, CancellationToken cancellationToken)
         {
             await _context.CorrespondenceForwardingEvents.AddAsync(forwardingEvent, cancellationToken);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
             return forwardingEvent.Id;
         }
 
         public async Task<List<CorrespondenceForwardingEventEntity>> GetForwardingEventsForCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken)
         {
-            return _context.CorrespondenceForwardingEvents.Where(e => e.CorrespondenceId == correspondenceId).ToList();
+            return await _context.CorrespondenceForwardingEvents.Where(e => e.CorrespondenceId == correspondenceId).ToListAsync(cancellationToken);
         }
     }
 }
