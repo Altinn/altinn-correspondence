@@ -1,34 +1,47 @@
 using Microsoft.Extensions.Caching.Distributed;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Integrations.Slack;
 
 public class ErrorAggregationService
 {
     private readonly IDistributedCache _cache;
+    private readonly ILogger<ErrorAggregationService> _logger;
     private readonly TimeSpan _aggregationWindow = TimeSpan.FromMinutes(5);
-    private const string KeyPrefix = "error_count_";
 
-    public ErrorAggregationService(IDistributedCache cache)
+    public ErrorAggregationService(
+        IDistributedCache cache,
+        ILogger<ErrorAggregationService> logger)
     {
         _cache = cache;
+        _logger = logger;
     }
 
     public async Task<bool> ShouldSendNotification(string message)
     {
-        var key = KeyPrefix + message;
+        var key = $"error:{message}";
         var count = await GetErrorCount(key);
         
         // Increment count
         count++;
         await SetErrorCount(key, count);
 
-        // If this is the first error in the window, send notification
+        // Send notification on first error
         if (count == 1)
         {
+            _logger.LogInformation("First occurrence of error: {Message}", message);
             return true;
         }
 
+        // Send summary when count is a multiple of 5
+        if (count % 5 == 0)
+        {
+            _logger.LogInformation("Error count reached {Count} for message: {Message}", count, message);
+            return true;
+        }
+
+        _logger.LogInformation("Error count is {Count} for message: {Message}", count, message);
         return false;
     }
 
