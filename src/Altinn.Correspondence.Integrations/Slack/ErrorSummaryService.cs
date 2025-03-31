@@ -58,32 +58,29 @@ public class ErrorSummaryService : BackgroundService
         var timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC");
         var channel = _hostEnvironment.IsDevelopment() ? "#test-varslinger" : "#mf-varsling-critical";
 
-        var message = $"📊 *Error Summary for {environment}*\n" +
-                     $"*Time:* {timestamp}\n\n" +
-                     "*Active Errors:*\n";
+        foreach (var (message, count) in activeErrors)
+        {
+            var slackMessage = new SlackMessage
+            {
+                Channel = channel,
+                Text = $"🚨 *Error in {environment}*\n" +
+                       $"*Time:* {timestamp}\n" +
+                       $"*Error Count:* {count}\n" +
+                       $"*Message:* {message}"
+            };
 
-        foreach (var (errorMessage, count) in activeErrors)
-        {
-            message += $"• {errorMessage}: {count} occurrences\n";
+            try
+            {
+                await _slackClient.PostAsync(slackMessage);
+                _logger.LogInformation("Sent error notification for {Message} with count {Count}", message, count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send error notification");
+            }
         }
-
-        var slackMessage = new SlackMessage
-        {
-            Channel = channel,
-            Text = message
-        };
-
-        try
-        {
-            await _slackClient.PostAsync(slackMessage);
-            _logger.LogInformation("Sent error summary with {Count} active errors", activeErrors.Count);
-            
-            // Clear the active errors after sending the summary
-            await _errorAggregationService.ClearActiveErrors();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send error summary");
-        }
+        
+        // Clear the active errors after sending all notifications
+        await _errorAggregationService.ClearActiveErrors();
     }
 } 
