@@ -13,7 +13,7 @@ public class ErrorSummaryService : BackgroundService
     private readonly ISlackClient _slackClient;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly ErrorAggregationService _errorAggregationService;
-    private readonly TimeSpan _interval = TimeSpan.FromMinutes(5);
+    private readonly TimeSpan _interval = TimeSpan.FromMinutes(3);
 
     public ErrorSummaryService(
         IDistributedCache cache,

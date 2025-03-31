@@ -8,7 +8,7 @@ public class ErrorAggregationService
 {
     private readonly IDistributedCache _cache;
     private readonly ILogger<ErrorAggregationService> _logger;
-    private readonly TimeSpan _aggregationWindow = TimeSpan.FromMinutes(5);
+    private readonly TimeSpan _aggregationWindow = TimeSpan.FromMinutes(3);
     private const string ActiveErrorsKey = "active_errors";
 
     public ErrorAggregationService(
@@ -19,9 +19,11 @@ public class ErrorAggregationService
         _logger = logger;
     }
 
-    public async Task<(bool ShouldSend, int Count)> ShouldSendNotification(string message)
+    public async Task<(bool ShouldSend, int Count)> ShouldSendNotification(string message, Exception exception, string source)
     {
-        var key = $"error:{message}";
+        // Hent feiltypen fra unntaket
+        var errorType = GetErrorType(exception);
+        var key = $"error:{errorType}:{source}:{message}";
         var count = await GetErrorCount(key);
         
         // Increment count
@@ -31,30 +33,30 @@ public class ErrorAggregationService
         // Add to active errors if this is the first occurrence
         if (count == 1)
         {
-            await AddToActiveErrors(message);
-            _logger.LogInformation("First occurrence of error: {Message}", message);
+            await AddToActiveErrors(errorType, source, message);
+            _logger.LogInformation("First occurrence of error type {ErrorType} in {Source}: {Message}", errorType, source, message);
             return (true, count);
         }
 
-        _logger.LogInformation("Error count is {Count} for message: {Message}", count, message);
+        _logger.LogInformation("Error count is {Count} for error type {ErrorType} in {Source}: {Message}", count, errorType, source, message);
         return (false, count);
     }
 
-    public async Task<List<(string Message, int Count)>> GetActiveErrors()
+    public async Task<List<(string ErrorType, string Source, string Message, int Count)>> GetActiveErrors()
     {
         var activeErrorsJson = await _cache.GetStringAsync(ActiveErrorsKey);
         if (string.IsNullOrEmpty(activeErrorsJson))
         {
-            return new List<(string Message, int Count)>();
+            return new List<(string ErrorType, string Source, string Message, int Count)>();
         }
 
-        var activeErrors = JsonSerializer.Deserialize<List<string>>(activeErrorsJson);
-        var result = new List<(string Message, int Count)>();
+        var activeErrors = JsonSerializer.Deserialize<List<(string ErrorType, string Source, string Message)>>(activeErrorsJson);
+        var result = new List<(string ErrorType, string Source, string Message, int Count)>();
 
-        foreach (var message in activeErrors)
+        foreach (var (errorType, source, message) in activeErrors)
         {
-            var count = await GetErrorCount($"error:{message}");
-            result.Add((message, count));
+            var count = await GetErrorCount($"error:{errorType}:{source}:{message}");
+            result.Add((errorType, source, message, count));
         }
 
         return result;
@@ -63,23 +65,23 @@ public class ErrorAggregationService
     public async Task ClearActiveErrors()
     {
         var activeErrors = await GetActiveErrors();
-        foreach (var (message, _) in activeErrors)
+        foreach (var (errorType, source, message, _) in activeErrors)
         {
-            await _cache.RemoveAsync($"error:{message}");
+            await _cache.RemoveAsync($"error:{errorType}:{source}:{message}");
         }
         await _cache.RemoveAsync(ActiveErrorsKey);
     }
 
-    private async Task AddToActiveErrors(string message)
+    private async Task AddToActiveErrors(string errorType, string source, string message)
     {
         var activeErrorsJson = await _cache.GetStringAsync(ActiveErrorsKey);
         var activeErrors = string.IsNullOrEmpty(activeErrorsJson) 
-            ? new List<string>() 
-            : JsonSerializer.Deserialize<List<string>>(activeErrorsJson);
+            ? new List<(string ErrorType, string Source, string Message)>() 
+            : JsonSerializer.Deserialize<List<(string ErrorType, string Source, string Message)>>(activeErrorsJson);
 
-        if (!activeErrors.Contains(message))
+        if (!activeErrors.Contains((errorType, source, message)))
         {
-            activeErrors.Add(message);
+            activeErrors.Add((errorType, source, message));
             var options = new DistributedCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = _aggregationWindow
@@ -108,5 +110,16 @@ public class ErrorAggregationService
 
         var value = JsonSerializer.Serialize(count);
         await _cache.SetStringAsync(key, value, options);
+    }
+
+    private string GetErrorType(Exception exception)
+    {
+        return exception switch
+        {
+            NotImplementedException => "NotImplemented",
+            ArgumentException => "Argument",
+            InvalidOperationException => "InvalidOperation",
+            _ => "Unknown"
+        };
     }
 } 

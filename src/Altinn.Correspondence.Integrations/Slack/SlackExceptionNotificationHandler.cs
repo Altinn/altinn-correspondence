@@ -43,11 +43,12 @@ public class SlackExceptionNotificationHandler : IExceptionHandler
         CancellationToken cancellationToken)
     {
         var message = exception.Message;
-        var (shouldSend, count) = await _errorAggregationService.ShouldSendNotification(message);
+        var source = GetErrorSource(httpContext);
+        var (shouldSend, count) = await _errorAggregationService.ShouldSendNotification(message, exception, source);
 
         if (shouldSend)
         {
-            await SendSlackNotificationWithMessage(message, exception, count);
+            await SendSlackNotificationWithMessage(message, exception, count, source);
         }
 
         return false;
@@ -60,29 +61,33 @@ public class SlackExceptionNotificationHandler : IExceptionHandler
         CancellationToken cancellationToken)
     {
         var message = $"Job {jobName} ({jobId}) failed: {exception.Message}";
-        var (shouldSend, count) = await _errorAggregationService.ShouldSendNotification(message);
+        var source = $"Job: {jobName}";
+        var (shouldSend, count) = await _errorAggregationService.ShouldSendNotification(message, exception, source);
         
         if (shouldSend)
         {
-            await SendSlackNotificationWithMessage(message, exception, count);
+            await SendSlackNotificationWithMessage(message, exception, count, source);
         }
 
         return false;
     }
 
-    private async Task SendSlackNotificationWithMessage(string message, Exception exception, int count)
+    private async Task SendSlackNotificationWithMessage(string message, Exception exception, int count, string source)
     {
         var environment = _hostEnvironment.IsDevelopment() ? "Development" : "Production";
         var timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC");
         var stackTrace = exception.StackTrace ?? "No stack trace available";
-        var channel = _hostEnvironment.IsDevelopment() ? _slackSettings.DevelopmentChannel : _slackSettings.ProductionChannel;
+        var channel = _hostEnvironment.IsDevelopment() ? "#test-varslinger" : "#mf-varsling-critical";
+        var errorType = exception.GetType().Name;
 
         var slackMessage = new SlackMessage
         {
             Channel = channel,
             Text = $"🚨 *Error in {environment}*\n" +
                    $"*Time:* {timestamp}\n" +
+                   $"*Error Type:* {errorType}\n" +
                    $"*Error Count:* {count}\n" +
+                   $"*Source:* {source}\n" +
                    $"*Message:* {message}\n" +
                    $"*Stack Trace:*\n```{stackTrace}```"
         };
@@ -95,5 +100,12 @@ public class SlackExceptionNotificationHandler : IExceptionHandler
         {
             _logger.LogError(ex, "Failed to send Slack notification");
         }
+    }
+
+    private string GetErrorSource(HttpContext httpContext)
+    {
+        var path = httpContext.Request.Path.Value ?? "Unknown";
+        var method = httpContext.Request.Method;
+        return $"{method} {path}";
     }
 }
