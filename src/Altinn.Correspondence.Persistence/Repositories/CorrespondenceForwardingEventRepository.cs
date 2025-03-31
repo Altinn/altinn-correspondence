@@ -22,7 +22,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<List<CorrespondenceForwardingEventEntity>> GetForwardingEventsForCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken)
         {
-            return _context.CorrespondenceForwardingEvents.Where(e => e.CorrespondenceId == correspondenceId).ToList();
+            return await _context.CorrespondenceForwardingEvents.Where(e => e.CorrespondenceId == correspondenceId).ToListAsync(cancellationToken);
         }
     }
 }
