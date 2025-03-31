@@ -17,6 +17,7 @@ using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Integrations.Slack;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Diagnostics;
 using Slack.Webhooks;
 
 namespace Altinn.Correspondence.Integrations;
@@ -65,6 +66,9 @@ public static class DependencyInjection
         }
         
         services.AddSingleton<SlackSettings>();
+        services.AddSingleton<ErrorAggregationService>();
+        services.AddSingleton<SlackNotificationService>();
+        services.AddSingleton<IExceptionHandler, SlackExceptionNotificationHandler>();
     }
 
     public static void RegisterAltinnHttpClient<TClient, TImplementation>(this IServiceCollection services, MaskinportenSettings maskinportenSettings, AltinnOptions altinnOptions)
