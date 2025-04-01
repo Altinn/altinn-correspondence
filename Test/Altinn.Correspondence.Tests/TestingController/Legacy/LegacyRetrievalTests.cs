@@ -303,7 +303,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 && !String.IsNullOrEmpty(forwarding.ForwardingEvent.ForwardingText) && forwarding.ForwardingEvent.ForwardingText.Equals("Keep this as a backup in my email."));
             Assert.Contains(content, forwarding => forwarding.Status.Contains("ElementForwarded") && forwarding.ForwardingEvent.ForwardedByUserId.Equals(123)
                 && forwarding.User != null && forwarding.User.PartyId == _delegatedUserPartyid && forwarding.User.Name.Equals(_delegatedUserName)
-                && !String.IsNullOrEmpty(forwarding.ForwardingEvent.MailboxSupplier) && forwarding.ForwardingEvent.MailboxSupplier.Equals("urn:altinn:organization:identifier-no:123456789"));
+                && !String.IsNullOrEmpty(forwarding.ForwardingEvent.MailboxSupplier) && forwarding.ForwardingEvent.MailboxSupplier.Equals("123456789"));
             Assert.Contains(content, forwarding => forwarding.Status.Contains("ElementForwarded") && forwarding.ForwardingEvent.ForwardedByUserId.Equals(123)
                 && forwarding.User != null && forwarding.User.PartyId == _delegatedUserPartyid && forwarding.User.Name.Equals(_delegatedUserName)
                 && forwarding.ForwardingEvent.ForwardedToUserId == 456

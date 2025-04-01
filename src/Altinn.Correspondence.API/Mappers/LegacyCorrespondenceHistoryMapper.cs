@@ -1,5 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application.GetCorrespondenceHistory;
+using Altinn.Correspondence.Common.Helpers;
 using System.Collections.Generic;
 
 namespace Altinn.Correspondence.Mappers;
@@ -8,7 +9,7 @@ internal static class LegacyCorrespondenceHistoryMapper
 {
     internal static List<LegacyCorrespondenceHistoryExt> MapToExternal(List<LegacyGetCorrespondenceHistoryResponse> historyResponses)
     {
-        List<LegacyCorrespondenceHistoryExt> legacyHistoriesExt = [];
+        List<LegacyCorrespondenceHistoryExt> legacyHistoriesExt = new();
         foreach (var historyResponse in historyResponses)
         {
             legacyHistoriesExt.Add(MapToExternal(historyResponse));
@@ -25,7 +26,7 @@ internal static class LegacyCorrespondenceHistoryMapper
             StatusText = historyResponse.StatusText,
             User = new LegacyUserExt
             {
-                PartyId = historyResponse.User.PartyId,                
+                PartyId = historyResponse.User.PartyId,
                 Name = historyResponse.User.Name
             },
             Notification = historyResponse.Notification != null ? new LegacyNotificationExt
@@ -41,7 +42,7 @@ internal static class LegacyCorrespondenceHistoryMapper
                 ForwardedToUserId = historyResponse.ForwardingEvent.ForwardedToUserId,
                 ForwardingText = historyResponse.ForwardingEvent.ForwardingText,
                 ForwardedToEmail = historyResponse.ForwardingEvent.ForwardedToEmail,
-                MailboxSupplier = historyResponse.ForwardingEvent.MailboxSupplier
+                MailboxSupplier = historyResponse.ForwardingEvent.MailboxSupplier?.WithoutPrefix()
             } : null
         };
         return legacyHistoryExt;
