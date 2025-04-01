@@ -184,7 +184,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         }
 
         [Fact]
-        public async Task LegacyGetCorrespondenceHistory_MigratedCorrespondence_WithForwardingActions()
+        public async Task LegacyGetCorrespondenceHistory_MigratedCorrespondence_WithForwardingEvents()
         {
             // Arrange
             var basicCorrespondence = new CorrespondenceBuilder()
@@ -297,18 +297,18 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Archived.ToString()));
 
             // Assert Forwarding Events appear in correct form
-            Assert.Contains(content, forwarding => forwarding.Status.Contains("ElementForwarded") && forwarding.ForwardingAction.ForwardedByUserId.Equals(123)
+            Assert.Contains(content, forwarding => forwarding.Status.Contains("ElementForwarded") && forwarding.ForwardingEvent.ForwardedByUserId.Equals(123)
                 && forwarding.User != null && forwarding.User.PartyId == _delegatedUserPartyid && forwarding.User.Name.Equals(_delegatedUserName)
-                && !String.IsNullOrEmpty(forwarding.ForwardingAction.ForwardedToEmail) && forwarding.ForwardingAction.ForwardedToEmail.Equals("user1@awesometestusers.com")
-                && !String.IsNullOrEmpty(forwarding.ForwardingAction.ForwardingText) && forwarding.ForwardingAction.ForwardingText.Equals("Keep this as a backup in my email."));
-            Assert.Contains(content, forwarding => forwarding.Status.Contains("ElementForwarded") && forwarding.ForwardingAction.ForwardedByUserId.Equals(123)
+                && !String.IsNullOrEmpty(forwarding.ForwardingEvent.ForwardedToEmail) && forwarding.ForwardingEvent.ForwardedToEmail.Equals("user1@awesometestusers.com")
+                && !String.IsNullOrEmpty(forwarding.ForwardingEvent.ForwardingText) && forwarding.ForwardingEvent.ForwardingText.Equals("Keep this as a backup in my email."));
+            Assert.Contains(content, forwarding => forwarding.Status.Contains("ElementForwarded") && forwarding.ForwardingEvent.ForwardedByUserId.Equals(123)
                 && forwarding.User != null && forwarding.User.PartyId == _delegatedUserPartyid && forwarding.User.Name.Equals(_delegatedUserName)
-                && !String.IsNullOrEmpty(forwarding.ForwardingAction.MailboxSupplier) && forwarding.ForwardingAction.MailboxSupplier.Equals("urn:altinn:organization:identifier-no:123456789"));
-            Assert.Contains(content, forwarding => forwarding.Status.Contains("ElementForwarded") && forwarding.ForwardingAction.ForwardedByUserId.Equals(123)
+                && !String.IsNullOrEmpty(forwarding.ForwardingEvent.MailboxSupplier) && forwarding.ForwardingEvent.MailboxSupplier.Equals("urn:altinn:organization:identifier-no:123456789"));
+            Assert.Contains(content, forwarding => forwarding.Status.Contains("ElementForwarded") && forwarding.ForwardingEvent.ForwardedByUserId.Equals(123)
                 && forwarding.User != null && forwarding.User.PartyId == _delegatedUserPartyid && forwarding.User.Name.Equals(_delegatedUserName)
-                && forwarding.ForwardingAction.ForwardedToUserId == 456
-                && !String.IsNullOrEmpty(forwarding.ForwardingAction.ForwardedToEmail) && forwarding.ForwardingAction.ForwardedToEmail.Equals("user2@awesometestusers.com")
-                && !String.IsNullOrEmpty(forwarding.ForwardingAction.ForwardingText) && forwarding.ForwardingAction.ForwardingText.Equals("User2, - look into this for me please. - User1."));
+                && forwarding.ForwardingEvent.ForwardedToUserId == 456
+                && !String.IsNullOrEmpty(forwarding.ForwardingEvent.ForwardedToEmail) && forwarding.ForwardingEvent.ForwardedToEmail.Equals("user2@awesometestusers.com")
+                && !String.IsNullOrEmpty(forwarding.ForwardingEvent.ForwardingText) && forwarding.ForwardingEvent.ForwardingText.Equals("User2, - look into this for me please. - User1."));
         }
     }
 }

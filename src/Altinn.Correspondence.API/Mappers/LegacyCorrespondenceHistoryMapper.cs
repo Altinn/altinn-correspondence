@@ -35,13 +35,13 @@ internal static class LegacyCorrespondenceHistoryMapper
                 OrganizationNumber = historyResponse.Notification.OrganizationNumber,
                 NationalIdentityNumber = historyResponse.Notification.NationalIdentityNumber
             } : null,
-            ForwardingAction = historyResponse.ForwardingAction != null ? new LegacyCorrespondenceForwardingEventExt
+            ForwardingEvent = historyResponse.ForwardingEvent != null ? new LegacyCorrespondenceForwardingEventExt
             {
-                ForwardedByUserId = historyResponse.ForwardingAction.ForwardedByUserId,
-                ForwardedToUserId = historyResponse.ForwardingAction.ForwardedToUserId,
-                ForwardingText = historyResponse.ForwardingAction.ForwardingText,
-                ForwardedToEmail = historyResponse.ForwardingAction.ForwardedToEmail,
-                MailboxSupplier = historyResponse.ForwardingAction.MailboxSupplier
+                ForwardedByUserId = historyResponse.ForwardingEvent.ForwardedByUserId,
+                ForwardedToUserId = historyResponse.ForwardingEvent.ForwardedToUserId,
+                ForwardingText = historyResponse.ForwardingEvent.ForwardingText,
+                ForwardedToEmail = historyResponse.ForwardingEvent.ForwardedToEmail,
+                MailboxSupplier = historyResponse.ForwardingEvent.MailboxSupplier
             } : null
         };
         return legacyHistoryExt;

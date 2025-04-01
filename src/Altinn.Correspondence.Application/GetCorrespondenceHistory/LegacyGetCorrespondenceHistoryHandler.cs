@@ -165,7 +165,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
             StatusChanged = forwardingEventEntity.ForwardedOnDate,
             StatusText = "[Correspondence] Forwarded",
             User =  new LegacyUser(),
-            ForwardingAction = new LegacyForwardingAction
+            ForwardingEvent = new LegacyForwardingEvent
             {
                 ForwardedByPartyUuid = forwardingEventEntity.ForwardedByPartyUuid,
                 ForwardedByUserId = forwardingEventEntity.ForwardedByUserId,

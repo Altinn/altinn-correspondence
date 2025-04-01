@@ -40,7 +40,7 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Forwarding details if the event was forwarding
         /// </summary>
-        [JsonPropertyName("forwardingAction")]
-        public LegacyCorrespondenceForwardingEventExt? ForwardingAction { get; set; }
+        [JsonPropertyName("forwardingEvent")]
+        public LegacyCorrespondenceForwardingEventExt? ForwardingEvent { get; set; }
     }
 }
