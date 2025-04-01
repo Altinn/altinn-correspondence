@@ -9,22 +9,17 @@ namespace Altinn.Correspondence.Application.Helpers
     public class HangfireScheduleHelper(IBackgroundJobClient backgroundJobClient, IHybridCacheWrapper hybridCacheWrapper, ILogger<HangfireScheduleHelper> logger)
     {
 
-        public void SchedulePublish(Guid correspondenceId, DateTimeOffset publishTime, CancellationToken cancellationToken)
-        {
-            backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondenceId, null, cancellationToken), GetActualPublishTime(publishTime));
-        }
-
         public async Task PrepareForPublish(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
         {
             var dialogJobId = await hybridCacheWrapper.GetAsync<string?>("dialogJobId_" + correspondence.Id);
             if (dialogJobId is null)
             {
                 logger.LogError("Could not find dialogJobId for correspondence {correspondenceId} in cache. More than 24 hours delayed?", correspondence.Id);
-                backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), GetActualPublishTime(publishTime));
+                backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), GetActualPublishTime(correspondence.RequestedPublishTime));
             }
             else
             {
-                backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), GetActualPublishTime(publishTime));
+                backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), GetActualPublishTime(correspondence.RequestedPublishTime));
             }
         }
 
