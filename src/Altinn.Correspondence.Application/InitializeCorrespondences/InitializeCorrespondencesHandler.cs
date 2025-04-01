@@ -294,6 +294,20 @@ public class InitializeCorrespondencesHandler(
                     }
                 }
             }
+            if (await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+            {
+                await correspondenceStatusRepository.AddCorrespondenceStatus(
+                    new CorrespondenceStatusEntity
+                    {
+                        CorrespondenceId = correspondence.Id,
+                        Status = CorrespondenceStatus.ReadyForPublish,
+                        StatusChanged = DateTime.UtcNow,
+                        StatusText = CorrespondenceStatus.ReadyForPublish.ToString(),
+                        PartyUuid = partyUuid
+                    },
+                    cancellationToken
+                );
+            }
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {
                 CorrespondenceId = correspondence.Id,
@@ -457,11 +471,6 @@ public class InitializeCorrespondencesHandler(
     {
         var dialogId = await dialogportenService.CreateCorrespondenceDialog(correspondenceId);
         await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
-    }
-
-    public void SchedulePublish(Guid correspondenceId, DateTimeOffset publishTime, CancellationToken cancellationToken)
-    {
-        backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondenceId, null, cancellationToken), publishTime);
     }
 
     internal class NotificationContent
