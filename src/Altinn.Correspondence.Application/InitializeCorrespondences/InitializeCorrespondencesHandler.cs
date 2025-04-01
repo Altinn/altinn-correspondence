@@ -238,7 +238,7 @@ public class InitializeCorrespondencesHandler(
                 }
                 else
                 {
-                    // Will be published by MalwarescanResultHandler
+                    // Will be used to ensure publish always occurs after dialog has been successfully created
                     await hybridCacheWrapper.SetAsync("dialogJobId_" + correspondence.Id, dialogJob, new HybridCacheEntryOptions
                     {
                         Expiration = TimeSpan.FromHours(24)
@@ -307,6 +307,7 @@ public class InitializeCorrespondencesHandler(
                     },
                     cancellationToken
                 );
+                await initializeCorrespondenceHelper.PrepareForPublish(correspondence, cancellationToken);
             }
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {
@@ -316,8 +317,7 @@ public class InitializeCorrespondencesHandler(
                 Notifications = notificationDetails
             });
         }
-        logger.LogInformation("Initialized {correspondenceCount} correspondences for {resourceId}", request.Recipients.Count, request.Correspondence.ResourceId);
-
+        // Her må vi schedule publish et sted
         return new InitializeCorrespondencesResponse()
         {
             Correspondences = initializedCorrespondences,

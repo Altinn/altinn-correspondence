@@ -1,7 +1,7 @@
-using System.Text.RegularExpressions;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Application.UploadAttachment;
+using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -9,10 +9,12 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Notifications.Core.Helpers;
+using Hangfire;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
+using System.Text.RegularExpressions;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
@@ -21,6 +23,9 @@ namespace Altinn.Correspondence.Application.Helpers
         IHostEnvironment hostEnvironment,
         AttachmentHelper attachmentHelper,
         MobileNumberHelper mobileNumberHelper,
+        IBackgroundJobClient backgroundJobClient,
+        ICorrespondenceStatusRepository correspondenceStatusRepository,
+        IHybridCacheWrapper hybridCacheWrapper,
         ILogger<InitializeCorrespondenceHelper> logger)
     {
         private static readonly Regex emailRegex = new Regex(@"((""[^\\""]+"")|(([a-zA-Z0-9!#$%&'*+\-=?\^_`{|}~])+(\.([a-zA-Z0-9!#$%&'*+\-=?\^_`{|}~])+)*))@((((([a-zA-Z0-9æøåÆØÅ]([a-zA-Z0-9\-æøåÆØÅ]{0,61})[a-zA-Z0-9æøåÆØÅ]\.)|[a-zA-Z0-9æøåÆØÅ]\.){1,9})([a-zA-Z]{2,14}))|((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})))");
@@ -457,6 +462,20 @@ namespace Altinn.Correspondence.Application.Helpers
                 logger.LogInformation($"'0192:' prefix detected for sender in initialization of attachment. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
             }
             return await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
+        }
+
+        public async Task PrepareForPublish(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
+        {
+            var dialogJobId = await hybridCacheWrapper.GetAsync<string?>("dialogJobId_" + correspondence.Id);
+            if (dialogJobId is null)
+            {
+                logger.LogError("Could not find dialogJobId for correspondence {correspondenceId} in cache. More than 24 hours delayed?", correspondence.Id);
+                backgroundJobClient.Enqueue<HangfireScheduleHelper>((hangfireScheduleHelper) => hangfireScheduleHelper.SchedulePublish(correspondence.Id, correspondence.RequestedPublishTime, cancellationToken));
+            }
+            else
+            {
+                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(dialogJobId, (hangfireScheduleHelper) => hangfireScheduleHelper.SchedulePublish(correspondence.Id, correspondence.RequestedPublishTime, cancellationToken), JobContinuationOptions.OnAnyFinishedState);
+            }
         }
     }
 }
