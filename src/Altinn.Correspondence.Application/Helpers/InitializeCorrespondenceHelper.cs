@@ -299,6 +299,16 @@ namespace Altinn.Correspondence.Application.Helpers
                     PartyUuid = partyUuid
                 });
             }
+            if (hostEnvironment.IsDevelopment() && currentStatus == CorrespondenceStatus.ReadyForPublish)
+            {
+                statuses.Add(new CorrespondenceStatusEntity
+                {
+                    Status = CorrespondenceStatus.Published,
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusText = currentStatus.ToString(),
+                    PartyUuid = partyUuid
+                });
+            }
             string sender = request.Correspondence.Sender;
             if (sender.StartsWith("0192:"))
             {
@@ -410,8 +420,6 @@ namespace Altinn.Correspondence.Application.Helpers
             var status = correspondence.Statuses.LastOrDefault()?.Status ?? CorrespondenceStatus.Initialized;
             if (correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.StatusHasBeen(AttachmentStatus.Published)))
             {
-                if (hostEnvironment.IsDevelopment() && correspondence.RequestedPublishTime < DateTimeOffset.UtcNow) status = CorrespondenceStatus.Published; // used to test on published correspondences in development
-                else 
                 status = CorrespondenceStatus.ReadyForPublish;
             }
             return status;
