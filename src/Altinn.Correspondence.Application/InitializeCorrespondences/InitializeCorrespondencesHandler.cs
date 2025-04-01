@@ -317,7 +317,6 @@ public class InitializeCorrespondencesHandler(
                 Notifications = notificationDetails
             });
         }
-        // Her må vi schedule publish et sted
         return new InitializeCorrespondencesResponse()
         {
             Correspondences = initializedCorrespondences,
