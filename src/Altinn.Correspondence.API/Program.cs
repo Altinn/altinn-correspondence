@@ -10,7 +10,6 @@ using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Azure.Identity;
 using Hangfire;
-using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -19,10 +18,10 @@ using Serilog;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Altinn.Correspondence.Integrations.Slack;
-using Microsoft.Extensions.Caching.Hybrid;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Integrations.Azure;
 using Altinn.Correspondence.Application.IpSecurityRestrictionsUpdater;
+using Serilog.Formatting.Json;
 
 BuildAndRun(args);
 
@@ -35,7 +34,8 @@ static void BuildAndRun(string[] args)
         .Enrich.FromLogContext()
         .Enrich.WithClientIp()
         .Enrich.With(new PropertyPropagationEnricher("correspondenceId", "instanceId", "resourceId", "partyId"))
-        .WriteTo.Console()
+        .Enrich.With(new ActivityEnricher())
+        .WriteTo.Console(new JsonFormatter(renderMessage: true))
         .WriteTo.ApplicationInsights(
             services.GetRequiredService<TelemetryConfiguration>(),
             TelemetryConverter.Traces));
