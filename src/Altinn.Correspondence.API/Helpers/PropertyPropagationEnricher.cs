@@ -31,6 +31,11 @@ public class PropertyPropagationEnricher : ILogEventEnricher
                 }
             }
         }
+        
+        if (logEvent.Properties.TryGetValue("correspondenceId", out var correspondenceIdValue))
+        {
+            LogContext.PushProperty("instanceId", correspondenceIdValue);
+        }
     }
 }
 
