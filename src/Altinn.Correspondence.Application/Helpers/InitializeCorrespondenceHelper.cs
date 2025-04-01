@@ -463,19 +463,5 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             return await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
         }
-
-        public async Task PrepareForPublish(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
-        {
-            var dialogJobId = await hybridCacheWrapper.GetAsync<string?>("dialogJobId_" + correspondence.Id);
-            if (dialogJobId is null)
-            {
-                logger.LogError("Could not find dialogJobId for correspondence {correspondenceId} in cache. More than 24 hours delayed?", correspondence.Id);
-                backgroundJobClient.Enqueue<HangfireScheduleHelper>((hangfireScheduleHelper) => hangfireScheduleHelper.SchedulePublish(correspondence.Id, correspondence.RequestedPublishTime, cancellationToken));
-            }
-            else
-            {
-                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(dialogJobId, (hangfireScheduleHelper) => hangfireScheduleHelper.SchedulePublish(correspondence.Id, correspondence.RequestedPublishTime, cancellationToken), JobContinuationOptions.OnAnyFinishedState);
-            }
-        }
     }
 }

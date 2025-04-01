@@ -234,7 +234,7 @@ public class InitializeCorrespondencesHandler(
             {
                 if (request.Correspondence.Content.Attachments.Count == 0) 
                 {
-                    backgroundJobClient.ContinueJobWith(dialogJob, () => hangfireScheduleHelper.SchedulePublish(correspondence.Id, correspondence.RequestedPublishTime, cancellationToken), JobContinuationOptions.OnlyOnSucceededState);
+                    await hangfireScheduleHelper.PrepareForPublish(correspondence, cancellationToken);
                 }
                 else
                 {
@@ -294,7 +294,7 @@ public class InitializeCorrespondencesHandler(
                     }
                 }
             }
-            if (await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+            if (request.Correspondence.Content.Attachments.Count > 0 && await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
             {
                 await correspondenceStatusRepository.AddCorrespondenceStatus(
                     new CorrespondenceStatusEntity
@@ -307,7 +307,7 @@ public class InitializeCorrespondencesHandler(
                     },
                     cancellationToken
                 );
-                await initializeCorrespondenceHelper.PrepareForPublish(correspondence, cancellationToken);
+                await hangfireScheduleHelper.PrepareForPublish(correspondence, cancellationToken);
             }
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {
