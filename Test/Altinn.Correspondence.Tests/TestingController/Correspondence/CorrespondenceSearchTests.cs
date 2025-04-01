@@ -69,7 +69,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadResourceB);
             Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
 
-            int status = (int)CorrespondenceStatusExt.ReadyForPublish;
+            int status = (int)CorrespondenceStatusExt.Published;
             var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceA}&status={status}&role={"recipientandsender"}");
             Assert.Equal(payloadResourceA.Recipients.Count, correspondenceList?.Ids.Count);
         }
