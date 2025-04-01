@@ -305,7 +305,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 {
                     Status = CorrespondenceStatus.Published,
                     StatusChanged = DateTimeOffset.UtcNow,
-                    StatusText = currentStatus.ToString(),
+                    StatusText = CorrespondenceStatus.Published.ToString(),
                     PartyUuid = partyUuid
                 });
             }
