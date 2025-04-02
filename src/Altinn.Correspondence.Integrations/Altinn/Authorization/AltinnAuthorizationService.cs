@@ -107,11 +107,6 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         {
             return true;
         }
-        var serviceOwnerId = await _resourceRepository.GetServiceOwnerOfResource(resourceId, cancellationToken);
-        if (string.IsNullOrWhiteSpace(serviceOwnerId))
-        {
-            return false;
-        }
 
         return true;
     }
