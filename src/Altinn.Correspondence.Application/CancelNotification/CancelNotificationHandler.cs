@@ -32,7 +32,7 @@ namespace Altinn.Correspondence.Application.CancelNotification
         {
             var retryAttempts = context.GetJobParameter<int>(RetryCountKey);
             logger.LogInformation("Cancelling notifications for purged correspondence {correspondenceId}. Retry attempt: {retryAttempts}", correspondenceId, retryAttempts);
-            var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, cancellationToken);
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, cancellationToken);
             var notificationEntities = correspondence?.Notifications ?? [];
             await CancelNotification(correspondenceId, notificationEntities, retryAttempts, cancellationToken);
         }
