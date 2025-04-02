@@ -14,6 +14,7 @@ public class ActivityEnricher : ILogEventEnricher
         {
             logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("OperationId", activity.Id));
             logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("TraceId", activity.TraceId.ToString()));
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("SpanId", activity.SpanId.ToString()));
         }
     }
-} 
+}
