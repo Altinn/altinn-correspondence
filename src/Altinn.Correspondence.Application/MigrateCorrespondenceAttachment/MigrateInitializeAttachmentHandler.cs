@@ -13,16 +13,10 @@ public class MigrateInitializeAttachmentHandler(
     IAttachmentRepository attachmentRepository,
     IAltinnRegisterService altinnRegisterService,
     IAttachmentStatusRepository attachmentStatusRepository,
-    IAltinnAuthorizationService altinnAuthorizationService,
     ILogger<MigrateInitializeAttachmentHandler> logger) : IHandler<InitializeAttachmentRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var hasAccess = await altinnAuthorizationService.CheckMigrationAccess(request.Attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
-        if (!hasAccess)
-        {
-            return AuthorizationErrors.NoAccessToResource;
-        }
         var party = await altinnRegisterService.LookUpPartyById(request.Attachment.Sender, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
