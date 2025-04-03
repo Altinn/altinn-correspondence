@@ -10,7 +10,6 @@ using System.Security.Claims;
 namespace Altinn.Correspondence.Application.UploadAttachment;
 
 public class MigrateUploadAttachmentHandler(
-    IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
     IAttachmentRepository attachmentRepository,
     AttachmentHelper attachmentHelper,
@@ -22,11 +21,6 @@ public class MigrateUploadAttachmentHandler(
         if (attachment == null)
         {
             return AttachmentErrors.AttachmentNotFound;
-        }
-        var hasAccess = await altinnAuthorizationService.CheckMigrationAccess(attachment.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Write }, cancellationToken);
-        if (!hasAccess)
-        {
-            return AuthorizationErrors.NoAccessToResource;
         }
         var maxUploadSize = long.Parse(int.MaxValue.ToString());
         if (request.ContentLength > maxUploadSize || request.ContentLength == 0)
