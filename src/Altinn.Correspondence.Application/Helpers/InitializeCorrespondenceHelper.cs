@@ -338,7 +338,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 ReplyOptions = request.Correspondence.ReplyOptions,
                 IgnoreReservation = request.Correspondence.IgnoreReservation,
                 Statuses = statuses,
-                Created = request.Correspondence.Created,
+                Created = DateTime.UtcNow,
                 ExternalReferences = request.Correspondence.ExternalReferences,
                 Published = currentStatus == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
                 IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
