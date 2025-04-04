@@ -8,6 +8,8 @@ using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
 using System.Net;
 using System.Net.Http.Json;
 using Altinn.Correspondence.Tests.Fixtures;
+using Altinn.Correspondence.Application.PublishCorrespondence;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -193,6 +195,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Act
             var responsePublished = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadPublished);
             Assert.True(responsePublished.IsSuccessStatusCode, await responsePublished.Content.ReadAsStringAsync());
+            var responsePublishedContent = await responsePublished.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
             var responseReadyForPublish = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadReadyForPublish);
             Assert.True(responseReadyForPublish.IsSuccessStatusCode, await responseReadyForPublish.Content.ReadAsStringAsync());
             var correspondenceList = await recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&role={"recipient"}");
