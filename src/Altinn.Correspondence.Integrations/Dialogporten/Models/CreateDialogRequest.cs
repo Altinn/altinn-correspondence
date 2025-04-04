@@ -35,10 +35,10 @@ public class CreateDialogRequest
     public DateTimeOffset? ExpiresAt { get; set; }
 
     [JsonPropertyName("createdAt")]
-    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? CreatedAt { get; set; }
 
     [JsonPropertyName("updatedAt")]
-    public DateTimeOffset UpdatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
 
     [JsonPropertyName("status")]
     public string Status { get; set; }
