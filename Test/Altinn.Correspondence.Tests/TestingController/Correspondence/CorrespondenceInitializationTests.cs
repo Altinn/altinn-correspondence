@@ -15,6 +15,12 @@ using System.Net.Http.Json;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
+using Microsoft.AspNetCore.Http;
+using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Persistence;
+using System.Text.Json.Nodes;
+using System.Text;
+using Altinn.Correspondence.Tests.TestingFeature;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -719,6 +725,82 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             hangfireBackgroundJobClient.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
                 It.IsAny<IState>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_MalwareScanArrivesBeforeCorrespondence_SchedulesPublishCorrespondenceJob()
+        {
+            // Arrange
+            var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            hangfireBackgroundJobClient
+            .Setup(x => x.Create(
+                It.IsAny<Job>(),
+                It.IsAny<IState>()))
+            .Returns<Job, IState>((job, state) =>
+            {
+                // Apply 5-second delay only for CreateDialogportenDialog to give us time to poll for attachments
+                if (job.Method.Name == "CreateDialogportenDialog")
+                {
+                    Task.Delay(5000).Wait();
+                    return "dialog-job-id-123";
+                }
+
+                // For other jobs, return immediately
+                return "123456";
+            });
+
+            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                services.AddSingleton(hangfireBackgroundJobClient.Object);
+            });
+            using var webhookClient = testFactory.CreateClient();
+            using var senderClient = testFactory.CreateSenderClient();
+            using var memoryStream = new MemoryStream();
+            memoryStream.Write("test"u8);
+            var filename = $"{Guid.NewGuid().ToString()}.txt";
+            var file = new FormFile(memoryStream, 0, memoryStream.Length, "file", filename);
+            var attachmentData = AttachmentHelper.GetAttachmentMetaData(filename);
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithAttachments([attachmentData])
+                .Build();
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
+            using var fileStream = file.OpenReadStream();
+            formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
+
+            // Act
+            var uploadCorrespondenceResponseTask = senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+            using var scope = testFactory.Services.CreateScope();
+            var applicationDbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            int retryAttempts = 30;
+            while (!applicationDbContext.Attachments.Any(attachment => attachment.FileName == filename))
+            {
+                if (retryAttempts == 0)
+                {
+                    break;
+                }
+                retryAttempts--;
+                await Task.Delay(100);
+            }
+            var attachment = applicationDbContext.Attachments.FirstOrDefault(attachment => attachment.FileName == filename);
+            Assert.NotNull(attachment); // Attachment not found in database after 30 retries (3 seconds) of polling
+            var jsonBody = MalwareScanResultControllerTests.GetMalwareScanResultJson("Data/MalwareScanResult_NoThreatFound.json", attachment.Id.ToString());
+            var result = await webhookClient.PostAsync("correspondence/api/v1/webhooks/malwarescanresults", new StringContent(jsonBody, Encoding.UTF8, "application/json"));
+            var uploadCorrespondenceResponse = await uploadCorrespondenceResponseTask;
+
+            // Assert
+            Assert.NotNull(uploadCorrespondenceResponse);
+            Assert.True(uploadCorrespondenceResponse.StatusCode == HttpStatusCode.OK, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
+            hangfireBackgroundJobClient.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
+                It.IsAny<IState>()), Times.Once);
+            hangfireBackgroundJobClient.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == "CreateDialogportenDialog"),
+                It.IsAny<IState>()), Times.Once);
+
+            // Tear down
+            memoryStream.Dispose();
         }
     }
 }
