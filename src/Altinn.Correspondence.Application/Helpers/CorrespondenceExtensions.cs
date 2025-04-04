@@ -35,7 +35,8 @@ public static class CorrespondenceStatusExtensions
         [
             CorrespondenceStatus.Initialized, CorrespondenceStatus.ReadyForPublish, CorrespondenceStatus.Failed,
             CorrespondenceStatus.Published, CorrespondenceStatus.Fetched, CorrespondenceStatus.Read, 
-            CorrespondenceStatus.Confirmed, CorrespondenceStatus.Replied, CorrespondenceStatus.Reserved
+            CorrespondenceStatus.Confirmed, CorrespondenceStatus.Replied, CorrespondenceStatus.Reserved,
+            CorrespondenceStatus.AttachmentsDownloaded
         ];
         return validStatuses.Contains(correspondenceStatus);
     }
@@ -45,7 +46,7 @@ public static class CorrespondenceStatusExtensions
         List<CorrespondenceStatus> validStatuses =
         [
             CorrespondenceStatus.Published, CorrespondenceStatus.Fetched, CorrespondenceStatus.Read, CorrespondenceStatus.Replied,
-            CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived, CorrespondenceStatus.Reserved
+            CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived, CorrespondenceStatus.Reserved, CorrespondenceStatus.AttachmentsDownloaded
         ];
         return validStatuses.Contains(correspondenceStatus);
     }

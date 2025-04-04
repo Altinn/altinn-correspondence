@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
@@ -317,6 +318,68 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task DownloadCorrespondenceAttachment_AddsAttachmentsDownloadedStatus()
+        {
+            // Arrange
+            var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments([attachmentId])
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var correspondenceId = response?.Correspondences.FirstOrDefault().CorrespondenceId;
+            
+            // Download the attachment
+            var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentId}/download");
+            Assert.Equal(HttpStatusCode.OK, downloadResponse.StatusCode);
+
+            // Get correspondence details to check status history
+            var detailsResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+            var details = await detailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+
+            // Assert
+            Assert.Contains(details.StatusHistory, s => 
+                s.Status == CorrespondenceStatusExt.AttachmentsDownloaded && 
+                s.StatusText.Contains(attachmentId.ToString()));
+        }
+
+        [Fact]
+        public async Task DownloadCorrespondenceAttachment_StatusHistoryShowsCorrectOrder()
+        {
+            // Arrange
+            var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments([attachmentId])
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var correspondenceId = response?.Correspondences.FirstOrDefault().CorrespondenceId;
+            
+            // Download the attachment
+            var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentId}/download");
+            Assert.Equal(HttpStatusCode.OK, downloadResponse.StatusCode);
+
+            // Get correspondence details to check status history
+            var detailsResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+            var details = await detailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+
+            // Assert
+            var statusHistory = details.StatusHistory.ToList();
+            var publishedStatus = statusHistory.FirstOrDefault(s => s.Status == CorrespondenceStatusExt.Published);
+            var downloadedStatus = statusHistory.FirstOrDefault(s => s.Status == CorrespondenceStatusExt.AttachmentsDownloaded);
+            
+            Assert.NotNull(publishedStatus);
+            Assert.NotNull(downloadedStatus);
+            Assert.True(downloadedStatus.StatusChanged > publishedStatus.StatusChanged);
         }
     }
 }

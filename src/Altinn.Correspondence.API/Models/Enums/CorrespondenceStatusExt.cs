@@ -62,6 +62,11 @@ namespace Altinn.Correspondence.API.Models.Enums
         /// <summary>
         /// Correspondence has failed during initialization or processing
         /// </summary>
-        Failed = 11
+        Failed = 11,
+
+        /// <summary>
+        /// Attachments have been downloaded by recipient
+        /// </summary>
+        AttachmentsDownloaded = 12
     }
 }
