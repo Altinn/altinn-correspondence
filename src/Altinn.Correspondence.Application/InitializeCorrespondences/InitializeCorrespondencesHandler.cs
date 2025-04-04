@@ -52,11 +52,11 @@ public class InitializeCorrespondencesHandler(
             }
         }
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
-        user,
-        request.Correspondence.ResourceId,
-        request.Correspondence.Sender.WithoutPrefix(),
-        null,
-        cancellationToken);
+            user,
+            request.Correspondence.ResourceId,
+            request.Correspondence.Sender.WithoutPrefix(),
+            null,
+            cancellationToken);
         if (!hasAccess)
         {
             return AuthorizationErrors.NoAccessToResource;
@@ -228,22 +228,13 @@ public class InitializeCorrespondencesHandler(
         {
             logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
-            if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized ||
-                correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish ||
-                correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Published)
+            await hybridCacheWrapper.SetAsync("dialogJobId_" + correspondence.Id, dialogJob, new HybridCacheEntryOptions
             {
-                if (request.Correspondence.Content.Attachments.Count == 0) 
-                {
-                    backgroundJobClient.ContinueJobWith(dialogJob, () => hangfireScheduleHelper.SchedulePublish(correspondence.Id, correspondence.RequestedPublishTime, cancellationToken), JobContinuationOptions.OnlyOnSucceededState);
-                }
-                else
-                {
-                    // Will be published by MalwarescanResultHandler
-                    await hybridCacheWrapper.SetAsync("dialogJobId_" + correspondence.Id, dialogJob, new HybridCacheEntryOptions
-                    {
-                        Expiration = TimeSpan.FromHours(24)
-                    }); 
-                }
+                Expiration = TimeSpan.FromHours(24)
+            });
+            if (request.Correspondence.Content.Attachments.Count == 0) 
+            {
+                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence, cancellationToken);
             }
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
             var notificationDetails = new List<InitializedCorrespondencesNotifications>();
@@ -294,6 +285,21 @@ public class InitializeCorrespondencesHandler(
                     }
                 }
             }
+            if (request.Correspondence.Content.Attachments.Count > 0 && await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+            {
+                await correspondenceStatusRepository.AddCorrespondenceStatus(
+                    new CorrespondenceStatusEntity
+                    {
+                        CorrespondenceId = correspondence.Id,
+                        Status = CorrespondenceStatus.ReadyForPublish,
+                        StatusChanged = DateTime.UtcNow,
+                        StatusText = CorrespondenceStatus.ReadyForPublish.ToString(),
+                        PartyUuid = partyUuid
+                    },
+                    cancellationToken
+                );
+                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence, cancellationToken);
+            }
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {
                 CorrespondenceId = correspondence.Id,
@@ -302,8 +308,6 @@ public class InitializeCorrespondencesHandler(
                 Notifications = notificationDetails
             });
         }
-        logger.LogInformation("Initialized {correspondenceCount} correspondences for {resourceId}", request.Recipients.Count, request.Correspondence.ResourceId);
-
         return new InitializeCorrespondencesResponse()
         {
             Correspondences = initializedCorrespondences,
@@ -457,11 +461,6 @@ public class InitializeCorrespondencesHandler(
     {
         var dialogId = await dialogportenService.CreateCorrespondenceDialog(correspondenceId);
         await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
-    }
-
-    public void SchedulePublish(Guid correspondenceId, DateTimeOffset publishTime, CancellationToken cancellationToken)
-    {
-        backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondenceId, null, cancellationToken), publishTime);
     }
 
     internal class NotificationContent
