@@ -683,7 +683,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
-
             hangfireBackgroundJobClient.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
                 It.IsAny<IState>()), Times.Once);
