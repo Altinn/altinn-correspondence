@@ -17,7 +17,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     {
         var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         if (correspondence is null)
         {
             logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
@@ -42,7 +42,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     {
         var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         if (correspondence is null)
         {
             logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
@@ -88,7 +88,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         );
         var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         if (correspondence is null)
         {
             logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
@@ -116,7 +116,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         );
         var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         if (correspondence is null)
         {
             logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
@@ -139,7 +139,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     {
         var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         if (correspondence is null)
         {
             logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
@@ -164,6 +164,39 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var cancellationToken = cancellationTokenSource.Token;
 
         var response = await _httpClient.DeleteAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        }
+    }
+
+    public async Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType, string actorName)
+    {
+        logger.LogInformation("CreateCorrespondencePurgedActivity by {actorType}: for correspondence {correspondenceId}",
+            Enum.GetName(typeof(DialogportenActorType), actorType),
+            correspondenceId
+        );
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, true, cancellationToken);
+        if (correspondence is null)
+        {
+            logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+        var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        if (dialogId is null)
+        {
+            throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
+        }
+
+        var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, Models.ActivityType.DialogDeleted);
+        if (actorType != DialogportenActorType.ServiceOwner)
+        {
+            createDialogActivityRequest.PerformedBy.ActorName = actorName;
+            createDialogActivityRequest.PerformedBy.ActorId = null;
+        }
+        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");

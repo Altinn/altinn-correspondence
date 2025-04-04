@@ -10,18 +10,11 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondence;
 
 public class MigrateCorrespondenceHandler(
     InitializeCorrespondenceHelper initializeCorrespondenceHelper,
-    IAltinnAuthorizationService altinnAuthorizationService,
     ICorrespondenceRepository correspondenceRepository,
     ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRequest, MigrateCorrespondenceResponse>
 {
     public async Task<OneOf<MigrateCorrespondenceResponse, Error>> Process(MigrateCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var hasAccess = await altinnAuthorizationService.CheckMigrationAccess(request.CorrespondenceEntity.ResourceId, [ResourceAccessLevel.Write], cancellationToken);
-        if (!hasAccess)
-        {
-            return AuthorizationErrors.NoAccessToResource;
-        }
-
         var contentError = MigrationValidateCorrespondenceContent(request.CorrespondenceEntity.Content);
         if (contentError != null)
         {

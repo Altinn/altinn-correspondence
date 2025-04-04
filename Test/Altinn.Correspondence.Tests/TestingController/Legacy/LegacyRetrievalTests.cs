@@ -13,6 +13,7 @@ using Altinn.Correspondence.Core.Services;
 using Moq;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Tests.Fixtures;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests.TestingController.Legacy
 {
@@ -180,6 +181,134 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
 
             // Assert
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task LegacyGetCorrespondenceHistory_MigratedCorrespondence_WithForwardingEvents()
+        {
+            // Arrange
+            var basicCorrespondence = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .Build();
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+            basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+            MigrateCorrespondenceExt migrateCorrespondenceExt = new()
+            {
+                CorrespondenceData = basicCorrespondence,
+                Altinn2CorrespondenceId = 12345,
+                EventHistory =
+                [
+                    new CorrespondenceStatusEventExt()
+                    {
+                        Status = CorrespondenceStatusExt.Initialized,
+                        StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
+                    }, new CorrespondenceStatusEventExt()
+                    {
+                        Status = CorrespondenceStatusExt.Published,
+                        StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
+                    },
+                    new CorrespondenceStatusEventExt()
+                    {
+                        Status = CorrespondenceStatusExt.Read,
+                        StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6))
+                    },
+                    new CorrespondenceStatusEventExt()
+                    {
+                        Status = CorrespondenceStatusExt.Archived,
+                        StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 7))
+                    }
+                ]
+            };
+
+            migrateCorrespondenceExt.NotificationHistory =
+            [
+                new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 1,
+                NotificationAddress = "testemail@altinn.no",
+                NotificationChannel = NotificationChannelExt.Email,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+            },
+            new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 2,
+                NotificationAddress = "testemail2@altinn.no",
+                NotificationChannel = NotificationChannelExt.Email,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+            }
+            ];
+
+            migrateCorrespondenceExt.ForwardingHistory = new List<MigrateCorrespondenceForwardingEventExt>
+            {
+                new MigrateCorrespondenceForwardingEventExt
+                {
+                   // Example of Copy sendt to own email address
+                   ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11 ,0 ,0)),
+                   ForwardedByPartyUuid = _delegatedUserPartyUuid,
+                   ForwardedByUserId = 123,
+                   ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                   ForwardedToEmail = "user1@awesometestusers.com",
+                   ForwardingText = "Keep this as a backup in my email."
+                },
+                new MigrateCorrespondenceForwardingEventExt
+                {
+                   // Example of Copy sendt to own digital mailbox
+                   ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11 ,5 ,0)),
+                   ForwardedByPartyUuid = _delegatedUserPartyUuid,
+                   ForwardedByUserId = 123,
+                   ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                   MailboxSupplier = "urn:altinn:organization:identifier-no:123456789"
+                },
+                new MigrateCorrespondenceForwardingEventExt
+                {
+                   // Example of Instance Delegation by User 1 to User2
+                   ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 12, 15 ,0)),
+                   ForwardedByPartyUuid = _delegatedUserPartyUuid,
+                   ForwardedByUserId = 123,
+                   ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                   ForwardedToUserId = 456,
+                   ForwardedToUserUuid = new Guid("1D5FD16E-2905-414A-AC97-844929975F17"),
+                   ForwardingText = "User2, - look into this for me please. - User1.",
+                   ForwardedToEmail = "user2@awesometestusers.com"
+                }
+            };
+            var migrationClient = _factory.CreateClientWithAddedClaims(("scope", "altinn:correspondence.migrate"));
+
+            var migrateCorrespondenceResponse = await migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+            Assert.True(migrateCorrespondenceResponse.IsSuccessStatusCode, await migrateCorrespondenceResponse.Content.ReadAsStringAsync());
+            var responseSerializerOptions = new JsonSerializerOptions(new JsonSerializerOptions()
+            {
+                PropertyNameCaseInsensitive = true
+            });
+            responseSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+            CorrespondenceMigrationStatusExt? migrateResult = await migrateCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(responseSerializerOptions);
+            string correspondenceId = migrateResult?.CorrespondenceId.ToString();
+
+            // Act
+            var response = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondenceId}/history");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            // Assert
+            var content = await response.Content.ReadFromJsonAsync<List<LegacyCorrespondenceHistoryExt>>(_serializerOptions);
+            Assert.NotNull(content);            
+            Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Published.ToString()));
+            Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Read.ToString()));
+            Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Archived.ToString()));
+
+            // Assert Forwarding Events appear in correct form
+            Assert.Contains(content, forwarding => forwarding.Status.Contains("ElementForwarded") && forwarding.ForwardingEvent.ForwardedByUserId.Equals(123)
+                && forwarding.User != null && forwarding.User.PartyId == _delegatedUserPartyid && forwarding.User.Name.Equals(_delegatedUserName)
+                && !String.IsNullOrEmpty(forwarding.ForwardingEvent.ForwardedToEmail) && forwarding.ForwardingEvent.ForwardedToEmail.Equals("user1@awesometestusers.com")
+                && !String.IsNullOrEmpty(forwarding.ForwardingEvent.ForwardingText) && forwarding.ForwardingEvent.ForwardingText.Equals("Keep this as a backup in my email."));
+            Assert.Contains(content, forwarding => forwarding.Status.Contains("ElementForwarded") && forwarding.ForwardingEvent.ForwardedByUserId.Equals(123)
+                && forwarding.User != null && forwarding.User.PartyId == _delegatedUserPartyid && forwarding.User.Name.Equals(_delegatedUserName)
+                && !String.IsNullOrEmpty(forwarding.ForwardingEvent.MailboxSupplier) && forwarding.ForwardingEvent.MailboxSupplier.Equals("123456789"));
+            Assert.Contains(content, forwarding => forwarding.Status.Contains("ElementForwarded") && forwarding.ForwardingEvent.ForwardedByUserId.Equals(123)
+                && forwarding.User != null && forwarding.User.PartyId == _delegatedUserPartyid && forwarding.User.Name.Equals(_delegatedUserName)
+                && forwarding.ForwardingEvent.ForwardedToUserId == 456
+                && !String.IsNullOrEmpty(forwarding.ForwardingEvent.ForwardedToEmail) && forwarding.ForwardingEvent.ForwardedToEmail.Equals("user2@awesometestusers.com")
+                && !String.IsNullOrEmpty(forwarding.ForwardingEvent.ForwardingText) && forwarding.ForwardingEvent.ForwardingText.Equals("User2, - look into this for me please. - User1."));
         }
     }
 }

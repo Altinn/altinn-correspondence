@@ -34,7 +34,7 @@ public class PublishCorrespondenceHandler(
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Publish correspondence {correspondenceId}", correspondenceId);
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         var party = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {

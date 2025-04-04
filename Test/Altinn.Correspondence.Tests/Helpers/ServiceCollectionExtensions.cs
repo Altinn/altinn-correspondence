@@ -79,16 +79,6 @@ public static class ServiceCollectionExtensions
             });
 
         altinnAuthorizationService
-            .Setup(x => x.CheckMigrationAccess(
-                It.IsAny<string>(),
-                It.IsAny<List<ResourceAccessLevel>>(),
-                It.IsAny<CancellationToken>()))
-            .Returns((string resourceId, IEnumerable<ResourceAccessLevel> levels, CancellationToken token) =>
-            {
-                return Task.FromResult(true);
-            });
-
-        altinnAuthorizationService
             .Setup(x => x.CheckUserAccessAndGetMinimumAuthLevel(
                 It.IsAny<ClaimsPrincipal>(),
                 It.IsAny<string>(),
