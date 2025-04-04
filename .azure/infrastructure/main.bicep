@@ -144,6 +144,7 @@ module reddis '../modules/redis/main.bicep' = {
     namePrefix: namePrefix
     keyVaultName: sourceKeyVaultName
     prodLikeEnvironment: prodLikeEnvironment
+    environment: environment
   }
 }
 
