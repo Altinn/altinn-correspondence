@@ -128,10 +128,27 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
 
+        // Get the dedicated fetch activity ID from external references
+        var dialogOpenedActivityId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogPortenOpenedActivityId)?.ReferenceValue;
+        if (dialogOpenedActivityId is null)
+        {
+            throw new ArgumentException($"No fetch activity ID found on correspondence with id {correspondenceId}");
+        }
+
         var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, Models.ActivityType.DialogOpened);
+        createDialogActivityRequest.Id = dialogOpenedActivityId; // Use the dedicated fetch activity ID
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
+            if (response.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                if (errorContent.Contains("already exists"))
+                {
+                    logger.LogInformation("Activity already exists for correspondence {correspondenceId} and dialog {dialogId}", correspondenceId, dialogId);
+                    return; // Skip if the activity already exists
+                }
+            }
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         }
     }
