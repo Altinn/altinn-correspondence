@@ -52,11 +52,11 @@ public class InitializeCorrespondencesHandler(
             }
         }
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
-        user,
-        request.Correspondence.ResourceId,
-        request.Correspondence.Sender.WithoutPrefix(),
-        null,
-        cancellationToken);
+            user,
+            request.Correspondence.ResourceId,
+            request.Correspondence.Sender.WithoutPrefix(),
+            null,
+            cancellationToken);
         if (!hasAccess)
         {
             return AuthorizationErrors.NoAccessToResource;
@@ -228,22 +228,13 @@ public class InitializeCorrespondencesHandler(
         {
             logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
-            if (correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Initialized ||
-                correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.ReadyForPublish ||
-                correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Published)
+            await hybridCacheWrapper.SetAsync("dialogJobId_" + correspondence.Id, dialogJob, new HybridCacheEntryOptions
             {
-                if (request.Correspondence.Content.Attachments.Count == 0) 
-                {
-                    await hangfireScheduleHelper.PrepareForPublish(correspondence, cancellationToken);
-                }
-                else
-                {
-                    // Will be used to ensure publish always occurs after dialog has been successfully created
-                    await hybridCacheWrapper.SetAsync("dialogJobId_" + correspondence.Id, dialogJob, new HybridCacheEntryOptions
-                    {
-                        Expiration = TimeSpan.FromHours(24)
-                    }); 
-                }
+                Expiration = TimeSpan.FromHours(24)
+            });
+            if (request.Correspondence.Content.Attachments.Count == 0) 
+            {
+                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence, cancellationToken);
             }
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
             var notificationDetails = new List<InitializedCorrespondencesNotifications>();
@@ -307,7 +298,7 @@ public class InitializeCorrespondencesHandler(
                     },
                     cancellationToken
                 );
-                await hangfireScheduleHelper.PrepareForPublish(correspondence, cancellationToken);
+                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence, cancellationToken);
             }
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {
