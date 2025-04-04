@@ -29,7 +29,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public async Task SchedulePublishAtPublishTime(Guid correspondenceId, CancellationToken cancellationToken)
         {
-            var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, cancellationToken);
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, false, cancellationToken);
             if (correspondence is null)
             {
                 throw new Exception($"Correspondence with id {correspondenceId} not found when scheduling publish");
