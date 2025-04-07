@@ -17,7 +17,7 @@ public class UpdateCorrespondenceStatusHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, false, cancellationToken);
         if (correspondence == null)
         {
             return CorrespondenceErrors.CorrespondenceNotFound;

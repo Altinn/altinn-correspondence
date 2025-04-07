@@ -101,21 +101,6 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         return minLevel;
     }
 
-    public async Task<bool> CheckMigrationAccess(string resourceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
-    {
-        if (_hostEnvironment.IsDevelopment())
-        {
-            return true;
-        }
-        var serviceOwnerId = await _resourceRepository.GetServiceOwnerOfResource(resourceId, cancellationToken);
-        if (string.IsNullOrWhiteSpace(serviceOwnerId))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
     private async Task<bool> CheckUserAccess(ClaimsPrincipal? user, string resourceId, string party, string? correspondenceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Checking access for organization {org} with resource {resourceId}", user?.GetCallerOrganizationId(), resourceId);

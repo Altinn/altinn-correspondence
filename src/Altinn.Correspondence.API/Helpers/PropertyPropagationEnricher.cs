@@ -26,6 +26,7 @@ public class PropertyPropagationEnricher : ILogEventEnricher
                     LogContext.PushProperty(propertyToken.PropertyName, value);
                     if (propertyToken.PropertyName == "correspondenceId") // For queries that work across multiple API's.
                     {
+                        logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("instanceId", value));
                         LogContext.PushProperty("instanceId", value);
                     }
                 }

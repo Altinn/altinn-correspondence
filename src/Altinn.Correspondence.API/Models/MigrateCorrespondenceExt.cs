@@ -16,6 +16,9 @@ namespace Altinn.Correspondence.API.Models
         [JsonPropertyName("notificationHistory")]
         public List<MigrateCorrespondenceNotificationExt> NotificationHistory { get; set; } = new List<MigrateCorrespondenceNotificationExt>();
 
+        [JsonPropertyName("forwardingHistory")]
+        public List<MigrateCorrespondenceForwardingEventExt> ForwardingHistory { get; set; } = new List<MigrateCorrespondenceForwardingEventExt>();
+
         [JsonPropertyName("IsMigrating")]
         public bool IsMigrating { get; set; }
     }

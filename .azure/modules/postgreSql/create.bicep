@@ -117,10 +117,20 @@ resource maintenanceWorkMemConfiguration 'Microsoft.DBforPostgreSQL/flexibleServ
   }
 }
 
+resource maxPreparedTransactions 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'max_prepared_transactions'
+  parent: postgres
+  dependsOn: [database, maintenanceWorkMemConfiguration]
+  properties: {
+    value: prodLikeEnvironment ? '3000' : '50'
+    source: 'user-override'
+  }
+}
+
 resource allowAzureAccess 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
   name: 'azure-access'
   parent: postgres
-  dependsOn: [database, maintenanceWorkMemConfiguration] // Needs to depend on database to avoid updating at the same time
+  dependsOn: [database, maxPreparedTransactions] // Needs to depend on database to avoid updating at the same time
   properties: {
     startIpAddress: '0.0.0.0'
     endIpAddress: '0.0.0.0'

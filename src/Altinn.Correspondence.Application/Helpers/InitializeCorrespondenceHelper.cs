@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Application.UploadAttachment;
@@ -13,6 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
+using System.Text.RegularExpressions;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
@@ -294,6 +294,18 @@ namespace Altinn.Correspondence.Application.Helpers
                     PartyUuid = partyUuid
                 });
             }
+            if (hostEnvironment.IsDevelopment()
+                && currentStatus == CorrespondenceStatus.ReadyForPublish
+                && request.Correspondence.RequestedPublishTime < DateTime.UtcNow)
+            {
+                statuses.Add(new CorrespondenceStatusEntity
+                {
+                    Status = CorrespondenceStatus.Published,
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusText = CorrespondenceStatus.Published.ToString(),
+                    PartyUuid = partyUuid
+                });
+            }
             string sender = request.Correspondence.Sender;
             if (sender.StartsWith("0192:"))
             {
@@ -338,7 +350,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 ReplyOptions = request.Correspondence.ReplyOptions,
                 IgnoreReservation = request.Correspondence.IgnoreReservation,
                 Statuses = statuses,
-                Created = request.Correspondence.Created,
+                Created = DateTime.UtcNow,
                 ExternalReferences = request.Correspondence.ExternalReferences,
                 Published = currentStatus == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
                 IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
@@ -405,8 +417,6 @@ namespace Altinn.Correspondence.Application.Helpers
             var status = correspondence.Statuses.LastOrDefault()?.Status ?? CorrespondenceStatus.Initialized;
             if (correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.StatusHasBeen(AttachmentStatus.Published)))
             {
-                if (hostEnvironment.IsDevelopment() && correspondence.RequestedPublishTime < DateTimeOffset.UtcNow) status = CorrespondenceStatus.Published; // used to test on published correspondences in development
-                else 
                 status = CorrespondenceStatus.ReadyForPublish;
             }
             return status;
