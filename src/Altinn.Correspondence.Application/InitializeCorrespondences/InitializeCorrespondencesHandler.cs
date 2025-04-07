@@ -287,17 +287,6 @@ public class InitializeCorrespondencesHandler(
             }
             if (request.Correspondence.Content.Attachments.Count > 0 && await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
             {
-                await correspondenceStatusRepository.AddCorrespondenceStatus(
-                    new CorrespondenceStatusEntity
-                    {
-                        CorrespondenceId = correspondence.Id,
-                        Status = CorrespondenceStatus.ReadyForPublish,
-                        StatusChanged = DateTime.UtcNow,
-                        StatusText = CorrespondenceStatus.ReadyForPublish.ToString(),
-                        PartyUuid = partyUuid
-                    },
-                    cancellationToken
-                );
                 await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence, cancellationToken);
             }
             initializedCorrespondences.Add(new InitializedCorrespondences()

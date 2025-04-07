@@ -63,6 +63,11 @@ namespace Altinn.Correspondence.Core.Models.Enums
         /// <summary>
         /// Message has Failed
         /// </summary>
-        Failed = 11
+        Failed = 11,
+
+        /// <summary>
+        /// Attachments have been downloaded by recipient
+        /// </summary>
+        AttachmentsDownloaded = 12
     }
 }

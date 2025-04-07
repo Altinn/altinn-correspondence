@@ -3,6 +3,7 @@ param location string
 param namePrefix string
 @secure()
 param keyVaultName string
+param environment string
 param prodLikeEnvironment bool
 
 resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
@@ -21,7 +22,7 @@ resource redis 'Microsoft.Cache/redis@2024-11-01' = {
   name: '${namePrefix}-redis'
   properties: {
     sku: {
-      capacity: prodLikeEnvironment ? 2 : 0
+      capacity: prodLikeEnvironment ? 2 : environment == 'staging' ? 1 : 0
       family: 'C'
       name: 'Standard'
     }
