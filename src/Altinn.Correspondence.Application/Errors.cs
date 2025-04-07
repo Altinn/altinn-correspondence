@@ -35,6 +35,7 @@ public static class CorrespondenceErrors
     public static Error OffsetAndLimitIsNegative = new Error(1028, "Limit and offset must be greater than or equal to 0", HttpStatusCode.BadRequest);
     public static Error RecipientLookupFailed(List<string> recipients) { return new Error(1029, $"Could not find partyId for the following recipients: {string.Join(", ", recipients)}", HttpStatusCode.NotFound); }
     public static Error RecipientReserved(string recipientId) => new Error(1030, $"Recipient {recipientId} has reserved themselves from public correspondences. Can be overridden using the 'IgnoreReservation' flag.", HttpStatusCode.UnprocessableEntity);
+    public static Error AttachmentNotAvailableForRecipient = new(1031, "Attachment is not available for recipient, latest status of correspondence is not in [Published, Fetched, Read, Replied, Confirmed, Archived, Reserved, AttachmentsDownloaded]", HttpStatusCode.BadRequest);
 }
 public static class AttachmentErrors
 {
