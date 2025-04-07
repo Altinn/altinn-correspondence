@@ -36,6 +36,7 @@ public class MigrationControllerTests
         var basicCorrespondence = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .Build();
+        Guid userPartyGuid = new Guid("11112222333344445555666677778888");
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
         basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
@@ -45,20 +46,23 @@ public class MigrationControllerTests
             Altinn2CorrespondenceId = 12345,
             EventHistory =
         [
-            new CorrespondenceStatusEventExt()
+            new MigrateCorrespondenceStatusEventExt()
             {
                 Status = CorrespondenceStatusExt.Initialized,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
+                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
+                EventUserPartyUuid = userPartyGuid
             },
-            new CorrespondenceStatusEventExt()
+            new MigrateCorrespondenceStatusEventExt()
             {
                 Status = CorrespondenceStatusExt.Read,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6))
+                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6)),
+                EventUserPartyUuid = userPartyGuid
             },
-            new CorrespondenceStatusEventExt()
+            new MigrateCorrespondenceStatusEventExt()
             {
                 Status = CorrespondenceStatusExt.Archived,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 7))
+                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 7)),
+                EventUserPartyUuid = userPartyGuid
             }
         ]
         };
@@ -134,16 +138,18 @@ public class MigrationControllerTests
         var basicCorrespondence = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .Build();
+        Guid userPartyGuid = new Guid("11112222333344445555666677778888");
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
             CorrespondenceData = basicCorrespondence,
             Altinn2CorrespondenceId = 12345,
             EventHistory =
         [
-            new CorrespondenceStatusEventExt()
+            new MigrateCorrespondenceStatusEventExt()
             {
                 Status = CorrespondenceStatusExt.Initialized,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
+                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
+                EventUserPartyUuid = userPartyGuid
             }
         ]
         };
@@ -196,13 +202,14 @@ public class MigrationControllerTests
 
         InitializeCorrespondencesExt initializeCorrespondencesExt = new CorrespondenceBuilder().CreateCorrespondence().WithExistingAttachments([attachmentId, attachmentId2]).Build();
         initializeCorrespondencesExt.Correspondence.SendersReference = "test 2024 10 09 09 45";
+        Guid userPartyGuid = new Guid("11112222333344445555666677778888");
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
             CorrespondenceData = initializeCorrespondencesExt,
             Altinn2CorrespondenceId = 12345,
-            EventHistory = [ new CorrespondenceStatusEventExt()
+            EventHistory = [ new MigrateCorrespondenceStatusEventExt()
             {
-                Status = CorrespondenceStatusExt.Initialized, StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
+                Status = CorrespondenceStatusExt.Initialized, StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)), EventUserPartyUuid=userPartyGuid
             }
             ]
         };
@@ -221,16 +228,18 @@ public class MigrationControllerTests
         var basicCorrespondence = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .Build();
+        Guid userPartyGuid = new Guid("11112222333344445555666677778888");
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
             CorrespondenceData = basicCorrespondence,
             Altinn2CorrespondenceId = 12345,
             EventHistory =
             [
-                new CorrespondenceStatusEventExt()
+                new MigrateCorrespondenceStatusEventExt()
                 {
                     Status = CorrespondenceStatusExt.Initialized,
-                    StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
+                    StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
+                    EventUserPartyUuid = userPartyGuid
                 }
             ],
             IsMigrating = true

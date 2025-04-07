@@ -17,7 +17,8 @@ internal static class MigrateCorrespondenceMapper
             { 
                 Status = (CorrespondenceStatus)eh.Status, 
                 StatusChanged = eh.StatusChanged, 
-                StatusText = eh.StatusText ?? eh.Status.ToString()
+                StatusText = eh.StatusText ?? eh.Status.ToString(),
+                PartyUuid = eh.EventUserPartyUuid
             })],
             Notifications = migrateCorrespondenceExt.NotificationHistory.Select(n => new CorrespondenceNotificationEntity() 
             {

@@ -11,7 +11,7 @@ namespace Altinn.Correspondence.API.Models
         public required int Altinn2CorrespondenceId { get; set; }
         
         [JsonPropertyName("eventHistory")]
-        public List<CorrespondenceStatusEventExt> EventHistory { get; set; } = new List<CorrespondenceStatusEventExt>();
+        public List<MigrateCorrespondenceStatusEventExt> EventHistory { get; set; } = new List<MigrateCorrespondenceStatusEventExt>();
 
         [JsonPropertyName("notificationHistory")]
         public List<MigrateCorrespondenceNotificationExt> NotificationHistory { get; set; } = new List<MigrateCorrespondenceNotificationExt>();
