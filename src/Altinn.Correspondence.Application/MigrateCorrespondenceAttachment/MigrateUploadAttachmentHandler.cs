@@ -31,14 +31,26 @@ public class MigrateUploadAttachmentHandler(
         {
             return AttachmentErrors.FileAlreadyUploaded;
         }
-        var party = await altinnRegisterService.LookUpPartyById(attachment.Sender, cancellationToken);
-        if (party?.PartyUuid is not Guid partyUuid)
+
+        Guid partyUuidForFurtherUse;
+        if(request.SenderPartyUuid.HasValue)
         {
-            return AuthorizationErrors.CouldNotFindPartyUuid;
+            partyUuidForFurtherUse = request.SenderPartyUuid.Value;
         }
+        else
+        {
+            var party = await altinnRegisterService.LookUpPartyById(attachment.Sender, cancellationToken);
+            if (party?.PartyUuid is not Guid partyUuid)
+            {
+                return AuthorizationErrors.CouldNotFindPartyUuid;
+            }
+            
+            partyUuidForFurtherUse = partyUuid;
+        }
+
         return await TransactionWithRetriesPolicy.Execute<MigrateUploadAttachmentResponse>(async (cancellationToken) =>
         {
-            var uploadResult = await attachmentHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuid, cancellationToken);
+            var uploadResult = await attachmentHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuidForFurtherUse, cancellationToken);
 
             if (uploadResult.IsT1)
             {

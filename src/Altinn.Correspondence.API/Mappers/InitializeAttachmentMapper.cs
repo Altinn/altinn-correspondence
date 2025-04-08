@@ -7,7 +7,7 @@ namespace Altinn.Correspondence.Mappers;
 
 internal static class InitializeAttachmentMapper
 {
-    internal static InitializeAttachmentRequest MapToRequest(InitializeAttachmentExt initializeAttachmentExt)
+    internal static InitializeAttachmentRequest MapToRequest(MigrateInitializeAttachmentExt initializeAttachmentExt)
     {
         var attachment = new AttachmentEntity
         {
@@ -19,6 +19,7 @@ internal static class InitializeAttachmentMapper
             Checksum = initializeAttachmentExt.Checksum,
             IsEncrypted = initializeAttachmentExt.IsEncrypted,
             Created = DateTimeOffset.UtcNow,
+            SenderPartyUuid = initializeAttachmentExt.SenderPartyUuid
         };
         return new InitializeAttachmentRequest()
         {

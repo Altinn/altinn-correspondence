@@ -32,6 +32,8 @@ namespace Altinn.Correspondence.Core.Models.Entities
         [RegularExpression($@"^(?:0192:|{UrnConstants.OrganizationNumberAttribute}):\d{{9}}$", ErrorMessage = "Organization numbers should be on the format countrycode:organizationnumber, for instance 0192:910753614")]
         public required string Sender { get; set; }
 
+        public Guid SenderPartyUuid { get; set; }
+
         public List<AttachmentStatusEntity> Statuses { get; set; } = new List<AttachmentStatusEntity>();
 
         public string? DataLocationUrl { get; set; }
