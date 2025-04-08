@@ -199,24 +199,28 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 Altinn2CorrespondenceId = 12345,
                 EventHistory =
                 [
-                    new CorrespondenceStatusEventExt()
+                    new MigrateCorrespondenceStatusEventExt()
                     {
                         Status = CorrespondenceStatusExt.Initialized,
-                        StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
-                    }, new CorrespondenceStatusEventExt()
+                        StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
+                        EventUserPartyUuid = Guid.NewGuid()
+                    }, new MigrateCorrespondenceStatusEventExt()
                     {
                         Status = CorrespondenceStatusExt.Published,
-                        StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
+                        StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
+                        EventUserPartyUuid = Guid.NewGuid()
                     },
-                    new CorrespondenceStatusEventExt()
+                    new MigrateCorrespondenceStatusEventExt()
                     {
                         Status = CorrespondenceStatusExt.Read,
-                        StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6))
+                        StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6)),
+                        EventUserPartyUuid = Guid.NewGuid()
                     },
-                    new CorrespondenceStatusEventExt()
+                    new MigrateCorrespondenceStatusEventExt()
                     {
                         Status = CorrespondenceStatusExt.Archived,
-                        StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 7))
+                        StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 7)),
+                        EventUserPartyUuid = Guid.NewGuid()
                     }
                 ]
             };
@@ -228,14 +232,16 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 Altinn2NotificationId = 1,
                 NotificationAddress = "testemail@altinn.no",
                 NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
             {
                 Altinn2NotificationId = 2,
                 NotificationAddress = "testemail2@altinn.no",
                 NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = true
             }
             ];
 

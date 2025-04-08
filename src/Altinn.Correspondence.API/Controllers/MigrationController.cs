@@ -67,7 +67,7 @@ namespace Altinn.Correspondence.API.Controllers
         )
         {
             _logger.LogInformation("{initializeAttachmentExt.SendersReference};Initializing attachment with sendersference", initializeAttachmentExt.SendersReference);
-            var commandRequest = InitializeAttachmentMapper.MapToRequest(initializeAttachmentExt);
+            var commandRequest = MigrateAttachmentMapper.MapToRequest(initializeAttachmentExt);
             var commandResult = await migrateInitializeAttachmentHandler.Process(commandRequest, HttpContext.User, cancellationToken);
 
             return commandResult.Match(

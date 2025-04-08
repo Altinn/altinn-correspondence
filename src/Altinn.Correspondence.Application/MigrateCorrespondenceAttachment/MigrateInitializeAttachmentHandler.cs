@@ -13,9 +13,9 @@ public class MigrateInitializeAttachmentHandler(
     IAttachmentRepository attachmentRepository,
     IAltinnRegisterService altinnRegisterService,
     IAttachmentStatusRepository attachmentStatusRepository,
-    ILogger<MigrateInitializeAttachmentHandler> logger) : IHandler<InitializeAttachmentRequest, Guid>
+    ILogger<MigrateInitializeAttachmentHandler> logger) : IHandler<MigrateAttachmentRequest, Guid>
 {
-    public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    public async Task<OneOf<Guid, Error>> Process(MigrateAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
@@ -26,7 +26,7 @@ public class MigrateInitializeAttachmentHandler(
                 StatusChanged = DateTimeOffset.UtcNow,
                 Status = AttachmentStatus.Initialized,
                 StatusText = AttachmentStatus.Initialized.ToString(),
-                PartyUuid = request.Attachment.SenderPartyUuid
+                PartyUuid = request.SenderPartyUuid
             }, cancellationToken);
             return attachment.Id;
         }, logger, cancellationToken);
