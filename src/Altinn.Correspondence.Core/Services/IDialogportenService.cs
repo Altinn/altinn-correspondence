@@ -4,7 +4,7 @@ namespace Altinn.Correspondence.Core.Services;
 
 public interface IDialogportenService
 {
-    Task<string> CreateCorrespondenceDialog(Guid correspondenceId);
+    Task<string> CreateCorrespondenceDialog(Guid correspondenceId, bool skipUnreadTrigger = false);
     Task PatchCorrespondenceDialogToConfirmed(Guid correspondenceId);
     Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, params string[] tokens);
     Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType);

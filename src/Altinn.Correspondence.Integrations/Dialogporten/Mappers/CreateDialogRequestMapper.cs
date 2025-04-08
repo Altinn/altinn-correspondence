@@ -7,7 +7,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
     internal static class CreateDialogRequestMapper
     {
-        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl)
+        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool skipUnreadTrigger = false)
         {
             var dialogId = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString(); // Dialogporten requires time-stamped GUIDs, not supported natively until .NET 9.0
             return new CreateDialogRequest
@@ -15,7 +15,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Id = dialogId,
                 ServiceResource = "urn:altinn:resource:" + correspondence.ResourceId,
                 Party = correspondence.GetRecipientUrn(),
-                CreatedAt = null,
+                CreatedAt = correspondence.Created,
                 UpdatedAt = null,
                 VisibleFrom = correspondence.RequestedPublishTime < DateTime.UtcNow.AddMinutes(1) ? DateTime.UtcNow.AddMinutes(1) : correspondence.RequestedPublishTime,
                 Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
@@ -23,6 +23,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 DueAt = correspondence.DueDateTime != default ? correspondence.DueDateTime : null,
                 Status = "New",
                 ExternalReference = correspondence.SendersReference,
+                SkipUnreadTrigger = skipUnreadTrigger,
                 Content = CreateCorrespondenceContent(correspondence, baseUrl),
                 SearchTags = GetSearchTagsForCorrespondence(correspondence),
                 ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),

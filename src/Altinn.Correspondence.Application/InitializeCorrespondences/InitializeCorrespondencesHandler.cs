@@ -227,7 +227,7 @@ public class InitializeCorrespondencesHandler(
         foreach (var correspondence in correspondences)
         {
             logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
-            var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
+            var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id, false));
             await hybridCacheWrapper.SetAsync("dialogJobId_" + correspondence.Id, dialogJob, new HybridCacheEntryOptions
             {
                 Expiration = TimeSpan.FromHours(24)
@@ -446,7 +446,7 @@ public class InitializeCorrespondencesHandler(
         return message.Replace("{textToken}", token + " ").Trim();
     }
 
-    public async Task CreateDialogportenDialog(Guid correspondenceId)
+    public async Task CreateDialogportenDialog(Guid correspondenceId, bool skipUnreadTrigger)
     {
         var dialogId = await dialogportenService.CreateCorrespondenceDialog(correspondenceId);
         await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);

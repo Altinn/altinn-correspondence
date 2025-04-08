@@ -48,7 +48,7 @@ public class DialogportenTests
         // Arrange
         var mockDialogportenService = new Mock<IDialogportenService>();
         mockDialogportenService
-            .Setup(x => x.CreateCorrespondenceDialog(It.IsAny<Guid>()))
+            .Setup(x => x.CreateCorrespondenceDialog(It.IsAny<Guid>(), It.IsAny<bool>()))
             .ReturnsAsync("mocked-dialog-id");
         var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
         hangfireBackgroundJobClient.Setup(x => x.Create(

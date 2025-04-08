@@ -23,7 +23,7 @@ public class CreateDialogRequest
     public string? ExtendedStatus { get; set; }
 
     [JsonPropertyName("externalReference")]
-    public string ExternalReference { get; set; }
+    public string? ExternalReference { get; set; }
 
     [JsonPropertyName("visibleFrom")]
     public DateTimeOffset? VisibleFrom { get; set; }
@@ -63,6 +63,9 @@ public class CreateDialogRequest
 
     [JsonPropertyName("activities")]
     public List<Activity> Activities { get; set; }
+
+    [JsonPropertyName("skipUnreadTrigger")]
+    public bool SkipUnreadTrigger { get; set; }
 }
 
 public class Activity

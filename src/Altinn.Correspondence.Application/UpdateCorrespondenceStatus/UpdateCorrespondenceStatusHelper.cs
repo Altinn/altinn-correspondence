@@ -9,9 +9,13 @@ using Hangfire;
 namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 public class UpdateCorrespondenceStatusHelper(
     IBackgroundJobClient backgroundJobClient,
-    ICorrespondenceStatusRepository correspondenceStatusRepository)
+    ICorrespondenceStatusRepository correspondenceStatusRepository,
+    ICorrespondenceRepository correspondenceRepository,
+    IDialogportenService dialogportenService)
 {
     private readonly IBackgroundJobClient _backgroundJobClient = backgroundJobClient;
+    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
+    private readonly IDialogportenService _dialogportenService = dialogportenService;
 
     /// <summary>
     /// Validates if the current status of the correspondence allows for status updates.
@@ -114,5 +118,21 @@ public class UpdateCorrespondenceStatusHelper(
             StatusText = status.ToString(),
             PartyUuid = partyUuid
         }, cancellationToken);
+    }
+
+    public async Task MarkDialogAsUnread(Guid correspondenceId, bool skipUnreadTrigger = false)
+    {
+        if (!skipUnreadTrigger)
+        {
+            var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, CancellationToken.None);
+            if (correspondence != null)
+            {
+                var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+                if (dialogId != null)
+                {
+                    await _dialogportenService.CreateCorrespondenceDialog(correspondenceId, false);
+                }
+            }
+        }
     }
 }
