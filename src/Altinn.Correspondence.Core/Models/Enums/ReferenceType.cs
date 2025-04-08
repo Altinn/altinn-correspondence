@@ -30,9 +30,5 @@ namespace Altinn.Correspondence.Core.Models.Enums
         /// </summary>
         DialogportenProcessId = 4,
 
-        /// <summary>
-        /// Specifies that the reference is a Dialogporten Fetch Activity ID
-        /// </summary>
-        DialogPortenOpenedActivityId = 5,
     }
 }

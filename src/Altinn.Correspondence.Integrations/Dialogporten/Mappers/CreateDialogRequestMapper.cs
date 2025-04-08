@@ -9,14 +9,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl)
         {
             var dialogId = Guid.CreateVersion7().ToString(); // Dialogporten requires time-stamped GUIDs
-            var fetchActivityId = Guid.CreateVersion7().ToString(); // Generate dedicated GUID for Fetch activity
-            
-            // Add the fetch activity ID to external references
-            correspondence.ExternalReferences.Add(new ExternalReferenceEntity
-            {
-                ReferenceType = ReferenceType.DialogPortenOpenedActivityId,
-                ReferenceValue = fetchActivityId
-            });
 
             return new CreateDialogRequest
             {
