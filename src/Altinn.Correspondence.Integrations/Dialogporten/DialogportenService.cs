@@ -39,6 +39,20 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         };
         await _idempotencyKeyRepository.CreateAsync(openIdempotencyKey, cancellationToken);
 
+        // Create idempotency key for confirm activity if confirmation is needed
+        if (correspondence.IsConfirmationNeeded)
+        {
+            var confirmActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
+            var confirmIdempotencyKey = new IdempotencyKeyEntity
+            {
+                Id = confirmActivityId,
+                CorrespondenceId = correspondence.Id,
+                AttachmentId = null, // No attachment for confirm activity
+                StatusAction = StatusAction.Confirm
+            };
+            await _idempotencyKeyRepository.CreateAsync(confirmIdempotencyKey, cancellationToken);
+        }
+
         // Create idempotency keys for each attachment's download activity
         var attachmentIdempotencyKeys = new List<IdempotencyKeyEntity>();
         foreach (var attachment in correspondence.Content?.Attachments ?? Enumerable.Empty<CorrespondenceAttachmentEntity>())
@@ -126,6 +140,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
+
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
@@ -133,6 +148,26 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
 
         var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, textType, Models.ActivityType.Information, tokens);
+
+        if (textType == DialogportenTextType.CorrespondenceConfirmed)
+        {
+            if (correspondence.Statuses.Count(s => s.Status == CorrespondenceStatus.Confirmed) >= 2)
+            {
+                logger.LogInformation("Correspondence with id {correspondenceId} already has a Confirmed status, skipping activity creation on Dialogporten", correspondenceId);
+                return;
+            }
+            // Get the pre-created idempotency key for confirm activity
+            var idempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
+                correspondenceId,
+                null, // No attachment for confirm activity
+                StatusAction.Confirm,
+                cancellationToken);
+
+            if (idempotencyKey != null)
+            {
+                createDialogActivityRequest.Id = idempotencyKey.Id.ToString(); // Use the pre-created activity ID
+            }
+        }
 
         // Only set activity ID for download events using the stored idempotency key
         if (textType == DialogportenTextType.DownloadStarted)
@@ -142,7 +177,13 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 logger.LogError("Invalid attachment ID token for download activity on correspondence {correspondenceId}", correspondenceId);
                 throw new ArgumentException("Invalid attachment ID token", nameof(tokens));
             }
-
+            
+            if (correspondence.Statuses.Count(s => s.Status == CorrespondenceStatus.AttachmentsDownloaded && s.StatusText.Contains(attachmentId.ToString())) >= 2)
+            {
+                logger.LogInformation("Correspondence with id {correspondenceId} already has an AttachmentsDownloaded status for attachment {attachmentId}, skipping activity creation on Dialogporten", correspondenceId, attachmentId);
+                return;
+            }
+            
             var idempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
                 correspondenceId,
                 attachmentId,
@@ -163,7 +204,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 var errorContent = await response.Content.ReadAsStringAsync();
                 if (errorContent.Contains("already exists"))
                 {
-                    logger.LogInformation("Activity already exists for correspondence {correspondenceId} and dialog {dialogId}", correspondenceId, dialogId);
+                    logger.LogWarning("Activity already exists for correspondence {correspondenceId} and dialog {dialogId}", correspondenceId, dialogId);
                     return; // Skip if the activity already exists
                 }
             }
@@ -185,6 +226,13 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
+
+        if (correspondence.Statuses.Count(s => s.Status == CorrespondenceStatus.Fetched) >= 2)
+        {
+            logger.LogInformation("Correspondence with id {correspondenceId} already has a Fetched status, skipping activity creation on Dialogporten", correspondenceId);
+            return;
+        }
+
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
@@ -213,7 +261,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 var errorContent = await response.Content.ReadAsStringAsync();
                 if (errorContent.Contains("already exists"))
                 {
-                    logger.LogInformation("Activity already exists for correspondence {correspondenceId} and dialog {dialogId}", correspondenceId, dialogId);
+                    logger.LogWarning("Activity already exists for correspondence {correspondenceId} and dialog {dialogId}", correspondenceId, dialogId);
                     return; // Skip if the activity already exists
                 }
             }
