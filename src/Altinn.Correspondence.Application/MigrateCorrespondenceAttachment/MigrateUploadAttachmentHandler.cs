@@ -1,8 +1,10 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.MigrateUploadAttachment;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -12,6 +14,7 @@ namespace Altinn.Correspondence.Application.UploadAttachment;
 public class MigrateUploadAttachmentHandler(
     IAltinnRegisterService altinnRegisterService,
     IAttachmentRepository attachmentRepository,
+    IAttachmentStatusRepository attachmentStatusRepository,
     AttachmentHelper attachmentHelper,
     ILogger<MigrateUploadAttachmentHandler> logger) : IHandler<UploadAttachmentRequest, MigrateUploadAttachmentResponse>
 {
@@ -61,6 +64,16 @@ public class MigrateUploadAttachmentHandler(
             {
                 return AttachmentErrors.UploadFailed;
             }
+
+            await attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity()
+                {
+                    Attachment = attachment,
+                    AttachmentId = request.AttachmentId,
+                    Status = AttachmentStatus.Published,
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusText = AttachmentStatus.Published.ToString(),
+                    PartyUuid = senderPartyUuid
+                }, cancellationToken);
 
             var attachmentStatus = savedAttachment.GetLatestStatus();
             return new MigrateUploadAttachmentResponse
