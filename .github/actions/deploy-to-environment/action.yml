@@ -92,7 +92,7 @@ runs:
       uses: actions/checkout@v4
 
     - name: Disable bicep from path
-      run: az config set bicep.use_binary_from_path=false"
+      run: az config set bicep.use_binary_from_path=false
       shell: bash
 
     - name: Update infrastructure
