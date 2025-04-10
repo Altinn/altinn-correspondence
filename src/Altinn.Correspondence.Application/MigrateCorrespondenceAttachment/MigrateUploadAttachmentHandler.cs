@@ -32,10 +32,10 @@ public class MigrateUploadAttachmentHandler(
             return AttachmentErrors.FileAlreadyUploaded;
         }
 
-        Guid partyUuidForFurtherUse;
+        Guid senderPartyUuid;
         if(request.SenderPartyUuid.HasValue)
         {
-            partyUuidForFurtherUse = request.SenderPartyUuid.Value;
+            senderPartyUuid = request.SenderPartyUuid.Value;
         }
         else
         {
@@ -45,12 +45,12 @@ public class MigrateUploadAttachmentHandler(
                 return AuthorizationErrors.CouldNotFindPartyUuid;
             }
             
-            partyUuidForFurtherUse = partyUuid;
+            senderPartyUuid = partyUuid;
         }
 
         return await TransactionWithRetriesPolicy.Execute<MigrateUploadAttachmentResponse>(async (cancellationToken) =>
         {
-            var uploadResult = await attachmentHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuidForFurtherUse, cancellationToken);
+            var uploadResult = await attachmentHelper.UploadAttachment(request.UploadStream, request.AttachmentId, senderPartyUuid, cancellationToken);
 
             if (uploadResult.IsT1)
             {

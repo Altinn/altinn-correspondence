@@ -42,6 +42,7 @@ public class MigrationControllerTests
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
+            Created = new DateTimeOffset(new DateTime(2024, 1, 5)),
             CorrespondenceData = basicCorrespondence,
             Altinn2CorrespondenceId = 12345,
             EventHistory =
@@ -151,6 +152,7 @@ public class MigrationControllerTests
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
+            Created = new DateTimeOffset(new DateTime(2024, 1, 5)),
             CorrespondenceData = basicCorrespondence,
             Altinn2CorrespondenceId = 12345,
             EventHistory =
@@ -293,6 +295,7 @@ public class MigrationControllerTests
         Guid userPartyGuid = new Guid("11112222333344445555666677778888");
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
+            Created = new DateTimeOffset(new DateTime(2024, 1, 5)),
             CorrespondenceData = basicCorrespondence,
             Altinn2CorrespondenceId = 12345,
             EventHistory =
@@ -328,6 +331,23 @@ public class MigrationControllerTests
     }
 
     [Fact]
+    public async Task InitializeMigrateAttachment_InitializeAndUpload_NewUploadEndpoint()
+    {
+        MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
+        
+        Guid senderPartyUuid = new Guid("11112222-1234-1234-1234-aaaabbbbcccc");
+        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/attachment", migrateAttachmentExt);
+        Assert.True(initializeResponse.IsSuccessStatusCode, await initializeResponse.Content.ReadAsStringAsync());
+        string attachmentIdstring = await initializeResponse.Content.ReadAsStringAsync();
+        Guid attachmentId = Guid.Parse(attachmentIdstring);
+        byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
+        MemoryStream memoryStream = new(file);
+        StreamContent content = new(memoryStream);
+        var uploadResponse = await _client.PostAsync($"correspondence/api/v1/migration/attachment/{senderPartyUuid}/{attachmentId}/upload", content);
+        Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
     public async Task InitializeMigrateCorrespondence_UploadBothAttachments_ThenInitializeCorrespondence()
     {
         MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
@@ -355,6 +375,7 @@ public class MigrationControllerTests
         Guid userPartyGuid = new Guid("11112222333344445555666677778888");
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
+            Created = new DateTimeOffset(new DateTime(2024, 1, 5)),
             CorrespondenceData = initializeCorrespondencesExt,
             Altinn2CorrespondenceId = 12345,
             EventHistory = [ new MigrateCorrespondenceStatusEventExt()
@@ -381,6 +402,7 @@ public class MigrationControllerTests
         Guid userPartyGuid = new Guid("11112222333344445555666677778888");
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
+            Created = new DateTimeOffset(new DateTime(2024, 1, 5)),
             CorrespondenceData = basicCorrespondence,
             Altinn2CorrespondenceId = 12345,
             EventHistory =

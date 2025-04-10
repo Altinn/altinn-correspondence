@@ -54,7 +54,7 @@ internal static class MigrateCorrespondenceMapper
             ReplyOptions = migrateCorrespondenceExt.CorrespondenceData.Correspondence.ReplyOptions != null ? CorrespondenceReplyOptionsMapper.MapListToEntities(migrateCorrespondenceExt.CorrespondenceData.Correspondence.ReplyOptions) : new List<CorrespondenceReplyOptionEntity>(),
             IgnoreReservation = migrateCorrespondenceExt.CorrespondenceData.Correspondence.IgnoreReservation,
             ExternalReferences = migrateCorrespondenceExt.CorrespondenceData.Correspondence.ExternalReferences != null ? ExternalReferenceMapper.MapListToEntities(migrateCorrespondenceExt.CorrespondenceData.Correspondence.ExternalReferences) : new List<ExternalReferenceEntity>(),
-            Created = migrateCorrespondenceExt.EventHistory.Where(eh => eh.Status == CorrespondenceStatusExt.Initialized).First().StatusChanged,
+            Created = migrateCorrespondenceExt.Created,
             Content = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content != null ? new CorrespondenceContentEntity
             {
                 Language = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content.Language,

@@ -21,5 +21,8 @@ namespace Altinn.Correspondence.API.Models
 
         [JsonPropertyName("IsMigrating")]
         public bool IsMigrating { get; set; }
+
+        [JsonPropertyName("created")]
+        public DateTimeOffset Created { get; set; }
     }
 }

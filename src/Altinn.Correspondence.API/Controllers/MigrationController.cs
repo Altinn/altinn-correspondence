@@ -113,7 +113,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("attachment/{senderPartyUuid}/{attachmentId}/upload")]
         [Consumes("application/octet-stream")]
         [Authorize(Policy = AuthorizationConstants.Migrate)]
-        public async Task<ActionResult<AttachmentOverviewExt>> UploadAttachmentData(
+        public async Task<ActionResult<AttachmentOverviewExt>> UploadAttachmentDataV2(
             Guid senderPartyUuid,
             Guid attachmentId,
             [FromServices] MigrateUploadAttachmentHandler migrateAttachmentHandler,
