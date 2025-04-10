@@ -7,5 +7,5 @@ public interface IIdempotencyKeyRepository
 {
     Task<IdempotencyKeyEntity?> GetByCorrespondenceAndAttachmentAndActionAsync(Guid correspondenceId, Guid? attachmentId, StatusAction action, CancellationToken cancellationToken);
     Task<IdempotencyKeyEntity> CreateAsync(IdempotencyKeyEntity idempotencyKey, CancellationToken cancellationToken);
-    Task CreateRangeAsync(IEnumerable<IdempotencyKeyEntity> idempotencyKeys, CancellationToken cancellationToken);
+    Task<IEnumerable<IdempotencyKeyEntity>> CreateRangeAsync(IEnumerable<IdempotencyKeyEntity> idempotencyKeys, CancellationToken cancellationToken);
 } 

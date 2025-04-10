@@ -14,7 +14,7 @@ public class IdempotencyKeyEntity
     public Guid CorrespondenceId { get; set; }
 
     [ForeignKey(nameof(CorrespondenceId))]
-    public CorrespondenceEntity? Correspondence { get; set; } = null!;
+    public CorrespondenceEntity Correspondence { get; set; } = null!;
 
     public Guid? AttachmentId { get; set; }
 
