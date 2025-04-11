@@ -13,15 +13,10 @@ public class MigrateInitializeAttachmentHandler(
     IAttachmentRepository attachmentRepository,
     IAltinnRegisterService altinnRegisterService,
     IAttachmentStatusRepository attachmentStatusRepository,
-    ILogger<MigrateInitializeAttachmentHandler> logger) : IHandler<InitializeAttachmentRequest, Guid>
+    ILogger<MigrateInitializeAttachmentHandler> logger) : IHandler<MigrateAttachmentRequest, Guid>
 {
-    public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    public async Task<OneOf<Guid, Error>> Process(MigrateAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var party = await altinnRegisterService.LookUpPartyById(request.Attachment.Sender, cancellationToken);
-        if (party?.PartyUuid is not Guid partyUuid)
-        {
-            return AuthorizationErrors.CouldNotFindPartyUuid;
-        }
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             var attachment = await attachmentRepository.InitializeAttachment(request.Attachment, cancellationToken);
@@ -31,7 +26,7 @@ public class MigrateInitializeAttachmentHandler(
                 StatusChanged = DateTimeOffset.UtcNow,
                 Status = AttachmentStatus.Initialized,
                 StatusText = AttachmentStatus.Initialized.ToString(),
-                PartyUuid = partyUuid
+                PartyUuid = request.SenderPartyUuid
             }, cancellationToken);
             return attachment.Id;
         }, logger, cancellationToken);

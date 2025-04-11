@@ -5,5 +5,6 @@
         public Guid AttachmentId { get; set; }
         public required Stream UploadStream { get; set; }
         public long ContentLength { get; set; }
+        public Guid? SenderPartyUuid { get; set; }
     }
 }
