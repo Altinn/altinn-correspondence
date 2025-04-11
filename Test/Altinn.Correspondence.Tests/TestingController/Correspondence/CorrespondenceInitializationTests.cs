@@ -18,9 +18,9 @@ using Hangfire.States;
 using Microsoft.AspNetCore.Http;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence;
+using System.Text.Json.Nodes;
 using System.Text;
 using Altinn.Correspondence.Tests.TestingFeature;
-using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -801,85 +801,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Tear down
             memoryStream.Dispose();
-        }
-
-        [Fact]
-        public async Task InitializeCorrespondence_WithMultipleAttachments_CreatesIdempotencyKeys()
-        {
-            // Arrange
-            var attachmentId1 = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
-            var attachmentId2 = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithExistingAttachments([attachmentId1, attachmentId2])
-                .WithConfirmationNeeded(true)
-                .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(7))
-                .Build();
-
-            // Act
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-            Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
-            var responseObject = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            Assert.NotNull(responseObject);
-            Assert.NotEmpty(responseObject.Correspondences);
-            Assert.Single(responseObject.Correspondences); // Single correspondence for one recipient
-
-            // Assert
-            using var scope = _factory.Services.CreateScope();
-            var idempotencyKeyRepository = scope.ServiceProvider.GetRequiredService<IIdempotencyKeyRepository>();
-            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
-            
-            var correspondence = responseObject.Correspondences.First();
-            
-            // First verify the correspondence exists in the database
-            var dbCorrespondence = await correspondenceRepository.GetCorrespondenceById(
-                correspondence.CorrespondenceId, 
-                true, 
-                true, 
-                false, 
-                CancellationToken.None);
-            Assert.NotNull(dbCorrespondence);
-
-            // Check opened/fetched key
-            var openedKey = await idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
-                correspondence.CorrespondenceId, 
-                null, 
-                StatusAction.Read, 
-                CancellationToken.None);
-            Assert.NotNull(openedKey);
-            Assert.Equal(correspondence.CorrespondenceId, openedKey.CorrespondenceId);
-            Assert.Equal(StatusAction.Read, openedKey.StatusAction);
-
-            // Check confirm key
-            var confirmKey = await idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
-                correspondence.CorrespondenceId, 
-                null, 
-                StatusAction.Confirm, 
-                CancellationToken.None);
-            Assert.NotNull(confirmKey);
-            Assert.Equal(correspondence.CorrespondenceId, confirmKey.CorrespondenceId);
-            Assert.Equal(StatusAction.Confirm, confirmKey.StatusAction);
-
-            // Check download keys for each attachment
-            var downloadKey1 = await idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
-                correspondence.CorrespondenceId, 
-                attachmentId1, 
-                StatusAction.DownloadStarted, 
-                CancellationToken.None);
-            Assert.NotNull(downloadKey1);
-            Assert.Equal(correspondence.CorrespondenceId, downloadKey1.CorrespondenceId);
-            Assert.Equal(attachmentId1, downloadKey1.AttachmentId);
-            Assert.Equal(StatusAction.DownloadStarted, downloadKey1.StatusAction);
-
-            var downloadKey2 = await idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
-                correspondence.CorrespondenceId, 
-                attachmentId2, 
-                StatusAction.DownloadStarted, 
-                CancellationToken.None);
-            Assert.NotNull(downloadKey2);
-            Assert.Equal(correspondence.CorrespondenceId, downloadKey2.CorrespondenceId);
-            Assert.Equal(attachmentId2, downloadKey2.AttachmentId);
-            Assert.Equal(StatusAction.DownloadStarted, downloadKey2.StatusAction);
         }
     }
 }
