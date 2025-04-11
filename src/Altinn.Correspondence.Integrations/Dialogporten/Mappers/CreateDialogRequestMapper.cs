@@ -1,7 +1,6 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
-using UUIDNext;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
@@ -9,7 +8,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
     {
         internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl)
         {
-            var dialogId = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString(); // Dialogporten requires time-stamped GUIDs, not supported natively until .NET 9.0
+            var dialogId = Guid.CreateVersion7().ToString(); // Dialogporten requires time-stamped GUIDs
+
             return new CreateDialogRequest
             {
                 Id = dialogId,

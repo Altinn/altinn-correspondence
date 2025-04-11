@@ -41,6 +41,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ExternalReferenceEntity> ExternalReferences { get; set; }
     public DbSet<NotificationTemplateEntity> NotificationTemplates { get; set; }
     public DbSet<LegacyPartyEntity> LegacyParties { get; set; }
+    public DbSet<IdempotencyKeyEntity> IdempotencyKeys { get; set; } = null!;
 
     private bool IsAccessTokenValid()
     {

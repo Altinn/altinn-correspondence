@@ -29,5 +29,6 @@ namespace Altinn.Correspondence.Core.Models.Enums
         /// Specifies that the reference is a Dialogporten Process ID
         /// </summary>
         DialogportenProcessId = 4,
+
     }
 }

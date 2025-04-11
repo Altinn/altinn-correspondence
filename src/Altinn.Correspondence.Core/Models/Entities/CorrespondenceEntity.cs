@@ -54,8 +54,9 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         public required List<CorrespondenceStatusEntity> Statuses { get; set; }
 
-        public List <CorrespondenceForwardingEventEntity>? ForwardingEvents { get; set; }
+        public List<CorrespondenceForwardingEventEntity>? ForwardingEvents { get; set; }
 
+        public List<IdempotencyKeyEntity> IdempotencyKeys { get; set; } = [];
 
         [Required]
         public required DateTimeOffset Created { get; set; }
