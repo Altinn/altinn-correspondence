@@ -35,7 +35,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             Id = openActivityId,
             CorrespondenceId = correspondence.Id,
             AttachmentId = null, // No attachment for opened activity
-            StatusAction = StatusAction.Read
+            StatusAction = StatusAction.Fetched
         };
         await _idempotencyKeyRepository.CreateAsync(openIdempotencyKey, cancellationToken);
 
@@ -48,7 +48,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 Id = confirmActivityId,
                 CorrespondenceId = correspondence.Id,
                 AttachmentId = null, // No attachment for confirm activity
-                StatusAction = StatusAction.Confirm
+                StatusAction = StatusAction.Confirmed
             };
             await _idempotencyKeyRepository.CreateAsync(confirmIdempotencyKey, cancellationToken);
         }
@@ -63,7 +63,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 Id = downloadActivityId,
                 CorrespondenceId = correspondence.Id,
                 AttachmentId = attachment.AttachmentId,
-                StatusAction = StatusAction.DownloadStarted
+                StatusAction = StatusAction.AttachmentDownloaded
             };
             attachmentIdempotencyKeys.Add(downloadIdempotencyKey);
         }
@@ -160,7 +160,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             var idempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
                 correspondenceId,
                 null, // No attachment for confirm activity
-                StatusAction.Confirm,
+                StatusAction.Confirmed,
                 cancellationToken);
 
             if (idempotencyKey != null)
@@ -187,7 +187,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             var idempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
                 correspondenceId,
                 attachmentId,
-                StatusAction.DownloadStarted,
+                StatusAction.AttachmentDownloaded,
                 cancellationToken);
 
             if (idempotencyKey != null)
@@ -243,7 +243,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var idempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
             correspondenceId,
             null, // No attachment for opened activity
-            StatusAction.Read,
+            StatusAction.Fetched,
             cancellationToken);
 
         if (idempotencyKey == null)

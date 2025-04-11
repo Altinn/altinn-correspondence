@@ -59,7 +59,7 @@ public class DownloadCorrespondenceAttachmentHandler(
         var existingKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
             request.CorrespondenceId, 
             request.AttachmentId, 
-            StatusAction.DownloadStarted, 
+            StatusAction.AttachmentDownloaded, 
             cancellationToken);
 
         string activityId;
@@ -77,7 +77,7 @@ public class DownloadCorrespondenceAttachmentHandler(
                 Id = Guid.Parse(activityId),
                 CorrespondenceId = request.CorrespondenceId,
                 AttachmentId = request.AttachmentId,
-                StatusAction = StatusAction.DownloadStarted
+                StatusAction = StatusAction.AttachmentDownloaded
             };
             await _idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
         }
