@@ -12,7 +12,6 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
 using Microsoft.Extensions.Caching.Hybrid;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
@@ -23,17 +22,12 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 public class InitializeCorrespondencesHandler(
     InitializeCorrespondenceHelper initializeCorrespondenceHelper,
     IAltinnAuthorizationService altinnAuthorizationService,
-    IAltinnNotificationService altinnNotificationService,
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
-    ICorrespondenceNotificationRepository correspondenceNotificationRepository,
-    INotificationTemplateRepository notificationTemplateRepository,
-    ICorrespondenceStatusRepository correspondenceStatusRepository,
     IResourceRegistryService resourceRegistryService,
     IBackgroundJobClient backgroundJobClient,
     IDialogportenService dialogportenService,
     IContactReservationRegistryService contactReservationRegistryService,
-    IHostEnvironment hostEnvironment,
     IHybridCacheWrapper hybridCacheWrapper,
     HangfireScheduleHelper hangfireScheduleHelper,
     IOptions<GeneralSettings> generalSettings,
