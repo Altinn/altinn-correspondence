@@ -1,6 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
-using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -10,56 +9,47 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
-using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Security.Claims;
 using System.Text.Json;
 
 namespace Altinn.Correspondence.Application.CreateNotification;
 
 public class CreateNotificationHandler(
-    InitializeCorrespondenceHelper initializeCorrespondenceHelper,
-    IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnNotificationService altinnNotificationService,
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     INotificationTemplateRepository notificationTemplateRepository,
-    ICorrespondenceStatusRepository correspondenceStatusRepository,
-    IResourceRegistryService resourceRegistryService,
     IBackgroundJobClient backgroundJobClient,
-    IDialogportenService dialogportenService,
-    IContactReservationRegistryService contactReservationRegistryService,
     IHostEnvironment hostEnvironment,
-    IHybridCacheWrapper hybridCacheWrapper,
     HangfireScheduleHelper hangfireScheduleHelper,
     IOptions<GeneralSettings> generalSettings,
     ILogger<CreateNotificationHandler> logger)
 {
     private readonly GeneralSettings _generalSettings = generalSettings.Value;
 
-    public async Task Process(CreateNotificationRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    public async Task Process(NotificationRequest request, Guid correspondenceId, CancellationToken cancellationToken)
     {
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, false, false, false, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, cancellationToken);
         
         try
         {
             // Get notification templates
             var templates = await notificationTemplateRepository.GetNotificationTemplates(
-                request.NotificationRequest.NotificationTemplate, 
+                request.NotificationTemplate, 
                 cancellationToken, 
                 correspondence.Content?.Language);
 
             if (templates.Count == 0)
             {
-                throw new Exception($"No notification templates found for template {request.NotificationRequest.NotificationTemplate}");
+                throw new Exception($"No notification templates found for template {request.NotificationTemplate}");
             }
 
             // Get notification content
             var notificationContents = await GetNotificationContent(
-                request.NotificationRequest, 
+                request, 
                 templates, 
                 correspondence, 
                 cancellationToken, 
@@ -67,7 +57,7 @@ public class CreateNotificationHandler(
 
             // Create notifications
             var notificationRequests = await CreateNotificationRequests(
-                request.NotificationRequest, 
+                request, 
                 correspondence, 
                 notificationContents, 
                 cancellationToken);
@@ -84,8 +74,8 @@ public class CreateNotificationHandler(
                     var entity = new CorrespondenceNotificationEntity()
                     {
                         Created = DateTimeOffset.UtcNow,
-                        NotificationChannel = request.NotificationRequest.NotificationChannel,
-                        NotificationTemplate = request.NotificationRequest.NotificationTemplate,
+                        NotificationChannel = request.NotificationChannel,
+                        NotificationTemplate = request.NotificationTemplate,
                         CorrespondenceId = correspondence.Id,
                         NotificationOrderId = notificationResponse.OrderId,
                         RequestedSendTime = notificationRequest.RequestedSendTime,
@@ -103,7 +93,7 @@ public class CreateNotificationHandler(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to create notifications for correspondence {CorrespondenceId}", request.CorrespondenceId);
+            logger.LogError(ex, "Failed to create notifications for correspondence {CorrespondenceId}", correspondenceId);
             throw;
         }
     }

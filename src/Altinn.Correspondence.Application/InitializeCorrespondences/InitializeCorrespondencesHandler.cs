@@ -6,7 +6,6 @@ using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -17,10 +16,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
-using System.Diagnostics;
 using System.Security.Claims;
-using System.Text.Json;
-using static Altinn.Correspondence.Application.CreateNotification.CreateNotificationHandler;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
@@ -244,13 +240,8 @@ public class InitializeCorrespondencesHandler(
 
                 if (request.Notification != null)
                 {
-                    var createNotificationRequest = new CreateNotificationRequest()
-                    {
-                        CorrespondenceId = correspondence.Id,
-                        NotificationRequest = request.Notification,
-                    };
                     // Schedule notification creation as a background job
-                    var notificationJob = backgroundJobClient.Enqueue<CreateNotificationHandler>((handler) => handler.Process(createNotificationRequest, null, cancellationToken));
+                    var notificationJob = backgroundJobClient.Enqueue<CreateNotificationHandler>((handler) => handler.Process(request.Notification, correspondence.Id, cancellationToken));
 
                 }
             }
