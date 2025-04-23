@@ -36,7 +36,9 @@ public static class CorrespondenceErrors
     public static Error RecipientLookupFailed(List<string> recipients) { return new Error(1029, $"Could not find partyId for the following recipients: {string.Join(", ", recipients)}", HttpStatusCode.NotFound); }
     public static Error RecipientReserved(string recipientId) => new Error(1030, $"Recipient {recipientId} has reserved themselves from public correspondences. Can be overridden using the 'IgnoreReservation' flag.", HttpStatusCode.UnprocessableEntity);
     public static Error AttachmentNotAvailableForRecipient = new(1031, "Attachment is not available for recipient, latest status of correspondence is not in [Published, Fetched, Read, Replied, Confirmed, Archived, Reserved, AttachmentsDownloaded]", HttpStatusCode.BadRequest);
+    public static Error ContactReservationRegistryFailed = new Error(1032, "Contact reservation registry lookup failed", HttpStatusCode.BadGateway);
 }
+
 public static class AttachmentErrors
 {
     public static Error AttachmentNotFound = new Error(2001, "The requested attachment was not found", HttpStatusCode.NotFound);
