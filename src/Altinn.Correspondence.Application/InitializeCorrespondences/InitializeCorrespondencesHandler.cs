@@ -24,6 +24,7 @@ public class InitializeCorrespondencesHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
+    INotificationTemplateRepository notificationTemplateRepository,
     IResourceRegistryService resourceRegistryService,
     IBackgroundJobClient backgroundJobClient,
     IDialogportenService dialogportenService,
@@ -134,6 +135,11 @@ public class InitializeCorrespondencesHandler(
         // Validate notification content if notification is provided
         if (request.Notification != null)
         {
+            var templates = await notificationTemplateRepository.GetNotificationTemplates(request.Notification.NotificationTemplate, cancellationToken, request.Correspondence.Content?.Language);
+            if (templates.Count == 0)
+            {
+                return NotificationErrors.TemplateNotFound;
+            }
             var notificationError = initializeCorrespondenceHelper.ValidateNotification(request.Notification, request.Recipients);
             if (notificationError != null)
             {
