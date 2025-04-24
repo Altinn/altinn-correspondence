@@ -235,8 +235,13 @@ public class InitializeCorrespondencesHandler(
                 if (request.Notification != null)
                 {
                     // Schedule notification creation as a background job
-                    var notificationJob = backgroundJobClient.Enqueue<CreateNotificationHandler>((handler) => handler.Process(request.Notification, correspondence.Id, cancellationToken));
-
+                    var notificationJob = backgroundJobClient.Enqueue<CreateNotificationHandler>((handler) => handler.Process(new CreateNotificationRequest 
+                    { 
+                        NotificationRequest = request.Notification, 
+                        CorrespondenceId = correspondence.Id,
+                        CorrespondenceContent = correspondence.Content,
+                        Correspondence = correspondence
+                    }, cancellationToken));
                 }
             }
             if (request.Correspondence.Content.Attachments.Count > 0 && await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))

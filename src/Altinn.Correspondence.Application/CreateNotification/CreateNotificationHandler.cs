@@ -30,34 +30,34 @@ public class CreateNotificationHandler(
 {
     private readonly GeneralSettings _generalSettings = generalSettings.Value;
 
-    public async Task Process(NotificationRequest request, Guid correspondenceId, CancellationToken cancellationToken)
+    public async Task Process(CreateNotificationRequest request, CancellationToken cancellationToken)
     {
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, false, false, false, cancellationToken);
         
         try
         {
             // Get notification templates
             var templates = await notificationTemplateRepository.GetNotificationTemplates(
-                request.NotificationTemplate, 
+                request.NotificationRequest.NotificationTemplate, 
                 cancellationToken, 
-                correspondence.Content?.Language);
+                request.CorrespondenceContent?.Language);
 
             if (templates.Count == 0)
             {
-                throw new Exception($"No notification templates found for template {request.NotificationTemplate}");
+                throw new Exception($"No notification templates found for template {request.NotificationRequest.NotificationTemplate}");
             }
 
             // Get notification content
             var notificationContents = await GetNotificationContent(
-                request, 
+                request.NotificationRequest, 
                 templates, 
-                correspondence, 
+                request.Correspondence, 
                 cancellationToken, 
-                correspondence.Content?.Language);
+                request.CorrespondenceContent?.Language);
 
             // Create notifications
             var notificationRequests = await CreateNotificationRequests(
-                request, 
+                request.NotificationRequest, 
                 correspondence, 
                 notificationContents, 
                 cancellationToken);
@@ -74,8 +74,8 @@ public class CreateNotificationHandler(
                     var entity = new CorrespondenceNotificationEntity()
                     {
                         Created = DateTimeOffset.UtcNow,
-                        NotificationChannel = request.NotificationChannel,
-                        NotificationTemplate = request.NotificationTemplate,
+                        NotificationChannel = request.NotificationRequest.NotificationChannel,
+                        NotificationTemplate = request.NotificationRequest.NotificationTemplate,
                         CorrespondenceId = correspondence.Id,
                         NotificationOrderId = notificationResponse.OrderId,
                         RequestedSendTime = notificationRequest.RequestedSendTime,
@@ -93,7 +93,7 @@ public class CreateNotificationHandler(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to create notifications for correspondence {CorrespondenceId}", correspondenceId);
+            logger.LogError(ex, "Failed to create notifications for correspondence {CorrespondenceId}", request.CorrespondenceId);
             throw;
         }
     }
