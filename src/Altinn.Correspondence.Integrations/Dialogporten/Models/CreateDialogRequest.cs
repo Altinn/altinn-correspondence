@@ -106,6 +106,8 @@ public class ApiAction
 
 public class Attachment
 {
+    [JsonPropertyName("id")]
+    public string Id { get; set; }
     [JsonPropertyName("displayName")]
     public List<DisplayName> DisplayName { get; set; }
 
