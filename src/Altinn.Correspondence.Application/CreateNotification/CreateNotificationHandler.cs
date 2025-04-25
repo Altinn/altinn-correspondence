@@ -32,15 +32,14 @@ public class CreateNotificationHandler(
 
     public async Task Process(CreateNotificationRequest request, CancellationToken cancellationToken)
     {
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, false, false, false, cancellationToken);
-        
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, false, true, false, cancellationToken) ?? throw new Exception($"Correspondence with id {request.CorrespondenceId} not found when creating notification");
         try
         {
             // Get notification templates
             var templates = await notificationTemplateRepository.GetNotificationTemplates(
                 request.NotificationRequest.NotificationTemplate, 
                 cancellationToken, 
-                request.CorrespondenceContent?.Language);
+                request.Language);
 
             if (templates.Count == 0)
             {
@@ -51,9 +50,9 @@ public class CreateNotificationHandler(
             var notificationContents = await GetNotificationContent(
                 request.NotificationRequest, 
                 templates, 
-                request.RequestCorrespondence, 
+                correspondence,
                 cancellationToken, 
-                request.CorrespondenceContent?.Language);
+                request.Language);
 
             // Create notifications
             var notificationRequests = await CreateNotificationRequests(

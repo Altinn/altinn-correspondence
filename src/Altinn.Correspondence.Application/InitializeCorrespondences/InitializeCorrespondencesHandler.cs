@@ -245,8 +245,8 @@ public class InitializeCorrespondencesHandler(
                     { 
                         NotificationRequest = request.Notification, 
                         CorrespondenceId = correspondence.Id,
-                        CorrespondenceContent = correspondence.Content,
-                        RequestCorrespondence = correspondence
+                        Language = correspondence.Content != null ? correspondence.Content.Language : null,
+                        // RequestCorrespondence = correspondence
                     }, cancellationToken));
                 }
             }
