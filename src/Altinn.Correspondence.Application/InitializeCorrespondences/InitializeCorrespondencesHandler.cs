@@ -219,7 +219,7 @@ public class InitializeCorrespondencesHandler(
         {
             logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
-            await hybridCacheWrapper.SetAsync($"dialogJobId:{correspondence.Id}", dialogJob, new HybridCacheEntryOptions
+            await hybridCacheWrapper.SetAsync($"dialogJobId_{correspondence.Id}", dialogJob, new HybridCacheEntryOptions
             {
                 Expiration = TimeSpan.FromHours(24)
             });
@@ -246,7 +246,7 @@ public class InitializeCorrespondencesHandler(
                         NotificationRequest = request.Notification, 
                         CorrespondenceId = correspondence.Id,
                         CorrespondenceContent = correspondence.Content,
-                        Correspondence = correspondence
+                        RequestCorrespondence = correspondence
                     }, cancellationToken));
                 }
             }

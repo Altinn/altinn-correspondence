@@ -11,5 +11,5 @@ public class CreateNotificationRequest
 
     public CorrespondenceContentEntity? CorrespondenceContent { get; set; }
 
-    public required CorrespondenceEntity Correspondence { get; set; }
+    public required CorrespondenceEntity RequestCorrespondence { get; set; }
 } 

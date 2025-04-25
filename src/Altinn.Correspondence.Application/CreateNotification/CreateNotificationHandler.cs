@@ -51,7 +51,7 @@ public class CreateNotificationHandler(
             var notificationContents = await GetNotificationContent(
                 request.NotificationRequest, 
                 templates, 
-                request.Correspondence, 
+                request.RequestCorrespondence, 
                 cancellationToken, 
                 request.CorrespondenceContent?.Language);
 
