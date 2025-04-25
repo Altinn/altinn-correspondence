@@ -85,7 +85,7 @@ public class CreateNotificationHandler(
 
                     await correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
                     // Create information activity in Dialogporten
-                    await hangfireScheduleHelper.CreateActivityAfterDialogCreated(correspondence, notificationRequest);
+                    await hangfireScheduleHelper.CreateActivityAfterDialogCreated(correspondence.Id, notificationRequest);
 
                     backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.NotificationCreated, notificationRequest.ResourceId, notificationResponse.OrderId.ToString(), "notification", correspondence.Sender, CancellationToken.None));        
                 }
@@ -229,7 +229,10 @@ public class CreateNotificationHandler(
 
     private Uri? CreateConditionEndpoint(string correspondenceId)
     {
-        var conditionEndpoint = new Uri($"{_generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondenceId}/notification/check");
+        var baseUrl = _generalSettings.CorrespondenceBaseUrl.TrimEnd('/');
+        var path = $"/correspondence/api/v1/correspondence/{Uri.EscapeDataString(correspondenceId)}/notification/check";
+        var conditionEndpoint = new Uri(new Uri(baseUrl), path);
+        
         if (conditionEndpoint.Host == "localhost")
         {
             return null;

@@ -219,13 +219,13 @@ public class InitializeCorrespondencesHandler(
         {
             logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
-            await hybridCacheWrapper.SetAsync("dialogJobId_" + correspondence.Id, dialogJob, new HybridCacheEntryOptions
+            await hybridCacheWrapper.SetAsync($"dialogJobId:{correspondence.Id}", dialogJob, new HybridCacheEntryOptions
             {
                 Expiration = TimeSpan.FromHours(24)
             });
             if (request.Correspondence.Content.Attachments.Count == 0)
             {
-                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence, cancellationToken);
+                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
             }
 
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
@@ -252,7 +252,7 @@ public class InitializeCorrespondencesHandler(
             }
             if (request.Correspondence.Content.Attachments.Count > 0 && await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
             {
-                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence, cancellationToken);
+                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
             }
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {
