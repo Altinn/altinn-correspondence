@@ -21,31 +21,19 @@ public class MigrateCorrespondenceHandler(
             return contentError;
         }
 
-        // Validate that existing attachments are correct
-        var getExistingAttachments = await initializeCorrespondenceHelper.GetExistingAttachments(request.ExistingAttachments, request.CorrespondenceEntity.Sender);
-        if (getExistingAttachments.IsT1) return getExistingAttachments.AsT1;
-        var existingAttachments = getExistingAttachments.AsT0;
-        if (existingAttachments.Count != request.ExistingAttachments.Count)
-        {
-            return CorrespondenceErrors.ExistingAttachmentNotFound;
-        }
-        // Validate that existing attachments are published
-        var anyExistingAttachmentsNotPublished = existingAttachments.Any(a => a.GetLatestStatus()?.Status != AttachmentStatus.Published);
-        if (anyExistingAttachmentsNotPublished)
-        {
-            return CorrespondenceErrors.AttachmentsNotPublished;
-        }
-
         return await TransactionWithRetriesPolicy.Execute<MigrateCorrespondenceResponse>(async (cancellationToken) =>
         {
-            request.CorrespondenceEntity.Content.Attachments.AddRange
-            (
-                existingAttachments.Select(a => new CorrespondenceAttachmentEntity()
-                {
-                    Attachment = a,
-                    Created = DateTimeOffset.Now
-                })
-            );
+            if (request.CorrespondenceEntity?.Content?.Attachments != null)
+            {
+                request.CorrespondenceEntity.Content.Attachments.AddRange
+                (
+                    request.ExistingAttachments.Select(a => new CorrespondenceAttachmentEntity()
+                    {
+                        AttachmentId = a,
+                        Created = DateTimeOffset.Now
+                    })
+                );
+            }
 
             var correspondence = await correspondenceRepository.CreateCorrespondence(request.CorrespondenceEntity, cancellationToken);
             return new MigrateCorrespondenceResponse()

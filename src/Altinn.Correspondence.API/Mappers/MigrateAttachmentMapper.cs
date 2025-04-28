@@ -6,7 +6,7 @@ namespace Altinn.Correspondence.Mappers;
 
 internal static class MigrateAttachmentMapper
 {
-    internal static MigrateAttachmentRequest MapToRequest(MigrateInitializeAttachmentExt initializeAttachmentExt)
+    internal static MigrateAttachmentRequest MapToRequest(MigrateInitializeAttachmentExt initializeAttachmentExt, HttpRequest httpRequest)
     {
         var attachment = new AttachmentEntity
         {
@@ -22,7 +22,9 @@ internal static class MigrateAttachmentMapper
         return new MigrateAttachmentRequest()
         {
             Attachment = attachment,
-            SenderPartyUuid = initializeAttachmentExt.SenderPartyUuid
+            SenderPartyUuid = initializeAttachmentExt.SenderPartyUuid,
+            UploadStream = httpRequest.Body,
+            ContentLength = httpRequest.ContentLength ?? httpRequest.Body.Length
         };
     }
 }
