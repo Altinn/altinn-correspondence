@@ -290,8 +290,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static List<Attachment> GetAttachmentsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
         {
-            return correspondence.Content?.Attachments.Select(attachment => new Attachment
+            return correspondence.Content?.Attachments.Select((attachment, index) => new Attachment
             {
+                Id = index.ToString(),
                 DisplayName = new List<DisplayName>
                 {
                     new DisplayName
