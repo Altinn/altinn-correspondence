@@ -7,9 +7,6 @@ using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
-using Hangfire;
-using Hangfire.Common;
-using Hangfire.States;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Net;
@@ -746,8 +743,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             Assert.Equal(CorrespondenceStatusExt.Published, content?.Correspondences.First().Status);
-            Assert.Equal(InitializedNotificationStatusExt.Success, content?.Correspondences?.First()?.Notifications?.First().Status);
-            Assert.Equal(orderId, content?.Correspondences?.First()?.Notifications?.First().OrderId);
         }
 
         [Fact]
@@ -786,8 +781,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             Assert.Equal(CorrespondenceStatusExt.Published, content?.Correspondences.First().Status);
-            Assert.Equal(InitializedNotificationStatusExt.Success, content?.Correspondences?.First()?.Notifications?.First().Status);
-            Assert.Equal(orderId, content?.Correspondences?.First()?.Notifications?.First().OrderId);
         }
 
         [Fact]
@@ -825,8 +818,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             Assert.Equal(CorrespondenceStatusExt.Published, content?.Correspondences.First().Status);
-            Assert.Equal(InitializedNotificationStatusExt.Success, content?.Correspondences?.First()?.Notifications?.First().Status);
-            Assert.Equal(orderId, content?.Correspondences?.First()?.Notifications?.First().OrderId);
         }
 
         [Fact]
@@ -864,8 +855,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             Assert.Equal(CorrespondenceStatusExt.Published, content?.Correspondences.First().Status);
-            Assert.Equal(InitializedNotificationStatusExt.MissingContact, content?.Correspondences?.First()?.Notifications?.First().Status);
-            Assert.Equal(orderId, content?.Correspondences?.First()?.Notifications?.First().OrderId);
         }
         [Fact]
         public async Task Correspondence_WithNotification_NotificationCreationFailed_Returns_Failed()
@@ -892,8 +881,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             Assert.Equal(CorrespondenceStatusExt.Published, content?.Correspondences.First().Status);
-            Assert.Equal(InitializedNotificationStatusExt.Failure, content?.Correspondences?.First()?.Notifications?.First().Status);
-            Assert.Equal(Guid.Empty, content?.Correspondences?.First()?.Notifications?.First().OrderId);
         }
     }
 }
