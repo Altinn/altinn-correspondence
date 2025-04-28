@@ -181,7 +181,7 @@ public class InitializeCorrespondencesHandler(
                 logger.LogWarning(e, "Processing anyway because ignoreReservation flag is set to true");
                 return new List<string>();
             }
-            throw;
+            return CorrespondenceErrors.ContactReservationRegistryFailed;
         }
     }
     private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, List<string> reservedRecipients, CancellationToken cancellationToken)
