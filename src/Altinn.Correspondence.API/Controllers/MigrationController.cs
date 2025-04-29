@@ -59,12 +59,11 @@ namespace Altinn.Correspondence.API.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        [Route("attachment/{senderPartyUuid}")]
+        [Route("attachment")]
         [Consumes("application/octet-stream")]
         [Authorize(Policy = AuthorizationConstants.Migrate)]
         public async Task<ActionResult<AttachmentOverviewExt>> MigrateAttachmentData(
             [FromQuery]MigrateInitializeAttachmentExt initializeAttachmentExt,
-            Guid senderPartyUuid,
             [FromServices] MigrateAttachmentHandler migrateAttachmentHandler,
             CancellationToken cancellationToken = default
         )
@@ -75,13 +74,14 @@ namespace Altinn.Correspondence.API.Controllers
             Request.EnableBuffering();
             var attachment = new MigrateAttachmentRequest()
             {
-                SenderPartyUuid = senderPartyUuid,
+                SenderPartyUuid = initializeAttachmentExt.SenderPartyUuid,
                 UploadStream = Request.Body,
                 ContentLength = Request.ContentLength ?? Request.Body.Length,
                 Attachment = MigrateAttachmentMapper.MapToRequest(initializeAttachmentExt, Request).Attachment
             };
             attachment.Attachment.Id = Guid.NewGuid();
             var uploadAttachmentResult = await migrateAttachmentHandler.Process(attachment, HttpContext.User, cancellationToken);
+
             return uploadAttachmentResult.Match(
                 attachment => Ok(attachment.AttachmentId),
                 Problem
