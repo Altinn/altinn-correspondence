@@ -81,8 +81,8 @@ public class GetCorrespondenceDetailsHandler(
             var response = new GetCorrespondenceDetailsResponse
             {
                 CorrespondenceId = correspondence.Id,
-                Status = latestStatus.Status,
-                StatusText = latestStatus.StatusText,
+                Status = latestStatus.Status == CorrespondenceStatus.PurgedByRecipient ? CorrespondenceStatus.Initialized : latestStatus.Status,
+                StatusText = latestStatus.Status == CorrespondenceStatus.PurgedByRecipient ? string.Empty : latestStatus.StatusText,
                 StatusChanged = latestStatus.StatusChanged,
                 SendersReference = correspondence.SendersReference,
                 Sender = correspondence.Sender,
