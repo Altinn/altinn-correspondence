@@ -292,7 +292,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             return correspondence.Content?.Attachments.Select((attachment, index) => new Attachment
             {
-                Id = index.ToString(),
+                Id = Guid.CreateVersion7().ToString(),
                 DisplayName = new List<DisplayName>
                 {
                     new DisplayName
