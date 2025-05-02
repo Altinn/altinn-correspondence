@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
 using Azure;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -11,9 +12,16 @@ using OneOf;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
-    public class AttachmentHelper(IAttachmentStatusRepository attachmentStatusRepository, IAttachmentRepository attachmentRepository, IStorageRepository storageRepository, IHostEnvironment hostEnvironment, ILogger<AttachmentHelper> logger)
+    public class AttachmentHelper(
+        IAttachmentStatusRepository attachmentStatusRepository,
+        IAttachmentRepository attachmentRepository,
+        IStorageRepository storageRepository,
+        IResourceRegistryService resourceRegistryService,
+        IServiceOwnerRepository serviceOwnerRepository,
+        IHostEnvironment hostEnvironment,
+        ILogger<AttachmentHelper> logger)
     {
-        public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, CancellationToken cancellationToken)
+        public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, bool forMigration, CancellationToken cancellationToken)
         {
             logger.LogInformation("Start upload of attachment {attachmentId} for party {partyUuid}", attachmentId, partyUuid);
             var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
@@ -27,7 +35,21 @@ namespace Altinn.Correspondence.Application.Helpers
             logger.LogInformation("Set attachment status of {attachmentId} to UploadProcessing", attachmentId);
             try
             {
-                var (dataLocationUrl, checksum, size) = await storageRepository.UploadAttachment(attachment, file, cancellationToken);
+                var serviceOwnerId = await resourceRegistryService.GetServiceOwnerOfResource(attachment.ResourceId, cancellationToken);
+                if (serviceOwnerId is null)
+                {
+                    logger.LogError("Could not find service owner for resource {resourceId}", attachment.ResourceId);
+                    return AttachmentErrors.ResourceRegistryLookupFailed;
+                }
+
+                var serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwner(serviceOwnerId, cancellationToken);
+                if (serviceOwnerEntity == null)
+                {
+                    logger.LogError("Could not find service owner entity for {serviceOwnerId} in database", serviceOwnerId);
+                    return AttachmentErrors.ServiceOwnerNotFound;
+                }
+
+                var (dataLocationUrl, checksum, size) = await storageRepository.UploadAttachment(attachment, file, serviceOwnerEntity.GetStorageProvider(forMigration ? false : true), cancellationToken);
                 logger.LogInformation("Uploaded {attachmentId} to Azure Storage", attachmentId);
 
                 var isValidUpdate = await attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
@@ -42,7 +64,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 if (!isValidUpdate)
                 {
                     await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.UploadFailed);
-                    await storageRepository.PurgeAttachment(attachment.Id, cancellationToken);
+                    await storageRepository.PurgeAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
                     return AttachmentErrors.UploadFailed;
                 }
             }
