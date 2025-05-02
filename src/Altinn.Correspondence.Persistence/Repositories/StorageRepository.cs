@@ -11,30 +11,48 @@ using Microsoft.Extensions.Options;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
-    internal class StorageRepository(IOptions<AttachmentStorageOptions> options, ILogger<StorageRepository> logger) : IStorageRepository
+    internal class StorageRepository(IStorageConnectionStringRepository storageConnectionStringRepository, IOptions<AttachmentStorageOptions> options, ILogger<StorageRepository> logger) : IStorageRepository
     {
         private readonly AttachmentStorageOptions _options = options.Value;
         private readonly ILogger<StorageRepository> _logger = logger;
 
-        private BlobClient InitializeBlobClient(Guid fileId)
+        private async Task<BlobClient> InitializeBlobClient(Guid fileId, StorageProviderEntity? storageProviderEntity)
         {
-            var connectionString = _options.ConnectionString;
-            var blobServiceClient = new BlobServiceClient(connectionString,
-                new BlobClientOptions()
-                {
-                    Retry =
-                        {
-                            NetworkTimeout = TimeSpan.FromHours(1),
-                        }
-                });
-            var containerClient = blobServiceClient.GetBlobContainerClient("attachments");
-            BlobClient blobClient = containerClient.GetBlobClient(fileId.ToString());
-            return blobClient;
+            if (storageProviderEntity is not null)
+            {
+                var connectionString = await storageConnectionStringRepository.GetStorageConnectionString(storageProviderEntity);
+                var blobServiceClient = new BlobServiceClient(connectionString,
+                    new BlobClientOptions()
+                    {
+                        Retry =
+                            {
+                                NetworkTimeout = TimeSpan.FromHours(1),
+                            }
+                    });
+                var containerClient = blobServiceClient.GetBlobContainerClient("attachments");
+                BlobClient blobClient = containerClient.GetBlobClient(fileId.ToString());
+                return blobClient;
+            } 
+            else // Legacy implementation
+            { 
+                var connectionString = _options.ConnectionString;
+                var blobServiceClient = new BlobServiceClient(connectionString,
+                    new BlobClientOptions()
+                    {
+                        Retry =
+                            {
+                                NetworkTimeout = TimeSpan.FromHours(1),
+                            }
+                    });
+                var containerClient = blobServiceClient.GetBlobContainerClient("attachments");
+                BlobClient blobClient = containerClient.GetBlobClient(fileId.ToString());
+                return blobClient;
+            }
         }
 
-        public async Task<(string locationUrl, string hash, long size)> UploadAttachment(AttachmentEntity attachment, Stream stream, CancellationToken cancellationToken)
+        public async Task<(string locationUrl, string hash, long size)> UploadAttachment(AttachmentEntity attachment, Stream stream, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
-            BlobClient blobClient = InitializeBlobClient(attachment.Id);
+            BlobClient blobClient = await InitializeBlobClient(attachment.Id, storageProviderEntity);
             var locationUrl = blobClient.Uri.ToString() ?? throw new DataLocationUrlException("Could not get data location url");
             try
             {
@@ -65,9 +83,9 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
-        public async Task<Stream> DownloadAttachment(Guid attachmentId, CancellationToken cancellationToken)
+        public async Task<Stream> DownloadAttachment(Guid attachmentId, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
-            BlobClient blobClient = InitializeBlobClient(attachmentId);
+            BlobClient blobClient = await InitializeBlobClient(attachmentId, storageProviderEntity);
             try
             {
                 var content = await blobClient.DownloadContentAsync(cancellationToken);
@@ -80,9 +98,9 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
-        public async Task PurgeAttachment(Guid attachmentId, CancellationToken cancellationToken)
+        public async Task PurgeAttachment(Guid attachmentId, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
-            BlobClient blobClient = InitializeBlobClient(attachmentId);
+            BlobClient blobClient = await InitializeBlobClient(attachmentId, storageProviderEntity);
             try
             {
                 await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
