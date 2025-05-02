@@ -72,7 +72,7 @@ runs:
         subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
 
     - name: Temporary work-around due to azure CLI bug https://github.com/Azure/azure-cli/issues/31189
-      id: pwd-generator
+      id: az-cli-workaround
       shell: pwsh
       run: |
         az config set bicep.use_binary_from_path=false
