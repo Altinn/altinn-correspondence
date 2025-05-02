@@ -63,7 +63,7 @@ public class PurgeAttachmentHandler(
         }
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            await storageRepository.PurgeAttachment(attachmentId, cancellationToken);
+            await storageRepository.PurgeAttachment(attachmentId, attachment.StorageProvider, cancellationToken);
             await attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
             {
                 AttachmentId = attachmentId,

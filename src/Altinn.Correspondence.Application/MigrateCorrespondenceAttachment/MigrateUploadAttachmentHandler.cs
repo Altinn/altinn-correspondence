@@ -38,7 +38,7 @@ public class MigrateUploadAttachmentHandler(
         }
         return await TransactionWithRetriesPolicy.Execute<MigrateUploadAttachmentResponse>(async (cancellationToken) =>
         {
-            var uploadResult = await attachmentHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuid, cancellationToken);
+            var uploadResult = await attachmentHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuid, true, cancellationToken);
 
             if (uploadResult.IsT1)
             {
