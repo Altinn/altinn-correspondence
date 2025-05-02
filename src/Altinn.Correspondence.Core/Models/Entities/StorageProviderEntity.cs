@@ -9,7 +9,7 @@ public class StorageProviderEntity
 
     public StorageProviderType Type { get; set; }
 
-    public required string ResourceName { get; set; }
+    public required string StorageResourceName { get; set; }
     public required string ServiceOwnerId { get; set; }
     public required bool Active { get; set; }
 }

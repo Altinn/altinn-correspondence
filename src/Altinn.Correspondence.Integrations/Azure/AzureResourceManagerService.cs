@@ -38,7 +38,7 @@ public class AzureResourceManagerService : IResourceManager
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly ILogger<AzureResourceManagerService> _logger;
     private string GetResourceGroupName(string serviceOwnerId) => $"serviceowner-{_resourceManagerOptions.Environment}-{serviceOwnerId.Replace(":", "-")}-rg";
-    private string? GetStorageAccountName(StorageProviderEntity storageProviderEntity) => storageProviderEntity.ResourceName;
+    private string? GetStorageAccountName(StorageProviderEntity storageProviderEntity) => storageProviderEntity.StorageResourceName;
 
     private SubscriptionResource GetSubscription() => _armClient.GetSubscriptionResource(new ResourceIdentifier($"/subscriptions/{_resourceManagerOptions.SubscriptionId}"));
 
@@ -163,12 +163,12 @@ public class AzureResourceManagerService : IResourceManager
         {
             return "UseDevelopmentStorage=true";
         }
-        if (storageProviderEntity.ResourceName == null)
+        if (storageProviderEntity.StorageResourceName == null)
         {
             throw new InvalidOperationException("Storage account has not been deployed");
         }
-        var sasToken = await GetSasToken(storageProviderEntity, storageProviderEntity.ResourceName);
-        return $"BlobEndpoint=https://{storageProviderEntity.ResourceName}.blob.core.windows.net/brokerfiles?{sasToken}";
+        var sasToken = await GetSasToken(storageProviderEntity, storageProviderEntity.StorageResourceName);
+        return $"BlobEndpoint=https://{storageProviderEntity.StorageResourceName}.blob.core.windows.net/brokerfiles?{sasToken}";
     }
 
 
@@ -203,7 +203,7 @@ public class AzureResourceManagerService : IResourceManager
     }
     private async Task<string> CreateSasToken(StorageProviderEntity storageProviderEntity, string storageAccountName)
     {
-        _logger.LogInformation($"Creating new SAS token for {storageProviderEntity.ServiceOwnerId}: {storageProviderEntity.ResourceName}");
+        _logger.LogInformation($"Creating new SAS token for {storageProviderEntity.ServiceOwnerId}: {storageProviderEntity.StorageResourceName}");
         var resourceGroupName = GetResourceGroupName(storageProviderEntity.ServiceOwnerId);
         var subscription = GetSubscription();
         var resourceGroupCollection = subscription.GetResourceGroups();
