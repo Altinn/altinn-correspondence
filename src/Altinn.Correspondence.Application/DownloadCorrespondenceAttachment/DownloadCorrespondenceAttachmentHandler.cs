@@ -89,7 +89,7 @@ public class DownloadCorrespondenceAttachmentHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
-        var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, cancellationToken);
+        var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
         
         
         return await TransactionWithRetriesPolicy.Execute<DownloadCorrespondenceAttachmentResponse>(async (cancellationToken) =>

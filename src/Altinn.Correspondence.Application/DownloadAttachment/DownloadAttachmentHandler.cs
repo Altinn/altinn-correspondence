@@ -22,7 +22,7 @@ public class DownloadAttachmentHandler(
         {
             return AuthorizationErrors.NoAccessToResource;
         }
-        var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, cancellationToken);
+        var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
         return attachmentStream;
     }
 }
