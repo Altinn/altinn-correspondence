@@ -144,7 +144,7 @@ public class AzureResourceManagerService : IResourceManager
             _logger.LogWarning("Failed to enable Defender Malware Scan. Error: {error}", errorMessage);
             throw new HttpRequestException($"Failed to enable Defender Malware Scan. Error: {errorMessage}");
         }
-        _logger.LogInformation($"Microsoft Defender Malware scan enabled for storage account {storageAccountName}");
+        _logger.LogInformation($"Microsoft Defender Malware scan enabled for storage account {storageAccountName}: {await response.Content.ReadAsStringAsync()}");
     }
 
     private string GenerateStorageAccountName()
