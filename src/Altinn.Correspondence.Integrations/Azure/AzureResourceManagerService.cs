@@ -56,19 +56,17 @@ public class AzureResourceManagerService : IResourceManager
     public void CreateStorageProviders(ServiceOwnerEntity serviceOwnerEntity, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Creating storage providers for {serviceOwnerEntity.Name}");
-        if (_hostEnvironment.IsDevelopment())
-        {
-            _backgroundJobClient.Enqueue<IServiceOwnerRepository>(service => service.InitializeStorageProvider(serviceOwnerEntity.Id, "Dummy value", StorageProviderType.Altinn3Azure));
-        }
-        else
-        {
-            var virusScanStorageProviderJob = _backgroundJobClient.Enqueue<IResourceManager>(service => service.Deploy(serviceOwnerEntity, true, cancellationToken));
-            _backgroundJobClient.ContinueJobWith<IResourceManager>(virusScanStorageProviderJob, service => service.Deploy(serviceOwnerEntity, false, cancellationToken));
-        }
+        var virusScanStorageProviderJob = _backgroundJobClient.Enqueue<IResourceManager>(service => service.Deploy(serviceOwnerEntity, true, cancellationToken));
+        _backgroundJobClient.ContinueJobWith<IResourceManager>(virusScanStorageProviderJob, service => service.Deploy(serviceOwnerEntity, false, cancellationToken));
     }
 
     public async Task Deploy(ServiceOwnerEntity serviceOwnerEntity, bool virusScan, CancellationToken cancellationToken)
     {
+        if (_hostEnvironment.IsDevelopment())
+        {
+            _logger.LogInformation("Development environment detected. Skipping deployment.");
+            return;
+        }
         _logger.LogInformation($"Starting deployment for {serviceOwnerEntity.Name}");
         _logger.LogInformation($"Using app identity for deploying Azure resources"); // TODO remove
         var resourceGroupName = GetResourceGroupName(serviceOwnerEntity.Id);
@@ -124,7 +122,7 @@ public class AzureResourceManagerService : IResourceManager
                         IsEnabled = true,
                         CapGBPerMonth = 5000
                     },
-                    ScanResultsEventGridTopicResourceId = $"/subscriptions/{_resourceManagerOptions.SubscriptionId}/resourceGroups/{_resourceManagerOptions.ApplicationResourceGroupName}/providers/Microsoft.EventGrid/topics/{_resourceManagerOptions.MalwareScanEventGridTopicName}"
+                    ScanResultsEventGridTopicResourceId = $"/subscriptions/{_resourceManagerOptions.SubscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.EventGrid/topics/{_resourceManagerOptions.MalwareScanEventGridTopicName}"
                 },
                 OverrideSubscriptionLevelSettings = true,
                 SensitiveDataDiscovery = new SensitiveDataDiscovery()
@@ -144,7 +142,6 @@ public class AzureResourceManagerService : IResourceManager
             throw new HttpRequestException($"Failed to enable Defender Malware Scan. Error: {errorMessage}");
         }
         _logger.LogInformation($"Microsoft Defender Malware scan enabled for storage account {storageAccountName}");
-        client.Dispose();
     }
 
     private string GenerateStorageAccountName()
