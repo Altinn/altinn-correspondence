@@ -2,47 +2,43 @@
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
-    public class ServiceOwnerRepository : IServiceOwnerRepository
+    public class ServiceOwnerRepository(ApplicationDbContext context, ILogger<IServiceOwnerRepository> logger) : IServiceOwnerRepository
     {
-        private readonly ApplicationDbContext _context;
-
-        public ServiceOwnerRepository(ApplicationDbContext context)
-        {
-            _context = context;
-        }
-
         public async Task<ServiceOwnerEntity?> GetServiceOwner(string orgNo, CancellationToken cancellationToken)
         {
-            return await _context.ServiceOwners
+            return await context.ServiceOwners
                 .Include(so => so.StorageProviders)
                 .SingleOrDefaultAsync(so => so.Id == orgNo, cancellationToken);
         }
 
-        public async Task InitializeServiceOwner(string orgNo, string name, CancellationToken cancellationToken)
+        public async Task<bool> InitializeNewServiceOwner(string orgNo, string name, CancellationToken cancellationToken)
         {
-            var existingServiceOwner = await _context.ServiceOwners
+            var existingServiceOwner = await context.ServiceOwners
                 .SingleOrDefaultAsync(so => so.Id == orgNo, cancellationToken);
-
-            if (existingServiceOwner == null)
+            if (existingServiceOwner != null)
             {
-                var serviceOwner = new ServiceOwnerEntity
-                {
-                    Id = orgNo,
-                    Name = name,
-                    StorageProviders = new List<StorageProviderEntity>()
-                };
-
-                await _context.ServiceOwners.AddAsync(serviceOwner, cancellationToken);
-                await _context.SaveChangesAsync(cancellationToken);
+                logger.LogError("Cannot create service owner because it already exists with id {orgNo}", orgNo);
+                return false;
             }
+            var serviceOwner = new ServiceOwnerEntity
+            {
+                Id = orgNo,
+                Name = name,
+                StorageProviders = new List<StorageProviderEntity>()
+            };
+
+            await context.ServiceOwners.AddAsync(serviceOwner, cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
+            return true;
         }
 
         public async Task InitializeStorageProvider(string orgNo, string storageAccountName, StorageProviderType storageType)
         {
-            var serviceOwner = await _context.ServiceOwners
+            var serviceOwner = await context.ServiceOwners
                 .Include(so => so.StorageProviders)
                 .SingleOrDefaultAsync(so => so.Id == orgNo);
 
@@ -66,7 +62,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 };
 
                 serviceOwner.StorageProviders.Add(storageProvider);
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
             }
         }
     }

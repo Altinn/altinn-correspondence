@@ -83,7 +83,7 @@ public class AzureResourceManagerService : IResourceManager
         var resourceGroup = await resourceGroupCollection.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, resourceGroupData, cancellationToken);
 
         // Create or get the storage account
-        var storageAccountData = new StorageAccountCreateOrUpdateContent(new StorageSku(StorageSkuName.StandardLrs), StorageKind.StorageV2, new AzureLocation(_resourceManagerOptions.Location));
+        var storageAccountData = new StorageAccountCreateOrUpdateContent(new StorageSku(StorageSkuName.StandardV2Lrs), StorageKind.StorageV2, new AzureLocation(_resourceManagerOptions.Location));
         storageAccountData.MinimumTlsVersion = "TLS1_2";
         storageAccountData.Tags.Add("customer_id", serviceOwnerEntity.Id);
         var storageAccountCollection = resourceGroup.Value.GetStorageAccounts();
