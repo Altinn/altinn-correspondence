@@ -25,7 +25,7 @@ using System.Text;
 using System.Text.Json;
 
 namespace Altinn.Correspondence.Integrations.Azure;
-public class AzureResourceManagerService : IResourceManager
+public class AzureResourceManagerService : IResourceManager, IStorageConnectionStringRepository
 {
     private readonly AzureResourceManagerOptions _resourceManagerOptions;
     private readonly IHostEnvironment _hostEnvironment;
@@ -38,7 +38,6 @@ public class AzureResourceManagerService : IResourceManager
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly ILogger<AzureResourceManagerService> _logger;
     private string GetResourceGroupName(string serviceOwnerId) => $"serviceowner-{_resourceManagerOptions.Environment}-{serviceOwnerId.Replace(":", "-")}-rg";
-    private string? GetStorageAccountName(StorageProviderEntity storageProviderEntity) => storageProviderEntity.StorageResourceName;
 
     private SubscriptionResource GetSubscription() => _armClient.GetSubscriptionResource(new ResourceIdentifier($"/subscriptions/{_resourceManagerOptions.SubscriptionId}"));
 
