@@ -120,9 +120,9 @@ public class AzureResourceManagerService : IResourceManager
                     OnUpload = new OnUpload()
                     {
                         IsEnabled = true,
-                        CapGBPerMonth = 5000
+                        CapGBPerMonth = -1
                     },
-                    ScanResultsEventGridTopicResourceId = $"/subscriptions/{_resourceManagerOptions.SubscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.EventGrid/topics/{_resourceManagerOptions.MalwareScanEventGridTopicName}"
+                    ScanResultsEventGridTopicResourceId = $"/subscriptions/{_resourceManagerOptions.SubscriptionId}/resourceGroups/{_resourceManagerOptions.ApplicationResourceGroupName}/providers/Microsoft.EventGrid/topics/{_resourceManagerOptions.MalwareScanEventGridTopicName}"
                 },
                 OverrideSubscriptionLevelSettings = true,
                 SensitiveDataDiscovery = new SensitiveDataDiscovery()
@@ -132,7 +132,10 @@ public class AzureResourceManagerService : IResourceManager
             },
             Scope = $"[resourceId('Microsoft.Storage/storageAccounts', parameters({storageAccountName}))]"
         };
-        var json = JsonSerializer.Serialize(requestBody);
+        var json = JsonSerializer.Serialize(requestBody, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
         var content = new StringContent(json, Encoding.UTF8, "application/json");
         var response = await client.PutAsync(endpoint, content, cancellationToken);
         if (!response.IsSuccessStatusCode)
