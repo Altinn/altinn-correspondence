@@ -93,9 +93,7 @@ public class GetCorrespondenceDetailsHandler(
                 ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
                 Notifications = notificationHistory,
                 StatusHistory = correspondence.Statuses
-                    .Where(statusEntity => hasAccessAsRecipient 
-                        ? statusEntity.Status.IsAvailableForRecipient() 
-                        : statusEntity.Status.IsAvailableForSender())
+                    .Where(statusEntity => hasAccessAsRecipient ? true : statusEntity.Status.IsAvailableForSender())
                     .OrderBy(s => s.StatusChanged)
                     .ToList(),
                 ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
