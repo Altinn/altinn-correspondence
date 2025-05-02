@@ -55,7 +55,7 @@ public static class CorrespondenceStatusExtensions
         List<CorrespondenceStatus> validStatuses =
         [
             CorrespondenceStatus.Published, CorrespondenceStatus.Read, CorrespondenceStatus.Replied,
-            CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived, CorrespondenceStatus.Reserved, CorrespondenceStatus.PurgedByAltinn, CorrespondenceStatus.PurgedByRecipient
+            CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived, CorrespondenceStatus.Reserved
         ];
         return validStatuses.Contains(correspondenceStatus);
     }

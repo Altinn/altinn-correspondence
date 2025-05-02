@@ -38,7 +38,7 @@ public class GetCorrespondenceDetailsHandler(
         {
             return AuthorizationErrors.NoAccessToResource;
         }
-        var latestStatus = correspondence.GetHighestStatus();
+        var latestStatus = correspondence.GetHighestStatusWithoutPurged();
         if (latestStatus == null)
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
@@ -81,8 +81,8 @@ public class GetCorrespondenceDetailsHandler(
             var response = new GetCorrespondenceDetailsResponse
             {
                 CorrespondenceId = correspondence.Id,
-                Status = latestStatus.Status == CorrespondenceStatus.PurgedByRecipient ? CorrespondenceStatus.Initialized : latestStatus.Status,
-                StatusText = latestStatus.Status == CorrespondenceStatus.PurgedByRecipient ? string.Empty : latestStatus.StatusText,
+                Status = latestStatus.Status,
+                StatusText = latestStatus.StatusText,
                 StatusChanged = latestStatus.StatusChanged,
                 SendersReference = correspondence.SendersReference,
                 Sender = correspondence.Sender,
@@ -93,7 +93,9 @@ public class GetCorrespondenceDetailsHandler(
                 ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
                 Notifications = notificationHistory,
                 StatusHistory = correspondence.Statuses
-                    .Where(statusEntity => hasAccessAsRecipient ? true : statusEntity.Status.IsAvailableForSender())
+                    .Where(statusEntity => hasAccessAsRecipient 
+                        ? statusEntity.Status.IsAvailableForRecipient() 
+                        : statusEntity.Status.IsAvailableForSender())
                     .OrderBy(s => s.StatusChanged)
                     .ToList(),
                 ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
