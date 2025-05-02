@@ -7,6 +7,7 @@ public interface IResourceManager
 {
     Task DeployStorageAccountForServiceOwner(ServiceOwnerEntity serviceOwnerEntity, bool virusScan, CancellationToken cancellationToken);
     void DeployStorageAccount(ServiceOwnerEntity serviceOwnerEntity, CancellationToken cancellationToken);
+    Task<string> GetStorageConnectionString(StorageProviderEntity storageProviderEntity);
     Task UpdateContainerAppIpRestrictionsAsync(Dictionary<string, string> newIps, CancellationToken cancellationToken);
     Task<ServiceTagsListResult?> RetrieveServiceTags(CancellationToken cancellationToken);
     Task<Dictionary<string, string>> RetrieveCurrentIpRanges(CancellationToken cancellationToken);
