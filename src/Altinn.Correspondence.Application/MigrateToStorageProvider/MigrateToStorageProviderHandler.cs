@@ -78,11 +78,11 @@ namespace Altinn.Correspondence.Application.MigrateToStorageProvider
             }
 
             var uploadResult = await storageRepository.UploadAttachment(attachment, fileStream, storageProvider, CancellationToken.None);
-                if (attachment.AttachmentSize == 0)
-                {
-                    attachment.AttachmentSize = uploadResult.size;
-                    await attachmentRepository.SetAttachmentSize(attachment, uploadResult.size, CancellationToken.None);
-                }
+            if (attachment.AttachmentSize == 0)
+            {
+                attachment.AttachmentSize = uploadResult.size;
+                await attachmentRepository.SetAttachmentSize(attachment, uploadResult.size, CancellationToken.None);
+            }
             if (uploadResult.size != attachment.AttachmentSize)
             {
                 throw new Exception($"Unsuccessful! Uploaded file size differed from one defined on attachment. Got {uploadResult.size} but expected {attachment.AttachmentSize}");
