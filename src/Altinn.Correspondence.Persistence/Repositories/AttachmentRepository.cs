@@ -38,10 +38,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return await attachments.SingleOrDefaultAsync(a => a.Id == guid, cancellationToken);
         }
 
-        public async Task<bool> SetDataLocationUrl(AttachmentEntity attachmentEntity, AttachmentDataLocationType attachmentDataLocationType, string dataLocationUrl, CancellationToken cancellationToken)
+        public async Task<bool> SetDataLocationUrl(AttachmentEntity attachmentEntity, AttachmentDataLocationType attachmentDataLocationType, string dataLocationUrl, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
             attachmentEntity.DataLocationType = attachmentDataLocationType;
             attachmentEntity.DataLocationUrl = dataLocationUrl;
+            attachmentEntity.StorageProvider = storageProviderEntity;
             var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
             return rowsUpdated == 1;
 
