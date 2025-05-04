@@ -70,23 +70,29 @@ namespace Altinn.Correspondence.Application.MigrateToStorageProvider
                 throw new ArgumentException($"Storage provider not found for service owner {serviceOwnerOrgNo}", nameof(serviceOwnerOrgNo));
             }
 
-            var fileStream = await storageRepository.DownloadAttachment(attachmentId, null, CancellationToken.None);
-            if (fileStream is null)
-            {
-                throw new ArgumentException($"Attachment with id {attachmentId} not found in storage", nameof(attachmentId));
-            }
+            try { 
+                var fileStream = await storageRepository.DownloadAttachment(attachmentId, null, CancellationToken.None);
+                if (fileStream is null)
+                {
+                    throw new ArgumentException($"Attachment with id {attachmentId} not found in storage", nameof(attachmentId));
+                }
 
-            var uploadResult = await storageRepository.UploadAttachment(attachment, fileStream, storageProvider, CancellationToken.None);
-            if (attachment.AttachmentSize == 0)
+                var uploadResult = await storageRepository.UploadAttachment(attachment, fileStream, storageProvider, CancellationToken.None);
+                if (attachment.AttachmentSize == 0)
+                {
+                    attachment.AttachmentSize = uploadResult.size;
+                    await attachmentRepository.SetAttachmentSize(attachment, uploadResult.size, CancellationToken.None);
+                }
+                if (uploadResult.size != attachment.AttachmentSize)
+                {
+                    throw new Exception($"Unsuccessful! Uploaded file size differed from one defined on attachment. Got {uploadResult.size} but expected {attachment.AttachmentSize}");
+                }
+                await attachmentRepository.SetStorageProvider(attachmentId, storageProvider, uploadResult.locationUrl, CancellationToken.None);
+            } 
+            catch (Exception e)
             {
-                attachment.AttachmentSize = uploadResult.size;
-                await attachmentRepository.SetAttachmentSize(attachment, uploadResult.size, CancellationToken.None);
+                logger.LogWarning($"Could not process attachment {attachmentId}: {e.Message}");
             }
-            if (uploadResult.size != attachment.AttachmentSize)
-            {
-                throw new Exception($"Unsuccessful! Uploaded file size differed from one defined on attachment. Got {uploadResult.size} but expected {attachment.AttachmentSize}");
-            }
-            await attachmentRepository.SetStorageProvider(attachmentId, storageProvider, uploadResult.locationUrl, CancellationToken.None);
         }
     }
 }
