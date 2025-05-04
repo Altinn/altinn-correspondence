@@ -76,5 +76,27 @@ namespace Altinn.Correspondence.Persistence.Repositories
                  .Where(c => c.Id == correspondenceId && c.Content!.Attachments.Any(ca => ca.AttachmentId == attachmentId))
                  .Select(c => c.Content!.Attachments.SingleOrDefault(ca => ca.AttachmentId == attachmentId).Attachment).SingleOrDefaultAsync(cancellationToken);
         }
+
+        public async Task<List<AttachmentEntity>> GetAttachmentsByResourceIdWithoutStorageProvider(string resourceId, CancellationToken cancellationToken)
+        {
+            return await _context.Correspondences
+                .Where(c => c.ResourceId == resourceId && c.Content != null)
+                .SelectMany(c => c.Content!.Attachments)
+                .Where(ca => ca.Attachment.StorageProvider == null)
+                .Select(ca => ca.Attachment)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task SetStorageProvider(Guid attachmentId, StorageProviderEntity storageProvider, string dataLocationUrl, CancellationToken cancellationToken)
+        {
+            var attachment = await _context.Attachments.SingleOrDefaultAsync(a => a.Id == attachmentId);
+            if (attachment == null)
+            {
+                throw new ArgumentException($"Attachment with id {attachmentId} does not exist", nameof(attachmentId));
+            }
+            attachment.StorageProvider = storageProvider;
+            attachment.DataLocationUrl = dataLocationUrl;
+            await _context.SaveChangesAsync(cancellationToken);
+        }
     }
 }
