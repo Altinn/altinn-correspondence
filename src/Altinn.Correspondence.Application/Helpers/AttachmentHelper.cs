@@ -35,7 +35,7 @@ namespace Altinn.Correspondence.Application.Helpers
             logger.LogInformation("Set attachment status of {attachmentId} to UploadProcessing", attachmentId);
             try
             {
-                var serviceOwnerId = await resourceRegistryService.GetServiceOwnerOfResource(attachment.ResourceId, cancellationToken);
+                var serviceOwnerId = await resourceRegistryService.GetServiceOwnerOrganizationId(attachment.ResourceId, cancellationToken);
                 if (serviceOwnerId is null)
                 {
                     logger.LogError("Could not find service owner for resource {resourceId}", attachment.ResourceId);
@@ -45,7 +45,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 var serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwner(serviceOwnerId, cancellationToken);
                 if (serviceOwnerEntity == null)
                 {
-                    logger.LogError("Could not find service owner entity for {serviceOwnerId} in database", serviceOwnerId);
+                    logger.LogError($"Could not find service owner entity for {serviceOwnerId} in database");
                     //return AttachmentErrors.ServiceOwnerNotFound; // Future PR will add service owner registry as requirement when we have ensured that existing service owners have been provisioned
                 }
                 var storageProvider = serviceOwnerEntity?.GetStorageProvider(forMigration ? false : true);
