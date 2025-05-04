@@ -83,7 +83,7 @@ public class AzureResourceManagerService : IResourceManager
         var resourceGroup = await resourceGroupCollection.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, resourceGroupData, cancellationToken);
 
         // Create or get the storage account
-        var storageAccountData = new StorageAccountCreateOrUpdateContent(new StorageSku(StorageSkuName.StandardV2Lrs), StorageKind.StorageV2, new AzureLocation(_resourceManagerOptions.Location));
+        var storageAccountData = new StorageAccountCreateOrUpdateContent(new StorageSku(StorageSkuName.StandardLrs), StorageKind.StorageV2, new AzureLocation(_resourceManagerOptions.Location));
         storageAccountData.MinimumTlsVersion = "TLS1_2";
         storageAccountData.Tags.Add("customer_id", serviceOwnerEntity.Id);
         var storageAccountCollection = resourceGroup.Value.GetStorageAccounts();
@@ -93,7 +93,7 @@ public class AzureResourceManagerService : IResourceManager
             await EnableMicrosoftDefender(resourceGroupName, storageAccountName, cancellationToken);
         }
         var blobService = storageAccount.Value.GetBlobService();
-        string containerName = "brokerfiles";
+        string containerName = "attachments";
         if (!blobService.GetBlobContainers().Any(container => container.Data.Name == containerName))
         {
             await blobService.GetBlobContainers().CreateOrUpdateAsync(WaitUntil.Completed, containerName, new BlobContainerData(), cancellationToken);
@@ -168,7 +168,7 @@ public class AzureResourceManagerService : IResourceManager
             throw new InvalidOperationException("Storage account has not been deployed");
         }
         var sasToken = await GetSasToken(storageProviderEntity, storageProviderEntity.StorageResourceName);
-        return $"BlobEndpoint=https://{storageProviderEntity.StorageResourceName}.blob.core.windows.net/brokerfiles?{sasToken}";
+        return $"BlobEndpoint=https://{storageProviderEntity.StorageResourceName}.blob.core.windows.net/attachments?{sasToken}";
     }
 
 
@@ -217,7 +217,7 @@ public class AzureResourceManagerService : IResourceManager
             accountKey = await keyEnumerator.MoveNextAsync() ? keyEnumerator.Current.Value : "";
         }
         StorageSharedKeyCredential credential = new StorageSharedKeyCredential(storageAccountName, accountKey);
-        var containerName = "brokerfiles";
+        var containerName = "attachments";
         BlobSasBuilder sasBuilder = new BlobSasBuilder()
         {
             BlobContainerName = containerName,
