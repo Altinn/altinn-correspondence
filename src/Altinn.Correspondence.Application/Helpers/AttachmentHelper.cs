@@ -48,11 +48,11 @@ namespace Altinn.Correspondence.Application.Helpers
                     logger.LogError("Could not find service owner entity for {serviceOwnerId} in database", serviceOwnerId);
                     //return AttachmentErrors.ServiceOwnerNotFound; // Future PR will add service owner registry as requirement when we have ensured that existing service owners have been provisioned
                 }
-
-                var (dataLocationUrl, checksum, size) = await storageRepository.UploadAttachment(attachment, file, serviceOwnerEntity?.GetStorageProvider(forMigration ? false : true), cancellationToken);
+                var storageProvider = serviceOwnerEntity?.GetStorageProvider(forMigration ? false : true);
+                var (dataLocationUrl, checksum, size) = await storageRepository.UploadAttachment(attachment, file, storageProvider, cancellationToken);
                 logger.LogInformation("Uploaded {attachmentId} to Azure Storage", attachmentId);
 
-                var isValidUpdate = await attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, cancellationToken);
+                var isValidUpdate = await attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, storageProvider, cancellationToken);
                 logger.LogInformation("Set dataLocationUrl of {attachmentId}", attachmentId);
 
                 if (string.IsNullOrWhiteSpace(attachment.Checksum))
