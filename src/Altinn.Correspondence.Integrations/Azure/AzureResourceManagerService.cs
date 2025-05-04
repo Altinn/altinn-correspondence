@@ -129,8 +129,7 @@ public class AzureResourceManagerService : IResourceManager
                 {
                     IsEnabled = false
                 }
-            },
-            Scope = $"[resourceId('Microsoft.Storage/storageAccounts', parameters({storageAccountName}))]"
+            }
         };
         var json = JsonSerializer.Serialize(requestBody, new JsonSerializerOptions
         {
