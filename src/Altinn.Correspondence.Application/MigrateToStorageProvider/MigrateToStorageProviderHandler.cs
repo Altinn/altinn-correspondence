@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Repositories;
+﻿using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -15,12 +16,12 @@ namespace Altinn.Correspondence.Application.MigrateToStorageProvider
     {
         public async Task<OneOf<bool, Error>> Process(string resourceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
         {
-            var serviceOwnerId = await resourceRegistryService.GetServiceOwnerOfResource(resourceId, cancellationToken);
+            var serviceOwnerId = await resourceRegistryService.GetServiceOwnerOrganizationId(resourceId, cancellationToken);
             if (string.IsNullOrWhiteSpace(serviceOwnerId))
             {
                 return new Error(0, $"Service owner not found for resource {resourceId} in registry", System.Net.HttpStatusCode.NotFound);
             }
-            var serviceOwner = await serviceOwnerRepository.GetServiceOwner(serviceOwnerId, cancellationToken);
+            var serviceOwner = await serviceOwnerRepository.GetServiceOwner(serviceOwnerId.WithoutPrefix(), cancellationToken);
             if (serviceOwner == null)
             {
                 return new Error(1, $"Service owner not found in database. Run sql command 'select initialize_service_owner('{serviceOwnerId}', 'orgShortHandName')' with correct orgShortHandName", System.Net.HttpStatusCode.NotFound);
