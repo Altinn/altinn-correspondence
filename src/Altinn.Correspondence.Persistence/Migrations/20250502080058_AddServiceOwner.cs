@@ -82,7 +82,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     -- Define the parameter types
                     parameter_types_array := ARRAY[
-                        'Altinn.Correspondence.Application.InitializeResourceOwner.InitializeServiceOwnerRequest, Altinn.Correspondence.Application, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null',
+                        'Altinn.Correspondence.Application.InitializeServiceOwner.InitializeServiceOwnerRequest, Altinn.Correspondence.Application, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null',
                         'System.Security.Claims.ClaimsPrincipal, System.Security.Claims, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a',
                         'System.Threading.CancellationToken, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e'
                     ];
@@ -99,7 +99,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     VALUES (
                         -- Create the invocationdata JSON
                         json_build_object(
-                            'Type', 'Altinn.Correspondence.Application.InitializeResourceOwner.InitializeServiceOwnerHandler, Altinn.Correspondence.Application, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null',
+                            'Type', 'Altinn.Correspondence.Application.InitializeServiceOwner.InitializeServiceOwnerHandler, Altinn.Correspondence.Application, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null',
                             'Method', 'Process',
                             'Arguments', format('[""%s"",null,null]',
                                 replace(request_json, '""', '\""') -- Properly escape quotes

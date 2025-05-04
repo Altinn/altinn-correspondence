@@ -1,4 +1,4 @@
-﻿namespace Altinn.Correspondence.Application.InitializeResourceOwner;
+﻿namespace Altinn.Correspondence.Application.InitializeServiceOwner;
 
 public class InitializeServiceOwnerRequest
 {

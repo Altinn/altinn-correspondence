@@ -3,7 +3,7 @@ using Altinn.Correspondence.Core.Services;
 using OneOf;
 using System.Security.Claims;
 
-namespace Altinn.Correspondence.Application.InitializeResourceOwner;
+namespace Altinn.Correspondence.Application.InitializeServiceOwner;
 
 public class InitializeServiceOwnerHandler(IServiceOwnerRepository serviceOwnerRepository, IResourceManager resourceManager) : IHandler<InitializeServiceOwnerRequest, bool>
 {
