@@ -15,7 +15,7 @@ namespace Altinn.Correspondence.Application.MigrateToStorageProvider
         IResourceRegistryService resourceRegistryService,
         IStorageRepository storageRepository,
         AttachmentHelper attachmentHelper,
-        BackgroundJobClient backgroundJobClient,
+        IBackgroundJobClient backgroundJobClient,
         ILogger<MigrateToStorageProviderHandler> logger) : IHandler<string, bool>
     {
         public async Task<OneOf<bool, Error>> Process(string resourceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
