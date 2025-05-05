@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Common.Helpers;
+﻿using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,7 @@ namespace Altinn.Correspondence.Application.MigrateToStorageProvider
         IAttachmentRepository attachmentRepository,
         IResourceRegistryService resourceRegistryService,
         IStorageRepository storageRepository,
+        AttachmentHelper attachmentHelper,
         ILogger<MigrateToStorageProviderHandler> logger) : IHandler<string, bool>
     {
         public async Task<OneOf<bool, Error>> Process(string resourceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -58,19 +60,14 @@ namespace Altinn.Correspondence.Application.MigrateToStorageProvider
             {
                 throw new ArgumentException($"Storage provider already set on attachment {attachmentId}");
             }
-
-            var serviceOwner = await serviceOwnerRepository.GetServiceOwner(serviceOwnerOrgNo, CancellationToken.None);
-            if (serviceOwner is null)
-            {
-                throw new ArgumentException($"Service owner with id {serviceOwnerOrgNo} not found", nameof(serviceOwnerOrgNo));
-            }
-            var storageProvider = serviceOwner.StorageProviders.FirstOrDefault(sp => sp.Type == Core.Models.Enums.StorageProviderType.Altinn3Azure);
+            var storageProvider = await attachmentHelper.GetStorageProvider(attachment, attachment.ResourceId.Contains("migratedcorrespondence"), CancellationToken.None);
             if (storageProvider is null)
             {
                 throw new ArgumentException($"Storage provider not found for service owner {serviceOwnerOrgNo}", nameof(serviceOwnerOrgNo));
             }
 
-            try { 
+            try 
+            { 
                 var fileStream = await storageRepository.DownloadAttachment(attachmentId, null, CancellationToken.None);
                 if (fileStream is null)
                 {
