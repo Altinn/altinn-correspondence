@@ -1,5 +1,6 @@
 ﻿using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Logging;
@@ -18,17 +19,22 @@ namespace Altinn.Correspondence.Application.MigrateToStorageProvider
     {
         public async Task<OneOf<bool, Error>> Process(string resourceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
         {
-            var serviceOwnerId = await resourceRegistryService.GetServiceOwnerOrganizationId(resourceId, cancellationToken);
-            if (string.IsNullOrWhiteSpace(serviceOwnerId))
+            ServiceOwnerEntity? serviceOwner = null;
+            if (resourceId.Contains("migratedcorrespondence"))
             {
-                return new Error(0, $"Service owner not found for resource {resourceId} in registry", System.Net.HttpStatusCode.NotFound);
+                var serviceOwnerShortHand = resourceId.Split('-')[0];
+                serviceOwner = await serviceOwnerRepository.GetServiceOwnerFromOrgCode(serviceOwnerShortHand.ToLower(), cancellationToken);
             }
-            var serviceOwner = await serviceOwnerRepository.GetServiceOwner(serviceOwnerId.WithoutPrefix(), cancellationToken);
-            if (serviceOwner == null)
+            else
             {
-                return new Error(1, $"Service owner not found in database. Run sql command 'select initialize_service_owner('{serviceOwnerId}', 'orgShortHandName')' with correct orgShortHandName", System.Net.HttpStatusCode.NotFound);
+                var serviceOwnerId = await resourceRegistryService.GetServiceOwnerOrganizationId(resourceId, cancellationToken);
+                if (serviceOwnerId is null)
+                {
+                    logger.LogError("Could not find service owner for resource {resourceId}", resourceId);
+                    return null;
+                }
+                serviceOwner = await serviceOwnerRepository.GetServiceOwner(serviceOwnerId, cancellationToken);
             }
-
             var attachmentsWithoutStorageProvider = await attachmentRepository.GetAttachmentsByResourceIdWithoutStorageProvider(resourceId, cancellationToken);
             if (attachmentsWithoutStorageProvider == null || attachmentsWithoutStorageProvider.Count == 0)
             {
