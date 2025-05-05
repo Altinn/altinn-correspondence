@@ -1,8 +1,8 @@
 ﻿using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -15,6 +15,7 @@ namespace Altinn.Correspondence.Application.MigrateToStorageProvider
         IResourceRegistryService resourceRegistryService,
         IStorageRepository storageRepository,
         AttachmentHelper attachmentHelper,
+        BackgroundJobClient backgroundJobClient,
         ILogger<MigrateToStorageProviderHandler> logger) : IHandler<string, bool>
     {
         public async Task<OneOf<bool, Error>> Process(string resourceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -49,7 +50,7 @@ namespace Altinn.Correspondence.Application.MigrateToStorageProvider
                 {
                     return new Error(3, $"No storage provider found for attachment {attachment.Id} of resource {resourceId}", System.Net.HttpStatusCode.NotFound);
                 }
-                await ProcessSingle(attachment.Id, storageProviderId);
+                backgroundJobClient.Enqueue<MigrateToStorageProviderHandler>((handler) => handler.ProcessSingle(attachment.Id, storageProviderId));
             }
             return true;
         }
