@@ -80,11 +80,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<List<AttachmentEntity>> GetAttachmentsByResourceIdWithoutStorageProvider(string resourceId, CancellationToken cancellationToken)
         {
-            return await _context.Correspondences
-                .Where(c => c.ResourceId == resourceId && c.Content != null)
-                .SelectMany(c => c.Content!.Attachments)
-                .Where(ca => ca.Attachment.StorageProvider == null)
-                .Select(ca => ca.Attachment)
+            return await _context.Attachments
+                .Where(a => a.ResourceId == resourceId && a.StorageProvider == null)
                 .ToListAsync(cancellationToken);
         }
 
