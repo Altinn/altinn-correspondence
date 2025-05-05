@@ -47,6 +47,7 @@ static void BuildAndRun(string[] args)
     builder.Services.AddHybridCache();
     #pragma warning restore EXTEXP0018
     builder.Services.AddSingleton<IHybridCacheWrapper, HybridCacheWrapper>();
+    builder.Services.AddSingleton<DistributedLockHelper>();
 
     var app = builder.Build();
 
