@@ -174,6 +174,7 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
     {
         if (_sasTokens.TryGetValue(storageAccountName, out (DateTime Created, string Token) sasToken) && sasToken.Created.AddHours(8) > DateTime.UtcNow)
         {
+            _logger.LogInformation($"Got sas token from cache.");
             return sasToken.Token;
         }
 
