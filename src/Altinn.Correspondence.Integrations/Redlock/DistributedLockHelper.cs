@@ -7,7 +7,7 @@ using Altinn.Correspondence.Core.Options;
 
 namespace Altinn.Correspondence.Integrations.Redlock
 {
-    public class DistributedLockHelper
+    public class DistributedLockHelper : IDisposable
     {
         private readonly RedLockFactory _lockFactory;
         private readonly ILogger<DistributedLockHelper> _logger;
@@ -82,6 +82,12 @@ namespace Altinn.Correspondence.Integrations.Redlock
                 _logger.LogError(ex, "Error executing action with lock for key {lockKey}", lockKey);
                 throw;
             }
+        }
+
+        public void Dispose()
+        {
+            _lockFactory.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 } 
