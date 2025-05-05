@@ -9,6 +9,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
+using Altinn.Correspondence.Integrations.Redlock;
 using Altinn.Correspondence.Helpers;
 using Hangfire;
 using Microsoft.Extensions.Hosting;
@@ -29,9 +30,39 @@ public class PublishCorrespondenceHandler(
     IHostEnvironment hostEnvironment,
     ISlackClient slackClient,
     SlackSettings slackSettings,
-    IBackgroundJobClient backgroundJobClient) : IHandler<Guid, Task>
+    IBackgroundJobClient backgroundJobClient,
+    DistributedLockHelper distributedLockHelper) : IHandler<Guid, Task>
 {
+    private const string CorrespondenceStatusLockKeyPrefix = "correspondence_status_lock_";
+    
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    {
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        if (correspondence?.GetHighestStatus()?.Status == CorrespondenceStatus.Published)
+        {
+            logger.LogInformation("Correspondence {correspondenceId} is already published, skipping", correspondenceId);
+            return Task.CompletedTask;
+        }
+
+        // Use distributed lock to prevent race conditions with other instances leading to multiple publishes
+        string lockKey = CorrespondenceStatusLockKeyPrefix + correspondenceId;
+        bool lockAcquired = await distributedLockHelper.ExecuteWithLockAsync(
+            lockKey,
+            async (ct) => await ProcessWithLock(correspondenceId, user, ct),
+            retryCount: 5,
+            retryDelayMs: 1000,
+            cancellationToken: cancellationToken);
+            
+        if (!lockAcquired)
+        {
+            logger.LogError("Could not acquire lock for correspondence {correspondenceId}, publish may have been handled by another process", correspondenceId);
+            return Task.CompletedTask;
+        }
+        
+        return Task.CompletedTask;
+    }
+    
+    private async Task<OneOf<Task, Error>> ProcessWithLock(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Publish correspondence {correspondenceId}", correspondenceId);
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);

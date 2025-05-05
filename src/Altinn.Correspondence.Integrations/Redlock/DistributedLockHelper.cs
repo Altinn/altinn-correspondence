@@ -11,7 +11,7 @@ namespace Altinn.Correspondence.Integrations.Redlock
     {
         private readonly RedLockFactory _lockFactory;
         private readonly ILogger<DistributedLockHelper> _logger;
-        public const int DefaultRetryCount = 3;
+        public const int DefaultRetryCount = 5;
         public const int DefaultRetryDelayMs = 500;
         private const string LockKeyPrefix = "lock:";
 
