@@ -9,6 +9,7 @@ using Azure;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
+using System.Threading;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
@@ -35,20 +36,7 @@ namespace Altinn.Correspondence.Application.Helpers
             logger.LogInformation("Set attachment status of {attachmentId} to UploadProcessing", attachmentId);
             try
             {
-                var serviceOwnerId = await resourceRegistryService.GetServiceOwnerOrganizationId(attachment.ResourceId, cancellationToken);
-                if (serviceOwnerId is null)
-                {
-                    logger.LogError("Could not find service owner for resource {resourceId}", attachment.ResourceId);
-                    return AttachmentErrors.ResourceRegistryLookupFailed;
-                }
-
-                var serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwner(serviceOwnerId, cancellationToken);
-                if (serviceOwnerEntity == null)
-                {
-                    logger.LogError($"Could not find service owner entity for {serviceOwnerId} in database");
-                    //return AttachmentErrors.ServiceOwnerNotFound; // Future PR will add service owner registry as requirement when we have ensured that existing service owners have been provisioned
-                }
-                var storageProvider = serviceOwnerEntity?.GetStorageProvider(forMigration ? false : true);
+                var storageProvider = await GetStorageProvider(attachment, forMigration, cancellationToken);
                 var (dataLocationUrl, checksum, size) = await storageRepository.UploadAttachment(attachment, file, storageProvider, cancellationToken);
                 logger.LogInformation("Uploaded {attachmentId} to Azure Storage", attachmentId);
 
@@ -97,6 +85,32 @@ namespace Altinn.Correspondence.Application.Helpers
                 StatusChanged = currentStatus.StatusChanged,
                 StatusText = currentStatus.StatusText
             };
+        }
+
+        public async Task<StorageProviderEntity> GetStorageProvider(AttachmentEntity attachment, bool forMigration, CancellationToken cancellationToken)
+        {
+            ServiceOwnerEntity? serviceOwnerEntity = null;
+            if (forMigration)
+            {
+                var serviceOwnerShortHand = attachment.ResourceId.Split('-')[0];
+                serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwnerFromOrgCode(serviceOwnerShortHand.ToLower(), cancellationToken);
+            }
+            else
+            {
+                var serviceOwnerId = await resourceRegistryService.GetServiceOwnerOrganizationId(attachment.ResourceId, cancellationToken);
+                if (serviceOwnerId is null)
+                {
+                    logger.LogError("Could not find service owner for resource {resourceId}", attachment.ResourceId);
+                    return null;
+                }
+                serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwner(serviceOwnerId, cancellationToken);
+            }
+            if (serviceOwnerEntity == null)
+            {
+                logger.LogError($"Could not find service owner entity for {attachment.ResourceId} in database");
+                //return AttachmentErrors.ServiceOwnerNotFound; // Future PR will add service owner registry as requirement when we have ensured that existing service owners have been provisioned
+            }
+            return serviceOwnerEntity?.GetStorageProvider(forMigration ? false : true);
         }
         public async Task<AttachmentStatusEntity> SetAttachmentStatus(Guid attachmentId, AttachmentStatus status, Guid partyUuid, CancellationToken cancellationToken, string statusText = null)
         {
