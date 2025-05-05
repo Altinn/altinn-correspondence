@@ -21,6 +21,7 @@ namespace Altinn.Correspondence.Application.CancelNotification
         ISlackClient slackClient,
         IBackgroundJobClient backgroundJobClient,
         IHostEnvironment hostEnvironment,
+        IDialogportenService dialogportenService,
         SlackSettings slackSettings)
     {
         private string Channel => slackSettings.NotificationChannel;
@@ -61,7 +62,7 @@ namespace Altinn.Correspondence.Application.CancelNotification
                 }
                 else
                 {
-                    backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled));
+                    await dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled);
                 }
             }
         }
