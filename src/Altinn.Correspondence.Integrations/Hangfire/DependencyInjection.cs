@@ -27,7 +27,6 @@ public static class DependencyInjection
                 );
         });
 
-        // Disable Hangfire during migration in yt01
-        // services.AddHangfireServer(options => options.SchedulePollingInterval = TimeSpan.FromSeconds(2));
+        services.AddHangfireServer(options => options.SchedulePollingInterval = TimeSpan.FromSeconds(2));
     }
 }
