@@ -13,13 +13,10 @@ using Azure.ResourceManager.Network.Models;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Storage;
 using Azure.ResourceManager.Storage.Models;
-using Azure.Storage;
-using Azure.Storage.Sas;
 using Hangfire;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -30,18 +27,22 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
     private readonly AzureResourceManagerOptions _resourceManagerOptions;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly ArmClient _armClient;
-    private readonly ConcurrentDictionary<string, (DateTime Created, string Token)> _sasTokens =
-        new ConcurrentDictionary<string, (DateTime Created, string Token)>();
-    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
     private readonly TokenCredential _credentials;
     private readonly IServiceOwnerRepository _serviceOwnerRepository;
     private readonly IBackgroundJobClient _backgroundJobClient;
+    private readonly SasTokenCacheService _sasTokenCacheService;
     private readonly ILogger<AzureResourceManagerService> _logger;
     private string GetResourceGroupName(string serviceOwnerId) => $"serviceowner-{_resourceManagerOptions.Environment}-{serviceOwnerId.Replace(":", "-")}-rg";
 
     private SubscriptionResource GetSubscription() => _armClient.GetSubscriptionResource(new ResourceIdentifier($"/subscriptions/{_resourceManagerOptions.SubscriptionId}"));
 
-    public AzureResourceManagerService(IOptions<AzureResourceManagerOptions> resourceManagerOptions, IServiceOwnerRepository serviceOwnerRepository, IHostEnvironment hostingEnvironment, IBackgroundJobClient backgroundJobClient, ILogger<AzureResourceManagerService> logger)
+    public AzureResourceManagerService(
+        IOptions<AzureResourceManagerOptions> resourceManagerOptions,
+        IServiceOwnerRepository serviceOwnerRepository,
+        IHostEnvironment hostingEnvironment,
+        IBackgroundJobClient backgroundJobClient,
+        SasTokenCacheService sasTokenCacheService,
+        ILogger<AzureResourceManagerService> logger)
     {
         _resourceManagerOptions = resourceManagerOptions.Value;
         _hostEnvironment = hostingEnvironment;
@@ -49,6 +50,7 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
         _armClient = new ArmClient(_credentials);
         _serviceOwnerRepository = serviceOwnerRepository;
         _backgroundJobClient = backgroundJobClient;
+        _sasTokenCacheService = sasTokenCacheService;
         _logger = logger;
     }
 
@@ -153,7 +155,6 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
             .Select(s => s[random.Next(s.Length)]).ToArray());
         return "aibroker" + obfuscationString + "sa";
     }
-
     public async Task<string> GetStorageConnectionString(StorageProviderEntity storageProviderEntity)
     {
         _logger.LogInformation($"Retrieving connection string for storage provider {storageProviderEntity.Id}");
@@ -165,70 +166,10 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
         {
             throw new InvalidOperationException("Storage account has not been deployed");
         }
-        var sasToken = await GetSasToken(storageProviderEntity, storageProviderEntity.StorageResourceName);
+        var sasToken = await _sasTokenCacheService.GetSasToken(storageProviderEntity, storageProviderEntity.StorageResourceName);
         return $"BlobEndpoint=https://{storageProviderEntity.StorageResourceName}.blob.core.windows.net/attachments?{sasToken}";
     }
 
-
-    private async Task<string> GetSasToken(StorageProviderEntity storageProviderEntity, string storageAccountName)
-    {
-        if (_sasTokens.TryGetValue(storageAccountName, out (DateTime Created, string Token) sasToken) && sasToken.Created.AddHours(8) > DateTime.UtcNow)
-        {
-            _logger.LogInformation($"Got sas token from cache.");
-            return sasToken.Token;
-        }
-
-        _sasTokens.TryRemove(storageAccountName, out _);
-
-        await _semaphore.WaitAsync();
-        try
-        {
-            if (_sasTokens.TryGetValue(storageAccountName, out sasToken))
-            {
-                return sasToken.Token;
-            }
-            (DateTime Created, string Token) newSasToken = default;
-            newSasToken.Created = DateTime.UtcNow;
-            newSasToken.Token = await CreateSasToken(storageProviderEntity, storageAccountName);
-
-            _sasTokens.TryAdd(storageAccountName, newSasToken);
-
-            return newSasToken.Token;
-        }
-        finally
-        {
-            _semaphore.Release();
-        }
-    }
-    private async Task<string> CreateSasToken(StorageProviderEntity storageProviderEntity, string storageAccountName)
-    {
-        _logger.LogInformation($"Creating new SAS token for {storageProviderEntity.ServiceOwnerId}: {storageProviderEntity.StorageResourceName}");
-        var resourceGroupName = GetResourceGroupName(storageProviderEntity.ServiceOwnerId);
-        var subscription = GetSubscription();
-        var resourceGroupCollection = subscription.GetResourceGroups();
-        var resourceGroup = await resourceGroupCollection.GetAsync(resourceGroupName);
-        var storageAccountCollection = resourceGroup.Value.GetStorageAccounts();
-        var storageAccount = await storageAccountCollection.GetAsync(storageAccountName);
-        string accountKey = "";
-        var keys = storageAccount.Value.GetKeysAsync();
-        await using (var keyEnumerator = keys.GetAsyncEnumerator())
-        {
-            accountKey = await keyEnumerator.MoveNextAsync() ? keyEnumerator.Current.Value : "";
-        }
-        StorageSharedKeyCredential credential = new StorageSharedKeyCredential(storageAccountName, accountKey);
-        var containerName = "attachments";
-        BlobSasBuilder sasBuilder = new BlobSasBuilder()
-        {
-            BlobContainerName = containerName,
-            Resource = "c",
-            StartsOn = DateTimeOffset.UtcNow,
-            ExpiresOn = DateTimeOffset.UtcNow.AddHours(24),
-        };
-        sasBuilder.SetPermissions(BlobSasPermissions.Read | BlobSasPermissions.Create | BlobSasPermissions.List | BlobSasPermissions.Write | BlobSasPermissions.Delete);
-        string sasToken = sasBuilder.ToSasQueryParameters(credential).ToString();
-        _logger.LogInformation("SAS Token created");
-        return sasToken;
-    }
 
     public async Task UpdateContainerAppIpRestrictionsAsync(Dictionary<string, string> newIps, CancellationToken cancellationToken)
     {
