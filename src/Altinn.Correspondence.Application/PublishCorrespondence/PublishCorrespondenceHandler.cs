@@ -31,20 +31,28 @@ public class PublishCorrespondenceHandler(
     ISlackClient slackClient,
     SlackSettings slackSettings,
     IBackgroundJobClient backgroundJobClient,
-    DistributedLockHelper distributedLockHelper) : IHandler<Guid, Task>
+    HybridDistributedLockHelper hybridDistributedLockHelper) : IHandler<Guid, Task>
 {
     private const string CorrespondenceStatusLockKeyPrefix = "correspondence_status_lock_";
     
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        // Use distributed lock with conditional check to prevent race conditions
+        // Hybrid distributed lock with conditional check is used to prevent race conditions
         string lockKey = CorrespondenceStatusLockKeyPrefix + correspondenceId;
-        var (wasSkipped, lockAcquired) = await distributedLockHelper.ExecuteWithConditionalLockAsync(
+        
+        OneOf<Task, Error> result = Task.CompletedTask;
+        
+        async Task ExecuteAction(CancellationToken ct)
+        {
+            result = await ProcessWithLock(correspondenceId, user, ct);
+        }
+        
+        var (wasSkipped, lockAcquired) = await hybridDistributedLockHelper.ExecuteWithConditionalHybridLockAsync(
             lockKey,
             async (ct) => await IsAlreadyPublished(correspondenceId, ct),
-            async (ct) => await ProcessWithLock(correspondenceId, user, ct),
-            retryCount: 5,
-            retryDelayMs: 300,
+            ExecuteAction,
+            retryCount: 2,
+            retryDelayMs: 100,
             cancellationToken: cancellationToken);
 
         if (!lockAcquired && !wasSkipped)
@@ -59,7 +67,7 @@ public class PublishCorrespondenceHandler(
             }
         }
         
-        return Task.CompletedTask;
+        return result;
     }
 
     private async Task<bool> IsAlreadyPublished(Guid correspondenceId, CancellationToken cancellationToken)

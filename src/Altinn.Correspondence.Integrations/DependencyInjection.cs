@@ -67,6 +67,7 @@ public static class DependencyInjection
         
         services.AddSingleton<SlackSettings>();
         services.AddSingleton<DistributedLockHelper>();
+        services.AddSingleton<HybridDistributedLockHelper>();
     }
 
     public static void RegisterAltinnHttpClient<TClient, TImplementation>(this IServiceCollection services, MaskinportenSettings maskinportenSettings, AltinnOptions altinnOptions)
