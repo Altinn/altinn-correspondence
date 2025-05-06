@@ -37,35 +37,45 @@ public class PublishCorrespondenceHandler(
     
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
-        if (correspondence?.GetHighestStatus()?.Status == CorrespondenceStatus.Published)
-        {
-            logger.LogInformation("Correspondence {correspondenceId} is already published, skipping", correspondenceId);
-            return Task.CompletedTask;
-        }
-
-        // Use distributed lock to prevent race conditions with other instances leading to multiple publishes
+        // Use distributed lock with conditional check to prevent race conditions
         string lockKey = CorrespondenceStatusLockKeyPrefix + correspondenceId;
-        bool lockAcquired = await distributedLockHelper.ExecuteWithLockAsync(
+        var (wasSkipped, lockAcquired) = await distributedLockHelper.ExecuteWithConditionalLockAsync(
             lockKey,
+            async (ct) => await IsAlreadyPublished(correspondenceId, ct),
             async (ct) => await ProcessWithLock(correspondenceId, user, ct),
             retryCount: 5,
-            retryDelayMs: 1000,
+            retryDelayMs: 300,
             cancellationToken: cancellationToken);
-            
-        if (!lockAcquired)
+
+        if (!lockAcquired && !wasSkipped)
         {
-            logger.LogError("Could not acquire lock for correspondence {correspondenceId}, publish may have been handled by another process", correspondenceId);
-            return Task.CompletedTask;
+            if (await IsAlreadyPublished(correspondenceId, cancellationToken))
+            {
+                logger.LogInformation("Could not acquire lock for correspondence {correspondenceId}, publish has been handled by another process", correspondenceId);
+            }
+            else
+            {
+                logger.LogError("Could not acquire lock for correspondence {correspondenceId}, publish may have been handled by another process", correspondenceId);
+            }
         }
         
         return Task.CompletedTask;
+    }
+
+    private async Task<bool> IsAlreadyPublished(Guid correspondenceId, CancellationToken cancellationToken)
+    {
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        return correspondence?.GetHighestStatus()?.Status == CorrespondenceStatus.Published || correspondence?.GetHighestStatus()?.Status == CorrespondenceStatus.Failed;
     }
     
     private async Task<OneOf<Task, Error>> ProcessWithLock(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Publish correspondence {correspondenceId}", correspondenceId);
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        if (correspondence?.GetHighestStatus()?.Status == CorrespondenceStatus.Published || correspondence?.GetHighestStatus()?.Status == CorrespondenceStatus.Failed)
+        {
+            return Task.CompletedTask;
+        }
         var party = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
