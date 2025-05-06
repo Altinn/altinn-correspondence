@@ -9,7 +9,6 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
-using Altinn.Correspondence.Integrations.Redlock;
 using Altinn.Correspondence.Helpers;
 using Hangfire;
 using Microsoft.Extensions.Hosting;
@@ -30,60 +29,12 @@ public class PublishCorrespondenceHandler(
     IHostEnvironment hostEnvironment,
     ISlackClient slackClient,
     SlackSettings slackSettings,
-    IBackgroundJobClient backgroundJobClient,
-    HybridDistributedLockHelper hybridDistributedLockHelper) : IHandler<Guid, Task>
+    IBackgroundJobClient backgroundJobClient) : IHandler<Guid, Task>
 {
-    private const string CorrespondenceStatusLockKeyPrefix = "correspondence_status_lock_";
-    
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
-    {
-        // Hybrid distributed lock with conditional check is used to prevent race conditions
-        string lockKey = CorrespondenceStatusLockKeyPrefix + correspondenceId;
-        
-        OneOf<Task, Error> result = Task.CompletedTask;
-        
-        async Task ExecuteAction(CancellationToken ct)
-        {
-            result = await ProcessWithLock(correspondenceId, user, ct);
-        }
-        
-        var (wasSkipped, lockAcquired) = await hybridDistributedLockHelper.ExecuteWithConditionalHybridLockAsync(
-            lockKey,
-            async (ct) => await IsAlreadyPublished(correspondenceId, ct),
-            ExecuteAction,
-            retryCount: 2,
-            retryDelayMs: 100,
-            cancellationToken: cancellationToken);
-
-        if (!lockAcquired && !wasSkipped)
-        {
-            if (await IsAlreadyPublished(correspondenceId, cancellationToken))
-            {
-                logger.LogInformation("Could not acquire lock for correspondence {correspondenceId}, publish has been handled by another process", correspondenceId);
-            }
-            else
-            {
-                logger.LogError("Could not acquire lock for correspondence {correspondenceId}, publish may have been handled by another process", correspondenceId);
-            }
-        }
-        
-        return result;
-    }
-
-    private async Task<bool> IsAlreadyPublished(Guid correspondenceId, CancellationToken cancellationToken)
-    {
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
-        return correspondence?.GetHighestStatus()?.Status == CorrespondenceStatus.Published || correspondence?.GetHighestStatus()?.Status == CorrespondenceStatus.Failed;
-    }
-    
-    private async Task<OneOf<Task, Error>> ProcessWithLock(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Publish correspondence {correspondenceId}", correspondenceId);
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
-        if (correspondence?.GetHighestStatus()?.Status == CorrespondenceStatus.Published || correspondence?.GetHighestStatus()?.Status == CorrespondenceStatus.Failed)
-        {
-            return Task.CompletedTask;
-        }
         var party = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
