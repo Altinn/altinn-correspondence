@@ -54,46 +54,57 @@ public class CreateNotificationHandler(
                 cancellationToken, 
                 request.Language);
 
-            // Create notifications
-            var notificationRequests = await CreateNotificationRequests(
-                request.NotificationRequest, 
-                correspondence, 
-                notificationContents, 
-                cancellationToken);
-
-            foreach (var notificationRequest in notificationRequests)
-            {
-                var notificationResponse = await altinnNotificationService.CreateNotification(notificationRequest, cancellationToken);
-                
-                if (notificationResponse is null )
-                {
-                    backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceNotificationCreationFailed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-                }
-                else {
-                    var entity = new CorrespondenceNotificationEntity()
-                    {
-                        Created = DateTimeOffset.UtcNow,
-                        NotificationChannel = request.NotificationRequest.NotificationChannel,
-                        NotificationTemplate = request.NotificationRequest.NotificationTemplate,
-                        CorrespondenceId = correspondence.Id,
-                        NotificationOrderId = notificationResponse.OrderId,
-                        RequestedSendTime = notificationRequest.RequestedSendTime,
-                        IsReminder = notificationRequest.RequestedSendTime != notificationRequests[0].RequestedSendTime,
-                        OrderRequest = JsonSerializer.Serialize(notificationRequest)
-                    };
-
-                    await correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
-                    // Create information activity in Dialogporten
-                    await hangfireScheduleHelper.CreateActivityAfterDialogCreated(correspondence.Id, notificationRequest);
-
-                    backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.NotificationCreated, notificationRequest.ResourceId, notificationResponse.OrderId.ToString(), "notification", correspondence.Sender, CancellationToken.None));        
-                }
-            }
+            // await CreateNotificationsV1(request.NotificationRequest, correspondence, notificationContents, cancellationToken);
+            await CreateNotificationV2(request.NotificationRequest, correspondence, notificationContents, cancellationToken);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to create notifications for correspondence {CorrespondenceId}", request.CorrespondenceId);
             throw;
+        }
+    }
+
+    private async Task CreateNotificationsV1(
+        NotificationRequest notificationRequest,
+        CorrespondenceEntity correspondence,
+        List<NotificationContent> notificationContents,
+        CancellationToken cancellationToken)
+    {
+        // Create notification requests
+        var notificationRequests = await CreateNotificationRequestsV1(
+            notificationRequest,
+            correspondence,
+            notificationContents,
+            cancellationToken);
+
+        foreach (var request in notificationRequests)
+        {
+            var notificationResponse = await altinnNotificationService.CreateNotification(request, cancellationToken);
+            
+            if (notificationResponse is null)
+            {
+                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceNotificationCreationFailed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+            }
+            else
+            {
+                var entity = new CorrespondenceNotificationEntity()
+                {
+                    Created = DateTimeOffset.UtcNow,
+                    NotificationChannel = notificationRequest.NotificationChannel,
+                    NotificationTemplate = notificationRequest.NotificationTemplate,
+                    CorrespondenceId = correspondence.Id,
+                    NotificationOrderId = notificationResponse.OrderId,
+                    RequestedSendTime = request.RequestedSendTime,
+                    IsReminder = request.RequestedSendTime != notificationRequests[0].RequestedSendTime,
+                    OrderRequest = JsonSerializer.Serialize(request)
+                };
+
+                await correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
+                // Create information activity in Dialogporten
+                await hangfireScheduleHelper.CreateActivityAfterDialogCreated(correspondence.Id, request);
+
+                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.NotificationCreated, request.ResourceId, notificationResponse.OrderId.ToString(), "notification", correspondence.Sender, CancellationToken.None));
+            }
         }
     }
 
@@ -116,7 +127,7 @@ public class CreateNotificationHandler(
         content.ReminderSmsBody = content.ReminderSmsBody?.Replace("$correspondenceRecipientName$", recipientName);
     }
 
-    private async Task<List<NotificationOrderRequest>> CreateNotificationRequests(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
+    private async Task<List<NotificationOrderRequest>> CreateNotificationRequestsV1(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
     {
         var notifications = new List<NotificationOrderRequest>();
         string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
@@ -244,7 +255,167 @@ public class CreateNotificationHandler(
         return message.Replace("{textToken}", token + " ").Trim();
     }
 
+    private async Task<NotificationOrderRequestV2> CreateNotificationRequestsV2(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
+    {
+        string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
+        bool isOrganization = recipientWithoutPrefix.IsOrganizationNumber();
+        bool isPerson = recipientWithoutPrefix.IsSocialSecurityNumber();
 
+        var recipientOverrides = notification.CustomNotificationRecipients ?? [];
+        var newRecipients = new List<Recipient>();
+        foreach (var recipientOverride in recipientOverrides)
+        {
+            newRecipients.AddRange(recipientOverride.Recipients.Select(r => new Recipient
+            {
+                EmailAddress = r.EmailAddress,
+                MobileNumber = r.MobileNumber,
+                IsReserved = r.IsReserved,
+                OrganizationNumber = r.OrganizationNumber,
+                NationalIdentityNumber = r.NationalIdentityNumber
+            }));
+        }
+
+        NotificationContent? content = null;
+        if (isOrganization)
+        {
+            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Organization) ?? contents.FirstOrDefault(c => c.RecipientType == null);
+        }
+        else if (isPerson)
+        {
+            content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person) ?? contents.FirstOrDefault(c => c.RecipientType == null);
+        }
+        await SetRecipientNameOnNotificationContent(content, correspondence.Recipient, cancellationToken);
+
+        var ResourceIdWithPrefix = "urn:altinn:resource:" + correspondence.ResourceId;
+
+        var notificationOrder = new NotificationOrderRequestV2
+        {
+            SendersReference = correspondence.SendersReference,
+            RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow 
+                ? DateTime.UtcNow.AddMinutes(5) 
+                : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
+            IdempotencyId = Guid.CreateVersion7(),
+            Recipient = new RecipientV2
+            {
+                RecipientOrganization = isOrganization ? new RecipientOrganization
+                {
+                    OrgNumber = recipientWithoutPrefix,
+                    ResourceId = ResourceIdWithPrefix,
+                    ChannelSchema = notification.NotificationChannel.ToString(),
+                    EmailSettings = !string.IsNullOrWhiteSpace(content.EmailSubject) && !string.IsNullOrWhiteSpace(content.EmailBody) ? new EmailSettings
+                    {
+                        Subject = content.EmailSubject,
+                        Body = content.EmailBody
+                    } : null,
+                    SmsSettings = !string.IsNullOrWhiteSpace(content.SmsBody) ? new SmsSettings
+                    {
+                        Body = content.SmsBody
+                    } : null
+                } : null,
+                RecipientPerson = isPerson ? new RecipientPerson
+                {
+                    ResourceId = ResourceIdWithPrefix,
+                    ChannelSchema = notification.NotificationChannel,
+                    EmailSettings = !string.IsNullOrWhiteSpace(content.EmailSubject) && !string.IsNullOrWhiteSpace(content.EmailBody) ? new EmailSettings
+                    {
+                        Subject = content.EmailSubject,
+                        Body = content.EmailBody
+                    } : null,
+                    SmsSettings = !string.IsNullOrWhiteSpace(content.SmsBody) ? new SmsSettings
+                    {
+                        Body = content.SmsBody
+                    } : null
+                } : null
+            }
+        };
+
+        if (notification.SendReminder)
+        {
+            notificationOrder.Reminders = new List<ReminderV2>
+            {
+                new ReminderV2
+                {
+                    SendersReference = correspondence.SendersReference,
+                    DelayDays = hostEnvironment.IsProduction() ? 7 : 1,
+                    Recipient = new RecipientV2
+                    {
+                        RecipientOrganization = isOrganization ? new RecipientOrganization
+                        {
+                            OrgNumber = recipientWithoutPrefix,
+                            ResourceId = ResourceIdWithPrefix,
+                            ChannelSchema = (notification.ReminderNotificationChannel ?? notification.NotificationChannel).ToString(),
+                            EmailSettings = !string.IsNullOrWhiteSpace(content.ReminderEmailSubject) && !string.IsNullOrWhiteSpace(content.ReminderEmailBody) ? new EmailSettings
+                            {
+                                Subject = content.ReminderEmailSubject,
+                                Body = content.ReminderEmailBody
+                            } : null,
+                            SmsSettings = !string.IsNullOrWhiteSpace(content.ReminderSmsBody) ? new SmsSettings
+                            {
+                                Body = content.ReminderSmsBody
+                            } : null
+                        } : null,
+                        RecipientPerson = isPerson ? new RecipientPerson
+                        {
+                            ResourceId = ResourceIdWithPrefix,
+                            ChannelSchema = notification.ReminderNotificationChannel ?? notification.NotificationChannel,
+                            EmailSettings = !string.IsNullOrWhiteSpace(content.ReminderEmailSubject) && !string.IsNullOrWhiteSpace(content.ReminderEmailBody) ? new EmailSettings
+                            {
+                                Subject = content.ReminderEmailSubject,
+                                Body = content.ReminderEmailBody
+                            } : null,
+                            SmsSettings = !string.IsNullOrWhiteSpace(content.ReminderSmsBody) ? new SmsSettings
+                            {
+                                Body = content.ReminderSmsBody
+                            } : null
+                        } : null
+                    }
+                }
+            };
+        }
+
+        return notificationOrder;
+    }
+
+    private async Task CreateNotificationV2(
+        NotificationRequest notificationRequest,
+        CorrespondenceEntity correspondence,
+        List<NotificationContent> notificationContents,
+        CancellationToken cancellationToken)
+    {
+        // Create notification request
+        var notificationRequestV2 = await CreateNotificationRequestsV2(
+            notificationRequest,
+            correspondence,
+            notificationContents,
+            cancellationToken);
+
+        var notificationResponse = await altinnNotificationService.CreateNotificationV2(notificationRequestV2, cancellationToken);
+        
+        if (notificationResponse is null)
+        {
+            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceNotificationCreationFailed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+        }
+        else
+        {
+            var entity = new CorrespondenceNotificationEntity()
+            {
+                Created = DateTimeOffset.UtcNow,
+                NotificationChannel = notificationRequest.NotificationChannel,
+                NotificationTemplate = notificationRequest.NotificationTemplate,
+                CorrespondenceId = correspondence.Id,
+                NotificationOrderId = notificationResponse.OrderId,
+                RequestedSendTime = DateTimeOffset.UtcNow,
+                IsReminder = false, // In V2, we don't need to track reminders separately as they're part of the same request
+                OrderRequest = JsonSerializer.Serialize(notificationRequestV2)
+            };
+
+            await correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
+            // Create information activity in Dialogporten
+            await hangfireScheduleHelper.CreateActivityAfterDialogCreated(correspondence.Id, notificationRequestV2);
+
+            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.NotificationCreated, correspondence.ResourceId, notificationResponse.OrderId.ToString(), "notification", correspondence.Sender, CancellationToken.None));
+        }
+    }
 
     internal class NotificationContent
     {

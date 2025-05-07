@@ -27,6 +27,16 @@ public class AltinnDevNotificationService : IAltinnNotificationService
         };
     }
 
+    public async Task<NotificationOrderRequestResponse?> CreateNotificationV2(NotificationOrderRequestV2 notificationRequest, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Notification (versjon 2): ");
+        return new NotificationOrderRequestResponse()
+        {
+            OrderId = Guid.NewGuid(),
+            RecipientLookup = new RecipientLookupResult()
+        };
+    }
+
     public async Task<bool> CancelNotification(string orderId, CancellationToken cancellationToken = default)
     {
         return true;
