@@ -37,56 +37,6 @@ namespace Altinn.Correspondence.Integrations.Redlock
         }
 
         /// <summary>
-        /// Acquires a distributed lock and executes the action if successful.
-        /// The lock is released automatically when the action is completed.
-        /// </summary>
-        /// <param name="lockKey">The unique key for the lock</param>
-        /// <param name="action">The action to execute if lock is acquired</param>
-        /// <param name="retryCount">Number of retries if lock acquisition fails (default: 3)</param>
-        /// <param name="retryDelayMs">Delay between retries in milliseconds (default: 500)</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>True if lock was acquired and action executed; false otherwise</returns>
-        public async Task<bool> ExecuteWithLockAsync(
-            string lockKey, 
-            Func<CancellationToken, Task> action,
-            int retryCount = DefaultRetryCount,
-            int retryDelayMs = DefaultRetryDelayMs,
-            int lockExpirySeconds = DefaultLockExpirySeconds,
-            CancellationToken cancellationToken = default)
-        {
-            var prefixedKey = $"{LockKeyPrefix}{lockKey}";
-            var expiryTime = TimeSpan.FromSeconds(lockExpirySeconds);
-            var waitTime = TimeSpan.FromMilliseconds(retryCount * retryDelayMs);
-            var retryTime = TimeSpan.FromMilliseconds(retryDelayMs);
-            
-            using var redLock = await _lockFactory.CreateLockAsync(
-                resource: prefixedKey,
-                expiryTime: expiryTime,
-                waitTime: waitTime,
-                retryTime: retryTime,
-                cancellationToken: cancellationToken);
-            
-            if (!redLock.IsAcquired)
-            {
-                _logger.LogWarning("Could not acquire lock for key {lockKey} after {retryCount} attempts", 
-                    lockKey, retryCount);
-                return false;
-            }
-
-            try
-            {
-                _logger.LogDebug("Lock acquired for key {lockKey}", lockKey);
-                await action(cancellationToken);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error executing action with lock for key {lockKey}", lockKey);
-                throw;
-            }
-        }
-
-        /// <summary>
         /// Attempts to acquire a distributed lock to exequte the action, first checking a condition before each attempt.
         /// If the condition returns true (indicating no work is needed), the method returns early without executing the action.
         /// The lock is released automatically when the action is completed.
