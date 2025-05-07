@@ -57,26 +57,14 @@ namespace Altinn.Correspondence.Integrations.Redlock
             int lockExpirySeconds = DefaultLockExpirySeconds,
             CancellationToken cancellationToken = default)
         {
-            if (await shouldSkipCheck(cancellationToken))
-            {
-                _logger.LogDebug("Skipping lock acquisition for key {lockKey} based on condition check", lockKey);
-                return (wasSkipped: true, lockAcquired: false);
-            }
-            
             var prefixedKey = $"{LockKeyPrefix}{lockKey}";
             var expiryTime = TimeSpan.FromSeconds(lockExpirySeconds);
             
             for (int attempt = 0; attempt <= retryCount; attempt++)
             {
-                if (attempt > 0)
+                if (await shouldSkipCheck(cancellationToken))
                 {
-                    if (await shouldSkipCheck(cancellationToken))
-                    {
-                        _logger.LogDebug("Skipping lock acquisition for key {lockKey} based on condition check before retry #{attempt}", lockKey, attempt);
-                        return (wasSkipped: true, lockAcquired: false);
-                    }
-                    
-                    await Task.Delay(retryDelayMs, cancellationToken);
+                    return (wasSkipped: true, lockAcquired: false);
                 }
 
                 using var redLock = await _lockFactory.CreateLockAsync(
@@ -88,6 +76,10 @@ namespace Altinn.Correspondence.Integrations.Redlock
 
                 if (redLock.IsAcquired)
                 {
+                    if (await shouldSkipCheck(cancellationToken))
+                    {
+                        return (wasSkipped: true, lockAcquired: true);
+                    }
                     try
                     {
                         _logger.LogDebug("Lock acquired for key {lockKey} on attempt #{attempt}", lockKey, attempt);
@@ -101,7 +93,11 @@ namespace Altinn.Correspondence.Integrations.Redlock
                     }
                 }
 
-                _logger.LogDebug("Failed to acquire lock for key {lockKey} on attempt #{attempt}, will retry", lockKey, attempt);
+                if (attempt != retryCount)
+                {
+                    _logger.LogDebug("Failed to acquire lock for key {lockKey} on attempt #{attempt}, will retry", lockKey, attempt);
+                    await Task.Delay(retryDelayMs, cancellationToken);
+                }
             }
 
             _logger.LogWarning("Could not acquire lock for key {lockKey} after {retryCount} attempts", lockKey, retryCount);
