@@ -38,10 +38,11 @@ public class PublishCorrespondenceHandler(
     {
         var lockKey = $"publish-correspondence-{correspondenceId}";
 
+        OneOf<Task, Error>? innerResult = null;
         var (wasSkipped, lockAcquired) = await DistributedLockHelper.ExecuteWithConditionalLockAsync(
             lockKey, 
             async (cancellationToken) => await ShouldSkipCheck(correspondenceId, cancellationToken),
-            async (cancellationToken) => await ProcessWithLock(correspondenceId, user, cancellationToken),
+            async (cancellationToken) => innerResult = await ProcessWithLock(correspondenceId, user, cancellationToken),
             DistributedLockHelper.DefaultRetryCount,
             DistributedLockHelper.DefaultRetryDelayMs,
             DistributedLockHelper.DefaultLockExpirySeconds,
@@ -52,7 +53,7 @@ public class PublishCorrespondenceHandler(
             return Task.CompletedTask;
         }
 
-        return await ProcessWithLock(correspondenceId, user, cancellationToken);
+        return innerResult ?? Task.CompletedTask;
     }
 
     public async Task<bool> ShouldSkipCheck(Guid correspondenceId, CancellationToken cancellationToken)
