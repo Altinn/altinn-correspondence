@@ -28,7 +28,7 @@ namespace Altinn.Correspondence.Integrations.Redlock
             
             if (string.IsNullOrEmpty(redisConnectionString))
             {
-                throw new InvalidOperationException("Redis connection string not found. Please add 'RedisConnectionString' to GeneralSettings in your configuration or set the 'GeneralSettings__RedisConnectionString' environment variable.");
+                throw new InvalidOperationException("Redis connection string not found");
             }
 
             try
