@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.CancelNotification;
 using Altinn.Correspondence.Application.CheckNotification;
 using Altinn.Correspondence.Application.DownloadAttachment;
 using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
@@ -49,6 +50,7 @@ public static class DependencyInjection
         services.AddScoped<MalwareScanResultHandler>();
         services.AddScoped<CheckNotificationHandler>();
         services.AddScoped<ProcessLegacyPartyHandler>();
+        services.AddScoped<CancelNotificationHandler>();
 
         // Helpers
         services.AddScoped<AttachmentHelper>();
