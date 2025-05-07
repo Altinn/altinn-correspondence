@@ -285,6 +285,10 @@ public class InitializeCorrespondencesHandler(
                     }
                 }
             }
+            if (request.Correspondence.Content.Attachments.Count > 0 && await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+            {
+                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence, cancellationToken);
+            }
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {
                 CorrespondenceId = correspondence.Id,
