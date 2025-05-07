@@ -95,7 +95,7 @@ public class PurgeCorrespondenceHelper(
         backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
         await CheckAndPurgeAttachments(correspondence.Id, partyUuid, cancellationToken);
         await ReportActivityToDialogporten(isSender: isSender, correspondence.Id);
-        await CancelNotification(correspondence.Id, cancellationToken);
+        await cancelNotificationHandler.CancelNotification(correspondence.Id, correspondence.Notifications, 0, cancellationToken);
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
         if (dialogId is not null)
         {
@@ -108,10 +108,5 @@ public class PurgeCorrespondenceHelper(
         var actorType = isSender ? DialogportenActorType.Sender : DialogportenActorType.Recipient;
         var actorName = isSender ? "avsender" : "mottaker";
         await dialogportenService.CreateCorrespondencePurgedActivity(correspondenceId, actorType, actorName);
-    }
-
-    public async Task CancelNotification(Guid correspondenceId, CancellationToken cancellationToken)
-    {
-        await cancelNotificationHandler.Process(null, correspondenceId, null, cancellationToken);
     }
 }

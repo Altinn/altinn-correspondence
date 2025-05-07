@@ -37,7 +37,7 @@ namespace Altinn.Correspondence.Application.CancelNotification
             var notificationEntities = correspondence?.Notifications ?? [];
             await CancelNotification(correspondenceId, notificationEntities, retryAttempts, cancellationToken);
         }
-        internal async Task CancelNotification(Guid correspondenceId, List<CorrespondenceNotificationEntity> notificationEntities, int retryAttempts, CancellationToken cancellationToken)
+        public async Task CancelNotification(Guid correspondenceId, List<CorrespondenceNotificationEntity> notificationEntities, int retryAttempts, CancellationToken cancellationToken)
         {
             var env = hostEnvironment.EnvironmentName;
             var error = $"Error while attempting to cancel notifications for correspondenceId: {correspondenceId} in environment: {env}.";
