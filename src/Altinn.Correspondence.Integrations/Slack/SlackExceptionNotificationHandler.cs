@@ -7,125 +7,105 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using Altinn.Correspondence.Core.Options;
+using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Integrations.Slack;
-public class SlackExceptionNotificationHandler(
-    ILogger<SlackExceptionNotificationHandler> logger,
-    ISlackClient slackClient,
-    IProblemDetailsService problemDetailsService,
-    IHostEnvironment hostEnvironment,
-    SlackSettings slackSettings) : IExceptionHandler
+
+public class SlackExceptionNotificationHandler : IExceptionHandler
 {
-    private string Channel => slackSettings.NotificationChannel;
+    private readonly ILogger<SlackExceptionNotificationHandler> _logger;
+    private readonly IProblemDetailsService _problemDetailsService;
+    private readonly IHostEnvironment _hostEnvironment;
+    private readonly ISlackClient _slackClient;
+    private readonly SlackSettings _slackSettings;
+    private readonly ErrorAggregationService _errorAggregationService;
+
+    public SlackExceptionNotificationHandler(
+        ILogger<SlackExceptionNotificationHandler> logger,
+        IProblemDetailsService problemDetailsService,
+        IHostEnvironment hostEnvironment,
+        ISlackClient slackClient,
+        IOptions<SlackSettings> slackSettings,
+        ErrorAggregationService errorAggregationService)
+    {
+        _logger = logger;
+        _problemDetailsService = problemDetailsService;
+        _hostEnvironment = hostEnvironment;
+        _slackClient = slackClient;
+        _slackSettings = slackSettings.Value;
+        _errorAggregationService = errorAggregationService;
+    }
 
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,
         CancellationToken cancellationToken)
     {
-        var exceptionMessage = FormatExceptionMessage(exception, httpContext);
+        var message = exception.Message;
+        var source = GetErrorSource(httpContext);
+        var (shouldSend, count) = await _errorAggregationService.ShouldSendNotification(message, exception, source);
 
-        logger.LogError(
-            exception,
-            "Unhandled exception occurred. Type: {ExceptionType}, Message: {Message}, Path: {Path}",
-            exception.GetType().Name,
-            exception.Message,
-            httpContext.Request.Path);
-
-        try
+        if (shouldSend)
         {
-            await SendSlackNotificationWithMessage(exceptionMessage);
-            var statusCode = HttpStatusCode.InternalServerError;
-            var problemDetails = new ProblemDetails
-            {
-                Status = (int) statusCode,
-                Title = "Internal Server Error",
-                Type = "https://tools.ietf.org/html/rfc9110#section-15.6.1",
-                Detail = hostEnvironment.IsDevelopment() ? exception.Message : "",
-                Instance = httpContext.Request.Path
-            };
-            var traceId = Activity.Current?.Id ?? httpContext.TraceIdentifier;
-            problemDetails.Extensions["traceId"] = traceId;
-
-            await problemDetailsService.WriteAsync(new ProblemDetailsContext
-            {
-                HttpContext = httpContext,
-                ProblemDetails = problemDetails
-            });
-
-            return true;
+            await SendSlackNotificationWithMessage(message, exception, count, source);
         }
-        catch (Exception slackEx)
-        {
-            logger.LogError(
-                slackEx,
-                "Failed to send Slack notification");
-            return true;
-        }
+
+        return false;
     }
 
-    public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, CancellationToken cancellationToken)
+    public async ValueTask<bool> TryHandleAsync(
+        string jobId,
+        string jobName,
+        Exception exception,
+        CancellationToken cancellationToken)
     {
-        var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception);
+        var message = $"Job {jobName} ({jobId}) failed: {exception.Message}";
+        var source = $"Job: {jobName}";
+        var (shouldSend, count) = await _errorAggregationService.ShouldSendNotification(message, exception, source);
+        
+        if (shouldSend)
+        {
+            await SendSlackNotificationWithMessage(message, exception, count, source);
+        }
 
-        logger.LogError(
-            exception,
-            "Unhandled exception occurred. Job ID: {JobId}, Job Name: {JobName}, Type: {ExceptionType}, Message: {Message}",
-            jobId,
-            jobName,
-            exception.GetType().Name,
-            exception.Message);
+        return false;
+    }
+
+    private async Task SendSlackNotificationWithMessage(string message, Exception exception, int count, string source)
+    {
+        var environment = _hostEnvironment.IsDevelopment() ? "Development" : "Production";
+        var timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC");
+        var stackTrace = exception.StackTrace ?? "No stack trace available";
+        var channel = _hostEnvironment.IsDevelopment() ? "#test-varslinger" : "#mf-varsling-critical";
+        var errorType = exception.GetType().Name;
 
         var slackMessage = new SlackMessage
         {
-            Text = exceptionMessage,
-            Channel = Channel
+            Channel = channel,
+            Text = $"🚨 *Error in {environment}*\n" +
+                   $"*Time:* {timestamp}\n" +
+                   $"*Error Type:* {errorType}\n" +
+                   $"*Error Count:* {count}\n" +
+                   $"*Source:* {source}\n" +
+                   $"*Message:* {message}\n" +
+                   $"*Stack Trace:*\n```{stackTrace}```"
         };
 
         try
         {
-            await SendSlackNotificationWithMessage(exceptionMessage);
-            return true;
+            await _slackClient.PostAsync(slackMessage);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to send Slack notification");
-            return false;
+            _logger.LogError(ex, "Failed to send Slack notification");
         }
-    }   
-
-    private string FormatExceptionMessage(Exception exception, HttpContext context)
-    {
-        return $":warning: *Unhandled Exception*\n" +
-               $"*Environment:* {hostEnvironment.EnvironmentName}\n" +
-               $"*System:* Correspondence\n" +
-               $"*Type:* {exception.GetType().Name}\n" +
-               $"*Message:* {exception.Message}\n" +
-               $"*Path:* {context.Request.Path}\n" +
-               $"*Time:* {DateTime.UtcNow:u}\n" +
-               $"*Stacktrace:* \n{exception.StackTrace}";
     }
 
-    private string FormatExceptionMessage(string jobId, string jobName, Exception exception)
+    private string GetErrorSource(HttpContext httpContext)
     {
-        return $":warning: *Unhandled Exception*\n" +
-                $"*Environment:* {hostEnvironment.EnvironmentName}\n" +
-                $"*Job ID:* {jobId}\n" +
-                $"*Job Name:* {jobName}\n" +
-                $"*Type:* {exception.GetType().Name}\n" +
-                $"*Message:* {exception.Message}\n" +
-                $"*Stacktrace:* \n{exception.StackTrace}\n" + 
-                $"*InnerStacktrace:* \n{exception.InnerException?.StackTrace}";
-    }
-    
-
-    private async Task SendSlackNotificationWithMessage(string message)
-    {
-        var slackMessage = new SlackMessage
-        {
-            Text = message,
-            Channel = Channel,
-        };
-        await slackClient.PostAsync(slackMessage);
+        var path = httpContext.Request.Path.Value ?? "Unknown";
+        var method = httpContext.Request.Method;
+        return $"{method} {path}";
     }
 }

@@ -3,6 +3,8 @@ using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
+namespace Altinn.Correspondence.Integrations.Slack;
+
 public class SlackNotificationService
 {
     private readonly HttpClient _httpClient;
@@ -12,7 +14,7 @@ public class SlackNotificationService
     public SlackNotificationService(IConfiguration configuration, ILogger<SlackNotificationService> logger)
     {
         _httpClient = new HttpClient();
-        _slackWebhookUrl = configuration["Slack:WebhookUrl"]; // Read from appsettings.json
+        _slackWebhookUrl = configuration["GeneralSettings:SlackUrl"];
         _logger = logger;
     }
 
