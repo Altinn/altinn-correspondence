@@ -287,7 +287,12 @@ public class InitializeCorrespondencesHandler(
             }
             if (request.Correspondence.Content.Attachments.Count > 0 && await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
             {
-                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence, cancellationToken);
+                //the hybridcachewrapper.GetOrCreateAsync should be race condition safe
+                await hybridCacheWrapper.GetOrCreateAsync<string?>($"PublishCorrespondenceAfterAttachmentScans_{correspondence.Id}", async (token) =>
+                {
+                    await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence, cancellationToken);
+                    return null;
+                }, cancellationToken: cancellationToken);
             }
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {

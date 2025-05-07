@@ -16,6 +16,7 @@ using Microsoft.Extensions.Logging;
 using OneOf;
 using Slack.Webhooks;
 using System.Security.Claims;
+using Altinn.Correspondence.Common.Caching;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
 
@@ -29,6 +30,7 @@ public class PublishCorrespondenceHandler(
     IHostEnvironment hostEnvironment,
     ISlackClient slackClient,
     SlackSettings slackSettings,
+    IHybridCacheWrapper hybridCacheWrapper,
     IBackgroundJobClient backgroundJobClient) : IHandler<Guid, Task>
 {
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -136,6 +138,7 @@ public class PublishCorrespondenceHandler(
             await correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
             backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
             if (status.Status == CorrespondenceStatus.Published) backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, CancellationToken.None));
+            await hybridCacheWrapper.RemoveAsync($"PublishCorrespondenceAfterAttachmentScans_{correspondence.Id}", cancellationToken);
             return Task.CompletedTask;
         }, logger, cancellationToken);
     }
