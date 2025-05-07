@@ -31,9 +31,17 @@ namespace Altinn.Correspondence.Integrations.Redlock
                 throw new InvalidOperationException("Redis connection string not found. Please add 'RedisConnectionString' to GeneralSettings in your configuration or set the 'GeneralSettings__RedisConnectionString' environment variable.");
             }
 
-            var connectionMultiplexer = ConnectionMultiplexer.Connect(redisConnectionString);
-            var multiplexers = new List<RedLockMultiplexer> { new RedLockMultiplexer(connectionMultiplexer) };
-            _lockFactory = RedLockFactory.Create(multiplexers);
+            try
+            {
+                var connectionMultiplexer = ConnectionMultiplexer.Connect(redisConnectionString);
+                var multiplexers = new List<RedLockMultiplexer> { new RedLockMultiplexer(connectionMultiplexer) };
+                _lockFactory = RedLockFactory.Create(multiplexers);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to connect to Redis using the provided connection string");
+                throw new InvalidOperationException("Failed to establish Redis connection. See inner exception for details.", ex);
+            }
         }
 
         /// <summary>
