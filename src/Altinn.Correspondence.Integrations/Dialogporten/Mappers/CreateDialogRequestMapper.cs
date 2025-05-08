@@ -100,14 +100,14 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static List<SearchTag> AddSearchTagIfValid(List<SearchTag> list, string? searchTag)
         {
-            if (string.IsNullOrWhiteSpace(searchTag) || searchTag.Length < 3)
+            if (string.IsNullOrWhiteSpace(searchTag) || searchTag.Trim().Length < 3)
             {
                 return list;
             }
             list.Add(
                 new SearchTag()
                 {
-                    Value = searchTag
+                    Value = searchTag.Trim()
                 }
             );
             return list;
@@ -292,7 +292,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             return correspondence.Content?.Attachments.Select((attachment, index) => new Attachment
             {
-                Id = index.ToString(),
+                Id = Guid.CreateVersion7().ToString(),
                 DisplayName = new List<DisplayName>
                 {
                     new DisplayName
