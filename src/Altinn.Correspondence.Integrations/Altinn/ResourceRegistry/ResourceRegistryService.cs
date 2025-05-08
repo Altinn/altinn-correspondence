@@ -1,13 +1,13 @@
-﻿using System.Net;
-using System.Net.Http.Json;
-using Altinn.Correspondence.Common.Caching;
+﻿using Altinn.Correspondence.Common.Caching;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Options;
+using Altinn.Correspondence.Core.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Altinn.Correspondence.Common.Helpers;
-using Altinn.Correspondence.Core.Services;
-using Microsoft.Extensions.Caching.Hybrid;
+using System.Net;
+using System.Net.Http.Json;
 
 namespace Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 public class ResourceRegistryService : IResourceRegistryService
@@ -45,6 +45,16 @@ public class ResourceRegistryService : IResourceRegistryService
             return null;
         }
         return GetNameOfResourceResponse(altinnResourceResponse);
+    }
+
+    public async Task<string> GetServiceOwnerOrganizationId(string resourceId, CancellationToken cancellationToken)
+    {
+        var altinnResourceResponse = await GetResource(resourceId, cancellationToken);
+        if (altinnResourceResponse is null)
+        {
+            return null;
+        }
+        return altinnResourceResponse.HasCompetentAuthority.Organization ?? string.Empty;
     }
 
     private async Task<GetResourceResponse?> GetResource(string resourceId, CancellationToken cancellationToken)
