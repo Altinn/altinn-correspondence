@@ -28,7 +28,7 @@ public static class DependencyInjection
         config.GetSection(nameof(MaskinportenSettings)).Bind(maskinportenSettings);
         var generalSettings = new GeneralSettings();
         config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
-        services.AddSingleton<IResourceManager, AzureResourceManagerService>();
+        services.AddScoped<IResourceManager, AzureResourceManagerService>();
         services.AddScoped<IResourceRegistryService, ResourceRegistryService>();
         if (string.IsNullOrWhiteSpace(maskinportenSettings.ClientId))
         {
