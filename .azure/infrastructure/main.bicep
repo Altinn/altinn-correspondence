@@ -2,7 +2,7 @@ targetScope = 'subscription'
 @minLength(3)
 param location string
 @secure()
-param correspondencePgAdminPassword string = ''
+param correspondencePgAdminPassword string
 @secure()
 param sourceKeyVaultName string
 @secure()
