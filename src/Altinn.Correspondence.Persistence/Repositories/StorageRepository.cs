@@ -21,10 +21,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
         private readonly ConcurrentDictionary<string, BlobServiceClient> _blobServiceClients;
         private readonly BlobClientOptions _blobClientOptions;
 
-        public StorageRepository(IOptions<AttachmentStorageOptions> options, ILogger<StorageRepository> _logger)
+        public StorageRepository(IOptions<AttachmentStorageOptions> options, ILogger<StorageRepository> logger)
         {
             _options = options.Value;
-            _logger = _logger;
+            _logger = logger;
             _blobServiceClients = new ConcurrentDictionary<string, BlobServiceClient>();
             _blobClientOptions = new BlobClientOptions()
             {
