@@ -102,7 +102,7 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
     containerAppEnvId: containerAppEnv.id
     environmentVariables: containerAppEnvVars
     secrets: secrets
-    command: ['/bin/bash', '-c', 'echo "Waiting for password synchronization..." && for i in {1..20}; do if psql "$DatabaseOptions__ConnectionString" -c "SELECT 1;" > /dev/null 2>&1; then echo "Database connection successful, starting migration..." && ./migrations/bundle.exe --connection "$DatabaseOptions__ConnectionString" && exit 0; else echo "Attempt $i: Database connection failed, waiting 30 seconds..." && sleep 30; fi; done && echo "Failed to connect to database after 20 attempts" && exit 1']
+    command: ['/bin/bash', '-c', './migrations/bundle.exe --connection "$DatabaseOptions__ConnectionString"']
     image: 'ubuntu:latest'
     volumes: volumes
     volumeMounts: volumeMounts
