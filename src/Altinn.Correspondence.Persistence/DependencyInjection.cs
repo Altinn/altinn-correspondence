@@ -23,7 +23,7 @@ public static class DependencyInjection
         services.AddScoped<ICorrespondenceRepository, CorrespondenceRepository>();
         services.AddScoped<ICorrespondenceStatusRepository, CorrespondenceStatusRepository>();
         services.AddScoped<ICorrespondenceNotificationRepository, CorrespondenceNotificationRepository>(); 
-        services.AddScoped<IStorageRepository, StorageRepository>();
+        services.AddSingleton<IStorageRepository, StorageRepository>();
         services.AddScoped<INotificationTemplateRepository, NotificationTemplateRepository>();
         services.AddScoped<ILegacyPartyRepository, LegacyPartyRepository>();
         services.AddScoped<IIdempotencyKeyRepository, IdempotencyKeyRepository>();
