@@ -55,6 +55,13 @@ module addContributorAccess '../../modules/identity/addContributorAccess.bicep' 
   }
 }
 
+module addStorageBlobDataContributor '../../modules/identity/addStorageBlobDataContributorRole.bicep' = {
+  name: 'storageBlobDataContributorAccess'
+  params: {
+    userAssignedIdentityPrincipalId: appIdentity.outputs.principalId
+  }
+}
+
 module keyVaultReaderAccessPolicyUserIdentity '../../modules/keyvault/addReaderRoles.bicep' = {
   name: 'kvreader-${namePrefix}-app'
   scope: resourceGroup
