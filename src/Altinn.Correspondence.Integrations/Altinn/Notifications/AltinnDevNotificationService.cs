@@ -27,13 +27,17 @@ public class AltinnDevNotificationService : IAltinnNotificationService
         };
     }
 
-    public async Task<NotificationOrderRequestResponse?> CreateNotificationV2(NotificationOrderRequestV2 notificationRequest, CancellationToken cancellationToken = default)
+    public async Task<NotificationOrderRequestResponseV2?> CreateNotificationV2(NotificationOrderRequestV2 notificationRequest, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Notification (versjon 2): ");
-        return new NotificationOrderRequestResponse()
+        return new NotificationOrderRequestResponseV2()
         {
-            OrderId = Guid.NewGuid(),
-            RecipientLookup = new RecipientLookupResult()
+            NotificationOrderId = Guid.NewGuid(),
+            Notification = new NotificationResponse()
+            {
+                ShipmentId = Guid.NewGuid(),
+                SendersReference = "AltinnCorrespondence"
+            }
         };
     }
 
@@ -79,4 +83,5 @@ public class AltinnDevNotificationService : IAltinnNotificationService
             SendersReference = "AltinnCorrespondence"
         };
     }
+
 }

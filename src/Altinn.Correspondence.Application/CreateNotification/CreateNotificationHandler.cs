@@ -167,7 +167,7 @@ public class CreateNotificationHandler(
             content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person) ?? contents.FirstOrDefault(c => c.RecipientType == null);
         }
         await SetRecipientNameOnNotificationContent(content, correspondence.Recipient, cancellationToken);
-        var notificationOrder = new NotificationOrderRequest
+        var notificationOrderRequest = new NotificationOrderRequest
         {
             IgnoreReservation = correspondence.IgnoreReservation,
             Recipients = relevantRecipients,
@@ -176,17 +176,17 @@ public class CreateNotificationHandler(
             SendersReference = correspondence.SendersReference,
             ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString()),
             NotificationChannel = notification.NotificationChannel,
-            EmailTemplate = !string.IsNullOrWhiteSpace(content.EmailSubject) && !string.IsNullOrWhiteSpace(content.EmailBody) ? new EmailTemplate
+            EmailTemplate = !string.IsNullOrWhiteSpace(content?.EmailSubject) && !string.IsNullOrWhiteSpace(content.EmailBody) ? new EmailTemplate
             {
                 Subject = content.EmailSubject,
                 Body = content.EmailBody,
             } : null,
-            SmsTemplate = !string.IsNullOrWhiteSpace(content.SmsBody) ? new SmsTemplate
+            SmsTemplate = !string.IsNullOrWhiteSpace(content?.SmsBody) ? new SmsTemplate
             {
                 Body = content.SmsBody,
             } : null
         };
-        notifications.Add(notificationOrder);
+        notifications.Add(notificationOrderRequest);
         if (notification.SendReminder)
         {
             notifications.Add(new NotificationOrderRequest
@@ -194,7 +194,7 @@ public class CreateNotificationHandler(
                 IgnoreReservation = correspondence.IgnoreReservation,
                 Recipients = relevantRecipients,
                 ResourceId = correspondence.ResourceId,
-                RequestedSendTime = hostEnvironment.IsProduction() ? notificationOrder.RequestedSendTime.AddDays(7) : notificationOrder.RequestedSendTime.AddHours(1),
+                RequestedSendTime = hostEnvironment.IsProduction() ? notificationOrderRequest.RequestedSendTime.AddDays(7) : notificationOrderRequest.RequestedSendTime.AddHours(1),
                 ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString()),
                 SendersReference = correspondence.SendersReference,
                 NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,
@@ -250,7 +250,7 @@ public class CreateNotificationHandler(
         return conditionEndpoint;
     }
 
-    private string CreateNotificationContentFromToken(string message, string? token = "")
+    private static string CreateNotificationContentFromToken(string message, string? token = "")
     {
         return message.Replace("{textToken}", token + " ").Trim();
     }
@@ -260,20 +260,6 @@ public class CreateNotificationHandler(
         string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
         bool isOrganization = recipientWithoutPrefix.IsOrganizationNumber();
         bool isPerson = recipientWithoutPrefix.IsSocialSecurityNumber();
-
-        var recipientOverrides = notification.CustomNotificationRecipients ?? [];
-        var newRecipients = new List<Recipient>();
-        foreach (var recipientOverride in recipientOverrides)
-        {
-            newRecipients.AddRange(recipientOverride.Recipients.Select(r => new Recipient
-            {
-                EmailAddress = r.EmailAddress,
-                MobileNumber = r.MobileNumber,
-                IsReserved = r.IsReserved,
-                OrganizationNumber = r.OrganizationNumber,
-                NationalIdentityNumber = r.NationalIdentityNumber
-            }));
-        }
 
         NotificationContent? content = null;
         if (isOrganization)
@@ -331,8 +317,8 @@ public class CreateNotificationHandler(
 
         if (notification.SendReminder)
         {
-            notificationOrder.Reminders = new List<ReminderV2>
-            {
+            notificationOrder.Reminders =
+            [
                 new ReminderV2
                 {
                     SendersReference = correspondence.SendersReference,
@@ -370,7 +356,7 @@ public class CreateNotificationHandler(
                         } : null
                     }
                 }
-            };
+            ];
         }
 
         return notificationOrder;
@@ -397,23 +383,38 @@ public class CreateNotificationHandler(
         }
         else
         {
-            var entity = new CorrespondenceNotificationEntity()
+            var notification = new CorrespondenceNotificationEntity()
             {
                 Created = DateTimeOffset.UtcNow,
                 NotificationChannel = notificationRequest.NotificationChannel,
                 NotificationTemplate = notificationRequest.NotificationTemplate,
                 CorrespondenceId = correspondence.Id,
-                NotificationOrderId = notificationResponse.OrderId,
-                RequestedSendTime = DateTimeOffset.UtcNow,
-                IsReminder = false, // In V2, we don't need to track reminders separately as they're part of the same request
-                OrderRequest = JsonSerializer.Serialize(notificationRequestV2)
+                NotificationOrderId = notificationResponse.NotificationOrderId,
+                RequestedSendTime = notificationRequestV2.RequestedSendTime,
+                IsReminder = false, 
+                OrderRequest = JsonSerializer.Serialize(notificationRequestV2),
+                ShipmentId = notificationResponse.Notification.ShipmentId
             };
 
-            await correspondenceNotificationRepository.AddNotification(entity, cancellationToken);
+            await correspondenceNotificationRepository.AddNotification(notification, cancellationToken);
+
+            var reminder = new CorrespondenceNotificationEntity()
+            {
+                Created = DateTimeOffset.UtcNow,
+                NotificationChannel = notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel,
+                NotificationTemplate = notificationRequest.NotificationTemplate,
+                CorrespondenceId = correspondence.Id,
+                NotificationOrderId = notificationResponse.NotificationOrderId,
+                RequestedSendTime = notificationRequestV2.RequestedSendTime.AddDays(notificationRequestV2.Reminders?.FirstOrDefault()?.DelayDays ?? 0),
+                IsReminder = true,
+                OrderRequest = JsonSerializer.Serialize(notificationRequestV2),
+                ShipmentId = notificationResponse.Notification.Reminders.FirstOrDefault()?.ShipmentId
+            };
+            await correspondenceNotificationRepository.AddNotification(reminder, cancellationToken);
             // Create information activity in Dialogporten
             await hangfireScheduleHelper.CreateActivityAfterDialogCreated(correspondence.Id, notificationRequestV2);
 
-            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.NotificationCreated, correspondence.ResourceId, notificationResponse.OrderId.ToString(), "notification", correspondence.Sender, CancellationToken.None));
+            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.NotificationCreated, correspondence.ResourceId, notificationResponse.NotificationOrderId.ToString(), "notification", correspondence.Sender, CancellationToken.None));
         }
     }
 

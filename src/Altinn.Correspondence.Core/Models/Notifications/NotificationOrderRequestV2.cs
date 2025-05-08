@@ -7,7 +7,7 @@ namespace Altinn.Correspondence.Core.Models.Notifications
     {
         public string? SendersReference { get; set; }
 
-        public DateTime? RequestedSendTime { get; set; }
+        public DateTime RequestedSendTime { get; set; }
 
         public DialogportenAssociation? DialogportenAssociation { get; set; }
 
