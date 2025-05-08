@@ -31,7 +31,7 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
     private readonly TokenCredential _credentials;
     private readonly IServiceOwnerRepository _serviceOwnerRepository;
     private readonly IBackgroundJobClient _backgroundJobClient;
-    private readonly SasTokenService _sasTokenCacheService;
+    private readonly SasTokenService _sasTokenService;
     private readonly ILogger<AzureResourceManagerService> _logger;
     private string GetResourceGroupName(string serviceOwnerId) => $"serviceowner-{_resourceManagerOptions.Environment}-{serviceOwnerId.Replace(":", "-")}-rg";
 
@@ -51,7 +51,7 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
         _armClient = new ArmClient(_credentials);
         _serviceOwnerRepository = serviceOwnerRepository;
         _backgroundJobClient = backgroundJobClient;
-        _sasTokenCacheService = sasTokenCacheService;
+        _sasTokenService = sasTokenCacheService;
         _logger = logger;
     }
 
@@ -168,7 +168,7 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
         {
             throw new InvalidOperationException("Storage account has not been deployed");
         }
-        var sasToken = await _sasTokenCacheService.GetSasToken(storageProviderEntity, storageProviderEntity.StorageResourceName);
+        var sasToken = await _sasTokenService.GetSasToken(storageProviderEntity, storageProviderEntity.StorageResourceName);
         return $"BlobEndpoint=https://{storageProviderEntity.StorageResourceName}.blob.core.windows.net/attachments?{sasToken}";
     }
     public async Task UpdateContainerAppIpRestrictionsAsync(Dictionary<string, string> newIps, CancellationToken cancellationToken)
