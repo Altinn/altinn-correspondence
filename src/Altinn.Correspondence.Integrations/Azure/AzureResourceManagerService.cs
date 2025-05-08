@@ -154,7 +154,7 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
         const string chars = "abcdefghijklmnopqrstuvwxyz0123456789";
         var obfuscationString = new string(Enumerable.Repeat(chars, 8)
             .Select(s => s[random.Next(s.Length)]).ToArray());
-        return "aibroker" + obfuscationString + "sa";
+        return "aicorr" + obfuscationString + "sa";
     }
 
     public async Task<string> GetStorageConnectionString(StorageProviderEntity storageProviderEntity)
