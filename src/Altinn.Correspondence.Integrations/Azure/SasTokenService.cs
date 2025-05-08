@@ -1,15 +1,14 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
-using Azure.Storage.Sas;
-using Azure.Storage;
-using Microsoft.Extensions.Hosting;
-using System.Collections.Concurrent;
-using Microsoft.Extensions.Logging;
 using Azure.Core;
-using Azure.ResourceManager.Resources;
-using Azure.ResourceManager;
-using Microsoft.Extensions.Options;
 using Azure.Identity;
+using Azure.ResourceManager;
+using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Storage;
+using Azure.Storage;
+using Azure.Storage.Sas;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using System.Collections.Concurrent;
 
 namespace Altinn.Correspondence.Integrations.Azure
 {
