@@ -21,10 +21,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
         private readonly ConcurrentDictionary<string, BlobServiceClient> _blobServiceClients;
         private readonly BlobClientOptions _blobClientOptions;
 
-        public StorageRepository(IOptions<AttachmentStorageOptions> options, ILogger<StorageRepository> logger)
+        public StorageRepository(IOptions<AttachmentStorageOptions> options, ILogger<StorageRepository> _logger)
         {
             _options = options.Value;
-            _logger = logger;
+            _logger = _logger;
             _blobServiceClients = new ConcurrentDictionary<string, BlobServiceClient>();
             _blobClientOptions = new BlobClientOptions()
             {
@@ -92,7 +92,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<(string locationUrl, string hash, long size)> UploadAttachment(AttachmentEntity attachment, Stream stream, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
-            logger.LogInformation(
+            _logger.LogInformation(
                 "Uploading attachment with id: {attachmentId} to blob storage. Storage resource: {storageProvider} and resource {storageResourceName}",
                 attachment.Id,
                 storageProviderEntity?.Id.ToString() ?? "Legacy",
@@ -127,7 +127,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
             catch (RequestFailedException requestFailedException)
             {
-                logger.LogError("Error occurred while uploading file: {errorCode}: {errorMessage} ", requestFailedException.ErrorCode, requestFailedException.Message);
+                _logger.LogError("Error occurred while uploading file: {errorCode}: {errorMessage} ", requestFailedException.ErrorCode, requestFailedException.Message);
                 await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
                 throw;
             }
@@ -135,7 +135,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<Stream> DownloadAttachment(Guid attachmentId, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
-            logger.LogInformation(
+            _logger.LogInformation(
                 "Downloading attachment with id: {attachmentId} to blob storage. Storage resource: {storageProvider} and resource {storageResourceName}",
                 attachmentId,
                 storageProviderEntity?.Id.ToString() ?? "Legacy",
@@ -150,14 +150,14 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
             catch (RequestFailedException requestFailedException)
             {
-                logger.LogError("Error occurred while downloading file: {errorCode}: {errorMessage} ", requestFailedException.ErrorCode, requestFailedException.Message);
+                _logger.LogError("Error occurred while downloading file: {errorCode}: {errorMessage} ", requestFailedException.ErrorCode, requestFailedException.Message);
                 throw;
             }
         }
 
         public async Task PurgeAttachment(Guid attachmentId, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
-            logger.LogInformation(
+            _logger.LogInformation(
                 "Purging attachment with id: {attachmentId} to blob storage. Storage resource: {storageProvider} and resource {storageResourceName}",
                 attachmentId,
                 storageProviderEntity?.Id.ToString() ?? "Legacy",
@@ -171,7 +171,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
             catch (RequestFailedException requestFailedException)
             {
-                logger.LogError("Error occurred while deleting file: {errorCode}: {errorMessage} ", requestFailedException.ErrorCode, requestFailedException.Message);
+                _logger.LogError("Error occurred while deleting file: {errorCode}: {errorMessage} ", requestFailedException.ErrorCode, requestFailedException.Message);
                 throw;
             }
         }
