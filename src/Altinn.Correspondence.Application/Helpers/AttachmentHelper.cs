@@ -103,7 +103,7 @@ namespace Altinn.Correspondence.Application.Helpers
                     logger.LogError("Could not find service owner for resource {resourceId}", attachment.ResourceId);
                     return null;
                 }
-                serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwner(serviceOwnerId, cancellationToken);
+                serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwnerByOrgNo(serviceOwnerId, cancellationToken);
             }
             if (serviceOwnerEntity == null)
             {

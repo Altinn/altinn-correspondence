@@ -52,14 +52,14 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
         _logger = logger;
     }
 
-    public void DeployStorageAccount(ServiceOwnerEntity serviceOwnerEntity, CancellationToken cancellationToken)
+    public void DeployStorageAccountsForServiceOwner(ServiceOwnerEntity serviceOwnerEntity, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Creating storage providers for {serviceOwnerEntity.Name}");
-        var virusScanStorageProviderJob = _backgroundJobClient.Enqueue<IResourceManager>(service => service.DeployStorageAccountForServiceOwner(serviceOwnerEntity, true, cancellationToken));
-        _backgroundJobClient.ContinueJobWith<IResourceManager>(virusScanStorageProviderJob, service => service.DeployStorageAccountForServiceOwner(serviceOwnerEntity, false, cancellationToken));
+        var virusScanStorageProviderJob = _backgroundJobClient.Enqueue<IResourceManager>(service => service.DeployStorageAccount(serviceOwnerEntity, true, cancellationToken));
+        _backgroundJobClient.ContinueJobWith<IResourceManager>(virusScanStorageProviderJob, service => service.DeployStorageAccount(serviceOwnerEntity, false, cancellationToken));
     }
 
-    public async Task DeployStorageAccountForServiceOwner(ServiceOwnerEntity serviceOwnerEntity, bool virusScan, CancellationToken cancellationToken)
+    public async Task DeployStorageAccount(ServiceOwnerEntity serviceOwnerEntity, bool virusScan, CancellationToken cancellationToken)
     {
         if (_hostEnvironment.IsDevelopment())
         {

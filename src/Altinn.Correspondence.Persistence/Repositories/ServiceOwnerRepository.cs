@@ -8,7 +8,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 {
     public class ServiceOwnerRepository(ApplicationDbContext context, ILogger<IServiceOwnerRepository> logger) : IServiceOwnerRepository
     {
-        public async Task<ServiceOwnerEntity?> GetServiceOwner(string orgNo, CancellationToken cancellationToken)
+        public async Task<ServiceOwnerEntity?> GetServiceOwnerByOrgNo(string orgNo, CancellationToken cancellationToken)
         {
             return await context.ServiceOwners
                 .Include(so => so.StorageProviders)
