@@ -10,7 +10,6 @@ using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
-using System.Net.Mail;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
@@ -89,7 +88,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
             BlobClient blobClient = await InitializeBlobClient(attachment.Id, storageProviderEntity);
             var locationUrl = blobClient.Uri.ToString() ?? throw new DataLocationUrlException("Could not get data location url");
-
+            
             try
             {
                 BlobUploadOptions options = new BlobUploadOptions()
