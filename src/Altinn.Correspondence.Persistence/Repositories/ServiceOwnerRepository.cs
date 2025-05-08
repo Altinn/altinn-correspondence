@@ -14,7 +14,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Include(so => so.StorageProviders)
                 .SingleOrDefaultAsync(so => so.Id == orgNo, cancellationToken);
         }
-        public async Task<ServiceOwnerEntity?> GetServiceOwnerFromOrgCode(string orgCode, CancellationToken cancellationToken)
+        public async Task<ServiceOwnerEntity?> GetServiceOwnerByOrgCode(string orgCode, CancellationToken cancellationToken)
         {
             return await context.ServiceOwners
                 .Include(so => so.StorageProviders)

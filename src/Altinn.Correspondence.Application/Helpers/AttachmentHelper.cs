@@ -93,7 +93,7 @@ namespace Altinn.Correspondence.Application.Helpers
             if (forMigration)
             {
                 var serviceOwnerShortHand = attachment.ResourceId.Split('-')[0];
-                serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwnerFromOrgCode(serviceOwnerShortHand.ToLower(), cancellationToken);
+                serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwnerByOrgCode(serviceOwnerShortHand.ToLower(), cancellationToken);
             }
             else
             {
