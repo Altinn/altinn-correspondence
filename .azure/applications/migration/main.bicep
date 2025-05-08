@@ -102,7 +102,7 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
     containerAppEnvId: containerAppEnv.id
     environmentVariables: containerAppEnvVars
     secrets: secrets
-    command: ['/bin/bash', '-c', './migrations/bundle.exe --connection "$(DatabaseOptions__ConnectionString)";']
+    command: ['/bin/bash', '-c', 'for i in {1..10}; do ./migrations/bundle.exe --connection "$(DatabaseOptions__ConnectionString)" && break || (echo "Attempt $i failed, waiting 30 seconds..." && sleep 30); done']
     image: 'ubuntu:latest'
     volumes: volumes
     volumeMounts: volumeMounts
