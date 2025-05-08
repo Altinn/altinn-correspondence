@@ -24,7 +24,7 @@ namespace Altinn.Correspondence.Application.MigrateToStorageProvider
             if (resourceId.Contains("migratedcorrespondence"))
             {
                 var serviceOwnerShortHand = resourceId.Split('-')[0];
-                serviceOwner = await serviceOwnerRepository.GetServiceOwnerFromOrgCode(serviceOwnerShortHand.ToLower(), cancellationToken);
+                serviceOwner = await serviceOwnerRepository.GetServiceOwnerByOrgCode(serviceOwnerShortHand.ToLower(), cancellationToken);
             }
             else
             {
@@ -34,7 +34,7 @@ namespace Altinn.Correspondence.Application.MigrateToStorageProvider
                     logger.LogError("Could not find service owner for resource {resourceId}", resourceId);
                     return null;
                 }
-                serviceOwner = await serviceOwnerRepository.GetServiceOwner(serviceOwnerId, cancellationToken);
+                serviceOwner = await serviceOwnerRepository.GetServiceOwnerByOrgNo(serviceOwnerId, cancellationToken);
             }
             var attachmentsWithoutStorageProvider = await attachmentRepository.GetAttachmentsByResourceIdWithoutStorageProvider(resourceId, cancellationToken);
             if (attachmentsWithoutStorageProvider == null || attachmentsWithoutStorageProvider.Count == 0)

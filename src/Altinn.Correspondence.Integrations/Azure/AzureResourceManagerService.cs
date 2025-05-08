@@ -27,8 +27,6 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
     private readonly AzureResourceManagerOptions _resourceManagerOptions;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly ArmClient _armClient;
-    private readonly ConcurrentDictionary<string, (DateTime Created, string Token)> _sasTokens =
-        new ConcurrentDictionary<string, (DateTime Created, string Token)>();
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
     private readonly TokenCredential _credentials;
     private readonly IServiceOwnerRepository _serviceOwnerRepository;
