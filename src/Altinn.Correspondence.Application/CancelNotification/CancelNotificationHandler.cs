@@ -32,7 +32,7 @@ namespace Altinn.Correspondence.Application.CancelNotification
         public async Task Process(PerformContext context, Guid correspondenceId, ClaimsPrincipal? _, CancellationToken cancellationToken = default)
         {
             var retryAttempts = context.GetJobParameter<int>(RetryCountKey);
-            logger.LogInformation("Cancelling notifications for purged correspondence {correspondenceId}. Retry attempt: {retryAttempts}", correspondenceId, retryAttempts);
+            logger.LogInformation("Cancelling notifications for correspondence {correspondenceId}. Retry attempt: {retryAttempts}", correspondenceId, retryAttempts);
             var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, cancellationToken);
             var notificationEntities = correspondence?.Notifications ?? [];
             await CancelNotification(correspondenceId, notificationEntities, retryAttempts, cancellationToken);
@@ -46,7 +46,6 @@ namespace Altinn.Correspondence.Application.CancelNotification
                 if (notification.RequestedSendTime <= DateTimeOffset.UtcNow) continue; // Notification has already been sent
 
                 string? notificationOrderId = notification.NotificationOrderId?.ToString();
-
                 if (string.IsNullOrWhiteSpace(notificationOrderId))
                 {
                     error += $"NotificationOrderId is null for notificationId: {notification.Id}";
