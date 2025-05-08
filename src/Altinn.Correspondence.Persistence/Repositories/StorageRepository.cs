@@ -9,6 +9,7 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog.Core;
 using System.Collections.Concurrent;
 
 namespace Altinn.Correspondence.Persistence.Repositories
@@ -52,17 +53,28 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 _logger.LogInformation("Using storage provider: {storageProvider} and resource {storageResourceName}",
                     storageProviderEntity.Id.ToString(), storageProviderEntity.StorageResourceName);
-                storageResourceName = storageProviderEntity.StorageResourceName;
+                var blobServiceClient = GetOrCreateBlobServiceClient(storageProviderEntity.StorageResourceName);
+                var containerClient = blobServiceClient.GetBlobContainerClient("attachments");
+                return containerClient.GetBlobClient(fileId.ToString());
             }
             else // Legacy implementation
             {
                 _logger.LogInformation("Using Correspondence's storage account");
-                storageResourceName = GetAccountNameFromConnectionString(_options.ConnectionString);
+                _logger.LogInformation("Using Correspondence's storage account");
+                var connectionString = _options.ConnectionString;
+                var blobServiceClient = new BlobServiceClient(connectionString,
+                    new BlobClientOptions()
+                    {
+                        Retry =
+                            {
+                                NetworkTimeout = TimeSpan.FromHours(1),
+                            }
+                    });
+                var containerClient = blobServiceClient.GetBlobContainerClient("attachments");
+                BlobClient blobClient = containerClient.GetBlobClient(fileId.ToString());
+                return blobClient;
             }
 
-            var blobServiceClient = GetOrCreateBlobServiceClient(storageResourceName);
-            var containerClient = blobServiceClient.GetBlobContainerClient("attachments");
-            return containerClient.GetBlobClient(fileId.ToString());
         }
 
         public static string GetAccountNameFromConnectionString(string connectionString)
