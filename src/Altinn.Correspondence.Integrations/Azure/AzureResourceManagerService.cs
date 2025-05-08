@@ -22,7 +22,7 @@ using System.Text;
 using System.Text.Json;
 
 namespace Altinn.Correspondence.Integrations.Azure;
-public class AzureResourceManagerService : IResourceManager, IStorageConnectionStringRepository
+public class AzureResourceManagerService : IResourceManager
 {
     private readonly AzureResourceManagerOptions _resourceManagerOptions;
     private readonly IHostEnvironment _hostEnvironment;
@@ -31,7 +31,6 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
     private readonly TokenCredential _credentials;
     private readonly IServiceOwnerRepository _serviceOwnerRepository;
     private readonly IBackgroundJobClient _backgroundJobClient;
-    private readonly SasTokenService _sasTokenCacheService;
     private readonly ILogger<AzureResourceManagerService> _logger;
     private string GetResourceGroupName(string serviceOwnerId) => $"serviceowner-{_resourceManagerOptions.Environment}-{serviceOwnerId.Replace(":", "-")}-rg";
 
@@ -42,7 +41,6 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
         IServiceOwnerRepository serviceOwnerRepository,
         IHostEnvironment hostingEnvironment,
         IBackgroundJobClient backgroundJobClient,
-        SasTokenService sasTokenCacheService,
         ILogger<AzureResourceManagerService> logger)
     {
         _resourceManagerOptions = resourceManagerOptions.Value;
@@ -51,7 +49,6 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
         _armClient = new ArmClient(_credentials);
         _serviceOwnerRepository = serviceOwnerRepository;
         _backgroundJobClient = backgroundJobClient;
-        _sasTokenCacheService = sasTokenCacheService;
         _logger = logger;
     }
 
@@ -154,23 +151,9 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
         const string chars = "abcdefghijklmnopqrstuvwxyz0123456789";
         var obfuscationString = new string(Enumerable.Repeat(chars, 8)
             .Select(s => s[random.Next(s.Length)]).ToArray());
-        return "aibroker" + obfuscationString + "sa";
+        return "aicorr" + obfuscationString + "sa";
     }
 
-    public async Task<string> GetStorageConnectionString(StorageProviderEntity storageProviderEntity)
-    {
-        _logger.LogInformation($"Retrieving connection string for storage provider {storageProviderEntity.Id}");
-        if (_hostEnvironment.IsDevelopment())
-        {
-            return "UseDevelopmentStorage=true";
-        }
-        if (storageProviderEntity.StorageResourceName == null)
-        {
-            throw new InvalidOperationException("Storage account has not been deployed");
-        }
-        var sasToken = await _sasTokenCacheService.GetSasToken(storageProviderEntity, storageProviderEntity.StorageResourceName);
-        return $"BlobEndpoint=https://{storageProviderEntity.StorageResourceName}.blob.core.windows.net/attachments?{sasToken}";
-    }
     public async Task UpdateContainerAppIpRestrictionsAsync(Dictionary<string, string> newIps, CancellationToken cancellationToken)
     {
         try 

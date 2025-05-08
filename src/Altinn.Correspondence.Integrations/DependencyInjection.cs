@@ -29,7 +29,6 @@ public static class DependencyInjection
         var generalSettings = new GeneralSettings();
         config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
         services.AddScoped<IResourceManager, AzureResourceManagerService>();
-        services.AddScoped<IStorageConnectionStringRepository, AzureResourceManagerService>();
         services.AddScoped<IResourceRegistryService, ResourceRegistryService>();
         services.AddSingleton<SasTokenService, SasTokenService>();
         if (string.IsNullOrWhiteSpace(maskinportenSettings.ClientId))

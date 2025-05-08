@@ -14,14 +14,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
 {
     internal class StorageRepository(IStorageConnectionStringRepository storageConnectionStringRepository, IOptions<AttachmentStorageOptions> options, ILogger<StorageRepository> logger) : IStorageRepository
     {
-        private readonly AttachmentStorageOptions _options = options.Value;
-        private readonly ILogger<StorageRepository> _logger = logger;
-
         private async Task<BlobClient> InitializeBlobClient(Guid fileId, StorageProviderEntity? storageProviderEntity)
         {
             if (storageProviderEntity is not null)
             {
-                _logger.LogInformation("Using storage provider: {storageProvider} and resource {storageResourceName}", storageProviderEntity.Id.ToString(), storageProviderEntity.StorageResourceName);
+                logger.LogInformation("Using storage provider: {storageProvider} and resource {storageResourceName}", storageProviderEntity.Id.ToString(), storageProviderEntity.StorageResourceName);
                 var connectionString = await storageConnectionStringRepository.GetStorageConnectionString(storageProviderEntity);
                 var blobServiceClient = new BlobServiceClient(connectionString,
                     new BlobClientOptions()
@@ -37,8 +34,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
             } 
             else // Legacy implementation
             {
-                _logger.LogInformation("Using Correspondence's storage account");
-                var connectionString = _options.ConnectionString;
+                logger.LogInformation("Using Correspondence's storage account");
+                var connectionString = options.Value.ConnectionString;
                 var blobServiceClient = new BlobServiceClient(connectionString,
                     new BlobClientOptions()
                     {
@@ -55,7 +52,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<(string locationUrl, string hash, long size)> UploadAttachment(AttachmentEntity attachment, Stream stream, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Uploading attachment with id: {attachmentId} to blob storage. Storage resource: {storageProvider} and resource {storageResourceName}",
                 attachment.Id,
                 storageProviderEntity?.Id.ToString() ?? "Legacy",
@@ -85,7 +82,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
             catch (RequestFailedException requestFailedException)
             {
-                _logger.LogError("Error occurred while uploading file: {errorCode}: {errorMessage} ", requestFailedException.ErrorCode, requestFailedException.Message);
+                logger.LogError("Error occurred while uploading file: {errorCode}: {errorMessage} ", requestFailedException.ErrorCode, requestFailedException.Message);
                 await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
                 throw;
             }
@@ -93,7 +90,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<Stream> DownloadAttachment(Guid attachmentId, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Downloading attachment with id: {attachmentId} to blob storage. Storage resource: {storageProvider} and resource {storageResourceName}",
                 attachmentId,
                 storageProviderEntity?.Id.ToString() ?? "Legacy",
@@ -106,14 +103,14 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
             catch (RequestFailedException requestFailedException)
             {
-                _logger.LogError("Error occurred while downloading file: {errorCode}: {errorMessage} ", requestFailedException.ErrorCode, requestFailedException.Message);
+                logger.LogError("Error occurred while downloading file: {errorCode}: {errorMessage} ", requestFailedException.ErrorCode, requestFailedException.Message);
                 throw;
             }
         }
 
         public async Task PurgeAttachment(Guid attachmentId, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Purging attachment with id: {attachmentId} to blob storage. Storage resource: {storageProvider} and resource {storageResourceName}",
                 attachmentId,
                 storageProviderEntity?.Id.ToString() ?? "Legacy",
@@ -125,7 +122,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
             catch (RequestFailedException requestFailedException)
             {
-                _logger.LogError("Error occurred while deleting file: {errorCode}: {errorMessage} ", requestFailedException.ErrorCode, requestFailedException.Message);
+                logger.LogError("Error occurred while deleting file: {errorCode}: {errorMessage} ", requestFailedException.ErrorCode, requestFailedException.Message);
                 throw;
             }
         }
