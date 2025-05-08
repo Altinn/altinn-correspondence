@@ -13,7 +13,7 @@ using Azure.ResourceManager.Storage;
 
 namespace Altinn.Correspondence.Integrations.Azure
 {
-    public class SasTokenCacheService
+    public class SasTokenService
     {
         private readonly AzureResourceManagerOptions _resourceManagerOptions;
         private readonly ConcurrentDictionary<string, (DateTime Created, string Token)> _sasTokens =
@@ -21,9 +21,9 @@ namespace Altinn.Correspondence.Integrations.Azure
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
         private readonly ArmClient _armClient;
         private readonly TokenCredential _credentials;
-        private readonly ILogger<SasTokenCacheService> _logger;
+        private readonly ILogger<SasTokenService> _logger;
 
-        public SasTokenCacheService(IOptions<AzureResourceManagerOptions> options, ILogger<SasTokenCacheService> logger)
+        public SasTokenService(IOptions<AzureResourceManagerOptions> options, ILogger<SasTokenService> logger)
         {
             _credentials = new DefaultAzureCredential();
             _armClient = new ArmClient(_credentials);

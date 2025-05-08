@@ -30,7 +30,7 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
     private readonly TokenCredential _credentials;
     private readonly IServiceOwnerRepository _serviceOwnerRepository;
     private readonly IBackgroundJobClient _backgroundJobClient;
-    private readonly SasTokenCacheService _sasTokenCacheService;
+    private readonly SasTokenService _sasTokenCacheService;
     private readonly ILogger<AzureResourceManagerService> _logger;
     private string GetResourceGroupName(string serviceOwnerId) => $"serviceowner-{_resourceManagerOptions.Environment}-{serviceOwnerId.Replace(":", "-")}-rg";
 
@@ -41,7 +41,7 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
         IServiceOwnerRepository serviceOwnerRepository,
         IHostEnvironment hostingEnvironment,
         IBackgroundJobClient backgroundJobClient,
-        SasTokenCacheService sasTokenCacheService,
+        SasTokenService sasTokenCacheService,
         ILogger<AzureResourceManagerService> logger)
     {
         _resourceManagerOptions = resourceManagerOptions.Value;
@@ -155,6 +155,7 @@ public class AzureResourceManagerService : IResourceManager, IStorageConnectionS
             .Select(s => s[random.Next(s.Length)]).ToArray());
         return "aibroker" + obfuscationString + "sa";
     }
+
     public async Task<string> GetStorageConnectionString(StorageProviderEntity storageProviderEntity)
     {
         _logger.LogInformation($"Retrieving connection string for storage provider {storageProviderEntity.Id}");
