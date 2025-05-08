@@ -91,6 +91,12 @@ runs:
         echo "::add-mask::$password"
         echo "::set-output name=postgresqlPassword::$password"
 
+    - name: Temporary work-around due to azure CLI bug https://github.com/Azure/azure-cli/issues/31189
+      id: az-cli-workaround
+      shell: pwsh
+      run: |
+        az config set bicep.use_binary_from_path=false
+        
     - name: Deploy to Azure
       uses: azure/arm-deploy@v2
       id: deploy
