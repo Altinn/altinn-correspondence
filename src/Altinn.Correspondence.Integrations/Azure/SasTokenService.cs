@@ -19,13 +19,10 @@ namespace Altinn.Correspondence.Integrations.Azure
             new ConcurrentDictionary<string, (DateTime Created, string Token)>();
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
         private readonly ArmClient _armClient;
-        private readonly TokenCredential _credentials;
         private readonly ILogger<SasTokenService> _logger;
 
         public SasTokenService(IOptions<AzureResourceManagerOptions> options, ILogger<SasTokenService> logger)
         {
-            _credentials = new DefaultAzureCredential();
-            _armClient = new ArmClient(_credentials);
             _armClient = new ArmClient(new DefaultAzureCredential());
             _resourceManagerOptions = options.Value;
             _logger = logger;
