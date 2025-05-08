@@ -21,6 +21,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             if (storageProviderEntity is not null)
             {
+                _logger.LogInformation("Using storage provider: {storageProvider} and resource {storageResourceName}", storageProviderEntity.Id.ToString(), storageProviderEntity.StorageResourceName);
                 var connectionString = await storageConnectionStringRepository.GetStorageConnectionString(storageProviderEntity);
                 var blobServiceClient = new BlobServiceClient(connectionString,
                     new BlobClientOptions()
@@ -35,7 +36,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 return blobClient;
             } 
             else // Legacy implementation
-            { 
+            {
+                _logger.LogInformation("Using Correspondence's storage account");
                 var connectionString = _options.ConnectionString;
                 var blobServiceClient = new BlobServiceClient(connectionString,
                     new BlobClientOptions()
