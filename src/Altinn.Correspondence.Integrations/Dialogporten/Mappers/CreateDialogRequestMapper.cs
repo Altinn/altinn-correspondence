@@ -100,14 +100,14 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static List<SearchTag> AddSearchTagIfValid(List<SearchTag> list, string? searchTag)
         {
-            if (string.IsNullOrWhiteSpace(searchTag) || searchTag.Length < 3)
+            if (string.IsNullOrWhiteSpace(searchTag) || searchTag.Trim().Length < 3)
             {
                 return list;
             }
             list.Add(
                 new SearchTag()
                 {
-                    Value = searchTag
+                    Value = searchTag.Trim()
                 }
             );
             return list;

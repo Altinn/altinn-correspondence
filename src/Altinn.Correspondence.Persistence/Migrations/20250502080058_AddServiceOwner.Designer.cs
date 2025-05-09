@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Altinn.Correspondence.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250502080058_AddServiceOwner")]
+    partial class AddServiceOwner
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -71,12 +74,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasMaxLength(4096)
                         .HasColumnType("character varying(4096)");
 
-                    b.Property<long?>("StorageProviderId")
-                        .HasColumnType("bigint");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("StorageProviderId");
 
                     b.ToTable("Attachments", "correspondence");
                 });
@@ -542,15 +540,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasIndex("ServiceOwnerEntityId");
 
                     b.ToTable("StorageProviders", "correspondence");
-                });
-
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.AttachmentEntity", b =>
-                {
-                    b.HasOne("Altinn.Correspondence.Core.Models.Entities.StorageProviderEntity", "StorageProvider")
-                        .WithMany()
-                        .HasForeignKey("StorageProviderId");
-
-                    b.Navigation("StorageProvider");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.AttachmentStatusEntity", b =>

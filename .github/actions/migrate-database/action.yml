@@ -48,6 +48,12 @@ runs:
         tenant-id: ${{ inputs.AZURE_TENANT_ID }}
         subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
 
+    - name: Temporary work-around due to azure CLI bug https://github.com/Azure/azure-cli/issues/31189
+      id: az-cli-workaround
+      shell: pwsh
+      run: |
+        az config set bicep.use_binary_from_path=false
+
     - name: Deploy migration job (${{ inputs.environment }})
       uses: azure/arm-deploy@v2
       id: migration-job
