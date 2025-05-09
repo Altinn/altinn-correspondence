@@ -82,6 +82,7 @@ jobs:
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
+          DB_PWD: ${{ secrets.DB_PWD }}
 
   deploy-at22:
     name: deploy at22
@@ -126,6 +127,7 @@ jobs:
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
+          DB_PWD: ${{ secrets.DB_PWD }}
 
   deploy-staging:
     name: Internal staging
@@ -173,6 +175,7 @@ jobs:
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
+          DB_PWD: ${{ secrets.DB_PWD }}
 
   deploy-production:
     name: Production
@@ -220,6 +223,7 @@ jobs:
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
+          DB_PWD: ${{ secrets.DB_PWD }}
 
   release-to-git:  
     name: Release to git
