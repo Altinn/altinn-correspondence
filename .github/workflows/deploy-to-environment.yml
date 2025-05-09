@@ -90,4 +90,4 @@ jobs:
         RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
         MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
         APIM_IP: ${{ secrets.APIM_IP }}
-        CORRESPONDENCE_DB_PASSWORD: ${{ secrets.DB_PWD }}
+        DB_PWD: ${{ secrets.DB_PWD }}
