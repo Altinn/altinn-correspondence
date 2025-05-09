@@ -99,7 +99,11 @@ runs:
       shell: pwsh
       run: |
         az config set bicep.use_binary_from_path=false
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> main
     - name: Deploy to Azure
       uses: azure/arm-deploy@v2
       id: deploy

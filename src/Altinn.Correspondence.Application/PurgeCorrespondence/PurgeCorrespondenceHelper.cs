@@ -76,7 +76,7 @@ public class PurgeCorrespondenceHelper
                 continue;
             }
 
-            await _storageRepository.PurgeAttachment(attachment.Id, cancellationToken);
+            await _storageRepository.PurgeAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
             var attachmentStatus = new AttachmentStatusEntity
             {
                 AttachmentId = attachment.Id,
