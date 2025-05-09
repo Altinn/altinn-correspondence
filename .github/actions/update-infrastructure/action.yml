@@ -96,13 +96,14 @@ runs:
 
     - name: Generate postgresql password
       id: pwd-generator
-      if: steps.check-password.outputs.postgresqlPassword == ''
       shell: pwsh
       run: |
         Import-module "./.github/tools/pwdGenerator.ps1" -Force
         $password = (GeneratePassword -length 30).Password
         echo "::add-mask::$password"
         echo "::set-output name=postgresqlPassword::$password"
+        # Lagre passordet for neste deploy
+        az keyvault secret set --vault-name ${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }} --name correspondence-admin-password --value $password
 
     - name: Temporary work-around due to azure CLI bug https://github.com/Azure/azure-cli/issues/31189
       id: az-cli-workaround
