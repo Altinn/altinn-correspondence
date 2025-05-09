@@ -82,8 +82,21 @@ runs:
         tenant-id: ${{ inputs.AZURE_TENANT_ID }}
         subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
 
+    - name: Check for existing password
+      id: check-password
+      shell: pwsh
+      run: |
+        $existingPassword = az keyvault secret show --vault-name ${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }} --name correspondence-admin-password --query value -o tsv 2>$null
+        if ($?) {
+          echo "::add-mask::$existingPassword"
+          echo "::set-output name=postgresqlPassword::$existingPassword"
+        } else {
+          echo "No existing password found, will generate new one"
+        }
+
     - name: Generate postgresql password
       id: pwd-generator
+      if: steps.check-password.outputs.postgresqlPassword == ''
       shell: pwsh
       run: |
         Import-module "./.github/tools/pwdGenerator.ps1" -Force
