@@ -25,6 +25,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.2" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.2" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.2" />
+    <PackageReference Include="RedLock.net" Version="2.3.2" />
     <PackageReference Include="Slack.Webhooks" Version="1.1.5" />
     <PackageReference Include="UUIDNext" Version="4.1.1" />
   </ItemGroup>
