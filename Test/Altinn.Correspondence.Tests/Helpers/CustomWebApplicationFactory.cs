@@ -59,7 +59,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             mockContactReservationRegistryService.Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => !recipients.Contains(ReservedSsn)))).ReturnsAsync([]);
             services.AddScoped(_ => mockContactReservationRegistryService.Object);
             var resourceRegistryService = new Mock<IResourceRegistryService>();
-            resourceRegistryService.Setup(x => x.GetServiceOwnerOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
+            resourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
             resourceRegistryService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("CorrespondenceService");
             services.AddScoped(_ => resourceRegistryService.Object);
         });

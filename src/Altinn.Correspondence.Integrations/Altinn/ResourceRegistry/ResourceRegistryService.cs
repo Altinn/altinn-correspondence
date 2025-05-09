@@ -37,7 +37,7 @@ public class ResourceRegistryService : IResourceRegistryService
         return altinnResourceResponse?.ResourceType;
     }
 
-    public async Task<string?> GetServiceOwnerOfResource(string resourceId, CancellationToken cancellationToken)
+    public async Task<string?> GetServiceOwnerNameOfResource(string resourceId, CancellationToken cancellationToken)
     {
         var altinnResourceResponse = await GetResource(resourceId, cancellationToken);
         if (altinnResourceResponse is null)
@@ -55,6 +55,16 @@ public class ResourceRegistryService : IResourceRegistryService
             return null;
         }
         return altinnResourceResponse.HasCompetentAuthority.Organization ?? string.Empty;
+    }
+
+    public async Task<string> GetServiceOwnerOrgCode(string resourceId, CancellationToken cancellationToken)
+    {
+        var altinnResourceResponse = await GetResource(resourceId, cancellationToken);
+        if (altinnResourceResponse is null)
+        {
+            return null;
+        }
+        return altinnResourceResponse.HasCompetentAuthority.Orgcode ?? string.Empty;
     }
 
     private async Task<GetResourceResponse?> GetResource(string resourceId, CancellationToken cancellationToken)

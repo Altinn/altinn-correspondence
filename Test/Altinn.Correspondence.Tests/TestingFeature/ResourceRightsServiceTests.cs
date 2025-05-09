@@ -118,7 +118,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             MockSetupSimulateStoreInCache(cacheKey, expectedResultSerialized, cancellationToken);
 
             // Act
-            var result = await _service.GetServiceOwnerOfResource(resourceId, cancellationToken);
+            var result = await _service.GetServiceOwnerNameOfResource(resourceId, cancellationToken);
 
             // Assert
             Assert.Equal(expectedResult, result);
@@ -162,7 +162,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             MockSetupSimulateCacheHit(cacheKey, serializedData, cancellationToken);
 
             // Act
-            var result = await _service.GetServiceOwnerOfResource(resourceId, cancellationToken);
+            var result = await _service.GetServiceOwnerNameOfResource(resourceId, cancellationToken);
 
             // Assert
             _mockCache.Verify(cache => cache.GetOrCreateAsync(
@@ -197,7 +197,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
                 .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound));
 
             // Act
-            var result = await _service.GetServiceOwnerOfResource(resourceId, cancellationToken);
+            var result = await _service.GetServiceOwnerNameOfResource(resourceId, cancellationToken);
 
             // Assert
             Assert.Null(result);
