@@ -60,10 +60,6 @@ public class MigrateCorrespondenceHandler(
         {
             return CorrespondenceErrors.MessageTitleIsNotPlainText;
         }
-        if (string.IsNullOrWhiteSpace(content.MessageSummary))
-        {
-            return CorrespondenceErrors.MessageSummaryEmpty;
-        }
         if (!IsLanguageValid(content.Language))
         {
             return CorrespondenceErrors.InvalidLanguage;
