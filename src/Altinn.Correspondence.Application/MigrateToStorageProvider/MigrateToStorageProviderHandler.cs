@@ -28,13 +28,13 @@ namespace Altinn.Correspondence.Application.MigrateToStorageProvider
             }
             else
             {
-                var serviceOwnerId = await resourceRegistryService.GetServiceOwnerOrganizationId(resourceId, cancellationToken);
-                if (serviceOwnerId is null)
+                var serviceOwnerOrgCode = await resourceRegistryService.GetServiceOwnerOrgCode(resourceId, cancellationToken);
+                if (serviceOwnerOrgCode is null)
                 {
                     logger.LogError("Could not find service owner for resource {resourceId}", resourceId);
                     return null;
                 }
-                serviceOwner = await serviceOwnerRepository.GetServiceOwnerByOrgNo(serviceOwnerId, cancellationToken);
+                serviceOwner = await serviceOwnerRepository.GetServiceOwnerByOrgCode(serviceOwnerOrgCode, cancellationToken);
             }
             var attachmentsWithoutStorageProvider = await attachmentRepository.GetAttachmentsByResourceIdWithoutStorageProvider(resourceId, cancellationToken);
             if (attachmentsWithoutStorageProvider == null || attachmentsWithoutStorageProvider.Count == 0)
