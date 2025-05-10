@@ -2,7 +2,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Application.MigrateUploadAttachment;
 
-public class MigrateUploadAttachmentResponse
+public class MigrateAttachmentResponse
 {
     public required Guid AttachmentId { get; set; }
     public required string ResourceId { get; set; }

@@ -13,6 +13,7 @@ using Altinn.Correspondence.Application.InitializeCorrespondence;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.InitializeServiceOwner;
 using Altinn.Correspondence.Application.MigrateToStorageProvider;
+using Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
 using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Application.PurgeAttachment;
@@ -73,8 +74,8 @@ public static class DependencyInjection
         services.AddScoped<LegacyPurgeCorrespondenceHandler>();
 
         // Migration
-        services.AddScoped<MigrateInitializeAttachmentHandler>();
-        services.AddScoped<MigrateUploadAttachmentHandler>();
+        services.AddScoped<MigrateAttachmentHelper>();
+        services.AddScoped<MigrateAttachmentHandler>();
         services.AddScoped<MigrateCorrespondenceHandler>();
         services.AddScoped<MigrateToStorageProviderHandler>();
     }

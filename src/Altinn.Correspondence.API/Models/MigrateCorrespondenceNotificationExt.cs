@@ -29,5 +29,11 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("notificationAddress")]
         public required string NotificationAddress { get; set; }
+
+        /// <summary>
+        /// Whether the notification is for a Reminder notification Type.
+        /// </summary>
+        [JsonPropertyName("isReminder")]
+        public required bool IsReminder { get; set; }
     }
 }

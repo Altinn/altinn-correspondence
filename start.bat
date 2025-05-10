@@ -1,2 +1,2 @@
-docker compose up -d
+docker-compose up -d
 dotnet watch --project ./src/Altinn.Correspondence.API

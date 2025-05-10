@@ -30,7 +30,7 @@ internal static class AttachmentOverviewMapper
         };
         return attachment;
     }
-    internal static AttachmentOverviewExt MapMigrateToExternal(MigrateUploadAttachmentResponse overview)
+    internal static AttachmentOverviewExt MapMigrateToExternal(MigrateAttachmentResponse overview)
     {
         var attachment = new AttachmentOverviewExt
         {

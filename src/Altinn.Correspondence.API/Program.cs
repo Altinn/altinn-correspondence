@@ -34,7 +34,7 @@ static void BuildAndRun(string[] args)
         .Enrich.FromLogContext()
         .Enrich.WithClientIp()
         .Enrich.With(new PropertyPropagationEnricher("correspondenceId", "instanceId", "resourceId", "partyId"))
-        .WriteTo.Console(new JsonFormatter(renderMessage: true))
+        //.WriteTo.Console(new JsonFormatter(renderMessage: true))
         .WriteTo.ApplicationInsights(
             services.GetRequiredService<TelemetryConfiguration>(),
             TelemetryConverter.Traces));
