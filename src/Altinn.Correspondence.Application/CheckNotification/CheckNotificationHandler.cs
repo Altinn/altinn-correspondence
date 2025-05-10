@@ -27,6 +27,10 @@ public class CheckNotificationHandler(ICorrespondenceRepository correspondenceRe
         {
             response.SendNotification = false;
         }
+        if (correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByAltinn) || correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByRecipient))
+        {
+            response.SendNotification = false;
+        }
         if (!correspondence.StatusHasBeen(CorrespondenceStatus.Published))
         {
             backgroundJobClient.Schedule<EnsureNotificationHandler>(handler => handler.Process(correspondenceId, null, CancellationToken.None), DateTimeOffset.Now.AddHours(1));
