@@ -193,9 +193,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
             basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
+            var basicCorrespondenceJson = JsonSerializer.Serialize(basicCorrespondence);
+            var basicMigrateCorrespondence = JsonSerializer.Deserialize<MigrateInitializeCorrespondencesExt>(basicCorrespondenceJson);
             MigrateCorrespondenceExt migrateCorrespondenceExt = new()
             {
-                CorrespondenceData = basicCorrespondence,
+                CorrespondenceData = basicMigrateCorrespondence,
                 Altinn2CorrespondenceId = 12345,
                 EventHistory =
                 [

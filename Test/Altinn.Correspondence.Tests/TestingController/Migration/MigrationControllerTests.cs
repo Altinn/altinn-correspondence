@@ -39,9 +39,11 @@ public class MigrationControllerTests
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
         basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
+        var basicCorrespondenceJson = JsonSerializer.Serialize(basicCorrespondence);
+        var basicMigrateCorrespondence = JsonSerializer.Deserialize<MigrateInitializeCorrespondencesExt>(basicCorrespondenceJson);
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
-            CorrespondenceData = basicCorrespondence,
+            CorrespondenceData = basicMigrateCorrespondence,
             Altinn2CorrespondenceId = 12345,
             EventHistory =
         [
@@ -137,9 +139,11 @@ public class MigrationControllerTests
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
         basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
+        var basicCorrespondenceJson = JsonSerializer.Serialize(basicCorrespondence);
+        var basicMigrateCorrespondence = JsonSerializer.Deserialize<MigrateInitializeCorrespondencesExt>(basicCorrespondenceJson);
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
-            CorrespondenceData = basicCorrespondence,
+            CorrespondenceData = basicMigrateCorrespondence,
             Altinn2CorrespondenceId = 12345,
             EventHistory =
         [
@@ -267,9 +271,11 @@ public class MigrationControllerTests
         var basicCorrespondence = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .Build();
+        var basicCorrespondenceJson = JsonSerializer.Serialize(basicCorrespondence);
+        var basicMigrateCorrespondence = JsonSerializer.Deserialize<MigrateInitializeCorrespondencesExt>(basicCorrespondenceJson);
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
-            CorrespondenceData = basicCorrespondence,
+            CorrespondenceData = basicMigrateCorrespondence,
             Altinn2CorrespondenceId = 12345,
             EventHistory =
         [
@@ -329,9 +335,11 @@ public class MigrationControllerTests
 
         InitializeCorrespondencesExt initializeCorrespondencesExt = new CorrespondenceBuilder().CreateCorrespondence().WithExistingAttachments([attachmentId, attachmentId2]).Build();
         initializeCorrespondencesExt.Correspondence.SendersReference = "test 2024 10 09 09 45";
+        var basicCorrespondenceJson = JsonSerializer.Serialize(initializeCorrespondencesExt);
+        var basicMigrateCorrespondence = JsonSerializer.Deserialize<MigrateInitializeCorrespondencesExt>(basicCorrespondenceJson);
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
-            CorrespondenceData = initializeCorrespondencesExt,
+            CorrespondenceData = basicMigrateCorrespondence,
             Altinn2CorrespondenceId = 12345,
             EventHistory = [ new CorrespondenceStatusEventExt()
             {
@@ -354,9 +362,11 @@ public class MigrationControllerTests
         var basicCorrespondence = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .Build();
+        var basicCorrespondenceJson = JsonSerializer.Serialize(basicCorrespondence);
+        var basicMigrateCorrespondence = JsonSerializer.Deserialize<MigrateInitializeCorrespondencesExt>(basicCorrespondenceJson);
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
-            CorrespondenceData = basicCorrespondence,
+            CorrespondenceData = basicMigrateCorrespondence,
             Altinn2CorrespondenceId = 12345,
             EventHistory =
             [
