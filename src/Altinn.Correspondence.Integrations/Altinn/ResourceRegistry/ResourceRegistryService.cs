@@ -47,16 +47,6 @@ public class ResourceRegistryService : IResourceRegistryService
         return GetNameOfResourceResponse(altinnResourceResponse);
     }
 
-    public async Task<string> GetServiceOwnerOrganizationId(string resourceId, CancellationToken cancellationToken)
-    {
-        var altinnResourceResponse = await GetResource(resourceId, cancellationToken);
-        if (altinnResourceResponse is null)
-        {
-            return null;
-        }
-        return altinnResourceResponse.HasCompetentAuthority.Organization ?? string.Empty;
-    }
-
     public async Task<string> GetServiceOwnerOrgCode(string resourceId, CancellationToken cancellationToken)
     {
         var altinnResourceResponse = await GetResource(resourceId, cancellationToken);
