@@ -57,9 +57,9 @@ internal static class MigrateCorrespondenceMapper
             Content = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content != null ? new CorrespondenceContentEntity
             {
                 Language = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content.Language,
-                MessageTitle = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content.MessageTitle,
-                MessageSummary = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content.MessageSummary,
-                MessageBody = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content.MessageBody,
+                MessageTitle = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content.MessageTitle ?? "",
+                MessageSummary = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content.MessageSummary ?? "",
+                MessageBody = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content.MessageBody ?? "",
                 Attachments = []
             } : null,
             IsConfirmationNeeded = migrateCorrespondenceExt.CorrespondenceData.Correspondence.IsConfirmationNeeded,
