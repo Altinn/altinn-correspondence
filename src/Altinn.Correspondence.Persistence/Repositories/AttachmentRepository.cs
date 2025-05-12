@@ -38,10 +38,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return await attachments.SingleOrDefaultAsync(a => a.Id == guid, cancellationToken);
         }
 
-        public async Task<bool> SetDataLocationUrl(AttachmentEntity attachmentEntity, AttachmentDataLocationType attachmentDataLocationType, string dataLocationUrl, CancellationToken cancellationToken)
+        public async Task<bool> SetDataLocationUrl(AttachmentEntity attachmentEntity, AttachmentDataLocationType attachmentDataLocationType, string dataLocationUrl, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
             attachmentEntity.DataLocationType = attachmentDataLocationType;
             attachmentEntity.DataLocationUrl = dataLocationUrl;
+            attachmentEntity.StorageProvider = storageProviderEntity;
             var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
             return rowsUpdated == 1;
 
@@ -66,15 +67,48 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return !(await _context.Correspondences.AnyAsync(a => a.Content != null && a.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId) &&
             !a.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByRecipient || s.Status == CorrespondenceStatus.PurgedByAltinn), cancellationToken));
         }
+
         public async Task<List<AttachmentEntity?>> GetAttachmentsByCorrespondence(Guid correspondenceId, CancellationToken cancellationToken)
         {
-            return await _context.Correspondences.Where(c => c.Id == correspondenceId && c.Content != null).SelectMany(c => c.Content!.Attachments).Select(ca => ca.Attachment).ToListAsync(cancellationToken);
+            return await _context.Correspondences
+                .Where(c => c.Id == correspondenceId && c.Content != null)
+                .SelectMany(c => c.Content!.Attachments)
+                .Include(ca => ca.Attachment)
+                .ThenInclude(a => a!.StorageProvider)
+                .Select(ca => ca.Attachment)
+                .ToListAsync(cancellationToken);
         }
+
         public async Task<AttachmentEntity?> GetAttachmentByCorrespondenceIdAndAttachmentId(Guid correspondenceId, Guid attachmentId, CancellationToken cancellationToken)
         {
             return await _context.Correspondences
-                 .Where(c => c.Id == correspondenceId && c.Content!.Attachments.Any(ca => ca.AttachmentId == attachmentId))
-                 .Select(c => c.Content!.Attachments.SingleOrDefault(ca => ca.AttachmentId == attachmentId).Attachment).SingleOrDefaultAsync(cancellationToken);
+                .Where(c => c.Id == correspondenceId && c.Content!.Attachments.Any(ca => ca.AttachmentId == attachmentId))
+                .SelectMany(c => c.Content!.Attachments)
+                .Include(ca => ca.Attachment)
+                .ThenInclude(a => a!.StorageProvider)
+                .Where(ca => ca.AttachmentId == attachmentId)
+                .Select(ca => ca.Attachment)
+                .SingleOrDefaultAsync(cancellationToken);
+        }
+
+        public async Task<List<AttachmentEntity>> GetAttachmentsByResourceIdWithoutStorageProvider(string resourceId, CancellationToken cancellationToken)
+        {
+            return await _context.Attachments
+                .Where(a => a.ResourceId == resourceId && a.StorageProvider == null)
+                .Include(a => a.StorageProvider)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task SetStorageProvider(Guid attachmentId, StorageProviderEntity storageProvider, string dataLocationUrl, CancellationToken cancellationToken)
+        {
+            var attachment = await _context.Attachments.SingleOrDefaultAsync(a => a.Id == attachmentId);
+            if (attachment == null)
+            {
+                throw new ArgumentException($"Attachment with id {attachmentId} does not exist", nameof(attachmentId));
+            }
+            attachment.StorageProvider = storageProvider;
+            attachment.DataLocationUrl = dataLocationUrl;
+            await _context.SaveChangesAsync(cancellationToken);
         }
     }
 }
