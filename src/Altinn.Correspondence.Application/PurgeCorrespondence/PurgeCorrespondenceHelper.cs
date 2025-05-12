@@ -15,7 +15,6 @@ public class PurgeCorrespondenceHelper(
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IDialogportenService dialogportenService,
-    CancelNotificationHandler cancelNotificationHandler,
     IBackgroundJobClient backgroundJobClient)
 {
     public Error? ValidatePurgeRequestSender(CorrespondenceEntity correspondence)
@@ -94,19 +93,20 @@ public class PurgeCorrespondenceHelper(
 
         backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
         await CheckAndPurgeAttachments(correspondence.Id, partyUuid, cancellationToken);
-        await ReportActivityToDialogporten(isSender: isSender, correspondence.Id);
-        await cancelNotificationHandler.CancelNotification(correspondence.Id, correspondence.Notifications, 0, cancellationToken);
+        var reportToDialogportenJob = await ReportActivityToDialogporten(isSender: isSender, correspondence.Id);
+        var cancelNotificationJob = backgroundJobClient.ContinueJobWith<CancelNotificationHandler>(reportToDialogportenJob, 
+            handler => handler.Process(null, correspondence.Id, null, cancellationToken));
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
         if (dialogId is not null)
         {
-            await dialogportenService.SoftDeleteDialog(dialogId.ReferenceValue);
+            backgroundJobClient.ContinueJobWith<IDialogportenService>(cancelNotificationJob, service => service.SoftDeleteDialog(dialogId.ReferenceValue));
         }
         return correspondence.Id;
     }
-    public async Task ReportActivityToDialogporten(bool isSender, Guid correspondenceId)
+    public async Task<string> ReportActivityToDialogporten(bool isSender, Guid correspondenceId)
     {
         var actorType = isSender ? DialogportenActorType.Sender : DialogportenActorType.Recipient;
         var actorName = isSender ? "avsender" : "mottaker";
-        await dialogportenService.CreateCorrespondencePurgedActivity(correspondenceId, actorType, actorName);
+        return backgroundJobClient.Enqueue<IDialogportenService>(service => service.CreateCorrespondencePurgedActivity(correspondenceId, actorType, actorName));
     }
 }
