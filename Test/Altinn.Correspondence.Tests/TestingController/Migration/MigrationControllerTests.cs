@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json;
 using Altinn.Correspondence.Core.Models.Entities;
 using Microsoft.Extensions.DependencyInjection;
+using System.Web;
 
 namespace Altinn.Correspondence.Tests.TestingController.Migration;
 
@@ -318,16 +319,24 @@ public class MigrationControllerTests
     public async Task InitializeMigrateAttachment_InitializeAndUpload()
     {
         MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
-
-        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/attachment", migrateAttachmentExt);
-        Assert.True(initializeResponse.IsSuccessStatusCode, await initializeResponse.Content.ReadAsStringAsync());
-        string attachmentIdstring = await initializeResponse.Content.ReadAsStringAsync();
-        Guid attachmentId = Guid.Parse(attachmentIdstring);
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
         MemoryStream memoryStream = new(file);
         StreamContent content = new(memoryStream);
-        var uploadResponse = await _client.PostAsync($"correspondence/api/v1/migration/attachment/{attachmentId}/upload", content);
+        string command = GetAttachmentCommand(migrateAttachmentExt);
+        var uploadResponse = await _client.PostAsync(command, content);
         Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
+    }
+
+    private string GetAttachmentCommand(MigrateInitializeAttachmentExt attachment)
+    {
+        return $"correspondence/api/v1/migration/attachment" +
+            $"?resourceId={HttpUtility.UrlEncode(attachment.ResourceId)}" +
+            $"&senderPartyUuid={HttpUtility.UrlEncode(attachment.SenderPartyUuid.ToString())}" +
+            $"&sendersReference={HttpUtility.UrlEncode(attachment.SendersReference)}" +
+            $"&displayName={HttpUtility.UrlEncode(attachment.DisplayName)}" +
+            $"&isEncrypted={HttpUtility.UrlEncode(attachment.IsEncrypted.ToString())}" +
+            $"&fileName={HttpUtility.UrlEncode(attachment.FileName)}" +
+            $"&sender={HttpUtility.UrlEncode(attachment.Sender)}";
     }
 
     [Fact]
@@ -335,15 +344,11 @@ public class MigrationControllerTests
     {
         MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
         
-        Guid senderPartyUuid = new Guid("11112222-1234-1234-1234-aaaabbbbcccc");
-        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/attachment", migrateAttachmentExt);
-        Assert.True(initializeResponse.IsSuccessStatusCode, await initializeResponse.Content.ReadAsStringAsync());
-        string attachmentIdstring = await initializeResponse.Content.ReadAsStringAsync();
-        Guid attachmentId = Guid.Parse(attachmentIdstring);
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
         MemoryStream memoryStream = new(file);
         StreamContent content = new(memoryStream);
-        var uploadResponse = await _client.PostAsync($"correspondence/api/v1/migration/attachment/{senderPartyUuid}/{attachmentId}/upload", content);
+        string command = GetAttachmentCommand(migrateAttachmentExt);
+        var uploadResponse = await _client.PostAsync(command, content);
         Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
     }
 
@@ -351,24 +356,20 @@ public class MigrationControllerTests
     public async Task InitializeMigrateCorrespondence_UploadBothAttachments_ThenInitializeCorrespondence()
     {
         MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
-
-        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/attachment", migrateAttachmentExt);
-        string attachmentIdString = await initializeResponse.Content.ReadAsStringAsync();
-        Guid attachmentId = Guid.Parse(attachmentIdString);
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
         MemoryStream memoryStream = new(file);
         StreamContent content = new(memoryStream);
-        var uploadResponse = await _client.PostAsync($"correspondence/api/v1/migration/attachment/{attachmentId}/upload", content);
+        string command = GetAttachmentCommand(migrateAttachmentExt);
+        var uploadResponse = await _client.PostAsync(command, content);
+        Guid attachmentId = Guid.Parse(uploadResponse.Content.ReadAsStringAsync().Result.Trim('"'));
 
         MigrateInitializeAttachmentExt migrateAttachmentExt2 = new MigrateAttachmentBuilder().CreateAttachment().Build();
-
-        var initializeResponse2 = await _client.PostAsJsonAsync("correspondence/api/v1/migration/attachment", migrateAttachmentExt2);
-        string attachmentIdString2 = await initializeResponse2.Content.ReadAsStringAsync();
-        Guid attachmentId2 = Guid.Parse(attachmentIdString2);
         byte[] file2 = Encoding.UTF8.GetBytes("Test av fil 2 opplasting");
         MemoryStream memoryStream2 = new(file2);
         StreamContent content2 = new(memoryStream2);
-        var uploadResponse2 = await _client.PostAsync($"correspondence/api/v1/migration/attachment/{attachmentId2}/upload", content2);
+        string command2 = GetAttachmentCommand(migrateAttachmentExt2);
+        var uploadResponse2 = await _client.PostAsync(command2, content);
+        Guid attachmentId2 = Guid.Parse(uploadResponse2.Content.ReadAsStringAsync().Result.Trim('"'));
 
         InitializeCorrespondencesExt initializeCorrespondencesExt = new CorrespondenceBuilder().CreateCorrespondence().WithExistingAttachments([attachmentId, attachmentId2]).Build();
         initializeCorrespondencesExt.Correspondence.SendersReference = "test 2024 10 09 09 45";
