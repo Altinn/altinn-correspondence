@@ -37,8 +37,8 @@ public class CreateNotificationHandler(
         {
             // Get notification templates
             var templates = await notificationTemplateRepository.GetNotificationTemplates(
-                request.NotificationRequest.NotificationTemplate, 
-                cancellationToken, 
+                request.NotificationRequest.NotificationTemplate,
+                cancellationToken,
                 request.Language);
 
             if (templates.Count == 0)
@@ -48,10 +48,10 @@ public class CreateNotificationHandler(
 
             // Get notification content
             var notificationContents = await GetNotificationContent(
-                request.NotificationRequest, 
-                templates, 
+                request.NotificationRequest,
+                templates,
                 correspondence,
-                cancellationToken, 
+                cancellationToken,
                 request.Language);
 
             // await CreateNotificationsV1(request.NotificationRequest, correspondence, notificationContents, cancellationToken);
@@ -80,7 +80,7 @@ public class CreateNotificationHandler(
         foreach (var request in notificationRequests)
         {
             var notificationResponse = await altinnNotificationService.CreateNotification(request, cancellationToken);
-            
+
             if (notificationResponse is null)
             {
                 backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceNotificationCreationFailed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
@@ -127,14 +127,14 @@ public class CreateNotificationHandler(
         content.ReminderSmsBody = content.ReminderSmsBody?.Replace("$correspondenceRecipientName$", recipientName);
     }
 
-    private async Task<List<NotificationOrderRequest>> CreateNotificationRequestsV1(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
+    private async Task<List<NotificationOrderRequest>> CreateNotificationRequestsV1(NotificationRequest notificationRequest, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
     {
         var notifications = new List<NotificationOrderRequest>();
         string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
         bool isOrganization = recipientWithoutPrefix.IsOrganizationNumber();
         bool isPerson = recipientWithoutPrefix.IsSocialSecurityNumber();
 
-        var recipientOverrides = notification.CustomNotificationRecipients ?? [];
+        var recipientOverrides = notificationRequest.CustomNotificationRecipients ?? [];
         var newRecipients = new List<Recipient>();
         foreach (var recipientOverride in recipientOverrides)
         {
@@ -148,6 +148,8 @@ public class CreateNotificationHandler(
             }));
         }
 
+        // Only the Recipients list is used, RecipientToOverride is ignored
+        // At the time of writing 09.05.2025, this is skipped and the Recipients field overrides the default recipients.
         List<Recipient> relevantRecipients = newRecipients.Count > 0 ? newRecipients : new List<Recipient>
         {
             new()
@@ -175,7 +177,7 @@ public class CreateNotificationHandler(
             RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow ? DateTime.UtcNow.AddMinutes(5) : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
             SendersReference = correspondence.SendersReference,
             ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString()),
-            NotificationChannel = notification.NotificationChannel,
+            NotificationChannel = notificationRequest.NotificationChannel,
             EmailTemplate = !string.IsNullOrWhiteSpace(content?.EmailSubject) && !string.IsNullOrWhiteSpace(content.EmailBody) ? new EmailTemplate
             {
                 Subject = content.EmailSubject,
@@ -187,7 +189,7 @@ public class CreateNotificationHandler(
             } : null
         };
         notifications.Add(notificationOrderRequest);
-        if (notification.SendReminder)
+        if (notificationRequest.SendReminder)
         {
             notifications.Add(new NotificationOrderRequest
             {
@@ -197,7 +199,7 @@ public class CreateNotificationHandler(
                 RequestedSendTime = hostEnvironment.IsProduction() ? notificationOrderRequest.RequestedSendTime.AddDays(7) : notificationOrderRequest.RequestedSendTime.AddHours(1),
                 ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString()),
                 SendersReference = correspondence.SendersReference,
-                NotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel,
+                NotificationChannel = notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel,
                 EmailTemplate = !string.IsNullOrWhiteSpace(content.ReminderEmailSubject) && !string.IsNullOrWhiteSpace(content.ReminderEmailBody) ? new EmailTemplate
                 {
                     Subject = content.ReminderEmailSubject,
@@ -242,7 +244,7 @@ public class CreateNotificationHandler(
         var baseUrl = _generalSettings.CorrespondenceBaseUrl.TrimEnd('/');
         var path = $"/correspondence/api/v1/correspondence/{Uri.EscapeDataString(correspondenceId)}/notification/check";
         var conditionEndpoint = new Uri(new Uri(baseUrl), path);
-        
+
         if (conditionEndpoint.Host == "localhost")
         {
             return null;
@@ -255,7 +257,120 @@ public class CreateNotificationHandler(
         return message.Replace("{textToken}", token + " ").Trim();
     }
 
-    private async Task<NotificationOrderRequestV2> CreateNotificationRequestsV2(NotificationRequest notification, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
+    private async Task<NotificationOrderRequestV2> CreateNotificationRequestsV2(NotificationRequest notificationRequest, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
+    {
+        var notificationOrder = new NotificationOrderRequestV2
+        {
+            SendersReference = correspondence.SendersReference,
+            RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow
+                ? DateTime.UtcNow.AddMinutes(5)
+                : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
+            IdempotencyId = Guid.CreateVersion7(),
+            Recipient = notificationRequest.CustomNotificationRecipients?.Count > 0
+                ? CreateCustomRecipient(notificationRequest, contents.First(), correspondence, isReminder: false)
+                : await CreateDefaultRecipient(notificationRequest, correspondence, contents, isReminder: false, cancellationToken)
+        };
+
+        if (notificationRequest.SendReminder)
+        {
+            notificationOrder.Reminders =
+            [
+                new ReminderV2
+                {
+                    SendersReference = correspondence.SendersReference,
+                    DelayDays = hostEnvironment.IsProduction() ? 7 : 1,
+                    Recipient = notificationRequest.CustomNotificationRecipients?.Count > 0
+                        ? CreateCustomRecipient(notificationRequest, contents.First(), correspondence, isReminder: true)
+                        : await CreateDefaultRecipient(notificationRequest, correspondence, contents, isReminder: true, cancellationToken)
+                }
+            ];
+        }
+
+        return notificationOrder;
+    }
+
+    private RecipientV2 CreateCustomRecipient(NotificationRequest notificationRequest, NotificationContent content, CorrespondenceEntity correspondence, bool isReminder)
+    {
+        if (notificationRequest.CustomNotificationRecipients?.Count > 0)
+        {
+            var customRecipient = notificationRequest.CustomNotificationRecipients[0].Recipients[0];
+            var resourceIdWithPrefix = "urn:altinn:resource:" + correspondence.ResourceId;
+            var channel = isReminder 
+                ? notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel 
+                : notificationRequest.NotificationChannel;
+            var emailSubject = isReminder ? content.ReminderEmailSubject : content.EmailSubject;
+            var emailBody = isReminder ? content.ReminderEmailBody : content.EmailBody;
+            var smsBody = isReminder ? content.ReminderSmsBody : content.SmsBody;
+
+            var emailSettings = !string.IsNullOrWhiteSpace(emailSubject) && !string.IsNullOrWhiteSpace(emailBody)
+                ? new EmailSettings
+                {
+                    Subject = emailSubject,
+                    Body = emailBody
+                }
+                : null;
+
+            var smsSettings = !string.IsNullOrWhiteSpace(smsBody)
+                ? new SmsSettings
+                {
+                    Body = smsBody
+                }
+                : null;
+
+            if (customRecipient.EmailAddress != null)
+            {
+                return new RecipientV2
+                {
+                    RecipientEmail = new RecipientEmail
+                    {
+                        EmailAddress = customRecipient.EmailAddress,
+                        EmailSettings = emailSettings
+                    }
+                };
+            }
+            else if (customRecipient.MobileNumber != null)
+            {
+                return new RecipientV2
+                {
+                    RecipientSms = new RecipientSms
+                    {
+                        MobileNumber = customRecipient.MobileNumber,
+                        SmsSettings = smsSettings
+                    }
+                };
+            }
+            else if (customRecipient.OrganizationNumber != null)
+            {
+                return new RecipientV2
+                {
+                    RecipientOrganization = new RecipientOrganization
+                    {
+                        OrgNumber = customRecipient.OrganizationNumber,
+                        ResourceId = resourceIdWithPrefix,
+                        ChannelSchema = channel.ToString(),
+                        EmailSettings = emailSettings,
+                        SmsSettings = smsSettings
+                    }
+                };
+            }
+            else if (customRecipient.NationalIdentityNumber != null)
+            {
+                return new RecipientV2
+                {
+                    RecipientPerson = new RecipientPerson
+                    {
+                        ResourceId = resourceIdWithPrefix,
+                        ChannelSchema = channel,
+                        EmailSettings = emailSettings,
+                        SmsSettings = smsSettings
+                    }
+                };
+            }
+        }
+        return new RecipientV2();
+    }
+
+    private async Task<RecipientV2> CreateDefaultRecipient(NotificationRequest notificationRequest, CorrespondenceEntity correspondence, List<NotificationContent> contents, bool isReminder, CancellationToken cancellationToken)
     {
         string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
         bool isOrganization = recipientWithoutPrefix.IsOrganizationNumber();
@@ -272,94 +387,47 @@ public class CreateNotificationHandler(
         }
         await SetRecipientNameOnNotificationContent(content, correspondence.Recipient, cancellationToken);
 
-        var ResourceIdWithPrefix = "urn:altinn:resource:" + correspondence.ResourceId;
+        var resourceIdWithPrefix = "urn:altinn:resource:" + correspondence.ResourceId;
+        var channel = isReminder 
+            ? notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel 
+            : notificationRequest.NotificationChannel;
+        var emailSubject = isReminder ? content?.ReminderEmailSubject : content?.EmailSubject;
+        var emailBody = isReminder ? content?.ReminderEmailBody : content?.EmailBody;
+        var smsBody = isReminder ? content?.ReminderSmsBody : content?.SmsBody;
 
-        var notificationOrder = new NotificationOrderRequestV2
-        {
-            SendersReference = correspondence.SendersReference,
-            RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow 
-                ? DateTime.UtcNow.AddMinutes(5) 
-                : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
-            IdempotencyId = Guid.CreateVersion7(),
-            Recipient = new RecipientV2
+        var emailSettings = !string.IsNullOrWhiteSpace(emailSubject) && !string.IsNullOrWhiteSpace(emailBody)
+            ? new EmailSettings
             {
-                RecipientOrganization = isOrganization ? new RecipientOrganization
-                {
-                    OrgNumber = recipientWithoutPrefix,
-                    ResourceId = ResourceIdWithPrefix,
-                    ChannelSchema = notification.NotificationChannel.ToString(),
-                    EmailSettings = !string.IsNullOrWhiteSpace(content.EmailSubject) && !string.IsNullOrWhiteSpace(content.EmailBody) ? new EmailSettings
-                    {
-                        Subject = content.EmailSubject,
-                        Body = content.EmailBody
-                    } : null,
-                    SmsSettings = !string.IsNullOrWhiteSpace(content.SmsBody) ? new SmsSettings
-                    {
-                        Body = content.SmsBody
-                    } : null
-                } : null,
-                RecipientPerson = isPerson ? new RecipientPerson
-                {
-                    ResourceId = ResourceIdWithPrefix,
-                    ChannelSchema = notification.NotificationChannel,
-                    EmailSettings = !string.IsNullOrWhiteSpace(content.EmailSubject) && !string.IsNullOrWhiteSpace(content.EmailBody) ? new EmailSettings
-                    {
-                        Subject = content.EmailSubject,
-                        Body = content.EmailBody
-                    } : null,
-                    SmsSettings = !string.IsNullOrWhiteSpace(content.SmsBody) ? new SmsSettings
-                    {
-                        Body = content.SmsBody
-                    } : null
-                } : null
+                Subject = emailSubject,
+                Body = emailBody
             }
-        };
+            : null;
 
-        if (notification.SendReminder)
+        var smsSettings = !string.IsNullOrWhiteSpace(smsBody)
+            ? new SmsSettings
+            {
+                Body = smsBody
+            }
+            : null;
+
+        return new RecipientV2
         {
-            notificationOrder.Reminders =
-            [
-                new ReminderV2
-                {
-                    SendersReference = correspondence.SendersReference,
-                    DelayDays = hostEnvironment.IsProduction() ? 7 : 1,
-                    Recipient = new RecipientV2
-                    {
-                        RecipientOrganization = isOrganization ? new RecipientOrganization
-                        {
-                            OrgNumber = recipientWithoutPrefix,
-                            ResourceId = ResourceIdWithPrefix,
-                            ChannelSchema = (notification.ReminderNotificationChannel ?? notification.NotificationChannel).ToString(),
-                            EmailSettings = !string.IsNullOrWhiteSpace(content.ReminderEmailSubject) && !string.IsNullOrWhiteSpace(content.ReminderEmailBody) ? new EmailSettings
-                            {
-                                Subject = content.ReminderEmailSubject,
-                                Body = content.ReminderEmailBody
-                            } : null,
-                            SmsSettings = !string.IsNullOrWhiteSpace(content.ReminderSmsBody) ? new SmsSettings
-                            {
-                                Body = content.ReminderSmsBody
-                            } : null
-                        } : null,
-                        RecipientPerson = isPerson ? new RecipientPerson
-                        {
-                            ResourceId = ResourceIdWithPrefix,
-                            ChannelSchema = notification.ReminderNotificationChannel ?? notification.NotificationChannel,
-                            EmailSettings = !string.IsNullOrWhiteSpace(content.ReminderEmailSubject) && !string.IsNullOrWhiteSpace(content.ReminderEmailBody) ? new EmailSettings
-                            {
-                                Subject = content.ReminderEmailSubject,
-                                Body = content.ReminderEmailBody
-                            } : null,
-                            SmsSettings = !string.IsNullOrWhiteSpace(content.ReminderSmsBody) ? new SmsSettings
-                            {
-                                Body = content.ReminderSmsBody
-                            } : null
-                        } : null
-                    }
-                }
-            ];
-        }
-
-        return notificationOrder;
+            RecipientOrganization = isOrganization ? new RecipientOrganization
+            {
+                OrgNumber = recipientWithoutPrefix,
+                ResourceId = resourceIdWithPrefix,
+                ChannelSchema = channel.ToString(),
+                EmailSettings = emailSettings,
+                SmsSettings = smsSettings
+            } : null,
+            RecipientPerson = isPerson ? new RecipientPerson
+            {
+                ResourceId = resourceIdWithPrefix,
+                ChannelSchema = channel,
+                EmailSettings = emailSettings,
+                SmsSettings = smsSettings
+            } : null
+        };
     }
 
     private async Task CreateNotificationV2(
@@ -376,7 +444,7 @@ public class CreateNotificationHandler(
             cancellationToken);
 
         var notificationResponse = await altinnNotificationService.CreateNotificationV2(notificationRequestV2, cancellationToken);
-        
+
         if (notificationResponse is null)
         {
             backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceNotificationCreationFailed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
@@ -391,7 +459,7 @@ public class CreateNotificationHandler(
                 CorrespondenceId = correspondence.Id,
                 NotificationOrderId = notificationResponse.NotificationOrderId,
                 RequestedSendTime = notificationRequestV2.RequestedSendTime,
-                IsReminder = false, 
+                IsReminder = false,
                 OrderRequest = JsonSerializer.Serialize(notificationRequestV2),
                 ShipmentId = notificationResponse.Notification.ShipmentId
             };
