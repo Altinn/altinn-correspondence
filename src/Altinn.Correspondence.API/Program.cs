@@ -34,7 +34,7 @@ static void BuildAndRun(string[] args)
         .ReadFrom.Services(services)
         .Filter.ByExcluding(logEvent =>
             logEvent.Properties.TryGetValue("RequestPath", out var requestPath) &&
-            requestPath.ToString().Equals("\"/health\"", StringComparison.OrdinalIgnoreCase))
+            requestPath.ToString().Equals("/health", StringComparison.OrdinalIgnoreCase))
         .Filter.ByExcluding(logEvent =>   
             logEvent.Properties.TryGetValue("RequestPath", out var requestPath) &&
             requestPath.ToString().Contains("/migration", StringComparison.OrdinalIgnoreCase))
