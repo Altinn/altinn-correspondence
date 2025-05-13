@@ -7,6 +7,7 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using Altinn.Correspondence.Core.Options;
+using Microsoft.ApplicationInsights;
 
 namespace Altinn.Correspondence.Integrations.Slack;
 public class SlackExceptionNotificationHandler(
@@ -14,7 +15,8 @@ public class SlackExceptionNotificationHandler(
     ISlackClient slackClient,
     IProblemDetailsService problemDetailsService,
     IHostEnvironment hostEnvironment,
-    SlackSettings slackSettings) : IExceptionHandler
+    SlackSettings slackSettings,
+    TelemetryClient telemetryClient) : IExceptionHandler
 {
     private string Channel => slackSettings.NotificationChannel;
 
@@ -24,6 +26,16 @@ public class SlackExceptionNotificationHandler(
         CancellationToken cancellationToken)
     {
         var exceptionMessage = FormatExceptionMessage(exception, httpContext);
+
+        // Log to Application Insights
+        var properties = new Dictionary<string, string>
+        {
+            { "ExceptionType", exception.GetType().Name },
+            { "Path", httpContext.Request.Path },
+            { "Environment", hostEnvironment.EnvironmentName },
+            { "System", "Correspondence" }
+        };
+        telemetryClient.TrackException(exception, properties);
 
         logger.LogError(
             exception,
@@ -57,6 +69,16 @@ public class SlackExceptionNotificationHandler(
         }
         catch (Exception slackEx)
         {
+            // Log Slack notification failure to Application Insights
+            var slackProperties = new Dictionary<string, string>
+            {
+                { "OriginalExceptionType", exception.GetType().Name },
+                { "SlackExceptionType", slackEx.GetType().Name },
+                { "Environment", hostEnvironment.EnvironmentName },
+                { "System", "Correspondence" }
+            };
+            telemetryClient.TrackException(slackEx, slackProperties);
+
             logger.LogError(
                 slackEx,
                 "Failed to send Slack notification");
@@ -67,6 +89,17 @@ public class SlackExceptionNotificationHandler(
     public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, CancellationToken cancellationToken)
     {
         var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception);
+
+        // Log to Application Insights
+        var properties = new Dictionary<string, string>
+        {
+            { "ExceptionType", exception.GetType().Name },
+            { "JobId", jobId },
+            { "JobName", jobName },
+            { "Environment", hostEnvironment.EnvironmentName },
+            { "System", "Correspondence" }
+        };
+        telemetryClient.TrackException(exception, properties);
 
         logger.LogError(
             exception,
@@ -89,6 +122,18 @@ public class SlackExceptionNotificationHandler(
         }
         catch (Exception ex)
         {
+            // Log Slack notification failure to Application Insights
+            var slackProperties = new Dictionary<string, string>
+            {
+                { "OriginalExceptionType", exception.GetType().Name },
+                { "SlackExceptionType", ex.GetType().Name },
+                { "JobId", jobId },
+                { "JobName", jobName },
+                { "Environment", hostEnvironment.EnvironmentName },
+                { "System", "Correspondence" }
+            };
+            telemetryClient.TrackException(ex, slackProperties);
+
             logger.LogError(ex, "Failed to send Slack notification");
             return false;
         }

@@ -177,6 +177,7 @@ namespace Altinn.Correspondence.API.Controllers
 
             Request.EnableBuffering();
 
+            throw new NotImplementedException("This endpoint is not implemented yet. Please use the InitializeCorrespondences endpoint instead.");
             var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, attachments, request.ExistingAttachments);
             var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
 
