@@ -33,7 +33,14 @@ public class SlackExceptionNotificationHandler(
             { "ExceptionType", exception.GetType().Name },
             { "Path", httpContext.Request.Path },
             { "Environment", hostEnvironment.EnvironmentName },
-            { "System", "Correspondence" }
+            { "System", "Correspondence" },
+            { "StackTrace", exception.StackTrace ?? "No stack trace available" },
+            { "InnerExceptionStackTrace", exception.InnerException?.StackTrace ?? "No inner exception stack trace" },
+            { "ExceptionSource", "HTTP" },
+            { "ExceptionIdentifier", $"{exception.GetType().Name}:{httpContext.Request.Path}" },
+            { "ExceptionMessage", exception.Message },
+            { "InnerExceptionType", exception.InnerException?.GetType().Name ?? "None" },
+            { "InnerExceptionMessage", exception.InnerException?.Message ?? "None" }
         };
         telemetryClient.TrackException(exception, properties);
 
@@ -75,7 +82,14 @@ public class SlackExceptionNotificationHandler(
                 { "OriginalExceptionType", exception.GetType().Name },
                 { "SlackExceptionType", slackEx.GetType().Name },
                 { "Environment", hostEnvironment.EnvironmentName },
-                { "System", "Correspondence" }
+                { "System", "Correspondence" },
+                { "StackTrace", slackEx.StackTrace ?? "No stack trace available" },
+                { "InnerExceptionStackTrace", slackEx.InnerException?.StackTrace ?? "No inner exception stack trace" },
+                { "ExceptionSource", "SlackNotification" },
+                { "ExceptionIdentifier", $"SlackNotification:{exception.GetType().Name}:{httpContext.Request.Path}" },
+                { "ExceptionMessage", slackEx.Message },
+                { "InnerExceptionType", slackEx.InnerException?.GetType().Name ?? "None" },
+                { "InnerExceptionMessage", slackEx.InnerException?.Message ?? "None" }
             };
             telemetryClient.TrackException(slackEx, slackProperties);
 
@@ -97,7 +111,14 @@ public class SlackExceptionNotificationHandler(
             { "JobId", jobId },
             { "JobName", jobName },
             { "Environment", hostEnvironment.EnvironmentName },
-            { "System", "Correspondence" }
+            { "System", "Correspondence" },
+            { "StackTrace", exception.StackTrace ?? "No stack trace available" },
+            { "InnerExceptionStackTrace", exception.InnerException?.StackTrace ?? "No inner exception stack trace" },
+            { "ExceptionSource", "Job" },
+            { "ExceptionIdentifier", $"{exception.GetType().Name}:{jobName}" },
+            { "ExceptionMessage", exception.Message },
+            { "InnerExceptionType", exception.InnerException?.GetType().Name ?? "None" },
+            { "InnerExceptionMessage", exception.InnerException?.Message ?? "None" }
         };
         telemetryClient.TrackException(exception, properties);
 
@@ -108,12 +129,6 @@ public class SlackExceptionNotificationHandler(
             jobName,
             exception.GetType().Name,
             exception.Message);
-
-        var slackMessage = new SlackMessage
-        {
-            Text = exceptionMessage,
-            Channel = Channel
-        };
 
         try
         {
@@ -130,7 +145,14 @@ public class SlackExceptionNotificationHandler(
                 { "JobId", jobId },
                 { "JobName", jobName },
                 { "Environment", hostEnvironment.EnvironmentName },
-                { "System", "Correspondence" }
+                { "System", "Correspondence" },
+                { "StackTrace", ex.StackTrace ?? "No stack trace available" },
+                { "InnerExceptionStackTrace", ex.InnerException?.StackTrace ?? "No inner exception stack trace" },
+                { "ExceptionSource", "JobSlackNotification" },
+                { "ExceptionIdentifier", $"JobSlackNotification:{exception.GetType().Name}:{jobName}" },
+                { "ExceptionMessage", ex.Message },
+                { "InnerExceptionType", ex.InnerException?.GetType().Name ?? "None" },
+                { "InnerExceptionMessage", ex.InnerException?.Message ?? "None" }
             };
             telemetryClient.TrackException(ex, slackProperties);
 
