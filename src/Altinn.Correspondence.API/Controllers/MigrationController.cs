@@ -9,6 +9,7 @@ using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Altinn.Correspondence.API.Mappers;
 
 namespace Altinn.Correspondence.API.Controllers
 {
@@ -78,13 +79,13 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("attachment")]
         [Authorize(Policy = AuthorizationConstants.Migrate)]
         public async Task<ActionResult<Guid>> MigrateAttachment(
-            InitializeAttachmentExt initializeAttachmentExt,
+            MigrateInitializeAttachmentExt initializeAttachmentExt,
             [FromServices] MigrateInitializeAttachmentHandler migrateInitializeAttachmentHandler,
             CancellationToken cancellationToken = default
         )
         {
             _logger.LogInformation("{initializeAttachmentExt.SendersReference};Initializing attachment with sendersference", initializeAttachmentExt.SendersReference);
-            var commandRequest = InitializeAttachmentMapper.MapToRequest(initializeAttachmentExt);
+            var commandRequest = MigrateInitializeAttachmentMapper.MapToRequest(initializeAttachmentExt);
             var commandResult = await migrateInitializeAttachmentHandler.Process(commandRequest, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
