@@ -22,6 +22,7 @@ using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Integrations.Azure;
 using Altinn.Correspondence.Application.IpSecurityRestrictionsUpdater;
 using Serilog.Formatting.Json;
+using Serilog.Events;
 
 BuildAndRun(args);
 
@@ -31,6 +32,12 @@ static void BuildAndRun(string[] args)
     builder.Host.UseSerilog((context, services, configuration) => configuration
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
+        .Filter.ByExcluding(logEvent =>
+            logEvent.Properties.TryGetValue("RequestPath", out var requestPath) &&
+            requestPath.ToString().Contains("/health", StringComparison.OrdinalIgnoreCase))
+        .Filter.ByExcluding(logEvent =>   
+            logEvent.Properties.TryGetValue("RequestPath", out var requestPath) &&
+            requestPath.ToString().Contains("/migration", StringComparison.OrdinalIgnoreCase))
         .Enrich.FromLogContext()
         .Enrich.WithClientIp()
         .Enrich.With(new PropertyPropagationEnricher("correspondenceId", "instanceId", "resourceId", "partyId"))
