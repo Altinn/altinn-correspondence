@@ -47,5 +47,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public long AttachmentSize { get; set; }
 
         public StorageProviderEntity? StorageProvider { get; set; }
+
+        public int? Altinn2AttachmentId { get; set; }
     }
 }

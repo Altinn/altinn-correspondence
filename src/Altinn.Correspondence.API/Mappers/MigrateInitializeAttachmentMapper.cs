@@ -1,12 +1,12 @@
-using Altinn.Correspondence.API.Models;
+﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application.InitializeAttachment;
+using Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
 using Altinn.Correspondence.Core.Models.Entities;
 
-namespace Altinn.Correspondence.Mappers;
-
-internal static class InitializeAttachmentMapper
+namespace Altinn.Correspondence.API.Mappers;
+internal static class MigrateInitializeAttachmentMapper
 {
-    internal static InitializeAttachmentRequest MapToRequest(InitializeAttachmentExt initializeAttachmentExt)
+    internal static MigrateInitializeAttachmentRequest MapToRequest(MigrateInitializeAttachmentExt initializeAttachmentExt)
     {
         var attachment = new AttachmentEntity
         {
@@ -17,11 +17,12 @@ internal static class InitializeAttachmentMapper
             SendersReference = initializeAttachmentExt.SendersReference,
             Checksum = initializeAttachmentExt.Checksum,
             IsEncrypted = initializeAttachmentExt.IsEncrypted,
-            Created = DateTimeOffset.UtcNow
+            Created = DateTimeOffset.UtcNow,
         };
-        return new InitializeAttachmentRequest()
+        return new MigrateInitializeAttachmentRequest()
         {
-            Attachment = attachment
+            Attachment = attachment,
+            Altinn2AttachmentId = initializeAttachmentExt.Altinn2AttachmentId
         };
     }
 }

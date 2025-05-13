@@ -10,6 +10,7 @@ using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
+using Altinn.Correspondence.API.Mappers;
 
 namespace Altinn.Correspondence.API.Controllers
 {
