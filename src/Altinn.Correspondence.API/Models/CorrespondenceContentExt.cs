@@ -1,5 +1,4 @@
-﻿using Altinn.Correspondence.API.Models.Enums;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models
 {
@@ -11,9 +10,6 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Gets or sets a list of attachments.
         /// </summary>
-        /// <remarks>
-        /// TODO: Number restriction?
-        /// </remarks>
         [JsonPropertyName("attachments")]
         public required new List<CorrespondenceAttachmentExt> Attachments { get; set; }
     }
