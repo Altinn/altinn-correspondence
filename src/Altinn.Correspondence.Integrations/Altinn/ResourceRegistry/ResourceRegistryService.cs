@@ -47,14 +47,14 @@ public class ResourceRegistryService : IResourceRegistryService
         return GetNameOfResourceResponse(altinnResourceResponse);
     }
 
-    public async Task<string> GetServiceOwnerOrgCode(string resourceId, CancellationToken cancellationToken)
+    public async Task<string?> GetServiceOwnerOrgCode(string resourceId, CancellationToken cancellationToken)
     {
         var altinnResourceResponse = await GetResource(resourceId, cancellationToken);
         if (altinnResourceResponse is null)
         {
             return null;
         }
-        return altinnResourceResponse.HasCompetentAuthority.Orgcode ?? string.Empty;
+        return altinnResourceResponse.HasCompetentAuthority?.Orgcode ?? string.Empty;
     }
 
     private async Task<GetResourceResponse?> GetResource(string resourceId, CancellationToken cancellationToken)
