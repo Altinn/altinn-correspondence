@@ -844,21 +844,34 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
             formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
 
-            foreach (var attachment in attachments)
-            {
-                var memoryStream = new MemoryStream();
-                memoryStream.Write(Encoding.UTF8.GetBytes("test content"));
-                memoryStream.Position = 0;
-                
-                var streamContent = new StreamContent(memoryStream);
-                formData.Add(streamContent, "attachments", attachment.FileName);
-            }
-
-            // Act
-            var response = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+            var streamsToDispose = new List<MemoryStream>();
             
-            // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            try
+            {
+                foreach (var attachment in attachments)
+                {
+                    var memoryStream = new MemoryStream();
+                    streamsToDispose.Add(memoryStream);
+                    memoryStream.Write(Encoding.UTF8.GetBytes("test content"));
+                    memoryStream.Position = 0;
+                    
+                    var streamContent = new StreamContent(memoryStream);
+                    formData.Add(streamContent, "attachments", attachment.FileName);
+                }
+
+                // Act
+                var response = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+                
+                // Assert
+                Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            }
+            finally
+            {
+                foreach (var stream in streamsToDispose)
+                {
+                    stream.Dispose();
+                }
+            }
         }
 
         [Fact]
@@ -869,7 +882,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             for (int i = 0; i < 100; i++)
             {
                 var attachment = AttachmentHelper.GetAttachmentMetaData($"file{i}.txt");
-                attachment.DataLocationType = Altinn.Correspondence.API.Models.Enums.InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment;
+                attachment.DataLocationType = API.Models.Enums.InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment;
                 attachment.ExpirationTime = DateTimeOffset.UtcNow.AddDays(1);
                 attachments.Add(attachment);
             }
@@ -882,21 +895,34 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
             formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
 
-            foreach (var attachment in attachments)
+            var streamsToDispose = new List<MemoryStream>();
+            
+            try
             {
-                var memoryStream = new MemoryStream();
-                memoryStream.Write(Encoding.UTF8.GetBytes("test content"));
-                memoryStream.Position = 0;
-                
-                var streamContent = new StreamContent(memoryStream);
-                formData.Add(streamContent, "attachments", attachment.FileName);
+                foreach (var attachment in attachments)
+                {
+                    var memoryStream = new MemoryStream();
+                    streamsToDispose.Add(memoryStream);
+                    memoryStream.Write(Encoding.UTF8.GetBytes("test content"));
+                    memoryStream.Position = 0;
+                    
+                    var streamContent = new StreamContent(memoryStream);
+                    formData.Add(streamContent, "attachments", attachment.FileName);
+                }
+
+                // Act
+                var response = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+
+                // Assert
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             }
-
-            // Act
-            var response = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
-
-            // Assert
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            finally
+            {
+                foreach (var stream in streamsToDispose)
+                {
+                    stream.Dispose();
+                }
+            }
         }
     }
 }
