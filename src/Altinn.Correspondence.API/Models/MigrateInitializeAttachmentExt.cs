@@ -28,5 +28,6 @@ public class MigrateInitializeAttachmentExt : BaseAttachmentExt
     [Required]
     public required string Sender { get; set; }
 
+    [JsonPropertyName("altinn2AttachmentId")]
     public int? Altinn2AttachmentId { get; set; }
 }
