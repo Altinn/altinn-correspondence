@@ -240,7 +240,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithResourceId(resource)
-                .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
+                .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(5))
                 .Build(); // One ReadyForPublish
 
             // Act
