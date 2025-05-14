@@ -56,7 +56,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        [Route("attachment/{attachmentId}/upload")]
+        [Route("attachment")]
         [Consumes("application/octet-stream")]
         [Authorize(Policy = AuthorizationConstants.Migrate)]
         public async Task<ActionResult<AttachmentOverviewExt>> MigrateAttachmentData(
