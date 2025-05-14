@@ -127,7 +127,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             _logger.LogWarning("Authorization service disabled");
             return true;
         }
-        var serviceOwnerId = await _resourceRepository.GetServiceOwnerOfResource(resourceId, cancellationToken);
+        var serviceOwnerId = await _resourceRepository.GetServiceOwnerNameOfResource(resourceId, cancellationToken);
         if (string.IsNullOrWhiteSpace(serviceOwnerId))
         {
             _logger.LogWarning("Service owner not found for resource");
