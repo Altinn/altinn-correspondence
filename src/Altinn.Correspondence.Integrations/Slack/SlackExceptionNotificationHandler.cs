@@ -41,7 +41,8 @@ public class SlackExceptionNotificationHandler(
             { "ExceptionMessage", exception.Message },
             { "InnerExceptionType", exception.InnerException?.GetType().Name ?? "None" },
             { "InnerExceptionMessage", exception.InnerException?.Message ?? "None" },
-            { "SentToSlack", "true" }
+            { "SentToSlack", "true" },
+            { "SlackMessage", exceptionMessage }
         };
         telemetryClient.TrackException(exception, properties);
 
@@ -120,7 +121,8 @@ public class SlackExceptionNotificationHandler(
             { "ExceptionMessage", exception.Message },
             { "InnerExceptionType", exception.InnerException?.GetType().Name ?? "None" },
             { "InnerExceptionMessage", exception.InnerException?.Message ?? "None" },
-            { "SentToSlack", "true" }
+            { "SentToSlack", "true" },
+            { "SlackMessage", exceptionMessage }
         };
         telemetryClient.TrackException(exception, properties);
 
