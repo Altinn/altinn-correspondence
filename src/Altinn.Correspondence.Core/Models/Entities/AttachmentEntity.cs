@@ -1,9 +1,11 @@
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Enums;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
 namespace Altinn.Correspondence.Core.Models.Entities
 {
+    [Index(nameof(Altinn2AttachmentId), IsUnique = true)]
     public class AttachmentEntity
     {
         [Key]

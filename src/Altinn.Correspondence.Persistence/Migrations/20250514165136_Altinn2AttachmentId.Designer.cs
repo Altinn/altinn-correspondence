@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250513061621_Altinn2AttachmentId")]
+    [Migration("20250514165136_Altinn2AttachmentId")]
     partial class Altinn2AttachmentId
     {
         /// <inheritdoc />
@@ -81,6 +81,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Altinn2AttachmentId")
+                        .IsUnique();
 
                     b.HasIndex("StorageProviderId");
 

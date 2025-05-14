@@ -79,6 +79,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Altinn2AttachmentId")
+                        .IsUnique();
+
                     b.HasIndex("StorageProviderId");
 
                     b.ToTable("Attachments", "correspondence");
