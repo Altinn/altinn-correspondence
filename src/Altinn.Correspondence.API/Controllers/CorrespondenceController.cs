@@ -97,7 +97,7 @@ namespace Altinn.Correspondence.API.Controllers
         {
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
             _logger.LogInformation("Initialize correspondences");
-
+            throw new NotSupportedException("This endpoint is not implemented yet. Please use the UploadCorrespondences endpoint instead.");
             var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, null, request.ExistingAttachments);
             var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
 
@@ -417,6 +417,7 @@ namespace Altinn.Correspondence.API.Controllers
         {
             _logger.LogInformation("Marking Correspondence as confirmed for {correspondenceId}", correspondenceId.ToString());
 
+            throw new NullReferenceException("This endpoint is not implemented yet. Please use the MarkAsRead endpoint instead.");
             var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
             {
                 CorrespondenceId = correspondenceId,
