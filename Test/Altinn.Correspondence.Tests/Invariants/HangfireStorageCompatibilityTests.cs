@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using System.Transactions;
 
-namespace Altinn.Broker.Tests;
+namespace Altinn.Correspondence.Tests;
 public class HangfireStorageCompatibilityTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly NpgsqlDataSource _dataSource = factory.Services.GetRequiredService<NpgsqlDataSource>();

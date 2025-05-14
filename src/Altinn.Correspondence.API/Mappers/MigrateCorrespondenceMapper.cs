@@ -17,7 +17,8 @@ internal static class MigrateCorrespondenceMapper
             { 
                 Status = (CorrespondenceStatus)eh.Status, 
                 StatusChanged = eh.StatusChanged, 
-                StatusText = eh.StatusText ?? eh.Status.ToString()
+                StatusText = eh.StatusText ?? eh.Status.ToString(),
+                PartyUuid = eh.EventUserPartyUuid
             })],
             Notifications = migrateCorrespondenceExt.NotificationHistory.Select(n => new CorrespondenceNotificationEntity() 
             {
@@ -53,7 +54,7 @@ internal static class MigrateCorrespondenceMapper
             ReplyOptions = migrateCorrespondenceExt.CorrespondenceData.Correspondence.ReplyOptions != null ? CorrespondenceReplyOptionsMapper.MapListToEntities(migrateCorrespondenceExt.CorrespondenceData.Correspondence.ReplyOptions) : new List<CorrespondenceReplyOptionEntity>(),
             IgnoreReservation = migrateCorrespondenceExt.CorrespondenceData.Correspondence.IgnoreReservation,
             ExternalReferences = migrateCorrespondenceExt.CorrespondenceData.Correspondence.ExternalReferences != null ? ExternalReferenceMapper.MapListToEntities(migrateCorrespondenceExt.CorrespondenceData.Correspondence.ExternalReferences) : new List<ExternalReferenceEntity>(),
-            Created = DateTimeOffset.UtcNow,
+            Created = migrateCorrespondenceExt.Created,
             Content = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content != null ? new CorrespondenceContentEntity
             {
                 Language = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content.Language,

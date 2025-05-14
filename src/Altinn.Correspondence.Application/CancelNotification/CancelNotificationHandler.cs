@@ -52,17 +52,7 @@ namespace Altinn.Correspondence.Application.CancelNotification
                     if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
                     throw new Exception(error);
                 }
-                bool isCancellationSuccessful = await altinnNotificationService.CancelNotification(notificationOrderId, cancellationToken);
-                if (!isCancellationSuccessful)
-                {
-                    error += $"Cancellation unsuccessful for notificationId: {notification.Id}";
-                    if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
-                    throw new Exception(error);
-                }
-                else
-                {
-                    await dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled);
-                }
+                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled));
             }
         }
         private void SendSlackNotificationWithMessage(string message)

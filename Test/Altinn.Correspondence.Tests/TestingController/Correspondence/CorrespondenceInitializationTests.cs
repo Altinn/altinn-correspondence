@@ -187,7 +187,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response1.StatusCode);
-            Assert.Equal(HttpStatusCode.BadRequest, response2.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
             Assert.Equal(HttpStatusCode.BadRequest, response3.StatusCode);
         }
 
@@ -647,7 +647,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var resourceRegistryService = new Mock<IResourceRegistryService>();
-                resourceRegistryService.Setup(x => x.GetServiceOwnerOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-broker-test-resource");
+                resourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-broker-test-resource");
                 resourceRegistryService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("BrokerService");
                 services.AddSingleton(resourceRegistryService.Object);
             });
@@ -801,6 +801,128 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Tear down
             memoryStream.Dispose();
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithMoreThan100Attachments_ReturnsBadRequest()
+        {
+            // Arrange
+            var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            hangfireBackgroundJobClient
+            .Setup(x => x.Create(
+                It.IsAny<Job>(),
+                It.IsAny<IState>()))
+            .Returns<Job, IState>((job, state) =>
+            {
+                // Apply 5-second delay only for CreateDialogportenDialog to give us time to poll for attachments
+                if (job.Method.Name == "CreateDialogportenDialog")
+                {
+                    Task.Delay(5000).Wait();
+                    return "dialog-job-id-123";
+                }
+
+                // For other jobs, return immediately
+                return "123456";
+            });
+
+            var attachments = new List<InitializeCorrespondenceAttachmentExt>();
+            for (int i = 0; i < 101; i++)
+            {
+                var attachment = AttachmentHelper.GetAttachmentMetaData($"file{i}.txt");
+                attachment.DataLocationType = API.Models.Enums.InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment;
+                attachment.ExpirationTime = DateTimeOffset.UtcNow.AddDays(1);
+                attachments.Add(attachment);
+            }
+            
+            Assert.Equal(101, attachments.Count);
+            
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithAttachments(attachments)
+                .Build();
+
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
+
+            var streamsToDispose = new List<MemoryStream>();
+            
+            try
+            {
+                foreach (var attachment in attachments)
+                {
+                    var memoryStream = new MemoryStream();
+                    streamsToDispose.Add(memoryStream);
+                    memoryStream.Write(Encoding.UTF8.GetBytes("test content"));
+                    memoryStream.Position = 0;
+                    
+                    var streamContent = new StreamContent(memoryStream);
+                    formData.Add(streamContent, "attachments", attachment.FileName);
+                }
+
+                // Act
+                var response = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+                
+                // Assert
+                Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            }
+            finally
+            {
+                foreach (var stream in streamsToDispose)
+                {
+                    stream.Dispose();
+                }
+            }
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_With100Attachments_ReturnsOk()
+        {
+            // Arrange
+            var attachments = new List<InitializeCorrespondenceAttachmentExt>();
+            for (int i = 0; i < 100; i++)
+            {
+                var attachment = AttachmentHelper.GetAttachmentMetaData($"file{i}.txt");
+                attachment.DataLocationType = API.Models.Enums.InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment;
+                attachment.ExpirationTime = DateTimeOffset.UtcNow.AddDays(1);
+                attachments.Add(attachment);
+            }
+            
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithAttachments(attachments)
+                .Build();
+
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
+
+            var streamsToDispose = new List<MemoryStream>();
+            
+            try
+            {
+                foreach (var attachment in attachments)
+                {
+                    var memoryStream = new MemoryStream();
+                    streamsToDispose.Add(memoryStream);
+                    memoryStream.Write(Encoding.UTF8.GetBytes("test content"));
+                    memoryStream.Position = 0;
+                    
+                    var streamContent = new StreamContent(memoryStream);
+                    formData.Add(streamContent, "attachments", attachment.FileName);
+                }
+
+                // Act
+                var response = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+
+                // Assert
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            }
+            finally
+            {
+                foreach (var stream in streamsToDispose)
+                {
+                    stream.Dispose();
+                }
+            }
         }
     }
 }

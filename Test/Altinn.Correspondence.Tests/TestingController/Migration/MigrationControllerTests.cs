@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json;
 using Altinn.Correspondence.Core.Models.Entities;
 using Microsoft.Extensions.DependencyInjection;
+using System.Web;
 
 namespace Altinn.Correspondence.Tests.TestingController.Migration;
 
@@ -36,29 +37,34 @@ public class MigrationControllerTests
         var basicCorrespondence = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .Build();
+        Guid userPartyGuid = new Guid("11112222333344445555666677778888");
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
         basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
+            Created = new DateTimeOffset(new DateTime(2024, 1, 5)),
             CorrespondenceData = basicCorrespondence,
             Altinn2CorrespondenceId = 12345,
             EventHistory =
         [
-            new CorrespondenceStatusEventExt()
+            new MigrateCorrespondenceStatusEventExt()
             {
                 Status = CorrespondenceStatusExt.Initialized,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
+                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
+                EventUserPartyUuid = userPartyGuid
             },
-            new CorrespondenceStatusEventExt()
+            new MigrateCorrespondenceStatusEventExt()
             {
                 Status = CorrespondenceStatusExt.Read,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6))
+                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6)),
+                EventUserPartyUuid = userPartyGuid
             },
-            new CorrespondenceStatusEventExt()
+            new MigrateCorrespondenceStatusEventExt()
             {
                 Status = CorrespondenceStatusExt.Archived,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 7))
+                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 7)),
+                EventUserPartyUuid = userPartyGuid
             }
         ]
         };
@@ -70,56 +76,64 @@ public class MigrationControllerTests
                 Altinn2NotificationId = 1,
                 NotificationAddress = "testemail@altinn.no",
                 NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
             {
                 Altinn2NotificationId = 2,
                 NotificationAddress = "testemail2@altinn.no",
                 NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
             {
                 Altinn2NotificationId = 3,
                 NotificationAddress = "testemail3@altinn.no",
                 NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
             {
                 Altinn2NotificationId = 4,
                 NotificationAddress = "testemail4@altinn.no",
                 NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
             {
                 Altinn2NotificationId = 5,
                 NotificationAddress = "123456789",
                 NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
             {
                 Altinn2NotificationId = 6,
                 NotificationAddress = "223456789",
                 NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
             {
                 Altinn2NotificationId = 7,
                 NotificationAddress = "323456789",
                 NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
             {
                 Altinn2NotificationId = 754537533,
                 NotificationAddress = "423456789",
                 NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
             }
         ];
 
@@ -139,24 +153,28 @@ public class MigrationControllerTests
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
+            Created = new DateTimeOffset(new DateTime(2024, 1, 5)),
             CorrespondenceData = basicCorrespondence,
             Altinn2CorrespondenceId = 12345,
             EventHistory =
         [
-            new CorrespondenceStatusEventExt()
+            new MigrateCorrespondenceStatusEventExt()
             {
                 Status = CorrespondenceStatusExt.Initialized,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
+                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
+                EventUserPartyUuid = Guid.NewGuid()
             },
-            new CorrespondenceStatusEventExt()
+            new MigrateCorrespondenceStatusEventExt()
             {
                 Status = CorrespondenceStatusExt.Read,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6))
+                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6)),
+                EventUserPartyUuid = Guid.NewGuid()
             },
-            new CorrespondenceStatusEventExt()
+            new MigrateCorrespondenceStatusEventExt()
             {
                 Status = CorrespondenceStatusExt.Archived,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 7))
+                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 7)),
+                EventUserPartyUuid = Guid.NewGuid()
             }
         ]
         };
@@ -168,56 +186,64 @@ public class MigrationControllerTests
                 Altinn2NotificationId = 1,
                 NotificationAddress = "testemail@altinn.no",
                 NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
             {
                 Altinn2NotificationId = 2,
                 NotificationAddress = "testemail2@altinn.no",
                 NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
             {
                 Altinn2NotificationId = 3,
                 NotificationAddress = "testemail3@altinn.no",
                 NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
             {
                 Altinn2NotificationId = 4,
                 NotificationAddress = "testemail4@altinn.no",
                 NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
             {
                 Altinn2NotificationId = 5,
                 NotificationAddress = "123456789",
                 NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
             {
                 Altinn2NotificationId = 6,
                 NotificationAddress = "223456789",
                 NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
             {
                 Altinn2NotificationId = 7,
                 NotificationAddress = "323456789",
                 NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
             {
                 Altinn2NotificationId = 754537533,
                 NotificationAddress = "423456789",
                 NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04))
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
             }
         ];
 
@@ -267,16 +293,19 @@ public class MigrationControllerTests
         var basicCorrespondence = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .Build();
+        Guid userPartyGuid = new Guid("11112222333344445555666677778888");
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
+            Created = new DateTimeOffset(new DateTime(2024, 1, 5)),
             CorrespondenceData = basicCorrespondence,
             Altinn2CorrespondenceId = 12345,
             EventHistory =
         [
-            new CorrespondenceStatusEventExt()
+            new MigrateCorrespondenceStatusEventExt()
             {
                 Status = CorrespondenceStatusExt.Initialized,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
+                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
+                EventUserPartyUuid = userPartyGuid
             }
         ]
         };
@@ -289,53 +318,102 @@ public class MigrationControllerTests
     [Fact]
     public async Task InitializeMigrateAttachment_InitializeAndUpload()
     {
-        InitializeAttachmentExt basicAttachment = new AttachmentBuilder().CreateAttachment().Build();
-
-        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/attachment", basicAttachment);
-        Assert.True(initializeResponse.IsSuccessStatusCode, await initializeResponse.Content.ReadAsStringAsync());
-        string attachmentIdstring = await initializeResponse.Content.ReadAsStringAsync();
-        Guid attachmentId = Guid.Parse(attachmentIdstring);
+        MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
         MemoryStream memoryStream = new(file);
         StreamContent content = new(memoryStream);
-        var uploadResponse = await _client.PostAsync($"correspondence/api/v1/migration/attachment/{attachmentId}/upload", content);
+        string command = GetAttachmentCommand(migrateAttachmentExt);
+        var uploadResponse = await _client.PostAsync(command, content);
+        Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task InitializeMigrateAttachment_DuplicateAltinn2AttachmentId_FailsWithConflict()
+    {
+        MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
+        migrateAttachmentExt.Altinn2AttachmentId = (new Random()).Next();
+        byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
+        MemoryStream memoryStream = new(file);
+        StreamContent content = new(memoryStream);
+        string command = GetAttachmentCommand(migrateAttachmentExt);
+        var uploadResponse = await _client.PostAsync(command, content);
+        Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
+        var uploadResponse2 = await _client.PostAsync(command, content);
+        Assert.True(uploadResponse2.StatusCode == System.Net.HttpStatusCode.Conflict, uploadResponse2.ReasonPhrase + ":" + await uploadResponse2.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task InitializeMigrateAttachment_TwoInARowWithoutAltinn2AttachmentId_Succeeds()
+    {
+        MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
+        migrateAttachmentExt.Altinn2AttachmentId = null;
+        byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
+        MemoryStream memoryStream = new(file);
+        StreamContent content = new(memoryStream);
+        string command = GetAttachmentCommand(migrateAttachmentExt);
+        var uploadResponse = await _client.PostAsync(command, content);
+        Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
+        var uploadResponse2 = await _client.PostAsync(command, content);
+        Assert.True(uploadResponse2.IsSuccessStatusCode, uploadResponse2.ReasonPhrase + ":" + await uploadResponse2.Content.ReadAsStringAsync());
+    }
+
+    private string GetAttachmentCommand(MigrateInitializeAttachmentExt attachment)
+    {
+        return $"correspondence/api/v1/migration/attachment" +
+            $"?resourceId={HttpUtility.UrlEncode(attachment.ResourceId)}" +
+            $"&senderPartyUuid={HttpUtility.UrlEncode(attachment.SenderPartyUuid.ToString())}" +
+            $"&sendersReference={HttpUtility.UrlEncode(attachment.SendersReference)}" +
+            $"&displayName={HttpUtility.UrlEncode(attachment.DisplayName)}" +
+            $"&isEncrypted={HttpUtility.UrlEncode(attachment.IsEncrypted.ToString())}" +
+            $"&fileName={HttpUtility.UrlEncode(attachment.FileName)}" +
+            $"&sender={HttpUtility.UrlEncode(attachment.Sender)}" + 
+            (attachment.Altinn2AttachmentId == null ? "" :
+            $"&altinn2AttachmentId={HttpUtility.UrlEncode(attachment.Altinn2AttachmentId?.ToString() ?? "")}");
+    }
+
+    [Fact]
+    public async Task InitializeMigrateAttachment_InitializeAndUpload_NewUploadEndpoint()
+    {
+        MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
+        
+        byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
+        MemoryStream memoryStream = new(file);
+        StreamContent content = new(memoryStream);
+        string command = GetAttachmentCommand(migrateAttachmentExt);
+        var uploadResponse = await _client.PostAsync(command, content);
         Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
     }
 
     [Fact]
     public async Task InitializeMigrateCorrespondence_UploadBothAttachments_ThenInitializeCorrespondence()
     {
-
-        InitializeAttachmentExt basicAttachment = new AttachmentBuilder().CreateAttachment().Build();
-
-        var initializeResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/attachment", basicAttachment);
-        string attachmentIdString = await initializeResponse.Content.ReadAsStringAsync();
-        Guid attachmentId = Guid.Parse(attachmentIdString);
+        MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
         MemoryStream memoryStream = new(file);
         StreamContent content = new(memoryStream);
-        var uploadResponse = await _client.PostAsync($"correspondence/api/v1/migration/attachment/{attachmentId}/upload", content);
+        string command = GetAttachmentCommand(migrateAttachmentExt);
+        var uploadResponse = await _client.PostAsync(command, content);
+        Guid attachmentId = Guid.Parse(uploadResponse.Content.ReadAsStringAsync().Result.Trim('"'));
 
-
-        InitializeAttachmentExt basicAttachment2 = new AttachmentBuilder().CreateAttachment().Build();
-
-        var initializeResponse2 = await _client.PostAsJsonAsync("correspondence/api/v1/migration/attachment", basicAttachment2);
-        string attachmentIdString2 = await initializeResponse2.Content.ReadAsStringAsync();
-        Guid attachmentId2 = Guid.Parse(attachmentIdString2);
+        MigrateInitializeAttachmentExt migrateAttachmentExt2 = new MigrateAttachmentBuilder().CreateAttachment().Build();
         byte[] file2 = Encoding.UTF8.GetBytes("Test av fil 2 opplasting");
         MemoryStream memoryStream2 = new(file2);
         StreamContent content2 = new(memoryStream2);
-        var uploadResponse2 = await _client.PostAsync($"correspondence/api/v1/migration/attachment/{attachmentId2}/upload", content2);
+        string command2 = GetAttachmentCommand(migrateAttachmentExt2);
+        var uploadResponse2 = await _client.PostAsync(command2, content);
+        Guid attachmentId2 = Guid.Parse(uploadResponse2.Content.ReadAsStringAsync().Result.Trim('"'));
 
         InitializeCorrespondencesExt initializeCorrespondencesExt = new CorrespondenceBuilder().CreateCorrespondence().WithExistingAttachments([attachmentId, attachmentId2]).Build();
         initializeCorrespondencesExt.Correspondence.SendersReference = "test 2024 10 09 09 45";
+        Guid userPartyGuid = new Guid("11112222333344445555666677778888");
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
+            Created = new DateTimeOffset(new DateTime(2024, 1, 5)),
             CorrespondenceData = initializeCorrespondencesExt,
             Altinn2CorrespondenceId = 12345,
-            EventHistory = [ new CorrespondenceStatusEventExt()
+            EventHistory = [ new MigrateCorrespondenceStatusEventExt()
             {
-                Status = CorrespondenceStatusExt.Initialized, StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
+                Status = CorrespondenceStatusExt.Initialized, StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)), EventUserPartyUuid=userPartyGuid
             }
             ]
         };
@@ -354,16 +432,19 @@ public class MigrationControllerTests
         var basicCorrespondence = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .Build();
+        Guid userPartyGuid = new Guid("11112222333344445555666677778888");
         MigrateCorrespondenceExt migrateCorrespondenceExt = new()
         {
+            Created = new DateTimeOffset(new DateTime(2024, 1, 5)),
             CorrespondenceData = basicCorrespondence,
             Altinn2CorrespondenceId = 12345,
             EventHistory =
             [
-                new CorrespondenceStatusEventExt()
+                new MigrateCorrespondenceStatusEventExt()
                 {
                     Status = CorrespondenceStatusExt.Initialized,
-                    StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
+                    StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
+                    EventUserPartyUuid = userPartyGuid
                 }
             ],
             IsMigrating = true
