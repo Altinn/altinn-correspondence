@@ -1,16 +1,13 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application;
-using Altinn.Correspondence.Common.Constants;
-using Altinn.Correspondence.Application.GetAttachmentOverview;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.InitializeCorrespondence;
-using Altinn.Correspondence.Application.UploadAttachment;
+using Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
-using Altinn.Correspondence.API.Mappers;
 
 namespace Altinn.Correspondence.API.Controllers
 {
@@ -54,30 +51,6 @@ namespace Altinn.Correspondence.API.Controllers
                 Problem
             );
         }
-
-        /// <summary>
-        /// Upload attachment data to Altinn Correspondence blob storage
-        /// </summary>
-        /// <returns></returns>
-        [HttpPost]
-        [Route("attachment")]
-        [Authorize(Policy = AuthorizationConstants.Migrate)]
-        public async Task<ActionResult<Guid>> MigrateAttachment(
-            MigrateInitializeAttachmentExt initializeAttachmentExt,
-            [FromServices] MigrateInitializeAttachmentHandler migrateInitializeAttachmentHandler,
-            CancellationToken cancellationToken = default
-        )
-        {
-            _logger.LogInformation("{initializeAttachmentExt.SendersReference};Initializing attachment with sendersference", initializeAttachmentExt.SendersReference);
-            var commandRequest = MigrateInitializeAttachmentMapper.MapToRequest(initializeAttachmentExt);
-            var commandResult = await migrateInitializeAttachmentHandler.Process(commandRequest, HttpContext.User, cancellationToken);
-
-            return commandResult.Match(
-                attachmentId => Ok(attachmentId.ToString()),
-                Problem
-            );
-        }
-
         /// <summary>
         /// Upload attachment data to Altinn Correspondence blob storage
         /// </summary>
