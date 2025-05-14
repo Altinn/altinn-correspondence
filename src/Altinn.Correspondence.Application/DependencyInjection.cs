@@ -46,7 +46,6 @@ public static class DependencyInjection
         services.AddScoped<UpdateCorrespondenceStatusHandler>();
         services.AddScoped<DownloadCorrespondenceAttachmentHandler>();
         services.AddScoped<PurgeCorrespondenceHandler>();
-        services.AddScoped<MigrateCorrespondenceHandler>();
 
         // Serviceowner
         services.AddScoped<InitializeServiceOwnerHandler>();
