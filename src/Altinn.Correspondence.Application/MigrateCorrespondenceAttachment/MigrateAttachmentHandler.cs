@@ -5,6 +5,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -38,35 +39,49 @@ public class MigrateAttachmentHandler(
                 request.Attachment.Checksum = uploadResult.AsT0.Checksum;
                 request.Attachment.AttachmentSize = uploadResult.AsT0.Size;
             }
-
-            var attachment = await attachmentRepository.InitializeAttachment(request.Attachment, cancellationToken);
-
-            var attachmentStatus = new AttachmentStatusEntity()
+            try
             {
-                AttachmentId = request.Attachment.Id,
-                Status = AttachmentStatus.Published,
-                StatusChanged = DateTimeOffset.UtcNow,
-                StatusText = AttachmentStatus.Published.ToString(),
-                PartyUuid = request.SenderPartyUuid
-            };
+                var attachment = await attachmentRepository.InitializeAttachment(request.Attachment, cancellationToken);
 
-            await attachmentStatusRepository.AddAttachmentStatus(attachmentStatus, cancellationToken);
+                var attachmentStatus = new AttachmentStatusEntity()
+                {
+                    AttachmentId = request.Attachment.Id,
+                    Status = AttachmentStatus.Published,
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusText = AttachmentStatus.Published.ToString(),
+                    PartyUuid = request.SenderPartyUuid
+                };
 
-            return new MigrateAttachmentResponse
+                await attachmentStatusRepository.AddAttachmentStatus(attachmentStatus, cancellationToken);
+
+                return new MigrateAttachmentResponse
+                {
+                    AttachmentId = attachment.Id,
+                    ResourceId = attachment.ResourceId,
+                    Name = attachment.FileName,
+                    Checksum = attachment.Checksum,
+                    Status = attachmentStatus.Status,
+                    StatusText = attachmentStatus.StatusText,
+                    StatusChanged = attachmentStatus.StatusChanged,
+                    DataLocationType = attachment.DataLocationType,
+                    SendersReference = attachment.SendersReference,
+                    FileName = attachment.FileName,
+                    DisplayName = attachment.DisplayName,
+                    Sender = attachment.Sender,
+                };
+            } 
+            catch (DbUpdateException e)
             {
-                AttachmentId = attachment.Id,
-                ResourceId = attachment.ResourceId,
-                Name = attachment.FileName,
-                Checksum = attachment.Checksum,
-                Status = attachmentStatus.Status,
-                StatusText = attachmentStatus.StatusText,
-                StatusChanged = attachmentStatus.StatusChanged,
-                DataLocationType = attachment.DataLocationType,
-                SendersReference = attachment.SendersReference,
-                FileName = attachment.FileName,
-                DisplayName = attachment.DisplayName,
-                Sender = attachment.Sender,
-            };
+                if (e.InnerException?.Data.Contains("SqlState") ?? false)
+                {
+                    var sqlState = e.InnerException.Data["SqlState"].ToString();
+                    if (sqlState == "23505")
+                    {
+                        return AttachmentErrors.AttachmentAlreadyMigrated;
+                    }
+                }
+                throw e;
+            }
         }, logger, cancellationToken);
     }
 }
