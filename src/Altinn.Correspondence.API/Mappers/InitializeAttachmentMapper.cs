@@ -18,7 +18,7 @@ internal static class InitializeAttachmentMapper
             SendersReference = initializeAttachmentExt.SendersReference,
             Checksum = initializeAttachmentExt.Checksum,
             IsEncrypted = initializeAttachmentExt.IsEncrypted,
-            Created = DateTimeOffset.UtcNow,
+            Created = DateTimeOffset.UtcNow
         };
         return new InitializeAttachmentRequest()
         {

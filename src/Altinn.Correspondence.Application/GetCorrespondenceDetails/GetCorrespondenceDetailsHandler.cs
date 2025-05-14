@@ -38,7 +38,7 @@ public class GetCorrespondenceDetailsHandler(
         {
             return AuthorizationErrors.NoAccessToResource;
         }
-        var latestStatus = correspondence.GetHighestStatus();
+        var latestStatus = correspondence.GetHighestStatusWithoutPurged();
         if (latestStatus == null)
         {
             return CorrespondenceErrors.CorrespondenceNotFound;

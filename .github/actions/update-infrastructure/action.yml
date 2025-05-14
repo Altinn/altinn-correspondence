@@ -64,6 +64,9 @@ inputs:
     description: "Whitelist for approved resources"
     required: false
     default: ""
+  DB_PWD:
+    description: 'Database admin password'
+    required: true
 
 runs:
   using: "composite"
@@ -91,6 +94,11 @@ runs:
         echo "::add-mask::$password"
         echo "::set-output name=postgresqlPassword::$password"
 
+    - name: Temporary work-around due to azure CLI bug https://github.com/Azure/azure-cli/issues/31189
+      id: az-cli-workaround
+      shell: pwsh
+      run: |
+        az config set bicep.use_binary_from_path=false
     - name: Deploy to Azure
       uses: azure/arm-deploy@v2
       id: deploy
@@ -115,6 +123,7 @@ runs:
         IDPORTEN_CLIENT_SECRET: ${{ inputs.IDPORTEN_CLIENT_SECRET }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
         RESOURCE_WHITELIST: ${{ inputs.RESOURCE_WHITELIST }}
+        DB_PWD: ${{ inputs.DB_PWD }}
       with:
         scope: subscription
         template: ./.azure/infrastructure/main.bicep
