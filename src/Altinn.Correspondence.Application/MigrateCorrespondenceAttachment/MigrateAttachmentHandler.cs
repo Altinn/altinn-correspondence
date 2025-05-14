@@ -20,8 +20,7 @@ public class MigrateAttachmentHandler(
 {
     public async Task<OneOf<MigrateAttachmentResponse, Error>> Process(MigrateAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var maxUploadSize = long.Parse(int.MaxValue.ToString());
-        if (request.ContentLength > maxUploadSize || request.ContentLength == 0)
+        if (request.ContentLength == 0)
         {
             return AttachmentErrors.InvalidFileSize;
         }

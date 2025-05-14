@@ -30,7 +30,7 @@ public class MigrateCorrespondenceHandler(
                     request.ExistingAttachments.Select(a => new CorrespondenceAttachmentEntity()
                     {
                         AttachmentId = a,
-                        Created = DateTimeOffset.Now
+                        Created = DateTimeOffset.UtcNow
                     })
                 );
             }

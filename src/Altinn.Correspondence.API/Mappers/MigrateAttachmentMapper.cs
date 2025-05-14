@@ -24,7 +24,7 @@ internal static class MigrateAttachmentMapper
             Attachment = attachment,
             SenderPartyUuid = initializeAttachmentExt.SenderPartyUuid,
             UploadStream = httpRequest.Body,
-            ContentLength = httpRequest.ContentLength ?? httpRequest.Body.Length
+            ContentLength = httpRequest.ContentLength ?? (httpRequest.Body.CanSeek ? httpRequest.Body.Length : 0)
         };
     }
 }
