@@ -40,7 +40,8 @@ public class SlackExceptionNotificationHandler(
             { "ExceptionIdentifier", $"{exception.GetType().Name}:{httpContext.Request.Path}" },
             { "ExceptionMessage", exception.Message },
             { "InnerExceptionType", exception.InnerException?.GetType().Name ?? "None" },
-            { "InnerExceptionMessage", exception.InnerException?.Message ?? "None" }
+            { "InnerExceptionMessage", exception.InnerException?.Message ?? "None" },
+            { "SentToSlack", "true" }
         };
         telemetryClient.TrackException(exception, properties);
 
@@ -118,7 +119,8 @@ public class SlackExceptionNotificationHandler(
             { "ExceptionIdentifier", $"{exception.GetType().Name}:{jobName}" },
             { "ExceptionMessage", exception.Message },
             { "InnerExceptionType", exception.InnerException?.GetType().Name ?? "None" },
-            { "InnerExceptionMessage", exception.InnerException?.Message ?? "None" }
+            { "InnerExceptionMessage", exception.InnerException?.Message ?? "None" },
+            { "SentToSlack", "true" }
         };
         telemetryClient.TrackException(exception, properties);
 
