@@ -417,7 +417,6 @@ namespace Altinn.Correspondence.API.Controllers
         {
             _logger.LogInformation("Marking Correspondence as confirmed for {correspondenceId}", correspondenceId.ToString());
 
-            throw new NullReferenceException("This endpoint is not implemented yet. Please use the MarkAsRead endpoint instead.");
             var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
             {
                 CorrespondenceId = correspondenceId,
