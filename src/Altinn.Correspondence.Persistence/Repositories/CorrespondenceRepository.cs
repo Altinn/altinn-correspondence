@@ -39,6 +39,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter
                 .FilterBySenderOrRecipient(orgNo, role)             // Filter by role
                 .FilterByStatus(status, orgNo, role)                // Filter by status
+                .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
                 .OrderByDescending(c => c.RequestedPublishTime)              // Sort by RequestedPublishTime
                 .Select(c => c.Id);
 
@@ -51,9 +52,14 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool includeStatus,
             bool includeContent,
             bool includeForwardingEvents,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            bool includeIsMigrating=false)
         {
-            var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
+            var correspondences = _context.Correspondences
+                .Where(c => c.IsMigrating == includeIsMigrating) // Filter out migrated correspondences that have not become available yet, unless includeIsMigrating is true
+                .Include(c => c.ReplyOptions)
+                .Include(c => c.ExternalReferences)
+                .Include(c => c.Notifications).AsQueryable();
             if (includeStatus)
             {
                 correspondences = correspondences.Include(c => c.Statuses);
@@ -71,8 +77,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
         }
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesByAttachmentId(Guid attachmentId, bool includeStatus, CancellationToken cancellationToken = default)
         {
-            var correspondence = _context.Correspondences.
-                Where(c => c.Content != null && c.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId)).AsQueryable();
+            var correspondence = _context.Correspondences
+                .Where(c => c.Content != null && c.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId))
+                .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
+                .AsQueryable();
 
             correspondence = includeStatus ? correspondence.Include(c => c.Statuses) : correspondence;
             return await correspondence.ToListAsync(cancellationToken);
@@ -81,13 +89,14 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<List<CorrespondenceEntity>> GetNonPublishedCorrespondencesByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default)
         {
             var correspondences = await _context.Correspondences
+                .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
                 .Where(correspondence =>
                         correspondence.Content!.Attachments.Any(attachment => attachment.AttachmentId == attachmentId) // Correspondence has the given attachment
                      && !correspondence.Statuses.Any(status => status.Status == CorrespondenceStatus.Published || status.Status == CorrespondenceStatus.ReadyForPublish  // Correspondence is not published
                                                            ||  status.Status == CorrespondenceStatus.Failed)
                      && correspondence.Content.Attachments.All(correspondenceAttachment => // All attachments of correspondence are published
                             correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Published) // All attachments must be published
-                         && !correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Purged))) // No attachments can be purged
+                         && !correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Purged))) // No attachments can be purged                
                 .ToListAsync(cancellationToken);
 
             return correspondences;
@@ -125,7 +134,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
-        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, bool includeActive, bool includeArchived, bool includePurged, string searchString, CancellationToken cancellationToken)
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, bool includeActive, bool includeArchived, bool includePurged, string searchString, CancellationToken cancellationToken, bool filterMigrated = true)
         {
             var correspondences = recipientIds.Count == 1
                 ? _context.Correspondences.Where(c => c.Recipient == recipientIds[0])     // Filter by single recipient
@@ -137,6 +146,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => resourceIds.Count == 0 || resourceIds.Contains(c.ResourceId))       // Filter by resources
                 .IncludeByStatuses(includeActive, includeArchived, includePurged, status) // Filter by statuses
                 .Where(c => string.IsNullOrEmpty(searchString) || (c.Content != null && c.Content.MessageTitle.Contains(searchString))) // Filter by messageTitle containing searchstring
+                .FilterMigrated(filterMigrated) // Filter all migrated correspondences no matter their IsMigrating status
                 .Include(c => c.Statuses)
                 .Include(c => c.Content)
                 .OrderByDescending(c => c.RequestedPublishTime);             // Sort by RequestedPublishTime

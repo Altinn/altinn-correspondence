@@ -93,5 +93,15 @@ namespace Altinn.Correspondence.Persistence.Helpers
             return query
                 .Where(cs => statusesToFilter.Contains(cs.Statuses.OrderBy(cs => cs.Status).Last().Status));
         }
+
+        public static IQueryable<CorrespondenceEntity> FilterMigrated(this IQueryable<CorrespondenceEntity> query, bool filterMigrated)
+        {
+            if(!filterMigrated)
+            {
+                return query;
+            }
+            return query
+                .Where(cs => !cs.Altinn2CorrespondenceId.HasValue);
+        }
     }
 }

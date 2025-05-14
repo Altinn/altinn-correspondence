@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json;
 using Altinn.Correspondence.Core.Models.Entities;
 using Microsoft.Extensions.DependencyInjection;
+using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.Tests.TestingController.Migration;
 
@@ -19,10 +20,11 @@ public class MigrationControllerTests
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _responseSerializerOptions;
 
+
     public MigrationControllerTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
-        _client = _factory.CreateClientWithAddedClaims(("scope", "altinn:correspondence.migrate"));
+        _client = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.MigrateScope));
         _responseSerializerOptions = new JsonSerializerOptions(new JsonSerializerOptions()
         {
             PropertyNameCaseInsensitive = true
@@ -376,7 +378,7 @@ public class MigrationControllerTests
         Assert.NotNull(result);
         var scope = _factory.Services.CreateScope();
         var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
-        CorrespondenceEntity? correspondence = await correspondenceRepository.GetCorrespondenceById(result.CorrespondenceId, true, true, false, CancellationToken.None);
+        CorrespondenceEntity? correspondence = await correspondenceRepository.GetCorrespondenceById(result.CorrespondenceId, true, true, false, CancellationToken.None, true);
 
         // Assert
         Assert.NotNull(correspondence);
