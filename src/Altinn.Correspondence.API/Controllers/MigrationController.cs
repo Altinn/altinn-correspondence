@@ -61,6 +61,29 @@ namespace Altinn.Correspondence.API.Controllers
         /// <returns></returns>
         [HttpPost]
         [Route("attachment")]
+        [Authorize(Policy = AuthorizationConstants.Migrate)]
+        public async Task<ActionResult<Guid>> MigrateAttachment(
+            MigrateInitializeAttachmentExt initializeAttachmentExt,
+            [FromServices] MigrateInitializeAttachmentHandler migrateInitializeAttachmentHandler,
+            CancellationToken cancellationToken = default
+        )
+        {
+            _logger.LogInformation("{initializeAttachmentExt.SendersReference};Initializing attachment with sendersference", initializeAttachmentExt.SendersReference);
+            var commandRequest = MigrateInitializeAttachmentMapper.MapToRequest(initializeAttachmentExt);
+            var commandResult = await migrateInitializeAttachmentHandler.Process(commandRequest, HttpContext.User, cancellationToken);
+
+            return commandResult.Match(
+                attachmentId => Ok(attachmentId.ToString()),
+                Problem
+            );
+        }
+
+        /// <summary>
+        /// Upload attachment data to Altinn Correspondence blob storage
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("attachment/{attachmentId}/upload")]
         [Consumes("application/octet-stream")]
         [Authorize(Policy = AuthorizationConstants.Migrate)]
         public async Task<ActionResult<AttachmentOverviewExt>> MigrateAttachmentData(
