@@ -108,25 +108,6 @@ public class CreateNotificationHandler(
         }
     }
 
-    private async Task SetRecipientNameOnNotificationContent(NotificationContent? content, string recipient, CancellationToken cancellationToken)
-    {
-        if (content == null)
-        {
-            return;
-        }
-        var recipientName = await altinnRegisterService.LookUpName(recipient.WithoutPrefix(), cancellationToken);
-        if (string.IsNullOrEmpty(recipientName))
-        {
-            return;
-        }
-        content.EmailBody = content.EmailBody?.Replace("$correspondenceRecipientName$", recipientName);
-        content.EmailSubject = content.EmailSubject?.Replace("$correspondenceRecipientName$", recipientName);
-        content.SmsBody = content.SmsBody?.Replace("$correspondenceRecipientName$", recipientName);
-        content.ReminderEmailBody = content.ReminderEmailBody?.Replace("$correspondenceRecipientName$", recipientName);
-        content.ReminderEmailSubject = content.ReminderEmailSubject?.Replace("$correspondenceRecipientName$", recipientName);
-        content.ReminderSmsBody = content.ReminderSmsBody?.Replace("$correspondenceRecipientName$", recipientName);
-    }
-
     private async Task<List<NotificationOrderRequest>> CreateNotificationRequestsV1(NotificationRequest notificationRequest, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
     {
         var notifications = new List<NotificationOrderRequest>();
@@ -168,7 +149,7 @@ public class CreateNotificationHandler(
         {
             content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person) ?? contents.FirstOrDefault(c => c.RecipientType == null);
         }
-        await SetRecipientNameOnNotificationContent(content, correspondence.Recipient, cancellationToken);
+        // await SetRecipientNameOnNotificationContent(content, correspondence.Recipient, cancellationToken);
         var notificationOrderRequest = new NotificationOrderRequest
         {
             IgnoreReservation = correspondence.IgnoreReservation,
@@ -222,16 +203,17 @@ public class CreateNotificationHandler(
         {
             sendersName = await altinnRegisterService.LookUpName(correspondence.Sender.WithoutPrefix(), cancellationToken);
         }
+        var recipientName = await altinnRegisterService.LookUpName(correspondence.Recipient.WithoutPrefix(), cancellationToken);
         foreach (var template in templates)
         {
             content.Add(new NotificationContent()
             {
-                EmailSubject = CreateNotificationContentFromToken(template.EmailSubject, request.EmailSubject).Replace("$sendersName$", sendersName),
-                EmailBody = CreateNotificationContentFromToken(template.EmailBody, request.EmailBody).Replace("$sendersName$", sendersName),
-                SmsBody = CreateNotificationContentFromToken(template.SmsBody, request.SmsBody).Replace("$sendersName$", sendersName),
-                ReminderEmailBody = CreateNotificationContentFromToken(template.ReminderEmailBody, request.ReminderEmailBody).Replace("$sendersName$", sendersName),
-                ReminderEmailSubject = CreateNotificationContentFromToken(template.ReminderEmailSubject, request.ReminderEmailSubject).Replace("$sendersName$", sendersName),
-                ReminderSmsBody = CreateNotificationContentFromToken(template.ReminderSmsBody, request.ReminderSmsBody).Replace("$sendersName$", sendersName),
+                EmailSubject = CreateNotificationContentFromToken(template.EmailSubject, request.EmailSubject).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
+                EmailBody = CreateNotificationContentFromToken(template.EmailBody, request.EmailBody).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
+                SmsBody = CreateNotificationContentFromToken(template.SmsBody, request.SmsBody).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
+                ReminderEmailBody = CreateNotificationContentFromToken(template.ReminderEmailBody, request.ReminderEmailBody).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
+                ReminderEmailSubject = CreateNotificationContentFromToken(template.ReminderEmailSubject, request.ReminderEmailSubject).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
+                ReminderSmsBody = CreateNotificationContentFromToken(template.ReminderSmsBody, request.ReminderSmsBody).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
                 Language = template.Language,
                 RecipientType = template.RecipientType
             });
@@ -257,8 +239,9 @@ public class CreateNotificationHandler(
         return message.Replace("{textToken}", token + " ").Trim();
     }
 
-    private async Task<NotificationOrderRequestV2> CreateNotificationRequestsV2(NotificationRequest notificationRequest, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
+    private NotificationOrderRequestV2 CreateNotificationRequestsV2(NotificationRequest notificationRequest, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
     {
+        
         var notificationOrder = new NotificationOrderRequestV2
         {
             SendersReference = correspondence.SendersReference,
@@ -268,7 +251,7 @@ public class CreateNotificationHandler(
             IdempotencyId = Guid.CreateVersion7(),
             Recipient = notificationRequest.CustomNotificationRecipients?.Count > 0
                 ? CreateCustomRecipient(notificationRequest, contents.First(), correspondence, isReminder: false)
-                : await CreateDefaultRecipient(notificationRequest, correspondence, contents, isReminder: false, cancellationToken)
+                : CreateDefaultRecipient(notificationRequest, correspondence, contents, isReminder: false)
         };
 
         if (notificationRequest.SendReminder)
@@ -281,7 +264,7 @@ public class CreateNotificationHandler(
                     DelayDays = hostEnvironment.IsProduction() ? 7 : 1,
                     Recipient = notificationRequest.CustomNotificationRecipients?.Count > 0
                         ? CreateCustomRecipient(notificationRequest, contents.First(), correspondence, isReminder: true)
-                        : await CreateDefaultRecipient(notificationRequest, correspondence, contents, isReminder: true, cancellationToken)
+                        : CreateDefaultRecipient(notificationRequest, correspondence, contents, isReminder: true)
                 }
             ];
         }
@@ -370,7 +353,7 @@ public class CreateNotificationHandler(
         return new RecipientV2();
     }
 
-    private async Task<RecipientV2> CreateDefaultRecipient(NotificationRequest notificationRequest, CorrespondenceEntity correspondence, List<NotificationContent> contents, bool isReminder, CancellationToken cancellationToken)
+    private RecipientV2 CreateDefaultRecipient(NotificationRequest notificationRequest, CorrespondenceEntity correspondence, List<NotificationContent> contents, bool isReminder)
     {
         string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
         bool isOrganization = recipientWithoutPrefix.IsOrganizationNumber();
@@ -385,7 +368,7 @@ public class CreateNotificationHandler(
         {
             content = contents.FirstOrDefault(c => c.RecipientType == RecipientType.Person) ?? contents.FirstOrDefault(c => c.RecipientType == null);
         }
-        await SetRecipientNameOnNotificationContent(content, correspondence.Recipient, cancellationToken);
+        // await SetRecipientNameOnNotificationContent(content, correspondence.Recipient, cancellationToken);
 
         var resourceIdWithPrefix = "urn:altinn:resource:" + correspondence.ResourceId;
         var channel = isReminder 
@@ -437,7 +420,7 @@ public class CreateNotificationHandler(
         CancellationToken cancellationToken)
     {
         // Create notification request
-        var notificationRequestV2 = await CreateNotificationRequestsV2(
+        var notificationRequestV2 = CreateNotificationRequestsV2(
             notificationRequest,
             correspondence,
             notificationContents,

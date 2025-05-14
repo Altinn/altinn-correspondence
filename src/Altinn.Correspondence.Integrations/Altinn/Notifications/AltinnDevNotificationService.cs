@@ -84,4 +84,15 @@ public class AltinnDevNotificationService : IAltinnNotificationService
         };
     }
 
+    public async Task<NotificationStatusResponseV2> GetNotificationDetailsV2(string shipmentId, CancellationToken cancellationToken = default)
+    {
+        return new NotificationStatusResponseV2()
+        {
+            ShipmentId = Guid.Parse(shipmentId),
+            SendersReference = "AltinnCorrespondence",
+            Type = "Email",
+            Status = "Completed",
+            Recipients = []
+        };
+    }
 }

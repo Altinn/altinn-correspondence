@@ -129,4 +129,22 @@ public class AltinnNotificationService : IAltinnNotificationService
         }
         return notificationStatusResponse;
     }
+
+    public async Task<NotificationStatusResponseV2> GetNotificationDetailsV2(string shipmentId, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync($"notifications/api/v1/future/shipment/{shipmentId}", cancellationToken: cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Failed to get details about notification v2 from Altinn Notification. Status code: {StatusCode}", response.StatusCode);
+            _logger.LogError("Body: {Response}", await response.Content.ReadAsStringAsync(cancellationToken));
+            throw new BadHttpRequestException("Failed to process response from Altinn Notification");
+        }
+        var responseContent = await response.Content.ReadFromJsonAsync<NotificationStatusResponseV2>(cancellationToken: cancellationToken);
+        if (responseContent is null)
+        {
+            _logger.LogError("Unexpected null or invalid json response from Notification v2.");
+            throw new BadHttpRequestException("Failed to process get notification details v2 from Altinn Notification");
+        }
+        return responseContent;
+    }
 }

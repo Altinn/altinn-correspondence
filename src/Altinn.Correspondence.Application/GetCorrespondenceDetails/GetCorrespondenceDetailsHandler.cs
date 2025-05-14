@@ -67,14 +67,23 @@ public class GetCorrespondenceDetailsHandler(
                 }, cancellationToken);
 
             }
-            var notificationHistory = new List<NotificationStatusResponse>();
+
+            
+            var notificationStatuses = new List<NotificationStatusResponse>();
             foreach (var notification in correspondence.Notifications)
             {
-                if (notification.NotificationOrderId != null)
+                // If the notification does not have a shipmentId, it is a version 1 notification
+                if (notification.ShipmentId == null && notification.NotificationOrderId != null)
                 {
-                    var notificationSummary = await altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString(), cancellationToken);
-                    notificationSummary.IsReminder = notification.IsReminder;
-                    notificationHistory.Add(notificationSummary);
+                    var notificationStatus = await altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString(), cancellationToken);
+                    notificationStatus.IsReminder = notification.IsReminder;
+                    notificationStatuses.Add(notificationStatus);
+                }
+                // If the notification has a shipmentId, it is a version 2 notification
+                else if (notification.ShipmentId is not null)
+                {
+                    var notificationDetails = await altinnNotificationService.GetNotificationDetailsV2(notification.ShipmentId.ToString(), cancellationToken);
+                    notificationStatuses.Add(MapNotificationV2ToV1(notificationDetails, correspondence, notification));
                 }
             }
 
@@ -91,7 +100,7 @@ public class GetCorrespondenceDetailsHandler(
                 Recipient = correspondence.Recipient,
                 Content = correspondence.Content!,
                 ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
-                Notifications = notificationHistory,
+                Notifications = notificationStatuses,
                 StatusHistory = correspondence.Statuses
                     .Where(statusEntity => hasAccessAsRecipient ? true : statusEntity.Status.IsAvailableForSender())
                     .OrderBy(s => s.StatusChanged)
@@ -108,5 +117,101 @@ public class GetCorrespondenceDetailsHandler(
             };
             return response;
         }, logger, cancellationToken);
+    }
+
+    private static NotificationStatusResponse MapNotificationV2ToV1(NotificationStatusResponseV2 notificationDetails, CorrespondenceEntity correspondence, CorrespondenceNotificationEntity notification)
+    {
+        var latestEmailRecipient = notificationDetails.Recipients
+            .Where(r => r.Type == "Email")
+            .OrderByDescending(r => r.LastUpdate)
+            .FirstOrDefault();
+
+        var latestSmsRecipient = notificationDetails.Recipients
+            .Where(r => r.Type == "SMS")
+            .OrderByDescending(r => r.LastUpdate)
+            .FirstOrDefault();
+
+        var emailRecipients = notificationDetails.Recipients
+            .Where(r => r.Type == "Email")
+            .OrderByDescending(r => r.LastUpdate)
+            .ToList();
+
+        var smsRecipients = notificationDetails.Recipients
+            .Where(r => r.Type == "SMS")
+            .OrderByDescending(r => r.LastUpdate)
+            .ToList();
+
+        return new NotificationStatusResponse
+        {
+            Id = notificationDetails.ShipmentId.ToString(),
+            SendersReference = notificationDetails.SendersReference,
+            RequestedSendTime = notification.RequestedSendTime.DateTime,
+            Created = notification.Created.DateTime,
+            Creator = "To be changed",
+            IsReminder = notification.IsReminder,
+            NotificationChannel = notification.NotificationChannel,
+            ResourceId = correspondence.ResourceId,
+            IgnoreReservation = correspondence.IgnoreReservation ?? false,
+            ProcessingStatus = new StatusExt
+            {
+                Status = notificationDetails.Status,
+                LastUpdate = notificationDetails.LastUpdate.DateTime
+            },
+            NotificationsStatusDetails = new NotificationsStatusDetails
+            {
+                Email = latestEmailRecipient != null ? new EmailNotificationWithResult
+                {
+                    Recipient = new Recipient
+                    {
+                        EmailAddress = latestEmailRecipient?.Destination
+                    },
+                    SendStatus = new StatusExt
+                    {
+                        Status = latestEmailRecipient?.Status ?? string.Empty,
+                        LastUpdate = latestEmailRecipient?.LastUpdate.DateTime ?? DateTime.MinValue
+                    },
+                    Succeeded = latestEmailRecipient?.Status == "Email_Delivered"
+                } : null,
+                Sms = latestSmsRecipient != null ? new SmsNotificationWithResult
+                {
+                    Recipient = new Recipient
+                    {
+                        MobileNumber = latestSmsRecipient?.Destination
+                    },
+                    SendStatus = new StatusExt
+                    {
+                        Status = latestSmsRecipient?.Status ?? string.Empty,
+                        LastUpdate = latestSmsRecipient?.LastUpdate.DateTime ?? DateTime.MinValue
+                    },
+                    Succeeded = latestSmsRecipient?.Status == "SMS_Delivered"
+                } : null,
+                Emails = emailRecipients!= null && emailRecipients.Count != 0 ? [.. emailRecipients.Select(r => new EmailNotificationWithResult
+                {
+                    Recipient = new Recipient
+                    {
+                        EmailAddress = r.Destination
+                    },
+                    SendStatus = new StatusExt
+                    {
+                        Status = r.Status,
+                        LastUpdate = r.LastUpdate.DateTime
+                    },
+                    Succeeded = r.Status == "Email_Delivered"
+                })]: null,
+                Smses = smsRecipients!= null && smsRecipients.Count != 0 ? [.. smsRecipients.Select(r => new SmsNotificationWithResult
+                {
+                    Recipient = new Recipient
+                    {
+                        MobileNumber = r.Destination
+                    },
+                    SendStatus = new StatusExt
+                    {
+                        Status = r.Status,
+                        LastUpdate = r.LastUpdate.DateTime
+                    },
+                    Succeeded = r.Status == "SMS_Delivered"
+                })]: null,
+            }
+        };
     }
 }
