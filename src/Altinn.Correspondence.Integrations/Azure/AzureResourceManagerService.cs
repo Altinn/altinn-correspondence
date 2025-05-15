@@ -27,12 +27,11 @@ public class AzureResourceManagerService : IResourceManager
     private readonly AzureResourceManagerOptions _resourceManagerOptions;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly ArmClient _armClient;
-    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
     private readonly TokenCredential _credentials;
     private readonly IServiceOwnerRepository _serviceOwnerRepository;
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly ILogger<AzureResourceManagerService> _logger;
-    private string GetResourceGroupName(string serviceOwnerId) => $"serviceowner-{_resourceManagerOptions.Environment}-{serviceOwnerId.Replace(":", "-")}-rg";
+    private string GetResourceGroupName(ServiceOwnerEntity serviceOwner) => $"serviceowner-{_resourceManagerOptions.Environment}-{serviceOwner.Name}-rg";
 
     private SubscriptionResource GetSubscription() => _armClient.GetSubscriptionResource(new ResourceIdentifier($"/subscriptions/{_resourceManagerOptions.SubscriptionId}"));
 
@@ -68,7 +67,7 @@ public class AzureResourceManagerService : IResourceManager
         }
         _logger.LogInformation($"Starting deployment for {serviceOwnerEntity.Name}");
         _logger.LogInformation($"Using app identity for deploying Azure resources"); // TODO remove
-        var resourceGroupName = GetResourceGroupName(serviceOwnerEntity.Id);
+        var resourceGroupName = GetResourceGroupName(serviceOwnerEntity);
 
         var storageAccountName = GenerateStorageAccountName();
         _logger.LogInformation($"Resource group: {resourceGroupName}");

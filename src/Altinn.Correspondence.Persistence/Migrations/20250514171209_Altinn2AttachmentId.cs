@@ -10,11 +10,11 @@ namespace Altinn.Correspondence.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<int>(
+            migrationBuilder.AddColumn<string>(
                 name: "Altinn2AttachmentId",
                 schema: "correspondence",
                 table: "Attachments",
-                type: "integer",
+                type: "text",
                 nullable: true);
 
             migrationBuilder.CreateIndex(

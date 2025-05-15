@@ -331,7 +331,7 @@ public class MigrationControllerTests
     public async Task InitializeMigrateAttachment_DuplicateAltinn2AttachmentId_FailsWithConflict()
     {
         MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
-        migrateAttachmentExt.Altinn2AttachmentId = (new Random()).Next();
+        migrateAttachmentExt.Altinn2AttachmentId = "SS" + (new Random()).Next();
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
         MemoryStream memoryStream = new(file);
         StreamContent content = new(memoryStream);
@@ -346,7 +346,7 @@ public class MigrationControllerTests
     public async Task InitializeMigrateAttachment_TwoInARowWithoutAltinn2AttachmentId_Succeeds()
     {
         MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
-        migrateAttachmentExt.Altinn2AttachmentId = null;
+        migrateAttachmentExt.Altinn2AttachmentId = string.Empty;
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
         MemoryStream memoryStream = new(file);
         StreamContent content = new(memoryStream);
@@ -367,8 +367,7 @@ public class MigrationControllerTests
             $"&isEncrypted={HttpUtility.UrlEncode(attachment.IsEncrypted.ToString())}" +
             $"&fileName={HttpUtility.UrlEncode(attachment.FileName)}" +
             $"&sender={HttpUtility.UrlEncode(attachment.Sender)}" + 
-            (attachment.Altinn2AttachmentId == null ? "" :
-            $"&altinn2AttachmentId={HttpUtility.UrlEncode(attachment.Altinn2AttachmentId?.ToString() ?? "")}");
+            $"&altinn2AttachmentId={HttpUtility.UrlEncode(attachment.Altinn2AttachmentId.ToString())}";
     }
 
     [Fact]

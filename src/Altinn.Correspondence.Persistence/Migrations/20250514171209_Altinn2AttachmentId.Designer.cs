@@ -34,8 +34,8 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<int?>("Altinn2AttachmentId")
-                        .HasColumnType("integer");
+                    b.Property<string>("Altinn2AttachmentId")
+                        .HasColumnType("text");
 
                     b.Property<long>("AttachmentSize")
                         .HasColumnType("bigint");
