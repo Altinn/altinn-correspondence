@@ -71,6 +71,12 @@ runs:
         tenant-id: ${{ inputs.AZURE_TENANT_ID }}
         subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
 
+    - name: Temporary work-around due to azure CLI bug https://github.com/Azure/azure-cli/issues/31189
+      id: az-cli-workaround
+      shell: pwsh
+      run: |
+        az config set bicep.use_binary_from_path=false
+
     - name: Deploy app
       uses: azure/arm-deploy@v2
       id: deploy
@@ -108,10 +114,10 @@ runs:
       id: verify-deployment
       with:
         timeout-minutes: 3
-        azcliversion: 2.56.0
+        azcliversion: 2.72.0
         inlineScript: |
           chmod +x ./.github/tools/revisionVerifier.sh
-          ./.github/tools/revisionVerifier.sh ${{ steps.deploy.outputs.revisionName }} ${{ inputs.AZURE_NAME_PREFIX }}-rg
+          ./.github/tools/revisionVerifier.sh ${{ steps.deploy.outputs.revisionName }} ${{ inputs.AZURE_NAME_PREFIX }}-rg ${{ inputs.AZURE_NAME_PREFIX}}-app
 
     - name: Logout from azure
       shell: bash

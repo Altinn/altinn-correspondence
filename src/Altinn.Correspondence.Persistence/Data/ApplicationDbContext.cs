@@ -42,6 +42,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<NotificationTemplateEntity> NotificationTemplates { get; set; }
     public DbSet<LegacyPartyEntity> LegacyParties { get; set; }
     public DbSet<IdempotencyKeyEntity> IdempotencyKeys { get; set; } = null!;
+    public DbSet<ServiceOwnerEntity> ServiceOwners { get; set; }
+    public DbSet<StorageProviderEntity> StorageProviders { get; set; }
 
     private bool IsAccessTokenValid()
     {

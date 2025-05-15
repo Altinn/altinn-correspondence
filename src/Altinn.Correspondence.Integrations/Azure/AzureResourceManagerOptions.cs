@@ -9,6 +9,7 @@ public class AzureResourceManagerOptions
     public string Environment { get; set; } = string.Empty;
     public string SubscriptionId { get; set; } = string.Empty;
     public string ApplicationResourceGroupName { get; set; } = string.Empty;
+    public string MalwareScanEventGridTopicName { get; set; } = string.Empty;
     public string ContainerAppName { get; set; } = string.Empty;
     public string ApimIP { get; set; } = string.Empty;
 }

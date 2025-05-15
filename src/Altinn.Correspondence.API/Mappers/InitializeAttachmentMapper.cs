@@ -1,7 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Mappers;
 
@@ -18,7 +17,7 @@ internal static class InitializeAttachmentMapper
             SendersReference = initializeAttachmentExt.SendersReference,
             Checksum = initializeAttachmentExt.Checksum,
             IsEncrypted = initializeAttachmentExt.IsEncrypted,
-            Created = DateTimeOffset.UtcNow,
+            Created = DateTimeOffset.UtcNow
         };
         return new InitializeAttachmentRequest()
         {

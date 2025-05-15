@@ -16,6 +16,7 @@ using Microsoft.Extensions.Logging;
 using OneOf;
 using Slack.Webhooks;
 using System.Security.Claims;
+using Altinn.Correspondence.Integrations.Redlock;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
 
@@ -29,9 +30,40 @@ public class PublishCorrespondenceHandler(
     IHostEnvironment hostEnvironment,
     ISlackClient slackClient,
     SlackSettings slackSettings,
-    IBackgroundJobClient backgroundJobClient) : IHandler<Guid, Task>
+    IBackgroundJobClient backgroundJobClient,
+    DistributedLockHelper DistributedLockHelper) : IHandler<Guid, Task>
 {
+
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    {
+        var lockKey = $"publish-correspondence-{correspondenceId}";
+
+        OneOf<Task, Error>? innerResult = null;
+        var (wasSkipped, lockAcquired) = await DistributedLockHelper.ExecuteWithConditionalLockAsync(
+            lockKey, 
+            async (cancellationToken) => await ShouldSkipCheck(correspondenceId, cancellationToken),
+            async (cancellationToken) => innerResult = await ProcessWithLock(correspondenceId, user, cancellationToken),
+            DistributedLockHelper.DefaultRetryCount,
+            DistributedLockHelper.DefaultRetryDelayMs,
+            DistributedLockHelper.DefaultLockExpirySeconds,
+            cancellationToken);
+
+        if (wasSkipped || !lockAcquired)
+        {
+            return Task.CompletedTask;
+        }
+
+        return innerResult ?? Task.CompletedTask;
+    }
+
+    public async Task<bool> ShouldSkipCheck(Guid correspondenceId, CancellationToken cancellationToken)
+    {
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        var status = correspondence?.GetHighestStatus()?.Status;
+        return status == CorrespondenceStatus.Published || status == CorrespondenceStatus.Failed;
+    }
+
+    public async Task<OneOf<Task, Error>> ProcessWithLock(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Publish correspondence {correspondenceId}", correspondenceId);
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);

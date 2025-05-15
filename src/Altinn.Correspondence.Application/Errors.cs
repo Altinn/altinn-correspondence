@@ -41,6 +41,7 @@ public static class CorrespondenceErrors
 
 public static class AttachmentErrors
 {
+    public static Error ResourceRegistryLookupFailed = new Error(2000, "Resource registry lookup failed", HttpStatusCode.InternalServerError);
     public static Error AttachmentNotFound = new Error(2001, "The requested attachment was not found", HttpStatusCode.NotFound);
     public static Error UploadFailed = new Error(2002, "Error occurred during upload", HttpStatusCode.BadGateway);
     public static Error CantUploadToExistingCorrespondence = new Error(2003, "Cannot upload attachment to a correspondence that has been created", HttpStatusCode.BadRequest);
@@ -54,6 +55,8 @@ public static class AttachmentErrors
     public static Error FilenameTooLong = new Error(2011, "Filename is too long", HttpStatusCode.BadRequest);
     public static Error FilenameInvalid = new Error(2012, "Filename contains invalid characters", HttpStatusCode.BadRequest);
     public static Error FiletypeNotAllowed = new Error(2013, "Filetype not allowed", HttpStatusCode.BadRequest);
+    public static Error ServiceOwnerNotFound = new Error(2014, "Service owner not setup in this environment. You need a service owner agreement to use Correspondence. Please contact us at Slack.", HttpStatusCode.UnavailableForLegalReasons);
+    public static Error AttachmentAlreadyMigrated = new Error(2015, "Attachment has already been migrated", HttpStatusCode.Conflict);
 }
 public static class NotificationErrors
 {

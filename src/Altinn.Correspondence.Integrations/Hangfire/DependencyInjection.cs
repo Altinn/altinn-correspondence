@@ -26,6 +26,7 @@ public static class DependencyInjection
                     provider.GetRequiredService<ILogger<SlackExceptionHandler>>())
                 );
         });
+
         services.AddHangfireServer(options => options.SchedulePollingInterval = TimeSpan.FromSeconds(2));
     }
 }
