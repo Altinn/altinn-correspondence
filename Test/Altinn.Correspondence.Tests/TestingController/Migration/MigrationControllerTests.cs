@@ -331,7 +331,7 @@ public class MigrationControllerTests
     public async Task InitializeMigrateAttachment_DuplicateAltinn2AttachmentId_FailsWithConflict()
     {
         MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
-        migrateAttachmentExt.Altinn2AttachmentId = (new Random()).Next();
+        migrateAttachmentExt.Altinn2AttachmentId = (new Random()).Next().ToString();
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
         MemoryStream memoryStream = new(file);
         StreamContent content = new(memoryStream);
