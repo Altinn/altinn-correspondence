@@ -110,35 +110,20 @@ public class CreateNotificationHandler(
 
     private async Task<List<NotificationOrderRequest>> CreateNotificationRequestsV1(NotificationRequest notificationRequest, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
     {
-        var notifications = new List<NotificationOrderRequest>();
+        var notificationRequests = new List<NotificationOrderRequest>();
         string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
         bool isOrganization = recipientWithoutPrefix.IsOrganizationNumber();
         bool isPerson = recipientWithoutPrefix.IsSocialSecurityNumber();
 
-        var recipientOverrides = notificationRequest.CustomNotificationRecipients ?? [];
-        var newRecipients = new List<Recipient>();
-        foreach (var recipientOverride in recipientOverrides)
-        {
-            newRecipients.AddRange(recipientOverride.Recipients.Select(r => new Recipient
-            {
-                EmailAddress = r.EmailAddress,
-                MobileNumber = r.MobileNumber,
-                IsReserved = r.IsReserved,
-                OrganizationNumber = r.OrganizationNumber,
-                NationalIdentityNumber = r.NationalIdentityNumber
-            }));
-        }
-
-        // Only the Recipients list is used, RecipientToOverride is ignored
-        // At the time of writing 09.05.2025, this is skipped and the Recipients field overrides the default recipients.
-        List<Recipient> relevantRecipients = newRecipients.Count > 0 ? newRecipients : new List<Recipient>
-        {
+        var customRecipient = notificationRequest.CustomRecipient ?? null;
+        List<Recipient> relevantRecipients = customRecipient != null ? [customRecipient] :
+        [
             new()
             {
                 OrganizationNumber = isOrganization ? recipientWithoutPrefix : null,
                 NationalIdentityNumber = isPerson ? recipientWithoutPrefix : null
             }
-        };
+        ];
 
         NotificationContent? content = null;
         if (isOrganization)
@@ -169,10 +154,10 @@ public class CreateNotificationHandler(
                 Body = content.SmsBody,
             } : null
         };
-        notifications.Add(notificationOrderRequest);
+        notificationRequests.Add(notificationOrderRequest);
         if (notificationRequest.SendReminder)
         {
-            notifications.Add(new NotificationOrderRequest
+            notificationRequests.Add(new NotificationOrderRequest
             {
                 IgnoreReservation = correspondence.IgnoreReservation,
                 Recipients = relevantRecipients,
@@ -192,7 +177,7 @@ public class CreateNotificationHandler(
                 } : null
             });
         }
-        return notifications;
+        return notificationRequests;
     }
 
     private async Task<List<NotificationContent>> GetNotificationContent(NotificationRequest request, List<NotificationTemplateEntity> templates, CorrespondenceEntity correspondence, CancellationToken cancellationToken, string? language = null)
@@ -249,7 +234,7 @@ public class CreateNotificationHandler(
                 ? DateTime.UtcNow.AddMinutes(5)
                 : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
             IdempotencyId = Guid.CreateVersion7(),
-            Recipient = notificationRequest.CustomNotificationRecipients?.Count > 0
+            Recipient = notificationRequest.CustomRecipient != null
                 ? CreateCustomRecipient(notificationRequest, contents.First(), correspondence, isReminder: false)
                 : CreateDefaultRecipient(notificationRequest, correspondence, contents, isReminder: false)
         };
@@ -262,7 +247,7 @@ public class CreateNotificationHandler(
                 {
                     SendersReference = correspondence.SendersReference,
                     DelayDays = hostEnvironment.IsProduction() ? 7 : 1,
-                    Recipient = notificationRequest.CustomNotificationRecipients?.Count > 0
+                    Recipient = notificationRequest.CustomRecipient != null
                         ? CreateCustomRecipient(notificationRequest, contents.First(), correspondence, isReminder: true)
                         : CreateDefaultRecipient(notificationRequest, correspondence, contents, isReminder: true)
                 }
@@ -274,9 +259,9 @@ public class CreateNotificationHandler(
 
     private RecipientV2 CreateCustomRecipient(NotificationRequest notificationRequest, NotificationContent content, CorrespondenceEntity correspondence, bool isReminder)
     {
-        if (notificationRequest.CustomNotificationRecipients?.Count > 0)
+        if (notificationRequest.CustomRecipient != null)
         {
-            var customRecipient = notificationRequest.CustomNotificationRecipients[0].Recipients[0];
+            var customRecipient = notificationRequest.CustomRecipient;
             var resourceIdWithPrefix = "urn:altinn:resource:" + correspondence.ResourceId;
             var channel = isReminder 
                 ? notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel 
@@ -317,7 +302,7 @@ public class CreateNotificationHandler(
                 {
                     RecipientSms = new RecipientSms
                     {
-                        MobileNumber = customRecipient.MobileNumber,
+                        PhoneNumber = customRecipient.MobileNumber,
                         SmsSettings = smsSettings
                     }
                 };

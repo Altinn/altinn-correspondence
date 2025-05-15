@@ -98,7 +98,7 @@ namespace Altinn.Correspondence.Core.Models.Notifications
 
     public class RecipientSms
     {
-        public string MobileNumber { get; set; } = null!;
+        public string PhoneNumber { get; set; } = null!;
         public SmsSettings? SmsSettings { get; set; }
     }
 
