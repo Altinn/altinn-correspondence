@@ -55,12 +55,9 @@ namespace Altinn.Correspondence.Persistence.Repositories
             CancellationToken cancellationToken,
             bool includeIsMigrating=false)
         {
-            var correspondences = _context.Correspondences                
-                .Include(c => c.ReplyOptions)
-                .Include(c => c.ExternalReferences)
-                .Include(c => c.Notifications).AsQueryable();
+            var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
 
-            // Exclude migrating correspondences unless explicitly requested
+            // Exclude migrating correspondences unless explicitly requested, added as an option since this method is frequently used in unit tests where it it useful to override
             if (!includeIsMigrating)
             {
                 correspondences = correspondences.Where(c => !c.IsMigrating);
@@ -101,7 +98,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                                                            ||  status.Status == CorrespondenceStatus.Failed)
                      && correspondence.Content.Attachments.All(correspondenceAttachment => // All attachments of correspondence are published
                             correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Published) // All attachments must be published
-                         && !correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Purged))) // No attachments can be purged                
+                         && !correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Purged))) // No attachments can be purged
                 .ToListAsync(cancellationToken);
 
             return correspondences;
