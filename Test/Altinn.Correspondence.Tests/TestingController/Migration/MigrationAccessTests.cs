@@ -1,19 +1,14 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Application.GetCorrespondences;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using Altinn.Correspondence.Core.Models.Entities;
-using Microsoft.Extensions.DependencyInjection;
-using Altinn.Correspondence.Common.Constants;
-using Altinn.Correspondence.Application.GetCorrespondences;
-using Npgsql.Internal;
-using System.Net;
-using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 
 namespace Altinn.Correspondence.Tests.TestingController.Migration;
 
@@ -31,8 +26,6 @@ public class MigrationAccessTests
     {
         _factory = factory;
         _migrationClient = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.MigrateScope));
-        _recipientClient = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.RecipientScope));
-        _legacyClient = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.RecipientScope));
         _serializerOptions = new JsonSerializerOptions(new JsonSerializerOptions()
         {
             PropertyNameCaseInsensitive = true
@@ -368,8 +361,8 @@ public class MigrationAccessTests
         string attachmentIdstring = await initializeResponse.Content.ReadAsStringAsync();
         Guid attachmentId = Guid.Parse(attachmentIdstring);
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
-        MemoryStream memoryStream = new(file);
-        StreamContent content = new(memoryStream);
+        using MemoryStream memoryStream = new(file);
+        using StreamContent content = new(memoryStream);
 
         var uploadResponse = await _migrationClient.PostAsync($"correspondence/api/v1/migration/attachment/{attachmentId}/upload", content);
 

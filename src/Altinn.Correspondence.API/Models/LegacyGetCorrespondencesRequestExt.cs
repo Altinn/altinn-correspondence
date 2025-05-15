@@ -34,7 +34,7 @@ namespace Altinn.Correspondence.API.Models
         public bool IncludeDeleted { get; set; }
 
         /// <summary>
-        /// If the search should include migrated correspondences
+        /// When true, migrated correspondences are excluded from search results
         /// </summary>
         [JsonPropertyName("filterMigrated")]
         public bool FilterMigrated { get; set; } = true;

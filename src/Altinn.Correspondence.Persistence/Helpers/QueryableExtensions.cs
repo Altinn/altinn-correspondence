@@ -94,9 +94,15 @@ namespace Altinn.Correspondence.Persistence.Helpers
                 .Where(cs => statusesToFilter.Contains(cs.Statuses.OrderBy(cs => cs.Status).Last().Status));
         }
 
+        /// <summary>
+        /// Filters out migrated correspondences when filterMigrated is true
+        /// </summary>
+        /// <param name="query">The source query</param>
+        /// <param name="filterMigrated">When true, excludes migrated correspondences</param>
+        /// <returns>Filtered or unmodified query based on the filterMigrated parameter</returns>
         public static IQueryable<CorrespondenceEntity> FilterMigrated(this IQueryable<CorrespondenceEntity> query, bool filterMigrated)
         {
-            if(!filterMigrated)
+            if (!filterMigrated)
             {
                 return query;
             }

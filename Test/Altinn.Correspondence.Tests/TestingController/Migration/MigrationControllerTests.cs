@@ -240,8 +240,8 @@ public class MigrationControllerTests
         string attachmentIdstring = await initializeResponse.Content.ReadAsStringAsync();
         Guid attachmentId = Guid.Parse(attachmentIdstring);
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
-        MemoryStream memoryStream = new(file);
-        StreamContent content = new(memoryStream);
+        using MemoryStream memoryStream = new(file);
+        using StreamContent content = new(memoryStream);
         var uploadResponse = await _client.PostAsync($"correspondence/api/v1/migration/attachment/{attachmentId}/upload", content);
         Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
     }
@@ -256,8 +256,8 @@ public class MigrationControllerTests
         string attachmentIdString = await initializeResponse.Content.ReadAsStringAsync();
         Guid attachmentId = Guid.Parse(attachmentIdString);
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
-        MemoryStream memoryStream = new(file);
-        StreamContent content = new(memoryStream);
+        using MemoryStream memoryStream = new(file);
+        using StreamContent content = new(memoryStream);
         var uploadResponse = await _client.PostAsync($"correspondence/api/v1/migration/attachment/{attachmentId}/upload", content);
 
 
@@ -267,8 +267,8 @@ public class MigrationControllerTests
         string attachmentIdString2 = await initializeResponse2.Content.ReadAsStringAsync();
         Guid attachmentId2 = Guid.Parse(attachmentIdString2);
         byte[] file2 = Encoding.UTF8.GetBytes("Test av fil 2 opplasting");
-        MemoryStream memoryStream2 = new(file2);
-        StreamContent content2 = new(memoryStream2);
+        using MemoryStream memoryStream2 = new(file2);
+        using StreamContent content2 = new(memoryStream2);
         var uploadResponse2 = await _client.PostAsync($"correspondence/api/v1/migration/attachment/{attachmentId2}/upload", content2);
 
         InitializeCorrespondencesExt initializeCorrespondencesExt = new CorrespondenceBuilder().CreateCorrespondence().WithExistingAttachments([attachmentId, attachmentId2]).Build();
