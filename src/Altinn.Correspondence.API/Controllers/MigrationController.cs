@@ -1,15 +1,13 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application;
-using Altinn.Correspondence.Common.Constants;
-using Altinn.Correspondence.Application.GetAttachmentOverview;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.InitializeCorrespondence;
-using Altinn.Correspondence.Application.UploadAttachment;
+using Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
 
 namespace Altinn.Correspondence.API.Controllers
 {
@@ -53,7 +51,6 @@ namespace Altinn.Correspondence.API.Controllers
                 Problem
             );
         }
-
         /// <summary>
         /// Upload attachment data to Altinn Correspondence blob storage
         /// </summary>
