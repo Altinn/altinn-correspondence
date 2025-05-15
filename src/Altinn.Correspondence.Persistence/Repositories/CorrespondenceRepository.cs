@@ -55,11 +55,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
             CancellationToken cancellationToken,
             bool includeIsMigrating=false)
         {
-            var correspondences = _context.Correspondences
-                .Where(c => c.IsMigrating == includeIsMigrating) // Filter out migrated correspondences that have not become available yet, unless includeIsMigrating is true
+            var correspondences = _context.Correspondences                
                 .Include(c => c.ReplyOptions)
                 .Include(c => c.ExternalReferences)
                 .Include(c => c.Notifications).AsQueryable();
+
+            // Exclude migrating correspondences unless explicitly requested
+            if (!includeIsMigrating)
+            {
+                correspondences = correspondences.Where(c => !c.IsMigrating);
+            }
             if (includeStatus)
             {
                 correspondences = correspondences.Include(c => c.Statuses);
