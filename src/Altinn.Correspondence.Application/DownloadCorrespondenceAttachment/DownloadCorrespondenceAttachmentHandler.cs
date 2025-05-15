@@ -116,7 +116,8 @@ public class DownloadCorrespondenceAttachmentHandler(
                 DialogportenActorType.ServiceOwner, 
                 DialogportenTextType.DownloadStarted,  
                 attachment.DisplayName ?? attachment.FileName,
-                request.AttachmentId.ToString()));
+                request.AttachmentId.ToString(),
+                DateTime.Now.ToString()));
             return new DownloadCorrespondenceAttachmentResponse()
             {
                 FileName = attachment.FileName,
