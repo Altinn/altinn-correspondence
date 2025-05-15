@@ -18,6 +18,8 @@ namespace Altinn.Correspondence.Tests.Factories
             .CreateCorrespondence()
             .Build();
 
+            basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
+
             _migratedCorrespondence = new()
             {
                 CorrespondenceData = basicCorrespondence,
@@ -53,16 +55,19 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
-        public MigrateCorrespondenceBuilder WithAttachments()
+        public MigrateCorrespondenceBuilder WithExistingAttachments(List<Guid> attachmentIds)
         {
-            _migratedCorrespondence.CorrespondenceData.Correspondence.Content!.Attachments = new List<InitializeCorrespondenceAttachmentExt>() {
-                new InitializeCorrespondenceAttachmentExt()
-                {
-                    SendersReference = "1234",
-                    FileName = "test-fil2e.txt",
-                    IsEncrypted = false,
-                }
-            };
+            _migratedCorrespondence.CorrespondenceData.ExistingAttachments = attachmentIds;
+            return this;
+        }
+
+        public MigrateCorrespondenceBuilder WithStatusEvent(CorrespondenceStatusExt status, DateTime occurred)
+        {
+            _migratedCorrespondence.EventHistory.Add(new CorrespondenceStatusEventExt()
+            {
+                Status = status,
+                StatusChanged = new DateTimeOffset(occurred)
+            });
             return this;
         }
     }

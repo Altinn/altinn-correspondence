@@ -35,35 +35,12 @@ public class MigrationControllerTests
     [Fact]
     public async Task InitializeMigrateCorrespondence()
     {
-        var basicCorrespondence = new CorrespondenceBuilder()
-            .CreateCorrespondence()
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithIsMigrating(false)
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-        basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new()
-        {
-            CorrespondenceData = basicCorrespondence,
-            Altinn2CorrespondenceId = 12345,
-            EventHistory =
-        [
-            new CorrespondenceStatusEventExt()
-            {
-                Status = CorrespondenceStatusExt.Initialized,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
-            },
-            new CorrespondenceStatusEventExt()
-            {
-                Status = CorrespondenceStatusExt.Read,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6))
-            },
-            new CorrespondenceStatusEventExt()
-            {
-                Status = CorrespondenceStatusExt.Archived,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 7))
-            }
-        ]
-        };
 
         migrateCorrespondenceExt.NotificationHistory =
         [
@@ -133,35 +110,12 @@ public class MigrationControllerTests
     [Fact]
     public async Task InitializeMigrateCorrespondence_WithForwarded()
     {
-        var basicCorrespondence = new CorrespondenceBuilder()
-            .CreateCorrespondence()
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithIsMigrating(false)
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-        basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new()
-        {
-            CorrespondenceData = basicCorrespondence,
-            Altinn2CorrespondenceId = 12345,
-            EventHistory =
-        [
-            new CorrespondenceStatusEventExt()
-            {
-                Status = CorrespondenceStatusExt.Initialized,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
-            },
-            new CorrespondenceStatusEventExt()
-            {
-                Status = CorrespondenceStatusExt.Read,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6))
-            },
-            new CorrespondenceStatusEventExt()
-            {
-                Status = CorrespondenceStatusExt.Archived,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 7))
-            }
-        ]
-        };
 
         migrateCorrespondenceExt.NotificationHistory =
         [
@@ -266,22 +220,10 @@ public class MigrationControllerTests
     [Fact]
     public async Task InitializeMigrateCorrespondence_NotReadNoNotifications()
     {
-        var basicCorrespondence = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new()
-        {
-            CorrespondenceData = basicCorrespondence,
-            Altinn2CorrespondenceId = 12345,
-            EventHistory =
-        [
-            new CorrespondenceStatusEventExt()
-            {
-                Status = CorrespondenceStatusExt.Initialized,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
-            }
-        ]
-        };
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+             .CreateMigrateCorrespondence()
+             .WithIsMigrating(false)
+             .Build(); ;
 
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
         string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
@@ -353,23 +295,9 @@ public class MigrationControllerTests
     public async Task InitializeMigrateCorrespondence_IsMigrateTrue_SetsFlagToTrue()
     {
         // Arrange
-        var basicCorrespondence = new CorrespondenceBuilder()
-            .CreateCorrespondence()
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()            
             .Build();
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new()
-        {
-            CorrespondenceData = basicCorrespondence,
-            Altinn2CorrespondenceId = 12345,
-            EventHistory =
-            [
-                new CorrespondenceStatusEventExt()
-                {
-                    Status = CorrespondenceStatusExt.Initialized,
-                    StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
-                }
-            ],
-            IsMigrating = true
-        };
 
         // Act
         var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);

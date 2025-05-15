@@ -13,6 +13,7 @@ using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Npgsql.Internal;
 using System.Net;
+using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 
 namespace Altinn.Correspondence.Tests.TestingController.Migration;
 
@@ -281,6 +282,100 @@ public class MigrationAccessTests
         var retrievedCorrespondence = await getCorrespondenceOverviewResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_serializerOptions);
 
         Assert.Equal(createdCorrespondenceId, retrievedCorrespondence.CorrespondenceId);
+    }
+
+    [Fact]
+    public async Task FullLifeCycle_IsMigratingTrue__CorrespondenceNotFound()
+    {
+        // Arrange
+        Guid attachmentId = await UploadAttachment();
+
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithExistingAttachments(new List<Guid> { attachmentId })
+            .Build();
+
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+
+        CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_serializerOptions);
+        var createdCorrespondenceId = result.CorrespondenceId;
+        var createdAttachmentId = result.AttachmentStatuses.FirstOrDefault(x => x.AttachmentId == attachmentId)?.AttachmentId;
+
+        // Act
+        var fetchResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{createdCorrespondenceId}");
+        Assert.Equal(HttpStatusCode.NotFound, fetchResponse.StatusCode);
+
+        var downloadAttachmentResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{createdCorrespondenceId}/attachment/{attachmentId}/download");
+        var data = await downloadAttachmentResponse.Content.ReadAsByteArrayAsync();        
+        Assert.Equal(HttpStatusCode.NotFound, downloadAttachmentResponse.StatusCode);
+
+        var markAsReadResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{createdCorrespondenceId}/markasread", null);        
+        Assert.Equal(HttpStatusCode.NotFound, markAsReadResponse.StatusCode);
+
+        var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{createdCorrespondenceId}/confirm", null);
+        Assert.Equal(HttpStatusCode.NotFound, confirmResponse.StatusCode);
+
+        var purgeResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{createdCorrespondenceId}/purge");
+        Assert.Equal(HttpStatusCode.NotFound, purgeResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task FullLifeCycle_IsMigratingFalse__OK()
+    {
+        // Arrange
+        Guid attachmentId = await UploadAttachment();
+
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithExistingAttachments(new List<Guid> { attachmentId })
+            .WithIsMigrating(false)
+            .Build();
+
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+
+        CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_serializerOptions);
+        var createdCorrespondenceId = result.CorrespondenceId;
+
+        // Act
+        var fetchResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{createdCorrespondenceId}");
+        Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
+
+        var downloadAttachmentResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{createdCorrespondenceId}/attachment/{attachmentId}/download");
+        var data = await downloadAttachmentResponse.Content.ReadAsByteArrayAsync();
+        Assert.Equal(HttpStatusCode.OK, downloadAttachmentResponse.StatusCode);
+        Assert.NotEmpty(data);
+
+        var markAsReadResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{createdCorrespondenceId}/markasread", null);
+        Assert.Equal(HttpStatusCode.OK, markAsReadResponse.StatusCode);
+
+        var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{createdCorrespondenceId}/confirm", null);
+        Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
+
+        var purgeResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{createdCorrespondenceId}/purge");
+        Assert.Equal(HttpStatusCode.OK, purgeResponse.StatusCode);
+    }
+
+
+    private async Task<Guid> UploadAttachment()
+    {
+        InitializeAttachmentExt basicAttachment = new AttachmentBuilder().CreateAttachment().Build();
+        var initializeResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/attachment", basicAttachment);
+
+        Assert.True(initializeResponse.IsSuccessStatusCode, await initializeResponse.Content.ReadAsStringAsync());
+
+        string attachmentIdstring = await initializeResponse.Content.ReadAsStringAsync();
+        Guid attachmentId = Guid.Parse(attachmentIdstring);
+        byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
+        MemoryStream memoryStream = new(file);
+        StreamContent content = new(memoryStream);
+
+        var uploadResponse = await _migrationClient.PostAsync($"correspondence/api/v1/migration/attachment/{attachmentId}/upload", content);
+
+        Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
+
+        return attachmentId;
     }
 
     public LegacyGetCorrespondencesRequestExt GetBasicLegacyGetCorrespondenceRequestExt()
