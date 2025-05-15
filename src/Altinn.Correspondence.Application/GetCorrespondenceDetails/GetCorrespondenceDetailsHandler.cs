@@ -17,6 +17,7 @@ public class GetCorrespondenceDetailsHandler(
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
+    IResourceRegistryService resourceRegistryService,
     ILogger<GetCorrespondenceDetailsHandler> logger) : IHandler<GetCorrespondenceDetailsRequest, GetCorrespondenceDetailsResponse>
 {
     public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(GetCorrespondenceDetailsRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -38,7 +39,7 @@ public class GetCorrespondenceDetailsHandler(
         {
             return AuthorizationErrors.NoAccessToResource;
         }
-        var latestStatus = correspondence.GetHighestStatusWithoutPurged();
+        var latestStatus = correspondence.GetHighestStatus();
         if (latestStatus == null)
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
@@ -69,21 +70,21 @@ public class GetCorrespondenceDetailsHandler(
             }
 
             
-            var notificationStatuses = new List<NotificationStatusResponse>();
+            var notificationStatus = new List<NotificationStatusResponse>();
             foreach (var notification in correspondence.Notifications)
             {
                 // If the notification does not have a shipmentId, it is a version 1 notification
                 if (notification.ShipmentId == null && notification.NotificationOrderId != null)
                 {
-                    var notificationStatus = await altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString(), cancellationToken);
-                    notificationStatus.IsReminder = notification.IsReminder;
-                    notificationStatuses.Add(notificationStatus);
+                    var notificationDetails = await altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString(), cancellationToken);
+                    notificationDetails.IsReminder = notification.IsReminder;
+                    notificationStatus.Add(notificationDetails);
                 }
                 // If the notification has a shipmentId, it is a version 2 notification
                 else if (notification.ShipmentId is not null)
                 {
                     var notificationDetails = await altinnNotificationService.GetNotificationDetailsV2(notification.ShipmentId.ToString(), cancellationToken);
-                    notificationStatuses.Add(MapNotificationV2ToV1(notificationDetails, correspondence, notification));
+                    notificationStatus.Add(await MapNotificationV2ToV1Async(notificationDetails, notification));
                 }
             }
 
@@ -100,7 +101,7 @@ public class GetCorrespondenceDetailsHandler(
                 Recipient = correspondence.Recipient,
                 Content = correspondence.Content!,
                 ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
-                Notifications = notificationStatuses,
+                Notifications = notificationStatus,
                 StatusHistory = correspondence.Statuses
                     .Where(statusEntity => hasAccessAsRecipient ? true : statusEntity.Status.IsAvailableForSender())
                     .OrderBy(s => s.StatusChanged)
@@ -119,8 +120,9 @@ public class GetCorrespondenceDetailsHandler(
         }, logger, cancellationToken);
     }
 
-    private static NotificationStatusResponse MapNotificationV2ToV1(NotificationStatusResponseV2 notificationDetails, CorrespondenceEntity correspondence, CorrespondenceNotificationEntity notification)
+    private async Task<NotificationStatusResponse> MapNotificationV2ToV1Async(NotificationStatusResponseV2 notificationDetails, CorrespondenceNotificationEntity notification)
     {
+        var correspondence = notification.Correspondence ?? throw new ArgumentException($"Correspondence with id {notification.CorrespondenceId} not found when mapping notification", nameof(notification));
         var latestEmailRecipient = notificationDetails.Recipients
             .Where(r => r.Type == "Email")
             .OrderByDescending(r => r.LastUpdate)
@@ -147,7 +149,7 @@ public class GetCorrespondenceDetailsHandler(
             SendersReference = notificationDetails.SendersReference,
             RequestedSendTime = notification.RequestedSendTime.DateTime,
             Created = notification.Created.DateTime,
-            Creator = "To be changed",
+            Creator = correspondence?.ResourceId != null ? await resourceRegistryService.GetServiceOwnerOrgCode(correspondence.ResourceId) : "Not found",
             IsReminder = notification.IsReminder,
             NotificationChannel = notification.NotificationChannel,
             ResourceId = correspondence.ResourceId,
