@@ -77,5 +77,11 @@ namespace Altinn.Correspondence.Tests.Factories
             });
             return this;
         }
+
+        public MigrateCorrespondenceBuilder WithSendersReference(string senderReference)
+        {
+            _migratedCorrespondence.CorrespondenceData.Correspondence.SendersReference = senderReference;
+            return this;
+        }
     }
 }
