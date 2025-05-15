@@ -8,4 +8,5 @@ public class MigrateAttachmentRequest
     public required Guid SenderPartyUuid { get; set; }
     public required Stream UploadStream { get; set; }
     public long ContentLength { get; set; }
+    public int? Altinn2AttachmentId { get; set; }
 }
