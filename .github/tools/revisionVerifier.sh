@@ -8,15 +8,21 @@ if [ -z "$2" ]; then
   exit 1
 fi
 
+if [ -z "$3" ]; then
+  echo "Usage: $0 <container-app-name>"
+  exit 1
+fi
+
 revision_name="$1"
 resource_group="$2"
+container_app_name="$3"
 query_filter="{name:name, runningState:properties.runningState, healthState:properties.healthState}"
 
 verify_revision() {
   local json_output
   
   # Fetch app revision
-  json_output=$(az containerapp revision show -g "$resource_group" --revision "$revision_name" --query "$query_filter" 2>/dev/null)
+  json_output=$(az containerapp revision show -g "$resource_group" -n "$container_app_name" --revision "$revision_name" --query "$query_filter" 2>/dev/null)
   
   health_state=$(echo $json_output | jq -r '.healthState')
   running_state=$(echo $json_output | jq -r '.runningState')
