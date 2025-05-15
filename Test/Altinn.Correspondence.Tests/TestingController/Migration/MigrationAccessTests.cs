@@ -9,6 +9,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Web;
 
 namespace Altinn.Correspondence.Tests.TestingController.Migration;
 
@@ -353,22 +354,32 @@ public class MigrationAccessTests
 
     private async Task<Guid> UploadAttachment()
     {
-        InitializeAttachmentExt basicAttachment = new AttachmentBuilder().CreateAttachment().Build();
-        var initializeResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/attachment", basicAttachment);
+        MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
 
-        Assert.True(initializeResponse.IsSuccessStatusCode, await initializeResponse.Content.ReadAsStringAsync());
-
-        string attachmentIdstring = await initializeResponse.Content.ReadAsStringAsync();
-        Guid attachmentId = Guid.Parse(attachmentIdstring);
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
         using MemoryStream memoryStream = new(file);
         using StreamContent content = new(memoryStream);
-
-        var uploadResponse = await _migrationClient.PostAsync($"correspondence/api/v1/migration/attachment/{attachmentId}/upload", content);
+        string command = GetAttachmentCommand(migrateAttachmentExt);
+        var uploadResponse = await _migrationClient.PostAsync(command, content);
 
         Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
+        string attachmentId = await uploadResponse.Content.ReadAsStringAsync();
 
-        return attachmentId;
+        return new Guid(attachmentId.Trim('"'));
+    }
+
+    private string GetAttachmentCommand(MigrateInitializeAttachmentExt attachment)
+    {
+        return $"correspondence/api/v1/migration/attachment" +
+            $"?resourceId={HttpUtility.UrlEncode(attachment.ResourceId)}" +
+            $"&senderPartyUuid={HttpUtility.UrlEncode(attachment.SenderPartyUuid.ToString())}" +
+            $"&sendersReference={HttpUtility.UrlEncode(attachment.SendersReference)}" +
+            $"&displayName={HttpUtility.UrlEncode(attachment.DisplayName)}" +
+            $"&isEncrypted={HttpUtility.UrlEncode(attachment.IsEncrypted.ToString())}" +
+            $"&fileName={HttpUtility.UrlEncode(attachment.FileName)}" +
+            $"&sender={HttpUtility.UrlEncode(attachment.Sender)}" +
+            (attachment.Altinn2AttachmentId == null ? "" :
+            $"&altinn2AttachmentId={HttpUtility.UrlEncode(attachment.Altinn2AttachmentId?.ToString() ?? "")}");
     }
 
     public LegacyGetCorrespondencesRequestExt GetBasicLegacyGetCorrespondenceRequestExt()

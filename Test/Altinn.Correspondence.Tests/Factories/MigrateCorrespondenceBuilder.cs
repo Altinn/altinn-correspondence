@@ -6,6 +6,7 @@ namespace Altinn.Correspondence.Tests.Factories
     public class MigrateCorrespondenceBuilder
     {
         private MigrateCorrespondenceExt _migratedCorrespondence;
+        private Guid _defaultUserPartyUuid = new Guid("11112222333344445555666677778888");
         public MigrateCorrespondenceExt Build()
         {
             return _migratedCorrespondence;
@@ -24,15 +25,17 @@ namespace Altinn.Correspondence.Tests.Factories
                 Altinn2CorrespondenceId = 99911,
                 EventHistory =
             [
-                new CorrespondenceStatusEventExt()
+                new MigrateCorrespondenceStatusEventExt()
                     {
                         Status = CorrespondenceStatusExt.Initialized,
-                        StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5))
+                        StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
+                        EventUserPartyUuid = _defaultUserPartyUuid
                     },
-                    new CorrespondenceStatusEventExt()
+                    new MigrateCorrespondenceStatusEventExt()
                     {
                         Status = CorrespondenceStatusExt.Published,
-                        StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6))
+                        StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6)),
+                        EventUserPartyUuid = _defaultUserPartyUuid
                     }
                 ],
                 IsMigrating = true
@@ -59,12 +62,18 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
-        public MigrateCorrespondenceBuilder WithStatusEvent(CorrespondenceStatusExt status, DateTime occurred)
+        public MigrateCorrespondenceBuilder WithStatusEvent(CorrespondenceStatusExt status, DateTime occurred, Guid? userPartyUuid = null)
         {
-            _migratedCorrespondence.EventHistory.Add(new CorrespondenceStatusEventExt()
+            if(userPartyUuid == null)
+            {
+                userPartyUuid = _defaultUserPartyUuid;
+            }
+
+            _migratedCorrespondence.EventHistory.Add(new MigrateCorrespondenceStatusEventExt()
             {
                 Status = status,
-                StatusChanged = new DateTimeOffset(occurred)
+                StatusChanged = new DateTimeOffset(occurred),
+                EventUserPartyUuid = (Guid)userPartyUuid
             });
             return this;
         }

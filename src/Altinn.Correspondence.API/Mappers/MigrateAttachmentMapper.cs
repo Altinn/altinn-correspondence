@@ -4,9 +4,9 @@ using Altinn.Correspondence.Core.Models.Entities;
 
 namespace Altinn.Correspondence.Mappers;
 
-internal static class InitializeAttachmentMapper
+internal static class MigrateAttachmentMapper
 {
-    internal static InitializeAttachmentRequest MapToRequest(InitializeAttachmentExt initializeAttachmentExt)
+    internal static MigrateAttachmentRequest MapToRequest(MigrateInitializeAttachmentExt initializeAttachmentExt, HttpRequest httpRequest)
     {
         var attachment = new AttachmentEntity
         {
@@ -17,11 +17,15 @@ internal static class InitializeAttachmentMapper
             SendersReference = initializeAttachmentExt.SendersReference,
             Checksum = initializeAttachmentExt.Checksum,
             IsEncrypted = initializeAttachmentExt.IsEncrypted,
-            Created = DateTimeOffset.UtcNow
+            Created = DateTimeOffset.UtcNow,
+            Altinn2AttachmentId = initializeAttachmentExt.Altinn2AttachmentId
         };
-        return new InitializeAttachmentRequest()
+        return new MigrateAttachmentRequest()
         {
-            Attachment = attachment
+            Attachment = attachment,
+            SenderPartyUuid = initializeAttachmentExt.SenderPartyUuid,
+            UploadStream = httpRequest.Body,
+            ContentLength = httpRequest.ContentLength ?? (httpRequest.Body.CanSeek ? httpRequest.Body.Length : 0)
         };
     }
 }

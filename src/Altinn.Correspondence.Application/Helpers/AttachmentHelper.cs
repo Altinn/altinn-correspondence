@@ -97,13 +97,13 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             else
             {
-                var serviceOwnerId = await resourceRegistryService.GetServiceOwnerOrganizationId(attachment.ResourceId, cancellationToken);
-                if (serviceOwnerId is null)
+                var serviceOwnerOrgCode = await resourceRegistryService.GetServiceOwnerOrgCode(attachment.ResourceId, cancellationToken);
+                if (serviceOwnerOrgCode is null)
                 {
                     logger.LogError("Could not find service owner for resource {resourceId}", attachment.ResourceId);
                     return null;
                 }
-                serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwnerByOrgNo(serviceOwnerId, cancellationToken);
+                serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwnerByOrgCode(serviceOwnerOrgCode, cancellationToken);
             }
             if (serviceOwnerEntity == null)
             {

@@ -187,7 +187,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response1.StatusCode);
-            Assert.Equal(HttpStatusCode.BadRequest, response2.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
             Assert.Equal(HttpStatusCode.BadRequest, response3.StatusCode);
         }
 
@@ -647,7 +647,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var resourceRegistryService = new Mock<IResourceRegistryService>();
-                resourceRegistryService.Setup(x => x.GetServiceOwnerOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-broker-test-resource");
+                resourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-broker-test-resource");
                 resourceRegistryService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("BrokerService");
                 services.AddSingleton(resourceRegistryService.Object);
             });

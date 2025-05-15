@@ -90,7 +90,7 @@ public class LegacyGetCorrespondencesHandler(
         var resourceOwners = new Dictionary<string, string>();
         foreach (var resource in correspondences.Select(c => c.ResourceId).Distinct().ToList())
         {
-            var resourceOwner = await resourceRegistryService.GetServiceOwnerOfResource(resource, cancellationToken);
+            var resourceOwner = await resourceRegistryService.GetServiceOwnerNameOfResource(resource, cancellationToken);
             if (resourceOwner == null)
             {
                 logger.LogError("Failed to get resource owner for resource {Resource}", resource);

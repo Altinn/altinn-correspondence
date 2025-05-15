@@ -70,7 +70,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
 
             int status = (int)CorrespondenceStatusExt.Published;
-            var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceA}&status={status}&role={"recipientandsender"}");
+            var correspondenceListResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence?resourceId={resourceA}&status={status}&role={"recipientandsender"}");
+            Assert.True(correspondenceListResponse.IsSuccessStatusCode, await correspondenceListResponse.Content.ReadAsStringAsync());
+            var correspondenceList = await correspondenceListResponse.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
+            Assert.True(correspondenceList?.Ids.Count > 0, "No correspondence found");
             Assert.Equal(payloadResourceA.Recipients.Count, correspondenceList?.Ids.Count);
         }
 
@@ -240,7 +243,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithResourceId(resource)
-                .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
+                .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(5))
                 .Build(); // One ReadyForPublish
 
             // Act

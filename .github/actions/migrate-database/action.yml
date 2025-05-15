@@ -88,7 +88,7 @@ runs:
     - name: Upload Migration Files to Azure File Share
       uses: azure/CLI@v2
       with:
-        azcliversion: 2.68.0
+        azcliversion: 2.72.0
         inlineScript: |
           az storage file upload --share-name migrations --account-name ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }} \
             --source ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --path bundle.exe
@@ -98,7 +98,7 @@ runs:
     - name: Start migration job
       uses: azure/CLI@v2
       with:
-        azcliversion: 2.68.0
+        azcliversion: 2.72.0
         inlineScript: |
           az containerapp job start -n ${{ steps.migration-job.outputs.name }} -g ${{ inputs.AZURE_NAME_PREFIX }}-rg
 
@@ -106,7 +106,7 @@ runs:
       uses: azure/CLI@v2
       id: verify-migration
       with:
-        azcliversion: 2.68.0
+        azcliversion: 2.72.0
         inlineScript: |
           chmod +x ./.github/tools/containerAppJobVerifier.sh
           ./.github/tools/containerAppJobVerifier.sh ${{ steps.migration-job.outputs.name }} '${{ inputs.AZURE_NAME_PREFIX }}-rg' ${{ steps.get-version.outputs.imageTag }}
