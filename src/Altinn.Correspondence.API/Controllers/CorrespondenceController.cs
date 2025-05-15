@@ -97,7 +97,6 @@ namespace Altinn.Correspondence.API.Controllers
         {
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
             _logger.LogInformation("Initialize correspondences");
-            throw new NotSupportedException("This endpoint is not implemented yet. Please use the UploadCorrespondences endpoint instead.");
             var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, null, request.ExistingAttachments);
             var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
 
