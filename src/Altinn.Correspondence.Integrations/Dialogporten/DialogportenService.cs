@@ -177,6 +177,11 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 logger.LogError("Invalid attachment ID token for download activity on correspondence {correspondenceId}", correspondenceId);
                 throw new ArgumentException("Invalid attachment ID token", nameof(tokens));
             }
+
+            if (tokens[2] is not null)
+            {
+                createDialogActivityRequest.CreatedAt = DateTime.Parse(tokens[2]);
+            }
             
             if (correspondence.Statuses.Count(s => s.Status == CorrespondenceStatus.AttachmentsDownloaded && s.StatusText.Contains(attachmentId.ToString())) >= 2)
             {
