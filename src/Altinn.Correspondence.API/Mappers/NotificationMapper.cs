@@ -86,30 +86,44 @@ internal static class NotificationMapper
                 },
                 Succeeded = status.Sms.Succeeded
             } : null,
-        };
-    }
-
-    internal static List<CustomNotificationRecipient> MapExternalRecipientsToRequest(List<CustomNotificationRecipientExt>? customRecipients)
-    {
-        if (customRecipients == null)
-        {
-            return new List<CustomNotificationRecipient>();
-        }
-        List<CustomNotificationRecipient> mappedCustomRecipients = new List<CustomNotificationRecipient>();
-        foreach (var customRecipient in customRecipients)
-        {
-            mappedCustomRecipients.Add(new CustomNotificationRecipient
+            Emails = status.Emails != null ? [.. status.Emails.Select(e => new NotificationDetailsExt()
             {
-                RecipientToOverride = customRecipient.RecipientToOverride,
-                Recipients = customRecipient.Recipients.Select(newRecipient => new Recipient
+                Id = e.Id,
+                Recipient = new NotificationRecipientExt()
                 {
-                    EmailAddress = newRecipient.EmailAddress,
-                    MobileNumber = newRecipient.MobileNumber,
-                    NationalIdentityNumber = newRecipient.NationalIdentityNumber,
-                    OrganizationNumber = newRecipient.OrganizationNumber
-                }).ToList()
-            });
-        }
-        return mappedCustomRecipients;
+                    EmailAddress = e.Recipient.EmailAddress,
+                    IsReserved = e.Recipient.IsReserved,
+                    MobileNumber = e.Recipient.MobileNumber,
+                    NationalIdentityNumber = e.Recipient.NationalIdentityNumber,
+                    OrganizationNumber = e.Recipient.OrganizationNumber
+                },
+                SendStatus = new NotificationStatusExt()
+                {
+                    LastUpdate = e.SendStatus.LastUpdate,
+                    Status = e.SendStatus.Status,
+                    StatusDescription = e.SendStatus.StatusDescription
+                },
+                Succeeded = e.Succeeded
+            })] : null, 
+            Smses = status.Smses != null ? [.. status.Smses.Select(s => new NotificationDetailsExt()
+            {
+                Id = s.Id,
+                Recipient = new NotificationRecipientExt()
+                {
+                    EmailAddress = s.Recipient.EmailAddress,
+                    IsReserved = s.Recipient.IsReserved,
+                    MobileNumber = s.Recipient.MobileNumber,
+                    NationalIdentityNumber = s.Recipient.NationalIdentityNumber,
+                    OrganizationNumber = s.Recipient.OrganizationNumber
+                },
+                SendStatus = new NotificationStatusExt()
+                {
+                    LastUpdate = s.SendStatus.LastUpdate,
+                    Status = s.SendStatus.Status,
+                    StatusDescription = s.SendStatus.StatusDescription
+                },
+                Succeeded = s.Succeeded
+            })] : null,
+        };
     }
 }

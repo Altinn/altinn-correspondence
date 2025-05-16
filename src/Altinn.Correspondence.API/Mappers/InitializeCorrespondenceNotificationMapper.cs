@@ -3,6 +3,7 @@ using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Models.Notifications;
 
 namespace Altinn.Correspondence.Mappers;
 
@@ -34,7 +35,14 @@ internal static class InitializeCorrespondenceNotificationMapper
             ReminderNotificationChannel = (NotificationChannel?)correspondenceNotificationExt.ReminderNotificationChannel,
             SmsBody = correspondenceNotificationExt.SmsBody,
             SendReminder = correspondenceNotificationExt.SendReminder,
-            CustomNotificationRecipients = NotificationMapper.MapExternalRecipientsToRequest(correspondenceNotificationExt.CustomNotificationRecipients)
+            CustomRecipient = correspondenceNotificationExt.CustomRecipient != null ? new Recipient
+            {
+                EmailAddress = correspondenceNotificationExt.CustomRecipient.EmailAddress,
+                IsReserved = correspondenceNotificationExt.CustomRecipient.IsReserved,
+                MobileNumber = correspondenceNotificationExt.CustomRecipient.MobileNumber,
+                NationalIdentityNumber = correspondenceNotificationExt.CustomRecipient.NationalIdentityNumber,
+                OrganizationNumber = correspondenceNotificationExt.CustomRecipient.OrganizationNumber
+            } : null
         };
         return notification;
     }

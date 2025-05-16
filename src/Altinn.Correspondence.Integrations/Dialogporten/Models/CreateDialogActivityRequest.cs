@@ -41,7 +41,7 @@ public class CreateDialogActivityRequest
     public string Id { get; set; }
 
     [JsonPropertyName("createdAt")]
-    public DateTime CreatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
 
     [JsonPropertyName("extendedType")]
     public string ExtendedType { get; set; }

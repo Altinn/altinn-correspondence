@@ -11,7 +11,7 @@ public class NotificationDetailsExt
     /// The notification id
     /// </summary>
     [JsonPropertyName("id")]
-    public Guid Id { get; set; }
+    public Guid? Id { get; set; }
 
     /// <summary>
     /// Boolean indicating if the sending of the notification was successful

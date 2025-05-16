@@ -6,23 +6,28 @@
     public enum NotificationChannelExt
     {
         /// <summary>
-        /// The selected channel for the notification is email.
+        /// The selected channel for the notification is only email.
         /// </summary>
-        Email,
+        Email = 0,
 
         /// <summary>
-        /// The selected channel for the notification is sms.
+        /// The selected channel for the notification is only sms.
         /// </summary>
-        Sms,
+        Sms = 1,
 
         /// <summary>
         /// The selected channel for the notification is email preferred.
         /// </summary>
-        EmailPreferred,
+        EmailPreferred = 2,
 
         /// <summary>
         /// The selected channel for the notification is SMS preferred.
         /// </summary>
-        SmsPreferred
+        SmsPreferred = 3,
+
+        /// <summary>
+        /// The selected channel for the notification is both email and sms.
+        /// </summary>
+        EmailAndSms = 4,
     }
 }
