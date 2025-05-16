@@ -125,7 +125,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var expectedResponse = new NotificationOrderRequestResponseV2
             {
                 NotificationOrderId = notificationOrderId,
-                Notification = new NotificationResponse
+                Notification = new NotificationResponseV2
                 {
                     ShipmentId = shipmentId,
                     SendersReference = "ref1",

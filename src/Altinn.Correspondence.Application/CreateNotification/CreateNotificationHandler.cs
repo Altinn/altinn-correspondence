@@ -226,7 +226,7 @@ public class CreateNotificationHandler(
 
     private NotificationOrderRequestV2 CreateNotificationRequestsV2(NotificationRequest notificationRequest, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
     {
-        
+
         var notificationOrder = new NotificationOrderRequestV2
         {
             SendersReference = correspondence.SendersReference,
@@ -263,8 +263,8 @@ public class CreateNotificationHandler(
         {
             var customRecipient = notificationRequest.CustomRecipient;
             var resourceIdWithPrefix = "urn:altinn:resource:" + correspondence.ResourceId;
-            var channel = isReminder 
-                ? notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel 
+            var channel = isReminder
+                ? notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel
                 : notificationRequest.NotificationChannel;
             var emailSubject = isReminder ? content.ReminderEmailSubject : content.EmailSubject;
             var emailBody = isReminder ? content.ReminderEmailBody : content.EmailBody;
@@ -356,8 +356,8 @@ public class CreateNotificationHandler(
         // await SetRecipientNameOnNotificationContent(content, correspondence.Recipient, cancellationToken);
 
         var resourceIdWithPrefix = "urn:altinn:resource:" + correspondence.ResourceId;
-        var channel = isReminder 
-            ? notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel 
+        var channel = isReminder
+            ? notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel
             : notificationRequest.NotificationChannel;
         var emailSubject = isReminder ? content?.ReminderEmailSubject : content?.EmailSubject;
         var emailBody = isReminder ? content?.ReminderEmailBody : content?.EmailBody;
@@ -433,20 +433,22 @@ public class CreateNotificationHandler(
             };
 
             await correspondenceNotificationRepository.AddNotification(notification, cancellationToken);
-            
-            var reminder = new CorrespondenceNotificationEntity()
+            if (notificationRequest.SendReminder)
             {
-                Created = DateTimeOffset.UtcNow,
-                NotificationChannel = notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel,
-                NotificationTemplate = notificationRequest.NotificationTemplate,
-                CorrespondenceId = correspondence.Id,
-                NotificationOrderId = notificationResponse.NotificationOrderId,
-                RequestedSendTime = notificationRequestV2.RequestedSendTime.AddDays(notificationRequestV2.Reminders?.FirstOrDefault()?.DelayDays ?? 0),
-                IsReminder = true,
-                OrderRequest = JsonSerializer.Serialize(notificationRequestV2),
-                ShipmentId = notificationResponse.Notification.Reminders.FirstOrDefault()?.ShipmentId
-            };
-            await correspondenceNotificationRepository.AddNotification(reminder, cancellationToken);
+                var reminder = new CorrespondenceNotificationEntity()
+                {
+                    Created = DateTimeOffset.UtcNow,
+                    NotificationChannel = notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel,
+                    NotificationTemplate = notificationRequest.NotificationTemplate,
+                    CorrespondenceId = correspondence.Id,
+                    NotificationOrderId = notificationResponse.NotificationOrderId,
+                    RequestedSendTime = notificationRequestV2.RequestedSendTime.AddDays(notificationRequestV2.Reminders?.FirstOrDefault()?.DelayDays ?? 0),
+                    IsReminder = true,
+                    OrderRequest = JsonSerializer.Serialize(notificationRequestV2),
+                    ShipmentId = notificationResponse.Notification.Reminders.FirstOrDefault()?.ShipmentId
+                };
+                await correspondenceNotificationRepository.AddNotification(reminder, cancellationToken);
+            }
             // Create information activity in Dialogporten
             await hangfireScheduleHelper.CreateActivityAfterDialogCreated(correspondence.Id, notificationRequestV2);
 

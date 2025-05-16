@@ -4,10 +4,10 @@ namespace Altinn.Correspondence.Core.Models.Notifications
     {
         public Guid NotificationOrderId { get; set; }
 
-        public NotificationResponse Notification { get; set; } = null!;
+        public NotificationResponseV2 Notification { get; set; } = null!;
     }
 
-    public class NotificationResponse
+    public class NotificationResponseV2
     {
         public List<ReminderResponse> Reminders { get; set; } = new();
 
