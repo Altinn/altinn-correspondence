@@ -1,23 +1,25 @@
 {
 	"info": {
-		"_postman_id": "fc05b83c-87b7-4a13-9546-5f7ecc482019",
+		"_postman_id": "5a313771-886c-4660-b615-02c7783d5b8e",
 		"name": "Altinn.Correspondence.API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "1775784"
+		"_exporter_id": "38927211"
 	},
 	"item": [
 		{
 			"name": "Authentication",
 			"item": [
 				{
-					"name": "Authenticate as sender",
+					"name": "Install Postman Utility (Initialize)",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.globals.set(\"sender_token\", responseBody);\r",
-									""
+									"pm.test(\"Status code should be 200\", function () {\r",
+									"    pm.response.to.have.status(200)\r",
+									"    pm.globals.set(\"pmlib_code\", responseBody)\r",
+									"});"
 								],
 								"type": "text/javascript",
 								"packages": {}
@@ -25,62 +27,58 @@
 						}
 					],
 					"request": {
+						"auth": {
+							"type": "noauth"
+						},
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=tt02&scopes=altinn:correspondence.write&org=ttd&consumerOrgNo={{senderOrgNo}}&orgNo={{senderOrgNo}}&pid={{senderSsn}}&ttl=43200",
+							"raw": "https://joolfe.github.io/postman-util-lib/dist/bundle.js",
 							"protocol": "https",
 							"host": [
-								"altinn-testtools-token-generator",
-								"azurewebsites",
-								"net"
+								"joolfe",
+								"github",
+								"io"
 							],
 							"path": [
-								"api",
-								"GetPersonalToken"
-							],
-							"query": [
-								{
-									"key": "env",
-									"value": "tt02"
-								},
-								{
-									"key": "scopes",
-									"value": "altinn:correspondence.write"
-								},
-								{
-									"key": "org",
-									"value": "ttd"
-								},
-								{
-									"key": "consumerOrgNo",
-									"value": "{{senderOrgNo}}"
-								},
-								{
-									"key": "orgNo",
-									"value": "{{senderOrgNo}}"
-								},
-								{
-									"key": "pid",
-									"value": "{{senderSsn}}"
-								},
-								{
-									"key": "ttl",
-									"value": "43200"
-								}
+								"postman-util-lib",
+								"dist",
+								"bundle.js"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Authenticate as recipient",
+					"name": "Login to Maskinporten (Recipient and sender)",
 					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"    eval(pm.variables.get(\"pmlib_code\"))\r",
+									"    const jwt = pmlib.jwtSign(\r",
+									"    jwk = JSON.parse(pm.variables.get(\"maskinporten_client_jwk\")), \r",
+									"    payload = {\r",
+									"        \"aud\": \"https://test.maskinporten.no/\",\r",
+									"        \"scope\": \"altinn:correspondence.read altinn:correspondence.write\",\r",
+									"        \"iss\": pm.variables.get(\"maskinporten_client_id\")\r",
+									"    }, \r",
+									"    header = {},\r",
+									"    exp = 120, \r",
+									"    alg = 'RS256');\r",
+									"pm.variables.set('sender_jwt', jwt);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.globals.set(\"recipient_token\", responseBody);"
+									"var responseData = JSON.parse(responseBody);\r",
+									"pm.globals.set(\"test_token\", responseData.access_token);"
 								],
 								"type": "text/javascript",
 								"packages": {}
@@ -88,49 +86,227 @@
 						}
 					],
 					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+									"type": "text"
+								},
+								{
+									"key": "assertion",
+									"value": "{{sender_jwt}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "https://test.maskinporten.no/token",
+							"protocol": "https",
+							"host": [
+								"test",
+								"maskinporten",
+								"no"
+							],
+							"path": [
+								"token"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login to Maskinporten (Sender)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"    eval(pm.variables.get(\"pmlib_code\"))\r",
+									"    const jwt = pmlib.jwtSign(\r",
+									"    jwk = JSON.parse(pm.variables.get(\"maskinporten_client_jwk\")), \r",
+									"    payload = {\r",
+									"        \"aud\": \"https://test.maskinporten.no/\",\r",
+									"        \"scope\": \"altinn:correspondence.write\",\r",
+									"        \"iss\": pm.variables.get(\"maskinporten_client_id\")\r",
+									"    },\r",
+									"    header = {}, \r",
+									"    exp = 120, \r",
+									"    alg = 'RS256');\r",
+									"pm.variables.set('sender_jwt', jwt);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var responseData = JSON.parse(responseBody);\r",
+									"pm.globals.set(\"test_token\", responseData.access_token);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+									"type": "text"
+								},
+								{
+									"key": "assertion",
+									"value": "{{sender_jwt}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "https://test.maskinporten.no/token",
+							"protocol": "https",
+							"host": [
+								"test",
+								"maskinporten",
+								"no"
+							],
+							"path": [
+								"token"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login to Maskinporten (Recipient)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"    eval(pm.variables.get(\"pmlib_code\"))\r",
+									"    const jwt = pmlib.jwtSign(\r",
+									"    jwk = JSON.parse(pm.variables.get(\"maskinporten_client_jwk\")), \r",
+									"    payload = {\r",
+									"        \"aud\": \"https://test.maskinporten.no/\",\r",
+									"        \"scope\": \"altinn:correspondence.read\",\r",
+									"        \"iss\": pm.variables.get(\"maskinporten_client_id\")\r",
+									"    }, \r",
+									"    header = {}, \r",
+									"    exp = 120, \r",
+									"    alg = 'RS256');\r",
+									"pm.variables.set('sender_jwt', jwt);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var responseData = JSON.parse(responseBody);\r",
+									"pm.globals.set(\"test_token\", responseData.access_token);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+									"type": "text"
+								},
+								{
+									"key": "assertion",
+									"value": "{{sender_jwt}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "https://test.maskinporten.no/token",
+							"protocol": "https",
+							"host": [
+								"test",
+								"maskinporten",
+								"no"
+							],
+							"path": [
+								"token"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Exhange Maskinporten token to Altinn token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.globals.set(\"altinn_token\", responseBody);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{test_token}}",
+									"type": "string"
+								}
+							]
+						},
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=tt02&scopes=altinn:correspondence.read&org=ttd&consumerOrgNo={{recipientOrgNo}}&orgNo={{recipientOrgNo}}&pid={{recipientSsn}}&ttl=43200",
+							"raw": "https://platform.tt02.altinn.no/authentication/api/v1/exchange/maskinporten",
 							"protocol": "https",
 							"host": [
-								"altinn-testtools-token-generator",
-								"azurewebsites",
-								"net"
+								"platform",
+								"tt02",
+								"altinn",
+								"no"
 							],
 							"path": [
+								"authentication",
 								"api",
-								"GetPersonalToken"
-							],
-							"query": [
-								{
-									"key": "env",
-									"value": "tt02"
-								},
-								{
-									"key": "scopes",
-									"value": "altinn:correspondence.read"
-								},
-								{
-									"key": "org",
-									"value": "ttd"
-								},
-								{
-									"key": "consumerOrgNo",
-									"value": "{{recipientOrgNo}}"
-								},
-								{
-									"key": "orgNo",
-									"value": "{{recipientOrgNo}}"
-								},
-								{
-									"key": "pid",
-									"value": "{{recipientSsn}}"
-								},
-								{
-									"key": "ttl",
-									"value": "43200"
-								}
+								"v1",
+								"exchange",
+								"maskinporten"
 							]
 						}
 					},
@@ -189,7 +365,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "{{recipient_token}}",
+											"value": "{{altinn_token}}",
 											"type": "string"
 										}
 									]
@@ -291,7 +467,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "{{recipient_token}}",
+											"value": "{{altinn_token}}",
 											"type": "string"
 										}
 									]
@@ -393,7 +569,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "{{recipient_token}}",
+											"value": "{{altinn_token}}",
 											"type": "string"
 										}
 									]
@@ -460,7 +636,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "{{recipient_token}}",
+											"value": "{{altinn_token}}",
 											"type": "string"
 										}
 									]
@@ -557,7 +733,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{sender_token}}",
+									"value": "{{altinn_token}}",
 									"type": "string"
 								}
 							]
@@ -575,7 +751,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"Correspondence\": {\n        \"resourceId\": \"{{resource_id}}\",\n        \"sender\": \"urn:altinn:organization:identifier-no:{{senderOrgNo}}\",\n        \"sendersReference\": \"1\",\n        \"content\": {\n            \"language\": \"nb\",\n            \"messageTitle\": \"Meldingstittel\",\n            \"messageSummary\": \"Ett sammendrag for meldingen\",\n            \"messageBody\": \"# meldingsteksten. Som kan være plain text eller markdown \",\n            \"attachments\": []\n        },\n        \"RequestedPublishTime\": \"2024-09-28T12:44:28.290518+00:00\",\n        \"allowSystemDeleteAfter\": \"2025-08-29T13:31:28.290518+00:00\",\n        \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n        \"externalReferences\": [\n            {\n                \"referenceValue\": \"1\",\n                \"referenceType\": \"AltinnBrokerFileTransfer\"\n            }\n        ],\n        \"propertyList\": {\n            \"deserunt_12\": \"1\",\n            \"culpa_852\": \"2\",\n            \"anim5\": \"3\",\n            \"Æ*'1??`  \": \"asdfgklasjd\"\n        },\n        \"replyOptions\": [\n            {\n                \"linkURL\": \"https://www.test.no\",\n                \"linkText\": \"test\"\n            },\n            {\n                \"linkURL\": \"https://test.no\",\n                \"linkText\": \"test\"\n            }\n        ],\n        \"notification\": {\n            \"notificationTemplate\": 0,\n            \"notificationChannel\": 3,\n            \"SendReminder\": true,\n            \"EmailBody\": \"Test av varsel\",\n            \"EmailSubject\": \"Dette er innholdet i ett varsel\",\n            \"SmsBody\": \"Dette er innholdet i ett testvarsel\",\n            \"ReminderEmailBody\": \"Dette er test av revarsling \",\n            \"ReminderEmailSubject\": \"Test av revarsel\",\n            \"ReminderSmsBody\": \"Dette er en test av revarslingl\"\n        },\n        \"IgnoreReservation\": true,\n        \"IsConfirmationNeeded\": false\n    },\n    \"Recipients\": [\n        \"urn:altinn:organization:identifier-no:{{recipientOrgNo}}\"\n    ],\n    \"existingAttachments\": []\n}",
+							"raw": "{\n    \"Correspondence\": {\n        \"resourceId\": \"{{resource_id}}\",\n        \"sender\": \"urn:altinn:organization:identifier-no:{{senderOrgNo}}\",\n        \"sendersReference\": \"1\",\n        \"content\": {\n            \"language\": \"nb\",\n            \"messageTitle\": \"Meldingstittel\",\n            \"messageSummary\": \"Ett sammendrag for meldingen\",\n            \"messageBody\": \"# meldingsteksten. Som kan være plain text eller markdown \",\n            \"attachments\": []\n        },\n        \"RequestedPublishTime\": \"2024-09-28T12:44:28.290518+00:00\",\n        \"allowSystemDeleteAfter\": \"2025-08-29T13:31:28.290518+00:00\",\n        \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n        \"externalReferences\": [\n            {\n                \"referenceValue\": \"1\",\n                \"referenceType\": \"AltinnBrokerFileTransfer\"\n            }\n        ],\n        \"propertyList\": {\n            \"deserunt_12\": \"1\",\n            \"culpa_852\": \"2\",\n            \"anim5\": \"3\",\n            \"Æ*'1??`  \": \"asdfgklasjd\"\n        },\n        \"replyOptions\": [\n            {\n                \"linkURL\": \"https://www.test.no\",\n                \"linkText\": \"test\"\n            },\n            {\n                \"linkURL\": \"https://test.no\",\n                \"linkText\": \"test\"\n            }\n        ],\n        \"notification\": {\n            \"notificationTemplate\": 0,\n            \"notificationChannel\": 3,\n            \"SendReminder\": true,\n            \"EmailBody\": \"Test av varsel\",\n            \"EmailSubject\": \"Dette er innholdet i ett varsel\",\n            \"SmsBody\": \"Dette er innholdet i ett testvarsel\",\n            \"ReminderEmailBody\": \"Dette er test av revarsling \",\n            \"ReminderEmailSubject\": \"Test av revarsel\",\n            \"ReminderSmsBody\": \"Dette er en test av revarslingl\"\n        },\n        \"IgnoreReservation\": true,\n        \"IsConfirmationNeeded\": false\n    },\n    \"Recipients\": [\n        \"urn:altinn:organization:identifier-no:{{recipientOrgNo}}\",\n        \"urn:altinn:person:identifier-no:{{recipientSsn}}\"\n    ],\n    \"existingAttachments\": []\n}",
 							"options": {
 								"raw": {
 									"headerFamily": "json",
@@ -671,7 +847,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{sender_token}}",
+									"value": "{{altinn_token}}",
 									"type": "string"
 								}
 							]
@@ -951,7 +1127,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{recipient_token}}",
+									"value": "{{altinn_token}}",
 									"type": "string"
 								}
 							]
@@ -1038,7 +1214,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{sender_token}}",
+									"value": "{{altinn_token}}",
 									"type": "string"
 								}
 							]
@@ -1131,7 +1307,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{recipient_token}}",
+									"value": "{{altinn_token}}",
 									"type": "string"
 								}
 							]
@@ -1266,7 +1442,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{sender_token}}",
+									"value": "{{altinn_token}}",
 									"type": "string"
 								}
 							]
@@ -1370,7 +1546,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{sender_token}}",
+									"value": "{{altinn_token}}",
 									"type": "string"
 								}
 							]
@@ -1462,7 +1638,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{sender_token}}",
+									"value": "{{altinn_token}}",
 									"type": "string"
 								}
 							]
@@ -1548,7 +1724,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{sender_token}}",
+									"value": "{{altinn_token}}",
 									"type": "string"
 								}
 							]
@@ -1626,7 +1802,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{sender_token}}",
+									"value": "{{altinn_token}}",
 									"type": "string"
 								}
 							]
@@ -1706,7 +1882,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{sender_token}}",
+									"value": "{{altinn_token}}",
 									"type": "string"
 								}
 							]
@@ -1806,22 +1982,7 @@
 		},
 		{
 			"key": "resource_id",
-			"value": "dagl-correspondence",
-			"type": "string"
-		},
-		{
-			"key": "test_tools_username",
-			"value": "Altinnpedia or contact us@#produkt-melding",
-			"type": "string"
-		},
-		{
-			"key": "test_tools_password",
-			"value": "Altinnpedia or contact us@#produkt-melding",
-			"type": "string"
-		},
-		{
-			"key": "senderSsn",
-			"value": "Go to https://info.tt02.altinn.no/ and login to get test data. Person should be dagl/\"daglig leder\").",
+			"value": "Create/use a resource with a policy where the sender org has write scopes access and the recipients have read scope access",
 			"type": "string"
 		},
 		{
@@ -1831,12 +1992,12 @@
 		},
 		{
 			"key": "recipientSsn",
-			"value": "Go to https://info.tt02.altinn.no/ and login to get test data. Person should be dagl/\"daglig leder\").",
+			"value": "Go to https://info.tt02.altinn.no/ and login to get test data.",
 			"type": "string"
 		},
 		{
 			"key": "recipientOrgNo",
-			"value": "Go to https://info.tt02.altinn.no/ and login to get test data. Person should be dagl/\"daglig leder\").",
+			"value": "Go to https://info.tt02.altinn.no/ and login to get test data.",
 			"type": "string"
 		},
 		{
@@ -1846,6 +2007,16 @@
 		{
 			"key": "correspondenceId",
 			"value": ""
+		},
+		{
+			"key": "maskinporten_client_jwk",
+			"value": "The public and private keypair for your maskinporten klient key",
+			"type": "string"
+		},
+		{
+			"key": "maskinporten_client_id",
+			"value": "Create a test maskinporten client for your test organization(s) in https://sjolvbetjening.test.samarbeid.digdir.no/ (Remember to add the required scopes to the client)",
+			"type": "string"
 		}
 	]
 }
