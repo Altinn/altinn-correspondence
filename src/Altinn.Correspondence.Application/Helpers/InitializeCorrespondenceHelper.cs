@@ -154,25 +154,33 @@ namespace Altinn.Correspondence.Application.Helpers
         {
             var customRecipient = notification.CustomRecipient;
 
-            // Validate that the custom recipient is not null
-            if (customRecipient == null) {
+            // If no custom recipient is provided, no need to validate
+            if (customRecipient == null)
+            {
                 return null;
-            }  
+            }
+            
             // Validate that if the custom recipient exists, the correspondence does not have multiple recipients
-            else {
-                if (recipients.Count > 1) {
+            else
+            {
+                if (recipients.Count > 1)
+                {
                     return NotificationErrors.CustomRecipientWithMultipleRecipientsNotAllowed;
                 }
             }
 
-            // Validate that the custom recipient only has one identifier
+            // Validate that the custom recipient only has one  and only one identifier
             var fieldsWithValue = new List<string>();
             if (!string.IsNullOrEmpty(customRecipient.OrganizationNumber)) fieldsWithValue.Add("OrganizationNumber");
             if (!string.IsNullOrEmpty(customRecipient.NationalIdentityNumber)) fieldsWithValue.Add("NationalIdentityNumber");
             if (!string.IsNullOrEmpty(customRecipient.EmailAddress)) fieldsWithValue.Add("EmailAddress");
             if (!string.IsNullOrEmpty(customRecipient.MobileNumber)) fieldsWithValue.Add("MobileNumber");
 
-            if (fieldsWithValue.Count > 1)
+            if (fieldsWithValue.Count == 0)
+            {
+                return NotificationErrors.CustomRecipientWithoutIdentifierNotAllowed;
+            }
+            else if (fieldsWithValue.Count > 1)
             {
                 return NotificationErrors.CustomRecipientWithMultipleIdentifiersNotAllowed;
             }

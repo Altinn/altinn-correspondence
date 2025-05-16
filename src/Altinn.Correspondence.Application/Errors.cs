@@ -72,6 +72,7 @@ public static class NotificationErrors
     public static Error CustomRecipientWithNumberOrEmailNotAllowedWithKeyWordRecipientName = new Error(3015, "Recipient overrides with email or mobile number are not allowed when using notification recipient name because of name lookup", HttpStatusCode.BadRequest);
     public static Error CustomRecipientWithMultipleRecipientsNotAllowed = new Error(3017, "Custom recipient with multiple recipients is not allowed", HttpStatusCode.BadRequest);
     public static Error CustomRecipientWithMultipleIdentifiersNotAllowed = new Error(3018, "Custom recipient with multiple identifiers is not allowed", HttpStatusCode.BadRequest);
+    public static Error CustomRecipientWithoutIdentifierNotAllowed = new Error(3019, "Custom recipient without identifier is not allowed", HttpStatusCode.BadRequest);
 }
 public static class AuthorizationErrors
 {

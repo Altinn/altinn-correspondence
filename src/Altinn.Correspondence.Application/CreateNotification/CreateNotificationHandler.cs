@@ -193,12 +193,12 @@ public class CreateNotificationHandler(
         {
             content.Add(new NotificationContent()
             {
-                EmailSubject = CreateNotificationContentFromToken(template.EmailSubject, request.EmailSubject).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
-                EmailBody = CreateNotificationContentFromToken(template.EmailBody, request.EmailBody).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
-                SmsBody = CreateNotificationContentFromToken(template.SmsBody, request.SmsBody).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
-                ReminderEmailBody = CreateNotificationContentFromToken(template.ReminderEmailBody, request.ReminderEmailBody).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
-                ReminderEmailSubject = CreateNotificationContentFromToken(template.ReminderEmailSubject, request.ReminderEmailSubject).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
-                ReminderSmsBody = CreateNotificationContentFromToken(template.ReminderSmsBody, request.ReminderSmsBody).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
+                EmailSubject = CreateNotificationContentFromToken(template.EmailSubject ?? string.Empty, request.EmailSubject).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
+                EmailBody = CreateNotificationContentFromToken(template.EmailBody ?? string.Empty, request.EmailBody).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
+                SmsBody = CreateNotificationContentFromToken(template.SmsBody ?? string.Empty, request.SmsBody).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
+                ReminderEmailBody = CreateNotificationContentFromToken(template.ReminderEmailBody ?? string.Empty, request.ReminderEmailBody).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
+                ReminderEmailSubject = CreateNotificationContentFromToken(template.ReminderEmailSubject ?? string.Empty, request.ReminderEmailSubject).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
+                ReminderSmsBody = CreateNotificationContentFromToken(template.ReminderSmsBody ?? string.Empty, request.ReminderSmsBody).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
                 Language = template.Language,
                 RecipientType = template.RecipientType
             });
@@ -315,7 +315,7 @@ public class CreateNotificationHandler(
                     {
                         OrgNumber = customRecipient.OrganizationNumber,
                         ResourceId = resourceIdWithPrefix,
-                        ChannelSchema = channel.ToString(),
+                        ChannelSchema = channel,
                         EmailSettings = emailSettings,
                         SmsSettings = smsSettings
                     }
@@ -384,7 +384,7 @@ public class CreateNotificationHandler(
             {
                 OrgNumber = recipientWithoutPrefix,
                 ResourceId = resourceIdWithPrefix,
-                ChannelSchema = channel.ToString(),
+                ChannelSchema = channel,
                 EmailSettings = emailSettings,
                 SmsSettings = smsSettings
             } : null,
@@ -433,7 +433,7 @@ public class CreateNotificationHandler(
             };
 
             await correspondenceNotificationRepository.AddNotification(notification, cancellationToken);
-
+            
             var reminder = new CorrespondenceNotificationEntity()
             {
                 Created = DateTimeOffset.UtcNow,

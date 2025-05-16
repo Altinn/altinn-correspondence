@@ -669,5 +669,32 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.OK, initResponse.StatusCode);
         }
 
+        [Fact]
+        public async Task Correspondence_CustomRecipient_WithoutIdentifier_ReturnsBadRequest()
+        {
+            // Arrange
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipient = new NotificationRecipientExt()
+            {
+                // No identifiers provided
+            };
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Email)
+                .WithCustomNotificationRecipient(customRecipient)
+                .Build();
+
+            // Act
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            var problemDetails = await initResponse.Content.ReadFromJsonAsync<ProblemDetails>(_responseSerializerOptions);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+            Assert.Equal(NotificationErrors.CustomRecipientWithoutIdentifierNotAllowed.Message, problemDetails?.Detail);
+        }
+
     }
 }
