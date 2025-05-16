@@ -266,7 +266,7 @@
 					"response": []
 				},
 				{
-					"name": "Exhange Maskinporten token to Altinn token",
+					"name": "Exchange Maskinporten token to Altinn token",
 					"event": [
 						{
 							"listen": "test",
