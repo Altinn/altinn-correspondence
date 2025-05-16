@@ -26,6 +26,6 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
 
         public DateTimeOffset? RequestedSendTime { get; set; }
 
-        public List<CustomNotificationRecipient>? CustomNotificationRecipients { get; set; }
+        public Recipient? CustomRecipient { get; set; }
     }
 }

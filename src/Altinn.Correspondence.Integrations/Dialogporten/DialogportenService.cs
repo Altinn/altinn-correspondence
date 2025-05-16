@@ -178,6 +178,18 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 throw new ArgumentException("Invalid attachment ID token", nameof(tokens));
             }
             
+            if (tokens.Length > 2 && tokens[2] is not null)
+            {
+                if (DateTime.TryParse(tokens[2], out DateTime createdAt))
+                {
+                    createDialogActivityRequest.CreatedAt = createdAt;
+                }
+                else
+                {
+                    logger.LogWarning("Invalid timestamp format in token[2] for correspondence {correspondenceId}: {timestamp}", correspondenceId, tokens[2]);
+                }
+            }
+            
             if (correspondence.Statuses.Count(s => s.Status == CorrespondenceStatus.AttachmentsDownloaded && s.StatusText.Contains(attachmentId.ToString())) >= 2)
             {
                 logger.LogInformation("Correspondence with id {correspondenceId} already has an AttachmentsDownloaded status for attachment {attachmentId}, skipping activity creation on Dialogporten", correspondenceId, attachmentId);

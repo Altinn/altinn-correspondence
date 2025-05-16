@@ -6,7 +6,7 @@ namespace Altinn.Correspondence.Core.Models.Notifications
     public class EmailNotificationWithResult
     {
         [JsonPropertyName("id")]
-        public Guid Id { get; set; }
+        public Guid? Id { get; set; }
 
         [JsonPropertyName("succeeded")]
         public bool Succeeded { get; set; }
