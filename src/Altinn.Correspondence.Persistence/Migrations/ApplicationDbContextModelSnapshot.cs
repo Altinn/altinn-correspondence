@@ -246,6 +246,8 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("Sender");
 
+                    b.HasIndex("Altinn2CorrespondenceId").IsUnique();
+
                     b.ToTable("Correspondences", "correspondence");
                 });
 

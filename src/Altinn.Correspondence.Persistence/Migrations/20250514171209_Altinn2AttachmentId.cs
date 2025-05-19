@@ -23,6 +23,13 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 table: "Attachments",
                 column: "Altinn2AttachmentId",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Correspondences_Altinn2CorrespondenceId",
+                schema: "correspondence",
+                table: "Correspondences",
+                column: "Altinn2CorrespondenceId",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -37,6 +44,11 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 name: "Altinn2AttachmentId",
                 schema: "correspondence",
                 table: "Attachments");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Correspondences_Altinn2CorrespondenceId",
+                schema: "correspondence",
+                table: "Correspondences");
         }
     }
 }

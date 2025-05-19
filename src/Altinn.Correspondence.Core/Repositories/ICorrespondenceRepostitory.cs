@@ -40,6 +40,10 @@ namespace Altinn.Correspondence.Core.Repositories
             bool includeForwardingEvents,
             CancellationToken cancellationToken);
 
+        Task<CorrespondenceEntity> GetCorrespondenceByAltinn2Id(
+            int altinn2Id,
+            CancellationToken cancellationToken);
+
         Task<List<CorrespondenceEntity>> GetCorrespondencesByAttachmentId(Guid attachmentId, bool includeStatus, CancellationToken cancellationToken = default);
         Task<List<CorrespondenceEntity>> GetNonPublishedCorrespondencesByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default);
         Task<List<Guid>> GetCorrespondenceIdsByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default);
