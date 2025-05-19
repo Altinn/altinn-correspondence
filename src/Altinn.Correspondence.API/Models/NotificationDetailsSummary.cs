@@ -12,4 +12,10 @@ public class NotificationStatusDetailsExt
 
     [JsonPropertyName("sms")]
     public NotificationDetailsExt? Sms { get; set; }
+
+    [JsonPropertyName("emails")]
+    public List<NotificationDetailsExt>? Emails { get; set; }
+
+    [JsonPropertyName("smses")]
+    public List<NotificationDetailsExt>? Smses { get; set; }
 }

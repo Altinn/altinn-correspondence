@@ -11,6 +11,8 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         public Guid? NotificationOrderId { get; set; }
 
+        public Guid? ShipmentId { get; set; }
+
         public required NotificationTemplate NotificationTemplate { get; set; }
 
         public required NotificationChannel NotificationChannel { get; set; }
