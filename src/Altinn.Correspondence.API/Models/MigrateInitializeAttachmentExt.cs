@@ -14,4 +14,7 @@ public class MigrateInitializeAttachmentExt : InitializeAttachmentExt
 
     [JsonPropertyName("altinn2AttachmentId")]
     public required string Altinn2AttachmentId { get; set; }
+
+    [JsonPropertyName("created")]
+    public required DateTimeOffset Created { get; set; }
 }

@@ -17,7 +17,7 @@ internal static class MigrateAttachmentMapper
             SendersReference = initializeAttachmentExt.SendersReference,
             Checksum = initializeAttachmentExt.Checksum,
             IsEncrypted = initializeAttachmentExt.IsEncrypted,
-            Created = DateTimeOffset.UtcNow,
+            Created = initializeAttachmentExt.Created,
             Altinn2AttachmentId = initializeAttachmentExt.Altinn2AttachmentId
         };
         return new MigrateAttachmentRequest()
