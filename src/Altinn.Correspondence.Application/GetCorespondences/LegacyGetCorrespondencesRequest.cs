@@ -13,6 +13,8 @@ public class LegacyGetCorrespondencesRequest
 
     public bool IncludeDeleted { get; set; }
 
+    public bool FilterMigrated { get; set; } = true;
+
     public DateTimeOffset? From { get; set; }
 
     public DateTimeOffset? To { get; set; }
