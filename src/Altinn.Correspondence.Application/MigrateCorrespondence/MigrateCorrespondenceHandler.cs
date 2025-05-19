@@ -21,14 +21,14 @@ public class MigrateCorrespondenceHandler(
             return contentError;
         }
 
-        if (request.CorrespondenceEntity?.Content?.Attachments != null)
+        if (request.CorrespondenceEntity?.Content?.Attachments != null && request?.ExistingAttachments != null)
         {
             request.CorrespondenceEntity.Content.Attachments.AddRange
             (
                 request.ExistingAttachments.Select(a => new CorrespondenceAttachmentEntity()
                 {
                     AttachmentId = a,
-                    Created = DateTimeOffset.UtcNow
+                    Created = request.CorrespondenceEntity.Created
                 })
             );
         }
