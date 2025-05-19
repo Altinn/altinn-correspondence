@@ -260,7 +260,15 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
         if (idempotencyKey == null)
         {
-            throw new InvalidOperationException($"No idempotency key found for open dialog activity on correspondence {correspondenceId}");
+            idempotencyKey = await _idempotencyKeyRepository.CreateAsync(
+                new IdempotencyKeyEntity
+                {
+                    Id = Uuid.NewDatabaseFriendly(Database.PostgreSql),
+                    CorrespondenceId = correspondence.Id,
+                    AttachmentId = null, // No attachment for opened activity
+                    StatusAction = StatusAction.Fetched
+                },
+                cancellationToken);
         }
 
         var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, Models.ActivityType.DialogOpened);
