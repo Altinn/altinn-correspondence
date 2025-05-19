@@ -178,6 +178,18 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 throw new ArgumentException("Invalid attachment ID token", nameof(tokens));
             }
             
+            if (tokens.Length > 2 && tokens[2] is not null)
+            {
+                if (DateTimeOffset.TryParse(tokens[2], out DateTimeOffset createdAt))
+                {
+                    createDialogActivityRequest.CreatedAt = createdAt;
+                }
+                else
+                {
+                    logger.LogWarning("Invalid timestamp format in token[2] for correspondence {correspondenceId}: {timestamp}", correspondenceId, tokens[2]);
+                }
+            }
+            
             if (correspondence.Statuses.Count(s => s.Status == CorrespondenceStatus.AttachmentsDownloaded && s.StatusText.Contains(attachmentId.ToString())) >= 2)
             {
                 logger.LogInformation("Correspondence with id {correspondenceId} already has an AttachmentsDownloaded status for attachment {attachmentId}, skipping activity creation on Dialogporten", correspondenceId, attachmentId);
@@ -248,7 +260,15 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
         if (idempotencyKey == null)
         {
-            throw new InvalidOperationException($"No idempotency key found for open dialog activity on correspondence {correspondenceId}");
+            idempotencyKey = await _idempotencyKeyRepository.CreateAsync(
+                new IdempotencyKeyEntity
+                {
+                    Id = Uuid.NewDatabaseFriendly(Database.PostgreSql),
+                    CorrespondenceId = correspondence.Id,
+                    AttachmentId = null, // No attachment for opened activity
+                    StatusAction = StatusAction.Fetched
+                },
+                cancellationToken);
         }
 
         var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, Models.ActivityType.DialogOpened);

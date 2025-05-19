@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Altinn.Correspondence.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250514112454_AddIsMigratingIndexdotnet")]
+    partial class AddIsMigratingIndexdotnet
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -30,9 +33,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
-
-                    b.Property<int?>("Altinn2AttachmentId")
-                        .HasColumnType("integer");
 
                     b.Property<long>("AttachmentSize")
                         .HasColumnType("bigint");
@@ -78,9 +78,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Altinn2AttachmentId")
-                        .IsUnique();
 
                     b.HasIndex("StorageProviderId");
 
@@ -334,9 +331,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.Property<DateTimeOffset>("RequestedSendTime")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ShipmentId")
-                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
