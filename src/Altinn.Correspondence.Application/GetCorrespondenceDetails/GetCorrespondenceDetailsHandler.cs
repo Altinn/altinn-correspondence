@@ -85,7 +85,7 @@ public class GetCorrespondenceDetailsHandler(
                 {
                     var notificationDetails = await altinnNotificationService.GetNotificationDetailsV2(notification.ShipmentId.ToString(), cancellationToken);
                     notificationStatus.Add(await MapNotificationV2ToV1Async(notificationDetails, notification));
-                }
+                } 
             }
 
             var response = new GetCorrespondenceDetailsResponse

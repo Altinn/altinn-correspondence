@@ -196,9 +196,9 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.Notification!.SendReminder = false;
             return this;
         }
-        public CorrespondenceBuilder WithCustomNotificationRecipients(List<CustomNotificationRecipientExt> recipients)
+        public CorrespondenceBuilder WithCustomNotificationRecipient(NotificationRecipientExt recipient)
         {
-            _correspondence.Correspondence.Notification!.CustomNotificationRecipients = recipients;
+            _correspondence.Correspondence.Notification!.CustomRecipient = recipient;
             return this;
         }
 

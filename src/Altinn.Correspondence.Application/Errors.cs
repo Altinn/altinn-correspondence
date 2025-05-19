@@ -67,15 +67,12 @@ public static class NotificationErrors
     public static Error MissingSmsReminderContent = new Error(3005, "Reminder SMS body must be provided when sending reminder SMS notifications", HttpStatusCode.BadRequest);
     public static Error MissingPreferredChannel = new Error(3006, "Email body, subject and SMS body must be provided when sending preferred notifications", HttpStatusCode.BadRequest);
     public static Error MissingPreferredReminderChannel = new Error(3007, "Reminder email body, subject and SMS body must be provided when sending reminder preferred notifications", HttpStatusCode.BadRequest);
-    public static Error CouldNotFindRecipientToOverride(string id) { return new Error(3008, $"Could not find recipient with id: {id} to override", HttpStatusCode.BadRequest); }
-    public static Error MissingEmailRecipient = new Error(3009, "Missing email information for custom recipient. Add email or use the OrganizationNumber or NationalIdentityNumber fields for contact information", HttpStatusCode.BadRequest);
-    public static Error MissingSmsRecipient = new Error(3010, "Missing mobile number for custom recipient. Add mobile number or use the OrganizationNumber or NationalIdentityNumber fields for contact information", HttpStatusCode.BadRequest);
     public static Error InvalidEmailProvided = new Error(3011, "Invalid email provided for custom recipient.", HttpStatusCode.BadRequest);
     public static Error InvalidMobileNumberProvided = new Error(3012, "Invalid mobile number provided. Mobile number can contain only '+' and numeric characters, and it must adhere to the E.164 standard.", HttpStatusCode.BadRequest);
-    public static Error OrgNumberWithSsnEmailOrMobile = new Error(3013, "Organization number cannot be combined with email address, mobile number, or national identity number.", HttpStatusCode.BadRequest);
-    public static Error SsnWithOrgNoEmailOrMobile = new Error(3014, "National identity number cannot be combined with email address, mobile number, or organization number.", HttpStatusCode.BadRequest);
-    public static Error RecipientOverridesWithNumberOrEmailNotAllowedWithRecipientName = new Error(3015, "Recipient overrides with email or mobile number are not allowed when using notification recipient name because of name lookup", HttpStatusCode.BadRequest);
-    public static Error MissingRecipientsForRecipientOverride = new Error(3016, "No recipients provided for one or more recipient overrides", HttpStatusCode.BadRequest);
+    public static Error CustomRecipientWithNumberOrEmailNotAllowedWithKeyWordRecipientName = new Error(3015, "Recipient overrides with email or mobile number are not allowed when using notification recipient name because of name lookup", HttpStatusCode.BadRequest);
+    public static Error CustomRecipientWithMultipleRecipientsNotAllowed = new Error(3017, "Custom recipient with multiple recipients is not allowed", HttpStatusCode.BadRequest);
+    public static Error CustomRecipientWithMultipleIdentifiersNotAllowed = new Error(3018, "Custom recipient with multiple identifiers is not allowed", HttpStatusCode.BadRequest);
+    public static Error CustomRecipientWithoutIdentifierNotAllowed = new Error(3019, "Custom recipient without identifier is not allowed", HttpStatusCode.BadRequest);
 }
 public static class AuthorizationErrors
 {

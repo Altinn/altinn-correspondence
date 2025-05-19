@@ -125,7 +125,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var expectedResponse = new NotificationOrderRequestResponseV2
             {
                 NotificationOrderId = notificationOrderId,
-                Notification = new NotificationResponse
+                Notification = new NotificationResponseV2
                 {
                     ShipmentId = shipmentId,
                     SendersReference = "ref1",
@@ -140,13 +140,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 }
             };
 
-            _mockCorrespondenceRepository.Setup(x => x.GetCorrespondenceById(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            _mockCorrespondenceRepository.Setup(x => x.GetCorrespondenceById(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), CancellationToken.None, false))
                 .ReturnsAsync(correspondence);
 
-            _mockNotificationTemplateRepository.Setup(x => x.GetNotificationTemplates(It.IsAny<NotificationTemplate>(), It.IsAny<CancellationToken>(), It.IsAny<string>()))
+            _mockNotificationTemplateRepository.Setup(x => x.GetNotificationTemplates(It.IsAny<NotificationTemplate>(), CancellationToken.None, It.IsAny<string>()))
                 .ReturnsAsync(new List<NotificationTemplateEntity> { template });
 
-            _mockAltinnNotificationService.Setup(x => x.CreateNotificationV2(It.IsAny<NotificationOrderRequestV2>(), It.IsAny<CancellationToken>()))
+            _mockAltinnNotificationService.Setup(x => x.CreateNotificationV2(It.IsAny<NotificationOrderRequestV2>(), CancellationToken.None))
                 .ReturnsAsync(expectedResponse);
 
             return (notificationRequest, correspondence, template, expectedResponse);
@@ -176,7 +176,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 n.CorrespondenceId == correspondence.Id &&
                 !n.IsReminder &&
                 n.Created >= testStartTime &&
-                n.RequestedSendTime == expectedMainNotificationTime), It.IsAny<CancellationToken>()), Times.Once);
+                n.RequestedSendTime == expectedMainNotificationTime), CancellationToken.None), Times.Once);
 
             _mockCorrespondenceNotificationRepository.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n => 
                 n.NotificationOrderId == expectedResponse.NotificationOrderId &&
@@ -186,7 +186,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 n.CorrespondenceId == correspondence.Id &&
                 n.IsReminder &&
                 n.Created >= testStartTime &&
-                n.RequestedSendTime == expectedReminderTime), It.IsAny<CancellationToken>()), Times.Once);
+                n.RequestedSendTime == expectedReminderTime), CancellationToken.None), Times.Once);
         }
 
         [Fact]
@@ -214,7 +214,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 !n.IsReminder &&
                 n.Created >= testStartTime &&
                 n.RequestedSendTime >= expectedMainNotificationTime.AddSeconds(-20) && // Allow 20 seconds difference
-                n.RequestedSendTime <= expectedMainNotificationTime.AddSeconds(20)), It.IsAny<CancellationToken>()), Times.Once);
+                n.RequestedSendTime <= expectedMainNotificationTime.AddSeconds(20)), CancellationToken.None), Times.Once);
 
             _mockCorrespondenceNotificationRepository.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n => 
                 n.NotificationOrderId == expectedResponse.NotificationOrderId &&
@@ -225,7 +225,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 n.IsReminder &&
                 n.Created >= testStartTime &&
                 n.RequestedSendTime >= expectedReminderTime.AddSeconds(-20) && // Allow 20 seconds difference
-                n.RequestedSendTime <= expectedReminderTime.AddSeconds(20)), It.IsAny<CancellationToken>()), Times.Once);
+                n.RequestedSendTime <= expectedReminderTime.AddSeconds(20)), CancellationToken.None), Times.Once);
         }
     }
 } 

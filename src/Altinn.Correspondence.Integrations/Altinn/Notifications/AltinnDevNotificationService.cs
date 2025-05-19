@@ -33,7 +33,7 @@ public class AltinnDevNotificationService : IAltinnNotificationService
         return new NotificationOrderRequestResponseV2()
         {
             NotificationOrderId = Guid.NewGuid(),
-            Notification = new NotificationResponse()
+            Notification = new NotificationResponseV2()
             {
                 ShipmentId = Guid.NewGuid(),
                 SendersReference = "AltinnCorrespondence"
