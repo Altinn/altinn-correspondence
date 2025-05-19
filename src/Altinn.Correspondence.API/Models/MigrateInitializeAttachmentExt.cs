@@ -13,5 +13,5 @@ public class MigrateInitializeAttachmentExt : InitializeAttachmentExt
     public required Guid SenderPartyUuid { get; set; }
 
     [JsonPropertyName("altinn2AttachmentId")]
-    public string Altinn2AttachmentId { get; set; }
+    public required string Altinn2AttachmentId { get; set; }
 }
