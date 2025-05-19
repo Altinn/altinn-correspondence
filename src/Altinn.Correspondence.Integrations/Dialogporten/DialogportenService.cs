@@ -180,7 +180,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             
             if (tokens.Length > 2 && tokens[2] is not null)
             {
-                if (DateTime.TryParse(tokens[2], out DateTime createdAt))
+                if (DateTimeOffset.TryParse(tokens[2], out DateTimeOffset createdAt))
                 {
                     createDialogActivityRequest.CreatedAt = createdAt;
                 }

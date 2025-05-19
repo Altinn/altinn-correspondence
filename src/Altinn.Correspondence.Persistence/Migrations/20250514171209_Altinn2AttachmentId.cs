@@ -10,11 +10,11 @@ namespace Altinn.Correspondence.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
+            migrationBuilder.AddColumn<int>(
                 name: "Altinn2AttachmentId",
                 schema: "correspondence",
                 table: "Attachments",
-                type: "text",
+                type: "integer",
                 nullable: true);
 
             migrationBuilder.CreateIndex(
@@ -22,13 +22,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 schema: "correspondence",
                 table: "Attachments",
                 column: "Altinn2AttachmentId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Correspondences_Altinn2CorrespondenceId",
-                schema: "correspondence",
-                table: "Correspondences",
-                column: "Altinn2CorrespondenceId",
                 unique: true);
         }
 
@@ -44,11 +37,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 name: "Altinn2AttachmentId",
                 schema: "correspondence",
                 table: "Attachments");
-
-            migrationBuilder.DropIndex(
-                name: "IX_Correspondences_Altinn2CorrespondenceId",
-                schema: "correspondence",
-                table: "Correspondences");
         }
     }
 }

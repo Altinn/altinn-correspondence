@@ -9,6 +9,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
     [Index(nameof(Recipient))]
     [Index(nameof(Sender))]
     [Index(nameof(Created))]
+    [Index(nameof(IsMigrating))]
     [Index(nameof(Altinn2CorrespondenceId), IsUnique = true)]
     public class CorrespondenceEntity
     {

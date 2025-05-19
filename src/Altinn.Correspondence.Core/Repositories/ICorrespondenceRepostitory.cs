@@ -30,7 +30,8 @@ namespace Altinn.Correspondence.Core.Repositories
             bool includeArchived,
             bool includePurged,
             string searchString,
-            CancellationToken cancellationToken);
+            CancellationToken cancellationToken,
+            bool filterMigrated = true);
 
 
         Task<CorrespondenceEntity?> GetCorrespondenceById(
@@ -38,7 +39,8 @@ namespace Altinn.Correspondence.Core.Repositories
             bool includeStatus,
             bool includeContent,
             bool includeForwardingEvents,
-            CancellationToken cancellationToken);
+            CancellationToken cancellationToken,
+            bool includeIsMigrating = false);
 
         Task<CorrespondenceEntity> GetCorrespondenceByAltinn2Id(
             int altinn2Id,

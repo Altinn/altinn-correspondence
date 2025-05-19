@@ -1,73 +1,34 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
+using Altinn.Correspondence.Tests.TestingController.Migration.Base;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Json;
 using System.Text;
-using System.Text.Json;
-using Altinn.Correspondence.Core.Models.Entities;
-using Microsoft.Extensions.DependencyInjection;
 using System.Web;
 
 namespace Altinn.Correspondence.Tests.TestingController.Migration;
 
 [Collection(nameof(CustomWebApplicationTestsCollection))]
-public class MigrationControllerTests
+public class MigrationControllerTests : MigrationTestBase
 {
-    private readonly CustomWebApplicationFactory _factory;
-    private readonly HttpClient _client;
-    private readonly JsonSerializerOptions _responseSerializerOptions;
-
-    public MigrationControllerTests(CustomWebApplicationFactory factory)
-    {
-        _factory = factory;
-        _client = _factory.CreateClientWithAddedClaims(("scope", "altinn:correspondence.migrate"));
-        _responseSerializerOptions = new JsonSerializerOptions(new JsonSerializerOptions()
-        {
-            PropertyNameCaseInsensitive = true
-        });
-        _responseSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    public MigrationControllerTests(CustomWebApplicationFactory factory) : base(factory)
+    {  
     }
 
     [Fact]
     public async Task InitializeMigrateCorrespondence()
     {
-        var basicCorrespondence = new CorrespondenceBuilder()
-            .CreateCorrespondence()
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithIsMigrating(false)
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
-        Guid userPartyGuid = new Guid("11112222333344445555666677778888");
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-        basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new()
-        {
-            Created = new DateTimeOffset(new DateTime(2024, 1, 5)),
-            CorrespondenceData = basicCorrespondence,
-            Altinn2CorrespondenceId = 12345,
-            EventHistory =
-        [
-            new MigrateCorrespondenceStatusEventExt()
-            {
-                Status = CorrespondenceStatusExt.Initialized,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
-                EventUserPartyUuid = userPartyGuid
-            },
-            new MigrateCorrespondenceStatusEventExt()
-            {
-                Status = CorrespondenceStatusExt.Read,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6)),
-                EventUserPartyUuid = userPartyGuid
-            },
-            new MigrateCorrespondenceStatusEventExt()
-            {
-                Status = CorrespondenceStatusExt.Archived,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 7)),
-                EventUserPartyUuid = userPartyGuid
-            }
-        ]
-        };
 
         migrateCorrespondenceExt.NotificationHistory =
         [
@@ -137,7 +98,7 @@ public class MigrationControllerTests
             }
         ];
 
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
         string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
     }
@@ -145,39 +106,12 @@ public class MigrationControllerTests
     [Fact]
     public async Task InitializeMigrateCorrespondence_WithForwarded()
     {
-        var basicCorrespondence = new CorrespondenceBuilder()
-            .CreateCorrespondence()
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithIsMigrating(false)
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-        basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new()
-        {
-            Created = new DateTimeOffset(new DateTime(2024, 1, 5)),
-            CorrespondenceData = basicCorrespondence,
-            Altinn2CorrespondenceId = 12345,
-            EventHistory =
-        [
-            new MigrateCorrespondenceStatusEventExt()
-            {
-                Status = CorrespondenceStatusExt.Initialized,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
-                EventUserPartyUuid = Guid.NewGuid()
-            },
-            new MigrateCorrespondenceStatusEventExt()
-            {
-                Status = CorrespondenceStatusExt.Read,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6)),
-                EventUserPartyUuid = Guid.NewGuid()
-            },
-            new MigrateCorrespondenceStatusEventExt()
-            {
-                Status = CorrespondenceStatusExt.Archived,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 7)),
-                EventUserPartyUuid = Guid.NewGuid()
-            }
-        ]
-        };
 
         migrateCorrespondenceExt.NotificationHistory =
         [
@@ -282,7 +216,7 @@ public class MigrationControllerTests
             }
         };
 
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
         string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
     }
@@ -290,27 +224,12 @@ public class MigrationControllerTests
     [Fact]
     public async Task InitializeMigrateCorrespondence_NotReadNoNotifications()
     {
-        var basicCorrespondence = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
-        Guid userPartyGuid = new Guid("11112222333344445555666677778888");
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new()
-        {
-            Created = new DateTimeOffset(new DateTime(2024, 1, 5)),
-            CorrespondenceData = basicCorrespondence,
-            Altinn2CorrespondenceId = 12345,
-            EventHistory =
-        [
-            new MigrateCorrespondenceStatusEventExt()
-            {
-                Status = CorrespondenceStatusExt.Initialized,
-                StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
-                EventUserPartyUuid = userPartyGuid
-            }
-        ]
-        };
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+             .CreateMigrateCorrespondence()
+             .WithIsMigrating(false)
+             .Build();
 
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
         string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
     }
@@ -320,10 +239,10 @@ public class MigrationControllerTests
     {
         MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
-        MemoryStream memoryStream = new(file);
-        StreamContent content = new(memoryStream);
+        using MemoryStream memoryStream = new(file);
+        using StreamContent content = new(memoryStream);
         string command = GetAttachmentCommand(migrateAttachmentExt);
-        var uploadResponse = await _client.PostAsync(command, content);
+        var uploadResponse = await _migrationClient.PostAsync(command, content);
         Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
     }
 
@@ -333,12 +252,12 @@ public class MigrationControllerTests
         MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
         migrateAttachmentExt.Altinn2AttachmentId = "SS" + (new Random()).Next();
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
-        MemoryStream memoryStream = new(file);
-        StreamContent content = new(memoryStream);
+        using MemoryStream memoryStream = new(file);
+        using StreamContent content = new(memoryStream);
         string command = GetAttachmentCommand(migrateAttachmentExt);
-        var uploadResponse = await _client.PostAsync(command, content);
+        var uploadResponse = await _migrationClient.PostAsync(command, content);
         Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
-        var uploadResponse2 = await _client.PostAsync(command, content);
+        var uploadResponse2 = await _migrationClient.PostAsync(command, content);
         Assert.True(uploadResponse2.StatusCode == System.Net.HttpStatusCode.Conflict, uploadResponse2.ReasonPhrase + ":" + await uploadResponse2.Content.ReadAsStringAsync());
     }
 
@@ -348,12 +267,12 @@ public class MigrationControllerTests
         MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
         migrateAttachmentExt.Altinn2AttachmentId = string.Empty;
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
-        MemoryStream memoryStream = new(file);
-        StreamContent content = new(memoryStream);
+        using MemoryStream memoryStream = new(file);
+        using StreamContent content = new(memoryStream);
         string command = GetAttachmentCommand(migrateAttachmentExt);
-        var uploadResponse = await _client.PostAsync(command, content);
+        var uploadResponse = await _migrationClient.PostAsync(command, content);
         Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
-        var uploadResponse2 = await _client.PostAsync(command, content);
+        var uploadResponse2 = await _migrationClient.PostAsync(command, content);
         Assert.True(uploadResponse2.IsSuccessStatusCode, uploadResponse2.ReasonPhrase + ":" + await uploadResponse2.Content.ReadAsStringAsync());
     }
 
@@ -376,10 +295,11 @@ public class MigrationControllerTests
         MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
         
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
-        MemoryStream memoryStream = new(file);
-        StreamContent content = new(memoryStream);
+        using MemoryStream memoryStream = new(file);
+        using StreamContent content = new(memoryStream);
         string command = GetAttachmentCommand(migrateAttachmentExt);
-        var uploadResponse = await _client.PostAsync(command, content);
+        var uploadResponse = await _migrationClient.PostAsync(command, content);
+
         Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
     }
 
@@ -388,36 +308,27 @@ public class MigrationControllerTests
     {
         MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
-        MemoryStream memoryStream = new(file);
-        StreamContent content = new(memoryStream);
+        using MemoryStream memoryStream = new(file);
+        using StreamContent content = new(memoryStream);        
         string command = GetAttachmentCommand(migrateAttachmentExt);
-        var uploadResponse = await _client.PostAsync(command, content);
+        var uploadResponse = await _migrationClient.PostAsync(command, content);
         Guid attachmentId = Guid.Parse(uploadResponse.Content.ReadAsStringAsync().Result.Trim('"'));
 
         MigrateInitializeAttachmentExt migrateAttachmentExt2 = new MigrateAttachmentBuilder().CreateAttachment().Build();
         byte[] file2 = Encoding.UTF8.GetBytes("Test av fil 2 opplasting");
-        MemoryStream memoryStream2 = new(file2);
-        StreamContent content2 = new(memoryStream2);
+        using MemoryStream memoryStream2 = new(file2);
+        using StreamContent content2 = new(memoryStream2);        
         string command2 = GetAttachmentCommand(migrateAttachmentExt2);
-        var uploadResponse2 = await _client.PostAsync(command2, content);
+        var uploadResponse2 = await _migrationClient.PostAsync(command2, content);
         Guid attachmentId2 = Guid.Parse(uploadResponse2.Content.ReadAsStringAsync().Result.Trim('"'));
 
-        InitializeCorrespondencesExt initializeCorrespondencesExt = new CorrespondenceBuilder().CreateCorrespondence().WithExistingAttachments([attachmentId, attachmentId2]).Build();
-        initializeCorrespondencesExt.Correspondence.SendersReference = "test 2024 10 09 09 45";
-        Guid userPartyGuid = new Guid("11112222333344445555666677778888");
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new()
-        {
-            Created = new DateTimeOffset(new DateTime(2024, 1, 5)),
-            CorrespondenceData = initializeCorrespondencesExt,
-            Altinn2CorrespondenceId = 12345,
-            EventHistory = [ new MigrateCorrespondenceStatusEventExt()
-            {
-                Status = CorrespondenceStatusExt.Initialized, StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)), EventUserPartyUuid=userPartyGuid
-            }
-            ]
-        };
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithSendersReference("test 2024 10 09 09 45")
+            .WithExistingAttachments([attachmentId, attachmentId2])
+            .Build();
 
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
 
         Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
         Assert.True(uploadResponse2.IsSuccessStatusCode, uploadResponse2.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
@@ -428,35 +339,18 @@ public class MigrationControllerTests
     public async Task InitializeMigrateCorrespondence_IsMigrateTrue_SetsFlagToTrue()
     {
         // Arrange
-        var basicCorrespondence = new CorrespondenceBuilder()
-            .CreateCorrespondence()
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()            
             .Build();
-        Guid userPartyGuid = new Guid("11112222333344445555666677778888");
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new()
-        {
-            Created = new DateTimeOffset(new DateTime(2024, 1, 5)),
-            CorrespondenceData = basicCorrespondence,
-            Altinn2CorrespondenceId = 12345,
-            EventHistory =
-            [
-                new MigrateCorrespondenceStatusEventExt()
-                {
-                    Status = CorrespondenceStatusExt.Initialized,
-                    StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
-                    EventUserPartyUuid = userPartyGuid
-                }
-            ],
-            IsMigrating = true
-        };
 
         // Act
-        var initializeCorrespondenceResponse = await _client.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
         CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
         Assert.NotNull(result);
         var scope = _factory.Services.CreateScope();
         var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
-        CorrespondenceEntity? correspondence = await correspondenceRepository.GetCorrespondenceById(result.CorrespondenceId, true, true, false, CancellationToken.None);
+        CorrespondenceEntity? correspondence = await correspondenceRepository.GetCorrespondenceById(result.CorrespondenceId, true, true, false, CancellationToken.None, true);
 
         // Assert
         Assert.NotNull(correspondence);
