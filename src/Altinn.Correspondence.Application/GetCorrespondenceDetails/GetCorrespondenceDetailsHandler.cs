@@ -85,7 +85,7 @@ public class GetCorrespondenceDetailsHandler(
                 {
                     var notificationDetails = await altinnNotificationService.GetNotificationDetailsV2(notification.ShipmentId.ToString(), cancellationToken);
                     notificationStatus.Add(await MapNotificationV2ToV1Async(notificationDetails, notification));
-                }
+                } 
             }
 
             var response = new GetCorrespondenceDetailsResponse
@@ -172,7 +172,7 @@ public class GetCorrespondenceDetailsHandler(
                         Status = latestEmailRecipient?.Status ?? string.Empty,
                         LastUpdate = latestEmailRecipient?.LastUpdate.DateTime ?? DateTime.MinValue
                     },
-                    Succeeded = latestEmailRecipient?.Status == "Email_Succeeded"
+                    Succeeded = latestEmailRecipient?.Status == "Email_Delivered"
                 } : null,
                 Sms = latestSmsRecipient != null ? new SmsNotificationWithResult
                 {
@@ -185,7 +185,7 @@ public class GetCorrespondenceDetailsHandler(
                         Status = latestSmsRecipient?.Status ?? string.Empty,
                         LastUpdate = latestSmsRecipient?.LastUpdate.DateTime ?? DateTime.MinValue
                     },
-                    Succeeded = latestSmsRecipient?.Status == "SMS_Succeeded"
+                    Succeeded = latestSmsRecipient?.Status == "SMS_Delivered"
                 } : null,
                 Emails = emailRecipients!= null && emailRecipients.Count != 0 ? [.. emailRecipients.Select(r => new EmailNotificationWithResult
                 {
@@ -198,7 +198,7 @@ public class GetCorrespondenceDetailsHandler(
                         Status = r.Status,
                         LastUpdate = r.LastUpdate.DateTime
                     },
-                    Succeeded = r.Status == "Email_Succeeded"
+                    Succeeded = r.Status == "Email_Delivered"
                 })]: null,
                 Smses = smsRecipients!= null && smsRecipients.Count != 0 ? [.. smsRecipients.Select(r => new SmsNotificationWithResult
                 {
@@ -211,7 +211,7 @@ public class GetCorrespondenceDetailsHandler(
                         Status = r.Status,
                         LastUpdate = r.LastUpdate.DateTime
                     },
-                    Succeeded = r.Status == "SMS_Succeeded"
+                    Succeeded = r.Status == "SMS_Delivered"
                 })]: null,
             }
         };
