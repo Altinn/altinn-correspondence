@@ -9,6 +9,7 @@ using Altinn.Correspondence.Tests.TestingController.Migration.Base;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Json;
 using System.Text;
+using System.Web;
 
 namespace Altinn.Correspondence.Tests.TestingController.Migration;
 
@@ -249,7 +250,7 @@ public class MigrationControllerTests : MigrationTestBase
     public async Task InitializeMigrateAttachment_DuplicateAltinn2AttachmentId_FailsWithConflict()
     {
         MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
-        migrateAttachmentExt.Altinn2AttachmentId = (new Random()).Next();
+        migrateAttachmentExt.Altinn2AttachmentId = "SS" + (new Random()).Next();
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
         using MemoryStream memoryStream = new(file);
         using StreamContent content = new(memoryStream);
@@ -264,7 +265,7 @@ public class MigrationControllerTests : MigrationTestBase
     public async Task InitializeMigrateAttachment_TwoInARowWithoutAltinn2AttachmentId_Succeeds()
     {
         MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
-        migrateAttachmentExt.Altinn2AttachmentId = null;
+        migrateAttachmentExt.Altinn2AttachmentId = string.Empty;
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
         using MemoryStream memoryStream = new(file);
         using StreamContent content = new(memoryStream);
@@ -275,6 +276,18 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.True(uploadResponse2.IsSuccessStatusCode, uploadResponse2.ReasonPhrase + ":" + await uploadResponse2.Content.ReadAsStringAsync());
     }
 
+    private string GetAttachmentCommand(MigrateInitializeAttachmentExt attachment)
+    {
+        return $"correspondence/api/v1/migration/attachment" +
+            $"?resourceId={HttpUtility.UrlEncode(attachment.ResourceId)}" +
+            $"&senderPartyUuid={HttpUtility.UrlEncode(attachment.SenderPartyUuid.ToString())}" +
+            $"&sendersReference={HttpUtility.UrlEncode(attachment.SendersReference)}" +
+            $"&displayName={HttpUtility.UrlEncode(attachment.DisplayName)}" +
+            $"&isEncrypted={HttpUtility.UrlEncode(attachment.IsEncrypted.ToString())}" +
+            $"&fileName={HttpUtility.UrlEncode(attachment.FileName)}" +
+            $"&sender={HttpUtility.UrlEncode(attachment.Sender)}" + 
+            $"&altinn2AttachmentId={HttpUtility.UrlEncode(attachment.Altinn2AttachmentId.ToString())}";
+    }
 
     [Fact]
     public async Task InitializeMigrateAttachment_InitializeAndUpload_NewUploadEndpoint()
