@@ -17,4 +17,10 @@ public class MigrateInitializeAttachmentExt : InitializeAttachmentExt
 
     [JsonPropertyName("created")]
     public required DateTimeOffset Created { get; set; }
+
+    /// <summary>
+    /// A reference value given to the attachment by the creator.
+    /// </summary>
+    [JsonPropertyName("altinn2sendersReference")]
+    public string? Altinn2SendersReference { get; set; } = string.Empty;
 }
