@@ -22,7 +22,9 @@ namespace Altinn.Correspondence.Tests.Factories
                 FileName = "test-file.txt",
                 DisplayName = "Test file",
                 IsEncrypted = false,
-                SenderPartyUuid = new Guid("EBF0DA78-DB7C-4087-9711-2C64DB201EB1")
+                SenderPartyUuid = new Guid("EBF0DA78-DB7C-4087-9711-2C64DB201EB1"),
+                Altinn2AttachmentId = "R1",
+                Created = new DateTimeOffset(new DateTime(2025, 5, 1))
             };
             return this;
         }
