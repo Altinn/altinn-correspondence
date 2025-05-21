@@ -10,17 +10,18 @@ public class IdempotencyKeyEntity
     [Key]
     public Guid Id { get; set; }
 
-    [Required]
-    public Guid CorrespondenceId { get; set; }
+    public Guid? CorrespondenceId { get; set; }
 
     [ForeignKey(nameof(CorrespondenceId))]
-    public CorrespondenceEntity Correspondence { get; set; } = null!;
+    public CorrespondenceEntity? Correspondence { get; set; }
 
     public Guid? AttachmentId { get; set; }
 
     [ForeignKey(nameof(AttachmentId))]
     public AttachmentEntity? Attachment { get; set; }
 
+    public StatusAction? StatusAction { get; set; }
+
     [Required]
-    public StatusAction StatusAction { get; set; }
+    public IdempotencyType IdempotencyType { get; set; }
 } 

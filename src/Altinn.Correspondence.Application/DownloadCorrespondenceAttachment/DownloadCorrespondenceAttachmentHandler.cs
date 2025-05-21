@@ -59,7 +59,8 @@ public class DownloadCorrespondenceAttachmentHandler(
         var existingKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
             request.CorrespondenceId, 
             request.AttachmentId, 
-            StatusAction.AttachmentDownloaded, 
+            StatusAction.AttachmentDownloaded,
+            IdempotencyType.DialogportenActivity,
             cancellationToken);
 
         string activityId;

@@ -35,7 +35,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             Id = openActivityId,
             CorrespondenceId = correspondence.Id,
             AttachmentId = null, // No attachment for opened activity
-            StatusAction = StatusAction.Fetched
+            StatusAction = StatusAction.Fetched,
+            IdempotencyType = IdempotencyType.DialogportenActivity
         };
         await _idempotencyKeyRepository.CreateAsync(openIdempotencyKey, cancellationToken);
 
@@ -48,7 +49,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 Id = confirmActivityId,
                 CorrespondenceId = correspondence.Id,
                 AttachmentId = null, // No attachment for confirm activity
-                StatusAction = StatusAction.Confirmed
+                StatusAction = StatusAction.Confirmed,
+                IdempotencyType = IdempotencyType.DialogportenActivity
             };
             await _idempotencyKeyRepository.CreateAsync(confirmIdempotencyKey, cancellationToken);
         }
@@ -157,15 +159,16 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 return;
             }
             // Get the pre-created idempotency key for confirm activity
-            var idempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
-                correspondenceId,
+            var existingConfirmIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
+                correspondence.Id,
                 null, // No attachment for confirm activity
                 StatusAction.Confirmed,
+                IdempotencyType.DialogportenActivity,
                 cancellationToken);
 
-            if (idempotencyKey != null)
+            if (existingConfirmIdempotencyKey != null)
             {
-                createDialogActivityRequest.Id = idempotencyKey.Id.ToString(); // Use the pre-created activity ID
+                createDialogActivityRequest.Id = existingConfirmIdempotencyKey.Id.ToString(); // Use the pre-created activity ID
             }
         }
 
@@ -196,15 +199,16 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 return;
             }
             
-            var idempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
-                correspondenceId,
+            var existingIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
+                correspondence.Id,
                 attachmentId,
                 StatusAction.AttachmentDownloaded,
+                IdempotencyType.DialogportenActivity,
                 cancellationToken);
 
-            if (idempotencyKey != null)
+            if (existingIdempotencyKey != null)
             {
-                createDialogActivityRequest.Id = idempotencyKey.Id.ToString();
+                createDialogActivityRequest.Id = existingIdempotencyKey.Id.ToString();
             }
         }
 
@@ -252,27 +256,29 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
 
         // Get the pre-created idempotency key for open dialog activity
-        var idempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
+        var existingOpenIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
             correspondenceId,
             null, // No attachment for opened activity
             StatusAction.Fetched,
+            IdempotencyType.DialogportenActivity,
             cancellationToken);
 
-        if (idempotencyKey == null)
+        if (existingOpenIdempotencyKey == null)
         {
-            idempotencyKey = await _idempotencyKeyRepository.CreateAsync(
+            existingOpenIdempotencyKey = await _idempotencyKeyRepository.CreateAsync(
                 new IdempotencyKeyEntity
                 {
                     Id = Uuid.NewDatabaseFriendly(Database.PostgreSql),
                     CorrespondenceId = correspondence.Id,
                     AttachmentId = null, // No attachment for opened activity
-                    StatusAction = StatusAction.Fetched
+                    StatusAction = StatusAction.Fetched,
+                    IdempotencyType = IdempotencyType.DialogportenActivity
                 },
                 cancellationToken);
         }
 
         var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, Models.ActivityType.DialogOpened);
-        createDialogActivityRequest.Id = idempotencyKey.Id.ToString(); // Use the pre-created activity ID
+        createDialogActivityRequest.Id = existingOpenIdempotencyKey.Id.ToString(); // Use the created activity ID
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {

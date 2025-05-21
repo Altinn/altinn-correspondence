@@ -20,11 +20,16 @@ public class IdempotencyKeyConfiguration : IEntityTypeConfiguration<IdempotencyK
             .IsRequired(false);
 
         builder.Property(x => x.StatusAction)
-            .IsRequired()
+            .IsRequired(false)
             .HasConversion<string>();
 
+        builder.Property(x => x.IdempotencyType)
+            .IsRequired();
+
         // Create a unique index on the combination of CorrespondenceId, AttachmentId, and Action
+        // Only for DialogportenActivity type
         builder.HasIndex(x => new { x.CorrespondenceId, x.AttachmentId, x.StatusAction })
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("[IdempotencyType] = 0"); // 0 = DialogportenActivity
     }
 } 

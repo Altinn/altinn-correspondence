@@ -18,6 +18,7 @@ using Microsoft.Extensions.Options;
 using OneOf;
 using System.Security.Claims;
 using System.Text.Json;
+using System.Net;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
@@ -37,12 +38,25 @@ public class InitializeCorrespondencesHandler(
     IHostEnvironment hostEnvironment,
     IHybridCacheWrapper hybridCacheWrapper,
     HangfireScheduleHelper hangfireScheduleHelper,
+    IIdempotencyKeyRepository idempotencyKeyRepository,
     IOptions<GeneralSettings> generalSettings,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
     private readonly GeneralSettings _generalSettings = generalSettings.Value;
 
-    public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    private class ValidationData
+    {
+        public List<AttachmentEntity> AttachmentsToBeUploaded { get; set; } = new();
+        public List<NotificationContent>? NotificationContents { get; set; }
+        public Guid PartyUuid { get; set; }
+        public List<string> ReservedRecipients { get; set; } = new();
+    }
+
+    private async Task<Error?> ValidateAndPrepareData(
+        InitializeCorrespondencesRequest request,
+        ClaimsPrincipal? user,
+        ValidationData data,
+        CancellationToken cancellationToken)
     {
         if (!string.IsNullOrWhiteSpace(generalSettings.Value.ResourceWhitelist))
         {
@@ -51,6 +65,7 @@ public class InitializeCorrespondencesHandler(
                 return AuthorizationErrors.ResourceNotWhitelisted;
             }
         }
+
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
             request.Correspondence.ResourceId,
@@ -61,6 +76,7 @@ public class InitializeCorrespondencesHandler(
         {
             return AuthorizationErrors.NoAccessToResource;
         }
+
         var resourceType = await resourceRegistryService.GetResourceType(request.Correspondence.ResourceId, cancellationToken);
         if (resourceType is null)
         {
@@ -70,34 +86,43 @@ public class InitializeCorrespondencesHandler(
         {
             return AuthorizationErrors.IncorrectResourceType;
         }
+
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
+        data.PartyUuid = partyUuid;
+
         if (request.Recipients.Count != request.Recipients.Distinct().Count())
         {
             return CorrespondenceErrors.DuplicateRecipients;
         }
+
         if (request.Correspondence.IsConfirmationNeeded && request.Correspondence.DueDateTime is null)
         {
             return CorrespondenceErrors.DueDateRequired;
         }
+
         var contactReservation = await HandleContactReservation(request);
-        if(contactReservation.TryPickT1(out var error, out var reservedRecipients))
+        if (contactReservation.TryPickT1(out var error, out var reservedRecipients))
         {
             return error;
         }
+        data.ReservedRecipients = reservedRecipients;
+
         var dateError = initializeCorrespondenceHelper.ValidateDateConstraints(request.Correspondence);
         if (dateError != null)
         {
             return dateError;
         }
+
         var contentError = initializeCorrespondenceHelper.ValidateCorrespondenceContent(request.Correspondence.Content);
         if (contentError != null)
         {
             return contentError;
         }
+
         var existingAttachmentIds = request.ExistingAttachments;
         var uploadAttachments = request.Attachments;
         var uploadAttachmentMetadata = request.Correspondence.Content.Attachments;
@@ -110,12 +135,14 @@ public class InitializeCorrespondencesHandler(
         {
             return CorrespondenceErrors.ExistingAttachmentNotFound;
         }
+
         // Validate that existing attachments are published
         var anyExistingAttachmentsNotPublished = existingAttachments.Any(a => a.GetLatestStatus()?.Status != AttachmentStatus.Published);
         if (anyExistingAttachmentsNotPublished)
         {
             return CorrespondenceErrors.AttachmentsNotPublished;
         }
+
         // Validate the uploaded files
         var attachmentMetaDataError = initializeCorrespondenceHelper.ValidateAttachmentFiles(uploadAttachments, uploadAttachmentMetadata);
         if (attachmentMetaDataError != null)
@@ -124,20 +151,19 @@ public class InitializeCorrespondencesHandler(
         }
 
         // Gather attachments for the correspondence
-        var attachmentsToBeUploaded = new List<AttachmentEntity>();
         if (uploadAttachmentMetadata.Count > 0)
         {
             foreach (var attachment in uploadAttachmentMetadata)
             {
                 var processedAttachment = await initializeCorrespondenceHelper.ProcessNewAttachment(attachment, partyUuid, cancellationToken);
-                attachmentsToBeUploaded.Add(processedAttachment);
+                data.AttachmentsToBeUploaded.Add(processedAttachment);
             }
         }
         if (existingAttachmentIds.Count > 0)
         {
-            attachmentsToBeUploaded.AddRange(existingAttachments.Where(a => a != null).Select(a => a!));
+            data.AttachmentsToBeUploaded.AddRange(existingAttachments.Where(a => a != null).Select(a => a!));
         }
-        List<NotificationContent>? notificationContents = null;
+
         if (request.Notification != null)
         {
             var templates = await notificationTemplateRepository.GetNotificationTemplates(request.Notification.NotificationTemplate, cancellationToken, request.Correspondence.Content?.Language);
@@ -145,27 +171,74 @@ public class InitializeCorrespondencesHandler(
             {
                 return NotificationErrors.TemplateNotFound;
             }
-            notificationContents = await GetNotificationContent(request.Notification, templates, request.Correspondence, cancellationToken, request.Correspondence.Content?.Language);
-            if (notificationContents.Count == 0)
+
+            data.NotificationContents = await GetNotificationContent(request.Notification, templates, request.Correspondence, cancellationToken, request.Correspondence.Content?.Language);
+            if (data.NotificationContents.Count == 0)
             {
                 return NotificationErrors.TemplateNotFound;
             }
+
             var notificationError = initializeCorrespondenceHelper.ValidateNotification(request.Notification, request.Recipients);
             if (notificationError != null)
             {
                 return notificationError;
             }
         }
+
         // Upload attachments
-        var uploadError = await initializeCorrespondenceHelper.UploadAttachments(attachmentsToBeUploaded, uploadAttachments, partyUuid, cancellationToken);
+        var uploadError = await initializeCorrespondenceHelper.UploadAttachments(data.AttachmentsToBeUploaded, uploadAttachments, partyUuid, cancellationToken);
         if (uploadError != null)
         {
             return uploadError;
         }
 
+        return null;
+    }
+
+    public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    {
+        // Check for existing idempotency key
+        if (request.IdempotentKey.HasValue)
+        {
+            var existingKey = await idempotencyKeyRepository.GetByIdAsync(request.IdempotentKey.Value, cancellationToken);
+            if (existingKey != null)
+            {
+                return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
+            }
+            else
+            {
+                var idempotencyKey = new IdempotencyKeyEntity()
+                {
+                    Id = request.IdempotentKey.Value,
+                    CorrespondenceId = null,
+                    AttachmentId = null,
+                    StatusAction = null,
+                    IdempotencyType = IdempotencyType.Correspondence
+                };
+                await idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
+            }
+        }
+
+        var validationData = new ValidationData();
+        var error = await ValidateAndPrepareData(request, user, validationData, cancellationToken);
+        if (error != null)
+        {
+            if (request.IdempotentKey.HasValue)
+            {
+                await idempotencyKeyRepository.DeleteAsync(request.IdempotentKey.Value, cancellationToken);
+            }
+            return error;
+        }
+
         return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
         {
-            return await InitializeCorrespondences(request, attachmentsToBeUploaded, notificationContents, partyUuid, reservedRecipients, cancellationToken);
+            return await InitializeCorrespondences(
+                request,
+                validationData.AttachmentsToBeUploaded,
+                validationData.NotificationContents,
+                validationData.PartyUuid,
+                validationData.ReservedRecipients,
+                cancellationToken);
         }, logger, cancellationToken);
     }
 
@@ -232,7 +305,7 @@ public class InitializeCorrespondencesHandler(
             {
                 Expiration = TimeSpan.FromHours(24)
             });
-            if (request.Correspondence.Content.Attachments.Count == 0) 
+            if (request.Correspondence.Content.Attachments.Count == 0)
             {
                 await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence, cancellationToken);
             }

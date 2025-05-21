@@ -5,7 +5,14 @@ namespace Altinn.Correspondence.Core.Repositories;
 
 public interface IIdempotencyKeyRepository
 {
-    Task<IdempotencyKeyEntity?> GetByCorrespondenceAndAttachmentAndActionAsync(Guid correspondenceId, Guid? attachmentId, StatusAction action, CancellationToken cancellationToken);
+    Task<IdempotencyKeyEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<IdempotencyKeyEntity?> GetByCorrespondenceAndAttachmentAndActionAsync(
+        Guid correspondenceId, 
+        Guid? attachmentId, 
+        StatusAction? action,
+        IdempotencyType idempotencyType,
+        CancellationToken cancellationToken);
     Task<IdempotencyKeyEntity> CreateAsync(IdempotencyKeyEntity idempotencyKey, CancellationToken cancellationToken);
     Task CreateRangeAsync(IEnumerable<IdempotencyKeyEntity> idempotencyKeys, CancellationToken cancellationToken);
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken);
 } 

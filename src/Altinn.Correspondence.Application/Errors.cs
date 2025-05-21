@@ -37,6 +37,8 @@ public static class CorrespondenceErrors
     public static Error RecipientReserved(string recipientId) => new Error(1030, $"Recipient {recipientId} has reserved themselves from public correspondences. Can be overridden using the 'IgnoreReservation' flag.", HttpStatusCode.UnprocessableEntity);
     public static Error AttachmentNotAvailableForRecipient = new(1031, "Attachment is not available for recipient, latest status of correspondence is not in [Published, Fetched, Read, Replied, Confirmed, Archived, Reserved, AttachmentsDownloaded]", HttpStatusCode.BadRequest);
     public static Error ContactReservationRegistryFailed = new Error(1032, "Contact reservation registry lookup failed", HttpStatusCode.InternalServerError);
+    public static Error InvalidIdempotencyKey = new Error(1033, "The idempotency key must be a valid non-empty GUID", HttpStatusCode.BadRequest);
+    public static Error DuplicateInitCorrespondenceRequest = new Error(1034, "A correspondence with the same idempotent key already exists", HttpStatusCode.Conflict);
 }
 
 public static class AttachmentErrors
