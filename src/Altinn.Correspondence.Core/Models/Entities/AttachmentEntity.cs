@@ -50,6 +50,6 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         public StorageProviderEntity? StorageProvider { get; set; }
 
-        public int? Altinn2AttachmentId { get; set; }
+        public string? Altinn2AttachmentId { get; set; }
     }
 }

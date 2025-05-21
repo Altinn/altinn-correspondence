@@ -13,5 +13,14 @@ public class MigrateInitializeAttachmentExt : InitializeAttachmentExt
     public required Guid SenderPartyUuid { get; set; }
 
     [JsonPropertyName("altinn2AttachmentId")]
-    public int? Altinn2AttachmentId { get; set; }
+    public required string Altinn2AttachmentId { get; set; }
+
+    [JsonPropertyName("created")]
+    public required DateTimeOffset Created { get; set; }
+
+    /// <summary>
+    /// A reference value given to the attachment by the creator.
+    /// </summary>
+    [JsonPropertyName("altinn2sendersReference")]
+    public string? Altinn2SendersReference { get; set; } = string.Empty;
 }
