@@ -31,6 +31,7 @@ internal static class CorrespondenceOverviewMapper
             IgnoreReservation = correspondenceOverview.IgnoreReservation,
             Published = correspondenceOverview.Published,
             IsConfirmationNeeded = correspondenceOverview.IsConfirmationNeeded,
+            Altinn2CorrespondenceId = correspondenceOverview.Altinn2CorrespondenceId
         };
         return Correspondence;
     }

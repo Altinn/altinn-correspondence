@@ -56,5 +56,11 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("notifications")]
         public List<CorrespondenceNotificationOverview> Notifications { get; set; } = new List<CorrespondenceNotificationOverview>();
+
+        /// <summary>
+        /// The identifier/reference from Altinn 2 for migrated correspondence. Will be null for correspondence created in Altinn 3.
+        /// </summary>
+        [JsonPropertyName("altinn2CorrespondenceId")]
+        public int? Altinn2CorrespondenceId { get; set; }
     }
 }
