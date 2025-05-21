@@ -14,10 +14,10 @@ internal static class MigrateAttachmentMapper
             FileName = initializeAttachmentExt.FileName,
             DisplayName = initializeAttachmentExt.DisplayName,
             Sender = initializeAttachmentExt.Sender,
-            SendersReference = initializeAttachmentExt.SendersReference,
+            SendersReference = initializeAttachmentExt.Altinn2SendersReference ?? string.Empty,
             Checksum = initializeAttachmentExt.Checksum,
             IsEncrypted = initializeAttachmentExt.IsEncrypted,
-            Created = DateTimeOffset.UtcNow,
+            Created = initializeAttachmentExt.Created,
             Altinn2AttachmentId = initializeAttachmentExt.Altinn2AttachmentId
         };
         return new MigrateAttachmentRequest()

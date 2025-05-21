@@ -1,15 +1,15 @@
-using System.Security.Claims;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondence;
 
 public class MigrateCorrespondenceHandler(
-    InitializeCorrespondenceHelper initializeCorrespondenceHelper,
     ICorrespondenceRepository correspondenceRepository,
     ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRequest, MigrateCorrespondenceResponse>
 {
@@ -21,20 +21,20 @@ public class MigrateCorrespondenceHandler(
             return contentError;
         }
 
-        return await TransactionWithRetriesPolicy.Execute<MigrateCorrespondenceResponse>(async (cancellationToken) =>
+        if (request.CorrespondenceEntity?.Content?.Attachments != null && request?.ExistingAttachments != null)
         {
-            if (request.CorrespondenceEntity?.Content?.Attachments != null)
-            {
-                request.CorrespondenceEntity.Content.Attachments.AddRange
-                (
-                    request.ExistingAttachments.Select(a => new CorrespondenceAttachmentEntity()
-                    {
-                        AttachmentId = a,
-                        Created = DateTimeOffset.UtcNow
-                    })
-                );
-            }
+            request.CorrespondenceEntity.Content.Attachments.AddRange
+            (
+                request.ExistingAttachments.Select(a => new CorrespondenceAttachmentEntity()
+                {
+                    AttachmentId = a,
+                    Created = request.CorrespondenceEntity.Created
+                })
+            );
+        }
 
+        try
+        {
             var correspondence = await correspondenceRepository.CreateCorrespondence(request.CorrespondenceEntity, cancellationToken);
             return new MigrateCorrespondenceResponse()
             {
@@ -42,11 +42,27 @@ public class MigrateCorrespondenceHandler(
                 CorrespondenceId = correspondence.Id,
                 AttachmentMigrationStatuses = correspondence.Content?.Attachments.Select(a => new AttachmentMigrationStatus() { AttachmentId = a.AttachmentId, AttachmentStatus = AttachmentStatus.Initialized }).ToList() ?? null
             };
-        }, logger, cancellationToken);
+        }
+        catch (DbUpdateException e)
+        {
+            var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
+            if (sqlState == "23505")
+            {
+                var correspondence = await correspondenceRepository.GetCorrespondenceByAltinn2Id((int)request.CorrespondenceEntity.Altinn2CorrespondenceId, cancellationToken);
+                return new MigrateCorrespondenceResponse()
+                {
+                    Altinn2CorrespondenceId = request.Altinn2CorrespondenceId,
+                    CorrespondenceId = correspondence.Id,
+                    IsAlreadyMigrated = true,
+                    AttachmentMigrationStatuses = correspondence.Content?.Attachments.Select(a => new AttachmentMigrationStatus() { AttachmentId = a.AttachmentId, AttachmentStatus = AttachmentStatus.Initialized }).ToList() ?? null
+                };
+            }
 
+            throw;
+        }
     }
 
-    public Error? MigrationValidateCorrespondenceContent(CorrespondenceContentEntity? content)
+    public static Error? MigrationValidateCorrespondenceContent(CorrespondenceContentEntity? content)
     {
         if (content == null)
         {

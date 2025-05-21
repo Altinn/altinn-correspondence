@@ -9,6 +9,7 @@ using Altinn.Correspondence.Tests.TestingController.Migration.Base;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Json;
 using System.Text;
+using System.Web;
 
 namespace Altinn.Correspondence.Tests.TestingController.Migration;
 
@@ -246,35 +247,35 @@ public class MigrationControllerTests : MigrationTestBase
     }
 
     [Fact]
-    public async Task InitializeMigrateAttachment_DuplicateAltinn2AttachmentId_FailsWithConflict()
+    public async Task InitializeMigrateAttachment_DuplicateAltinn2AttachmentId_SecondRequestReturnsFirstAttachmentId()
     {
         MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
-        migrateAttachmentExt.Altinn2AttachmentId = (new Random()).Next();
+        migrateAttachmentExt.Altinn2AttachmentId = "SS" + (new Random()).Next();
         byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
         using MemoryStream memoryStream = new(file);
         using StreamContent content = new(memoryStream);
         string command = GetAttachmentCommand(migrateAttachmentExt);
         var uploadResponse = await _migrationClient.PostAsync(command, content);
+        string attachment1Id = await uploadResponse.Content.ReadAsStringAsync();
         Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
         var uploadResponse2 = await _migrationClient.PostAsync(command, content);
-        Assert.True(uploadResponse2.StatusCode == System.Net.HttpStatusCode.Conflict, uploadResponse2.ReasonPhrase + ":" + await uploadResponse2.Content.ReadAsStringAsync());
+        string attachment2Id = await uploadResponse2.Content.ReadAsStringAsync();
+        Assert.True(uploadResponse2.StatusCode == System.Net.HttpStatusCode.OK, uploadResponse2.ReasonPhrase + ":" + await uploadResponse2.Content.ReadAsStringAsync());
+        Assert.Equal(attachment1Id, attachment2Id);
     }
 
-    [Fact]
-    public async Task InitializeMigrateAttachment_TwoInARowWithoutAltinn2AttachmentId_Succeeds()
+    private string GetAttachmentCommand(MigrateInitializeAttachmentExt attachment)
     {
-        MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
-        migrateAttachmentExt.Altinn2AttachmentId = null;
-        byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
-        using MemoryStream memoryStream = new(file);
-        using StreamContent content = new(memoryStream);
-        string command = GetAttachmentCommand(migrateAttachmentExt);
-        var uploadResponse = await _migrationClient.PostAsync(command, content);
-        Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
-        var uploadResponse2 = await _migrationClient.PostAsync(command, content);
-        Assert.True(uploadResponse2.IsSuccessStatusCode, uploadResponse2.ReasonPhrase + ":" + await uploadResponse2.Content.ReadAsStringAsync());
+        return $"correspondence/api/v1/migration/attachment" +
+            $"?resourceId={HttpUtility.UrlEncode(attachment.ResourceId)}" +
+            $"&senderPartyUuid={HttpUtility.UrlEncode(attachment.SenderPartyUuid.ToString())}" +
+            $"&sendersReference={HttpUtility.UrlEncode(attachment.SendersReference)}" +
+            $"&displayName={HttpUtility.UrlEncode(attachment.DisplayName)}" +
+            $"&isEncrypted={HttpUtility.UrlEncode(attachment.IsEncrypted.ToString())}" +
+            $"&fileName={HttpUtility.UrlEncode(attachment.FileName)}" +
+            $"&sender={HttpUtility.UrlEncode(attachment.Sender)}" + 
+            $"&altinn2AttachmentId={HttpUtility.UrlEncode(attachment.Altinn2AttachmentId.ToString())}";
     }
-
 
     [Fact]
     public async Task InitializeMigrateAttachment_InitializeAndUpload_NewUploadEndpoint()

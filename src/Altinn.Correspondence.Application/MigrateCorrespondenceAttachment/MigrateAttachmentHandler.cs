@@ -1,15 +1,13 @@
-using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.MigrateUploadAttachment;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
-using Altinn.Correspondence.Core.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
+using System.Transactions;
 
 namespace Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
 
@@ -26,7 +24,12 @@ public class MigrateAttachmentHandler(
             return AttachmentErrors.InvalidFileSize;
         }
 
-        return await TransactionWithRetriesPolicy.Execute<MigrateAttachmentResponse>(async (cancellationToken) =>
+        AttachmentEntity? attachment = null;
+        using (var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
+        {
+            IsolationLevel = IsolationLevel.ReadCommitted,
+            Timeout = TimeSpan.FromSeconds(30)
+        }, TransactionScopeAsyncFlowOption.Enabled))
         {
             var uploadResult = await attachmentHelper.UploadAttachment(request, request.SenderPartyUuid, cancellationToken);
             if (uploadResult.IsT1)
@@ -41,7 +44,7 @@ public class MigrateAttachmentHandler(
             }
             try
             {
-                var attachment = await attachmentRepository.InitializeAttachment(request.Attachment, cancellationToken);
+                attachment = await attachmentRepository.InitializeAttachment(request.Attachment, cancellationToken);
 
                 var attachmentStatus = new AttachmentStatusEntity()
                 {
@@ -53,6 +56,7 @@ public class MigrateAttachmentHandler(
                 };
 
                 await attachmentStatusRepository.AddAttachmentStatus(attachmentStatus, cancellationToken);
+                transaction.Complete();
 
                 return new MigrateAttachmentResponse
                 {
@@ -69,19 +73,34 @@ public class MigrateAttachmentHandler(
                     DisplayName = attachment.DisplayName,
                     Sender = attachment.Sender,
                 };
-            } 
+            }
             catch (DbUpdateException e)
             {
-                if (e.InnerException?.Data.Contains("SqlState") ?? false)
+                var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
+                if (sqlState != "23505")
                 {
-                    var sqlState = e.InnerException.Data["SqlState"].ToString();
-                    if (sqlState == "23505")
-                    {
-                        return AttachmentErrors.AttachmentAlreadyMigrated;
-                    }
+                    throw;
                 }
-                throw e;
             }
-        }, logger, cancellationToken);
+        }
+
+        // If we reach here, it means the attachment already exists in the database,
+        // and we need to return the existing attachment information.
+        attachment = await attachmentRepository.GetAttachmentByAltinn2Id(request.Attachment.Altinn2AttachmentId, cancellationToken);
+        return new MigrateAttachmentResponse
+        {
+            AttachmentId = attachment.Id,
+            ResourceId = attachment.ResourceId,
+            Name = attachment.FileName,
+            Checksum = attachment.Checksum,
+            Status = AttachmentStatus.Published,
+            StatusText = "Duplicate",
+            StatusChanged = attachment.Created,
+            DataLocationType = attachment.DataLocationType,
+            SendersReference = attachment.SendersReference,
+            FileName = attachment.FileName,
+            DisplayName = attachment.DisplayName,
+            Sender = attachment.Sender,
+        };
     }
 }

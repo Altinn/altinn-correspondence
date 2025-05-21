@@ -3,6 +3,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
@@ -77,6 +78,12 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
             return await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
         }
+
+        public async Task<CorrespondenceEntity> GetCorrespondenceByAltinn2Id(int altinn2Id, CancellationToken cancellationToken)
+        {
+            return await _context.Correspondences.SingleAsync(c => c.Altinn2CorrespondenceId == altinn2Id, cancellationToken);
+        }
+
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesByAttachmentId(Guid attachmentId, bool includeStatus, CancellationToken cancellationToken = default)
         {
             var correspondence = _context.Correspondences
