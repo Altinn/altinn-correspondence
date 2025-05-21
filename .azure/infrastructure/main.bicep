@@ -33,7 +33,7 @@ param maskinporten_token_exchange_environment string
 @secure()
 param resourceWhiteList string
 
-var prodLikeEnvironment = environment == 'production' || maskinporten_token_exchange_environment == 'yt01'
+var prodLikeEnvironment = environment == 'production' || environment == 'staging' || maskinporten_token_exchange_environment == 'yt01'
 var resourceGroupName = '${namePrefix}-rg'
 
 // Create resource groups
