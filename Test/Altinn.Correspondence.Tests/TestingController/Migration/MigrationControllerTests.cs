@@ -247,7 +247,7 @@ public class MigrationControllerTests : MigrationTestBase
     }
 
     [Fact]
-    public async Task InitializeMigrateAttachment_DuplicateAltinn2AttachmentId_FailsWithConflict()
+    public async Task InitializeMigrateAttachment_DuplicateAltinn2AttachmentId_SecondRequestReturnsFirstAttachmentId()
     {
         MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
         migrateAttachmentExt.Altinn2AttachmentId = "SS" + (new Random()).Next();
@@ -256,24 +256,12 @@ public class MigrationControllerTests : MigrationTestBase
         using StreamContent content = new(memoryStream);
         string command = GetAttachmentCommand(migrateAttachmentExt);
         var uploadResponse = await _migrationClient.PostAsync(command, content);
+        string attachment1Id = await uploadResponse.Content.ReadAsStringAsync();
         Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
         var uploadResponse2 = await _migrationClient.PostAsync(command, content);
-        Assert.True(uploadResponse2.StatusCode == System.Net.HttpStatusCode.Conflict, uploadResponse2.ReasonPhrase + ":" + await uploadResponse2.Content.ReadAsStringAsync());
-    }
-
-    [Fact]
-    public async Task InitializeMigrateAttachment_TwoInARowWithoutAltinn2AttachmentId_Succeeds()
-    {
-        MigrateInitializeAttachmentExt migrateAttachmentExt = new MigrateAttachmentBuilder().CreateAttachment().Build();
-        migrateAttachmentExt.Altinn2AttachmentId = string.Empty;
-        byte[] file = Encoding.UTF8.GetBytes("Test av fil opplasting");
-        using MemoryStream memoryStream = new(file);
-        using StreamContent content = new(memoryStream);
-        string command = GetAttachmentCommand(migrateAttachmentExt);
-        var uploadResponse = await _migrationClient.PostAsync(command, content);
-        Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
-        var uploadResponse2 = await _migrationClient.PostAsync(command, content);
-        Assert.True(uploadResponse2.IsSuccessStatusCode, uploadResponse2.ReasonPhrase + ":" + await uploadResponse2.Content.ReadAsStringAsync());
+        string attachment2Id = await uploadResponse2.Content.ReadAsStringAsync();
+        Assert.True(uploadResponse2.StatusCode == System.Net.HttpStatusCode.OK, uploadResponse2.ReasonPhrase + ":" + await uploadResponse2.Content.ReadAsStringAsync());
+        Assert.Equal(attachment1Id, attachment2Id);
     }
 
     private string GetAttachmentCommand(MigrateInitializeAttachmentExt attachment)

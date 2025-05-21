@@ -22,7 +22,7 @@ namespace Altinn.Correspondence.Tests.Factories
             _migratedCorrespondence = new()
             {
                 CorrespondenceData = basicCorrespondence,
-                Altinn2CorrespondenceId = 99911,
+                Altinn2CorrespondenceId = (new Random().Next()),
                 EventHistory =
             [
                 new MigrateCorrespondenceStatusEventExt()
