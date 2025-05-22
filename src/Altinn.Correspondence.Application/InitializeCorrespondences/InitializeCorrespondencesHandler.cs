@@ -125,7 +125,7 @@ public class InitializeCorrespondencesHandler(
 
         // Validate reply options
         var replyOptionsError = initializeCorrespondenceHelper.ValidateReplyOptions(request.Correspondence.ReplyOptions);
-        if (attachmentMetaDataError != null && !)
+        if (attachmentMetaDataError != null)
         {
             return replyOptionsError;
         }

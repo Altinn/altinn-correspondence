@@ -12,7 +12,6 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Gets or sets the URL to be used as a reply/response to a correspondence. 
         /// </summary>
-        [IsLink]
         [JsonPropertyName("linkURL")]
         public required string LinkURL { get; set; }
 
