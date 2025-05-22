@@ -8,7 +8,7 @@ namespace Altinn.Correspondence.Mappers;
 
 internal static class InitializeCorrespondencesMapper
 {
-    internal static InitializeCorrespondencesRequest MapToRequest(BaseCorrespondenceExt initializeCorrespondenceExt, List<string> Recipients, List<IFormFile>? attachments, List<Guid>? existingAttachments)
+    internal static InitializeCorrespondencesRequest MapToRequest(BaseCorrespondenceExt initializeCorrespondenceExt, List<string> Recipients, List<IFormFile>? attachments, List<Guid>? existingAttachments, Guid? idempotentKey = null)
     {
         var correspondence = new CorrespondenceEntity
         {
@@ -44,7 +44,8 @@ internal static class InitializeCorrespondencesMapper
             Attachments = attachments ?? new List<IFormFile>(),
             ExistingAttachments = existingAttachments ?? new List<Guid>(),
             Recipients = Recipients,
-            Notification = initializeCorrespondenceExt.Notification != null ? InitializeCorrespondenceNotificationMapper.MapToRequest(initializeCorrespondenceExt.Notification) : null
+            Notification = initializeCorrespondenceExt.Notification != null ? InitializeCorrespondenceNotificationMapper.MapToRequest(initializeCorrespondenceExt.Notification) : null,
+            IdempotentKey = idempotentKey
         };
     }
     internal static InitializeCorrespondencesResponseExt MapToExternal(InitializeCorrespondencesResponse response)

@@ -208,6 +208,12 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public CorrespondenceBuilder WithIdempotentKey(Guid idempotentKey)
+        {
+            _correspondence.IdempotentKey = idempotentKey;
+            return this;
+        }
+
         public static CorrespondenceEntity CorrespondenceEntityWithNotifications()
         {
             return new CorrespondenceEntity()
