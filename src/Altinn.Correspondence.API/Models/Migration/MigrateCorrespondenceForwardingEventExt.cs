@@ -2,7 +2,7 @@
 using System.Text.Json.Serialization;
 using Altinn.Correspondence.Common.Constants;
 
-namespace Altinn.Correspondence.API.Models
+namespace Altinn.Correspondence.API.Models.Migration
 {
     public class MigrateCorrespondenceForwardingEventExt
     {
@@ -16,7 +16,7 @@ namespace Altinn.Correspondence.API.Models
         /// PartyUuid of the user that performed the forwarding action.
         /// </summary>
         [JsonPropertyName("forwardedByPartyUuid")]
-        public required Guid ForwardedByPartyUuid { get; set; }        
+        public required Guid ForwardedByPartyUuid { get; set; }
 
         /// <summary>
         /// User ID of user that performed the forwarding action.

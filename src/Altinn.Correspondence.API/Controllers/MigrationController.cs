@@ -1,4 +1,5 @@
 using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models.Migration;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.InitializeCorrespondence;

@@ -2,7 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-namespace Altinn.Correspondence.API.Models;
+namespace Altinn.Correspondence.API.Models.Migration;
 
 /// <summary>
 /// Represents a container object for attachments used when initiating a shared attachment

@@ -1,5 +1,7 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.API.Models.Migration;
+using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.Tests.Factories
 {
@@ -11,11 +13,37 @@ namespace Altinn.Correspondence.Tests.Factories
         {
             return _migratedCorrespondence;
         }
+
         public MigrateCorrespondenceBuilder CreateMigrateCorrespondence()
         {
-            var basicCorrespondence = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+            var basicCorrespondence = new MigrateInitializeCorrespondencesExt()
+            {
+                Correspondence = new MigrateBaseCorrespondenceExt()
+                {
+                    ResourceId = "1",
+                    Sender = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
+                    SendersReference = "1",
+                    Content = new MigrateInitializeCorrespondenceContentExt()
+                    {
+                        Language = "nb",
+                        MessageTitle = "test",
+                        MessageSummary = "# test",
+                        MessageBody = "# test body /n __test__ /n **test**/n [test](www.test.no) /n ![test](www.test.no) /n ```test``` /n > test /n - test /n 1. test /n 1. test /n [x] test /n [ ] test /n ## test /n ### test /n #### test /n ##### test /n ###### test /n + test list /n - test list /n * list element",
+                    },
+                    RequestedPublishTime = DateTimeOffset.UtcNow,
+                    PropertyList = new Dictionary<string, string>(){
+                        {"deserunt_12", "1"},
+                        {"culpa_852", "2"},
+                        {"anim5", "3"}
+                    },
+                    IgnoreReservation = false,
+                    IsConfirmationNeeded = false,
+                },
+                Recipients = new List<string>(){
+                    $"{UrnConstants.OrganizationNumberAttribute}:991825827",   // org number
+                },
+                ExistingAttachments = new List<Guid>(),
+            };
 
             basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
 

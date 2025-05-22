@@ -14,6 +14,7 @@ using Moq;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Tests.Fixtures;
 using System.Text.Json;
+using Altinn.Correspondence.API.Models.Migration;
 
 namespace Altinn.Correspondence.Tests.TestingController.Legacy
 {
@@ -187,15 +188,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         public async Task LegacyGetCorrespondenceHistory_MigratedCorrespondence_WithForwardingEvents()
         {
             // Arrange
-            var basicCorrespondence = new CorrespondenceBuilder()
-            .CreateCorrespondence()
+            var basicCorrespondence = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
             .Build();
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-            basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
+            basicCorrespondence.CorrespondenceData.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
             MigrateCorrespondenceExt migrateCorrespondenceExt = new()
             {
-                CorrespondenceData = basicCorrespondence,
+                CorrespondenceData = basicCorrespondence.CorrespondenceData,
                 Altinn2CorrespondenceId = 12345,
                 EventHistory =
                 [
