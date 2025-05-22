@@ -86,7 +86,7 @@ namespace Altinn.Correspondence.API.Models
         /// Options for how the recipient can reply to the Correspondence
         /// </summary>
         [JsonPropertyName("replyOptions")]
-        public List<CorrespondenceReplyOptionExt> ReplyOptions { get; set; } = new List<CorrespondenceReplyOptionExt>();
+        public List<CorrespondenceReplyOptionExt>? ReplyOptions { get; set; } = new List<CorrespondenceReplyOptionExt>();
 
         /// <summary>
         /// Notifications related to the Correspondence.

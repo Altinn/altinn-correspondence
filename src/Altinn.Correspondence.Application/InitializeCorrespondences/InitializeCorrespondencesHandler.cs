@@ -117,6 +117,13 @@ public class InitializeCorrespondencesHandler(
             return attachmentMetaDataError;
         }
 
+        // Validate reply options
+        var replyOptionsError = initializeCorrespondenceHelper.ValidateReplyOptions(request.Correspondence.ReplyOptions);
+        if (replyOptionsError != null)
+        {
+            return replyOptionsError;
+        }
+
         // Gather attachments for the correspondence
         var attachmentsToBeUploaded = new List<AttachmentEntity>();
         if (uploadAttachmentMetadata.Count > 0)
