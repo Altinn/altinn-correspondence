@@ -467,7 +467,11 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public Error? ValidateReplyOptions(List<CorrespondenceReplyOptionEntity> replyOptions)
         {
-            foreach(var replyOption in replyOptions)
+            if (replyOptions == null)
+            {
+                return null;
+            }
+            foreach (var replyOption in replyOptions)
             {
                 if (replyOption.LinkURL.Length > 255)
                 {
