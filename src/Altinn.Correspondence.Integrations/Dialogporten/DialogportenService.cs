@@ -159,7 +159,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 return;
             }
             // Get the pre-created idempotency key for confirm activity
-            var existingConfirmIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
+            var existingConfirmIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
                 correspondence.Id,
                 null, // No attachment for confirm activity
                 StatusAction.Confirmed,
@@ -199,7 +199,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 return;
             }
             
-            var existingIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
+            var existingIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
                 correspondence.Id,
                 attachmentId,
                 StatusAction.AttachmentDownloaded,
@@ -256,7 +256,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
 
         // Get the pre-created idempotency key for open dialog activity
-        var existingOpenIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAsync(
+        var existingOpenIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
             correspondenceId,
             null, // No attachment for opened activity
             StatusAction.Fetched,

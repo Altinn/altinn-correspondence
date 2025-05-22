@@ -197,16 +197,16 @@ public class InitializeCorrespondencesHandler(
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        // Check for existing idempotency key
         if (request.IdempotentKey.HasValue)
         {
-            var existingKey = await idempotencyKeyRepository.GetByIdAsync(request.IdempotentKey.Value, cancellationToken);
-            if (existingKey != null)
+            var result = await TransactionWithRetriesPolicy.Execute<OneOf<InitializeCorrespondencesResponse, Error>>(async (cancellationToken) =>
             {
-                return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
-            }
-            else
-            {
+                var existingKey = await idempotencyKeyRepository.GetByIdAsync(request.IdempotentKey.Value, cancellationToken);
+                if (existingKey != null)
+                {
+                    return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
+                }
+
                 var idempotencyKey = new IdempotencyKeyEntity()
                 {
                     Id = request.IdempotentKey.Value,
@@ -216,6 +216,12 @@ public class InitializeCorrespondencesHandler(
                     IdempotencyType = IdempotencyType.Correspondence
                 };
                 await idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
+                return new OneOf<InitializeCorrespondencesResponse, Error>();
+            }, logger, cancellationToken);
+
+            if (result.IsT1)
+            {
+                return result.AsT1;
             }
         }
 

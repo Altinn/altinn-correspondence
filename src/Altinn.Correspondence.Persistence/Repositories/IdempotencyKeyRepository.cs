@@ -14,7 +14,7 @@ public class IdempotencyKeyRepository : IIdempotencyKeyRepository
         _dbContext = dbContext;
     }
 
-    public async Task<IdempotencyKeyEntity?> GetByCorrespondenceAndAttachmentAndActionAsync(
+    public async Task<IdempotencyKeyEntity?> GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
         Guid correspondenceId, 
         Guid? attachmentId, 
         StatusAction? action,
