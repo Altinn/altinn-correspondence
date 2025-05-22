@@ -464,5 +464,29 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             return await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
         }
+
+        public Error? ValidateReplyOptions(List<CorrespondenceReplyOptionEntity> replyOptions)
+        {
+            if (replyOptions == null)
+            {
+                return null;
+            }
+            foreach (var replyOption in replyOptions)
+            {
+                if (replyOption.LinkURL.Length > 255)
+                {
+                    return CorrespondenceErrors.InvalidReplyOptions;
+                }
+                if (!Uri.IsWellFormedUriString((string)replyOption.LinkURL, UriKind.Absolute))
+                {
+                    return CorrespondenceErrors.InvalidReplyOptions;
+                }
+                if (!replyOption.LinkURL.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                {
+                    return CorrespondenceErrors.InvalidReplyOptions;
+                }
+            }
+            return null;
+        }
     }
 }

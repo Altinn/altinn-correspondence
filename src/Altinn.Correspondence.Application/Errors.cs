@@ -39,6 +39,7 @@ public static class CorrespondenceErrors
     public static Error ContactReservationRegistryFailed = new Error(1032, "Contact reservation registry lookup failed", HttpStatusCode.InternalServerError);
     public static Error InvalidIdempotencyKey = new Error(1033, "The idempotency key must be a valid non-empty GUID", HttpStatusCode.BadRequest);
     public static Error DuplicateInitCorrespondenceRequest = new Error(1034, "A correspondence with the same idempotent key already exists", HttpStatusCode.Conflict);
+    public static Error InvalidReplyOptions = new Error(1035, "Reply options must be well-formed URIs and HTTPS with a max length of 255 characters", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
