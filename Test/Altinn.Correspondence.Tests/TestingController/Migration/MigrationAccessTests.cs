@@ -1,5 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.API.Models.Migration;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Tests.Factories;

@@ -1,15 +1,15 @@
 using System.Text.Json.Serialization;
 
-namespace Altinn.Correspondence.API.Models
+namespace Altinn.Correspondence.API.Models.Migration
 {
     public class MigrateCorrespondenceExt
     {
         [JsonPropertyName("correspondenceData")]
-        public required InitializeCorrespondencesExt CorrespondenceData { get; set; }
-        
+        public required MigrateInitializeCorrespondencesExt CorrespondenceData { get; set; }
+
         [JsonPropertyName("altinn2CorrespondenceId")]
         public required int Altinn2CorrespondenceId { get; set; }
-        
+
         [JsonPropertyName("eventHistory")]
         public List<MigrateCorrespondenceStatusEventExt> EventHistory { get; set; } = new List<MigrateCorrespondenceStatusEventExt>();
 

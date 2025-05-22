@@ -1,4 +1,4 @@
-using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models.Migration;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Tests.Helpers;
 using System.Text.Json;

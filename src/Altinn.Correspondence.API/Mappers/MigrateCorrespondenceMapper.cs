@@ -1,5 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.API.Models.Migration;
 using Altinn.Correspondence.Application.InitializeCorrespondence;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;

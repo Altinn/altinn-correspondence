@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Altinn.Correspondence.API.Models.Enums;
 
-namespace Altinn.Correspondence.API.Models
+namespace Altinn.Correspondence.API.Models.Migration
 {
     public class MigrateCorrespondenceNotificationExt
     {
@@ -15,15 +15,15 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// The date and time for when the notification was sent.
         /// </summary>
-        [JsonPropertyName("notificationSent")]        
+        [JsonPropertyName("notificationSent")]
         public required DateTimeOffset NotificationSent { get; set; }
 
         /// <summary>
         /// Id of the Notification in Altinn 2.
         /// </summary>
-        [JsonPropertyName("altinn2NotificationId")]   
+        [JsonPropertyName("altinn2NotificationId")]
         public required int Altinn2NotificationId { get; set; }
-        
+
         /// <summary>
         /// Senders Reference for this notification
         /// </summary>

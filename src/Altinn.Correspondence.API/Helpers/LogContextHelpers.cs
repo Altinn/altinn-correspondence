@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models.Migration;
 using Altinn.Correspondence.Common.Helpers;
 using Microsoft.AspNetCore.Http;
 using Serilog.Context;

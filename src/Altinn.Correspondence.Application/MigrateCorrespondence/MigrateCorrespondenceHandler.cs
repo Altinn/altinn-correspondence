@@ -68,14 +68,6 @@ public class MigrateCorrespondenceHandler(
         {
             return CorrespondenceErrors.MissingContent;
         }
-        if (string.IsNullOrWhiteSpace(content.MessageTitle))
-        {
-            return CorrespondenceErrors.MessageTitleEmpty;
-        }
-        if (!TextValidation.ValidatePlainText(content.MessageTitle))
-        {
-            return CorrespondenceErrors.MessageTitleIsNotPlainText;
-        }
         if (!IsLanguageValid(content.Language))
         {
             return CorrespondenceErrors.InvalidLanguage;
