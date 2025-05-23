@@ -202,6 +202,12 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public CorrespondenceBuilder WithCustomNotificationRecipients(List<CustomNotificationRecipientExt> recipients)
+        {
+            _correspondence.Correspondence.Notification!.CustomNotificationRecipients = recipients;
+            return this;
+        }
+
         public CorrespondenceBuilder WithIgnoreReservation(bool ignoreReservation)
         {
             _correspondence.Correspondence.IgnoreReservation = ignoreReservation;
