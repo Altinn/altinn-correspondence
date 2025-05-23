@@ -5,7 +5,7 @@ namespace Altinn.Correspondence.API.Models
     public class MigrateCorrespondenceExt
     {
         [JsonPropertyName("correspondenceData")]
-        public required InitializeCorrespondencesExt CorrespondenceData { get; set; }
+        public required MigrateInitializeCorrespondencesExt CorrespondenceData { get; set; }
         
         [JsonPropertyName("altinn2CorrespondenceId")]
         public required int Altinn2CorrespondenceId { get; set; }
@@ -24,5 +24,11 @@ namespace Altinn.Correspondence.API.Models
 
         [JsonPropertyName("created")]
         public DateTimeOffset Created { get; set; }
+
+        /// <summary>
+        /// Gets or sets the party id
+        /// </summary>
+        [JsonPropertyName("partyId")]
+        public int PartyId { get; set; }
     }
 }
