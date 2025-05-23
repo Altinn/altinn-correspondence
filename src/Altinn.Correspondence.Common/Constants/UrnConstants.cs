@@ -18,6 +18,10 @@ public static class UrnConstants
     /// </summary>
     public const string Party = "urn:altinn:partyid";
     /// <summary>
+    /// xacml string that represents party uuid
+    /// </summary>
+    public const string PartyUuidAttribute = "urn:altinn:party:uuid";
+    /// <summary>
     /// xacml string that represents person identifier
     /// </summary>
     public const string PersonIdAttribute = "urn:altinn:person:identifier-no";

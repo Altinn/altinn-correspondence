@@ -14,7 +14,8 @@
       "dotnetRunMessages": true,
       "launchBrowser": true,
       "launchUrl": "swagger",
-      "applicationUrl": "http://localhost:5096",
+      "___applicationUrl": "http://localhost:5096",
+      "applicationUrl": "http://devenv.altinn.no:5096",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
@@ -24,7 +25,8 @@
       "dotnetRunMessages": true,
       "launchBrowser": true,
       "launchUrl": "swagger",
-      "applicationUrl": "https://localhost:7241;http://localhost:5096",
+      "___applicationUrl": "https://localhost:7241;http://localhost:5096",
+      "applicationUrl": "https://localhost:7241;http://devenv.altinn.no:5096",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }

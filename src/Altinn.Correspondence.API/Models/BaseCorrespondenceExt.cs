@@ -1,6 +1,6 @@
+using Altinn.Correspondence.Common.Constants;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.API.Models
 {
@@ -111,6 +111,12 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("isConfirmationNeeded")]
         public bool IsConfirmationNeeded { get; set; }
+
+        /// <summary>
+        /// Gets or sets the party id
+        /// </summary>
+        [JsonPropertyName("partyId")]
+        public int PartyId { get; set; } = 0;
     }
 
     [AttributeUsage(AttributeTargets.Property)]
