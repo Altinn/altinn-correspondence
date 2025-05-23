@@ -65,7 +65,7 @@ internal static class MigrateCorrespondenceMapper
             } : null,
             IsConfirmationNeeded = migrateCorrespondenceExt.CorrespondenceData.Correspondence.IsConfirmationNeeded,
             IsMigrating = migrateCorrespondenceExt.IsMigrating,
-            PartyId = migrateCorrespondenceExt.CorrespondenceData.Correspondence.PartyId
+            PartyId = migrateCorrespondenceExt.PartyId
         };
         
         return new MigrateCorrespondenceRequest()

@@ -35,26 +35,14 @@ internal class RecipientListAttribute : ValidationAttribute
         {
             var orgRegex = new Regex($@"^(?:0192:|{UrnConstants.OrganizationNumberAttribute}:)\d{{9}}$");
             var personRegex = new Regex($@"^(?:{UrnConstants.PersonIdAttribute}:)?\d{{11}}$");
-            var partyUuidRegex = new Regex($@"^(?:{UrnConstants.PartyUuidAttribute}:)?.{{36}}$");
-            if (personRegex.IsMatch(recipient))
+            if (!orgRegex.IsMatch(recipient) && !personRegex.IsMatch(recipient))
             {
-                if (!recipient.IsSocialSecurityNumber())
-                {
-                    return new ValidationResult("The given Recipient national identity number is not valid");
-                }
-                else
-                {
-                    continue;
-                }
+                return new ValidationResult($"Recipient should be an organization number in the format '{UrnConstants.OrganizationNumberAttribute}:organizationnumber' or the format countrycode:organizationnumber, for instance 0192:910753614, or a national identity number");
             }
-            if (orgRegex.IsMatch(recipient) || partyUuidRegex.IsMatch(recipient))
+            if (personRegex.IsMatch(recipient) && !recipient.IsSocialSecurityNumber())
             {
-                continue;
+                return new ValidationResult("The given Recipient national identity number is not valid");
             }
-
-            return new ValidationResult($"Recipient should be an organization number in the format " +
-                $"'{UrnConstants.OrganizationNumberAttribute}:organizationnumber' or the format countrycode:organizationnumber," +
-                $" for instance 0192:910753614, or a national identity number or a party uuid");
         }
 
         return ValidationResult.Success;
