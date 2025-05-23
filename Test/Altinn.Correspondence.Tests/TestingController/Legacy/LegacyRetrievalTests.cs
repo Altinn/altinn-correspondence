@@ -187,9 +187,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         public async Task LegacyGetCorrespondenceHistory_MigratedCorrespondence_WithForwardingEvents()
         {
             // Arrange
-            var basicCorrespondence = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+            MigrateInitializeCorrespondencesExt basicCorrespondence =
+                JsonSerializer.Deserialize<MigrateInitializeCorrespondencesExt>
+                (JsonSerializer.Serialize(new CorrespondenceBuilder().CreateCorrespondence().Build()));
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
             basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
 #pragma warning restore CS8602 // Dereference of a possibly null reference.

@@ -1,5 +1,6 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests.Factories
 {
@@ -13,9 +14,9 @@ namespace Altinn.Correspondence.Tests.Factories
         }
         public MigrateCorrespondenceBuilder CreateMigrateCorrespondence()
         {
-            var basicCorrespondence = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+            MigrateInitializeCorrespondencesExt basicCorrespondence =
+                JsonSerializer.Deserialize<MigrateInitializeCorrespondencesExt>
+                (JsonSerializer.Serialize(new CorrespondenceBuilder().CreateCorrespondence().Build()));
 
             basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
 
