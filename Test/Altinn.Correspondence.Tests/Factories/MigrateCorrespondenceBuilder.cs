@@ -14,15 +14,20 @@ namespace Altinn.Correspondence.Tests.Factories
         }
         public MigrateCorrespondenceBuilder CreateMigrateCorrespondence()
         {
-            MigrateInitializeCorrespondencesExt basicCorrespondence =
-                JsonSerializer.Deserialize<MigrateInitializeCorrespondencesExt>
-                (JsonSerializer.Serialize(new CorrespondenceBuilder().CreateCorrespondence().Build()));
+            InitializeCorrespondencesExt basicCorrespondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
+            MigrateInitializeCorrespondencesExt migrateCorrespondence = new()
+            {
+                Correspondence = basicCorrespondence.Correspondence,
+                Recipients = basicCorrespondence.Recipients,
+                ExistingAttachments = basicCorrespondence.ExistingAttachments,
+                IdempotentKey = basicCorrespondence.IdempotentKey
+            };
 
-            basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
+            migrateCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
 
             _migratedCorrespondence = new()
             {
-                CorrespondenceData = basicCorrespondence,
+                CorrespondenceData = migrateCorrespondence,
                 Altinn2CorrespondenceId = (new Random().Next()),
                 EventHistory =
             [
