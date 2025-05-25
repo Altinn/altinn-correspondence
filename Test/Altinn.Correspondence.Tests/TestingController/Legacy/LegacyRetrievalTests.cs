@@ -192,8 +192,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             {
                 Correspondence = basicCorrespondence.Correspondence,
                 Recipients = basicCorrespondence.Recipients,
-                ExistingAttachments = basicCorrespondence.ExistingAttachments,
-                IdempotentKey = basicCorrespondence.IdempotentKey
+                ExistingAttachments = basicCorrespondence.ExistingAttachments
             };
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
             migrateCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";

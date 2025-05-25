@@ -19,8 +19,7 @@ namespace Altinn.Correspondence.Tests.Factories
             {
                 Correspondence = basicCorrespondence.Correspondence,
                 Recipients = basicCorrespondence.Recipients,
-                ExistingAttachments = basicCorrespondence.ExistingAttachments,
-                IdempotentKey = basicCorrespondence.IdempotentKey
+                ExistingAttachments = basicCorrespondence.ExistingAttachments
             };
 
             migrateCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";

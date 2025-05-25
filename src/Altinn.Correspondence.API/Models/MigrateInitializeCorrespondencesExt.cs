@@ -24,10 +24,4 @@ public class MigrateInitializeCorrespondencesExt
     /// </summary>
     [JsonPropertyName("existingAttachments")]
     public List<Guid> ExistingAttachments { get; set; } = new List<Guid>();
-
-    /// <summary>
-    /// Optional idempotency key to prevent duplicate correspondence creation
-    /// </summary>
-    [JsonPropertyName("idempotentKey")]
-    public Guid? IdempotentKey { get; set; }
 }
