@@ -33,7 +33,7 @@ public class LegacyGetCorrespondenceOverviewHandler(
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken, true);
         if (correspondence == null)
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
