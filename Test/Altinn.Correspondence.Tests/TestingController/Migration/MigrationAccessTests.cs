@@ -135,8 +135,8 @@ public class MigrationAccessTests : MigrationTestBase
         var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);
         Assert.True(response?.Items.Any(x => x.CorrespondenceId == createdCorrespondenceId));
 
-        var correspondenceOverview = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}");
-        Assert.True(correspondenceList.IsSuccessStatusCode, await correspondenceOverview.Content.ReadAsStringAsync());
+        var correspondenceOverview = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/overview");
+        Assert.True(correspondenceOverview.IsSuccessStatusCode, await correspondenceOverview.Content.ReadAsStringAsync());
     }
 
     [Fact]
