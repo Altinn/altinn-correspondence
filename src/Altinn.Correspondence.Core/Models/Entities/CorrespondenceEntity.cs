@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Altinn.Correspondence.Common.Constants;
 using Microsoft.EntityFrameworkCore;
 
@@ -60,6 +61,9 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public List<CorrespondenceForwardingEventEntity>? ForwardingEvents { get; set; }
 
         public List<IdempotencyKeyEntity> IdempotencyKeys { get; set; } = [];
+
+        [Column(TypeName = "jsonb")]
+        public string? OriginalRequest { get; set; }
 
         [Required]
         public required DateTimeOffset Created { get; set; }

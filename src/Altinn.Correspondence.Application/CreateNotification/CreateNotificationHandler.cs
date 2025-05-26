@@ -32,10 +32,12 @@ public class CreateNotificationHandler(
 
     public async Task Process(CreateNotificationRequest request, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Starting notification creation process for correspondence {CorrespondenceId}", request.CorrespondenceId);
         var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, false, true, false, cancellationToken) ?? throw new Exception($"Correspondence with id {request.CorrespondenceId} not found when creating notification");
         try
         {
             // Get notification templates
+            logger.LogInformation("Fetching notification templates for template {NotificationTemplate}", request.NotificationRequest.NotificationTemplate);
             var templates = await notificationTemplateRepository.GetNotificationTemplates(
                 request.NotificationRequest.NotificationTemplate,
                 cancellationToken,
@@ -43,10 +45,13 @@ public class CreateNotificationHandler(
 
             if (templates.Count == 0)
             {
+                logger.LogError("No notification templates found for template {NotificationTemplate}", request.NotificationRequest.NotificationTemplate);
                 throw new Exception($"No notification templates found for template {request.NotificationRequest.NotificationTemplate}");
             }
+            logger.LogInformation("Found {TemplateCount} notification templates", templates.Count);
 
             // Get notification content
+            logger.LogInformation("Get notification content for correspondence {CorrespondenceId}", request.CorrespondenceId);
             var notificationContents = await GetNotificationContent(
                 request.NotificationRequest,
                 templates,
@@ -54,8 +59,9 @@ public class CreateNotificationHandler(
                 cancellationToken,
                 request.Language);
 
-            // await CreateNotificationsV1(request.NotificationRequest, correspondence, notificationContents, cancellationToken);
+            logger.LogInformation("Creating notification V2 for correspondence {CorrespondenceId}", request.CorrespondenceId);
             await CreateNotificationV2(request.NotificationRequest, correspondence, notificationContents, cancellationToken);
+            logger.LogInformation("Successfully created notification for correspondence {CorrespondenceId}", request.CorrespondenceId);
         }
         catch (Exception ex)
         {
@@ -182,15 +188,20 @@ public class CreateNotificationHandler(
 
     private async Task<List<NotificationContent>> GetNotificationContent(NotificationRequest request, List<NotificationTemplateEntity> templates, CorrespondenceEntity correspondence, CancellationToken cancellationToken, string? language = null)
     {
+        logger.LogInformation("Getting notification content for correspondence {CorrespondenceId}", correspondence.Id);
         var content = new List<NotificationContent>();
         var sendersName = correspondence.MessageSender;
         if (string.IsNullOrEmpty(sendersName))
         {
+            logger.LogInformation("Looking up sender name for {Sender}", correspondence.Sender);
             sendersName = await altinnRegisterService.LookUpName(correspondence.Sender.WithoutPrefix(), cancellationToken);
         }
+        logger.LogInformation("Looking up recipient name for {Recipient}", correspondence.Recipient);
         var recipientName = await altinnRegisterService.LookUpName(correspondence.Recipient.WithoutPrefix(), cancellationToken);
+        
         foreach (var template in templates)
         {
+            logger.LogInformation("Processing template {TemplateId} with language {Language}", template.Id, template.Language);
             content.Add(new NotificationContent()
             {
                 EmailSubject = CreateNotificationContentFromToken(template.EmailSubject ?? string.Empty, request.EmailSubject).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
@@ -225,8 +236,8 @@ public class CreateNotificationHandler(
     }
 
     private NotificationOrderRequestV2 CreateNotificationRequestsV2(NotificationRequest notificationRequest, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
-    {
-
+    { 
+        logger.LogInformation("Creating notification request V2 for correspondence {CorrespondenceId}", correspondence.Id);
         var notificationOrder = new NotificationOrderRequestV2
         {
             SendersReference = correspondence.SendersReference,
@@ -253,7 +264,7 @@ public class CreateNotificationHandler(
                 }
             ];
         }
-
+        logger.LogInformation("Notification request V2 created for correspondence {CorrespondenceId}", correspondence.Id);
         return notificationOrder;
     }
 
@@ -404,6 +415,7 @@ public class CreateNotificationHandler(
         List<NotificationContent> notificationContents,
         CancellationToken cancellationToken)
     {
+        logger.LogInformation("Creating notification in Altinn Notification Service (v2) for correspondence {CorrespondenceId}", correspondence.Id);
         // Create notification request
         var notificationRequestV2 = CreateNotificationRequestsV2(
             notificationRequest,
@@ -411,14 +423,17 @@ public class CreateNotificationHandler(
             notificationContents,
             cancellationToken);
 
+        logger.LogInformation("Sending notification request V2 to notification service for correspondence {CorrespondenceId}", correspondence.Id);
         var notificationResponse = await altinnNotificationService.CreateNotificationV2(notificationRequestV2, cancellationToken);
 
         if (notificationResponse is null)
         {
+            logger.LogError("Failed to create notification V2 for correspondence {CorrespondenceId}", correspondence.Id);
             backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceNotificationCreationFailed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
         }
         else
         {
+            logger.LogInformation("Successfully created notification V2 for correspondence {CorrespondenceId} with order ID {OrderId}", correspondence.Id, notificationResponse.NotificationOrderId);
             var notification = new CorrespondenceNotificationEntity()
             {
                 Created = DateTimeOffset.UtcNow,
@@ -432,9 +447,11 @@ public class CreateNotificationHandler(
                 ShipmentId = notificationResponse.Notification.ShipmentId
             };
 
+            logger.LogInformation("Adding notification entity to database for correspondence {CorrespondenceId}", correspondence.Id);
             await correspondenceNotificationRepository.AddNotification(notification, cancellationToken);
             if (notificationRequest.SendReminder)
             {
+                logger.LogInformation("Creating reminder notification entity to database for correspondence {CorrespondenceId}", correspondence.Id);
                 var reminder = new CorrespondenceNotificationEntity()
                 {
                     Created = DateTimeOffset.UtcNow,
@@ -450,8 +467,10 @@ public class CreateNotificationHandler(
                 await correspondenceNotificationRepository.AddNotification(reminder, cancellationToken);
             }
             // Create information activity in Dialogporten
+            logger.LogInformation("Creating activity after dialog created for correspondence {CorrespondenceId}", correspondence.Id);
             await hangfireScheduleHelper.CreateActivityAfterDialogCreated(correspondence.Id, notificationRequestV2);
 
+            logger.LogInformation("Publishing notification created event for correspondence {CorrespondenceId}", correspondence.Id);
             backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.NotificationCreated, correspondence.ResourceId, notificationResponse.NotificationOrderId.ToString(), "notification", correspondence.Sender, CancellationToken.None));
         }
     }
