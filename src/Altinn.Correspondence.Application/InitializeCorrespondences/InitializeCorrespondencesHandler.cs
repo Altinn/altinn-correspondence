@@ -163,7 +163,6 @@ public class InitializeCorrespondencesHandler(
             data.AttachmentsToBeUploaded.AddRange(existingAttachments.Where(a => a != null).Select(a => a!));
         }
 
-        // Validate notification content if notification is provided
         if (request.Notification != null)
         {
             var templates = await notificationTemplateRepository.GetNotificationTemplates(request.Notification.NotificationTemplate, cancellationToken, request.Correspondence.Content?.Language);
