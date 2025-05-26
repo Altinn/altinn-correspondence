@@ -14,13 +14,19 @@ public class IdempotencyKeyRepository : IIdempotencyKeyRepository
         _dbContext = dbContext;
     }
 
-    public async Task<IdempotencyKeyEntity?> GetByCorrespondenceAndAttachmentAndActionAsync(Guid correspondenceId, Guid? attachmentId, StatusAction action, CancellationToken cancellationToken)
+    public async Task<IdempotencyKeyEntity?> GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
+        Guid correspondenceId, 
+        Guid? attachmentId, 
+        StatusAction? action,
+        IdempotencyType idempotencyType,
+        CancellationToken cancellationToken)
     {
         return await _dbContext.IdempotencyKeys
             .FirstOrDefaultAsync(k => 
                 k.CorrespondenceId == correspondenceId && 
                 k.AttachmentId == attachmentId && 
-                k.StatusAction == action,
+                k.StatusAction == action &&
+                k.IdempotencyType == idempotencyType,
                 cancellationToken);
     }
 
@@ -35,5 +41,20 @@ public class IdempotencyKeyRepository : IIdempotencyKeyRepository
     {
         await _dbContext.IdempotencyKeys.AddRangeAsync(idempotencyKeys, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IdempotencyKeyEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await _dbContext.IdempotencyKeys.FirstOrDefaultAsync(k => k.Id == id, cancellationToken);
+    }
+
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var idempotencyKey = await _dbContext.IdempotencyKeys.FindAsync(new object[] { id }, cancellationToken);
+        if (idempotencyKey != null)
+        {
+            _dbContext.IdempotencyKeys.Remove(idempotencyKey);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
     }
 } 

@@ -14,4 +14,6 @@ public class InitializeCorrespondencesRequest
     public List<Guid> ExistingAttachments { get; set; }
 
     public List<string> Recipients { get; set; }
+
+    public Guid? IdempotentKey { get; set; }
 }
