@@ -3,6 +3,7 @@ using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Mappers;
 
@@ -36,7 +37,8 @@ internal static class InitializeCorrespondencesMapper
                     attachment => InitializeCorrespondenceAttachmentMapper.MapToEntity(attachment, initializeCorrespondenceExt.ResourceId, initializeCorrespondenceExt.Sender)
                 ).ToList()
             } : null,
-            IsConfirmationNeeded = initializeCorrespondenceExt.IsConfirmationNeeded
+            IsConfirmationNeeded = initializeCorrespondenceExt.IsConfirmationNeeded,
+            OriginalRequest = JsonSerializer.Serialize(initializeCorrespondenceExt)
         };
         return new InitializeCorrespondencesRequest()
         {
