@@ -121,7 +121,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 var correspondenceId = correspondence.CorrespondenceId;
                 var response = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
                 Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-                var overviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}");
+                var overviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
                 Assert.Equal(HttpStatusCode.NotFound, overviewResponse.StatusCode);
             }
 
