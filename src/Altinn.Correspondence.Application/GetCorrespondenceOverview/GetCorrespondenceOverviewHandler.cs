@@ -45,6 +45,14 @@ public class GetCorrespondenceOverviewHandler(
             logger.LogWarning("Latest status not found for correspondence");
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
+
+        var purgedStatus = correspondence.GetPurgedStatus();
+        if (purgedStatus != null)
+        {
+            logger.LogWarning("Access denied - correspondence has been purged");
+            return CorrespondenceErrors.CorrespondenceNotFound;
+        }
+
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
