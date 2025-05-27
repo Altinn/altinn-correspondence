@@ -46,8 +46,7 @@ public class GetCorrespondenceOverviewHandler(
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
 
-        var purgedStatus = correspondence.GetPurgedStatus();
-        if (purgedStatus != null)
+        if (correspondence.GetPurgedStatus() != null)
         {
             logger.LogWarning("Access denied - correspondence has been purged");
             return CorrespondenceErrors.CorrespondenceNotFound;
