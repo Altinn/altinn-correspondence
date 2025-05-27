@@ -2,14 +2,12 @@ using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Models.Enums;
-using System.Text.Json;
 
 namespace Altinn.Correspondence.Mappers;
 
 internal static class InitializeCorrespondencesMapper
 {
-    internal static InitializeCorrespondencesRequest MapToRequest(BaseCorrespondenceExt initializeCorrespondenceExt, List<string> Recipients, List<IFormFile>? attachments, List<Guid>? existingAttachments, Guid? idempotentKey = null)
+    internal static InitializeCorrespondencesRequest MapToRequest(BaseCorrespondenceExt initializeCorrespondenceExt, List<string> Recipients, List<IFormFile>? attachments, List<Guid>? existingAttachments, Guid? idempotentKey, string rawRequest)
     {
         var correspondence = new CorrespondenceEntity
         {
@@ -38,7 +36,7 @@ internal static class InitializeCorrespondencesMapper
                 ).ToList()
             } : null,
             IsConfirmationNeeded = initializeCorrespondenceExt.IsConfirmationNeeded,
-            OriginalRequest = JsonSerializer.Serialize(initializeCorrespondenceExt)
+            OriginalRequest = rawRequest
         };
         return new InitializeCorrespondencesRequest()
         {

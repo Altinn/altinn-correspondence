@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.API.Controllers
 {
@@ -98,12 +99,16 @@ namespace Altinn.Correspondence.API.Controllers
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
             _logger.LogInformation("Initialize correspondences");
             
+            // Store the raw request before any transformations
+            var rawRequest = JsonSerializer.Serialize(request);
+            
             var commandRequest = InitializeCorrespondencesMapper.MapToRequest(
                 request.Correspondence, 
                 request.Recipients, 
                 null, 
                 request.ExistingAttachments,
-                request.IdempotentKey);
+                request.IdempotentKey,
+                rawRequest); // Pass the raw request to the mapper
             var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
@@ -182,7 +187,16 @@ namespace Altinn.Correspondence.API.Controllers
 
             Request.EnableBuffering();
 
-            var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request.Correspondence, request.Recipients, attachments, request.ExistingAttachments, request.IdempotentKey);
+            // Store the raw request before any transformations
+            var rawRequest = JsonSerializer.Serialize(request);
+            
+            var commandRequest = InitializeCorrespondencesMapper.MapToRequest(
+                request.Correspondence, 
+                request.Recipients, 
+                attachments, 
+                request.ExistingAttachments,
+                request.IdempotentKey,
+                rawRequest); // Pass the raw request to the mapper
             var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
 
             return commandResult.Match(

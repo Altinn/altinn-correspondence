@@ -67,11 +67,13 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Specifies the notification channel to use for the main notification
         /// </summary>
+        [JsonPropertyName("notificationChannel")]
         public NotificationChannelExt NotificationChannel { get; set; }
 
         /// <summary>
         ///  Specifies the notification channel to use for the reminder notification
         /// </summary>
+        [JsonPropertyName("reminderNotificationChannel")]
         public NotificationChannelExt? ReminderNotificationChannel { get; set; }
 
         /// <summary>
