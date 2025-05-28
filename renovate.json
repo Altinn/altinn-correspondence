@@ -14,6 +14,56 @@
     {
       "matchPaths": ["**/*.bicep"],
       "enabled": false
+    },
+    {
+      "groupName": "Microsoft packages",
+      "matchPackagePatterns": ["^Microsoft\\."],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "Serilog packages",
+      "matchPackagePatterns": ["^Serilog"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "Hangfire packages",
+      "matchPackagePatterns": ["^Hangfire"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "Azure packages",
+      "matchPackagePatterns": ["^Azure\\."],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "Newtonsoft packages",
+      "matchPackagePatterns": ["^Newtonsoft\\."],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "Swashbuckle packages",
+      "matchPackagePatterns": ["^Swashbuckle\\."],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "StackExchange packages",
+      "matchPackagePatterns": ["^StackExchange\\."],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "Identity packages",
+      "matchPackagePatterns": ["^Microsoft\\.Identity|^ScottBrady"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "EntityFramework packages",
+      "matchPackagePatterns": ["^Microsoft\\.EntityFrameworkCore"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "ApplicationInsights packages",
+      "matchPackagePatterns": ["^Microsoft\\.ApplicationInsights"],
+      "matchUpdateTypes": ["minor", "patch"]
     }
   ]
 }
