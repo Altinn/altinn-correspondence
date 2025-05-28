@@ -13,7 +13,7 @@ namespace Altinn.Correspondence.Core.Services
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>True if the organization has registered someone with one of the role(s), false otherwise</returns>
         /// <exception cref="HttpRequestException">Thrown when the API call fails</exception>
-        Task<bool> CheckOrganizationRolesAsync(string organizationNumber, IEnumerable<string> roles, CancellationToken cancellationToken = default);
+        Task<bool> HasOrganizationRolesAsync(string organizationNumber, IEnumerable<string> roles, CancellationToken cancellationToken = default);
         
         /// <summary>
         /// Checks if an organization is in bankruptcy or deleted

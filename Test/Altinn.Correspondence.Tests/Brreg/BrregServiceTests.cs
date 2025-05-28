@@ -156,7 +156,7 @@ namespace Altinn.Correspondence.Tests.Brreg
                 });
 
             // Act
-            var result = await _service.CheckOrganizationRolesAsync(organizationNumber, roles);
+            var result = await _service.HasOrganizationRolesAsync(organizationNumber, roles);
 
             // Assert
             Assert.True(result);
@@ -205,7 +205,7 @@ namespace Altinn.Correspondence.Tests.Brreg
                 });
 
             // Act
-            var result = await _service.CheckOrganizationRolesAsync(organizationNumber, roles);
+            var result = await _service.HasOrganizationRolesAsync(organizationNumber, roles);
 
             // Assert
             Assert.True(result);

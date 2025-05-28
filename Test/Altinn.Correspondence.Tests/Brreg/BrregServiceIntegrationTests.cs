@@ -57,7 +57,7 @@ namespace Altinn.Correspondence.Tests.Brreg
             var roles = new[] { "BEST", "DAGL", "DTPR", "DTSO", "INNH", "LEDE"};
 
             // Act
-            var result = await _service.CheckOrganizationRolesAsync(organizationNumber, roles);
+            var result = await _service.HasOrganizationRolesAsync(organizationNumber, roles);
 
             // Assert
             Assert.True(result, "API call should succeed assuming the roles are registered");
@@ -73,7 +73,7 @@ namespace Altinn.Correspondence.Tests.Brreg
 
             // Act & Assert
             await Assert.ThrowsAsync<HttpRequestException>(() => 
-                _service.CheckOrganizationRolesAsync(organizationNumber, roles));
+                _service.HasOrganizationRolesAsync(organizationNumber, roles));
         }
 
         [Fact]
