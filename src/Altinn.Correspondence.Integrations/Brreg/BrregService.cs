@@ -28,7 +28,7 @@ namespace Altinn.Correspondence.Integrations.Brreg
             }
         }
 
-        public async Task<bool> HasOrganizationRolesAsync(string organizationNumber, IEnumerable<string> roletypes, CancellationToken cancellationToken = default)
+        public async Task<bool> HasAnyOfOrganizationRolesAsync(string organizationNumber, IEnumerable<string> roletypes, CancellationToken cancellationToken = default)
         {
             var rolesResponse = await GetOrganizationRolesAsync(organizationNumber, cancellationToken);
             

@@ -15,7 +15,7 @@ namespace Altinn.Correspondence.Integrations.Brreg
     {
         private readonly ILogger<BrregDevService> _logger = logger;
 
-        public Task<bool> HasOrganizationRolesAsync(string organizationNumber, IEnumerable<string> roles, CancellationToken cancellationToken = default)
+        public Task<bool> HasAnyOfOrganizationRolesAsync(string organizationNumber, IEnumerable<string> roles, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(true);
         }

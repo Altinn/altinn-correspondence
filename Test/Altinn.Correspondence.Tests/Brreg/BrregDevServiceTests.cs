@@ -23,7 +23,7 @@ namespace Altinn.Correspondence.Tests.Brreg
             var roles = new[] { "LEDE", "STYR" };
 
             // Act
-            var result = await _service.HasOrganizationRolesAsync(organizationNumber, roles);
+            var result = await _service.HasAnyOfOrganizationRolesAsync(organizationNumber, roles);
 
             // Assert
             Assert.True(result);
