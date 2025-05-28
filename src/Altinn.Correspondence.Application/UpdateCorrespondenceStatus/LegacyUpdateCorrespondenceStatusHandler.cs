@@ -26,7 +26,7 @@ public class LegacyUpdateCorrespondenceStatusHandler(
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, false, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, false, cancellationToken, true);
         if (correspondence == null)
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
