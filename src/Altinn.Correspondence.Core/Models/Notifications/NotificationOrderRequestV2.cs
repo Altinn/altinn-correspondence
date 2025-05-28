@@ -83,6 +83,8 @@ namespace Altinn.Correspondence.Core.Models.Notifications
     {
         public string ResourceId { get; set; } = null!;
 
+        public string NationalIdentityNumber { get; set; } = null!;
+
         public NotificationChannel ChannelSchema { get; set;}
 
         public EmailSettings? EmailSettings { get; set; }

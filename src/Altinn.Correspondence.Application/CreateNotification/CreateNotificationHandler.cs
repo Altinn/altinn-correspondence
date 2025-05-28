@@ -339,6 +339,7 @@ public class CreateNotificationHandler(
                     RecipientPerson = new RecipientPerson
                     {
                         ResourceId = resourceIdWithPrefix,
+                        NationalIdentityNumber = customRecipient.NationalIdentityNumber,
                         ChannelSchema = channel,
                         EmailSettings = emailSettings,
                         SmsSettings = smsSettings
@@ -402,6 +403,7 @@ public class CreateNotificationHandler(
             RecipientPerson = isPerson ? new RecipientPerson
             {
                 ResourceId = resourceIdWithPrefix,
+                NationalIdentityNumber = recipientWithoutPrefix,
                 ChannelSchema = channel,
                 EmailSettings = emailSettings,
                 SmsSettings = smsSettings
