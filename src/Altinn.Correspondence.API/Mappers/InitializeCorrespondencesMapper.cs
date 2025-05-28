@@ -3,7 +3,6 @@ using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Core.Models.Entities;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.Mappers;
 
@@ -11,11 +10,7 @@ internal static class InitializeCorrespondencesMapper
 {
     internal static InitializeCorrespondencesRequest MapToRequest(InitializeCorrespondencesExt request, List<IFormFile>? attachments = null)
     {
-        var jsonOptions = new JsonSerializerOptions
-        {
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        };
-        var rawRequest = JsonSerializer.Serialize(request, jsonOptions);
+        var rawRequest = JsonSerializer.Serialize(request);
 
         var correspondence = new CorrespondenceEntity
         {
