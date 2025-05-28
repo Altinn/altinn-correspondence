@@ -30,7 +30,7 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
         // TODO: Authorize party
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, false, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, false, cancellationToken, true);
         if (correspondence is null)
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
