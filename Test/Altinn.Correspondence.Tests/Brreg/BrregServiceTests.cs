@@ -291,8 +291,10 @@ namespace Altinn.Correspondence.Tests.Brreg
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             
             // Act & Assert
-            await Assert.ThrowsAsync<HttpRequestException>(() => 
-                (Task<OrganizationDetailsResponse>)method.Invoke(_service, new object[] { organizationNumber, default(CancellationToken) }));
+            await Assert.ThrowsAsync<HttpRequestException>(async () => { 
+                var resultTask = method!.Invoke(_service, [organizationNumber, default(CancellationToken)]) as Task<OrganizationDetailsResponse>;
+                await resultTask!;
+            });
         }
 
         [Fact]
