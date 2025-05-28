@@ -101,6 +101,7 @@ public class GetCorrespondenceOverviewHandler(
                 AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
                 Published = correspondence.Published,
                 IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
+                IsConfidential = correspondence.IsConfidential
             };
             return response;
         }, logger, cancellationToken);

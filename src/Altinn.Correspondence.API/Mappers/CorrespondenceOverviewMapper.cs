@@ -31,6 +31,7 @@ internal static class CorrespondenceOverviewMapper
             IgnoreReservation = correspondenceOverview.IgnoreReservation,
             Published = correspondenceOverview.Published,
             IsConfirmationNeeded = correspondenceOverview.IsConfirmationNeeded,
+            IsConfidential = correspondenceOverview.IsConfidential
         };
         return Correspondence;
     }

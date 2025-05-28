@@ -32,6 +32,7 @@ internal static class CorrespondenceDetailsMapper
             PropertyList = correspondenceDetails.PropertyList,
             Published = correspondenceDetails.Published,
             IsConfirmationNeeded = correspondenceDetails.IsConfirmationNeeded,
+            IsConfidential = correspondenceDetails.IsConfidential
         };
         return Correspondence;
     }
