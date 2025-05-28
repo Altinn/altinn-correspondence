@@ -16,12 +16,21 @@ namespace Altinn.Correspondence.Core.Services
         Task<bool> HasAnyOfOrganizationRolesAsync(string organizationNumber, IEnumerable<string> roles, CancellationToken cancellationToken = default);
         
         /// <summary>
-        /// Checks if an organization is in bankruptcy or deleted
+        /// Checks if an organization is in bankruptcy
         /// </summary>
         /// <param name="organizationNumber">The organization number</param>
         /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>True if the organization is in bankruptcy or deleted, false otherwise</returns>
+        /// <returns>True if the organization is in bankruptcy, false otherwise</returns>
         /// <exception cref="HttpRequestException">Thrown when the API call fails</exception>
-        Task<bool> IsOrganizationBankruptOrDeletedAsync(string organizationNumber, CancellationToken cancellationToken = default);
+        Task<bool> IsOrganizationBankrupt(string organizationNumber, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Checks if an organization is deleted
+        /// </summary>
+        /// <param name="organizationNumber">The organization number</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>True if the organization is deleted, false otherwise</returns>
+        /// <exception cref="HttpRequestException">Thrown when the API call fails</exception>
+        Task<bool> IsOrganizationDeleted(string organizationNumber, CancellationToken cancellationToken = default);
     }
 }

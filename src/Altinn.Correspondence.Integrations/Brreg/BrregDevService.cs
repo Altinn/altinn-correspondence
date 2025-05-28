@@ -20,8 +20,13 @@ namespace Altinn.Correspondence.Integrations.Brreg
             return Task.FromResult(true);
         }
 
-        public Task<bool> IsOrganizationBankruptOrDeletedAsync(string organizationNumber, CancellationToken cancellationToken = default)
-        { 
+        public Task<bool> IsOrganizationBankrupt(string organizationNumber, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(false);
+        }
+        
+        public Task<bool> IsOrganizationDeleted(string organizationNumber, CancellationToken cancellationToken = default)
+        {
             return Task.FromResult(false);
         }
     }

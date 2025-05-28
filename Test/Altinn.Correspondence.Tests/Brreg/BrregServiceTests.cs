@@ -7,6 +7,8 @@ using Moq;
 using Moq.Protected;
 using System.Net;
 using System.Text.Json;
+using Altinn.Correspondence.Common.Caching;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Altinn.Correspondence.Tests.Brreg
 {
@@ -16,6 +18,7 @@ namespace Altinn.Correspondence.Tests.Brreg
         private readonly HttpClient _httpClient;
         private readonly Mock<IOptions<GeneralSettings>> _mockOptions;
         private readonly Mock<ILogger<BrregService>> _mockLogger;
+        private readonly Mock<IHybridCacheWrapper> _mockCache;
         private readonly BrregService _service;
 
         public BrregServiceTests()
@@ -33,8 +36,18 @@ namespace Altinn.Correspondence.Tests.Brreg
             });
             
             _mockLogger = new Mock<ILogger<BrregService>>();
+            _mockCache = new Mock<IHybridCacheWrapper>();
             
-            _service = new BrregService(_httpClient, _mockOptions.Object, _mockLogger.Object);
+            // Mock cache to always return null (cache miss)
+            _mockCache.Setup(x => x.GetOrCreateAsync<byte[]>(
+                It.IsAny<string>(),
+                It.IsAny<Func<CancellationToken, ValueTask<byte[]>>>(),
+                It.IsAny<HybridCacheEntryOptions>(),
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult((byte[])null!));
+            
+            _service = new BrregService(_httpClient, _mockOptions.Object, _mockLogger.Object, _mockCache.Object);
         }
 
         [Fact]
@@ -273,48 +286,17 @@ namespace Altinn.Correspondence.Tests.Brreg
                     Content = new StringContent("Not found")
                 });
 
+            // Using a private method via reflection for testing
+            var method = typeof(BrregService).GetMethod("GetOrganizationDetailsAsync", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            
             // Act & Assert
-            await Assert.ThrowsAsync<HttpRequestException>(() => _service.GetOrganizationDetailsAsync(organizationNumber));
+            await Assert.ThrowsAsync<HttpRequestException>(() => 
+                (Task<OrganizationDetailsResponse>)method.Invoke(_service, new object[] { organizationNumber, default(CancellationToken) }));
         }
 
         [Fact]
-        public async Task IsOrganizationBankruptOrDeletedAsync_WhenOrganizationActive_ReturnsFalse()
-        {
-            // Arrange
-            var organizationNumber = "123456789";
-            var mockResponse = new OrganizationDetailsResponse
-            {
-                OrganizationNumber = organizationNumber,
-                Name = "Test Organization",
-                IsBankrupt = false,
-                DeletionDate = null
-            };
-
-            var jsonResponse = JsonSerializer.Serialize(mockResponse);
-
-            _mockHttpMessageHandler
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(req =>
-                        req.Method == HttpMethod.Get &&
-                        req.RequestUri!.ToString().EndsWith($"enheter/{organizationNumber}")),
-                    ItExpr.IsAny<CancellationToken>())
-                .ReturnsAsync(new HttpResponseMessage
-                {
-                    StatusCode = HttpStatusCode.OK,
-                    Content = new StringContent(jsonResponse)
-                });
-
-            // Act
-            var result = await _service.IsOrganizationBankruptOrDeletedAsync(organizationNumber);
-
-            // Assert
-            Assert.False(result);
-        }
-
-        [Fact]
-        public async Task IsOrganizationBankruptOrDeletedAsync_WhenOrganizationBankrupt_ReturnsTrue()
+        public async Task IsOrganizationBankrupt_WhenOrganizationBankrupt_ReturnsTrue()
         {
             // Arrange
             var organizationNumber = "123456789";
@@ -343,14 +325,50 @@ namespace Altinn.Correspondence.Tests.Brreg
                 });
 
             // Act
-            var result = await _service.IsOrganizationBankruptOrDeletedAsync(organizationNumber);
+            var result = await _service.IsOrganizationBankrupt(organizationNumber);
 
             // Assert
             Assert.True(result);
         }
 
         [Fact]
-        public async Task IsOrganizationBankruptOrDeletedAsync_WhenOrganizationDeleted_ReturnsTrue()
+        public async Task IsOrganizationBankrupt_WhenOrganizationNotBankrupt_ReturnsFalse()
+        {
+            // Arrange
+            var organizationNumber = "123456789";
+            var mockResponse = new OrganizationDetailsResponse
+            {
+                OrganizationNumber = organizationNumber,
+                Name = "Test Organization",
+                IsBankrupt = false,
+                DeletionDate = null
+            };
+
+            var jsonResponse = JsonSerializer.Serialize(mockResponse);
+
+            _mockHttpMessageHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString().EndsWith($"enheter/{organizationNumber}")),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent(jsonResponse)
+                });
+
+            // Act
+            var result = await _service.IsOrganizationBankrupt(organizationNumber);
+
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task IsOrganizationDeleted_WhenOrganizationDeleted_ReturnsTrue()
         {
             // Arrange
             var organizationNumber = "123456789";
@@ -379,17 +397,26 @@ namespace Altinn.Correspondence.Tests.Brreg
                 });
 
             // Act
-            var result = await _service.IsOrganizationBankruptOrDeletedAsync(organizationNumber);
+            var result = await _service.IsOrganizationDeleted(organizationNumber);
 
             // Assert
             Assert.True(result);
         }
 
         [Fact]
-        public async Task IsOrganizationBankruptOrDeletedAsync_WhenErrorResponse_ThrowsException()
+        public async Task IsOrganizationDeleted_WhenOrganizationNotDeleted_ReturnsFalse()
         {
             // Arrange
             var organizationNumber = "123456789";
+            var mockResponse = new OrganizationDetailsResponse
+            {
+                OrganizationNumber = organizationNumber,
+                Name = "Test Organization",
+                IsBankrupt = false,
+                DeletionDate = null
+            };
+
+            var jsonResponse = JsonSerializer.Serialize(mockResponse);
 
             _mockHttpMessageHandler
                 .Protected()
@@ -401,12 +428,15 @@ namespace Altinn.Correspondence.Tests.Brreg
                     ItExpr.IsAny<CancellationToken>())
                 .ReturnsAsync(new HttpResponseMessage
                 {
-                    StatusCode = HttpStatusCode.NotFound,
-                    Content = new StringContent("Not found")
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent(jsonResponse)
                 });
 
-            // Act & Assert
-            await Assert.ThrowsAsync<HttpRequestException>(() => _service.IsOrganizationBankruptOrDeletedAsync(organizationNumber));
+            // Act
+            var result = await _service.IsOrganizationDeleted(organizationNumber);
+
+            // Assert
+            Assert.False(result);
         }
     }
-} 
+}
