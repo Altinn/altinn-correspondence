@@ -36,7 +36,8 @@ internal static class InitializeCorrespondencesMapper
                     attachment => InitializeCorrespondenceAttachmentMapper.MapToEntity(attachment, initializeCorrespondenceExt.ResourceId, initializeCorrespondenceExt.Sender)
                 ).ToList()
             } : null,
-            IsConfirmationNeeded = initializeCorrespondenceExt.IsConfirmationNeeded
+            IsConfirmationNeeded = initializeCorrespondenceExt.IsConfirmationNeeded,
+            IsConfidential = initializeCorrespondenceExt.IsConfidential
         };
         return new InitializeCorrespondencesRequest()
         {

@@ -111,6 +111,12 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("isConfirmationNeeded")]
         public bool IsConfirmationNeeded { get; set; }
+        
+        /// <summary>
+        /// Specifies whether the correspondence is confidential
+        /// </summary>
+        [JsonPropertyName("isConfidential")]
+        public bool IsConfidential { get; set; }
     }
 
     [AttributeUsage(AttributeTargets.Property)]

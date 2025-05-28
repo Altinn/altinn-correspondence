@@ -70,5 +70,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public bool IsConfirmationNeeded { get; set; }
 
         public bool IsMigrating { get; set; }
+
+        public bool IsConfidential { get; set; }
     }
 }
