@@ -33,8 +33,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
-            var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondence.CorrespondenceId}", _serializerOptions);
-            Assert.Equal(CorrespondenceStatusExt.PurgedByRecipient, overview.Status);
+            var overviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence.CorrespondenceId}");
+            Assert.Equal(HttpStatusCode.NotFound, overviewResponse.StatusCode);
         }
 
         [Fact]
@@ -50,8 +50,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
-            var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondence.CorrespondenceId}", _serializerOptions);
-            Assert.Equal(CorrespondenceStatusExt.PurgedByRecipient, overview.Status);
+            var overviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence.CorrespondenceId}");
+            Assert.Equal(HttpStatusCode.NotFound, overviewResponse.StatusCode);
         }
 
         [Fact]
