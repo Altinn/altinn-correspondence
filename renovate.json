@@ -49,21 +49,6 @@
       "groupName": "StackExchange packages",
       "matchPackagePatterns": ["^StackExchange\\."],
       "matchUpdateTypes": ["minor", "patch"]
-    },
-    {
-      "groupName": "Identity packages",
-      "matchPackagePatterns": ["^Microsoft\\.Identity|^ScottBrady"],
-      "matchUpdateTypes": ["minor", "patch"]
-    },
-    {
-      "groupName": "EntityFramework packages",
-      "matchPackagePatterns": ["^Microsoft\\.EntityFrameworkCore"],
-      "matchUpdateTypes": ["minor", "patch"]
-    },
-    {
-      "groupName": "ApplicationInsights packages",
-      "matchPackagePatterns": ["^Microsoft\\.ApplicationInsights"],
-      "matchUpdateTypes": ["minor", "patch"]
     }
   ]
 }
