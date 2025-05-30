@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Altinn.Correspondence.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250507210753_CorrespondenceNotification_ShipmentId")]
+    partial class CorrespondenceNotification_ShipmentId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -30,9 +33,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
-
-                    b.Property<string>("Altinn2AttachmentId")
-                        .HasColumnType("text");
 
                     b.Property<long>("AttachmentSize")
                         .HasColumnType("bigint");
@@ -74,15 +74,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasMaxLength(4096)
                         .HasColumnType("character varying(4096)");
 
-                    b.Property<long?>("StorageProviderId")
-                        .HasColumnType("bigint");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("Altinn2AttachmentId")
-                        .IsUnique();
-
-                    b.HasIndex("StorageProviderId");
 
                     b.ToTable("Attachments", "correspondence");
                 });
@@ -207,12 +199,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
-                    b.Property<string>("OriginalRequest")
-                        .HasColumnType("jsonb");
-
-                    b.Property<int>("PartyId")
-                        .HasColumnType("integer");
-
                     b.Property<Dictionary<string, string>>("PropertyList")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -244,14 +230,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Altinn2CorrespondenceId")
-                        .IsUnique();
-
                     b.HasIndex("Created");
-
-                    b.HasIndex("IsMigrating");
-
-                    b.HasIndex("PartyId");
 
                     b.HasIndex("Recipient");
 
@@ -442,13 +421,10 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<Guid?>("AttachmentId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("CorrespondenceId")
+                    b.Property<Guid>("CorrespondenceId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("IdempotencyType")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("StatusAction")
+                    b.Property<int>("StatusAction")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -518,64 +494,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("NotificationTemplates", "correspondence");
-                });
-
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.ServiceOwnerEntity", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ServiceOwners", "correspondence");
-                });
-
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.StorageProviderEntity", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<bool>("Active")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ServiceOwnerEntityId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ServiceOwnerId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("StorageResourceName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ServiceOwnerEntityId");
-
-                    b.ToTable("StorageProviders", "correspondence");
-                });
-
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.AttachmentEntity", b =>
-                {
-                    b.HasOne("Altinn.Correspondence.Core.Models.Entities.StorageProviderEntity", "StorageProvider")
-                        .WithMany()
-                        .HasForeignKey("StorageProviderId");
-
-                    b.Navigation("StorageProvider");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.AttachmentStatusEntity", b =>
@@ -682,18 +600,13 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasOne("Altinn.Correspondence.Core.Models.Entities.CorrespondenceEntity", "Correspondence")
                         .WithMany("IdempotencyKeys")
-                        .HasForeignKey("CorrespondenceId");
+                        .HasForeignKey("CorrespondenceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Attachment");
 
                     b.Navigation("Correspondence");
-                });
-
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.StorageProviderEntity", b =>
-                {
-                    b.HasOne("Altinn.Correspondence.Core.Models.Entities.ServiceOwnerEntity", null)
-                        .WithMany("StorageProviders")
-                        .HasForeignKey("ServiceOwnerEntityId");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.AttachmentEntity", b =>
@@ -723,11 +636,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Navigation("ReplyOptions");
 
                     b.Navigation("Statuses");
-                });
-
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.ServiceOwnerEntity", b =>
-                {
-                    b.Navigation("StorageProviders");
                 });
 #pragma warning restore 612, 618
         }

@@ -23,7 +23,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             var createDialogActivityRequest = new CreateDialogActivityRequest()
             {
                 Id = dialogActivityId,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = DateTimeOffset.UtcNow,
                 PerformedBy = new ActivityPerformedBy()
                 {
                     ActorType = actorType == DialogportenActorType.ServiceOwner ? "ServiceOwner" : "PartyRepresentative",
