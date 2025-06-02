@@ -17,6 +17,7 @@ using OneOf;
 using Slack.Webhooks;
 using System.Security.Claims;
 using Altinn.Correspondence.Integrations.Redlock;
+using Altinn.Correspondence.Core.Models.Brreg;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
 
@@ -31,6 +32,7 @@ public class PublishCorrespondenceHandler(
     ISlackClient slackClient,
     SlackSettings slackSettings,
     IBackgroundJobClient backgroundJobClient,
+    IBrregService brregService,
     DistributedLockHelper DistributedLockHelper) : IHandler<Guid, Task>
 {
 
@@ -73,6 +75,15 @@ public class PublishCorrespondenceHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
         bool hasDialogportenDialog = correspondence.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
+
+        OrganizationDetails? details = null;
+        OrganizationRoles? roles = null;
+        var requiredOrganizationRoles = new List<string> { "BEST", "DAGL", "DTPR", "DTSO", "INNH", "LEDE"};
+        if (correspondence.GetRecipientUrn().IsOrganizationNumber())
+        {
+            details = await brregService.GetOrganizationDetailsAsync(correspondence.Recipient, cancellationToken);
+            roles = await brregService.GetOrganizationRolesAsync(correspondence.Recipient, cancellationToken);
+        }
         var errorMessage = "";
         if (correspondence == null)
         {
@@ -82,26 +93,9 @@ public class PublishCorrespondenceHandler(
         {
             return Task.CompletedTask;
         }
-        else if (correspondence.GetHighestStatus()?.Status != CorrespondenceStatus.ReadyForPublish)
+        else if (!await IsCorrespondenceReadyForPublish(correspondence, partyUuid, cancellationToken))
         {
-            if (await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
-            {
-                await correspondenceStatusRepository.AddCorrespondenceStatus(
-                    new CorrespondenceStatusEntity
-                    {
-                        CorrespondenceId = correspondence.Id,
-                        Status = CorrespondenceStatus.ReadyForPublish,
-                        StatusChanged = DateTime.UtcNow,
-                        StatusText = CorrespondenceStatus.ReadyForPublish.ToString(),
-                        PartyUuid = partyUuid
-                    },
-                    cancellationToken
-                );
-            }
-            else
-            {
-                errorMessage = $"Correspondence {correspondenceId} not ready for publish";
-            }
+            errorMessage = $"Correspondence {correspondenceId} not ready for publish";
         }
         else if (correspondence.RequestedPublishTime > DateTimeOffset.UtcNow)
         {
@@ -111,13 +105,21 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Dialogporten dialog not created for correspondence {correspondenceId}";
         }
-        else if (correspondence.IgnoreReservation != true && correspondence.GetRecipientUrn().IsSocialSecurityNumber())
+        else if (await HasRecipientBeenSetToReservedInKRR(correspondence, cancellationToken))
         {
-            var isReserved = await contactReservationRegistryService.IsPersonReserved(correspondence.GetRecipientUrn().WithoutPrefix());
-            if (isReserved)
-            {
-                errorMessage = $"Recipient of {correspondenceId} has been set to reserved in kontakt- og reserverasjonsregisteret ('KRR')";
-            }
+            errorMessage = $"Recipient of {correspondenceId} has been set to reserved in kontakt- og reserverasjonsregisteret ('KRR')";
+        }
+        else if (details != null && details.IsBankrupt)
+        {
+            errorMessage = $"Recipient of {correspondenceId} is bankrupt";
+        }
+        else if (details != null && details.IsDeleted)
+        {
+            errorMessage = $"Recipient of {correspondenceId} is deleted";
+        }
+        else if (roles != null && correspondence.IsConfidential && !roles.HasAnyOfRoles(requiredOrganizationRoles))
+        {
+            errorMessage = $"Recipient of {correspondenceId} is missing required roles to read confidential correspondences";
         }
         CorrespondenceStatusEntity status;
         AltinnEventType eventType = AltinnEventType.CorrespondencePublished;
@@ -170,5 +172,44 @@ public class PublishCorrespondenceHandler(
             if (status.Status == CorrespondenceStatus.Published) backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, CancellationToken.None));
             return Task.CompletedTask;
         }, logger, cancellationToken);
+    }
+
+    private async Task<bool> IsCorrespondenceReadyForPublish(CorrespondenceEntity correspondence, Guid partyUuid, CancellationToken cancellationToken)
+    {
+        if (correspondence.GetHighestStatus()?.Status != CorrespondenceStatus.ReadyForPublish)
+        {
+            if (await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+            {
+                await correspondenceStatusRepository.AddCorrespondenceStatus(
+                    new CorrespondenceStatusEntity
+                    {
+                        CorrespondenceId = correspondence.Id,
+                        Status = CorrespondenceStatus.ReadyForPublish,
+                        StatusChanged = DateTime.UtcNow,
+                        StatusText = CorrespondenceStatus.ReadyForPublish.ToString(),
+                        PartyUuid = partyUuid
+                    },
+                    cancellationToken
+                );
+            }
+            else 
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private async Task<bool> HasRecipientBeenSetToReservedInKRR(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
+    {
+        if (correspondence.IgnoreReservation != true && correspondence.GetRecipientUrn().IsSocialSecurityNumber())
+        {
+            var isReserved = await contactReservationRegistryService.IsPersonReserved(correspondence.GetRecipientUrn().WithoutPrefix());
+            if (isReserved)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }
