@@ -67,7 +67,7 @@ public class LegacyGetCorrespondencesHandler(
         List<string> resourcesToSearch = new List<string>();
 
         // Get all correspondences owned by Recipients
-        var correspondences = await correspondenceRepository.GetCorrespondencesForParties(limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken, request.FilterMigrated);
+        var correspondences = await correspondenceRepository.GetCorrespondencesForParties(limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, "", cancellationToken, request.FilterMigrated);
 
         var resourceIds = correspondences.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
