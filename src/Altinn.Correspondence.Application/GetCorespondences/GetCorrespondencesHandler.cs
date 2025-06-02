@@ -48,6 +48,7 @@ public class GetCorrespondencesHandler(
             request.Status,
             onBehalfOf,
             request.Role,
+            request.SendersReference,
             cancellationToken);
         var response = new GetCorrespondencesResponse
         {

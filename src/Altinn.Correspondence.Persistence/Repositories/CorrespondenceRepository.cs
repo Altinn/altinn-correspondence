@@ -32,6 +32,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             CorrespondenceStatus? status,
             string orgNo,
             CorrespondencesRoleType role,
+            string? sendersReference,
             CancellationToken cancellationToken)
         {
             var correspondences = _context.Correspondences
@@ -40,6 +41,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter
                 .FilterBySenderOrRecipient(orgNo, role)             // Filter by role
                 .FilterByStatus(status, orgNo, role)                // Filter by status
+                .Where(c => string.IsNullOrEmpty(sendersReference) || c.SendersReference == sendersReference) // Filter by sendersReference
                 .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
                 .OrderByDescending(c => c.RequestedPublishTime)              // Sort by RequestedPublishTime
                 .Select(c => c.Id);

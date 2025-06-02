@@ -15,4 +15,6 @@ public class GetCorrespondencesRequest
     public required CorrespondencesRoleType Role { get; set; }
 
     public string? OnBehalfOf { get; set; }
+
+    public string? SendersReference { get; set; }
 }
