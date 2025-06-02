@@ -1,5 +1,3 @@
-using Altinn.Correspondence.Core.Models.Brreg;
-using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Brreg;
 
 namespace Altinn.Correspondence.Tests.Brreg
