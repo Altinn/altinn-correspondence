@@ -13,6 +13,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
     IAltinnNotificationService altinnNotificationService,
     IAltinnRegisterService altinnRegisterService,
     IAltinnAuthorizationService altinnAuthorizationService,
+    NotificationMapper notificationMapper,
     UserClaimsHelper userClaimsHelper) : IHandler<Guid, List<LegacyGetCorrespondenceHistoryResponse>>
 {
     public async Task<OneOf<List<LegacyGetCorrespondenceHistoryResponse>, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -53,9 +54,24 @@ public class LegacyGetCorrespondenceHistoryHandler(
         var notificationHistory = new List<LegacyGetCorrespondenceHistoryResponse>();
         foreach (var notification in correspondence.Notifications)
         {
-            if (string.IsNullOrEmpty(notification.NotificationOrderId.ToString())) continue;
+            if (notification.ShipmentId == null && notification.NotificationOrderId == null) continue;
 
-            var notificationDetails = await altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString(), cancellationToken);
+            NotificationStatusResponse? notificationDetails;
+            // If the notification does not have a shipmentId, it is a version 1 notification
+            if (notification.ShipmentId == null && notification.NotificationOrderId != null)
+            {
+                notificationDetails = await altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString(), cancellationToken);
+            }
+            // If the notification has a shipmentId, it is a version 2 notification
+            else if (notification.ShipmentId is not null)
+            {
+                var notificationDetailsV2 = await altinnNotificationService.GetNotificationDetailsV2(notification.ShipmentId.ToString(), cancellationToken);
+                notificationDetails = await notificationMapper.MapNotificationV2ToV1Async(notificationDetailsV2, notification);
+            }
+            else
+            {
+                continue;
+            }
 
             if (notificationDetails?.NotificationsStatusDetails is null) continue;
 
