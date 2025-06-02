@@ -53,11 +53,6 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public bool OnlyHierarchyElementWithNoAccess { get; set; }
 
         /// <summary>
-        /// Gets or sets the Person object for this party
-        /// </summary>
-        public Person? Person { get; set; }
-
-        /// <summary>
         /// Gets or sets the value of ChildParties
         /// </summary>
         public List<Party> ChildParties { get; set; }
