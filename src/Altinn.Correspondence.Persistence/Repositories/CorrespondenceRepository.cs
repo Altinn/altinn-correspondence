@@ -95,20 +95,23 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return await correspondence.ToListAsync(cancellationToken);
         }
 
-        public async Task<List<CorrespondenceEntity>> GetNonPublishedCorrespondencesByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default)
+        public async Task<List<CorrespondenceEntity>> GetNonPublishedCorrespondencesByAttachmentId(
+    Guid attachmentId, CancellationToken cancellationToken = default)
         {
-            var correspondences = await _context.Correspondences
-                .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
-                .Where(correspondence =>
-                        correspondence.Content!.Attachments.Any(attachment => attachment.AttachmentId == attachmentId) // Correspondence has the given attachment
-                     && !correspondence.Statuses.Any(status => status.Status == CorrespondenceStatus.Published || status.Status == CorrespondenceStatus.ReadyForPublish  // Correspondence is not published
-                                                           ||  status.Status == CorrespondenceStatus.Failed)
-                     && correspondence.Content.Attachments.All(correspondenceAttachment => // All attachments of correspondence are published
-                            correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Published) // All attachments must be published
-                         && !correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Purged))) // No attachments can be purged
+            var sql = @"
+                SELECT c.* FROM correspondence.""Correspondences"" c
+                INNER JOIN correspondence.""CorrespondenceContents"" cc ON c.""Id"" = cc.""CorrespondenceId""
+                INNER JOIN correspondence.""CorrespondenceAttachments"" ca ON cc.""Id"" = ca.""CorrespondenceContentId""
+                WHERE ca.""AttachmentId"" = {0} 
+                  AND NOT c.""IsMigrating""
+                  AND NOT EXISTS (SELECT 1 FROM correspondence.""CorrespondenceStatuses"" cs 
+                                  WHERE c.""Id"" = cs.""CorrespondenceId"" 
+                                  AND cs.""Status"" IN (1,2,11))";
+
+            return await _context.Correspondences
+                .FromSqlRaw(sql, attachmentId)
                 .ToListAsync(cancellationToken);
 
-            return correspondences;
         }
 
         public async Task AddExternalReference(Guid correspondenceId, ReferenceType referenceType, string referenceValue, CancellationToken cancellationToken = default)
