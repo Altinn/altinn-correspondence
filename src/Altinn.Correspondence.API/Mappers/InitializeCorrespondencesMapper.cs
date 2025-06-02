@@ -39,6 +39,7 @@ internal static class InitializeCorrespondencesMapper
                 ).ToList()
             } : null,
             IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
+            IsConfidential = request.Correspondence.IsConfidential,
             OriginalRequest = rawRequest
         };
         return new InitializeCorrespondencesRequest()
