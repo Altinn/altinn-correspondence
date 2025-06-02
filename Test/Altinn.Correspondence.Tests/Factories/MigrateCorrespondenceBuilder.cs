@@ -1,5 +1,6 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests.Factories
 {
@@ -13,16 +14,21 @@ namespace Altinn.Correspondence.Tests.Factories
         }
         public MigrateCorrespondenceBuilder CreateMigrateCorrespondence()
         {
-            var basicCorrespondence = new CorrespondenceBuilder()
-            .CreateCorrespondence()
-            .Build();
+            InitializeCorrespondencesExt basicCorrespondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
+            MigrateInitializeCorrespondencesExt migrateCorrespondence = new()
+            {
+                Correspondence = basicCorrespondence.Correspondence,
+                Recipients = basicCorrespondence.Recipients,
+                ExistingAttachments = basicCorrespondence.ExistingAttachments,
+                IdempotentKey = basicCorrespondence.IdempotentKey
+            };
 
-            basicCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
+            migrateCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
 
             _migratedCorrespondence = new()
             {
-                CorrespondenceData = basicCorrespondence,
-                Altinn2CorrespondenceId = 99911,
+                CorrespondenceData = migrateCorrespondence,
+                Altinn2CorrespondenceId = (new Random().Next()),
                 EventHistory =
             [
                 new MigrateCorrespondenceStatusEventExt()

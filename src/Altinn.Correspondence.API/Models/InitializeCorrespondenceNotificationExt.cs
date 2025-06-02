@@ -1,6 +1,7 @@
 ﻿using Altinn.Correspondence.API.Models.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using System;
 
 namespace Altinn.Correspondence.API.Models
 {
@@ -66,11 +67,13 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Specifies the notification channel to use for the main notification
         /// </summary>
+        [JsonPropertyName("notificationChannel")]
         public NotificationChannelExt NotificationChannel { get; set; }
 
         /// <summary>
         ///  Specifies the notification channel to use for the reminder notification
         /// </summary>
+        [JsonPropertyName("reminderNotificationChannel")]
         public NotificationChannelExt? ReminderNotificationChannel { get; set; }
 
         /// <summary>
@@ -88,7 +91,32 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// A list of recipients for the notification. If not set, the notification will be sent to the recipient of the Correspondence
         /// </summary>
+        [JsonPropertyName("customRecipient")]
+        public NotificationRecipientExt? CustomRecipient { get; set; }
+
+        /// <summary>
+        /// Only the first list of recipients will be used. If not set, the notification will be sent to the recipient of the Correspondence
+        /// </summary>
         [JsonPropertyName("customNotificationRecipients")]
+        [Obsolete("This property is deprecated. Use CustomRecipient instead.")]
         public List<CustomNotificationRecipientExt>? CustomNotificationRecipients { get; set; }
+    }
+
+    /// <summary>
+    /// Represents a custom notification recipient with override options
+    /// </summary>
+    public class CustomNotificationRecipientExt
+    {
+        /// <summary>
+        /// This is not used, but is required by the API.
+        /// </summary>
+        [JsonPropertyName("recipientToOverride")]
+        public required string RecipientToOverride { get; set; }
+
+        /// <summary>
+        /// Only the first recipient will be used as custom recipient.
+        /// </summary>
+        [JsonPropertyName("recipients")]
+        public required List<NotificationRecipientExt> Recipients { get; set; }
     }
 }

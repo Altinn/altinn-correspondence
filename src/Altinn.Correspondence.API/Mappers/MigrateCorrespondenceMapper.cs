@@ -13,14 +13,14 @@ internal static class MigrateCorrespondenceMapper
         var correspondence = new CorrespondenceEntity
         {
             Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId,
-            Statuses = [.. migrateCorrespondenceExt.EventHistory.Select(eh => new CorrespondenceStatusEntity() 
-            { 
-                Status = (CorrespondenceStatus)eh.Status, 
-                StatusChanged = eh.StatusChanged, 
+            Statuses = [.. migrateCorrespondenceExt.EventHistory.Select(eh => new CorrespondenceStatusEntity()
+            {
+                Status = (CorrespondenceStatus)eh.Status,
+                StatusChanged = eh.StatusChanged,
                 StatusText = eh.StatusText ?? eh.Status.ToString(),
                 PartyUuid = eh.EventUserPartyUuid
             })],
-            Notifications = migrateCorrespondenceExt.NotificationHistory.Select(n => new CorrespondenceNotificationEntity() 
+            Notifications = migrateCorrespondenceExt.NotificationHistory.Select(n => new CorrespondenceNotificationEntity()
             {
                 Created = n.NotificationSent,
                 NotificationSent = n.NotificationSent,
@@ -39,7 +39,7 @@ internal static class MigrateCorrespondenceMapper
                 ForwardedToUserUuid = fh.ForwardedToUserUuid,
                 ForwardingText = fh.ForwardingText,
                 ForwardedToEmailAddress = fh.ForwardedToEmail,
-                MailboxSupplier = fh.MailboxSupplier                
+                MailboxSupplier = fh.MailboxSupplier
 
             }).ToList(),
             SendersReference = migrateCorrespondenceExt.CorrespondenceData.Correspondence.SendersReference,
@@ -64,7 +64,9 @@ internal static class MigrateCorrespondenceMapper
                 Attachments = []
             } : null,
             IsConfirmationNeeded = migrateCorrespondenceExt.CorrespondenceData.Correspondence.IsConfirmationNeeded,
-            IsMigrating = migrateCorrespondenceExt.IsMigrating
+            IsMigrating = migrateCorrespondenceExt.IsMigrating,
+            PartyId = migrateCorrespondenceExt.PartyId,
+            Published = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Published
         };
         
         return new MigrateCorrespondenceRequest()

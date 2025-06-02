@@ -23,11 +23,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return attachments.Select(a => a.Id).ToList();
         }
 
-        public async Task<AttachmentEntity?> GetAttachmentByUrl(string url, CancellationToken cancellationToken)
-        {
-            return await _context.Attachments.SingleOrDefaultAsync(a => a.DataLocationUrl == url, cancellationToken);
-        }
-
         public async Task<AttachmentEntity> GetAttachmentByAltinn2Id(string altinn2Id, CancellationToken cancellationToken)
         {
             return await _context.Attachments.SingleAsync(a => a.Altinn2AttachmentId == altinn2Id, cancellationToken);
@@ -40,6 +35,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 attachments = attachments.Include(a => a.Statuses);
             }
+            attachments = attachments.Include(a => a.StorageProvider);
             return await attachments.SingleOrDefaultAsync(a => a.Id == guid, cancellationToken);
         }
 

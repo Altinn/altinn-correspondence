@@ -13,7 +13,7 @@ internal static class CorrespondenceDetailsMapper
             CorrespondenceId = correspondenceDetails.CorrespondenceId,
             Status = (CorrespondenceStatusExt)correspondenceDetails.Status,
             StatusText = correspondenceDetails.StatusText,
-            StatusChanged = (DateTimeOffset)correspondenceDetails.StatusChanged,
+            StatusChanged = correspondenceDetails.StatusChanged,
             SendersReference = correspondenceDetails.SendersReference,
             Sender = correspondenceDetails.Sender,
             MessageSender = correspondenceDetails.MessageSender,
@@ -22,6 +22,7 @@ internal static class CorrespondenceDetailsMapper
             Content = CorrespondenceContentMapper.MapToExternal(correspondenceDetails.Content),
             ReplyOptions = correspondenceDetails.ReplyOptions != null ? CorrespondenceReplyOptionsMapper.MapListToExternal(correspondenceDetails.ReplyOptions) : new List<CorrespondenceReplyOptionExt>(),
             Notifications = correspondenceDetails.Notifications != null ? NotificationMapper.MapListToExternal(correspondenceDetails.Notifications) : new List<NotificationExt>(),
+            // NotificationStatus = correspondenceDetails.NotificationStatus != null ? NotificationMapper.MapListToExternalV2(correspondenceDetails.NotificationStatus) : new List<NotificationExtV2>(),
             StatusHistory = correspondenceDetails.StatusHistory != null ? CorrespondenceStatusMapper.MapListToExternal(correspondenceDetails.StatusHistory) : new List<CorrespondenceStatusEventExt>(),
             ExternalReferences = correspondenceDetails.ExternalReferences != null ? ExternalReferenceMapper.MapListToExternal(correspondenceDetails.ExternalReferences) : new List<ExternalReferenceExt>(),
             ResourceId = correspondenceDetails.ResourceId.ToString(),
@@ -32,7 +33,8 @@ internal static class CorrespondenceDetailsMapper
             PropertyList = correspondenceDetails.PropertyList,
             Published = correspondenceDetails.Published,
             IsConfirmationNeeded = correspondenceDetails.IsConfirmationNeeded,
-            IsConfidential = correspondenceDetails.IsConfidential
+            IsConfidential = correspondenceDetails.IsConfidential,
+            Altinn2CorrespondenceId = correspondenceDetails.Altinn2CorrespondenceId
         };
         return Correspondence;
     }

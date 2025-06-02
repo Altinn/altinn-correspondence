@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Altinn.Correspondence.Common.Constants;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +12,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
     [Index(nameof(Created))]
     [Index(nameof(IsMigrating))]
     [Index(nameof(Altinn2CorrespondenceId), IsUnique = true)]
+    [Index(nameof(PartyId))]
     public class CorrespondenceEntity
     {
         [Key]
@@ -60,6 +62,9 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         public List<IdempotencyKeyEntity> IdempotencyKeys { get; set; } = [];
 
+        [Column(TypeName = "jsonb")]
+        public string? OriginalRequest { get; set; }
+
         [Required]
         public required DateTimeOffset Created { get; set; }
 
@@ -72,5 +77,6 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public bool IsMigrating { get; set; }
 
         public bool IsConfidential { get; set; }
+        public int PartyId { get; set; } = 0;
     }
 }

@@ -50,6 +50,8 @@ public class GetCorrespondenceOverviewResponse
     public bool IsConfirmationNeeded { get; set; }
     
     public bool IsConfidential { get; set; }
+
+    public int? Altinn2CorrespondenceId { get; set; }
 }
 
 public class CorrespondenceNotificationOverview {

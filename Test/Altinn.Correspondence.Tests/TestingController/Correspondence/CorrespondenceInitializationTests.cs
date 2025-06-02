@@ -21,6 +21,9 @@ using Altinn.Correspondence.Persistence;
 using System.Text.Json.Nodes;
 using System.Text;
 using Altinn.Correspondence.Tests.TestingFeature;
+using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Application;
+using Xunit;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -923,6 +926,105 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     stream.Dispose();
                 }
             }
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithDuplicateIdempotentKey_ReturnsConflict()
+        {
+            // Arrange
+            var idempotentKey = Guid.NewGuid();
+            var correspondence = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithIdempotentKey(idempotentKey)
+                .Build();
+
+            // Act - First request
+            var firstResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+            Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+
+            // Act - Second request with same idempotent key
+            var secondResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.Conflict, secondResponse.StatusCode);
+            var errorContent = await secondResponse.Content.ReadAsStringAsync();
+            Assert.Contains(CorrespondenceErrors.DuplicateInitCorrespondenceRequest.Message, errorContent);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithDifferentContentAndSameIdempotentKey_ShouldReturnConflict()
+        {
+            // Arrange
+            var idempotentKey = Guid.NewGuid();
+            var correspondence1 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithIdempotentKey(idempotentKey)
+                .WithMessageTitle("First Title")
+                .Build();
+
+            var correspondence2 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithIdempotentKey(idempotentKey)
+                .WithMessageTitle("Second Title")
+                .Build();
+
+            // Act
+            var response1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence1);
+            var response2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence2);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, response1.StatusCode);
+            Assert.Equal(HttpStatusCode.Conflict, response2.StatusCode);
+            var errorContent = await response2.Content.ReadAsStringAsync();
+            Assert.Contains(CorrespondenceErrors.DuplicateInitCorrespondenceRequest.Message, errorContent);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithInvalidIdempotentKey_ShouldReturnBadRequest()
+        {
+            // Arrange
+            var correspondence = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithIdempotentKey(Guid.Empty)
+                .Build();
+
+            // Act
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var errorContent = await response.Content.ReadAsStringAsync();
+            Assert.Contains(CorrespondenceErrors.InvalidIdempotencyKey.Message, errorContent);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithConcurrentRequests_ShouldHandleCorrectly()
+        {
+            // Arrange
+            var idempotentKey = Guid.NewGuid();
+            var correspondence = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithIdempotentKey(idempotentKey)
+                .Build();
+
+            // Act
+            var tasks = new[]
+            {
+                _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence),
+                _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence)
+            };
+            var responses = await Task.WhenAll(tasks);
+
+            // Assert
+            var successCount = responses.Count(r => r.StatusCode == HttpStatusCode.OK);
+            var conflictCount = responses.Count(r => r.StatusCode == HttpStatusCode.Conflict);
+            Assert.Equal(1, successCount);
+            Assert.Equal(1, conflictCount);
+
+            // Verify error message for the conflict response
+            var conflictResponse = responses.First(r => r.StatusCode == HttpStatusCode.Conflict);
+            var errorContent = await conflictResponse.Content.ReadAsStringAsync();
+            Assert.Contains(CorrespondenceErrors.DuplicateInitCorrespondenceRequest.Message, errorContent);
         }
     }
 }

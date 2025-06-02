@@ -96,7 +96,7 @@ namespace Altinn.Correspondence.Application.Helpers
         }
         public Error? ValidateNotification(NotificationRequest notification, List<string> recipients)
         {
-            var customRecipientError = ValidateRecipientOverrides(notification, recipients);
+            var customRecipientError = ValidateCustomRecipient(notification, recipients);
             if (customRecipientError != null)
             {
                 return customRecipientError;
@@ -150,121 +150,70 @@ namespace Altinn.Correspondence.Application.Helpers
         /// <summary>
         /// Validate that the recipient overrides for a notification.
         /// </summary>
-        public Error? ValidateRecipientOverrides(NotificationRequest notification, List<string> recipients)
+        public Error? ValidateCustomRecipient(NotificationRequest notification, List<string> recipients)
         {
-            var customRecipients = notification.CustomNotificationRecipients ?? [];
-            if (customRecipients.Count == 0)
+            var customRecipient = notification.CustomRecipient;
+
+            // If no custom recipient is provided, no need to validate
+            if (customRecipient == null)
             {
                 return null;
             }
-            var recipientWithNumberOrEmail = customRecipients.Where(recipient => recipient.Recipients.Any(r => r.EmailAddress != null || r.MobileNumber != null)).ToList();
-            if (recipientWithNumberOrEmail.Count > 0)
+            
+            // Validate that if the custom recipient exists, the correspondence does not have multiple recipients
+            else
+            {
+                if (recipients.Count > 1)
+                {
+                    return NotificationErrors.CustomRecipientWithMultipleRecipientsNotAllowed;
+                }
+            }
+
+            // Validate that the custom recipient only has one  and only one identifier
+            var fieldsWithValue = new List<string>();
+            if (!string.IsNullOrEmpty(customRecipient.OrganizationNumber)) fieldsWithValue.Add("OrganizationNumber");
+            if (!string.IsNullOrEmpty(customRecipient.NationalIdentityNumber)) fieldsWithValue.Add("NationalIdentityNumber");
+            if (!string.IsNullOrEmpty(customRecipient.EmailAddress)) fieldsWithValue.Add("EmailAddress");
+            if (!string.IsNullOrEmpty(customRecipient.MobileNumber)) fieldsWithValue.Add("MobileNumber");
+
+            if (fieldsWithValue.Count == 0)
+            {
+                return NotificationErrors.CustomRecipientWithoutIdentifierNotAllowed;
+            }
+            else if (fieldsWithValue.Count > 1)
+            {
+                return NotificationErrors.CustomRecipientWithMultipleIdentifiersNotAllowed;
+            }
+
+            // Validate that the custom recipient does not contain the keyword $recipientName$ if it has a number or email
+            if (customRecipient.EmailAddress != null || customRecipient.MobileNumber != null)
             {
                 if (TextContainsTag(notification.EmailBody, "$recipientName$") || TextContainsTag(notification.SmsBody, "$recipientName$")
                     || TextContainsTag(notification.EmailSubject, "$recipientName$") || TextContainsTag(notification.ReminderEmailBody, "$recipientName$")
                     || TextContainsTag(notification.ReminderSmsBody, "$recipientName$") || TextContainsTag(notification.ReminderEmailSubject, "$recipientName$"))
                 {
-                    return NotificationErrors.RecipientOverridesWithNumberOrEmailNotAllowedWithRecipientName;
-                }
-            }
-            foreach (var recipientToOverride in customRecipients)
-            {
-                if (!recipients.Any(recipient => recipient.WithoutPrefix() == recipientToOverride.RecipientToOverride.WithoutPrefix()))
-                {
-                    return NotificationErrors.CouldNotFindRecipientToOverride(recipientToOverride.RecipientToOverride);
-                }
-                if (recipientToOverride.Recipients.Count == 0)
-                {
-                    return NotificationErrors.MissingRecipientsForRecipientOverride;
+                    return NotificationErrors.CustomRecipientWithNumberOrEmailNotAllowedWithKeyWordRecipientName;
                 }
             }
 
-            foreach (var recipientOverride in customRecipients)
+            // Validate that the email address is valid
+            if (customRecipient.EmailAddress is not null && !emailRegex.IsMatch(customRecipient.EmailAddress))
             {
-                foreach (var recipient in recipientOverride.Recipients)
-                {
-                    var missingNotificationDetailsError = ValidateNotificationChannelForRecipientOverrides(notification, recipient);
-                    if (missingNotificationDetailsError != null)
-                    {
-                        return missingNotificationDetailsError;
-                    }
-                    var notificationInputError = ValidateContactInformationForRecipientOverrides(recipient);
-                    if (notificationInputError != null)
-                    {
-                        return notificationInputError;
-                    }
-                }
+                return NotificationErrors.InvalidEmailProvided;
             }
+
+            // Validate that the mobile number is valid
+            if (customRecipient.MobileNumber is not null && !mobileNumberHelper.IsValidMobileNumber(customRecipient.MobileNumber))
+            {
+                return NotificationErrors.InvalidMobileNumberProvided;
+            }
+
             return null;
         }
         private bool TextContainsTag(string? text, string tag)
         {
             if (text == null) return false;
             return text.Contains(tag, StringComparison.CurrentCultureIgnoreCase);
-        }
-
-        /// <summary>
-        /// Validate that the recipient only provides organization number, social security number, or contact info in email or mobile number for the given notification channel.
-        /// </summary>
-        private Error? ValidateNotificationChannelForRecipientOverrides(NotificationRequest notification, Recipient recipient)
-        {
-            bool recipientHaveOrgOrSsn = !string.IsNullOrEmpty(recipient.OrganizationNumber) || !string.IsNullOrEmpty(recipient.NationalIdentityNumber);
-            var reminderNotificationChannel = notification.ReminderNotificationChannel ?? notification.NotificationChannel;
-            if (notification.NotificationChannel != NotificationChannel.Sms || reminderNotificationChannel != NotificationChannel.Sms)
-            {
-                if (recipient.EmailAddress is null && !recipientHaveOrgOrSsn)
-                {
-                    return NotificationErrors.MissingEmailRecipient;
-                }
-            }
-            if (notification.NotificationChannel != NotificationChannel.Email || reminderNotificationChannel != NotificationChannel.Email)
-            {
-                if (recipient.MobileNumber is null && !recipientHaveOrgOrSsn)
-                {
-                    return NotificationErrors.MissingSmsRecipient;
-                }
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// Validate that the recipient only provides organization number, social security number, or contact info in email or mobile number. If email or mobile number is provided, this is validated.
-        /// </summary>
-        private Error? ValidateContactInformationForRecipientOverrides(Recipient recipient)
-        {
-            bool recipientHasOrgNo = !string.IsNullOrEmpty(recipient.OrganizationNumber);
-            bool recipientHasSsn = !string.IsNullOrEmpty(recipient.NationalIdentityNumber);
-            bool recipientHasEmail = !string.IsNullOrEmpty(recipient.EmailAddress);
-            bool recipientHasMobile = !string.IsNullOrEmpty(recipient.MobileNumber);
-            if (recipientHasOrgNo)
-            {
-                if (recipientHasEmail || recipientHasMobile || recipientHasSsn)
-                {
-                    return NotificationErrors.OrgNumberWithSsnEmailOrMobile;
-                }
-            }
-            if (recipientHasSsn)
-            {
-                if (recipientHasEmail || recipientHasMobile || recipientHasOrgNo)
-                {
-                    return NotificationErrors.SsnWithOrgNoEmailOrMobile;
-                }
-            }
-            if (recipientHasEmail)
-            {
-                if (recipient.EmailAddress is not null && !emailRegex.IsMatch(recipient.EmailAddress))
-                {
-                    return NotificationErrors.InvalidEmailProvided;
-                }
-            }
-            if (recipientHasMobile)
-            {
-                if (!mobileNumberHelper.IsValidMobileNumber(recipient.MobileNumber))
-                {
-                    return NotificationErrors.InvalidMobileNumberProvided;
-                }
-            }
-            return null;
         }
 
         public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, Party? partyDetails, bool isReserved)
@@ -351,6 +300,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 Published = currentStatus == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
                 IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
                 IsConfidential = request.Correspondence.IsConfidential,
+                OriginalRequest = request.Correspondence.OriginalRequest,
             };
         }
 
@@ -464,6 +414,30 @@ namespace Altinn.Correspondence.Application.Helpers
                 logger.LogInformation($"'0192:' prefix detected for sender in initialization of attachment. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
             }
             return await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
+        }
+
+        public Error? ValidateReplyOptions(List<CorrespondenceReplyOptionEntity> replyOptions)
+        {
+            if (replyOptions == null)
+            {
+                return null;
+            }
+            foreach (var replyOption in replyOptions)
+            {
+                if (replyOption.LinkURL.Length > 255)
+                {
+                    return CorrespondenceErrors.InvalidReplyOptions;
+                }
+                if (!Uri.IsWellFormedUriString((string)replyOption.LinkURL, UriKind.Absolute))
+                {
+                    return CorrespondenceErrors.InvalidReplyOptions;
+                }
+                if (!replyOption.LinkURL.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                {
+                    return CorrespondenceErrors.InvalidReplyOptions;
+                }
+            }
+            return null;
         }
     }
 }

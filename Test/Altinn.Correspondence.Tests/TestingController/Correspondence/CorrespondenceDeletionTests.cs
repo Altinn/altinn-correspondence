@@ -36,8 +36,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.NotFound, recipientResponse.StatusCode);
             Assert.Equal(HttpStatusCode.OK, senderResponse.StatusCode);
-            var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}", _responseSerializerOptions);
-            Assert.Equal(overview?.Status, CorrespondenceStatusExt.PurgedByAltinn);
+            var overviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}");
+            Assert.Equal(HttpStatusCode.NotFound, overviewResponse.StatusCode);
         }
 
         [Fact]
@@ -57,8 +57,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, senderResponse.StatusCode);
             Assert.Equal(HttpStatusCode.OK, recipientResponse.StatusCode);
-            var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}", _responseSerializerOptions);
-            Assert.Equal(overview?.Status, CorrespondenceStatusExt.PurgedByRecipient);
+            var overviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}");
+            Assert.Equal(HttpStatusCode.NotFound, overviewResponse.StatusCode);
         }
 
         [Fact]
@@ -121,8 +121,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 var correspondenceId = correspondence.CorrespondenceId;
                 var response = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
                 Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-                var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceId}", _responseSerializerOptions);
-                Assert.Equal(overview?.Status, CorrespondenceStatusExt.PurgedByAltinn);
+                var overviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+                Assert.Equal(HttpStatusCode.NotFound, overviewResponse.StatusCode);
             }
 
             // Assert

@@ -27,6 +27,20 @@ public class AltinnDevNotificationService : IAltinnNotificationService
         };
     }
 
+    public async Task<NotificationOrderRequestResponseV2?> CreateNotificationV2(NotificationOrderRequestV2 notificationRequest, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Notification (versjon 2): ");
+        return new NotificationOrderRequestResponseV2()
+        {
+            NotificationOrderId = Guid.NewGuid(),
+            Notification = new NotificationResponseV2()
+            {
+                ShipmentId = Guid.NewGuid(),
+                SendersReference = "AltinnCorrespondence"
+            }
+        };
+    }
+
     public async Task<bool> CancelNotification(string orderId, CancellationToken cancellationToken = default)
     {
         return true;
@@ -67,6 +81,18 @@ public class AltinnDevNotificationService : IAltinnNotificationService
             },
             RequestedSendTime = DateTime.UtcNow,
             SendersReference = "AltinnCorrespondence"
+        };
+    }
+
+    public async Task<NotificationStatusResponseV2> GetNotificationDetailsV2(string shipmentId, CancellationToken cancellationToken = default)
+    {
+        return new NotificationStatusResponseV2()
+        {
+            ShipmentId = Guid.Parse(shipmentId),
+            SendersReference = "AltinnCorrespondence",
+            Type = "Email",
+            Status = "Completed",
+            Recipients = []
         };
     }
 }

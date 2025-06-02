@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using Altinn.Correspondence.Application;
 
 namespace Altinn.Correspondence.API.Models;
 
@@ -24,4 +25,40 @@ public class InitializeCorrespondencesExt
     /// </summary>
     [JsonPropertyName("existingAttachments")]
     public List<Guid> ExistingAttachments { get; set; } = new List<Guid>();
+
+    /// <summary>
+    /// Optional idempotency key to prevent duplicate correspondence creation
+    /// </summary>
+    [JsonPropertyName("idempotentKey")]
+    [ValidIdempotentKey]
+    public Guid? IdempotentKey { get; set; }
+}
+
+[AttributeUsage(AttributeTargets.Property)]
+internal class ValidIdempotentKeyAttribute : ValidationAttribute
+{
+    public ValidIdempotentKeyAttribute()
+    {
+        ErrorMessage = CorrespondenceErrors.InvalidIdempotencyKey.Message;
+    }
+
+    protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
+    {
+        if (value == null)
+        {
+            return ValidationResult.Success;
+        }
+
+        if (value is not Guid guid)
+        {
+            return new ValidationResult(CorrespondenceErrors.InvalidIdempotencyKey.Message);
+        }
+
+        if (guid == Guid.Empty)
+        {
+            return new ValidationResult(CorrespondenceErrors.InvalidIdempotencyKey.Message);
+        }
+
+        return ValidationResult.Success;
+    }
 }

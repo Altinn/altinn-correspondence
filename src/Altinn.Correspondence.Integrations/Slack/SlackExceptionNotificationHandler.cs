@@ -181,6 +181,7 @@ public class SlackExceptionNotificationHandler(
     {
         return $":warning: *Unhandled Exception*\n" +
                 $"*Environment:* {hostEnvironment.EnvironmentName}\n" +
+                $"*System:* Correspondence\n" +
                 $"*Job ID:* {jobId}\n" +
                 $"*Job Name:* {jobName}\n" +
                 $"*Type:* {exception.GetType().Name}\n" +

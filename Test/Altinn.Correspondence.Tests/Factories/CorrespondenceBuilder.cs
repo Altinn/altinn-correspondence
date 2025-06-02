@@ -196,6 +196,12 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.Notification!.SendReminder = false;
             return this;
         }
+        public CorrespondenceBuilder WithCustomNotificationRecipient(NotificationRecipientExt recipient)
+        {
+            _correspondence.Correspondence.Notification!.CustomRecipient = recipient;
+            return this;
+        }
+
         public CorrespondenceBuilder WithCustomNotificationRecipients(List<CustomNotificationRecipientExt> recipients)
         {
             _correspondence.Correspondence.Notification!.CustomNotificationRecipients = recipients;
@@ -205,6 +211,12 @@ namespace Altinn.Correspondence.Tests.Factories
         public CorrespondenceBuilder WithIgnoreReservation(bool ignoreReservation)
         {
             _correspondence.Correspondence.IgnoreReservation = ignoreReservation;
+            return this;
+        }
+
+        public CorrespondenceBuilder WithIdempotentKey(Guid idempotentKey)
+        {
+            _correspondence.IdempotentKey = idempotentKey;
             return this;
         }
 

@@ -32,77 +32,7 @@ public class MigrationAccessTests : MigrationTestBase
     }
 
     [Fact]
-    public async Task LegacyGetCorrespondences_IsMigratingTrue_WithFilterEnabled__NoCorrespondenceFound()
-    {
-        // Arrange
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
-            .CreateMigrateCorrespondence()
-            .Build();
-
-        // Act
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
-        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
-
-        CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
-        var createdCorrespondenceId = result.CorrespondenceId;
-
-        var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", GetBasicLegacyGetCorrespondenceRequestExt());
-        Assert.True(correspondenceList.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
-
-        var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);
-        Assert.False(response?.Items.Any(x => x.CorrespondenceId == createdCorrespondenceId));
-    }
-
-    [Fact]
-    public async Task LegacyGetCorrespondences_IsMigratingFalse_WithFilterEnabled__NoCorrespondenceFound()
-    {
-        // Arrange
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
-            .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
-            .Build();
-
-        // Act
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
-        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
-
-        CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
-        var createdCorrespondenceId = result.CorrespondenceId;
-
-        var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", GetBasicLegacyGetCorrespondenceRequestExt());
-        Assert.True(correspondenceList.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
-
-        var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);
-        Assert.False(response?.Items.Any(x => x.CorrespondenceId == createdCorrespondenceId));
-    }
-
-    [Fact]
-    public async Task LegacyGetCorrespondences_IsMigratingTrue_WithFilterDisabled__CorrespondenceFound()
-    {
-        // Arrange
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
-            .CreateMigrateCorrespondence()
-            .Build();
-
-        // Act
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
-        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
-
-        CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
-        var createdCorrespondenceId = result.CorrespondenceId;
-
-        var request = GetBasicLegacyGetCorrespondenceRequestExt();
-        request.FilterMigrated = false;
-
-        var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", request);
-        Assert.True(correspondenceList.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
-
-        var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);
-        Assert.True(response?.Items.Any(x => x.CorrespondenceId == createdCorrespondenceId));
-    }
-
-    [Fact]
-    public async Task LegacyGetCorrespondences_IsMigratingFalse_WithFilterDisabled__CorrespondenceFound()
+    public async Task LegacyLifeCycle_IsMigratingFalse_WithFilterDisabled__OK()
     {
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
@@ -121,10 +51,160 @@ public class MigrationAccessTests : MigrationTestBase
         request.FilterMigrated = false;
 
         var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", request);
-        Assert.True(correspondenceList.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+        Assert.True(correspondenceList.IsSuccessStatusCode, await correspondenceList.Content.ReadAsStringAsync());
 
         var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);
         Assert.True(response?.Items.Any(x => x.CorrespondenceId == createdCorrespondenceId));
+
+        var correspondenceOverview = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/overview");
+        Assert.True(correspondenceOverview.IsSuccessStatusCode, await correspondenceOverview.Content.ReadAsStringAsync());
+
+        var correspondenceHistory = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/history");
+        Assert.True(correspondenceHistory.IsSuccessStatusCode, await correspondenceHistory.Content.ReadAsStringAsync());
+
+        var markAsReadResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/markasread", null);
+        Assert.True(markAsReadResponse.IsSuccessStatusCode, await markAsReadResponse.Content.ReadAsStringAsync());
+
+        var confirmResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/confirm", null);
+        Assert.True(confirmResponse.IsSuccessStatusCode, await confirmResponse.Content.ReadAsStringAsync());
+
+        var archiveResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/archive", null);
+        Assert.True(archiveResponse.IsSuccessStatusCode, await archiveResponse.Content.ReadAsStringAsync());
+
+        var purgeResponse = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/purge");
+        Assert.True(purgeResponse.IsSuccessStatusCode, await purgeResponse.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task LegacyLifeCycle_IsMigratingFalse_WithFilterEnabled__NotFoundInList_RestOK()
+    {
+        // Arrange
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithIsMigrating(false)
+            .Build();
+
+        // Act
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+
+        CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        var createdCorrespondenceId = result.CorrespondenceId;
+
+        var correspondenceListRequest = GetBasicLegacyGetCorrespondenceRequestExt();
+        correspondenceListRequest.FilterMigrated = true;
+
+        var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", correspondenceListRequest);
+        Assert.True(correspondenceList.IsSuccessStatusCode, await correspondenceList.Content.ReadAsStringAsync());
+
+        var correspondenceListResponse = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);        
+        Assert.False(correspondenceListResponse?.Items.Any(x => x.CorrespondenceId == createdCorrespondenceId));
+
+        var correspondenceOverview = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/overview");
+        Assert.True(correspondenceOverview.IsSuccessStatusCode, await correspondenceOverview.Content.ReadAsStringAsync());
+
+        var correspondenceHistory = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/history");
+        Assert.True(correspondenceHistory.IsSuccessStatusCode, await correspondenceHistory.Content.ReadAsStringAsync());
+
+        var markAsReadResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/markasread", null);
+        Assert.True(markAsReadResponse.IsSuccessStatusCode, await markAsReadResponse.Content.ReadAsStringAsync());
+
+        var confirmResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/confirm", null);
+        Assert.True(confirmResponse.IsSuccessStatusCode, await confirmResponse.Content.ReadAsStringAsync());
+
+        var archiveResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/archive", null);
+        Assert.True(archiveResponse.IsSuccessStatusCode, await archiveResponse.Content.ReadAsStringAsync());
+
+        var purgeResponse = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/purge");
+        Assert.True(purgeResponse.IsSuccessStatusCode, await purgeResponse.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task LegacyLifeCycle_IsMigratingTrue_WithFilterDisabled__OK()
+    {
+        // Arrange
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithIsMigrating(true)
+            .Build();
+
+        // Act
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+
+        CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        var createdCorrespondenceId = result.CorrespondenceId;
+
+        var request = GetBasicLegacyGetCorrespondenceRequestExt();
+        request.FilterMigrated = false;
+
+        var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", request);
+        Assert.True(correspondenceList.IsSuccessStatusCode, await correspondenceList.Content.ReadAsStringAsync());
+
+        var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);
+        Assert.True(response?.Items.Any(x => x.CorrespondenceId == createdCorrespondenceId));
+
+        var correspondenceOverview = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/overview");
+        Assert.True(correspondenceOverview.IsSuccessStatusCode, await correspondenceOverview.Content.ReadAsStringAsync());
+
+        var correspondenceHistory = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/history");
+        Assert.True(correspondenceHistory.IsSuccessStatusCode, await correspondenceHistory.Content.ReadAsStringAsync());
+
+        var markAsReadResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/markasread", null);
+        Assert.True(markAsReadResponse.IsSuccessStatusCode, await markAsReadResponse.Content.ReadAsStringAsync());
+
+        var confirmResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/confirm", null);
+        Assert.True(confirmResponse.IsSuccessStatusCode, await confirmResponse.Content.ReadAsStringAsync());
+
+        var archiveResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/archive", null);
+        Assert.True(archiveResponse.IsSuccessStatusCode, await archiveResponse.Content.ReadAsStringAsync());
+
+        var purgeResponse = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/purge");
+        Assert.True(purgeResponse.IsSuccessStatusCode, await purgeResponse.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task LegacyLifeCycle_IsMigratingTrue_WithFilterEnabled__NotFoundInList_RestOK()
+    {
+        // Arrange
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithIsMigrating(true)
+            .Build();
+
+        // Act
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+
+        CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        var createdCorrespondenceId = result.CorrespondenceId;
+
+        var request = GetBasicLegacyGetCorrespondenceRequestExt();
+        request.FilterMigrated = true;
+
+        var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", request);
+        Assert.True(correspondenceList.IsSuccessStatusCode, await correspondenceList.Content.ReadAsStringAsync());
+
+        var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);
+        Assert.False(response?.Items.Any(x => x.CorrespondenceId == createdCorrespondenceId));
+
+        var correspondenceOverview = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/overview");
+        Assert.True(correspondenceOverview.IsSuccessStatusCode, await correspondenceOverview.Content.ReadAsStringAsync());
+
+        var correspondenceHistory = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/history");
+        Assert.True(correspondenceHistory.IsSuccessStatusCode, await correspondenceHistory.Content.ReadAsStringAsync());
+
+        var markAsReadResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/markasread", null);
+        Assert.True(markAsReadResponse.IsSuccessStatusCode, await markAsReadResponse.Content.ReadAsStringAsync());
+
+        var confirmResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/confirm", null);
+        Assert.True(confirmResponse.IsSuccessStatusCode, await confirmResponse.Content.ReadAsStringAsync());
+
+        var archiveResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/archive", null);
+        Assert.True(archiveResponse.IsSuccessStatusCode, await archiveResponse.Content.ReadAsStringAsync());
+
+        var purgeResponse = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/purge");
+        Assert.True(purgeResponse.IsSuccessStatusCode, await purgeResponse.Content.ReadAsStringAsync());
     }
 
     [Fact]

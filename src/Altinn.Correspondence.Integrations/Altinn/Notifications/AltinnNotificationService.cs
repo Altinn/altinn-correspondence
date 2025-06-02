@@ -38,6 +38,25 @@ public class AltinnNotificationService : IAltinnNotificationService
         return responseContent;
     }
 
+    public async Task<NotificationOrderRequestResponseV2?> CreateNotificationV2(NotificationOrderRequestV2 notificationRequest, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Creating notification in Altinn Notification v2");
+        var response = await _httpClient.PostAsJsonAsync("notifications/api/v1/future/orders", notificationRequest, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Failed to create notification in Altinn Notification v2. Status code: {StatusCode}", response.StatusCode);
+            _logger.LogError("Body: {Response}", await response.Content.ReadAsStringAsync(cancellationToken));
+            return null;
+        }
+        var responseContent = await response.Content.ReadFromJsonAsync<NotificationOrderRequestResponseV2>(cancellationToken: cancellationToken);
+        if (responseContent is null)
+        {
+            _logger.LogError("Unexpected null or invalid json response from Notification v2.");
+            return null;
+        }
+        return responseContent;
+    }
+
     public async Task<bool> CancelNotification(string orderId, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PutAsync($"notifications/api/v1/orders/{orderId}/cancel", null, cancellationToken: cancellationToken);
@@ -109,5 +128,23 @@ public class AltinnNotificationService : IAltinnNotificationService
             if (data?.Notifications.Count > 0) notificationStatusResponse.NotificationsStatusDetails.Sms = data.Notifications[0];
         }
         return notificationStatusResponse;
+    }
+
+    public async Task<NotificationStatusResponseV2> GetNotificationDetailsV2(string shipmentId, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync($"notifications/api/v1/future/shipment/{shipmentId}", cancellationToken: cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Failed to get details about notification v2 from Altinn Notification. Status code: {StatusCode}", response.StatusCode);
+            _logger.LogError("Body: {Response}", await response.Content.ReadAsStringAsync(cancellationToken));
+            throw new BadHttpRequestException("Failed to process response from Altinn Notification");
+        }
+        var responseContent = await response.Content.ReadFromJsonAsync<NotificationStatusResponseV2>(cancellationToken: cancellationToken);
+        if (responseContent is null)
+        {
+            _logger.LogError("Unexpected null or invalid json response from Notification v2.");
+            throw new BadHttpRequestException("Failed to process get notification details v2 from Altinn Notification");
+        }
+        return responseContent;
     }
 }
