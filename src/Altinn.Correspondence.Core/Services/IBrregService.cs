@@ -1,36 +1,28 @@
 namespace Altinn.Correspondence.Core.Services
 {
+    using Altinn.Correspondence.Core.Models.Brreg;
+    
     /// <summary>
     /// Service for interacting with Brønnøysundregistrene API
     /// </summary>
     public interface IBrregService
     {
         /// <summary>
-        /// Checks if an organization has the specified role(s)
+        /// Gets detailed information about an organization
         /// </summary>
         /// <param name="organizationNumber">The organization number</param>
-        /// <param name="roles">The roles to check for</param>
         /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>True if the organization has registered someone with one of the role(s), false otherwise</returns>
+        /// <returns>Organization details model</returns>
         /// <exception cref="HttpRequestException">Thrown when the API call fails</exception>
-        Task<bool> HasAnyOfOrganizationRolesAsync(string organizationNumber, IEnumerable<string> roles, CancellationToken cancellationToken = default);
+        Task<OrganizationDetails> GetOrganizationDetailsAsync(string organizationNumber, CancellationToken cancellationToken = default);
         
         /// <summary>
-        /// Checks if an organization is in bankruptcy
+        /// Gets roles information for an organization
         /// </summary>
         /// <param name="organizationNumber">The organization number</param>
         /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>True if the organization is in bankruptcy, false otherwise</returns>
+        /// <returns>Organization roles model</returns>
         /// <exception cref="HttpRequestException">Thrown when the API call fails</exception>
-        Task<bool> IsOrganizationBankrupt(string organizationNumber, CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// Checks if an organization is deleted
-        /// </summary>
-        /// <param name="organizationNumber">The organization number</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>True if the organization is deleted, false otherwise</returns>
-        /// <exception cref="HttpRequestException">Thrown when the API call fails</exception>
-        Task<bool> IsOrganizationDeleted(string organizationNumber, CancellationToken cancellationToken = default);
+        Task<OrganizationRoles> GetOrganizationRolesAsync(string organizationNumber, CancellationToken cancellationToken = default);
     }
 }

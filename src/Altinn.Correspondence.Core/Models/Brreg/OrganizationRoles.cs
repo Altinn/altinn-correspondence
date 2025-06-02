@@ -1,32 +1,60 @@
 using System.Text.Json.Serialization;
 
-namespace Altinn.Correspondence.Integrations.Brreg.Models
+namespace Altinn.Correspondence.Core.Models.Brreg
 {
     /// <summary>
-    /// Response model for the Brreg API organization roles endpoint
+    /// Model for organization roles from Brønnøysundregistrene
     /// </summary>
-    public class OrganizationRolesResponse
+    public class OrganizationRoles
     {
         /// <summary>
-        /// Gets or sets the role groups for the organization
+        /// List of role groups in the organization
         /// </summary>
         [JsonPropertyName("rollegrupper")]
         public List<RoleGroup>? RoleGroups { get; set; }
+
+        /// <summary>
+        /// Checks if the organization has any of the specified roles
+        /// </summary>
+        /// <param name="roleCodes">Role codes to check for</param>
+        /// <returns>True if any of the roles are found, false otherwise</returns>
+        public bool HasAnyOfRoles(IEnumerable<string> roleCodes)
+        {
+            if (RoleGroups == null)
+                return false;
+                
+            foreach (var group in RoleGroups)
+            {
+                if (group.Roles == null) 
+                    continue;
+                    
+                foreach (var role in group.Roles)
+                {
+                    if (role.HasResigned) 
+                        continue;
+
+                    if (role.Type?.Code != null && roleCodes.Contains(role.Type.Code))
+                        return true;
+                }
+            }
+            
+            return false;
+        }
     }
 
     /// <summary>
-    /// Group of roles in an organization
+    /// Group of roles in an organization (e.g., board, management)
     /// </summary>
     public class RoleGroup
     {
         /// <summary>
-        /// Gets or sets the type of role group
+        /// Type information of the role group
         /// </summary>
         [JsonPropertyName("type")]
         public TypeInfo? Type { get; set; }
 
         /// <summary>
-        /// Gets or sets the roles in this group
+        /// Roles within this group
         /// </summary>
         [JsonPropertyName("roller")]
         public List<Role>? Roles { get; set; }

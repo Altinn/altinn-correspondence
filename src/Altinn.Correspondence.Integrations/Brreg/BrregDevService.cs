@@ -1,6 +1,5 @@
+using Altinn.Correspondence.Core.Models.Brreg;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Integrations.Brreg.Models;
-using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Integrations.Brreg
 {
@@ -10,24 +9,61 @@ namespace Altinn.Correspondence.Integrations.Brreg
     /// <remarks>
     /// Initializes a new instance of the <see cref="BrregDevService"/> class.
     /// </remarks>
-    /// <param name="logger">Logger</param>
-    public class BrregDevService(ILogger<BrregDevService> logger) : IBrregService
+    public class BrregDevService() : IBrregService
     {
-        private readonly ILogger<BrregDevService> _logger = logger;
-
-        public Task<bool> HasAnyOfOrganizationRolesAsync(string organizationNumber, IEnumerable<string> roles, CancellationToken cancellationToken = default)
+        public Task<OrganizationDetails> GetOrganizationDetailsAsync(string organizationNumber, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(true);
+            // Returns mock data for development testing
+            var details = new OrganizationDetails
+            {
+                OrganizationNumber = organizationNumber,
+                Name = "Test Organization",
+                IsBankrupt = false,
+                DeletionDate = null
+            };
+            
+            return Task.FromResult(details);
         }
 
-        public Task<bool> IsOrganizationBankrupt(string organizationNumber, CancellationToken cancellationToken = default)
+        public Task<OrganizationRoles> GetOrganizationRolesAsync(string organizationNumber, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(false);
-        }
-        
-        public Task<bool> IsOrganizationDeleted(string organizationNumber, CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(false);
+            // Returns mock data for development testing
+            var roles = new OrganizationRoles();
+            
+            var roleGroup = new RoleGroup
+            {
+                Type = new TypeInfo
+                {
+                    Code = "STYR",
+                    Description = "Styre"
+                }
+            };
+            
+            roleGroup.Roles = new List<Role>
+            {
+                new Role
+                {
+                    Type = new TypeInfo
+                    {
+                        Code = "LEDE",
+                        Description = "Daglig leder"
+                    },
+                    HasResigned = false
+                },
+                new Role
+                {
+                    Type = new TypeInfo
+                    {
+                        Code = "NEST",
+                        Description = "Nestleder"
+                    },
+                    HasResigned = false
+                }
+            };
+            
+            roles.RoleGroups = new List<RoleGroup> { roleGroup };
+            
+            return Task.FromResult(roles);
         }
     }
 } 

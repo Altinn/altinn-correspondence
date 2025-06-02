@@ -1,12 +1,9 @@
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Integrations.Brreg.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
-using Altinn.Correspondence.Common.Caching;
-using Microsoft.Extensions.Caching.Hybrid;
-using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Models.Brreg;
 
 namespace Altinn.Correspondence.Integrations.Brreg
 {
@@ -18,19 +15,12 @@ namespace Altinn.Correspondence.Integrations.Brreg
         private readonly HttpClient _httpClient;
         private readonly ILogger<BrregService> _logger;
         private readonly GeneralSettings _settings;
-        private readonly IHybridCacheWrapper _cache;
-        private readonly HybridCacheEntryOptions _cacheOptions;
 
-        public BrregService(HttpClient httpClient, IOptions<GeneralSettings> settings, ILogger<BrregService> logger, IHybridCacheWrapper cache)
+        public BrregService(HttpClient httpClient, IOptions<GeneralSettings> settings, ILogger<BrregService> logger)
         {
             _httpClient = httpClient;
             _settings = settings.Value;
             _logger = logger;
-            _cache = cache;
-            _cacheOptions = new HybridCacheEntryOptions
-            {
-                Expiration = TimeSpan.FromMinutes(30)
-            };
 
             if (!string.IsNullOrEmpty(_settings.BrregBaseUrl))
             {
@@ -38,63 +28,8 @@ namespace Altinn.Correspondence.Integrations.Brreg
             }
         }
 
-        public async Task<bool> HasAnyOfOrganizationRolesAsync(string organizationNumber, IEnumerable<string> roletypes, CancellationToken cancellationToken = default)
+        public async Task<OrganizationRoles> GetOrganizationRolesAsync(string organizationNumber, CancellationToken cancellationToken = default)
         {
-            var rolesResponse = await GetOrganizationRolesAsync(organizationNumber, cancellationToken);
-            
-            var registeredRoleTypes = ExtractRegisteredRoleTypes(rolesResponse);
-
-            foreach (var requestedRole in roletypes)
-            {
-                foreach (var roleType in registeredRoleTypes)
-                {
-                    if (requestedRole.Equals(roleType, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        public async Task<bool> IsOrganizationBankrupt(string organizationNumber, CancellationToken cancellationToken = default)
-        {
-            var details = await GetOrganizationDetailsAsync(organizationNumber, cancellationToken);
-            return details.IsBankrupt;
-        }
-
-        public async Task<bool> IsOrganizationDeleted(string organizationNumber, CancellationToken cancellationToken = default)
-        {
-            var details = await GetOrganizationDetailsAsync(organizationNumber, cancellationToken);
-            return details.IsDeleted;
-        }
-
-        /// <summary>
-        /// Gets all roles for an organization
-        /// </summary>
-        /// <param name="organizationNumber">The organization number</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Organization roles response</returns>
-        /// <exception cref="HttpRequestException">Thrown when the API call fails</exception>
-        internal async Task<OrganizationRolesResponse> GetOrganizationRolesAsync(string organizationNumber, CancellationToken cancellationToken = default)
-        {
-            string cacheKey = $"BrregOrganizationRoles_{organizationNumber}";
-            
-            try
-            {
-                var cachedRoles = await CacheHelpers.GetObjectFromCacheAsync<OrganizationRolesResponse>(cacheKey, _cache, cancellationToken);
-                if (cachedRoles != null)
-                {
-                    return cachedRoles;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error retrieving organization roles from cache for organization {OrganizationNumber}", organizationNumber);
-            }
-            
-            _logger.LogInformation("Getting roles for organization {OrganizationNumber}", organizationNumber);
             var endpoint = $"enheter/{organizationNumber}/roller";
             var response = await _httpClient.GetAsync(endpoint, cancellationToken);
 
@@ -106,50 +41,18 @@ namespace Altinn.Correspondence.Integrations.Brreg
                 throw new HttpRequestException($"Failed to get roles for organization {organizationNumber}. Status code: {response.StatusCode}, Error: {errorContent}");
             }
 
-            var rolesResponse = await response.Content.ReadFromJsonAsync<OrganizationRolesResponse>(cancellationToken: cancellationToken);
+            var rolesResponse = await response.Content.ReadFromJsonAsync<OrganizationRoles>(cancellationToken: cancellationToken);
             if (rolesResponse == null)
             {
                 _logger.LogError("Unexpected response format from Brreg API when getting roles for organization {OrganizationNumber}", organizationNumber);
                 throw new HttpRequestException($"Unexpected response format from Brreg API when getting roles for organization {organizationNumber}");
             }
             
-            try
-            {
-                await CacheHelpers.StoreObjectInCacheAsync(cacheKey, rolesResponse, _cache, _cacheOptions, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error storing organization roles to cache for organization {OrganizationNumber}", organizationNumber);
-            }
-            
             return rolesResponse;
         }
 
-        /// <summary>
-        /// Gets details for an organization, including bankruptcy and deletion status
-        /// </summary>
-        /// <param name="organizationNumber">The organization number</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Organization details response</returns>
-        /// <exception cref="HttpRequestException">Thrown when the API call fails</exception>
-        internal async Task<OrganizationDetailsResponse> GetOrganizationDetailsAsync(string organizationNumber, CancellationToken cancellationToken = default)
+        public async Task<OrganizationDetails> GetOrganizationDetailsAsync(string organizationNumber, CancellationToken cancellationToken = default)
         {
-            string cacheKey = $"BrregOrganizationDetails_{organizationNumber}";
-            
-            try
-            {
-                var cachedDetails = await CacheHelpers.GetObjectFromCacheAsync<OrganizationDetailsResponse>(cacheKey, _cache, cancellationToken);
-                if (cachedDetails != null)
-                {
-                    return cachedDetails;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error retrieving organization details from cache for organization {OrganizationNumber}", organizationNumber);
-            }
-            
-            _logger.LogInformation("Getting details for organization {OrganizationNumber}", organizationNumber);
             var endpoint = $"enheter/{organizationNumber}";
             var response = await _httpClient.GetAsync(endpoint, cancellationToken);
 
@@ -161,56 +64,14 @@ namespace Altinn.Correspondence.Integrations.Brreg
                 throw new HttpRequestException($"Failed to get details for organization {organizationNumber}. Status code: {response.StatusCode}, Error: {errorContent}");
             }
 
-            var detailsResponse = await response.Content.ReadFromJsonAsync<OrganizationDetailsResponse>(cancellationToken: cancellationToken);
+            var detailsResponse = await response.Content.ReadFromJsonAsync<OrganizationDetails>(cancellationToken: cancellationToken);
             if (detailsResponse == null)
             {
                 _logger.LogError("Unexpected response format from Brreg API when getting details for organization {OrganizationNumber}", organizationNumber);
                 throw new HttpRequestException($"Unexpected response format from Brreg API when getting details for organization {organizationNumber}");
             }
             
-            try
-            {
-                await CacheHelpers.StoreObjectInCacheAsync(cacheKey, detailsResponse, _cache, _cacheOptions, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error storing organization details to cache for organization {OrganizationNumber}", organizationNumber);
-            }
-            
             return detailsResponse;
-        }
-
-        /// <summary>
-        /// Method to retrieve the registered role types from the organization roles response.
-        /// </summary>
-        /// <param name="response">The response from the roles request</param>
-        /// <returns>A list of roletypes that have at least one user with the role registered</returns>
-        private static List<string> ExtractRegisteredRoleTypes(OrganizationRolesResponse response)
-        {
-            var roles = new List<string>();
-
-            if (response.RoleGroups == null)
-            {
-                return roles;
-            }
-
-            foreach (var roleGroup in response.RoleGroups)
-            {
-                if (roleGroup.Type?.Code == null || roleGroup.Roles == null)
-                {
-                    continue;
-                }
-
-                foreach (var role in roleGroup.Roles)
-                {
-                    if (role.Type?.Code != null && !role.HasResigned)
-                    {
-                        roles.Add(role.Type.Code);
-                    }
-                }
-            }
-
-            return roles;
         }
     }
 }

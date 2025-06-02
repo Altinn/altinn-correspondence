@@ -1,59 +1,61 @@
+using Altinn.Correspondence.Core.Models.Brreg;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Brreg;
-using Microsoft.Extensions.Logging;
-using Moq;
 
 namespace Altinn.Correspondence.Tests.Brreg
 {
     public class BrregDevServiceTests
     {
-        private readonly Mock<ILogger<BrregDevService>> _mockLogger;
         private readonly BrregDevService _service;
+        private static readonly string[] _testRoles = ["LEDE"];
 
         public BrregDevServiceTests()
         {
-            _mockLogger = new Mock<ILogger<BrregDevService>>();
-            _service = new BrregDevService(_mockLogger.Object);
+            _service = new BrregDevService();
         }
 
         [Fact]
-        public async Task HasAnyOfOrganizationRolesAsync_ReturnsTrue()
-        {
-            // Arrange
-            var organizationNumber = "123456789";
-            var roles = new[] { "LEDE", "STYR" };
-
-            // Act
-            var result = await _service.HasAnyOfOrganizationRolesAsync(organizationNumber, roles);
-
-            // Assert
-            Assert.True(result);
-        }
-
-        [Fact]
-        public async Task IsOrganizationBankrupt_ReturnsFalse()
+        public async Task GetOrganizationDetailsAsync_ReturnsMockData()
         {
             // Arrange
             var organizationNumber = "123456789";
 
             // Act
-            var result = await _service.IsOrganizationBankrupt(organizationNumber);
+            var result = await _service.GetOrganizationDetailsAsync(organizationNumber);
 
             // Assert
-            Assert.False(result);
+            Assert.NotNull(result);
+            Assert.Equal(organizationNumber, result.OrganizationNumber);
+            Assert.Equal("Test Organization", result.Name);
+            Assert.False(result.IsBankrupt);
+            Assert.False(result.IsDeleted);
         }
-        
+
         [Fact]
-        public async Task IsOrganizationDeleted_ReturnsFalse()
+        public async Task GetOrganizationRolesAsync_ReturnsMockData()
         {
             // Arrange
             var organizationNumber = "123456789";
 
             // Act
-            var result = await _service.IsOrganizationDeleted(organizationNumber);
+            var result = await _service.GetOrganizationRolesAsync(organizationNumber);
 
             // Assert
-            Assert.False(result);
+            Assert.NotNull(result);
+            Assert.NotNull(result.RoleGroups);
+            Assert.Single(result.RoleGroups);
+            
+            var roleGroup = result.RoleGroups[0];
+            Assert.True(result.HasAnyOfRoles(_testRoles));
+            Assert.NotNull(roleGroup);
+            Assert.NotNull(roleGroup.Type);
+            Assert.Equal("STYR", roleGroup.Type!.Code);
+            Assert.NotNull(roleGroup.Roles);
+            Assert.Equal(2, roleGroup.Roles!.Count);
+            Assert.NotNull(roleGroup.Roles[0].Type);
+            Assert.Equal("LEDE", roleGroup.Roles[0].Type!.Code);
+            Assert.NotNull(roleGroup.Roles[1].Type);
+            Assert.Equal("NEST", roleGroup.Roles[1].Type!.Code);
         }
     }
 } 
