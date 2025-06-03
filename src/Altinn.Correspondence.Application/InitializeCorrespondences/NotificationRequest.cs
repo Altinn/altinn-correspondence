@@ -10,6 +10,8 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
 
         public string? EmailBody { get; set; }
 
+        public EmailContentType EmailContentType { get; set; } = EmailContentType.Plain;
+
         public string? SmsBody { get; set; }
 
         public bool SendReminder { get; set; }
@@ -17,6 +19,8 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
         public string? ReminderEmailSubject { get; set; }
 
         public string? ReminderEmailBody { get; set; }
+
+        public EmailContentType? ReminderEmailContentType { get; set; }
 
         public string? ReminderSmsBody { get; set; }
 
