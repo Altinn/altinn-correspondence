@@ -79,7 +79,7 @@ public class PublishCorrespondenceHandler(
         OrganizationDetails? details = null;
         OrganizationRoles? roles = null;
         var requiredOrganizationRoles = new List<string> { "BEST", "DAGL", "DTPR", "DTSO", "INNH", "LEDE"};
-        if (correspondence.GetRecipientUrn().IsOrganizationNumber())
+        if (correspondence.GetRecipientUrn().WithoutPrefix().IsOrganizationNumber())
         {
             details = await brregService.GetOrganizationDetailsAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
             roles = await brregService.GetOrganizationRolesAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
