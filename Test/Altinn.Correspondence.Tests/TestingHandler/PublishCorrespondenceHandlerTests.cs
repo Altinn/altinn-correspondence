@@ -11,7 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Slack.Webhooks;
-using System.Linq.Expressions;
+using Altinn.Correspondence.Core.Exceptions;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
@@ -280,6 +280,87 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _slackClientMock.Verify(
                 x => x.PostAsync(It.Is<SlackMessage>(m => m.Text.Contains("Correspondence failed"))),
                 Times.Never);
+        }
+
+        [Fact]
+        public async Task Process_WhenOrganizationNotFoundInBrreg_FailsCorrespondenceWithCorrectMessage()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var partyUuid = Guid.NewGuid();
+            var senderUrn = "urn:altinn:organization:identifier-no:313721779";
+            var recipientUrn = "urn:altinn:organization:identifier-no:310244007";
+            var organizationNumber = "310244007"; // Extract just the org number for exception
+            var now = DateTimeOffset.UtcNow;
+            
+            var correspondence = new CorrespondenceEntity
+            {
+                Id = correspondenceId,
+                Sender = senderUrn,
+                Recipient = recipientUrn,
+                IsConfidential = true,
+                ResourceId = "resource-123",
+                SendersReference = "ref-123",
+                RequestedPublishTime = now.AddMinutes(-10),
+                Created = now.AddMinutes(-30),
+                ExternalReferences = new List<ExternalReferenceEntity>
+                {
+                    new ExternalReferenceEntity
+                    {
+                        ReferenceType = ReferenceType.DialogportenDialogId,
+                        ReferenceValue = "dialog-123"
+                    }
+                },
+                Statuses = new List<CorrespondenceStatusEntity>
+                {
+                    new CorrespondenceStatusEntity
+                    {
+                        CorrespondenceId = correspondenceId,
+                        Status = CorrespondenceStatus.ReadyForPublish,
+                        StatusChanged = now.AddMinutes(-10),
+                        StatusText = CorrespondenceStatus.ReadyForPublish.ToString()
+                    }
+                }
+            };
+
+            // Mock party lookup
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyById(
+                    It.IsAny<string>(), 
+                    It.IsAny<CancellationToken>()))
+                .Returns((string id, CancellationToken token) => 
+                    Task.FromResult<Party?>(new Party { PartyUuid = partyUuid }));
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .ReturnsAsync(correspondence);
+
+            // Mock Brreg service to throw BrregNotFoundException
+            _brregServiceMock
+                .Setup(x => x.GetOrganizationDetailsAsync(organizationNumber, It.IsAny<CancellationToken>()))
+                .Throws(new BrregNotFoundException(organizationNumber));
+
+            // Act
+            await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
+
+            // Assert
+            _correspondenceStatusRepositoryMock.Verify(
+                x => x.AddCorrespondenceStatus(
+                    It.Is<CorrespondenceStatusEntity>(s => 
+                        s.CorrespondenceId == correspondenceId && 
+                        s.Status == CorrespondenceStatus.Failed && 
+                        s.StatusText.Contains("not found in 'Enhetsregisteret'")),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+
+            // Verify slack notification was sent
+            _slackClientMock.Verify(
+                x => x.PostAsync(It.Is<SlackMessage>(m => 
+                    m.Text.Contains("Correspondence failed") && 
+                    m.Attachments != null && 
+                    m.Attachments.Any(a => a.Text != null && a.Text.Contains("not found in 'Enhetsregisteret'")))),
+                Times.Once);
         }
     }
 } 

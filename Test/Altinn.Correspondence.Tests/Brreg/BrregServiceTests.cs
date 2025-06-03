@@ -7,6 +7,7 @@ using Moq;
 using Moq.Protected;
 using System.Net;
 using System.Text.Json;
+using Altinn.Correspondence.Core.Exceptions;
 
 namespace Altinn.Correspondence.Tests.Brreg
 {
@@ -90,7 +91,7 @@ namespace Altinn.Correspondence.Tests.Brreg
         }
 
         [Fact]
-        public async Task GetOrganizationRolesAsync_WhenErrorResponse_ThrowsException()
+        public async Task GetOrganizationRolesAsync_WhenNotFound_ThrowsBrregNotFoundException()
         {
             // Arrange
             var organizationNumber = "123456789";
@@ -107,6 +108,34 @@ namespace Altinn.Correspondence.Tests.Brreg
                 {
                     StatusCode = HttpStatusCode.NotFound,
                     Content = new StringContent("Not found")
+                });
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<BrregNotFoundException>(
+                () => _service.GetOrganizationRolesAsync(organizationNumber));
+            
+            Assert.Equal(organizationNumber, exception.OrganizationNumber);
+            Assert.Contains(organizationNumber, exception.Message);
+        }
+
+        [Fact]
+        public async Task GetOrganizationRolesAsync_WhenOtherError_ThrowsHttpRequestException()
+        {
+            // Arrange
+            var organizationNumber = "123456789";
+
+            _mockHttpMessageHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString().EndsWith($"enheter/{organizationNumber}/roller")),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.InternalServerError,
+                    Content = new StringContent("Server error")
                 });
 
             // Act & Assert
@@ -154,7 +183,7 @@ namespace Altinn.Correspondence.Tests.Brreg
         }
 
         [Fact]
-        public async Task GetOrganizationDetailsAsync_WhenErrorResponse_ThrowsException()
+        public async Task GetOrganizationDetailsAsync_WhenNotFound_ThrowsBrregNotFoundException()
         {
             // Arrange
             var organizationNumber = "123456789";
@@ -171,6 +200,34 @@ namespace Altinn.Correspondence.Tests.Brreg
                 {
                     StatusCode = HttpStatusCode.NotFound,
                     Content = new StringContent("Not found")
+                });
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<BrregNotFoundException>(
+                () => _service.GetOrganizationDetailsAsync(organizationNumber));
+            
+            Assert.Equal(organizationNumber, exception.OrganizationNumber);
+            Assert.Contains(organizationNumber, exception.Message);
+        }
+
+        [Fact]
+        public async Task GetOrganizationDetailsAsync_WhenOtherError_ThrowsHttpRequestException()
+        {
+            // Arrange
+            var organizationNumber = "123456789";
+
+            _mockHttpMessageHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString().EndsWith($"enheter/{organizationNumber}")),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.InternalServerError,
+                    Content = new StringContent("Server error")
                 });
 
             // Act & Assert
