@@ -24,7 +24,7 @@ namespace Altinn.Correspondence.Tests.Brreg
             
             var settings = new GeneralSettings
             {
-                BrregBaseUrl = "https://data.brreg.no/enhetsregisteret/api/"
+                BrregBaseUrl = "https://data.ppe.brreg.no/enhetsregisteret/api/"
             };
             
             _options = Options.Create(settings);
@@ -36,10 +36,10 @@ namespace Altinn.Correspondence.Tests.Brreg
         }
 
         [Fact]
-        public async Task GetOrganizationRolesAsync_RealApiCall_ReturnsRoles()
+        public async Task GetOrganizationRolesAsync_WithOrgThatHasRequiredRoles_ReturnsRolesAndHasRequiredRoles()
         {
             // Arrange
-            var organizationNumber = "991825827"; // DigDir
+            var organizationNumber = "312585065"; // Tenor test org that has a person with the INNH role in the 'enhetsregisteret'
 
             var requiredRoles = new List<string> { "BEST", "DAGL", "DTPR", "DTSO", "INNH", "LEDE"}; // Required roles for confidential correspondence
 
@@ -54,10 +54,28 @@ namespace Altinn.Correspondence.Tests.Brreg
         }
 
         [Fact]
+        public async Task GetOrganizationRolesAsync_WithOrgthatDoesNotHaveRequiredRoles_ReturnsRolesAndDoesNotHaveRequiredRoles()
+        {
+            // Arrange
+            var organizationNumber = "310244007"; // Tenor test org that does not have the required roles in the 'enhetsregisteret'
+
+            var requiredRoles = new List<string> { "BEST", "DAGL", "DTPR", "DTSO", "INNH", "LEDE"}; // Required roles for confidential correspondence
+
+            // Act
+            var result = await _service.GetOrganizationRolesAsync(organizationNumber);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.NotNull(result.RoleGroups);
+            Assert.True(result.RoleGroups.Count > 0, "Should have at least one role group");
+            Assert.False(result.HasAnyOfRoles(requiredRoles), "Should not have any of the required roles");
+        }
+
+        [Fact]
         public async Task GetOrganizationDetailsAsync_RealApiCall_ReturnsDetails()
         {
             // Arrange
-            var organizationNumber = "991825827"; // DigDir
+            var organizationNumber = "312585065";
 
             // Act
             var result = await _service.GetOrganizationDetailsAsync(organizationNumber);
@@ -72,14 +90,14 @@ namespace Altinn.Correspondence.Tests.Brreg
         }
 
         [Fact]
-        public async Task GetOrganizationDetailsAsync_RealApiCall_WithInvalidOrg_ThrowsException()
+        public async Task GetOrganizationDetailsAsync_WithInvalidOrg_ThrowsException()
         {
             // Arrange
-            var organizationNumber = "000000000"; // Invalid
+            var organizationNumber = "000000000"; // Invalid org
 
             // Act & Assert
             await Assert.ThrowsAsync<HttpRequestException>(() => 
                 _service.GetOrganizationDetailsAsync(organizationNumber));
         }
     }
-} 
+}
