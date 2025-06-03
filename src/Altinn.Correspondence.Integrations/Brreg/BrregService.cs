@@ -2,8 +2,10 @@ using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Net;
 using System.Net.Http.Json;
 using Altinn.Correspondence.Core.Models.Brreg;
+using Altinn.Correspondence.Core.Exceptions;
 
 namespace Altinn.Correspondence.Integrations.Brreg
 {
@@ -36,6 +38,13 @@ namespace Altinn.Correspondence.Integrations.Brreg
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("Organization {OrganizationNumber} not found in Brreg", organizationNumber);
+                    throw new BrregNotFoundException(organizationNumber);
+                }
+                
                 _logger.LogError("Failed to get roles for organization {OrganizationNumber}. Status code: {StatusCode}, Error: {Error}", 
                     organizationNumber, response.StatusCode, errorContent);
                 throw new HttpRequestException($"Failed to get roles for organization {organizationNumber}. Status code: {response.StatusCode}, Error: {errorContent}");
@@ -59,6 +68,13 @@ namespace Altinn.Correspondence.Integrations.Brreg
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("Organization {OrganizationNumber} not found in Brreg", organizationNumber);
+                    throw new BrregNotFoundException(organizationNumber);
+                }
+                
                 _logger.LogError("Failed to get details for organization {OrganizationNumber}. Status code: {StatusCode}, Error: {Error}", 
                     organizationNumber, response.StatusCode, errorContent);
                 throw new HttpRequestException($"Failed to get details for organization {organizationNumber}. Status code: {response.StatusCode}, Error: {errorContent}");
