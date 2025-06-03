@@ -25,6 +25,7 @@ public class InitializeAttachmentHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Starting attachment initialization process for resource {ResourceId}", request.Attachment.ResourceId);
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
             request.Attachment.ResourceId,
@@ -33,40 +34,62 @@ public class InitializeAttachmentHandler(
             cancellationToken);
         if (!hasAccess)
         {
+            logger.LogWarning("Access denied for resource {ResourceId} - user does not have sender access", request.Attachment.ResourceId);
             return AuthorizationErrors.NoAccessToResource;
         }
+        logger.LogDebug("Retrieving resource type for {ResourceId}", request.Attachment.ResourceId);
         var resourceType = await resourceRegistryService.GetResourceType(request.Attachment.ResourceId, cancellationToken);
         if (resourceType is null)
         {
+            logger.LogError("Resource type not found for {ResourceId} despite successful authorization", request.Attachment.ResourceId);
             throw new Exception($"Resource type not found for {request.Attachment.ResourceId}. This should be impossible as authorization worked.");
         }
         if (resourceType != "GenericAccessResource" && resourceType != "CorrespondenceService")
         {
+            logger.LogWarning("Incorrect resource type {ResourceType} for {ResourceId}", resourceType, request.Attachment.ResourceId);
             return AuthorizationErrors.IncorrectResourceType;
         }
 
+        logger.LogDebug("Looking up party information for organization {OrganizationId}", user.GetCallerOrganizationId());
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
+            logger.LogError("Could not find party UUID for organization {OrganizationId}", user.GetCallerOrganizationId());
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
+        logger.LogDebug("Retrieved party UUID {PartyUuid} for organization {OrganizationId}", partyUuid, user.GetCallerOrganizationId());
         var attachment = request.Attachment;
+        logger.LogDebug("Validating attachment name for resource {ResourceId}", request.Attachment.ResourceId);
         var attachmentNameError = attachmentHelper.ValidateAttachmentName(request.Attachment);
         if (attachmentNameError is not null)
         {
+            logger.LogWarning("Invalid attachment name for resource {ResourceId}: {Error}", request.Attachment.ResourceId, attachmentNameError);
             return attachmentNameError;
         }
         if (attachment.Sender.StartsWith("0192:"))
         {
+            logger.LogInformation("Converting legacy sender prefix '0192:' to {UrnPrefix} for resource {ResourceId}", 
+                UrnConstants.OrganizationNumberAttribute, 
+                request.Attachment.ResourceId);
             attachment.Sender = $"{UrnConstants.OrganizationNumberAttribute}:{attachment.Sender.WithoutPrefix()}";
-            logger.LogInformation($"'0192:' prefix detected for sender in initialization of attachment. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
         }
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            var initializedAttachment = await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
+            logger.LogDebug("Initializing attachment for resource {ResourceId}", request.Attachment.ResourceId);
+            var initializedAttachment = await attachmentRepository.InitializeAttachment(attachment, cancellationToken);   
+            logger.LogDebug("Setting attachment {AttachmentId} status to Initialized", initializedAttachment.Id);
             await attachmentHelper.SetAttachmentStatus(initializedAttachment.Id, AttachmentStatus.Initialized, partyUuid, cancellationToken);
-            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.AttachmentInitialized, initializedAttachment.ResourceId, initializedAttachment.Id.ToString(), "attachment", initializedAttachment.Sender, CancellationToken.None));
-
+            logger.LogDebug("Enqueueing attachment initialized event for attachment {AttachmentId}", initializedAttachment.Id);
+            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(
+                AltinnEventType.AttachmentInitialized, 
+                initializedAttachment.ResourceId, 
+                initializedAttachment.Id.ToString(), 
+                "attachment", 
+                initializedAttachment.Sender, 
+                CancellationToken.None));
+            logger.LogInformation("Successfully initialized attachment {AttachmentId} for resource {ResourceId}", 
+                initializedAttachment.Id, 
+                request.Attachment.ResourceId);
             return initializedAttachment.Id;
         }, logger, cancellationToken);
     }

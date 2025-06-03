@@ -3,7 +3,6 @@ using Altinn.Correspondence.Core.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using OneOf;
-using Serilog.Context;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetCorrespondences;
@@ -16,19 +15,22 @@ public class GetCorrespondencesHandler(
 {
     public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Searching for correspondences of {resourceId}", request.ResourceId);
+        logger.LogInformation("Searching for correspondences of {ResourceId}", request.ResourceId);
         const int limit = 1000;
         DateTimeOffset? to = request.To != null ? ((DateTimeOffset)request.To).ToUniversalTime() : null;
         DateTimeOffset? from = request.From != null ? ((DateTimeOffset)request.From).ToUniversalTime() : null;
         if (from != null && to != null && from > to)
         {
+            logger.LogWarning("Invalid date range provided - from {From} is after to {To}", from, to);
             return CorrespondenceErrors.InvalidDateRange;
         }
         string? onBehalfOf = request.OnBehalfOf?.WithoutPrefix() ?? httpContextAccessor.HttpContext?.User.GetCallerOrganizationId();
         if (onBehalfOf is null)
         {
+            logger.LogError("Could not determine caller organization ID");
             return AuthorizationErrors.CouldNotDetermineCaller;
         }
+        logger.LogDebug("Checking access for resource {ResourceId} on behalf of {OnBehalfOf}", request.ResourceId, onBehalfOf);
         var hasAccess = await altinnAuthorizationService.CheckAccessAsAny(
             user,
             request.ResourceId,
@@ -36,11 +38,21 @@ public class GetCorrespondencesHandler(
             cancellationToken);
         if (!hasAccess)
         {
+            logger.LogWarning("Access denied for resource {ResourceId} on behalf of {OnBehalfOf}", request.ResourceId, onBehalfOf);
             return AuthorizationErrors.NoAccessToResource;
         }
         // TODO: Add implementation to retrieve instances delegated to the user
 
-        var correspondences = await correspondenceRepository.GetCorrespondences(
+        logger.LogInformation("Retrieving correspondences for resource {ResourceId} with filters: from={From}, to={To}, limit={Limit} status={Status}, onBehalfOf={onBehalfOf}, role={Role}",
+            request.ResourceId,
+            from,
+            to,
+            limit,
+            request.Status,
+            onBehalfOf,
+            request.Role
+        );
+        var correspondenceIds = await correspondenceRepository.GetCorrespondences(
             request.ResourceId,
             limit,
             from,
@@ -49,10 +61,7 @@ public class GetCorrespondencesHandler(
             onBehalfOf,
             request.Role,
             cancellationToken);
-        var response = new GetCorrespondencesResponse
-        {
-            Ids = correspondences,
-        };
-        return response;
+        logger.LogInformation("Found {Count} correspondences for resource {ResourceId}", correspondenceIds.Count, request.ResourceId);
+        return new GetCorrespondencesResponse { Ids = correspondenceIds };
     }
 }

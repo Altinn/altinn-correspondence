@@ -50,68 +50,86 @@ public class InitializeCorrespondencesHandler(
         ValidationData data,
         CancellationToken cancellationToken)
     {
+        logger.LogDebug("Starting validation and data preparation for correspondence initialization");
         if (!string.IsNullOrWhiteSpace(generalSettings.Value.ResourceWhitelist))
         {
+            logger.LogDebug("Checking resource whitelist for {ResourceId}", request.Correspondence.ResourceId);
             if (!generalSettings.Value.ResourceWhitelist.Split(',').Contains(request.Correspondence.ResourceId))
             {
+                logger.LogError("Resource {ResourceId} is not whitelisted", request.Correspondence.ResourceId);
                 return AuthorizationErrors.ResourceNotWhitelisted;
             }
         }
 
+        logger.LogDebug("Checking sender access for resource {ResourceId}", request.Correspondence.ResourceId);
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
-        user,
-        request.Correspondence.ResourceId,
-        request.Correspondence.Sender.WithoutPrefix(),
-        null,
-        cancellationToken);
+            user,
+            request.Correspondence.ResourceId,
+            request.Correspondence.Sender.WithoutPrefix(),
+            null,
+            cancellationToken);
         if (!hasAccess)
         {
+            logger.LogWarning("Access denied for resource {ResourceId}", request.Correspondence.ResourceId);
             return AuthorizationErrors.NoAccessToResource;
         }
 
+        logger.LogDebug("Getting resource type for {ResourceId}", request.Correspondence.ResourceId);
         var resourceType = await resourceRegistryService.GetResourceType(request.Correspondence.ResourceId, cancellationToken);
         if (resourceType is null)
         {
+            logger.LogError("Resource type not found for {ResourceId} despite successful authorization", request.Correspondence.ResourceId);
             throw new Exception($"Resource type not found for {request.Correspondence.ResourceId}. This should be impossible as authorization worked.");
         }
         if (resourceType != "GenericAccessResource" && resourceType != "CorrespondenceService")
         {
+            logger.LogError("Incorrect resource type {ResourceType} for {ResourceId}", resourceType, request.Correspondence.ResourceId);
             return AuthorizationErrors.IncorrectResourceType;
         }
 
+        logger.LogDebug("Looking up party information for organization {OrganizationId}", user.GetCallerOrganizationId());
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
+            logger.LogError("Could not find party UUID for organization {OrganizationId}", user.GetCallerOrganizationId());
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
         data.PartyUuid = partyUuid;
 
         if (request.Recipients.Count != request.Recipients.Distinct().Count())
         {
+            logger.LogWarning("Duplicate recipients found in request");
             return CorrespondenceErrors.DuplicateRecipients;
         }
 
         if (request.Correspondence.IsConfirmationNeeded && request.Correspondence.DueDateTime is null)
         {
+            logger.LogWarning("Due date is required for correspondence requiring confirmation");
             return CorrespondenceErrors.DueDateRequired;
         }
 
+        logger.LogDebug("Handling contact reservation for {RecipientCount} recipients", request.Recipients.Count);
         var contactReservation = await HandleContactReservation(request);
         if (contactReservation.TryPickT1(out var error, out var reservedRecipients))
         {
+            logger.LogWarning("Contact reservation failed: {Error}", error);
             return error;
         }
         data.ReservedRecipients = reservedRecipients;
 
+        logger.LogDebug("Validating date constraints");
         var dateError = initializeCorrespondenceHelper.ValidateDateConstraints(request.Correspondence);
         if (dateError != null)
         {
+            logger.LogWarning("Date validation failed: {Error}", dateError);
             return dateError;
         }
 
+        logger.LogDebug("Validating correspondence content");
         var contentError = initializeCorrespondenceHelper.ValidateCorrespondenceContent(request.Correspondence.Content);
         if (contentError != null)
         {
+            logger.LogWarning("Content validation failed: {Error}", contentError);
             return contentError;
         }
 
@@ -119,86 +137,102 @@ public class InitializeCorrespondencesHandler(
         var uploadAttachments = request.Attachments;
         var uploadAttachmentMetadata = request.Correspondence.Content.Attachments;
 
-        // Validate that existing attachments are correct
+        logger.LogDebug("Validating {ExistingCount} existing attachments", existingAttachmentIds.Count);
         var getExistingAttachments = await initializeCorrespondenceHelper.GetExistingAttachments(existingAttachmentIds, request.Correspondence.Sender);
         if (getExistingAttachments.IsT1) return getExistingAttachments.AsT1;
         var existingAttachments = getExistingAttachments.AsT0;
         if (existingAttachments.Count != existingAttachmentIds.Count)
         {
+            logger.LogWarning("Not all existing attachments were found");
             return CorrespondenceErrors.ExistingAttachmentNotFound;
         }
 
-        // Validate that existing attachments are published
+        logger.LogDebug("Checking publication status of existing attachments");
         var anyExistingAttachmentsNotPublished = existingAttachments.Any(a => a.GetLatestStatus()?.Status != AttachmentStatus.Published);
         if (anyExistingAttachmentsNotPublished)
         {
+            logger.LogWarning("Some existing attachments are not published");
             return CorrespondenceErrors.AttachmentsNotPublished;
         }
 
-        // Validate the uploaded files
+        logger.LogDebug("Validating {UploadCount} new attachments", uploadAttachments.Count);
         var attachmentMetaDataError = initializeCorrespondenceHelper.ValidateAttachmentFiles(uploadAttachments, uploadAttachmentMetadata);
         if (attachmentMetaDataError != null)
         {
+            logger.LogWarning("Attachment validation failed: {Error}", attachmentMetaDataError);
             return attachmentMetaDataError;
         }
 
-        // Validate reply options
+        logger.LogDebug("Validating reply options");
         var replyOptionsError = initializeCorrespondenceHelper.ValidateReplyOptions(request.Correspondence.ReplyOptions);
         if (replyOptionsError != null)
         {
+            logger.LogWarning("Reply options validation failed: {Error}", replyOptionsError);
             return replyOptionsError;
         }
 
-        // Gather attachments for the correspondence
+        logger.LogDebug("Processing attachments for correspondence");
         if (uploadAttachmentMetadata.Count > 0)
         {
             foreach (var attachment in uploadAttachmentMetadata)
             {
+                logger.LogDebug("Processing new attachment {AttachmentId}", attachment.AttachmentId);
                 var processedAttachment = await initializeCorrespondenceHelper.ProcessNewAttachment(attachment, partyUuid, cancellationToken);
                 data.AttachmentsToBeUploaded.Add(processedAttachment);
             }
         }
         if (existingAttachmentIds.Count > 0)
         {
+            logger.LogDebug("Adding {Count} existing attachments", existingAttachmentIds.Count);
             data.AttachmentsToBeUploaded.AddRange(existingAttachments.Where(a => a != null).Select(a => a!));
         }
 
         if (request.Notification != null)
         {
+            logger.LogDebug("Validating notification template {TemplateId}", request.Notification.NotificationTemplate);
             var templates = await notificationTemplateRepository.GetNotificationTemplates(request.Notification.NotificationTemplate, cancellationToken, request.Correspondence.Content?.Language);
             if (templates.Count == 0)
             {
+                logger.LogWarning("Notification template {TemplateId} not found", request.Notification.NotificationTemplate);
                 return NotificationErrors.TemplateNotFound;
             }
             var notificationError = initializeCorrespondenceHelper.ValidateNotification(request.Notification, request.Recipients);
             if (notificationError != null)
             {
+                logger.LogWarning("Notification validation failed: {Error}", notificationError);
                 return notificationError;
             }
         }
 
-        // Upload attachments
+        logger.LogDebug("Uploading {Count} attachments", data.AttachmentsToBeUploaded.Count);
         var uploadError = await initializeCorrespondenceHelper.UploadAttachments(data.AttachmentsToBeUploaded, uploadAttachments, partyUuid, cancellationToken);
         if (uploadError != null)
         {
+            logger.LogError("Attachment upload failed: {Error}", uploadError);
             return uploadError;
         }
 
+        logger.LogInformation("Validation and data preparation completed successfully");
         return null;
     }
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Processing correspondence initialization request for resource {ResourceId}", request.Correspondence.ResourceId);
+
         if (request.IdempotentKey.HasValue)
         {
+            logger.LogDebug("Checking idempotency key {Key}", request.IdempotentKey.Value);
             var result = await TransactionWithRetriesPolicy.Execute<OneOf<InitializeCorrespondencesResponse, Error>>(async (cancellationToken) =>
             {
                 var existingKey = await idempotencyKeyRepository.GetByIdAsync(request.IdempotentKey.Value, cancellationToken);
                 if (existingKey != null)
                 {
+                    logger.LogWarning("Duplicate idempotency key {Key} found", request.IdempotentKey.Value);
                     return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
                 }
 
+                logger.LogDebug("Creating new idempotency key {Key}", request.IdempotentKey.Value);
                 var idempotencyKey = new IdempotencyKeyEntity()
                 {
                     Id = request.IdempotentKey.Value,
@@ -218,16 +252,19 @@ public class InitializeCorrespondencesHandler(
         }
 
         var validationData = new ValidationData();
+        logger.LogDebug("Starting validation and data preparation");
         var error = await ValidateAndPrepareData(request, user, validationData, cancellationToken);
         if (error != null)
         {
             if (request.IdempotentKey.HasValue)
             {
+                logger.LogDebug("Deleting idempotency key {Key} due to validation failure", request.IdempotentKey.Value);
                 await idempotencyKeyRepository.DeleteAsync(request.IdempotentKey.Value, cancellationToken);
             }
             return error;
         }
 
+        logger.LogDebug("Initializing correspondences with validated data");
         return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
         {
             return await InitializeCorrespondences(
@@ -244,11 +281,12 @@ public class InitializeCorrespondencesHandler(
         var ignoreReservation = request.Correspondence.IgnoreReservation == true;
         try
         {
+            logger.LogDebug("Getting reserved recipients from KRR");
             var reservedRecipients = await contactReservationRegistryService.GetReservedRecipients(request.Recipients.Where(recipient => recipient.IsSocialSecurityNumber()).ToList());
             if (!ignoreReservation && request.Recipients.Count == 1 && reservedRecipients.Count == 1)
             {
-                logger.LogInformation("Recipient reserved from correspondences in KRR");
-                return CorrespondenceErrors.RecipientReserved(request.Recipients.First());
+                logger.LogInformation("Recipient {Recipient} is reserved from correspondences in KRR", request.Recipients[0]);
+                return CorrespondenceErrors.RecipientReserved(request.Recipients[0]);
             }
             return reservedRecipients;
         }
@@ -263,6 +301,7 @@ public class InitializeCorrespondencesHandler(
             return CorrespondenceErrors.ContactReservationRegistryFailed;
         }
     }
+
     private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, List<string> reservedRecipients, CancellationToken cancellationToken)
     {
         logger.LogInformation("Initializing {correspondenceCount} correspondences for {resourceId}", request.Recipients.Count, request.Correspondence.ResourceId);
@@ -320,9 +359,9 @@ public class InitializeCorrespondencesHandler(
                 if (request.Notification != null)
                 {
                     // Schedule notification creation as a background job
-                    var notificationJob = backgroundJobClient.Enqueue<CreateNotificationHandler>((handler) => handler.Process(new CreateNotificationRequest 
-                    { 
-                        NotificationRequest = request.Notification, 
+                    var notificationJob = backgroundJobClient.Enqueue<CreateNotificationHandler>((handler) => handler.Process(new CreateNotificationRequest
+                    {
+                        NotificationRequest = request.Notification,
                         CorrespondenceId = correspondence.Id,
                         Language = correspondence.Content != null ? correspondence.Content.Language : null,
                         // RequestCorrespondence = correspondence
@@ -350,12 +389,9 @@ public class InitializeCorrespondencesHandler(
 
     public async Task CreateDialogportenDialog(Guid correspondenceId)
     {
+        logger.LogInformation("Creating Dialogporten dialog for correspondence {CorrespondenceId}", correspondenceId);
         var dialogId = await dialogportenService.CreateCorrespondenceDialog(correspondenceId);
         await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
-    }
-
-    public void SchedulePublish(Guid correspondenceId, DateTimeOffset publishTime, CancellationToken cancellationToken)
-    {
-        backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondenceId, null, cancellationToken), publishTime);
+        logger.LogInformation("Successfully created Dialogporten dialog for correspondence {CorrespondenceId}", correspondenceId);
     }
 }
