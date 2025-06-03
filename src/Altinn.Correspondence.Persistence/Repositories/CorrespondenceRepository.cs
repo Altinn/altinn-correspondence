@@ -99,8 +99,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return await correspondence.ToListAsync(cancellationToken);
         }
 
-        public async Task<List<CorrespondenceEntity>> GetNonPublishedCorrespondencesByAttachmentId(
-    Guid attachmentId, CancellationToken cancellationToken = default)
+        public async Task<List<CorrespondenceEntity>> GetNonPublishedCorrespondencesByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default)
         {
             var correspondences = await _context.Correspondences
                 .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
@@ -113,6 +112,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                          && !correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Purged))) // No attachments can be purged
                 .ToListAsync(cancellationToken);
 
+            return correspondences;
         }
 
         public async Task AddExternalReference(Guid correspondenceId, ReferenceType referenceType, string referenceValue, CancellationToken cancellationToken = default)
