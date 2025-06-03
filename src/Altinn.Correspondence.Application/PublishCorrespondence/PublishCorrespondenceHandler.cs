@@ -33,7 +33,7 @@ public class PublishCorrespondenceHandler(
     SlackSettings slackSettings,
     IBackgroundJobClient backgroundJobClient,
     IBrregService brregService,
-    DistributedLockHelper DistributedLockHelper) : IHandler<Guid, Task>
+    IDistributedLockHelper distributedLockHelper) : IHandler<Guid, Task>
 {
 
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -41,7 +41,7 @@ public class PublishCorrespondenceHandler(
         var lockKey = $"publish-correspondence-{correspondenceId}";
 
         OneOf<Task, Error>? innerResult = null;
-        var (wasSkipped, lockAcquired) = await DistributedLockHelper.ExecuteWithConditionalLockAsync(
+        var (wasSkipped, lockAcquired) = await distributedLockHelper.ExecuteWithConditionalLockAsync(
             lockKey, 
             async (cancellationToken) => await ShouldSkipCheck(correspondenceId, cancellationToken),
             async (cancellationToken) => innerResult = await ProcessWithLock(correspondenceId, user, cancellationToken),

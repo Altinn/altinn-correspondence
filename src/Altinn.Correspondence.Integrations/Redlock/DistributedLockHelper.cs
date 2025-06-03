@@ -7,7 +7,7 @@ using Altinn.Correspondence.Core.Options;
 
 namespace Altinn.Correspondence.Integrations.Redlock
 {
-    public class DistributedLockHelper : IDisposable
+    public class DistributedLockHelper : IDistributedLockHelper
     {
         private readonly RedLockFactory _lockFactory;
         private readonly ILogger<DistributedLockHelper> _logger;
