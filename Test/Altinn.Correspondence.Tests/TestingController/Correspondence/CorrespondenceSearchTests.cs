@@ -265,5 +265,89 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var response = await _senderClient.GetAsync($"correspondence/api/v1/correspondence?resourceId={1}&status={0}&role={"recipientandsender"}&from={DateTimeOffset.UtcNow.AddDays(1)}&to={DateTimeOffset.UtcNow}");
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
+
+        [Fact]
+        public async Task GetCorrespondences_WithSendersReference_ReturnsMatchingCorrespondences()
+        {
+            // Arrange
+            var resourceId = Guid.NewGuid().ToString();
+            var sendersReference = "test-ref-123";
+            
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithResourceId(resourceId)
+                .WithSendersReference(sendersReference)
+                .Build();
+            
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            Assert.True(initResponse.IsSuccessStatusCode, await initResponse.Content.ReadAsStringAsync());
+            var initResult = await initResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var expectedCorrespondenceId = initResult.Correspondences.First().CorrespondenceId;
+            
+            // Act
+            var searchResponse = await _senderClient.GetAsync($"/correspondence/api/v1/correspondence?resourceId={resourceId}&sendersReference={sendersReference}&role=RecipientAndSender");
+            
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, searchResponse.StatusCode);
+            var result = await searchResponse.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
+            Assert.Single(result.Ids);
+            Assert.Equal(expectedCorrespondenceId, result.Ids.First());
+        }
+
+        [Fact]
+        public async Task GetCorrespondences_WithDifferentSendersReferences_ReturnsCorrectCorrespondences()
+        {
+            // Arrange
+            var resourceId = Guid.NewGuid().ToString();
+            var ref1 = "ref-1";
+            var ref2 = "ref-2";
+            
+            // Create two correspondences with different sendersReferences
+            var payload1 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithResourceId(resourceId)
+                .WithSendersReference(ref1)
+                .Build();
+            
+            var payload2 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithResourceId(resourceId)
+                .WithSendersReference(ref2)
+                .Build();
+            
+            var initResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload1);
+            Assert.True(initResponse1.IsSuccessStatusCode, await initResponse1.Content.ReadAsStringAsync());
+            var initResult1 = await initResponse1.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var expectedCorrespondenceId1 = initResult1.Correspondences.First().CorrespondenceId;
+            
+            var initResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload2);
+            Assert.True(initResponse2.IsSuccessStatusCode, await initResponse2.Content.ReadAsStringAsync());
+            var initResult2 = await initResponse2.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var expectedCorrespondenceId2 = initResult2.Correspondences.First().CorrespondenceId;
+            
+            // Act & Assert for ref1
+            var search1 = await _senderClient.GetAsync($"/correspondence/api/v1/correspondence?resourceId={resourceId}&sendersReference={ref1}&role=RecipientAndSender");
+            var result1 = await search1.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
+            Assert.Single(result1.Ids);
+            Assert.Equal(expectedCorrespondenceId1, result1.Ids.First());
+            
+            // Act & Assert for ref2
+            var search2 = await _senderClient.GetAsync($"/correspondence/api/v1/correspondence?resourceId={resourceId}&sendersReference={ref2}&role=RecipientAndSender");
+            var result2 = await search2.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
+            Assert.Single(result2.Ids);
+            Assert.Equal(expectedCorrespondenceId2, result2.Ids.First());
+            
+            // Act & Assert for non-existent reference
+            var search3 = await _senderClient.GetAsync($"/correspondence/api/v1/correspondence?resourceId={resourceId}&sendersReference=non-existent&role=RecipientAndSender");
+            var result3 = await search3.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
+            Assert.Empty(result3.Ids);
+            
+            // Act & Assert for all correspondences (without sendersReference)
+            var search4 = await _senderClient.GetAsync($"/correspondence/api/v1/correspondence?resourceId={resourceId}&role=RecipientAndSender");
+            var result4 = await search4.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
+            Assert.Equal(2, result4.Ids.Count);
+            Assert.Contains(expectedCorrespondenceId1, result4.Ids);
+            Assert.Contains(expectedCorrespondenceId2, result4.Ids);
+        }
     }
 }
