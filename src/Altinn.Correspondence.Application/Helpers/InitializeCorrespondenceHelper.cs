@@ -299,6 +299,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 ExternalReferences = request.Correspondence.ExternalReferences,
                 Published = currentStatus == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
                 IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
+                IsConfidential = request.Correspondence.IsConfidential,
                 OriginalRequest = request.Correspondence.OriginalRequest,
             };
         }

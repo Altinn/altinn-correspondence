@@ -23,6 +23,7 @@ param sblBridgeBaseUrl string
 param maskinporten_environment string
 param correspondenceBaseUrl string
 param contactReservationRegistryBaseUrl string
+param brregBaseUrl string
 param idportenIssuer string
 param dialogportenIssuer string
 param maskinporten_token_exchange_environment string
@@ -121,6 +122,7 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     maskinporten_environment: maskinporten_environment
     correspondenceBaseUrl: correspondenceBaseUrl
     contactReservationRegistryBaseUrl: contactReservationRegistryBaseUrl
+    brregBaseUrl: brregBaseUrl
     idportenIssuer: idportenIssuer
     dialogportenIssuer: dialogportenIssuer
     sblBridgeBaseUrl: sblBridgeBaseUrl
