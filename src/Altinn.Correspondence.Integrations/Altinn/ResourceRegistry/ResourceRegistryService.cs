@@ -39,11 +39,14 @@ public class ResourceRegistryService : IResourceRegistryService
 
     public async Task<string?> GetServiceOwnerNameOfResource(string resourceId, CancellationToken cancellationToken)
     {
+        _logger.LogError("GetServiceOwnerNameOfResource called with resourceId: {ResourceId}", resourceId);
         var altinnResourceResponse = await GetResource(resourceId, cancellationToken);
         if (altinnResourceResponse is null)
         {
+            _logger.LogError("GetResource returned null for resourceId: {ResourceId}", resourceId);
             return null;
         }
+        _logger.LogError("Invoking GetNameOfResourceResponse for resourceId: {ResourceId}", resourceId);
         return GetNameOfResourceResponse(altinnResourceResponse);
     }
 
@@ -75,6 +78,7 @@ public class ResourceRegistryService : IResourceRegistryService
         var response = await _client.GetAsync($"resourceregistry/api/v1/resource/{resourceId}", cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.NoContent)
         {
+            _logger.LogError("RR call returned NotFound or NoContent for resourceId: {ResourceId}", resourceId);
             return null;
         }
         if (response.StatusCode != HttpStatusCode.OK)
