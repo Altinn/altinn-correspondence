@@ -15,7 +15,7 @@ public class GetCorrespondencesHandler(
 {
     public async Task<OneOf<GetCorrespondencesResponse, Error>> Process(GetCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Searching for correspondences of {ResourceId}", request.ResourceId);
+        logger.LogInformation("Searching for correspondences of {ResourceId}", request.ResourceId.SanitizeForLogging());
         const int limit = 1000;
         DateTimeOffset? to = request.To != null ? ((DateTimeOffset)request.To).ToUniversalTime() : null;
         DateTimeOffset? from = request.From != null ? ((DateTimeOffset)request.From).ToUniversalTime() : null;
@@ -37,18 +37,18 @@ public class GetCorrespondencesHandler(
             cancellationToken);
         if (!hasAccess)
         {
-            logger.LogWarning("Access denied for resource {ResourceId} on behalf of {OnBehalfOf}", request.ResourceId, onBehalfOf);
+            logger.LogWarning("Access denied for resource {ResourceId} on behalf of {OnBehalfOf}", request.ResourceId.SanitizeForLogging(), onBehalfOf.SanitizeForLogging());
             return AuthorizationErrors.NoAccessToResource;
         }
         // TODO: Add implementation to retrieve instances delegated to the user
 
         logger.LogInformation("Retrieving correspondences for resource {ResourceId} with filters: from={From}, to={To}, limit={Limit} status={Status}, onBehalfOf={onBehalfOf}, role={Role}",
-            request.ResourceId,
+            request.ResourceId.SanitizeForLogging(),
             from,
             to,
             limit,
             request.Status,
-            onBehalfOf,
+            onBehalfOf.SanitizeForLogging(),
             request.Role
         );
         var correspondenceIds = await correspondenceRepository.GetCorrespondences(
@@ -60,7 +60,7 @@ public class GetCorrespondencesHandler(
             onBehalfOf,
             request.Role,
             cancellationToken);
-        logger.LogInformation("Found {Count} correspondences for resource {ResourceId}", correspondenceIds.Count, request.ResourceId);
+        logger.LogInformation("Found {Count} correspondences for resource {ResourceId}", correspondenceIds.Count, request.ResourceId.SanitizeForLogging());
         return new GetCorrespondencesResponse { Ids = correspondenceIds };
     }
 }

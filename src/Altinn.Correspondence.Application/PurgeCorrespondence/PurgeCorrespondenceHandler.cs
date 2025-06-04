@@ -67,7 +67,6 @@ public class PurgeCorrespondenceHandler(
         }
 
         logger.LogInformation("Retrieved party UUID {PartyUuid} for organization {OrganizationId}", partyUuid, callerId);
-
         logger.LogInformation("Starting purge process for correspondence {CorrespondenceId} as {Role}", 
             correspondenceId, 
             isSender ? "sender" : "recipient");
@@ -75,7 +74,7 @@ public class PurgeCorrespondenceHandler(
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             var result = await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, isSender, partyUuid, cancellationToken);
-            logger.LogInformation("Successfully purged correspondence {CorrespondenceId}", correspondenceId);
+            logger.LogInformation("Successfully purged correspondence {CorrespondenceId}", result);
             return result;
         }, logger, cancellationToken);
     }
