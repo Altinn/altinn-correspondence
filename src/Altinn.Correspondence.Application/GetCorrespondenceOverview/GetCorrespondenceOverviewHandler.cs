@@ -90,7 +90,7 @@ public class GetCorrespondenceOverviewHandler(
             var response = new GetCorrespondenceOverviewResponse
             {
                 CorrespondenceId = correspondence.Id,
-                Content = correspondence.Content,
+                Content = hasAccessAsRecipient || !correspondence.StatusHasBeen(CorrespondenceStatus.Published) ? correspondence.Content : null,
                 Status = latestStatus.Status,
                 StatusText = latestStatus.StatusText,
                 StatusChanged = latestStatus.StatusChanged,
