@@ -138,7 +138,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                             new Role
                             {
                                 Type = new TypeInfo { Code = "ANNET" },
-                                HasResigned = false
+                                HasResigned = false,
+                                Person = new Person { IsDead = false }
                             }
                         }
                     }
@@ -243,7 +244,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                             new Role
                             {
                                 Type = new TypeInfo { Code = "BEST" },
-                                HasResigned = false
+                                HasResigned = false,
+                                Person = new Person { IsDead = false }
                             }
                         }
                     }

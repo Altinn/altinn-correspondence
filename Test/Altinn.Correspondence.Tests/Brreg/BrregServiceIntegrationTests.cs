@@ -51,7 +51,7 @@ namespace Altinn.Correspondence.Tests.Brreg
             Assert.NotNull(result);
             Assert.NotNull(result.RoleGroups);
             Assert.True(result.RoleGroups.Count > 0, "Should have at least one role group");
-            Assert.True(result.HasAnyOfRoles(requiredRoles), "Should have at least one of the required roles");
+            Assert.True(result.HasAnyOfRolesOnPerson(requiredRoles), "Should have at least one of the required roles");
         }
 
         [Fact]
@@ -69,7 +69,7 @@ namespace Altinn.Correspondence.Tests.Brreg
             Assert.NotNull(result);
             Assert.NotNull(result.RoleGroups);
             Assert.True(result.RoleGroups.Count > 0, "Should have at least one role group");
-            Assert.False(result.HasAnyOfRoles(requiredRoles), "Should not have any of the required roles");
+            Assert.False(result.HasAnyOfRolesOnPerson(requiredRoles), "Should not have any of the required roles");
         }
 
         [Fact]

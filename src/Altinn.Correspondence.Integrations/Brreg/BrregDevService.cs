@@ -48,7 +48,8 @@ namespace Altinn.Correspondence.Integrations.Brreg
                         Code = "LEDE",
                         Description = "Daglig leder"
                     },
-                    HasResigned = false
+                    HasResigned = false,
+                    Person = new Person { IsDead = false }
                 },
                 new Role
                 {
@@ -57,7 +58,8 @@ namespace Altinn.Correspondence.Integrations.Brreg
                         Code = "NEST",
                         Description = "Nestleder"
                     },
-                    HasResigned = false
+                    HasResigned = false,
+                    Person = new Person { IsDead = false }
                 }
             };
             

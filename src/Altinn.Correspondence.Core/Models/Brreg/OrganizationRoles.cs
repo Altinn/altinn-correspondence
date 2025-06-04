@@ -14,11 +14,11 @@ namespace Altinn.Correspondence.Core.Models.Brreg
         public List<RoleGroup>? RoleGroups { get; set; }
 
         /// <summary>
-        /// Checks if the organization has any of the specified roles
+        /// Checks if the organization has any of the specified roles registered on a person that is not deceased
         /// </summary>
         /// <param name="roleCodes">Role codes to check for</param>
         /// <returns>True if any of the roles are found, false otherwise</returns>
-        public bool HasAnyOfRoles(IEnumerable<string> roleCodes)
+        public bool HasAnyOfRolesOnPerson(IEnumerable<string> roleCodes)
         {
             if (RoleGroups == null)
                 return false;
@@ -30,11 +30,14 @@ namespace Altinn.Correspondence.Core.Models.Brreg
                     
                 foreach (var role in group.Roles)
                 {
-                    if (role.HasResigned) 
+                    if (role.HasResigned)
                         continue;
 
-                    if (role.Type?.Code != null && roleCodes.Contains(role.Type.Code))
-                        return true;
+                    if (role.Person != null && !role.Person.IsDead)
+                    {
+                        if (role.Type?.Code != null && roleCodes.Contains(role.Type.Code))
+                            return true;
+                    }
                 }
             }
             
@@ -76,6 +79,18 @@ namespace Altinn.Correspondence.Core.Models.Brreg
         /// </summary>
         [JsonPropertyName("fratraadt")]
         public bool HasResigned { get; set; }
+
+        /// <summary>
+        /// Gets or sets the person information (if the role is a person)
+        /// </summary>
+        [JsonPropertyName("person")]
+        public Person? Person { get; set; }
+
+        /// <summary>
+        /// Gets or sets the organization information (if the role is an organization)
+        /// </summary>
+        [JsonPropertyName("enhet")]
+        public Organization? Organization { get; set; }
     }
 
     /// <summary>
@@ -94,5 +109,17 @@ namespace Altinn.Correspondence.Core.Models.Brreg
         /// </summary>
         [JsonPropertyName("beskrivelse")]
         public string? Description { get; set; }
+    }
+
+    public class Person
+    {
+        [JsonPropertyName("erDoed")]
+        public bool IsDead { get; set; }
+    }
+
+    public class Organization
+    {
+        [JsonPropertyName("organisasjonsnummer")]
+        public string? OrganizationNumber { get; set; }
     }
 } 

@@ -131,7 +131,7 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Recipient of {correspondenceId} is deleted";
         }
-        else if (roles != null && correspondence.IsConfidential && !roles.HasAnyOfRoles(requiredOrganizationRoles))
+        else if (roles != null && correspondence.IsConfidential && !roles.HasAnyOfRolesOnPerson(requiredOrganizationRoles))
         {
             errorMessage = $"Recipient of {correspondenceId} is missing required roles to read confidential correspondences";
         }

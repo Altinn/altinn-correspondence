@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Integrations.Brreg;
+using Altinn.Correspondence.Core.Models.Brreg;
 
 namespace Altinn.Correspondence.Tests.Brreg
 {
@@ -44,7 +45,7 @@ namespace Altinn.Correspondence.Tests.Brreg
             Assert.Single(result.RoleGroups);
             
             var roleGroup = result.RoleGroups[0];
-            Assert.True(result.HasAnyOfRoles(_testRoles));
+            Assert.True(result.HasAnyOfRolesOnPerson(_testRoles));
             Assert.NotNull(roleGroup);
             Assert.NotNull(roleGroup.Type);
             Assert.Equal("STYR", roleGroup.Type!.Code);
@@ -52,8 +53,73 @@ namespace Altinn.Correspondence.Tests.Brreg
             Assert.Equal(2, roleGroup.Roles!.Count);
             Assert.NotNull(roleGroup.Roles[0].Type);
             Assert.Equal("LEDE", roleGroup.Roles[0].Type!.Code);
+            Assert.NotNull(roleGroup.Roles[0].Person);
+            Assert.False(roleGroup.Roles[0].Person!.IsDead);
             Assert.NotNull(roleGroup.Roles[1].Type);
             Assert.Equal("NEST", roleGroup.Roles[1].Type!.Code);
+            Assert.NotNull(roleGroup.Roles[1].Person);
+            Assert.False(roleGroup.Roles[1].Person!.IsDead);
+        }
+
+        [Fact]
+        public void HasAnyOfRolesOnPerson_WhenRoleIsOnOrganization_ReturnsFalse()
+        {
+            // Arrange
+            var organizationRoles = new OrganizationRoles
+            {
+                RoleGroups = new List<RoleGroup>
+                {
+                    new RoleGroup
+                    {
+                        Roles = new List<Role>
+                        {
+                            new Role
+                            {
+                                Type = new TypeInfo { Code = "LEDE" },
+                                HasResigned = false,
+                                Organization = new Organization { OrganizationNumber = "123456789" },
+                                Person = null
+                            }
+                        }
+                    }
+                }
+            };
+
+            // Act
+            var result = organizationRoles.HasAnyOfRolesOnPerson(_testRoles);
+
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public void HasAnyOfRolesOnPerson_WhenPersonIsDeceased_ReturnsFalse()
+        {
+            // Arrange
+            var organizationRoles = new OrganizationRoles
+            {
+                RoleGroups = new List<RoleGroup>
+                {
+                    new RoleGroup
+                    {
+                        Roles = new List<Role>
+                        {
+                            new Role
+                            {
+                                Type = new TypeInfo { Code = "LEDE" },
+                                HasResigned = false,
+                                Person = new Person { IsDead = true }
+                            }
+                        }
+                    }
+                }
+            };
+
+            // Act
+            var result = organizationRoles.HasAnyOfRolesOnPerson(_testRoles);
+
+            // Assert
+            Assert.False(result);
         }
     }
 } 
