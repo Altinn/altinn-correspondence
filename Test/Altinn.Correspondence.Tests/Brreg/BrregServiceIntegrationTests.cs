@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Brreg;
@@ -90,13 +91,13 @@ namespace Altinn.Correspondence.Tests.Brreg
         }
 
         [Fact]
-        public async Task GetOrganizationDetailsAsync_WithInvalidOrg_ThrowsException()
+        public async Task GetOrganizationDetailsAsync_WithNonExisitingOrg_ThrowsNotFoundException()
         {
             // Arrange
             var organizationNumber = "000000000"; // Invalid org
 
             // Act & Assert
-            await Assert.ThrowsAsync<HttpRequestException>(() => 
+            await Assert.ThrowsAsync<BrregNotFoundException>(() => 
                 _service.GetOrganizationDetailsAsync(organizationNumber));
         }
     }

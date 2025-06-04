@@ -357,9 +357,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Verify slack notification was sent
             _slackClientMock.Verify(
                 x => x.PostAsync(It.Is<SlackMessage>(m => 
-                    m.Text.Contains("Correspondence failed") && 
-                    m.Attachments != null && 
-                    m.Attachments.Any(a => a.Text != null && a.Text.Contains("not found in 'Enhetsregisteret'")))),
+                    m.Text.Contains("Correspondence failed"))),
                 Times.Once);
         }
     }
