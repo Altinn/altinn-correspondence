@@ -39,6 +39,9 @@ inputs:
   CONTACT_RESERVATION_REGISTRY_BASE_URL:
     description: "Contact Reservation Registry Base URL"
     required: true
+  BRREG_BASE_URL:
+    description: "Brreg Base URL"
+    required: true
   DIALOGPORTEN_ISSUER:
     description: "Dialogporten Issuer"
     required: true
@@ -143,6 +146,7 @@ runs:
         AZURE_TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
         CORRESPONDENCE_BASE_URL: ${{ inputs.CORRESPONDENCE_BASE_URL }}
         CONTACT_RESERVATION_REGISTRY_BASE_URL: ${{ inputs.CONTACT_RESERVATION_REGISTRY_BASE_URL }}
+        BRREG_BASE_URL: ${{ inputs.BRREG_BASE_URL }}
         DIALOGPORTEN_ISSUER: ${{ inputs.DIALOGPORTEN_ISSUER }}
         IDPORTEN_ISSUER: ${{ inputs.IDPORTEN_ISSUER }}
         PLATFORM_BASE_URL: ${{ inputs.PLATFORM_BASE_URL }}

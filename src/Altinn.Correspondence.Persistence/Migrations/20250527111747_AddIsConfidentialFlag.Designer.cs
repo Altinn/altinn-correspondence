@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Altinn.Correspondence.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250527111747_AddIsConfidentialFlag")]
+    partial class AddIsConfidentialFlag
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -210,12 +213,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
-                    b.Property<string>("OriginalRequest")
-                        .HasColumnType("jsonb");
-
-                    b.Property<int>("PartyId")
-                        .HasColumnType("integer");
-
                     b.Property<Dictionary<string, string>>("PropertyList")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -253,8 +250,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasIndex("Created");
 
                     b.HasIndex("IsMigrating");
-
-                    b.HasIndex("PartyId");
 
                     b.HasIndex("Recipient");
 
@@ -349,9 +344,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<DateTimeOffset>("RequestedSendTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid?>("ShipmentId")
-                        .HasColumnType("uuid");
-
                     b.HasKey("Id");
 
                     b.HasIndex("CorrespondenceId");
@@ -445,13 +437,10 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<Guid?>("AttachmentId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("CorrespondenceId")
+                    b.Property<Guid>("CorrespondenceId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("IdempotencyType")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("StatusAction")
+                    b.Property<int>("StatusAction")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -685,7 +674,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasOne("Altinn.Correspondence.Core.Models.Entities.CorrespondenceEntity", "Correspondence")
                         .WithMany("IdempotencyKeys")
-                        .HasForeignKey("CorrespondenceId");
+                        .HasForeignKey("CorrespondenceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Attachment");
 

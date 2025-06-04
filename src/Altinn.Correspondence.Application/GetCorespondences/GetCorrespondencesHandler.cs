@@ -59,6 +59,7 @@ public class GetCorrespondencesHandler(
             request.Status,
             onBehalfOf,
             request.Role,
+            request.SendersReference,
             cancellationToken);
         logger.LogInformation("Found {Count} correspondences for resource {ResourceId}", correspondenceIds.Count, request.ResourceId.SanitizeForLogging());
         return new GetCorrespondencesResponse { Ids = correspondenceIds };

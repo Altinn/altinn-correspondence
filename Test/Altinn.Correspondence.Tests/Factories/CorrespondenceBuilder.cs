@@ -220,6 +220,12 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public CorrespondenceBuilder WithSendersReference(string sendersReference)
+        {
+            _correspondence.Correspondence.SendersReference = sendersReference;
+            return this;
+        }
+
         public static CorrespondenceEntity CorrespondenceEntityWithNotifications()
         {
             return new CorrespondenceEntity()

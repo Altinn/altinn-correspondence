@@ -33,6 +33,7 @@ internal static class CorrespondenceDetailsMapper
             PropertyList = correspondenceDetails.PropertyList,
             Published = correspondenceDetails.Published,
             IsConfirmationNeeded = correspondenceDetails.IsConfirmationNeeded,
+            IsConfidential = correspondenceDetails.IsConfidential,
             Altinn2CorrespondenceId = correspondenceDetails.Altinn2CorrespondenceId
         };
         return Correspondence;

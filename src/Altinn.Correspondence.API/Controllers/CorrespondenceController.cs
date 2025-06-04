@@ -330,6 +330,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromQuery] CorrespondenceStatusExt? status,
             [FromQuery, RequiredEnum] CorrespondencesRoleType role,
             [FromQuery] string? onBehalfOf,
+            [FromQuery] string? sendersReference,
             CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Get correspondences for receiver");
@@ -341,7 +342,8 @@ namespace Altinn.Correspondence.API.Controllers
                 To = to,
                 Status = status is null ? null : (CorrespondenceStatus)status,
                 Role = role,
-                OnBehalfOf = onBehalfOf
+                OnBehalfOf = onBehalfOf,
+                SendersReference = sendersReference
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
