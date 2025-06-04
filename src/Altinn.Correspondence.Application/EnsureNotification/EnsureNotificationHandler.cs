@@ -18,7 +18,6 @@ public class EnsureNotificationHandler(
     public async Task<OneOf<bool, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Processing ensure notification request for correspondence {CorrespondenceId}", correspondenceId);
-        logger.LogDebug("Retrieving correspondence {CorrespondenceId} with notifications", correspondenceId);
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         if (correspondence == null)
         {
@@ -27,7 +26,7 @@ public class EnsureNotificationHandler(
         }
         if (correspondence.StatusHasBeen(CorrespondenceStatus.Published))
         {
-            logger.LogDebug("Retrieving primary notification for correspondence {CorrespondenceId}", correspondenceId);
+            logger.LogInformation("Retrieving primary notification for correspondence {CorrespondenceId}", correspondenceId);
             var primaryNotification = await correspondenceNotificationRepository.GetPrimaryNotification(correspondenceId, cancellationToken);
             if (primaryNotification is null)
             {
@@ -46,12 +45,11 @@ public class EnsureNotificationHandler(
                 logger.LogError("Order request is missing for correspondence {CorrespondenceId}", correspondenceId);
                 throw new ArgumentException("Order request must be set in order to retry");
             }
-            logger.LogDebug("Deserializing order request for correspondence {CorrespondenceId}", correspondenceId);
+            logger.LogInformation("Deserializing order request for correspondence {CorrespondenceId}", correspondenceId);
             var orderRequest = JsonSerializer.Deserialize<NotificationOrderRequest>(primaryNotification.OrderRequest);
             orderRequest.RequestedSendTime = DateTime.Now;
-            logger.LogInformation("Creating notification for correspondence {CorrespondenceId}", correspondenceId);
             await altinnNotificationService.CreateNotification(orderRequest, cancellationToken);
-            logger.LogDebug("Wiping order for notification {NotificationId}", primaryNotification.Id);
+            logger.LogInformation("Wiping order for notification {NotificationId}", primaryNotification.Id);
             await correspondenceNotificationRepository.WipeOrder(primaryNotification.Id, cancellationToken);
             logger.LogInformation("Successfully ensured notification for correspondence {CorrespondenceId}", correspondenceId);
             return true;

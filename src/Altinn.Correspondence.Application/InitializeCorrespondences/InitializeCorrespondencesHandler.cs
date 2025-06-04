@@ -50,10 +50,8 @@ public class InitializeCorrespondencesHandler(
         ValidationData data,
         CancellationToken cancellationToken)
     {
-        logger.LogDebug("Starting validation and data preparation for correspondence initialization");
         if (!string.IsNullOrWhiteSpace(generalSettings.Value.ResourceWhitelist))
         {
-            logger.LogDebug("Checking resource whitelist for {ResourceId}", request.Correspondence.ResourceId);
             if (!generalSettings.Value.ResourceWhitelist.Split(',').Contains(request.Correspondence.ResourceId))
             {
                 logger.LogError("Resource {ResourceId} is not whitelisted", request.Correspondence.ResourceId);
@@ -61,7 +59,6 @@ public class InitializeCorrespondencesHandler(
             }
         }
 
-        logger.LogDebug("Checking sender access for resource {ResourceId}", request.Correspondence.ResourceId);
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
             request.Correspondence.ResourceId,
@@ -74,7 +71,6 @@ public class InitializeCorrespondencesHandler(
             return AuthorizationErrors.NoAccessToResource;
         }
 
-        logger.LogDebug("Getting resource type for {ResourceId}", request.Correspondence.ResourceId);
         var resourceType = await resourceRegistryService.GetResourceType(request.Correspondence.ResourceId, cancellationToken);
         if (resourceType is null)
         {
@@ -87,7 +83,6 @@ public class InitializeCorrespondencesHandler(
             return AuthorizationErrors.IncorrectResourceType;
         }
 
-        logger.LogDebug("Looking up party information for organization {OrganizationId}", user.GetCallerOrganizationId());
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
@@ -108,7 +103,6 @@ public class InitializeCorrespondencesHandler(
             return CorrespondenceErrors.DueDateRequired;
         }
 
-        logger.LogDebug("Handling contact reservation for {RecipientCount} recipients", request.Recipients.Count);
         var contactReservation = await HandleContactReservation(request);
         if (contactReservation.TryPickT1(out var error, out var reservedRecipients))
         {
@@ -222,7 +216,7 @@ public class InitializeCorrespondencesHandler(
 
         if (request.IdempotentKey.HasValue)
         {
-            logger.LogDebug("Checking idempotency key {Key}", request.IdempotentKey.Value);
+            logger.LogInformation("Checking idempotency key {Key}", request.IdempotentKey.Value);
             var result = await TransactionWithRetriesPolicy.Execute<OneOf<InitializeCorrespondencesResponse, Error>>(async (cancellationToken) =>
             {
                 var existingKey = await idempotencyKeyRepository.GetByIdAsync(request.IdempotentKey.Value, cancellationToken);
@@ -232,7 +226,7 @@ public class InitializeCorrespondencesHandler(
                     return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
                 }
 
-                logger.LogDebug("Creating new idempotency key {Key}", request.IdempotentKey.Value);
+                logger.LogInformation("Creating new idempotency key {Key}", request.IdempotentKey.Value);
                 var idempotencyKey = new IdempotencyKeyEntity()
                 {
                     Id = request.IdempotentKey.Value,
@@ -252,19 +246,18 @@ public class InitializeCorrespondencesHandler(
         }
 
         var validationData = new ValidationData();
-        logger.LogDebug("Starting validation and data preparation");
         var error = await ValidateAndPrepareData(request, user, validationData, cancellationToken);
         if (error != null)
         {
             if (request.IdempotentKey.HasValue)
             {
-                logger.LogDebug("Deleting idempotency key {Key} due to validation failure", request.IdempotentKey.Value);
+                logger.LogInformation("Deleting idempotency key {Key} due to validation failure", request.IdempotentKey.Value);
                 await idempotencyKeyRepository.DeleteAsync(request.IdempotentKey.Value, cancellationToken);
             }
             return error;
         }
 
-        logger.LogDebug("Initializing correspondences with validated data");
+        logger.LogInformation("Initializing correspondences with validated data");
         return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
         {
             return await InitializeCorrespondences(
@@ -281,7 +274,6 @@ public class InitializeCorrespondencesHandler(
         var ignoreReservation = request.Correspondence.IgnoreReservation == true;
         try
         {
-            logger.LogDebug("Getting reserved recipients from KRR");
             var reservedRecipients = await contactReservationRegistryService.GetReservedRecipients(request.Recipients.Where(recipient => recipient.IsSocialSecurityNumber()).ToList());
             if (!ignoreReservation && request.Recipients.Count == 1 && reservedRecipients.Count == 1)
             {

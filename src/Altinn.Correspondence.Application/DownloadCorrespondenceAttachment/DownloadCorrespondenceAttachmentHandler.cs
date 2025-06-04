@@ -37,21 +37,18 @@ public class DownloadCorrespondenceAttachmentHandler(
             _logger.LogError("Correspondence with id {CorrespondenceId} not found", request.CorrespondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        _logger.LogDebug("Retrieved correspondence {CorrespondenceId} with status {Status}", request.CorrespondenceId, correspondence.GetHighestStatus()?.Status);
         var attachment = await attachmentRepository.GetAttachmentByCorrespondenceIdAndAttachmentId(request.CorrespondenceId, request.AttachmentId, cancellationToken);
         if (attachment is null)
         {
             _logger.LogError("Attachment with id {AttachmentId} not found in correspondence {CorrespondenceId}", request.AttachmentId, request.CorrespondenceId);
             return AttachmentErrors.AttachmentNotFound;
         }
-        _logger.LogDebug("Retrieved attachment {AttachmentId} with filename {FileName}", request.AttachmentId, attachment.FileName);
         var hasAccess = await altinnAuthorizationService.CheckAccessAsRecipient(user, correspondence, cancellationToken);
         if (!hasAccess)
         {
             _logger.LogWarning("Access denied for correspondence {CorrespondenceId} - user does not have recipient access", request.CorrespondenceId);
             return AuthorizationErrors.NoAccessToResource;
         }
-        _logger.LogDebug("User has recipient access to correspondence {CorrespondenceId}", request.CorrespondenceId);
         var latestStatus = correspondence.GetHighestStatus();
         if (!latestStatus.Status.IsAvailableForRecipient())
         {
@@ -59,7 +56,7 @@ public class DownloadCorrespondenceAttachmentHandler(
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
 
-        _logger.LogDebug("Correspondence {CorrespondenceId} is available for recipient with status {Status}", request.CorrespondenceId, latestStatus.Status);
+        _logger.LogInformation("Correspondence {CorrespondenceId} is available for recipient with status {Status}", request.CorrespondenceId, latestStatus.Status);
         // Check for existing idempotency key
         var existingKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
             request.CorrespondenceId, 
@@ -71,14 +68,14 @@ public class DownloadCorrespondenceAttachmentHandler(
         string activityId;
         if (existingKey != null)
         {
-            _logger.LogDebug("Found existing idempotency key {KeyId} for correspondence {CorrespondenceId} and attachment {AttachmentId}", 
+            _logger.LogInformation("Found existing idempotency key {KeyId} for correspondence {CorrespondenceId} and attachment {AttachmentId}", 
                 existingKey.Id, request.CorrespondenceId, request.AttachmentId);
             activityId = existingKey.Id.ToString();
         }
         else
         {
             activityId = Guid.NewGuid().ToString();
-            _logger.LogDebug("Creating new idempotency key {KeyId} for correspondence {CorrespondenceId} and attachment {AttachmentId}", 
+            _logger.LogInformation("Creating new idempotency key {KeyId} for correspondence {CorrespondenceId} and attachment {AttachmentId}", 
                 activityId, request.CorrespondenceId, request.AttachmentId);
             var idempotencyKey = new IdempotencyKeyEntity
             {
@@ -96,15 +93,13 @@ public class DownloadCorrespondenceAttachmentHandler(
             _logger.LogError("Could not find party UUID for organization {OrganizationId}", user.GetCallerOrganizationId());
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
-        _logger.LogDebug("Retrieved party UUID {PartyUuid} for organization {OrganizationId}", partyUuid, user.GetCallerOrganizationId());
-        _logger.LogDebug("Downloading attachment {AttachmentId} from storage", request.AttachmentId);
+        _logger.LogInformation("Retrieved party UUID {PartyUuid} for organization {OrganizationId}", partyUuid, user.GetCallerOrganizationId());
         var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
         
         return await TransactionWithRetriesPolicy.Execute<DownloadCorrespondenceAttachmentResponse>(async (cancellationToken) =>
         {
             try
             {
-                _logger.LogDebug("Adding AttachmentsDownloaded status for correspondence {CorrespondenceId}", request.CorrespondenceId);
                 await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
                 {
                     CorrespondenceId = request.CorrespondenceId,
@@ -119,7 +114,6 @@ public class DownloadCorrespondenceAttachmentHandler(
                 _logger.LogError(e, "Error when adding status to correspondence {CorrespondenceId}", request.CorrespondenceId);
             }
 
-            _logger.LogDebug("Enqueueing Dialogporten activity for correspondence {CorrespondenceId}", request.CorrespondenceId);
             _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => 
             dialogportenService.CreateInformationActivity(
                 request.CorrespondenceId, 

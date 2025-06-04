@@ -23,7 +23,6 @@ public class GetCorrespondenceOverviewHandler(
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(GetCorrespondenceOverviewRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Processing correspondence overview request for {CorrespondenceId}", request.CorrespondenceId);
-        logger.LogDebug("Retrieving correspondence {CorrespondenceId} with status history", request.CorrespondenceId);
         var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, false, cancellationToken);
         if (correspondence == null)
         {
@@ -31,16 +30,10 @@ public class GetCorrespondenceOverviewHandler(
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
 
-        logger.LogDebug("Checking recipient access for correspondence {CorrespondenceId} and resource {ResourceId}", 
-            request.CorrespondenceId, 
-            correspondence.ResourceId);
         var hasAccessAsRecipient = await altinnAuthorizationService.CheckAccessAsRecipient(
             user,
             correspondence,
             cancellationToken);
-        logger.LogDebug("Checking sender access for correspondence {CorrespondenceId} and resource {ResourceId}", 
-            request.CorrespondenceId, 
-            correspondence.ResourceId);
         var hasAccessAsSender = await altinnAuthorizationService.CheckAccessAsSender(
             user,
             correspondence,

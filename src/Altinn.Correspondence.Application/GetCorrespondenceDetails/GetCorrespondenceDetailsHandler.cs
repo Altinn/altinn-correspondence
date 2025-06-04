@@ -23,14 +23,12 @@ public class GetCorrespondenceDetailsHandler(
     public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(GetCorrespondenceDetailsRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Processing correspondence details request for ID {CorrespondenceId}", request.CorrespondenceId);
-        logger.LogDebug("Retrieving correspondence {CorrespondenceId} with attachments and notifications", request.CorrespondenceId);
         var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, false, cancellationToken);
         if (correspondence == null)
         {
             logger.LogWarning("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        logger.LogDebug("Checking access permissions for correspondence {CorrespondenceId}", request.CorrespondenceId);
         var hasAccessAsRecipient = await altinnAuthorizationService.CheckAccessAsRecipient(
             user,
             correspondence,
@@ -53,19 +51,16 @@ public class GetCorrespondenceDetailsHandler(
             logger.LogWarning("No status found for correspondence {CorrespondenceId}", request.CorrespondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        logger.LogDebug("Looking up party information for organization {OrganizationId}", user.GetCallerOrganizationId());
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
             logger.LogError("Could not find party UUID for organization {OrganizationId}", user.GetCallerOrganizationId());
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
-        logger.LogDebug("Retrieved party UUID {PartyUuid} for organization {OrganizationId}", partyUuid, user.GetCallerOrganizationId());
         return await TransactionWithRetriesPolicy.Execute<GetCorrespondenceDetailsResponse>(async (cancellationToken) =>
         {
             if (hasAccessAsRecipient && !user.CallingAsSender())
             {
-                logger.LogDebug("Processing recipient access for correspondence {CorrespondenceId}", request.CorrespondenceId);
                 if (!latestStatus.Status.IsAvailableForRecipient())
                 {
                     logger.LogWarning("Correspondence {CorrespondenceId} status {Status} is not available for recipient",
@@ -85,9 +80,6 @@ public class GetCorrespondenceDetailsHandler(
                     PartyUuid = partyUuid
                 }, cancellationToken);
             }
-            logger.LogDebug("Processing {NotificationCount} notifications for correspondence {CorrespondenceId}",
-                correspondence.Notifications.Count,
-                request.CorrespondenceId);
             var notificationStatus = new List<NotificationStatusResponse>();
             foreach (var notification in correspondence.Notifications)
             {

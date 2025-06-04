@@ -16,16 +16,12 @@ public class GetAttachmentOverviewHandler(
     public async Task<OneOf<GetAttachmentOverviewResponse, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Processing attachment overview request for {AttachmentId}", attachmentId);
-        logger.LogDebug("Retrieving attachment {AttachmentId} with status history", attachmentId);
         var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
         if (attachment == null)
         {
             logger.LogWarning("Attachment {AttachmentId} not found", attachmentId);
             return AttachmentErrors.AttachmentNotFound;
         }
-        logger.LogDebug("Checking sender access for attachment {AttachmentId} and resource {ResourceId}", 
-            attachmentId, 
-            attachment.ResourceId);
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
             attachment.ResourceId,
@@ -38,7 +34,6 @@ public class GetAttachmentOverviewHandler(
             return AuthorizationErrors.NoAccessToResource;
         }
         var attachmentStatus = attachment.GetLatestStatus();
-        logger.LogDebug("Retrieving correspondence IDs for attachment {AttachmentId}", attachmentId);
         var correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);
         var response = new GetAttachmentOverviewResponse
         {

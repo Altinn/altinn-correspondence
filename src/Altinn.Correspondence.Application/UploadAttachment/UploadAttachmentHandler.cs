@@ -27,7 +27,6 @@ public class UploadAttachmentHandler(
             logger.LogError("Attachment with id {AttachmentId} not found", request.AttachmentId);
             return AttachmentErrors.AttachmentNotFound;
         }
-        logger.LogDebug("Retrieved attachment {AttachmentId} with filename {FileName}", request.AttachmentId, attachment.FileName);
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
             attachment.ResourceId,
@@ -39,7 +38,6 @@ public class UploadAttachmentHandler(
             logger.LogWarning("Access denied for attachment {AttachmentId} - user does not have sender access", request.AttachmentId);
             return AuthorizationErrors.NoAccessToResource;
         }
-        logger.LogDebug("User has sender access to attachment {AttachmentId}", request.AttachmentId);
         if (request.ContentLength > ApplicationConstants.MaxFileUploadSize || request.ContentLength == 0)
         {
             logger.LogWarning("Invalid file size {ContentLength} for attachment {AttachmentId} - must be between 1 and {MaxSize} bytes", 
@@ -51,7 +49,6 @@ public class UploadAttachmentHandler(
             logger.LogWarning("Attachment {AttachmentId} has already been uploaded or is being processed", request.AttachmentId);
             return AttachmentErrors.FileAlreadyUploaded;
         }
-        logger.LogDebug("Checking for existing correspondences for attachment {AttachmentId}", request.AttachmentId);
         var correspondences = await correspondenceRepository.GetCorrespondencesByAttachmentId(request.AttachmentId, false);
         if (correspondences.Count != 0)
         {
@@ -59,20 +56,18 @@ public class UploadAttachmentHandler(
                 request.AttachmentId, correspondences.Count);
             return AttachmentErrors.CantUploadToExistingCorrespondence;
         }
-        logger.LogDebug("Looking up party for organization {OrganizationId}", user.GetCallerOrganizationId());
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
             logger.LogError("Could not find party UUID for organization {OrganizationId}", user.GetCallerOrganizationId());
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
-        logger.LogDebug("Retrieved party UUID {PartyUuid} for organization {OrganizationId}", partyUuid, user.GetCallerOrganizationId());
-        logger.LogInformation("Starting upload process for attachment {AttachmentId}", request.AttachmentId);
+        logger.LogInformation("Retrieved party UUID {PartyUuid} for organization {OrganizationId}", partyUuid, user.GetCallerOrganizationId());
         return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
         {
             try
             {
-                logger.LogDebug("Uploading attachment {AttachmentId} with size {ContentLength} bytes", request.AttachmentId, request.ContentLength);
+                logger.LogInformation("Uploading attachment {AttachmentId} with size {ContentLength} bytes", request.AttachmentId, request.ContentLength);
                 var uploadResponse = await attachmentHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuid, false, cancellationToken);
                 logger.LogInformation("Successfully uploaded attachment {AttachmentId}", request.AttachmentId);
                 return uploadResponse;

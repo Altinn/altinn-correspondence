@@ -44,7 +44,7 @@ public class CheckNotificationHandler(
             backgroundJobClient.Schedule<EnsureNotificationHandler>(handler => handler.Process(correspondenceId, null, CancellationToken.None), DateTimeOffset.Now.AddHours(1));
             response.SendNotification = false;
         }
-        logger.LogDebug("Notification check completed for correspondence {CorrespondenceId} - SendNotification: {SendNotification}", correspondenceId, response.SendNotification);
+        logger.LogInformation("Notification check completed for correspondence {CorrespondenceId} - SendNotification: {SendNotification}", correspondenceId, response.SendNotification);
         return response;
     }
 }

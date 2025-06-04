@@ -114,6 +114,7 @@ namespace Altinn.Correspondence.Application.Helpers
         }
         public async Task<AttachmentStatusEntity> SetAttachmentStatus(Guid attachmentId, AttachmentStatus status, Guid partyUuid, CancellationToken cancellationToken, string statusText = null)
         {
+            logger.LogInformation("Setting attachment status for {attachmentId} to {status}. Performed by {partyUuid}", attachmentId, status, partyUuid);
             var currentStatus = new AttachmentStatusEntity
             {
                 AttachmentId = attachmentId,

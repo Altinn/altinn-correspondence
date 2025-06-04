@@ -21,9 +21,6 @@ public class DownloadAttachmentHandler(
             logger.LogWarning("Attachment {AttachmentId} not found", request.AttachmentId);
             return AttachmentErrors.AttachmentNotFound;
         }
-        logger.LogDebug("Checking sender access for attachment {AttachmentId} and resource {ResourceId}", 
-            request.AttachmentId, 
-            attachment.ResourceId);
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user, 
             attachment.ResourceId, 
@@ -35,9 +32,6 @@ public class DownloadAttachmentHandler(
             logger.LogWarning("Access denied for attachment {AttachmentId} - user does not have sender access", request.AttachmentId);
             return AuthorizationErrors.NoAccessToResource;
         }
-        logger.LogDebug("Downloading attachment {AttachmentId} from storage provider {StorageProvider}", 
-            request.AttachmentId, 
-            attachment.StorageProvider);
         var attachmentStream = await storageRepository.DownloadAttachment(
             attachment.Id, 
             attachment.StorageProvider, 

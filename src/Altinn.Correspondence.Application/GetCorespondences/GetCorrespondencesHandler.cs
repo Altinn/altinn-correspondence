@@ -30,7 +30,6 @@ public class GetCorrespondencesHandler(
             logger.LogError("Could not determine caller organization ID");
             return AuthorizationErrors.CouldNotDetermineCaller;
         }
-        logger.LogDebug("Checking access for resource {ResourceId} on behalf of {OnBehalfOf}", request.ResourceId, onBehalfOf);
         var hasAccess = await altinnAuthorizationService.CheckAccessAsAny(
             user,
             request.ResourceId,

@@ -20,16 +20,12 @@ public class UpdateCorrespondenceStatusHandler(
         logger.LogInformation("Processing status update request for correspondence {CorrespondenceId} to status {Status}", 
             request.CorrespondenceId, 
             request.Status);
-        logger.LogDebug("Retrieving correspondence {CorrespondenceId}", request.CorrespondenceId);
         var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, false, cancellationToken);
         if (correspondence == null)
         {
             logger.LogWarning("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        logger.LogDebug("Checking recipient access for correspondence {CorrespondenceId} and resource {ResourceId}", 
-            request.CorrespondenceId, 
-            correspondence.ResourceId);
         var hasAccess = await altinnAuthorizationService.CheckAccessAsRecipient(
             user,
             correspondence,
@@ -40,7 +36,6 @@ public class UpdateCorrespondenceStatusHandler(
             return AuthorizationErrors.NoAccessToResource;
         }
 
-        logger.LogDebug("Validating current status for correspondence {CorrespondenceId}", request.CorrespondenceId);
         var currentStatusError = updateCorrespondenceStatusHelper.ValidateCurrentStatus(correspondence);
         if (currentStatusError is not null)
         {
@@ -49,7 +44,6 @@ public class UpdateCorrespondenceStatusHandler(
                 currentStatusError);
             return currentStatusError;
         }
-        logger.LogDebug("Validating update request for correspondence {CorrespondenceId}", request.CorrespondenceId);
         var updateError = updateCorrespondenceStatusHelper.ValidateUpdateRequest(request, correspondence);
         if (updateError is not null)
         {
@@ -58,7 +52,6 @@ public class UpdateCorrespondenceStatusHandler(
                 updateError);
             return updateError;
         }
-        logger.LogDebug("Looking up party for organization {OrganizationId}", user.GetCallerOrganizationId());
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
@@ -66,21 +59,12 @@ public class UpdateCorrespondenceStatusHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
-        logger.LogDebug("Executing status update transaction for correspondence {CorrespondenceId}", request.CorrespondenceId);
+        logger.LogInformation("Executing status update transaction for correspondence {CorrespondenceId}", request.CorrespondenceId);
         await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
         {
-            logger.LogDebug("Adding new status {Status} for correspondence {CorrespondenceId}", 
-                request.Status, 
-                request.CorrespondenceId);
             await updateCorrespondenceStatusHelper.AddCorrespondenceStatus(correspondence, request.Status, partyUuid, cancellationToken);
-
-            logger.LogDebug("Reporting activity to Dialogporten for correspondence {CorrespondenceId}", request.CorrespondenceId);
             updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
-
-            logger.LogDebug("Patching correspondence dialog for {CorrespondenceId}", request.CorrespondenceId);
             updateCorrespondenceStatusHelper.PatchCorrespondenceDialog(request.CorrespondenceId, request.Status);
-
-            logger.LogDebug("Publishing status update event for correspondence {CorrespondenceId}", request.CorrespondenceId);
             updateCorrespondenceStatusHelper.PublishEvent(correspondence, request.Status);
 
             return Task.CompletedTask;

@@ -18,16 +18,12 @@ public class GetAttachmentDetailsHandler(
     public async Task<OneOf<GetAttachmentDetailsResponse, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Processing attachment details request for {AttachmentId}", attachmentId);
-        logger.LogDebug("Retrieving attachment {AttachmentId} with status history", attachmentId);
         var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
         if (attachment == null)
         {
             logger.LogWarning("Attachment {AttachmentId} not found", attachmentId);
             return AttachmentErrors.AttachmentNotFound;
         }
-        logger.LogDebug("Checking sender access for attachment {AttachmentId} and resource {ResourceId}", 
-            attachmentId, 
-            attachment.ResourceId);
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
             attachment.ResourceId,
@@ -39,15 +35,12 @@ public class GetAttachmentDetailsHandler(
             logger.LogWarning("Access denied for attachment {AttachmentId} - user does not have sender access", attachmentId);
             return AuthorizationErrors.NoAccessToResource;
         }
-        logger.LogDebug("Retrieving correspondence IDs for attachment {AttachmentId}", attachmentId);
         var correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);
         var attachmentStatus = attachment.GetLatestStatus();
 
-        logger.LogDebug("Determining content type for file {FileName}", attachment.FileName);
         var fileName = attachment.FileName;
         var contentType = FileConstants.GetMIMEType(fileName);
 
-        logger.LogDebug("Building response for attachment {AttachmentId}", attachmentId);
         var response = new GetAttachmentDetailsResponse
         {
             ResourceId = attachment.ResourceId,

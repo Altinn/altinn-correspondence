@@ -20,7 +20,6 @@ public class PurgeCorrespondenceHandler(
     {
         Guid correspondenceId = request.CorrespondenceId;
         logger.LogInformation("Processing purge request for correspondence {CorrespondenceId}", correspondenceId);
-        logger.LogDebug("Retrieving correspondence {CorrespondenceId} with status history", correspondenceId);
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, false, cancellationToken);
         if (correspondence == null)
         {
@@ -28,12 +27,10 @@ public class PurgeCorrespondenceHandler(
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
 
-        logger.LogDebug("Checking sender access for correspondence {CorrespondenceId}", correspondenceId);
         var hasAccessAsSender = await altinnAuthorizationService.CheckAccessAsSender(
             user,
             correspondence,
             cancellationToken);
-        logger.LogDebug("Checking recipient access for correspondence {CorrespondenceId}", correspondenceId);
         var hasAccessAsRecipient = await altinnAuthorizationService.CheckAccessAsRecipient(
             user,
             correspondence,
@@ -45,7 +42,7 @@ public class PurgeCorrespondenceHandler(
             throw new InvalidOperationException("This operation cannot be called outside an authenticated HttpContext");
         }
 
-        logger.LogDebug("Validating user permissions for correspondence {CorrespondenceId}", correspondenceId);
+        logger.LogInformation("Validating user permissions for correspondence {CorrespondenceId}", correspondenceId);
         var authError = CheckUserPermissions(user, correspondence, hasAccessAsSender, hasAccessAsRecipient, out bool isSender);
         if (authError is not null)
         {
@@ -55,7 +52,6 @@ public class PurgeCorrespondenceHandler(
             return authError;
         }
 
-        logger.LogDebug("Getting caller organization ID for correspondence {CorrespondenceId}", correspondenceId);
         var callerId = user.GetCallerOrganizationId();
         if (callerId is null)
         {
@@ -63,7 +59,6 @@ public class PurgeCorrespondenceHandler(
             return AuthorizationErrors.CouldNotDetermineCaller;
         }
 
-        logger.LogDebug("Looking up party information for organization {OrganizationId}", callerId);
         var party = await altinnRegisterService.LookUpPartyById(callerId, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
@@ -71,7 +66,7 @@ public class PurgeCorrespondenceHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
-        logger.LogDebug("Retrieved party UUID {PartyUuid} for organization {OrganizationId}", partyUuid, callerId);
+        logger.LogInformation("Retrieved party UUID {PartyUuid} for organization {OrganizationId}", partyUuid, callerId);
 
         logger.LogInformation("Starting purge process for correspondence {CorrespondenceId} as {Role}", 
             correspondenceId, 
@@ -79,7 +74,6 @@ public class PurgeCorrespondenceHandler(
 
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            logger.LogDebug("Executing purge operation for correspondence {CorrespondenceId}", correspondenceId);
             var result = await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, isSender, partyUuid, cancellationToken);
             logger.LogInformation("Successfully purged correspondence {CorrespondenceId}", correspondenceId);
             return result;
