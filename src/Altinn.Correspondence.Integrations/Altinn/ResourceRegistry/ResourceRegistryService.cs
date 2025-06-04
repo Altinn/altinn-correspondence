@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 public class ResourceRegistryService : IResourceRegistryService
@@ -106,6 +107,7 @@ public class ResourceRegistryService : IResourceRegistryService
 
     private string GetNameOfResourceResponse(GetResourceResponse resourceResponse)
     {
+        _logger.LogError("Respons from GetResource: {Response}", JsonSerializer.Serialize(resourceResponse));
         var nameAttributes = new List<string> { "en", "nb-no", "nn-no" };
         string? name = null;
         foreach (var nameAttribute in nameAttributes)
