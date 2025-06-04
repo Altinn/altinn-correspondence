@@ -109,6 +109,8 @@ namespace Altinn.Correspondence.Core.Models.Notifications
         public string Subject { get; set; } = null!;
 
         public string Body { get; set; } = null!;
+
+        public EmailContentType ContentType { get; set; } = EmailContentType.Plain;
     }
 
     public class SmsSettings

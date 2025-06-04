@@ -1,5 +1,4 @@
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -53,8 +52,10 @@ internal static class InitializeCorrespondenceNotificationMapper
             RequestedSendTime = correspondenceNotificationExt.RequestedSendTime,
             EmailBody = correspondenceNotificationExt.EmailBody,
             EmailSubject = correspondenceNotificationExt.EmailSubject,
+            EmailContentType = correspondenceNotificationExt.EmailContentType,
             ReminderEmailBody = correspondenceNotificationExt.ReminderEmailBody,
             ReminderEmailSubject = correspondenceNotificationExt.ReminderEmailSubject,
+            ReminderEmailContentType = correspondenceNotificationExt.ReminderEmailContentType,
             ReminderSmsBody = correspondenceNotificationExt.ReminderSmsBody,
             ReminderNotificationChannel = (NotificationChannel?)correspondenceNotificationExt.ReminderNotificationChannel,
             SmsBody = correspondenceNotificationExt.SmsBody,

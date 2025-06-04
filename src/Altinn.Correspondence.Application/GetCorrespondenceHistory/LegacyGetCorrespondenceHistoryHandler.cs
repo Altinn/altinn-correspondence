@@ -7,7 +7,7 @@ using Altinn.Correspondence.Core.Services;
 using OneOf;
 using System.Security.Claims;
 
-namespace Altinn.Correspondence.Application.GetCorrespondenceHistory;
+    namespace Altinn.Correspondence.Application.GetCorrespondenceHistory;
 public class LegacyGetCorrespondenceHistoryHandler(
     ICorrespondenceRepository correspondenceRepository,
     IAltinnNotificationService altinnNotificationService,

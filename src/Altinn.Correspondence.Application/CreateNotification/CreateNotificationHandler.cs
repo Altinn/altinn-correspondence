@@ -285,7 +285,13 @@ public class CreateNotificationHandler(
                 ? new EmailSettings
                 {
                     Subject = emailSubject,
-                    Body = emailBody
+                    //For regular emails: Always use EmailContentType
+                    //For reminder emails: Try to use ReminderEmailContentType, but if that's not set (is null), 
+                    //then use EmailContentType instead
+                    Body = emailBody,
+                    ContentType = isReminder 
+                        ? notificationRequest.ReminderEmailContentType ?? notificationRequest.EmailContentType 
+                        : notificationRequest.EmailContentType
                 }
                 : null;
 
@@ -379,7 +385,13 @@ public class CreateNotificationHandler(
             ? new EmailSettings
             {
                 Subject = emailSubject,
-                Body = emailBody
+                //For regular emails: Always use EmailContentType
+                //For reminder emails: Try to use ReminderEmailContentType, but if that's not set (is null), 
+                //then use EmailContentType instead
+                Body = emailBody,
+                ContentType = isReminder 
+                    ? notificationRequest.ReminderEmailContentType ?? notificationRequest.EmailContentType 
+                    : notificationRequest.EmailContentType
             }
             : null;
 
