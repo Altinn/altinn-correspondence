@@ -193,7 +193,7 @@ public class InitializeCorrespondencesHandler(
             var notificationError = initializeCorrespondenceHelper.ValidateNotification(request.Notification, request.Recipients);
             if (notificationError != null)
             {
-                logger.LogWarning("Notification validation failed: {Error}", notificationError);
+                logger.LogWarning("Notification validation failed with an error.");
                 return notificationError;
             }
         }

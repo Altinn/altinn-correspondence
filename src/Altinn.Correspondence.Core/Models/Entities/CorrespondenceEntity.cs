@@ -76,6 +76,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         public bool IsMigrating { get; set; }
 
+        public bool IsConfidential { get; set; }
         public int PartyId { get; set; } = 0;
     }
 }

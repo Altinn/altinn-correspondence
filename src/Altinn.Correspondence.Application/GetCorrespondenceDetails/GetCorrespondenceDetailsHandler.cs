@@ -134,6 +134,7 @@ public class GetCorrespondenceDetailsHandler(
                 PropertyList = correspondence.PropertyList,
                 Published = correspondence.Published,
                 IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
+                IsConfidential = correspondence.IsConfidential
             };
         }, logger, cancellationToken);
     }

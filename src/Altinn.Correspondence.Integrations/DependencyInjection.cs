@@ -19,6 +19,7 @@ using Altinn.Correspondence.Integrations.Slack;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Slack.Webhooks;
+using Altinn.Correspondence.Integrations.Brreg;
 
 namespace Altinn.Correspondence.Integrations;
 public static class DependencyInjection
@@ -32,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<IResourceManager, AzureResourceManagerService>();
         services.AddScoped<IResourceRegistryService, ResourceRegistryService>();
         services.AddSingleton<SasTokenService, SasTokenService>();
+        
         if (string.IsNullOrWhiteSpace(maskinportenSettings.ClientId))
         {
             services.AddScoped<IEventBus, ConsoleLogEventBus>();
@@ -42,6 +44,7 @@ public static class DependencyInjection
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
             services.AddScoped<IContactReservationRegistryService, ContactReservationRegistryDevService>();
             services.AddScoped<IAltinnStorageService, AltinnStorageDevService>();
+            services.AddScoped<IBrregService, BrregDevService>();
         }
         else
         {
@@ -56,6 +59,7 @@ public static class DependencyInjection
             services.RegisterAltinnHttpClient<IDialogportenService, DialogportenService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnStorageService, AltinnStorageService>(maskinportenSettings, altinnOptions);
             services.RegisterMaskinportenHttpClient<IContactReservationRegistryService, ContactReservationRegistryService>(config, generalSettings.ContactReservationRegistryBaseUrl);
+            services.AddHttpClient<IBrregService, BrregService>();
         }
         if (string.IsNullOrWhiteSpace(generalSettings.SlackUrl))
         {
@@ -67,7 +71,7 @@ public static class DependencyInjection
         }
         
         services.AddSingleton<SlackSettings>();
-        services.AddSingleton<DistributedLockHelper>();
+        services.AddSingleton<IDistributedLockHelper, DistributedLockHelper>();
     }
 
     public static void RegisterAltinnHttpClient<TClient, TImplementation>(this IServiceCollection services, MaskinportenSettings maskinportenSettings, AltinnOptions altinnOptions)

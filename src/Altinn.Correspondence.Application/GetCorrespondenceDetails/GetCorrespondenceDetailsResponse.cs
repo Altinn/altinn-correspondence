@@ -49,6 +49,8 @@ public class GetCorrespondenceDetailsResponse
     public DateTimeOffset? Published { get; internal set; }
 
     public bool IsConfirmationNeeded { get; set; }
+    
+    public bool IsConfidential { get; set; }
 
     public int? Altinn2CorrespondenceId { get; set; }
 }

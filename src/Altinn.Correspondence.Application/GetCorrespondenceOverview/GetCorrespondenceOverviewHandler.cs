@@ -113,6 +113,7 @@ public class GetCorrespondenceOverviewHandler(
                 AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
                 Published = correspondence.Published,
                 IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
+                IsConfidential = correspondence.IsConfidential
             };
             logger.LogInformation("Successfully retrieved overview for correspondence {CorrespondenceId} with status {Status}", 
                 request.CorrespondenceId, 
