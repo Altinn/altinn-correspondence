@@ -25,7 +25,7 @@ public class InitializeAttachmentHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Starting attachment initialization process for resource {ResourceId}", request.Attachment.ResourceId);
+        logger.LogInformation("Starting attachment initialization process for resource {ResourceId}", request.Attachment.ResourceId.SanitizeForLogging());
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
             request.Attachment.ResourceId,
@@ -34,7 +34,7 @@ public class InitializeAttachmentHandler(
             cancellationToken);
         if (!hasAccess)
         {
-            logger.LogWarning("Access denied for resource {ResourceId} - user does not have sender access", request.Attachment.ResourceId);
+            logger.LogWarning("Access denied for resource {ResourceId} - user does not have sender access", request.Attachment.ResourceId.SanitizeForLogging());
             return AuthorizationErrors.NoAccessToResource;
         }
         var resourceType = await resourceRegistryService.GetResourceType(request.Attachment.ResourceId, cancellationToken);
