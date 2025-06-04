@@ -126,7 +126,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
                 .ReturnsAsync(correspondence);
 
-            // Mock Brreg service - to return organization roles without required roles
+            // Mock Brreg service - to return organization roles without any of the required roles
             var organizationRoles = new OrganizationRoles
             {
                 RoleGroups = new List<RoleGroup>
@@ -137,7 +137,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                         {
                             new Role
                             {
-                                Type = new TypeInfo { Code = "ANNET" }, // Not in the required roles list
+                                Type = new TypeInfo { Code = "ANNET" },
                                 HasResigned = false
                             }
                         }
@@ -231,7 +231,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.AreAllAttachmentsPublished(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
-            // Mock Brreg service - return organization roles with required roles
+            // Mock Brreg service - return organization roles with a required role
             var organizationRoles = new OrganizationRoles
             {
                 RoleGroups = new List<RoleGroup>
@@ -242,7 +242,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                         {
                             new Role
                             {
-                                Type = new TypeInfo { Code = "BEST" }, // In required roles list
+                                Type = new TypeInfo { Code = "BEST" },
                                 HasResigned = false
                             }
                         }
@@ -276,7 +276,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 x => x.UpdatePublished(correspondenceId, It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()),
                 Times.Once);
 
-            // Verify slack notification was NOT sent (no error)
+            // Verify slack notification was not sent (no error)
             _slackClientMock.Verify(
                 x => x.PostAsync(It.Is<SlackMessage>(m => m.Text.Contains("Correspondence failed"))),
                 Times.Never);
@@ -323,7 +323,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 }
             };
 
-            // Mock party lookup
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyById(
                     It.IsAny<string>(), 
@@ -331,10 +330,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Returns((string id, CancellationToken token) => 
                     Task.FromResult<Party?>(new Party { PartyUuid = partyUuid }));
 
-            // Mock correspondence repository
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
                 .ReturnsAsync(correspondence);
+
+            _correspondenceRepositoryMock
+                .Setup(x => x.AreAllAttachmentsPublished(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
 
             // Mock Brreg service to throw BrregNotFoundException
             _brregServiceMock
