@@ -108,7 +108,7 @@ public class ResourceRegistryService : IResourceRegistryService
     private string GetNameOfResourceResponse(GetResourceResponse resourceResponse)
     {
         _logger.LogError("Respons from GetResource: {Response}", JsonSerializer.Serialize(resourceResponse));
-        var nameAttributes = new List<string> { "en", "nb-no", "nn-no" };
+        var nameAttributes = new List<string> { "en", "nb-no", "nn-no", "nb" };
         string? name = null;
         foreach (var nameAttribute in nameAttributes)
         {
