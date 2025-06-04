@@ -68,6 +68,7 @@ public class LegacyGetCorrespondencesHandler(
 
         // Get all correspondences owned by Recipients
         var correspondences = await correspondenceRepository.GetCorrespondencesForParties(limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken, request.FilterMigrated);
+        logger.LogError("Found {Count} correspondences for user {UserId}", correspondences.Count, userParty.PartyId);
 
         var resourceIds = correspondences.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
@@ -120,6 +121,7 @@ public class LegacyGetCorrespondencesHandler(
         Dictionary<string, int?> authlevels = new(correspondences.Count);
         foreach (var correspondence in correspondences)
         {
+            logger.LogError("Processing correspondence {CorrespondenceId} for user {UserId}", correspondence.Id, userParty.PartyId);
             string authLevelKey = $"{correspondence.Recipient}::{correspondence.ResourceId}";
             if (!authlevels.TryGetValue(authLevelKey, out int? authLevel))
             {
@@ -128,6 +130,7 @@ public class LegacyGetCorrespondencesHandler(
             }
             if (authLevel == null || minAuthLevel < authLevel)
             {
+                logger.LogError("Auth failed for {CorrespondenceId} for user {UserId} {MinAuthLevel} {AuthLevel}", correspondence.Id, userParty.PartyId, minAuthLevel, authLevel);
                 continue;
             }
             var purgedStatus = correspondence.GetPurgedStatus();
