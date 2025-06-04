@@ -12,7 +12,7 @@ namespace Altinn.Correspondence.Tests.Brreg
     /// Tests for BrregService using the actual Brreg API.
     /// These tests use real network calls.
     /// </summary>
-    public class BrregRealIntegrationTests
+    public class BrregRealIntegrationTests: IDisposable
     {
         private readonly HttpClient _httpClient;
         private readonly IOptions<GeneralSettings> _options;
@@ -99,6 +99,12 @@ namespace Altinn.Correspondence.Tests.Brreg
             // Act & Assert
             await Assert.ThrowsAsync<BrregNotFoundException>(() => 
                 _service.GetOrganizationDetailsAsync(organizationNumber));
+        }
+
+        public void Dispose()
+        {
+            _httpClient?.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }
