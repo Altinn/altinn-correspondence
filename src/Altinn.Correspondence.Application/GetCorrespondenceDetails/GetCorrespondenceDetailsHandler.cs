@@ -99,7 +99,7 @@ public class GetCorrespondenceDetailsHandler(
                 MessageSender = correspondence.MessageSender ?? string.Empty,
                 Created = correspondence.Created,
                 Recipient = correspondence.Recipient,
-                Content = correspondence.Content!,
+                Content = hasAccessAsRecipient || !correspondence.StatusHasBeen(CorrespondenceStatus.Published) ? correspondence.Content : null,
                 ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
                 Notifications = notificationStatus,
                 StatusHistory = correspondence.Statuses
