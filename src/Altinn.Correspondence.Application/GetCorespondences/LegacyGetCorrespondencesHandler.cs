@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -44,7 +45,7 @@ public class LegacyGetCorrespondencesHandler(
             request.IncludeArchived, 
             request.IncludeDeleted, 
             request.FilterMigrated, 
-            request.SearchString, 
+            request.SearchString?.SanitizeForLogging(), 
             request.InstanceOwnerPartyIdList);
         var minAuthLevel = userClaimsHelper.GetMinimumAuthenticationLevel();
         var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
