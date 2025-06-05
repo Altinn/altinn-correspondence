@@ -60,6 +60,7 @@ public static class AttachmentErrors
     public static Error FiletypeNotAllowed = new Error(2013, "Filetype not allowed", HttpStatusCode.BadRequest);
     public static Error ServiceOwnerNotFound = new Error(2014, "Service owner not setup in this environment. You need a service owner agreement to use Correspondence. Please contact us at Slack.", HttpStatusCode.UnavailableForLegalReasons);
     public static Error AttachmentAlreadyMigrated = new Error(2015, "Attachment has already been migrated", HttpStatusCode.Conflict);
+    public static Error AttachedToAPublishedCorrespondence = new Error(2016, "This attachment is associated with a published correspondence and can no longer be accessed by service owner", HttpStatusCode.BadRequest);
 }
 public static class NotificationErrors
 {

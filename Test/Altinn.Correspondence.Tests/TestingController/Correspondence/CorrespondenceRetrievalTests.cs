@@ -299,5 +299,68 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.False(detailsResponse.StatusHistory.Any(statusEntity => statusEntity.Status == CorrespondenceStatusExt.PurgedByRecipient));
         }
+
+        [Fact]
+        public async Task CorrespondencePublished_ContentNullForSender()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            initializeCorrespondenceResponse.EnsureSuccessStatusCode();
+            var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var initializedCorrespondence = correspondence.Correspondences.First();
+            var correspondenceId = initializedCorrespondence.CorrespondenceId;
+
+            // Act
+            var correspondenceDetails = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+            var correspondenceOverview = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+            Assert.True(correspondenceDetails.IsSuccessStatusCode, await correspondenceDetails.Content.ReadAsStringAsync());
+            var correspondenceDetailsResponse = await correspondenceDetails.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+            Assert.True(correspondenceOverview.IsSuccessStatusCode, await correspondenceOverview.Content.ReadAsStringAsync());
+            var correspondenceOverviewResponse = await correspondenceOverview.Content.ReadFromJsonAsync<CorrespondenceOverviewExt>(_responseSerializerOptions);
+
+            // Assert
+            Assert.True(correspondenceDetailsResponse.Status == CorrespondenceStatusExt.Published);
+            Assert.True(correspondenceOverviewResponse.Status == CorrespondenceStatusExt.Published);
+            Assert.Empty(correspondenceDetailsResponse.Content.MessageSummary);
+            Assert.Empty(correspondenceDetailsResponse.Content.MessageBody);
+            Assert.Empty(correspondenceDetailsResponse.Content.MessageTitle);
+            Assert.Empty(correspondenceOverviewResponse.Content.MessageSummary);
+            Assert.Empty(correspondenceOverviewResponse.Content.MessageBody);
+            Assert.Empty(correspondenceOverviewResponse.Content.MessageTitle);
+
+        }
+
+        [Fact]
+        public async Task CorrespondenceNotPublished_ContentNotNullForSender()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
+                .Build();
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var initializedCorrespondence = correspondence.Correspondences.First();
+            var correspondenceId = initializedCorrespondence.CorrespondenceId;
+
+            // Act
+            var correspondenceDetails = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+            var correspondenceOverview = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+            Assert.True(correspondenceDetails.IsSuccessStatusCode, await correspondenceDetails.Content.ReadAsStringAsync());
+            var correspondenceDetailsResponse = await correspondenceDetails.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+            Assert.True(correspondenceOverview.IsSuccessStatusCode, await correspondenceOverview.Content.ReadAsStringAsync());
+            var correspondenceOverviewResponse = await correspondenceOverview.Content.ReadFromJsonAsync<CorrespondenceOverviewExt>(_responseSerializerOptions);
+
+            // Assert
+            Assert.True(correspondenceDetailsResponse.Status != CorrespondenceStatusExt.Published);
+            Assert.True(correspondenceOverviewResponse.Status != CorrespondenceStatusExt.Published);
+            Assert.NotEmpty(correspondenceDetailsResponse.Content.MessageSummary);
+            Assert.NotEmpty(correspondenceDetailsResponse.Content.MessageBody);
+            Assert.NotEmpty(correspondenceDetailsResponse.Content.MessageTitle);
+            Assert.NotEmpty(correspondenceOverviewResponse.Content.MessageSummary);
+            Assert.NotEmpty(correspondenceOverviewResponse.Content.MessageBody);
+            Assert.NotEmpty(correspondenceOverviewResponse.Content.MessageTitle);
+        }
     }
 }

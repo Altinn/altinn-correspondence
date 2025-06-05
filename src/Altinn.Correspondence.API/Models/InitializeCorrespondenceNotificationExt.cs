@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Core.Models.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using System;
@@ -31,6 +32,12 @@ namespace Altinn.Correspondence.API.Models
         public string? EmailBody { get; set; }
 
         /// <summary>
+        /// The content type of the email body (HTML or Plain text)
+        /// </summary>
+        [JsonPropertyName("emailContentType")]
+        public EmailContentType EmailContentType { get; set; } = EmailContentType.Plain;
+
+        /// <summary>
         /// The sms body for the main notification
         /// </summary>
         [JsonPropertyName("smsBody")]
@@ -56,6 +63,12 @@ namespace Altinn.Correspondence.API.Models
         [JsonPropertyName("reminderEmailBody")]
         [StringLength(1024, MinimumLength = 0)]
         public string? ReminderEmailBody { get; set; }
+
+        /// <summary>
+        /// The content type of the reminder email body (HTML or Plain text)
+        /// </summary>
+        [JsonPropertyName("reminderEmailContentType")]
+        public EmailContentType? ReminderEmailContentType { get; set; }
 
         /// <summary>
         /// The sms body to use for the reminder notification
@@ -98,7 +111,7 @@ namespace Altinn.Correspondence.API.Models
         /// Only the first list of recipients will be used. If not set, the notification will be sent to the recipient of the Correspondence
         /// </summary>
         [JsonPropertyName("customNotificationRecipients")]
-        [Obsolete("This property is deprecated. Use CustomRecipient instead.")]
+        [Obsolete("This property is deprecated. Use customRecipient instead.")]
         public List<CustomNotificationRecipientExt>? CustomNotificationRecipients { get; set; }
     }
 

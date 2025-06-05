@@ -24,7 +24,7 @@ public class GetCorrespondenceDetailsResponse
 
     public string Recipient { get; set; } = string.Empty;
 
-    public required CorrespondenceContentEntity Content { get; set; }
+    public CorrespondenceContentEntity? Content { get; set; }
 
     public List<CorrespondenceReplyOptionEntity> ReplyOptions { get; set; } = new List<CorrespondenceReplyOptionEntity>();
 

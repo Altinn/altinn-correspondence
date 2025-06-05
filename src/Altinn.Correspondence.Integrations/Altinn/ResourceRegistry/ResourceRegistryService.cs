@@ -102,7 +102,7 @@ public class ResourceRegistryService : IResourceRegistryService
 
     private string GetNameOfResourceResponse(GetResourceResponse resourceResponse)
     {
-        var nameAttributes = new List<string> { "en", "nb-no", "nn-no" };
+        var nameAttributes = new List<string> { "en", "nb", "nn" };
         string? name = null;
         foreach (var nameAttribute in nameAttributes)
         {

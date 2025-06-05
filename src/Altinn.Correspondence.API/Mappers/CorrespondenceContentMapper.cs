@@ -6,8 +6,19 @@ namespace Altinn.Correspondence.Mappers;
 
 internal static class CorrespondenceContentMapper
 {
-    internal static CorrespondenceContentExt MapToExternal(CorrespondenceContentEntity correspondenceContent)
+    internal static CorrespondenceContentExt MapToExternal(CorrespondenceContentEntity? correspondenceContent)
     {
+        if (correspondenceContent is null)
+        {
+            return new CorrespondenceContentExt
+            {
+                Language = "no",
+                MessageSummary = string.Empty,
+                MessageTitle = string.Empty,
+                MessageBody = string.Empty,
+                Attachments = new List<CorrespondenceAttachmentExt>(),
+            };
+        }
         var content = new CorrespondenceContentExt
         {
             Language = correspondenceContent.Language,
