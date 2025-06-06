@@ -39,5 +39,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         {
             return Task.CompletedTask;
         }
+
+        public Task<string> SilentCreateCorrespondenceDialog(Guid correspondenceId)
+        {
+            return Task.FromResult(Guid.NewGuid().ToString());
+        }
     }
 }
