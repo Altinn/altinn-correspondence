@@ -19,6 +19,7 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
 
     public async Task<OneOf<DownloadCorrespondenceAttachmentResponse, Error>> Process(DownloadCorrespondenceAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        var operationTimestamp = DateTimeOffset.Now;
         var partyId = userClaimsHelper.GetPartyId();
         if (partyId is null)
         {
@@ -46,7 +47,7 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
         var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
-        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, DialogportenActorType.Recipient, DialogportenTextType.DownloadStarted, attachment.DisplayName ?? attachment.FileName, attachment.Id.ToString(), DateTime.Now.ToString()));
+        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, DialogportenActorType.Recipient, DialogportenTextType.DownloadStarted, operationTimestamp, attachment.DisplayName ?? attachment.FileName, attachment.Id.ToString()));
         return new DownloadCorrespondenceAttachmentResponse()
         {
             FileName = attachment.FileName,

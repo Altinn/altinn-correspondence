@@ -31,6 +31,7 @@ public class DownloadCorrespondenceAttachmentHandler(
     public async Task<OneOf<DownloadCorrespondenceAttachmentResponse, Error>> Process(DownloadCorrespondenceAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Processing download for correspondence {correspondenceId} and attachment {attachmentId}", request.CorrespondenceId, request.AttachmentId);
+        var operationTimestamp = DateTimeOffset.Now;
 
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, false, cancellationToken);
         if (correspondence is null)
@@ -113,12 +114,12 @@ public class DownloadCorrespondenceAttachmentHandler(
 
             _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => 
             dialogportenService.CreateInformationActivity(
-                request.CorrespondenceId, 
+                request.CorrespondenceId,
                 DialogportenActorType.ServiceOwner, 
-                DialogportenTextType.DownloadStarted,  
+                DialogportenTextType.DownloadStarted,
+                operationTimestamp,
                 attachment.DisplayName ?? attachment.FileName,
-                request.AttachmentId.ToString(),
-                DateTime.Now.ToString()));
+                request.AttachmentId.ToString()));
             return new DownloadCorrespondenceAttachmentResponse()
             {
                 FileName = attachment.FileName,

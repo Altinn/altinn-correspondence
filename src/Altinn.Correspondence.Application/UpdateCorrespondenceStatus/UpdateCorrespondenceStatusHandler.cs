@@ -17,6 +17,7 @@ public class UpdateCorrespondenceStatusHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        var operationTimestamp = DateTimeOffset.UtcNow;
         var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, false, cancellationToken);
         if (correspondence == null)
         {
@@ -49,7 +50,7 @@ public class UpdateCorrespondenceStatusHandler(
         await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
         {
             await updateCorrespondenceStatusHelper.AddCorrespondenceStatus(correspondence, request.Status, partyUuid, cancellationToken);
-            updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
+            updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status, operationTimestamp);
             updateCorrespondenceStatusHelper.PatchCorrespondenceDialog(request.CorrespondenceId, request.Status);
             updateCorrespondenceStatusHelper.PublishEvent(correspondence, request.Status);
             return Task.CompletedTask;

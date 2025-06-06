@@ -31,13 +31,15 @@ namespace Altinn.Correspondence.Application.CancelNotification
         [AutomaticRetry(Attempts = MaxRetries)]
         public async Task Process(PerformContext context, Guid correspondenceId, ClaimsPrincipal? _, CancellationToken cancellationToken = default)
         {
+            var operationTimestamp = DateTimeOffset.UtcNow;
+
             var retryAttempts = context.GetJobParameter<int>(RetryCountKey);
             logger.LogInformation("Cancelling notifications for correspondence {correspondenceId}. Retry attempt: {retryAttempts}", correspondenceId, retryAttempts);
             var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, cancellationToken);
             var notificationEntities = correspondence?.Notifications ?? [];
-            await CancelNotification(correspondenceId, notificationEntities, retryAttempts, cancellationToken);
+            await CancelNotification(correspondenceId, notificationEntities, retryAttempts, operationTimestamp, cancellationToken);
         }
-        public async Task CancelNotification(Guid correspondenceId, List<CorrespondenceNotificationEntity> notificationEntities, int retryAttempts, CancellationToken cancellationToken)
+        public async Task CancelNotification(Guid correspondenceId, List<CorrespondenceNotificationEntity> notificationEntities, int retryAttempts, DateTimeOffset operationTimestamp, CancellationToken cancellationToken)
         {
             var env = hostEnvironment.EnvironmentName;
             var error = $"Error while attempting to cancel notifications for correspondenceId: {correspondenceId} in environment: {env}.";
@@ -52,7 +54,7 @@ namespace Altinn.Correspondence.Application.CancelNotification
                     if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
                     throw new Exception(error);
                 }
-                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled));
+                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled, operationTimestamp));
             }
         }
         private void SendSlackNotificationWithMessage(string message)

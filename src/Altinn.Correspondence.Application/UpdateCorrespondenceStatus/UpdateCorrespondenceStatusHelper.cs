@@ -81,11 +81,11 @@ public class UpdateCorrespondenceStatusHelper(
     /// <param name="correspondenceId"></param>
     /// <param name="status"></param>
     // Must be public to be run by Hangfire
-    public void ReportActivityToDialogporten(Guid correspondenceId, CorrespondenceStatus status)
+    public void ReportActivityToDialogporten(Guid correspondenceId, CorrespondenceStatus status, DateTimeOffset operationTimestamp)
     {
         if (status == CorrespondenceStatus.Confirmed)
         {
-            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondenceConfirmed));
+            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondenceConfirmed, operationTimestamp));
         }
         return;
     }

@@ -20,6 +20,7 @@ public class LegacyPurgeCorrespondenceHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        var operationTimestamp = DateTimeOffset.UtcNow;
         if (userClaimsHelper.GetPartyId() is not int partyId)
         {
             return AuthorizationErrors.InvalidPartyId;
@@ -50,7 +51,7 @@ public class LegacyPurgeCorrespondenceHandler(
         }
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            return await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, false, partyUuid, cancellationToken);
+            return await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, false, partyUuid, operationTimestamp, cancellationToken);
         }, logger, cancellationToken);
     }
 }
