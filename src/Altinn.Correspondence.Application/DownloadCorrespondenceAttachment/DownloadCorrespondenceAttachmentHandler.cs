@@ -31,7 +31,7 @@ public class DownloadCorrespondenceAttachmentHandler(
     public async Task<OneOf<DownloadCorrespondenceAttachmentResponse, Error>> Process(DownloadCorrespondenceAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Processing download for correspondence {correspondenceId} and attachment {attachmentId}", request.CorrespondenceId, request.AttachmentId);
-        var operationTimestamp = DateTimeOffset.Now;
+        var operationTimestamp = DateTimeOffset.UtcNow;
 
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, false, cancellationToken);
         if (correspondence is null)

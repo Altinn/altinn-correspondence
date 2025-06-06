@@ -48,7 +48,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Act
             try
             {
-                await cancelNotificationHandler.CancelNotification(Guid.Empty, notificationEntities, retryAttempts: 10, DateTimeOffset.Now, default);
+                await cancelNotificationHandler.CancelNotification(Guid.Empty, notificationEntities, retryAttempts: 10, DateTimeOffset.UtcNow, default);
             }
             catch
             {

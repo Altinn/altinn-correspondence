@@ -19,7 +19,7 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
 
     public async Task<OneOf<DownloadCorrespondenceAttachmentResponse, Error>> Process(DownloadCorrespondenceAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var operationTimestamp = DateTimeOffset.Now;
+        var operationTimestamp = DateTimeOffset.UtcNow;
         var partyId = userClaimsHelper.GetPartyId();
         if (partyId is null)
         {
