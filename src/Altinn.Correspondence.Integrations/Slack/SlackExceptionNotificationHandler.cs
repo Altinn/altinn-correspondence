@@ -15,8 +15,7 @@ public class SlackExceptionNotificationHandler(
     ISlackClient slackClient,
     IProblemDetailsService problemDetailsService,
     IHostEnvironment hostEnvironment,
-    SlackSettings slackSettings,
-    TelemetryClient telemetryClient) : IExceptionHandler
+    SlackSettings slackSettings) : IExceptionHandler
 {
     private string Channel => slackSettings.NotificationChannel;
 
@@ -44,7 +43,6 @@ public class SlackExceptionNotificationHandler(
             { "SentToSlack", "true" },
             { "SlackMessage", exceptionMessage }
         };
-        telemetryClient.TrackException(exception, properties);
 
         logger.LogError(
             exception,
@@ -93,7 +91,6 @@ public class SlackExceptionNotificationHandler(
                 { "InnerExceptionType", slackEx.InnerException?.GetType().Name ?? "None" },
                 { "InnerExceptionMessage", slackEx.InnerException?.Message ?? "None" }
             };
-            telemetryClient.TrackException(slackEx, slackProperties);
 
             logger.LogError(
                 slackEx,
@@ -124,7 +121,6 @@ public class SlackExceptionNotificationHandler(
             { "SentToSlack", "true" },
             { "SlackMessage", exceptionMessage }
         };
-        telemetryClient.TrackException(exception, properties);
 
         logger.LogError(
             exception,
@@ -158,7 +154,6 @@ public class SlackExceptionNotificationHandler(
                 { "InnerExceptionType", ex.InnerException?.GetType().Name ?? "None" },
                 { "InnerExceptionMessage", ex.InnerException?.Message ?? "None" }
             };
-            telemetryClient.TrackException(ex, slackProperties);
 
             logger.LogError(ex, "Failed to send Slack notification");
             return false;

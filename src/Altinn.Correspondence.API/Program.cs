@@ -1,58 +1,57 @@
 using Altinn.Correspondence.API.Auth;
-using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.IpSecurityRestrictionsUpdater;
+using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Integrations;
+using Altinn.Correspondence.Integrations.Azure;
 using Altinn.Correspondence.Integrations.Hangfire;
+using Altinn.Correspondence.Integrations.Slack;
 using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Azure.Identity;
 using Hangfire;
-using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Npgsql;
-using Serilog;
 using System.Reflection;
 using System.Text.Json.Serialization;
-using Altinn.Correspondence.Integrations.Slack;
-using Altinn.Correspondence.Common.Caching;
-using Altinn.Correspondence.Integrations.Azure;
-using Altinn.Correspondence.Application.IpSecurityRestrictionsUpdater;
-using Serilog.Formatting.Json;
-using Serilog.Events;
 
 BuildAndRun(args);
 
+static ILogger<Program> CreateBootstrapLogger()
+{
+    return LoggerFactory.Create(builder =>
+     {
+         builder
+             .AddFilter("*", LogLevel.Debug)
+             .AddConsole();
+     }).CreateLogger<Program>();
+}
+
 static void BuildAndRun(string[] args)
 {
+    var bootstrapLogger = CreateBootstrapLogger();
+    bootstrapLogger.LogInformation("Starting Altinn.Correspondence.API...");
     var builder = WebApplication.CreateBuilder(args);
-    builder.Host.UseSerilog((context, services, configuration) => configuration
-        .ReadFrom.Configuration(context.Configuration)
-        .ReadFrom.Services(services)
-        .Filter.ByExcluding(logEvent =>
-            logEvent.Properties.TryGetValue("RequestPath", out var requestPath) &&
-            requestPath.ToString().Contains("/health", StringComparison.OrdinalIgnoreCase))
-        .Filter.ByExcluding(logEvent =>   
-            logEvent.Properties.TryGetValue("RequestPath", out var requestPath) &&
-            requestPath.ToString().Contains("/migration", StringComparison.OrdinalIgnoreCase))
-        .Enrich.FromLogContext()
-        .Enrich.WithClientIp()
-        .Enrich.With(new PropertyPropagationEnricher("correspondenceId", "instanceId", "resourceId", "partyId"))
-        .WriteTo.Console(new JsonFormatter(renderMessage: true))
-        .WriteTo.ApplicationInsights(
-            services.GetRequiredService<TelemetryConfiguration>(),
-            TelemetryConverter.Traces));
+
     builder.Configuration
         .AddJsonFile("appsettings.json", true, true)
         .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", true, true)
         .AddJsonFile("appsettings.local.json", true, true);
+
+    var generalSettings = builder.Configuration.GetSection(nameof(GeneralSettings)).Get<GeneralSettings>();
+    bootstrapLogger.LogInformation($"Running in environment {builder.Environment.EnvironmentName} with base url {generalSettings?.CorrespondenceBaseUrl ?? "NULL"}");
+
+    // Configure OpenTelemetry
+    builder.ConfigureOpenTelemetry(generalSettings.ApplicationInsightsConnectionString, bootstrapLogger);
+
     ConfigureServices(builder.Services, builder.Configuration, builder.Environment);
-    #pragma warning disable EXTEXP0018
+#pragma warning disable EXTEXP0018
     builder.Services.AddHybridCache();
-    #pragma warning restore EXTEXP0018
+#pragma warning restore EXTEXP0018
     builder.Services.AddSingleton<IHybridCacheWrapper, HybridCacheWrapper>();
 
     var app = builder.Build();
@@ -70,7 +69,6 @@ static void BuildAndRun(string[] args)
     app.MapControllers();
     app.UseMiddleware<SecurityHeadersMiddleware>();
     app.UseMiddleware<AcceptHeaderValidationMiddleware>();
-    app.UseSerilogRequestLogging();
 
     if (app.Environment.IsDevelopment())
     {
@@ -92,6 +90,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
 {
     var connectionString = GetConnectionString(config);
 
+    services.AddHttpContextAccessor();
     services.AddHostedService<EdDsaSecurityKeysCacheService>();
     services.Configure<AttachmentStorageOptions>(config.GetSection(key: nameof(AttachmentStorageOptions)));
     services.Configure<AltinnOptions>(config.GetSection(key: nameof(AltinnOptions)));
@@ -106,7 +105,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     });
     var altinnOptions = new AltinnOptions();
     config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
-    services.AddSingleton<Altinn.Correspondence.Integrations.Slack.SlackExceptionNotificationHandler>();
+    services.AddSingleton<SlackExceptionNotificationHandler>();
     services.AddExceptionHandler<SlackExceptionNotificationHandler>();
     services.AddCors(options =>
     {
@@ -128,7 +127,6 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
         options.IncludeXmlComments(xmlPath);
     });
-    services.AddApplicationInsightsTelemetry();
 
     services.AddApplicationHandlers();
     services.AddPersistence(config);

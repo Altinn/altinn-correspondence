@@ -17,14 +17,14 @@ public static class DependencyInjection
             config.UsePostgreSqlStorage(
                 c => c.UseConnectionFactory(provider.GetService<IConnectionFactory>())
             );
-            config.UseSerilogLogProvider();
-            config.UseFilter(new HangfireAppRequestFilter(provider.GetRequiredService<TelemetryClient>()));
+            //config.UseSerilogLogProvider();
+            //config.UseFilter(new HangfireAppRequestFilter(provider.GetRequiredService<TelemetryClient>()));
             config.UseSerializerSettings(new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
-            config.UseFilter(
+            /*config.UseFilter(
                 new SlackExceptionHandler(
                     provider.GetRequiredService<SlackExceptionNotificationHandler>(),
                     provider.GetRequiredService<ILogger<SlackExceptionHandler>>())
-                );
+                );*/
         });
 
         services.AddHangfireServer(options => options.SchedulePollingInterval = TimeSpan.FromSeconds(2));

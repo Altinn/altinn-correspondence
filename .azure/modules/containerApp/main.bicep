@@ -116,6 +116,7 @@ var containerAppEnvVarsdefault = [
   { name: 'IdportenSettings__Issuer', value: idportenIssuer }
   { name: 'IdportenSettings__ClientId', secretRef: 'idporten-client-id' }
   { name: 'IdportenSettings__ClientSecret', secretRef: 'idporten-client-secret' }
+  { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretRef: 'application-insights-connection-string' }
 ]
 
 var containerAppEnvVars = concat(
