@@ -84,6 +84,38 @@ namespace Altinn.Correspondence.API.Controllers
                 Problem
             );
         }
+        /// <summary>
+        /// Make Migrated Attachment available in Dialogporten
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("dialogporten")]
+        [Authorize(Policy = AuthorizationConstants.Migrate)]
+        public async Task<ActionResult<AttachmentOverviewExt>> MakeMigratedCorrespondenceAccessible(
+            [FromQuery]Guid correspondenceId, [FromQuery]bool createEvents,
+            [FromServices] MigrateAttachmentHandler migrateAttachmentHandler,
+            CancellationToken cancellationToken = default
+        )
+        {
+            Guid attachmentId = Guid.NewGuid();
+            _logger.LogInformation("{AttachmentId};Uploading attachment", attachmentId.ToString());
+
+            Request.EnableBuffering();
+            var attachment = new MigrateAttachmentRequest()
+            {
+                SenderPartyUuid = initializeAttachmentExt.SenderPartyUuid,
+                UploadStream = Request.Body,
+                ContentLength = Request.ContentLength ?? Request.Body.Length,
+                Attachment = MigrateAttachmentMapper.MapToRequest(initializeAttachmentExt, Request).Attachment
+            };
+            attachment.Attachment.Id = Guid.NewGuid();
+            var uploadAttachmentResult = await migrateAttachmentHandler.Process(attachment, HttpContext.User, cancellationToken);
+
+            return uploadAttachmentResult.Match(
+                attachment => Ok(attachment.AttachmentId),
+                Problem
+            );
+        }
 
         private ActionResult Problem(Error error) => Problem(
             detail: error.Message, 

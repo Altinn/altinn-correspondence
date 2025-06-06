@@ -2,6 +2,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -11,6 +12,7 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondence;
 
 public class MigrateCorrespondenceHandler(
     ICorrespondenceRepository correspondenceRepository,
+    IDialogportenService dialogportenService,
     ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRequest, MigrateCorrespondenceResponse>
 {
     public async Task<OneOf<MigrateCorrespondenceResponse, Error>> Process(MigrateCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -60,6 +62,39 @@ public class MigrateCorrespondenceHandler(
 
             throw;
         }
+    }
+
+    public async Task<OneOf<MakeAvailableInDialogportenResponse, Error>> MakeAvailableInDialogPorten(MakeAvailableInDialogportenRequest request, CancellationToken cancellationToken)
+    {
+        string? dialogId;
+        MakeAvailableInDialogportenResponse response = new MakeAvailableInDialogportenResponse()
+        {
+            IsAlreadyMadeAvailable = false
+        };
+        if (request.CorrespondenceId.HasValue)
+        {
+            dialogId = await dialogportenService.SilentCreateCorrespondenceDialog(request.CorrespondenceId.Value);
+            await correspondenceRepository.AddExternalReference(request.CorrespondenceId.Value, ReferenceType.DialogportenDialogId, dialogId);
+            response.CorrespondenceId = request.CorrespondenceId;
+        }
+        else if (request.CorrespondenceIds != null && request.CorrespondenceIds.Any())
+        {
+            response.CorrespondenceIds = new List<Guid>();
+            foreach (var cid in request.CorrespondenceIds)
+            {
+                dialogId = await dialogportenService.SilentCreateCorrespondenceDialog(cid);
+                await correspondenceRepository.AddExternalReference(cid, ReferenceType.DialogportenDialogId, dialogId);
+                response.CorrespondenceIds.Add(cid);
+            }
+        }
+
+        return response;
+    }
+
+    public async Task CreateDialogportenDialog(Guid correspondenceId)
+    {
+        var dialogId = await dialogportenService.SilentCreateCorrespondenceDialog(correspondenceId);
+        await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
     }
 
     public static Error? MigrationValidateCorrespondenceContent(CorrespondenceContentEntity? content)
