@@ -13,6 +13,56 @@ public class NotificationMapper
         _resourceRegistryService = resourceRegistryService;
     }
 
+    public async Task<NotificationStatusResponse> MapAltinn2NotificationToAltinn3NotificationStatus(CorrespondenceNotificationEntity notification)
+    {
+        var correspondence = notification.Correspondence ?? throw new ArgumentException($"Correspondence with id {notification.CorrespondenceId} not found when mapping notification", nameof(notification));
+        NotificationsStatusDetails nsd = new NotificationsStatusDetails();
+        var sendStatus = new StatusExt()
+        {
+            Status = "Completed",
+            LastUpdate = notification.NotificationSent.Value.UtcDateTime
+        };
+
+        if (notification.NotificationChannel == Core.Models.Enums.NotificationChannel.Sms)
+        {
+            nsd.Sms = new SmsNotificationWithResult()
+            {
+                Recipient = new Recipient()
+                {
+                    MobileNumber = notification.NotificationAddress
+                },
+                SendStatus = sendStatus,
+                Succeeded = true
+            };
+        }
+        else
+        {
+            nsd.Email = new EmailNotificationWithResult()
+            {
+                Recipient = new Recipient()
+                {
+                    EmailAddress = notification.NotificationAddress
+                },
+                SendStatus = sendStatus,
+                Succeeded = true
+            };
+        }
+
+        return new NotificationStatusResponse
+        {
+            SendersReference = null,
+            RequestedSendTime = notification.RequestedSendTime.DateTime,
+            Created = notification.Created.DateTime,
+            Creator = correspondence?.ResourceId != null ? await _resourceRegistryService.GetServiceOwnerOrgCode(correspondence.ResourceId) : "Not found",
+            IsReminder = notification.IsReminder,
+            NotificationChannel = notification.NotificationChannel,
+            ResourceId = correspondence.ResourceId,
+            IgnoreReservation = correspondence.IgnoreReservation ?? false,
+            ProcessingStatus = sendStatus,
+            NotificationsStatusDetails = nsd
+        };
+    }
+
     public async Task<NotificationStatusResponse> MapNotificationV2ToV1Async(NotificationStatusResponseV2 notificationDetails, CorrespondenceNotificationEntity notification)
     {
         var correspondence = notification.Correspondence ?? throw new ArgumentException($"Correspondence with id {notification.CorrespondenceId} not found when mapping notification", nameof(notification));
@@ -80,7 +130,7 @@ public class NotificationMapper
                     },
                     Succeeded = latestSmsRecipient?.Status == "SMS_Delivered"
                 } : null,
-                Emails = emailRecipients!= null && emailRecipients.Count != 0 ? [.. emailRecipients.Select(r => new EmailNotificationWithResult
+                Emails = emailRecipients != null && emailRecipients.Count != 0 ? [.. emailRecipients.Select(r => new EmailNotificationWithResult
                 {
                     Recipient = new Recipient
                     {
@@ -92,8 +142,8 @@ public class NotificationMapper
                         LastUpdate = r.LastUpdate.DateTime
                     },
                     Succeeded = r.Status == "Email_Delivered"
-                })]: null,
-                Smses = smsRecipients!= null && smsRecipients.Count != 0 ? [.. smsRecipients.Select(r => new SmsNotificationWithResult
+                })] : null,
+                Smses = smsRecipients != null && smsRecipients.Count != 0 ? [.. smsRecipients.Select(r => new SmsNotificationWithResult
                 {
                     Recipient = new Recipient
                     {
@@ -105,7 +155,7 @@ public class NotificationMapper
                         LastUpdate = r.LastUpdate.DateTime
                     },
                     Succeeded = r.Status == "SMS_Delivered"
-                })]: null,
+                })] : null,
             }
         };
     }

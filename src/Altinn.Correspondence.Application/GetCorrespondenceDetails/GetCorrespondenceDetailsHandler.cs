@@ -93,6 +93,11 @@ public class GetCorrespondenceDetailsHandler(
                     notificationDetails.IsReminder = notification.IsReminder;
                     notificationStatus.Add(notificationDetails);
                 }
+                // If notification does not have a shipmentId, and also has no NotificationOrderId, it's probably an Altinn2Notification.
+                else if (notification.ShipmentId == null && notification.Altinn2NotificationId != null)
+                {
+                    notificationStatus.Add(await notificationMapper.MapAltinn2NotificationToAltinn3NotificationStatus(notification));
+                }
                 // If the notification has a shipmentId, it is a version 2 notification
                 else if (notification.ShipmentId is not null)
                 {
@@ -110,6 +115,7 @@ public class GetCorrespondenceDetailsHandler(
             return new GetCorrespondenceDetailsResponse
             {
                 CorrespondenceId = correspondence.Id,
+                Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId,
                 Status = latestStatus.Status,
                 StatusText = latestStatus.StatusText,
                 StatusChanged = latestStatus.StatusChanged,
