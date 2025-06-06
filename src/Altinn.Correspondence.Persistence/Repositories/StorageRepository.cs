@@ -136,7 +136,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<Stream> DownloadAttachment(Guid attachmentId, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
             _logger.LogInformation(
-                "Downloading attachment with id: {attachmentId} to blob storage. Storage resource: {storageProvider} and resource {storageResourceName}",
+                "Downloading attachment with id: {attachmentId} from blob storage. Storage resource: {storageProvider} and resource {storageResourceName}",
                 attachmentId,
                 storageProviderEntity?.Id.ToString() ?? "Legacy",
                 storageProviderEntity?.StorageResourceName ?? "Legacy");

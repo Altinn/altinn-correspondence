@@ -2,8 +2,8 @@ namespace Altinn.Correspondence.Core.Models.Enums;
 
 public enum EmailContentType
 {
-    Plain,
+    Plain = 0,
 
-    Html,
+    Html = 1,
 
 }

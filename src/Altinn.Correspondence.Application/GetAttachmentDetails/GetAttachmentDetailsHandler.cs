@@ -2,6 +2,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
 using Altinn.Correspondence.Common.Helpers;
@@ -11,14 +12,16 @@ namespace Altinn.Correspondence.Application.GetAttachmentDetails;
 public class GetAttachmentDetailsHandler(
     IAttachmentRepository attachmentRepository,
     ICorrespondenceRepository correspondenceRepository,
-    IAltinnAuthorizationService altinnAuthorizationService) : IHandler<Guid, GetAttachmentDetailsResponse>
+    IAltinnAuthorizationService altinnAuthorizationService,
+    ILogger<GetAttachmentDetailsHandler> logger) : IHandler<Guid, GetAttachmentDetailsResponse>
 {
-
     public async Task<OneOf<GetAttachmentDetailsResponse, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Processing attachment details request for {AttachmentId}", attachmentId);
         var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
         if (attachment == null)
         {
+            logger.LogWarning("Attachment {AttachmentId} not found", attachmentId);
             return AttachmentErrors.AttachmentNotFound;
         }
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
@@ -29,6 +32,7 @@ public class GetAttachmentDetailsHandler(
             cancellationToken);
         if (!hasAccess)
         {
+            logger.LogWarning("Access denied for attachment {AttachmentId} - user does not have sender access", attachmentId);
             return AuthorizationErrors.NoAccessToResource;
         }
         var correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByAttachmentId(attachmentId, cancellationToken);
@@ -55,6 +59,9 @@ public class GetAttachmentDetailsHandler(
             IsEncrypted = attachment.IsEncrypted,
             Checksum = attachment.Checksum,
         };
+        logger.LogInformation("Successfully retrieved details for attachment {AttachmentId} with status {Status}", 
+            attachmentId, 
+            attachmentStatus.Status);
         return response;
     }
 }

@@ -24,7 +24,7 @@ public class GetCorrespondenceDetailsResponse
 
     public string Recipient { get; set; } = string.Empty;
 
-    public required CorrespondenceContentEntity Content { get; set; }
+    public CorrespondenceContentEntity? Content { get; set; }
 
     public List<CorrespondenceReplyOptionEntity> ReplyOptions { get; set; } = new List<CorrespondenceReplyOptionEntity>();
 
@@ -49,6 +49,8 @@ public class GetCorrespondenceDetailsResponse
     public DateTimeOffset? Published { get; internal set; }
 
     public bool IsConfirmationNeeded { get; set; }
+    
+    public bool IsConfidential { get; set; }
 
     public int? Altinn2CorrespondenceId { get; set; }
 }

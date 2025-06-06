@@ -7,6 +7,7 @@ param platform_base_url string
 param maskinporten_environment string
 param correspondenceBaseUrl string
 param contactReservationRegistryBaseUrl string
+param brregBaseUrl string
 param idportenIssuer string
 param dialogportenIssuer string
 param maskinporten_token_exchange_environment string
@@ -107,6 +108,7 @@ var containerAppEnvVarsdefault = [
   { name: 'MaskinportenSettings__EncodedJwk', secretRef: 'maskinporten-jwk' }
   { name: 'GeneralSettings__CorrespondenceBaseUrl', value: correspondenceBaseUrl }
   { name: 'GeneralSettings__ContactReservationRegistryBaseUrl', value: contactReservationRegistryBaseUrl}
+  { name: 'GeneralSettings__BrregBaseUrl', value: brregBaseUrl }
   { name: 'GeneralSettings__SlackUrl', secretRef: 'slack-url' }
   { name: 'GeneralSettings__AltinnSblBridgeBaseUrl', value: sblBridgeBaseUrl }
   { name: 'GeneralSettings__ResourceWhitelist', secretRef: 'resource-whitelist' }

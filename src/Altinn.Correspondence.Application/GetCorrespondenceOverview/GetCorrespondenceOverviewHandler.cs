@@ -22,13 +22,16 @@ public class GetCorrespondenceOverviewHandler(
 {
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(GetCorrespondenceOverviewRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Processing correspondence overview request for {CorrespondenceId}", request.CorrespondenceId);
+        
         var operationTimestamp = DateTimeOffset.UtcNow;
-
         var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, false, cancellationToken);
         if (correspondence == null)
         {
+            logger.LogWarning("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
+
         var hasAccessAsRecipient = await altinnAuthorizationService.CheckAccessAsRecipient(
             user,
             correspondence,
@@ -39,8 +42,10 @@ public class GetCorrespondenceOverviewHandler(
             cancellationToken);
         if (!hasAccessAsRecipient && !hasAccessAsSender)
         {
+            logger.LogWarning("Access denied for correspondence {CorrespondenceId} - user does not have recipient or sender access", request.CorrespondenceId);
             return AuthorizationErrors.NoAccessToResource;
         }
+
         var latestStatus = correspondence.GetHighestStatus();
         if (latestStatus == null)
         {
@@ -92,7 +97,7 @@ public class GetCorrespondenceOverviewHandler(
             var response = new GetCorrespondenceOverviewResponse
             {
                 CorrespondenceId = correspondence.Id,
-                Content = correspondence.Content,
+                Content = hasAccessAsRecipient || !correspondence.StatusHasBeen(CorrespondenceStatus.Published) ? correspondence.Content : null,
                 Status = latestStatus.Status,
                 StatusText = latestStatus.StatusText,
                 StatusChanged = latestStatus.StatusChanged,
@@ -110,7 +115,11 @@ public class GetCorrespondenceOverviewHandler(
                 AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
                 Published = correspondence.Published,
                 IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
+                IsConfidential = correspondence.IsConfidential
             };
+            logger.LogInformation("Successfully retrieved overview for correspondence {CorrespondenceId} with status {Status}", 
+                request.CorrespondenceId, 
+                latestStatus.Status);
             return response;
         }, logger, cancellationToken);
     }

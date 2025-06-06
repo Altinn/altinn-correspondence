@@ -78,13 +78,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             var originalAttachmentData = new byte[] { 1, 2, 3, 4 };
             var content = new ByteArrayContent(originalAttachmentData);
             var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _senderClient, content);
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithExistingAttachments([attachmentId])
-                .Build();
-
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
-            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
 
             // Download the attachment data
             var downloadResponse = await _senderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}/download");

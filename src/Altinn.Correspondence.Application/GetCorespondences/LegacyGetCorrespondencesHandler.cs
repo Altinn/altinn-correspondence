@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -35,7 +36,17 @@ public class LegacyGetCorrespondencesHandler(
         {
             return AuthorizationErrors.InvalidPartyId;
         }
-        logger.LogInformation("Searching legacy for party {partyId}", partyId);
+        logger.LogInformation("Searching legacy for party {partyId} with parameters: From={from}, To={to}, Status={status}, IncludeActive={includeActive}, IncludeArchived={includeArchived}, IncludeDeleted={includeDeleted}, FilterMigrated={filterMigrated}, SearchString={searchString}, InstanceOwnerPartyIds={instanceOwnerPartyIds}", 
+            partyId, 
+            from?.ToString("yyyy-MM-dd HH:mm:ss"), 
+            to?.ToString("yyyy-MM-dd HH:mm:ss"), 
+            request.Status, 
+            request.IncludeActive, 
+            request.IncludeArchived, 
+            request.IncludeDeleted, 
+            request.FilterMigrated, 
+            request.SearchString?.SanitizeForLogging(), 
+            request.InstanceOwnerPartyIdList);
         var minAuthLevel = userClaimsHelper.GetMinimumAuthenticationLevel();
         var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
