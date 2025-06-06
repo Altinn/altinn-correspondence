@@ -23,6 +23,8 @@ public class GetCorrespondenceOverviewHandler(
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(GetCorrespondenceOverviewRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Processing correspondence overview request for {CorrespondenceId}", request.CorrespondenceId);
+        
+        var operationTimestamp = DateTimeOffset.UtcNow;
         var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, false, cancellationToken);
         if (correspondence == null)
         {
@@ -80,7 +82,7 @@ public class GetCorrespondenceOverviewHandler(
                     StatusChanged = DateTimeOffset.UtcNow,
                     PartyUuid = partyUuid
                 }, cancellationToken);
-                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient));
+                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp));
             }
             var notificationsOverview = new List<CorrespondenceNotificationOverview>();
             foreach (var notification in correspondence.Notifications)

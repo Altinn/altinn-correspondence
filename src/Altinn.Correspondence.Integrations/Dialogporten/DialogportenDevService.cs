@@ -15,12 +15,12 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             await Task.CompletedTask;
         }
 
-        public Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, params string[] tokens)
+        public Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, params string[] tokens)
         {
             return Task.CompletedTask;
         }
         
-        public Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType)
+        public Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp)
         {
             return Task.CompletedTask;
         }
@@ -35,7 +35,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.CompletedTask;
         }
 
-        public Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType, string actorName)
+        public Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType,  string actorName, DateTimeOffset activityTimestamp)
         {
             return Task.CompletedTask;
         }

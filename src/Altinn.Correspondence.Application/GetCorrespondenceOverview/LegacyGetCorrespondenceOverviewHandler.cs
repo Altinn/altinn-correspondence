@@ -24,6 +24,8 @@ public class LegacyGetCorrespondenceOverviewHandler(
 {
     public async Task<OneOf<LegacyGetCorrespondenceOverviewResponse, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        var operationTimestamp = DateTimeOffset.UtcNow;
+
         if (userClaimsHelper.GetPartyId() is not int partyId)
         {
             return AuthorizationErrors.InvalidPartyId;
@@ -105,7 +107,7 @@ public class LegacyGetCorrespondenceOverviewHandler(
                     StatusText = CorrespondenceStatus.Read.ToString(),
                     PartyUuid = partyUuid
                 }, cancellationToken);
-                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient));
+                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp));
                 updateCorrespondenceStatusHelper.PublishEvent(correspondence, CorrespondenceStatus.Read);
             }
             catch (Exception e)

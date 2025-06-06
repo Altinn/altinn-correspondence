@@ -17,6 +17,7 @@ public class LegacyUpdateCorrespondenceStatusHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        var operationTimestamp = DateTimeOffset.UtcNow;
         if (userClaimsHelper.GetPartyId() is not int partyId)
         {
             return AuthorizationErrors.InvalidPartyId;
@@ -59,7 +60,7 @@ public class LegacyUpdateCorrespondenceStatusHandler(
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             await updateCorrespondenceStatusHelper.AddCorrespondenceStatus(correspondence, request.Status, partyUuid, cancellationToken);
-            updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status);
+            updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status, operationTimestamp);
             updateCorrespondenceStatusHelper.PublishEvent(correspondence, request.Status);
             return request.CorrespondenceId;
         }, logger, cancellationToken);

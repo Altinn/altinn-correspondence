@@ -80,6 +80,8 @@ public class PublishCorrespondenceHandler(
     public async Task<OneOf<Task, Error>> ProcessWithLock(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Starting publish process with lock for correspondence {CorrespondenceId}", correspondenceId);
+        var operationTimestamp = DateTimeOffset.UtcNow;
+
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         var party = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
@@ -198,7 +200,7 @@ public class PublishCorrespondenceHandler(
                 };
                 await correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
                 backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence.Recipient, null, cancellationToken));
-                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.CorrespondencePublished));
+                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.CorrespondencePublished, operationTimestamp));
             }
 
             await correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
