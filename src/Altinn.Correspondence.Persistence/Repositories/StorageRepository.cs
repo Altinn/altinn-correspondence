@@ -9,7 +9,6 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Serilog.Core;
 using System.Collections.Concurrent;
 
 namespace Altinn.Correspondence.Persistence.Repositories

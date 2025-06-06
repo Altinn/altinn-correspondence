@@ -20,7 +20,6 @@ builder.Services.AddHangfire((provider, config) =>
         config.UsePostgreSqlStorage(
             c => c.UseConnectionFactory(provider.GetService<IConnectionFactory>())
         );
-        config.UseSerilogLogProvider();
 });
 
 var app = builder.Build();
