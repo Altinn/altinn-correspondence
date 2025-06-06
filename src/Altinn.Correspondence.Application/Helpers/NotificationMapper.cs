@@ -16,6 +16,37 @@ public class NotificationMapper
     public async Task<NotificationStatusResponse> MapAltinn2NotificationToAltinn3NotificationStatus(CorrespondenceNotificationEntity notification)
     {
         var correspondence = notification.Correspondence ?? throw new ArgumentException($"Correspondence with id {notification.CorrespondenceId} not found when mapping notification", nameof(notification));
+        NotificationsStatusDetails nsd = new NotificationsStatusDetails();
+        var sendStatus = new StatusExt()
+        {
+            Status = "Completed",
+            LastUpdate = notification.NotificationSent.Value.UtcDateTime
+        };
+
+        if (notification.NotificationChannel == Core.Models.Enums.NotificationChannel.Sms)
+        {
+            nsd.Sms = new SmsNotificationWithResult()
+            {
+                Recipient = new Recipient()
+                {
+                    MobileNumber = notification.NotificationAddress
+                },
+                SendStatus = sendStatus,
+                Succeeded = true
+            };
+        }
+        else
+        {
+            nsd.Email = new EmailNotificationWithResult()
+            {
+                Recipient = new Recipient()
+                {
+                    EmailAddress = notification.NotificationAddress
+                },
+                SendStatus = sendStatus,
+                Succeeded = true
+            };
+        }
 
         return new NotificationStatusResponse
         {
@@ -27,11 +58,8 @@ public class NotificationMapper
             NotificationChannel = notification.NotificationChannel,
             ResourceId = correspondence.ResourceId,
             IgnoreReservation = correspondence.IgnoreReservation ?? false,
-            ProcessingStatus = new StatusExt
-            {
-                Status = "Completed",
-                LastUpdate = notification.NotificationSent.Value.UtcDateTime
-            }
+            ProcessingStatus = sendStatus,
+            NotificationsStatusDetails = nsd
         };
     }
 
