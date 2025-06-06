@@ -27,6 +27,7 @@ public class AltinnEventBus : IEventBus
 
     public async Task Publish(AltinnEventType type, string resourceId, string itemId, string eventSource, string? recipientId, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Publishing cloud event {type} for resource {resourceId} with event source {eventSource} and item ID {itemId}. Recipient is {recipient}.", type, resourceId, eventSource, itemId, recipientId);
         string? partyId = null;
         if (recipientId != null)
         {

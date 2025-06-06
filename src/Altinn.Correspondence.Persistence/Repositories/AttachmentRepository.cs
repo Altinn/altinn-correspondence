@@ -2,10 +2,12 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System.Net.Mail;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
-    public class AttachmentRepository(ApplicationDbContext context) : IAttachmentRepository
+    public class AttachmentRepository(ApplicationDbContext context, ILogger<IAttachmentRepository> logger) : IAttachmentRepository
     {
         private readonly ApplicationDbContext _context = context;
 
@@ -30,6 +32,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<AttachmentEntity?> GetAttachmentById(Guid guid, bool includeStatus, CancellationToken cancellationToken)
         {
+            logger.LogDebug("Retrieving attachment {AttachmentId} with status included: {IncludeStatus}", guid, includeStatus);
             var attachments = _context.Attachments.AsQueryable();
             if (includeStatus)
             {

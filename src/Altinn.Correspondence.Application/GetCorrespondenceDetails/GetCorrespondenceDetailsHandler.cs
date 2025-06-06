@@ -22,9 +22,11 @@ public class GetCorrespondenceDetailsHandler(
 {
     public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(GetCorrespondenceDetailsRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Processing correspondence details request for ID {CorrespondenceId}", request.CorrespondenceId);
         var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, false, cancellationToken);
         if (correspondence == null)
         {
+            logger.LogWarning("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
         var hasAccessAsRecipient = await altinnAuthorizationService.CheckAccessAsRecipient(
@@ -37,27 +39,38 @@ public class GetCorrespondenceDetailsHandler(
             cancellationToken);
         if (!hasAccessAsRecipient && !hasAccessAsSender)
         {
+            logger.LogWarning("Access denied for correspondence {CorrespondenceId} - user has neither recipient nor sender access", request.CorrespondenceId);
             return AuthorizationErrors.NoAccessToResource;
         }
+        logger.LogInformation("User has {AccessType} access to correspondence {CorrespondenceId}",
+            hasAccessAsRecipient ? "recipient" : "sender",
+            request.CorrespondenceId);
         var latestStatus = correspondence.GetHighestStatus();
         if (latestStatus == null)
         {
+            logger.LogWarning("No status found for correspondence {CorrespondenceId}", request.CorrespondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
+            logger.LogError("Could not find party UUID for organization {OrganizationId}", user.GetCallerOrganizationId());
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
-
         return await TransactionWithRetriesPolicy.Execute<GetCorrespondenceDetailsResponse>(async (cancellationToken) =>
         {
             if (hasAccessAsRecipient && !user.CallingAsSender())
             {
                 if (!latestStatus.Status.IsAvailableForRecipient())
                 {
+                    logger.LogWarning("Correspondence {CorrespondenceId} status {Status} is not available for recipient",
+                        request.CorrespondenceId,
+                        latestStatus.Status);
                     return CorrespondenceErrors.CorrespondenceNotFound;
                 }
+                logger.LogInformation("Adding Fetched status for correspondence {CorrespondenceId} by recipient {PartyUuid}",
+                    request.CorrespondenceId,
+                    partyUuid);
                 await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
                 {
                     CorrespondenceId = correspondence.Id,
@@ -66,16 +79,16 @@ public class GetCorrespondenceDetailsHandler(
                     StatusChanged = DateTimeOffset.UtcNow,
                     PartyUuid = partyUuid
                 }, cancellationToken);
-
             }
-
-            
             var notificationStatus = new List<NotificationStatusResponse>();
             foreach (var notification in correspondence.Notifications)
             {
                 // If the notification does not have a shipmentId, it is a version 1 notification
                 if (notification.ShipmentId == null && notification.NotificationOrderId != null)
                 {
+                    logger.LogInformation("Processing v1 notification {NotificationOrderId} for correspondence {CorrespondenceId}",
+                        notification.NotificationOrderId,
+                        request.CorrespondenceId);
                     var notificationDetails = await altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString(), cancellationToken);
                     notificationDetails.IsReminder = notification.IsReminder;
                     notificationStatus.Add(notificationDetails);
@@ -83,12 +96,18 @@ public class GetCorrespondenceDetailsHandler(
                 // If the notification has a shipmentId, it is a version 2 notification
                 else if (notification.ShipmentId is not null)
                 {
+                    logger.LogInformation("Processing v2 notification {ShipmentId} for correspondence {CorrespondenceId}",
+                        notification.ShipmentId,
+                        request.CorrespondenceId);
                     var notificationDetails = await altinnNotificationService.GetNotificationDetailsV2(notification.ShipmentId.ToString(), cancellationToken);
                     notificationStatus.Add(await notificationMapper.MapNotificationV2ToV1Async(notificationDetails, notification));
-                } 
+                }
             }
 
-            var response = new GetCorrespondenceDetailsResponse
+            logger.LogInformation("Successfully retrieved details for correspondence {CorrespondenceId} with status {Status}",
+                request.CorrespondenceId,
+                latestStatus.Status);
+            return new GetCorrespondenceDetailsResponse
             {
                 CorrespondenceId = correspondence.Id,
                 Status = latestStatus.Status,
@@ -117,7 +136,6 @@ public class GetCorrespondenceDetailsHandler(
                 IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
                 IsConfidential = correspondence.IsConfidential
             };
-            return response;
         }, logger, cancellationToken);
     }
 }

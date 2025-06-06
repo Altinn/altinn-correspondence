@@ -39,6 +39,7 @@ public class PublishCorrespondenceHandler(
 
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Starting publish process for correspondence {CorrespondenceId}", correspondenceId);
         var lockKey = $"publish-correspondence-{correspondenceId}";
 
         OneOf<Task, Error>? innerResult = null;
@@ -51,11 +52,16 @@ public class PublishCorrespondenceHandler(
             DistributedLockHelper.DefaultLockExpirySeconds,
             cancellationToken);
 
-        if (wasSkipped || !lockAcquired)
+        if (wasSkipped)
         {
+            logger.LogWarning("Skipping publish process for correspondence {CorrespondenceId} - already published or failed", correspondenceId);
             return Task.CompletedTask;
         }
-
+        if (!lockAcquired)
+        {
+            logger.LogWarning("Failed to acquire lock for correspondence {CorrespondenceId} - another process may be handling this correspondence", correspondenceId);
+            return Task.CompletedTask;
+        }
         return innerResult ?? Task.CompletedTask;
     }
 
@@ -63,19 +69,26 @@ public class PublishCorrespondenceHandler(
     {
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         var status = correspondence?.GetHighestStatus()?.Status;
-        return status == CorrespondenceStatus.Published || status == CorrespondenceStatus.Failed;
+        var shouldSkip = status == CorrespondenceStatus.Published || status == CorrespondenceStatus.Failed;
+        if (shouldSkip)
+        {
+            logger.LogInformation("Skipping publish for correspondence {CorrespondenceId} - current status: {Status}", correspondenceId, status);
+        }        
+        return shouldSkip;
     }
 
     public async Task<OneOf<Task, Error>> ProcessWithLock(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Publish correspondence {correspondenceId}", correspondenceId);
+        logger.LogInformation("Starting publish process with lock for correspondence {CorrespondenceId}", correspondenceId);
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         var party = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
+            logger.LogError("Could not find party UUID for sender {Sender}", correspondence.Sender);
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
         bool hasDialogportenDialog = correspondence.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
+        logger.LogInformation("Correspondence {CorrespondenceId} has Dialogporten dialog: {HasDialog}", correspondenceId, hasDialogportenDialog);
 
         OrganizationDetails? details = null;
         OrganizationRoles? roles = null;
@@ -98,9 +111,11 @@ public class PublishCorrespondenceHandler(
         if (correspondence == null)
         {
             errorMessage = "Correspondence " + correspondenceId + " not found when publishing";
+            logger.LogError(errorMessage);
         }
         else if (hostEnvironment.IsDevelopment() && correspondence.StatusHasBeen(CorrespondenceStatus.Published))
         {
+            logger.LogInformation("Skipping publish in development environment for already published correspondence {CorrespondenceId}", correspondenceId);
             return Task.CompletedTask;
         }
         else if (!await IsCorrespondenceReadyForPublish(correspondence, partyUuid, cancellationToken))
@@ -109,11 +124,13 @@ public class PublishCorrespondenceHandler(
         }
         else if (correspondence.RequestedPublishTime > DateTimeOffset.UtcNow)
         {
-            errorMessage = $"Correspondence {correspondenceId} not visible yet";
+            errorMessage = $"Correspondence {correspondenceId} not visible yet - publish time: {correspondence.RequestedPublishTime}";
+            logger.LogWarning(errorMessage);
         }
         else if (!hasDialogportenDialog)
         {
             errorMessage = $"Dialogporten dialog not created for correspondence {correspondenceId}";
+            logger.LogError(errorMessage);
         }
         else if (await HasRecipientBeenSetToReservedInKRR(correspondence, cancellationToken))
         {
@@ -142,7 +159,7 @@ public class PublishCorrespondenceHandler(
         {
             if (errorMessage.Length > 0)
             {
-                logger.LogError(errorMessage);
+                logger.LogError("Publish failed for correspondence {CorrespondenceId}: {ErrorMessage}", correspondenceId, errorMessage);
                 status = new CorrespondenceStatusEntity
                 {
                     CorrespondenceId = correspondenceId,
@@ -154,20 +171,23 @@ public class PublishCorrespondenceHandler(
                 var slackSent = await SlackHelper.SendSlackNotificationWithMessage("Correspondence failed", errorMessage, slackClient, slackSettings.NotificationChannel, hostEnvironment.EnvironmentName);
                 if (!slackSent)
                 {
-                    logger.LogError($"Failed to send Slack notification for failed correspondence: {errorMessage}");
+                    logger.LogError("Failed to send Slack notification for failed correspondence {CorrespondenceId}: {ErrorMessage}", correspondenceId, errorMessage);
                 }
                 eventType = AltinnEventType.CorrespondencePublishFailed;
+                logger.LogInformation("Cancelling notifications for failed correspondence {CorrespondenceId}", correspondenceId);
                 foreach (var notification in correspondence.Notifications)
                 {
                     backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
                 }
                 if (hasDialogportenDialog)
                 {
+                    logger.LogInformation("Purging Dialogporten dialog for failed correspondence {CorrespondenceId}", correspondenceId);
                     backgroundJobClient.Enqueue<IDialogportenService>(dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
                 }
             }
             else
             {
+                logger.LogInformation("Publishing correspondence {CorrespondenceId}", correspondenceId);
                 status = new CorrespondenceStatusEntity
                 {
                     CorrespondenceId = correspondenceId,
@@ -183,7 +203,11 @@ public class PublishCorrespondenceHandler(
 
             await correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
             backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-            if (status.Status == CorrespondenceStatus.Published) backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, CancellationToken.None));
+            if (status.Status == CorrespondenceStatus.Published)
+            {
+                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, CancellationToken.None));
+            }
+            logger.LogInformation("Successfully completed publish process for correspondence {CorrespondenceId} with status {Status}", correspondenceId, status.Status);
             return Task.CompletedTask;
         }, logger, cancellationToken);
     }

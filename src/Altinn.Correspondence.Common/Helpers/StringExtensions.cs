@@ -55,4 +55,13 @@ public static class StringExtensions
         }
         return orgOrSsnNumber.Split(":").Last();
     }
+
+    public static string SanitizeForLogging(this string input)
+    {
+        if (string.IsNullOrEmpty(input)) return input;
+        return input
+            .Replace("\r", "\\r")
+            .Replace("\n", "\\n")
+            .Replace("\t", "\\t");
+    }
 }
