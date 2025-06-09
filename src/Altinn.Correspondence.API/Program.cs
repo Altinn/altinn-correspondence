@@ -46,8 +46,6 @@ static void BuildAndRun(string[] args)
 
     var generalSettings = builder.Configuration.GetSection(nameof(GeneralSettings)).Get<GeneralSettings>();
     bootstrapLogger.LogInformation($"Running in environment {builder.Environment.EnvironmentName} with base url {generalSettings?.CorrespondenceBaseUrl ?? "NULL"}");
-
-    // Configure OpenTelemetry using the service collection
     builder.Services.ConfigureOpenTelemetry(generalSettings.ApplicationInsightsConnectionString);
 
 #pragma warning disable EXTEXP0018
@@ -59,7 +57,6 @@ static void BuildAndRun(string[] args)
     bootstrapLogger.LogInformation("Application built");
 
     app.UseExceptionHandler();
-
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();
