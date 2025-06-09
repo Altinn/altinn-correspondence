@@ -26,7 +26,7 @@ static ILogger<Program> CreateBootstrapLogger()
     return LoggerFactory.Create(builder =>
      {
          builder
-             .AddFilter("*", LogLevel.Debug)
+             .AddFilter("Altinn.Correspondence.API.Program", LogLevel.Debug)
              .AddConsole();
      }).CreateLogger<Program>();
 }
@@ -45,7 +45,11 @@ static void BuildAndRun(string[] args)
     var generalSettings = builder.Configuration.GetSection(nameof(GeneralSettings)).Get<GeneralSettings>();
     bootstrapLogger.LogInformation($"Running in environment {builder.Environment.EnvironmentName} with base url {generalSettings?.CorrespondenceBaseUrl ?? "NULL"}");
 
-    // Configure OpenTelemetry
+    builder.Logging.AddOpenTelemetry(builder =>
+    {
+        builder.IncludeFormattedMessage = true;
+        builder.IncludeScopes = true;
+    });
     builder.ConfigureOpenTelemetry(generalSettings.ApplicationInsightsConnectionString, bootstrapLogger);
 
     ConfigureServices(builder.Services, builder.Configuration, builder.Environment);
