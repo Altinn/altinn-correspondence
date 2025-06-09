@@ -71,6 +71,7 @@ static void BuildAndRun(string[] args)
 
     if (app.Environment.IsDevelopment())
     {
+        bootstrapLogger.LogInformation("Running in development mode, applying migrations to database...");
         using var scope = app.Services.CreateScope();
         var _Db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         if (_Db != null)
