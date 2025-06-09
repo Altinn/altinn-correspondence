@@ -15,9 +15,10 @@ public static class DependencyInjection
     public static void AddPersistence(this IServiceCollection services, IConfiguration config, ILogger bootstrapLogger)
     {
         services.AddSingleton(BuildAzureNpgsqlDataSource(config, bootstrapLogger));
-        services.AddDbContext<ApplicationDbContext>(entityFrameworkConfig =>
+        services.AddDbContext<ApplicationDbContext>((serviceProvider, entityFrameworkConfig) =>
         {
-            entityFrameworkConfig.UseNpgsql();
+            var dataSource = serviceProvider.GetRequiredService<NpgsqlDataSource>();
+            entityFrameworkConfig.UseNpgsql(dataSource);
         });
         services.AddScoped<IAttachmentRepository, AttachmentRepository>();
         services.AddScoped<IAttachmentStatusRepository, AttachmentStatusRepository>();
