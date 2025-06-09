@@ -39,7 +39,7 @@ public static class DependencyInjection
         dataSourceBuilder.ConnectionStringBuilder.ConnectionString = databaseOptions.ConnectionString;
         if (!string.IsNullOrWhiteSpace(dataSourceBuilder.ConnectionStringBuilder.Password))
         {
-            bootstrapLogger.LogInformation("Using database connection with password (local development)");
+            bootstrapLogger.LogInformation("Using database connection with password (local development/migration)");
             return dataSourceBuilder.Build();
         }
 
