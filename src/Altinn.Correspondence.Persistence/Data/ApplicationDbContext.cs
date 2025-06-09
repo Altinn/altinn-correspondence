@@ -11,8 +11,7 @@ namespace Altinn.Correspondence.Persistence;
 public class ApplicationDbContext : DbContext
 {
     private string? _accessToken;
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    public ApplicationDbContext(DbContextOptions options) : base(options)
     {
         var conn = this.Database.GetDbConnection();
         if (IsAccessTokenValid())
