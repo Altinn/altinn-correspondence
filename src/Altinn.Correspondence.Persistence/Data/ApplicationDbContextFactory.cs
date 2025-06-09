@@ -10,22 +10,13 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
 {
     public ApplicationDbContext CreateDbContext(string[] args)
     {
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json")
-            .AddEnvironmentVariables()
-            .Build();
-
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        var databaseOptions = new DatabaseOptions { ConnectionString = string.Empty };
-        configuration.GetSection(nameof(DatabaseOptions)).Bind(databaseOptions);
-        
-        if (string.IsNullOrEmpty(databaseOptions.ConnectionString))
+        var connectionString = Environment.GetEnvironmentVariable("DatabaseOptions__ConnectionString");
+        if (string.IsNullOrEmpty(connectionString))
         {
-            throw new InvalidOperationException("Database connection string not found in configuration.");
+            throw new InvalidOperationException("Database connection string not found in configuration or environment variables.");
         }
-
-        optionsBuilder.UseNpgsql(databaseOptions.ConnectionString);
+        optionsBuilder.UseNpgsql(connectionString);
 
         return new ApplicationDbContext(optionsBuilder.Options);
     }
