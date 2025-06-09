@@ -2,12 +2,11 @@ using Altinn.Correspondence.Core.Options;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace Altinn.Correspondence.Persistence;
 
-public class ApplicationDbContextFactory(IOptions<DatabaseOptions> databaseOptions) : IDesignTimeDbContextFactory<ApplicationDbContext>
+public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
 {
     public ApplicationDbContext CreateDbContext(string[] args)
     {
@@ -18,14 +17,15 @@ public class ApplicationDbContextFactory(IOptions<DatabaseOptions> databaseOptio
             .Build();
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        var connectionString = databaseOptions.Value.ConnectionString;
+        var databaseOptions = new DatabaseOptions { ConnectionString = string.Empty };
+        configuration.GetSection(nameof(DatabaseOptions)).Bind(databaseOptions);
         
-        if (string.IsNullOrEmpty(connectionString))
+        if (string.IsNullOrEmpty(databaseOptions.ConnectionString))
         {
-            throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+            throw new InvalidOperationException("Database connection string not found in configuration.");
         }
 
-        optionsBuilder.UseNpgsql(connectionString);
+        optionsBuilder.UseNpgsql(databaseOptions.ConnectionString);
 
         return new ApplicationDbContext(optionsBuilder.Options);
     }
