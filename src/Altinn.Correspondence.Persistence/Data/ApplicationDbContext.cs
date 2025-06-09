@@ -2,6 +2,8 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Persistence.Helpers;
 using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using System.IdentityModel.Tokens.Jwt;
@@ -65,5 +67,33 @@ public class ApplicationDbContext : DbContext
         configurationBuilder
             .Properties<DateTimeOffset>()
             .HaveConversion<DateTimeOffsetConverter>();
+    }
+}
+
+public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
+{
+    public ApplicationDbContext CreateDbContext(string[] args)
+    {
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";   
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: true)
+            .AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+        var connectionString = configuration.GetSection("DatabaseOptions__ConnectionString").Value 
+            ?? Environment.GetEnvironmentVariable("DatabaseOptions__ConnectionString");
+
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            throw new InvalidOperationException($"Connection string 'DatabaseOptions__ConnectionString' not found for environment {environment}.");
+        }
+
+        Console.WriteLine($"Using environment: {environment}");
+        var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+        optionsBuilder.UseNpgsql(connectionString);
+
+        return new ApplicationDbContext(optionsBuilder.Options);
     }
 }
