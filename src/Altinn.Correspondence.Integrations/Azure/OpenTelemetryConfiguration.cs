@@ -25,6 +25,11 @@ public static class OpenTelemetryConfiguration
             KeyValuePair.Create("service.name", (object)"altinn-correspondence"),
         };
 
+        builder.Logging.AddOpenTelemetry(builder =>
+        {
+            builder.IncludeFormattedMessage = true;
+            builder.IncludeScopes = true;
+        });
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resourceBuilder => resourceBuilder.AddAttributes(attributes))
             .WithMetrics(metrics =>
