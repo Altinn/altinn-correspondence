@@ -21,11 +21,6 @@
       "matchUpdateTypes": ["minor", "patch"]
     },
     {
-      "groupName": "Serilog packages",
-      "matchPackagePatterns": ["^Serilog"],
-      "matchUpdateTypes": ["minor", "patch"]
-    },
-    {
       "groupName": "Hangfire packages",
       "matchPackagePatterns": ["^Hangfire"],
       "matchUpdateTypes": ["minor", "patch"]

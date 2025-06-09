@@ -7,7 +7,7 @@ public class HangfireAppRequestFilter() : IServerFilter
 {
     private static readonly AsyncLocal<IDisposable> _contextualLogger = new();
     private static readonly AsyncLocal<Activity> _hangfireActivity = new();
-    private static readonly ActivitySource _activitySource = new("Altinn.Correspondence.Hangfire");
+    private static readonly ActivitySource _activitySource = new("Altinn.Correspondence.Integrations.Hangfire");
 
     public void OnPerformed(PerformedContext context)
     {
@@ -25,6 +25,5 @@ public class HangfireAppRequestFilter() : IServerFilter
         activity?.SetTag("hangfire.job.method", context.BackgroundJob.Job.Method.Name);
 
         _hangfireActivity.Value = activity;
-        _contextualLogger.Value = Serilog.Context.LogContext.PushProperty("JobId", context.BackgroundJob.Id, true);
     }
 }
