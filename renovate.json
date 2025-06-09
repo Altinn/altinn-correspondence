@@ -21,6 +21,11 @@
       "matchUpdateTypes": ["minor", "patch"]
     },
     {
+      "groupName": "OpenTelemetry packages",
+      "matchPackagePatterns": ["^OpenTelemetry"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
       "groupName": "Hangfire packages",
       "matchPackagePatterns": ["^Hangfire"],
       "matchUpdateTypes": ["minor", "patch"]
