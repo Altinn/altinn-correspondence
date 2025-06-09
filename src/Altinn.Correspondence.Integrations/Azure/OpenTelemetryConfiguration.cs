@@ -46,7 +46,6 @@ public static class OpenTelemetryConfiguration
                                !path.Contains("/migration");
                     };
                 });
-                tracing.AddAspNetCoreInstrumentation();
                 tracing.AddHttpClientInstrumentation();
                 tracing.AddNpgsql();
             });
