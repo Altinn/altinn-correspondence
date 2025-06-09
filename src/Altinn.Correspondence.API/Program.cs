@@ -42,12 +42,12 @@ static void BuildAndRun(string[] args)
         .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", true, true)
         .AddJsonFile("appsettings.local.json", true, true);
 
+    ConfigureServices(builder.Services, builder.Configuration, builder.Environment, bootstrapLogger);
+
     var generalSettings = builder.Configuration.GetSection(nameof(GeneralSettings)).Get<GeneralSettings>();
     bootstrapLogger.LogInformation($"Running in environment {builder.Environment.EnvironmentName} with base url {generalSettings?.CorrespondenceBaseUrl ?? "NULL"}");
-
     builder.ConfigureOpenTelemetry(generalSettings.ApplicationInsightsConnectionString, bootstrapLogger);
 
-    ConfigureServices(builder.Services, builder.Configuration, builder.Environment, bootstrapLogger);
 #pragma warning disable EXTEXP0018
     builder.Services.AddHybridCache();
 #pragma warning restore EXTEXP0018
