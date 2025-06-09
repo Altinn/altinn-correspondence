@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Persistence.Helpers;
 using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -82,17 +83,17 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
             .AddEnvironmentVariables()
             .Build();
 
-        var connectionString = configuration.GetSection("DatabaseOptions__ConnectionString").Value 
-            ?? Environment.GetEnvironmentVariable("DatabaseOptions__ConnectionString");
+        var databaseOptions = new DatabaseOptions() { ConnectionString = "" };
+        configuration.GetSection(nameof(DatabaseOptions)).Bind(databaseOptions);
 
-        if (string.IsNullOrEmpty(connectionString))
+        if (string.IsNullOrEmpty(databaseOptions.ConnectionString))
         {
-            throw new InvalidOperationException($"Connection string 'DatabaseOptions__ConnectionString' not found for environment {environment}.");
+            throw new InvalidOperationException($"Connection string 'DatabaseOptions:ConnectionString' not found for environment {environment}.");
         }
 
         Console.WriteLine($"Using environment: {environment}");
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        optionsBuilder.UseNpgsql(connectionString);
+        optionsBuilder.UseNpgsql(databaseOptions.ConnectionString);
 
         return new ApplicationDbContext(optionsBuilder.Options);
     }
