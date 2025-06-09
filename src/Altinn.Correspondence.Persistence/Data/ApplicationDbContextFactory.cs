@@ -1,11 +1,13 @@
+using Altinn.Correspondence.Core.Options;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace Altinn.Correspondence.Persistence;
 
-public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
+public class ApplicationDbContextFactory(IOptions<DatabaseOptions> databaseOptions) : IDesignTimeDbContextFactory<ApplicationDbContext>
 {
     public ApplicationDbContext CreateDbContext(string[] args)
     {
@@ -16,7 +18,7 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
             .Build();
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        var connectionString = databaseOptions.Value.ConnectionString;
         
         if (string.IsNullOrEmpty(connectionString))
         {
