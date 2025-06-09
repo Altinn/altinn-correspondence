@@ -17,8 +17,7 @@ public static class OpenTelemetryConfiguration
 {
     public static IServiceCollection ConfigureOpenTelemetry(
         this IServiceCollection services,
-        string applicationInsightsConnectionString,
-        ILogger logger)
+        string applicationInsightsConnectionString)
     {
         var attributes = new List<KeyValuePair<string, object>>
         {
@@ -29,10 +28,12 @@ public static class OpenTelemetryConfiguration
             .ConfigureResource(resourceBuilder => resourceBuilder.AddAttributes(attributes))
             .WithMetrics(metrics =>
             {
-                metrics.AddMeter(
-                    "Microsoft.AspNetCore.Hosting",
-                    "Microsoft.AspNetCore.Server.Kestrel",
-                    "System.Net.Http");
+                metrics
+                    .AddMeter(
+                        "Microsoft.AspNetCore.Hosting",
+                        "Microsoft.AspNetCore.Server.Kestrel",
+                        "System.Net.Http")
+                    .AddNpgsqlInstrumentation();
             })
             .WithTracing(tracing =>
             {
@@ -48,8 +49,10 @@ public static class OpenTelemetryConfiguration
                                    !path.Contains("/migration");
                         };
                     })
-                    .AddHttpClientInstrumentation()
-                    .AddNpgsql();
+                    .AddHttpClientInstrumentation();
+            })
+            .WithLogging(logging =>
+            {
             });
 
         if (!string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
@@ -62,6 +65,9 @@ public static class OpenTelemetryConfiguration
 
             services.ConfigureOpenTelemetryTracerProvider(tracing =>
                 tracing.AddAzureMonitorTraceExporter(o => o.ConnectionString = applicationInsightsConnectionString));
+
+            services.ConfigureOpenTelemetryLoggerProvider(logging => 
+                logging.AddAzureMonitorLogExporter(o => o.ConnectionString = applicationInsightsConnectionString));
         }
 
         return services;
