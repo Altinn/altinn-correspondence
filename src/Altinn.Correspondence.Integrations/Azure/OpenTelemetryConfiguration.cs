@@ -57,9 +57,6 @@ public static class OpenTelemetryConfiguration
 
         if (!string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
         {
-            services.Configure<OpenTelemetryLoggerOptions>(logging =>
-                logging.AddAzureMonitorLogExporter(o => o.ConnectionString = applicationInsightsConnectionString));
-
             services.ConfigureOpenTelemetryMeterProvider(metrics =>
                 metrics.AddAzureMonitorMetricExporter(o => o.ConnectionString = applicationInsightsConnectionString));
 
