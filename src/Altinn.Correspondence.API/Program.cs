@@ -46,7 +46,9 @@ static void BuildAndRun(string[] args)
 
     var generalSettings = builder.Configuration.GetSection(nameof(GeneralSettings)).Get<GeneralSettings>();
     bootstrapLogger.LogInformation($"Running in environment {builder.Environment.EnvironmentName} with base url {generalSettings?.CorrespondenceBaseUrl ?? "NULL"}");
-    builder.ConfigureOpenTelemetry(generalSettings.ApplicationInsightsConnectionString, bootstrapLogger);
+
+    // Configure OpenTelemetry using the service collection
+    builder.Services.ConfigureOpenTelemetry(generalSettings.ApplicationInsightsConnectionString, bootstrapLogger);
 
 #pragma warning disable EXTEXP0018
     builder.Services.AddHybridCache();

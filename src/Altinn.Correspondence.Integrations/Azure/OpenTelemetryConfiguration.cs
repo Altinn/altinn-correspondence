@@ -15,8 +15,8 @@ namespace Altinn.Correspondence.Integrations.Azure;
 
 public static class OpenTelemetryConfiguration
 {
-    public static WebApplicationBuilder ConfigureOpenTelemetry(
-        this WebApplicationBuilder builder,
+    public static IServiceCollection ConfigureOpenTelemetry(
+        this IServiceCollection services,
         string applicationInsightsConnectionString,
         ILogger logger)
     {
@@ -25,12 +25,7 @@ public static class OpenTelemetryConfiguration
             KeyValuePair.Create("service.name", (object)"altinn-correspondence"),
         };
 
-        builder.Logging.AddOpenTelemetry(builder =>
-        {
-            builder.IncludeFormattedMessage = true;
-            builder.IncludeScopes = true;
-        });
-        builder.Services.AddOpenTelemetry()
+        services.AddOpenTelemetry()
             .ConfigureResource(resourceBuilder => resourceBuilder.AddAttributes(attributes))
             .WithMetrics(metrics =>
             {
@@ -57,16 +52,16 @@ public static class OpenTelemetryConfiguration
 
         if (!string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
         {
-            builder.Services.Configure<OpenTelemetryLoggerOptions>(logging => 
+            services.Configure<OpenTelemetryLoggerOptions>(logging => 
                 logging.AddAzureMonitorLogExporter(o => o.ConnectionString = applicationInsightsConnectionString));
 
-            builder.Services.ConfigureOpenTelemetryMeterProvider(metrics => 
+            services.ConfigureOpenTelemetryMeterProvider(metrics => 
                 metrics.AddAzureMonitorMetricExporter(o => o.ConnectionString = applicationInsightsConnectionString));
 
-            builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => 
+            services.ConfigureOpenTelemetryTracerProvider(tracing => 
                 tracing.AddAzureMonitorTraceExporter(o => o.ConnectionString = applicationInsightsConnectionString));
         }
 
-        return builder;
+        return services;
     }
 }
