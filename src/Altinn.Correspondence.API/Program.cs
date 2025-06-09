@@ -47,7 +47,7 @@ static void BuildAndRun(string[] args)
 
     builder.ConfigureOpenTelemetry(generalSettings.ApplicationInsightsConnectionString, bootstrapLogger);
 
-    ConfigureServices(builder.Services, builder.Configuration, builder.Environment);
+    ConfigureServices(builder.Services, builder.Configuration, builder.Environment, bootstrapLogger);
 #pragma warning disable EXTEXP0018
     builder.Services.AddHybridCache();
 #pragma warning restore EXTEXP0018
@@ -86,7 +86,7 @@ static void BuildAndRun(string[] args)
     app.Run();
 }
 
-static void ConfigureServices(IServiceCollection services, IConfiguration config, IHostEnvironment hostEnvironment)
+static void ConfigureServices(IServiceCollection services, IConfiguration config, IHostEnvironment hostEnvironment, ILogger bootstrapLogger)
 {
     var connectionString = GetConnectionString(config);
 
@@ -129,7 +129,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     });
 
     services.AddApplicationHandlers();
-    services.AddPersistence(config);
+    services.AddPersistence(config, bootstrapLogger);
     services.AddIntegrations(config);
 
     services.AddHttpClient();
