@@ -83,7 +83,7 @@ runs:
     - name: Create migration script
       shell: bash
       run: |
-        dotnet ef migrations bundle --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API --self-contained -r linux-x64 -o ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --force
+        dotnet ef migrations bundle --project ./src/Altinn.Correspondence.Persistence --self-contained -r linux-x64 -o ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --force
 
     - name: Upload Migration Files to Azure File Share
       uses: azure/CLI@v2
