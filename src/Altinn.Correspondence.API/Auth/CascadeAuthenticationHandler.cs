@@ -4,19 +4,18 @@ using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Web;
-using Altinn.Correspondence.Common.Caching;
-using Microsoft.Extensions.Caching.Hybrid;
 
 public class CascadeAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>, IAuthenticationSignInHandler
 {
     private readonly IAuthenticationSchemeProvider _schemeProvider;
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly IHybridCacheWrapper _cache;
+    private readonly IDistributedCache _cache;
     private readonly GeneralSettings _generalSettings;
     private readonly IdportenTokenValidator _tokenValidator;
 
@@ -29,7 +28,7 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
         IHttpContextAccessor httpContextAccessor,
         IOptions<GeneralSettings> generalSettings,
         IdportenTokenValidator tokenValidator,
-        IHybridCacheWrapper cache)
+        IDistributedCache cache)
         : base(options, logger, encoder, clock)
     {
         _httpContextAccessor = httpContextAccessor;
@@ -86,7 +85,7 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
         }
 
         Logger.LogInformation("Attempting to retrieve token for session {SessionId}", sessionId);
-        var token = await _cache.GetAsync<string>(sessionId);
+        var token = await _cache.GetStringAsync(sessionId);
         
         if (string.IsNullOrEmpty(token))
         {
@@ -113,12 +112,12 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
         var sessionId = Guid.NewGuid().ToString();
         Logger.LogInformation("Storing token in cache for session {SessionId} in SignInAsync", sessionId);
         
-        await _cache.SetAsync(
+        await _cache.SetStringAsync(
             sessionId,
             properties.Items[".Token.access_token"],
-            new HybridCacheEntryOptions
+            new DistributedCacheEntryOptions
             {
-                Expiration = TimeSpan.FromMinutes(5)
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
             });
         Logger.LogInformation("Successfully stored token in cache for session {SessionId} in SignInAsync", sessionId);
         
