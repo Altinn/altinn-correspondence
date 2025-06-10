@@ -18,6 +18,8 @@ public class PurgeCorrespondenceHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(PurgeCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        var operationTimestamp = DateTimeOffset.UtcNow;
+
         Guid correspondenceId = request.CorrespondenceId;
         logger.LogInformation("Processing purge request for correspondence {CorrespondenceId}", correspondenceId);
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, false, cancellationToken);
@@ -73,7 +75,7 @@ public class PurgeCorrespondenceHandler(
 
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            var result = await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, isSender, partyUuid, cancellationToken);
+            var result = await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, isSender, partyUuid, operationTimestamp, cancellationToken);
             logger.LogInformation("Successfully purged correspondence {CorrespondenceId}", result);
             return result;
         }, logger, cancellationToken);
