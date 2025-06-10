@@ -1,13 +1,12 @@
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Hosting;
-using Microsoft.AspNetCore.Diagnostics;
-using Slack.Webhooks;
-using Microsoft.AspNetCore.Http;
-using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
-using System.Net;
 using Altinn.Correspondence.Core.Options;
-using Microsoft.ApplicationInsights;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Slack.Webhooks;
+using System.Diagnostics;
+using System.Net;
 
 namespace Altinn.Correspondence.Integrations.Slack;
 public class SlackExceptionNotificationHandler(
@@ -27,10 +26,7 @@ public class SlackExceptionNotificationHandler(
         var exceptionMessage = FormatExceptionMessage(exception, httpContext);
         logger.LogError(
             exception,
-            "Unhandled exception occurred. Type: {ExceptionType}, Message: {Message}, Path: {Path}",
-            exception.GetType().Name,
-            exception.Message,
-            httpContext.Request.Path);
+            null);
         try
         {
             await SendSlackNotificationWithMessage(exceptionMessage);
@@ -58,7 +54,7 @@ public class SlackExceptionNotificationHandler(
         {
             logger.LogError(
                 slackEx,
-                "Failed to send Slack notification");
+                null);
             return true;
         }
     }
@@ -68,20 +64,16 @@ public class SlackExceptionNotificationHandler(
         var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception);
         logger.LogError(
             exception,
-            "Unhandled exception occurred. Job ID: {JobId}, Job Name: {JobName}, Type: {ExceptionType}, Message: {Message}",
-            jobId,
-            jobName,
-            exception.GetType().Name,
-            exception.Message);
+            null);
 
         try
         {
             await SendSlackNotificationWithMessage(exceptionMessage);
             return true;
         }
-        catch (Exception ex)
+        catch (Exception slackEx)
         {
-            logger.LogError(ex, "Failed to send Slack notification");
+            logger.LogError(slackEx, null);
             return false;
         }
     }   
