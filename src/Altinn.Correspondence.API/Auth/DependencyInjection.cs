@@ -134,7 +134,7 @@ namespace Altinn.Correspondence.API.Auth
                         {
                             var sessionId = Guid.NewGuid().ToString();
                             var cache = context.HttpContext.RequestServices.GetRequiredService<IDistributedCache>();
-                            cache.SetString(
+                            await cache.SetStringAsync(
                                 sessionId, 
                                 context.TokenEndpointResponse?.AccessToken,
                                 new DistributedCacheEntryOptions

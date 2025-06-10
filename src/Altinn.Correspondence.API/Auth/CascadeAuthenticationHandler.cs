@@ -18,10 +18,11 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
     private readonly IDistributedCache _cache;
     private readonly GeneralSettings _generalSettings;
     private readonly IdportenTokenValidator _tokenValidator;
+    private readonly ILogger<CascadeAuthenticationHandler> _logger;
 
     public CascadeAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
-        ILoggerFactory logger,
+        ILoggerFactory loggerFactory,
         UrlEncoder encoder,
         ISystemClock clock,
         IAuthenticationSchemeProvider schemeProvider,
@@ -29,13 +30,14 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
         IOptions<GeneralSettings> generalSettings,
         IdportenTokenValidator tokenValidator,
         IDistributedCache cache)
-        : base(options, logger, encoder, clock)
+        : base(options, loggerFactory, encoder, clock)
     {
         _httpContextAccessor = httpContextAccessor;
         _generalSettings = generalSettings.Value;
         _schemeProvider = schemeProvider;
         _tokenValidator = tokenValidator;
         _cache = cache;
+        _logger = loggerFactory.CreateLogger<CascadeAuthenticationHandler>();
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -49,11 +51,11 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
 
         foreach (var schemeName in schemesToTry)
         {
-            Logger.LogInformation($"Attempting authentication with scheme: {schemeName}");
+            _logger.LogInformation($"Attempting authentication with scheme: {schemeName}");
             var scheme = await _schemeProvider.GetSchemeAsync(schemeName);
             if (scheme == null)
             {
-                Logger.LogWarning($"Scheme {schemeName} is not registered.");
+                _logger.LogWarning($"Scheme {schemeName} is not registered.");
                 continue;
             }
             AuthenticateResult? result;
@@ -67,12 +69,12 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
             }
             if (result.Succeeded)
             {
-                Logger.LogInformation($"Authentication succeeded with scheme: {schemeName}");
+                _logger.LogInformation($"Authentication succeeded with scheme: {schemeName}");
                 return result;
             }
         }
 
-        Logger.LogInformation("All authentication schemes failed. Challenge.");
+        _logger.LogInformation("All authentication schemes failed. Challenge.");
         return AuthenticateResult.NoResult();
     }
 
@@ -80,37 +82,37 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
     {
         if (!Request.Query.TryGetValue("session", out var sessionId))
         {
-            Logger.LogDebug("No session ID found in query parameters");
+            _logger.LogInformation("No session ID found in query parameters");
             return AuthenticateResult.NoResult();
         }
 
-        Logger.LogInformation("Attempting to retrieve token for session {SessionId}", sessionId);
+        _logger.LogInformation("Attempting to retrieve token for session {SessionId}", sessionId);
         var token = await _cache.GetStringAsync(sessionId);
         
         if (string.IsNullOrEmpty(token))
         {
-            Logger.LogWarning("No token found in cache for session {SessionId}", sessionId);
+            _logger.LogWarning("No token found in cache for session {SessionId}", sessionId);
             return AuthenticateResult.NoResult();
         }
-        Logger.LogInformation("Successfully retrieved token from cache for session {SessionId}", sessionId);
+        _logger.LogInformation("Successfully retrieved token from cache for session {SessionId}", sessionId);
         await _cache.RemoveAsync(sessionId);
-        Logger.LogDebug("Removed token from cache for session {SessionId}", sessionId);
+        _logger.LogDebug("Removed token from cache for session {SessionId}", sessionId);
 
         var principal = await _tokenValidator.ValidateTokenAsync(token);
         if (principal is not null)
         {
-            Logger.LogInformation("Successfully validated token for session {SessionId}", sessionId);
+            _logger.LogInformation("Successfully validated token for session {SessionId}", sessionId);
             var ticket = new AuthenticationTicket(principal, Scheme.Name);
             return AuthenticateResult.Success(ticket);
         }
-        Logger.LogWarning("Failed to validate token for session {SessionId}", sessionId);
+        _logger.LogWarning("Failed to validate token for session {SessionId}", sessionId);
         return AuthenticateResult.Fail(new SecurityTokenMalformedException("Could not validate ID-Porten token"));
     }
 
     public async Task SignInAsync(ClaimsPrincipal user, AuthenticationProperties? properties)
     {
         var sessionId = Guid.NewGuid().ToString();
-        Logger.LogInformation("Storing token in cache for session {SessionId} in SignInAsync", sessionId);
+        _logger.LogInformation("Storing token in cache for session {SessionId} in SignInAsync", sessionId);
         
         await _cache.SetStringAsync(
             sessionId,
@@ -119,11 +121,11 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
             });
-        Logger.LogInformation("Successfully stored token in cache for session {SessionId} in SignInAsync", sessionId);
+        _logger.LogInformation("Successfully stored token in cache for session {SessionId} in SignInAsync", sessionId);
         
         var redirectUrl = properties?.Items["endpoint"] ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
         redirectUrl = AppendSessionToUrl($"{_generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}", sessionId);
-        Logger.LogInformation("Redirecting to {RedirectUrl} with session {SessionId}", redirectUrl, sessionId);
+        _logger.LogInformation("Redirecting to {RedirectUrl} with session {SessionId}", redirectUrl, sessionId);
         Response.Redirect(redirectUrl);
     }
 
