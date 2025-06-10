@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
 using System.Net.Http.Headers;
 using System.Security.Claims;
@@ -41,6 +42,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddHangfire(config =>
                            config.UseMemoryStorage()
                        );
+            services.RemoveAll<IRecurringJobManager>();
+            services.AddSingleton(new Mock<IRecurringJobManager>().Object);
             HangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
             HangfireBackgroundJobClient.Setup(x => x.Create(
                 It.IsAny<Job>(),
