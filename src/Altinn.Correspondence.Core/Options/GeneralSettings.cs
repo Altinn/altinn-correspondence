@@ -11,4 +11,5 @@ public class GeneralSettings
     public string ContactReservationRegistryBaseUrl { get; set; } = string.Empty;
     public string ResourceWhitelist { get; set; } = string.Empty;
     public string BrregBaseUrl { get; set; } = string.Empty;
+    public string ApplicationInsightsConnectionString { get; set; } = string.Empty;
 }

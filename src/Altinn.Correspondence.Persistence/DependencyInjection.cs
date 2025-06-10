@@ -6,14 +6,15 @@ using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace Altinn.Correspondence.Persistence;
 public static class DependencyInjection
 {
-    public static void AddPersistence(this IServiceCollection services, IConfiguration config)
+    public static void AddPersistence(this IServiceCollection services, IConfiguration config, ILogger bootstrapLogger)
     {
-        services.AddSingleton(BuildAzureNpgsqlDataSource(config));
+        services.AddSingleton(BuildAzureNpgsqlDataSource(config, bootstrapLogger));
         services.AddDbContext<ApplicationDbContext>(entityFrameworkConfig =>
         {
             entityFrameworkConfig.UseNpgsql();
@@ -30,7 +31,7 @@ public static class DependencyInjection
         services.AddScoped<IServiceOwnerRepository, ServiceOwnerRepository>();
     }
 
-    private static NpgsqlDataSource BuildAzureNpgsqlDataSource(IConfiguration config)
+    private static NpgsqlDataSource BuildAzureNpgsqlDataSource(IConfiguration config, ILogger bootstrapLogger)
     {
         var databaseOptions = new DatabaseOptions() { ConnectionString = "" };
         config.GetSection(nameof(DatabaseOptions)).Bind(databaseOptions);
@@ -38,9 +39,11 @@ public static class DependencyInjection
         dataSourceBuilder.ConnectionStringBuilder.ConnectionString = databaseOptions.ConnectionString;
         if (!string.IsNullOrWhiteSpace(dataSourceBuilder.ConnectionStringBuilder.Password))
         {
+            bootstrapLogger.LogInformation("Using database connection with password (local development/migration)");
             return dataSourceBuilder.Build();
         }
 
+        bootstrapLogger.LogInformation("Using database connection with token (remote)");
         var psqlServerTokenProvider = new DefaultAzureCredential();
         var tokenRequestContext = new TokenRequestContext(scopes: ["https://ossrdbms-aad.database.windows.net/.default"]) { };
         dataSourceBuilder.UsePeriodicPasswordProvider(async (_, cancellationToken) =>

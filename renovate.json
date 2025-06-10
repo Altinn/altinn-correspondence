@@ -21,8 +21,8 @@
       "matchUpdateTypes": ["minor", "patch"]
     },
     {
-      "groupName": "Serilog packages",
-      "matchPackagePatterns": ["^Serilog"],
+      "groupName": "OpenTelemetry packages",
+      "matchPackagePatterns": ["^OpenTelemetry"],
       "matchUpdateTypes": ["minor", "patch"]
     },
     {
