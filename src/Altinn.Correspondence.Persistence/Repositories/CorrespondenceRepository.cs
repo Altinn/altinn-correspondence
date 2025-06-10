@@ -57,7 +57,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool includeContent,
             bool includeForwardingEvents,
             CancellationToken cancellationToken,
-            bool includeIsMigrating = false)
+            bool includeIsMigrating=false)
         {
             logger.LogDebug("Retrieving correspondence {CorrespondenceId} including: status={IncludeStatus} content={IncludeContent}", guid, includeStatus, includeContent);
             var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
@@ -75,7 +75,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a.Statuses);
             }
-            if (includeForwardingEvents)
+            if(includeForwardingEvents)
             {
                 correspondences = correspondences.Include(c => c.ForwardingEvents);
             }
@@ -147,109 +147,26 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
-        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(
-            int limit,
-            DateTimeOffset? from,
-            DateTimeOffset? to,
-            CorrespondenceStatus? status,
-            List<string> recipientIds,
-            List<string> resourceIds,
-            bool includeActive,
-            bool includeArchived,
-            bool includePurged,
-            string searchString,
-            CancellationToken cancellationToken,
-            bool filterMigrated = true)
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, bool includeActive, bool includeArchived, bool includePurged, string searchString, CancellationToken cancellationToken, bool filterMigrated = true)
         {
-            // Build a lookup for latest statuses
-            var latestStatuses = _context.CorrespondenceStatuses
-                .GroupBy(s => s.CorrespondenceId)
-                .Select(g => g.OrderByDescending(s => s.Status).FirstOrDefault());
+            var correspondences = recipientIds.Count == 1
+                ? _context.Correspondences.Where(c => c.Recipient == recipientIds[0])     // Filter by single recipient
+                : _context.Correspondences.Where(c => recipientIds.Contains(c.Recipient)); // Filter multiple recipients
 
-            // Base correspondence query
-            var correspondences = _context.Correspondences.AsQueryable();
-
-            if (recipientIds.Count == 1)
-                correspondences = correspondences.Where(c => c.Recipient == recipientIds[0]);
-            else
-                correspondences = correspondences.Where(c => recipientIds.Contains(c.Recipient));
-
-            if (from.HasValue)
-                correspondences = correspondences.Where(c => c.RequestedPublishTime > from);
-
-            if (to.HasValue)
-                correspondences = correspondences.Where(c => c.RequestedPublishTime < to);
-
-            if (resourceIds.Any())
-                correspondences = correspondences.Where(c => resourceIds.Contains(c.ResourceId));
-
-            if (!string.IsNullOrEmpty(searchString))
-                correspondences = correspondences.Where(c => c.Content != null && c.Content.MessageTitle.Contains(searchString));
-
-            if (filterMigrated)
-                correspondences = correspondences.Where(c => !c.IsMigrating);
-
-            // Join latest statuses
-            var query = correspondences
-                .Join(latestStatuses,
-                      c => c.Id,
-                      s => s.CorrespondenceId,
-                      (c, s) => new { Correspondence = c, LatestStatus = s });
-
-            // Apply status filters
-            var statusesToInclude = GetStatusesToInclude(includeActive, includeArchived, includePurged, status);
-
-            if (statusesToInclude.Any())
-            {
-                query = query.Where(cs =>
-                    cs.LatestStatus != null &&
-                    statusesToInclude.Contains(cs.LatestStatus.Status) ||
-                    (cs.LatestStatus == null && statusesToInclude.Contains(null)));
-            }
-
-            // Project and include related entities *after* filtering and limiting
-            var result = await query
-                .OrderByDescending(cs => cs.Correspondence.RequestedPublishTime)
-                .ThenBy(cs => cs.Correspondence.Id)
-                .Select(cs => cs.Correspondence)
-                .Include(c => c.Content)
+            correspondences = correspondences
+                .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
+                .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter                              
+                .Where(c => resourceIds.Count == 0 || resourceIds.Contains(c.ResourceId))       // Filter by resources
+                .IncludeByStatuses(includeActive, includeArchived, includePurged, status) // Filter by statuses
+                .Where(c => string.IsNullOrEmpty(searchString) || (c.Content != null && c.Content.MessageTitle.Contains(searchString))) // Filter by messageTitle containing searchstring
+                .FilterMigrated(filterMigrated) // Filter all migrated correspondences no matter their IsMigrating status
                 .Include(c => c.Statuses)
-                .Take(limit)
-                .ToListAsync(cancellationToken);
+                .Include(c => c.Content)
+                .OrderByDescending(c => c.RequestedPublishTime);             // Sort by RequestedPublishTime
 
+            var result = await correspondences.Take(limit).ToListAsync(cancellationToken);
             return result;
         }
-
-        private static List<CorrespondenceStatus?> GetStatusesToInclude(bool includeActive, bool includeArchived, bool includePurged, CorrespondenceStatus? specificStatus)
-        {
-            var statusesToInclude = new List<CorrespondenceStatus?>();
-            if (specificStatus != null) // Specific status overrides other choices
-            {
-                statusesToInclude.Add(specificStatus);
-            }
-            else
-            {
-                if (includeActive) // Include correspondences with active status
-                {
-                    statusesToInclude.Add(CorrespondenceStatus.Published);
-                    statusesToInclude.Add(CorrespondenceStatus.Fetched);
-                    statusesToInclude.Add(CorrespondenceStatus.Read);
-                    statusesToInclude.Add(CorrespondenceStatus.Confirmed);
-                    statusesToInclude.Add(CorrespondenceStatus.Replied);
-                }
-                if (includeArchived) // Include correspondences with archived status
-                {
-                    statusesToInclude.Add(CorrespondenceStatus.Archived);
-                }
-                if (includePurged) // Include correspondences with purged status
-                {
-                    statusesToInclude.Add(CorrespondenceStatus.PurgedByAltinn);
-                    statusesToInclude.Add(CorrespondenceStatus.PurgedByRecipient);
-                }
-            }
-            return statusesToInclude;
-        }
-
         public async Task<bool> AreAllAttachmentsPublished(Guid correspondenceId, CancellationToken cancellationToken = default)
         {
             return await _context.CorrespondenceContents
