@@ -25,32 +25,12 @@ public class SlackExceptionNotificationHandler(
         CancellationToken cancellationToken)
     {
         var exceptionMessage = FormatExceptionMessage(exception, httpContext);
-
-        // Log to Application Insights
-        var properties = new Dictionary<string, string>
-        {
-            { "ExceptionType", exception.GetType().Name },
-            { "Path", httpContext.Request.Path },
-            { "Environment", hostEnvironment.EnvironmentName },
-            { "System", "Correspondence" },
-            { "StackTrace", exception.StackTrace ?? "No stack trace available" },
-            { "InnerExceptionStackTrace", exception.InnerException?.StackTrace ?? "No inner exception stack trace" },
-            { "ExceptionSource", "HTTP" },
-            { "ExceptionIdentifier", $"{exception.GetType().Name}:{httpContext.Request.Path}" },
-            { "ExceptionMessage", exception.Message },
-            { "InnerExceptionType", exception.InnerException?.GetType().Name ?? "None" },
-            { "InnerExceptionMessage", exception.InnerException?.Message ?? "None" },
-            { "SentToSlack", "true" },
-            { "SlackMessage", exceptionMessage }
-        };
-
         logger.LogError(
             exception,
             "Unhandled exception occurred. Type: {ExceptionType}, Message: {Message}, Path: {Path}",
             exception.GetType().Name,
             exception.Message,
             httpContext.Request.Path);
-
         try
         {
             await SendSlackNotificationWithMessage(exceptionMessage);
@@ -76,22 +56,6 @@ public class SlackExceptionNotificationHandler(
         }
         catch (Exception slackEx)
         {
-            // Log Slack notification failure to Application Insights
-            var slackProperties = new Dictionary<string, string>
-            {
-                { "OriginalExceptionType", exception.GetType().Name },
-                { "SlackExceptionType", slackEx.GetType().Name },
-                { "Environment", hostEnvironment.EnvironmentName },
-                { "System", "Correspondence" },
-                { "StackTrace", slackEx.StackTrace ?? "No stack trace available" },
-                { "InnerExceptionStackTrace", slackEx.InnerException?.StackTrace ?? "No inner exception stack trace" },
-                { "ExceptionSource", "SlackNotification" },
-                { "ExceptionIdentifier", $"SlackNotification:{exception.GetType().Name}:{httpContext.Request.Path}" },
-                { "ExceptionMessage", slackEx.Message },
-                { "InnerExceptionType", slackEx.InnerException?.GetType().Name ?? "None" },
-                { "InnerExceptionMessage", slackEx.InnerException?.Message ?? "None" }
-            };
-
             logger.LogError(
                 slackEx,
                 "Failed to send Slack notification");
@@ -102,26 +66,6 @@ public class SlackExceptionNotificationHandler(
     public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, CancellationToken cancellationToken)
     {
         var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception);
-
-        // Log to Application Insights
-        var properties = new Dictionary<string, string>
-        {
-            { "ExceptionType", exception.GetType().Name },
-            { "JobId", jobId },
-            { "JobName", jobName },
-            { "Environment", hostEnvironment.EnvironmentName },
-            { "System", "Correspondence" },
-            { "StackTrace", exception.StackTrace ?? "No stack trace available" },
-            { "InnerExceptionStackTrace", exception.InnerException?.StackTrace ?? "No inner exception stack trace" },
-            { "ExceptionSource", "Job" },
-            { "ExceptionIdentifier", $"{exception.GetType().Name}:{jobName}" },
-            { "ExceptionMessage", exception.Message },
-            { "InnerExceptionType", exception.InnerException?.GetType().Name ?? "None" },
-            { "InnerExceptionMessage", exception.InnerException?.Message ?? "None" },
-            { "SentToSlack", "true" },
-            { "SlackMessage", exceptionMessage }
-        };
-
         logger.LogError(
             exception,
             "Unhandled exception occurred. Job ID: {JobId}, Job Name: {JobName}, Type: {ExceptionType}, Message: {Message}",
@@ -137,24 +81,6 @@ public class SlackExceptionNotificationHandler(
         }
         catch (Exception ex)
         {
-            // Log Slack notification failure to Application Insights
-            var slackProperties = new Dictionary<string, string>
-            {
-                { "OriginalExceptionType", exception.GetType().Name },
-                { "SlackExceptionType", ex.GetType().Name },
-                { "JobId", jobId },
-                { "JobName", jobName },
-                { "Environment", hostEnvironment.EnvironmentName },
-                { "System", "Correspondence" },
-                { "StackTrace", ex.StackTrace ?? "No stack trace available" },
-                { "InnerExceptionStackTrace", ex.InnerException?.StackTrace ?? "No inner exception stack trace" },
-                { "ExceptionSource", "JobSlackNotification" },
-                { "ExceptionIdentifier", $"JobSlackNotification:{exception.GetType().Name}:{jobName}" },
-                { "ExceptionMessage", ex.Message },
-                { "InnerExceptionType", ex.InnerException?.GetType().Name ?? "None" },
-                { "InnerExceptionMessage", ex.InnerException?.Message ?? "None" }
-            };
-
             logger.LogError(ex, "Failed to send Slack notification");
             return false;
         }
