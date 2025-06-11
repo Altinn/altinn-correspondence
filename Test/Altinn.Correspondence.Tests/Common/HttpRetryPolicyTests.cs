@@ -1,10 +1,8 @@
 using System.Net;
-using System.Text;
 using Altinn.Correspondence.Common.Helpers;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
-using Xunit;
 
 namespace Altinn.Correspondence.Tests.Common;
 
