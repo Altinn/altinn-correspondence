@@ -16,6 +16,7 @@ using Altinn.Correspondence.Integrations.Azure;
 using Altinn.Correspondence.Integrations.Redlock;
 using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Integrations.Slack;
+using Altinn.Correspondence.Common.Helpers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Slack.Webhooks;
@@ -59,17 +60,26 @@ public static class DependencyInjection
             services.RegisterAltinnHttpClient<IDialogportenService, DialogportenService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnStorageService, AltinnStorageService>(maskinportenSettings, altinnOptions);
             services.RegisterMaskinportenHttpClient<IContactReservationRegistryService, ContactReservationRegistryService>(config, generalSettings.ContactReservationRegistryBaseUrl);
-            services.AddHttpClient<IBrregService, BrregService>();
+            services.AddHttpClient<IBrregService, BrregService>()
+                .AddStandardRetryPolicy();
         }
+
         if (string.IsNullOrWhiteSpace(generalSettings.SlackUrl))
         {
             services.AddSingleton<ISlackClient>(new SlackDevClient(""));
         }
         else
         {
-            services.AddSingleton<ISlackClient>(new SlackClient(generalSettings.SlackUrl));
+            services.AddHttpClient<SlackClient>()
+                .AddStandardRetryPolicy();
+            services.AddSingleton<ISlackClient>(serviceProvider =>
+            {
+                var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+                var httpClient = httpClientFactory.CreateClient(nameof(SlackClient));
+                return new SlackClient(generalSettings.SlackUrl, httpClient: httpClient);
+            });
         }
-        
+
         services.AddSingleton<SlackSettings>();
         services.AddSingleton<IDistributedLockHelper, DistributedLockHelper>();
     }
@@ -80,7 +90,8 @@ public static class DependencyInjection
     {
         services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(TClient).FullName, maskinportenSettings);
         services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
-            .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>();
+            .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>()
+            .AddStandardRetryPolicy();
     }
 
     public static void RegisterMaskinportenHttpClient<TClient, TImplementation>(this IServiceCollection services, IConfiguration config, string baseAddress)
@@ -92,6 +103,7 @@ public static class DependencyInjection
         maskinportenSettings.ExhangeToAltinnToken = false;
         services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(TClient).FullName, maskinportenSettings);
         services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(baseAddress))
-            .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>();
+            .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>()
+            .AddStandardRetryPolicy();
     }
 }
