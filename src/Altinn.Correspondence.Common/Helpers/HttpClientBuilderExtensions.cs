@@ -24,7 +24,7 @@ public static class HttpClientBuilderExtensions
     }
 
     /// <summary>
-    /// A standard retry policy for HTTP operations; 3 retry attempts with 100ms delay between attempts
+    /// A standard retry policy for HTTP operations; 3 retry attempts with exponential backoff (50ms, 100ms, 200ms)
     /// </summary>
     public static IAsyncPolicy<HttpResponseMessage> GetStandardRetryPolicy(ILogger logger)
     {
@@ -34,7 +34,7 @@ public static class HttpClientBuilderExtensions
             .Or<TaskCanceledException>()
             .WaitAndRetryAsync(
                 retryCount: 3,
-                sleepDurationProvider: retryAttempt => TimeSpan.FromMilliseconds(100),
+                sleepDurationProvider: retryAttempt => TimeSpan.FromMilliseconds(Math.Pow(2, retryAttempt) * 50),
                 onRetry: (outcome, timespan, retryCount, context) =>
                 {
                     var exception = outcome.Exception;
