@@ -70,7 +70,7 @@ public static class DependencyInjection
         }
         else
         {
-            services.AddHttpClient<SlackClient>()
+            services.AddHttpClient(nameof(SlackClient))
                 .AddStandardRetryPolicy();
             services.AddSingleton<ISlackClient>(serviceProvider =>
             {
