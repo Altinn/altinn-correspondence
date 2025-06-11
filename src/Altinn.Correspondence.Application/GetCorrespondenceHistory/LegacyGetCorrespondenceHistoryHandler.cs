@@ -54,7 +54,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
         var notificationHistory = new List<LegacyGetCorrespondenceHistoryResponse>();
         foreach (var notification in correspondence.Notifications)
         {
-            if (notification.ShipmentId == null && notification.NotificationOrderId == null) continue;
+            if (notification.ShipmentId == null && notification.NotificationOrderId == null && !notification.Altinn2NotificationId.HasValue) continue;
 
             NotificationStatusResponse? notificationDetails;
             // If the notification does not have a shipmentId, it is a version 1 notification
@@ -67,6 +67,11 @@ public class LegacyGetCorrespondenceHistoryHandler(
             {
                 var notificationDetailsV2 = await altinnNotificationService.GetNotificationDetailsV2(notification.ShipmentId.ToString(), cancellationToken);
                 notificationDetails = await notificationMapper.MapNotificationV2ToV1Async(notificationDetailsV2, notification);
+            }
+            else if (notification.Altinn2NotificationId.HasValue)
+            {
+                notificationHistory.Add(GetAltinn2NotificationStatus(notification));
+                continue;
             }
             else
             {
@@ -139,6 +144,24 @@ public class LegacyGetCorrespondenceHistoryHandler(
                 PartyId = party?.PartyId,
                 Name = party?.Name
             }
+        };
+    }
+
+    private LegacyGetCorrespondenceHistoryResponse GetAltinn2NotificationStatus(CorrespondenceNotificationEntity notification)
+    {
+        return new LegacyGetCorrespondenceHistoryResponse()
+        {
+            Notification = new LegacyNotification()
+            {
+                EmailAddress = notification.NotificationChannel == NotificationChannel.Email ? notification.NotificationAddress : null,
+                MobileNumber = notification.NotificationChannel == NotificationChannel.Sms ? notification.NotificationAddress : null,
+                NationalIdentityNumber = null,
+                OrganizationNumber = null
+            },
+            Status = "Completed",
+            StatusText = "Completed",
+            User = new LegacyUser(),
+            StatusChanged = notification.NotificationSent
         };
     }
 
