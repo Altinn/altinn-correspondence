@@ -34,14 +34,14 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task UpdateNotificationSent(Guid notificationId, DateTimeOffset sentTime, string destination, CancellationToken cancellationToken)
         {
-            var notification = await _context.CorrespondenceNotifications.FirstOrDefaultAsync(n => n.Id == notificationId, cancellationToken);
-            if (notification == null)
-            {
+            var rows = await _context.CorrespondenceNotifications
+                .Where(n => n.Id == notificationId)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(n => n.NotificationSent, sentTime)
+                    .SetProperty(n => n.NotificationAddress, destination),
+                    cancellationToken);
+            if (rows == 0)
                 throw new ArgumentException($"Notification with id {notificationId} not found");
-            }
-            notification.NotificationSent = sentTime;
-            notification.NotificationAddress = destination;
-            await _context.SaveChangesAsync(cancellationToken);
         }
 
         public async Task WipeOrder(Guid notificationId, CancellationToken cancellationToken)

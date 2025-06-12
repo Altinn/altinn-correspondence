@@ -56,6 +56,12 @@ public class CheckNotificationDeliveryHandler(
             logger.LogInformation("Checking V2 notification delivery status for shipment {ShipmentId}", notification.ShipmentId);
             var notificationDetailsV2 = await altinnNotificationService.GetNotificationDetailsV2(notification.ShipmentId.ToString(), cancellationToken);
             
+            if (notificationDetailsV2 == null)
+            {
+                logger.LogError("Failed to get notification details for shipment {ShipmentId}", notification.ShipmentId);
+                return NotificationErrors.NotificationDetailsNotFound;
+            }
+
             var sentRecipients = notificationDetailsV2.Recipients
                 .Where(r => r.IsSent())
                 .ToList();
@@ -88,7 +94,7 @@ public class CheckNotificationDeliveryHandler(
                 return true;
             }
             
-            logger.LogInformation("Notification {NotificationId} not yet sent", notificationId);
+            logger.LogWarning("Notification {NotificationId} not yet sent", notificationId);
             return false;
         }
         catch (Exception ex)

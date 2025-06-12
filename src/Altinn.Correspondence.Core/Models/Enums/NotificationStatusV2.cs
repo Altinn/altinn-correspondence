@@ -32,7 +32,6 @@ public enum NotificationStatusV2
     SMS_Failed_InvalidReceiver = 109,
     SMS_Failed_BarredReceiver = 110,
     SMS_Failed_InvalidRecipient = 111,
-    SMS_Failed_Recipientreserved = 112,
-    SMS_Failed_RecipientReserved = 113,
-    SMS_Failed_RecipientNotIdentified = 114
+    SMS_Failed_RecipientReserved = 112,
+    SMS_Failed_RecipientNotIdentified = 113
 }
