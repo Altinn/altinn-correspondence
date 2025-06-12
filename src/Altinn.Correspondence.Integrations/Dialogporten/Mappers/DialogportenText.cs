@@ -17,7 +17,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         private static string GetNBText(DialogportenTextType type, params string[] tokens) => type switch
         {
             DialogportenTextType.NotificationOrderCreated => "Varslingsordre opprettet.",
-            DialogportenTextType.NotificationOrderCancelled => "Varslingsordre kansellert.",  
+            DialogportenTextType.NotificationOrderCancelled => "Varslingsordre kansellert.",
+            DialogportenTextType.NotificationSent => string.Format("Varsel om mottatt melding sendt til {0} på {1}.", tokens),
             DialogportenTextType.DownloadStarted => string.Format("Startet nedlastning av vedlegg {0}", tokens),
             DialogportenTextType.CorrespondencePublished => "Melding publisert.",
             DialogportenTextType.CorrespondenceConfirmed => "Melding bekreftet.",
@@ -28,6 +29,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             DialogportenTextType.NotificationOrderCreated => "Varslingsordre opprettet.",
             DialogportenTextType.NotificationOrderCancelled => "Varslingsordre kansellert.",
+            DialogportenTextType.NotificationSent => string.Format("Varsel om mottatt melding sendt til {0} på {1}.", tokens),
             DialogportenTextType.DownloadStarted => string.Format("Startet nedlastning av vedlegg {0}", tokens),
             DialogportenTextType.CorrespondencePublished => "Melding publisert.",
             DialogportenTextType.CorrespondenceConfirmed => "Melding bekreftet.",
@@ -38,6 +40,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             DialogportenTextType.NotificationOrderCreated => "Notification order created.",
             DialogportenTextType.NotificationOrderCancelled => "Notification order cancelled.",
+            DialogportenTextType.NotificationSent => string.Format("Notification about received message sent to {0} on {1}.", tokens),
             DialogportenTextType.DownloadStarted => string.Format("Started downloading attachment {0}", tokens),
             DialogportenTextType.CorrespondencePublished => "Message published.",
             DialogportenTextType.CorrespondenceConfirmed => "Message confirmed.",

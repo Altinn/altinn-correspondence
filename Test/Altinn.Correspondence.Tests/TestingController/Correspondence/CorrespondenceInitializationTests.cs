@@ -16,14 +16,10 @@ using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
 using Microsoft.AspNetCore.Http;
-using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence;
-using System.Text.Json.Nodes;
 using System.Text;
 using Altinn.Correspondence.Tests.TestingFeature;
-using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application;
-using Xunit;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -677,7 +673,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 It.IsAny<Job>(),
                 It.IsAny<IState>()))
                 .Returns("123456");
-                
+
             var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 services.AddSingleton(hangfireBackgroundJobClient.Object);
@@ -706,15 +702,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 It.IsAny<Job>(),
                 It.IsAny<IState>()))
                 .Returns("123456");
-                
+
             var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 services.AddSingleton(hangfireBackgroundJobClient.Object);
             });
-            
+
             var senderClient = testFactory.CreateSenderClient();
             var attachmentId = await AttachmentHelper.GetPublishedAttachment(senderClient, _responseSerializerOptions);
-            
+
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithExistingAttachments([attachmentId])
@@ -836,9 +832,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 attachment.ExpirationTime = DateTimeOffset.UtcNow.AddDays(1);
                 attachments.Add(attachment);
             }
-            
+
             Assert.Equal(101, attachments.Count);
-            
+
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithAttachments(attachments)
@@ -848,7 +844,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
 
             var streamsToDispose = new List<MemoryStream>();
-            
+
             try
             {
                 foreach (var attachment in attachments)
@@ -857,14 +853,14 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     streamsToDispose.Add(memoryStream);
                     memoryStream.Write(Encoding.UTF8.GetBytes("test content"));
                     memoryStream.Position = 0;
-                    
+
                     var streamContent = new StreamContent(memoryStream);
                     formData.Add(streamContent, "attachments", attachment.FileName);
                 }
 
                 // Act
                 var response = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
-                
+
                 // Assert
                 Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             }
@@ -889,7 +885,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 attachment.ExpirationTime = DateTimeOffset.UtcNow.AddDays(1);
                 attachments.Add(attachment);
             }
-            
+
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithAttachments(attachments)
@@ -899,7 +895,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
 
             var streamsToDispose = new List<MemoryStream>();
-            
+
             try
             {
                 foreach (var attachment in attachments)
@@ -908,7 +904,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     streamsToDispose.Add(memoryStream);
                     memoryStream.Write(Encoding.UTF8.GetBytes("test content"));
                     memoryStream.Position = 0;
-                    
+
                     var streamContent = new StreamContent(memoryStream);
                     formData.Add(streamContent, "attachments", attachment.FileName);
                 }
