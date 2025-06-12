@@ -128,6 +128,7 @@ namespace Altinn.Correspondence.API.Auth
                         OnRedirectToIdentityProvider = context =>
                         {
                             context.ProtocolMessage.RedirectUri = $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{options.CallbackPath}";
+                            Console.WriteLine($"Redirecting to identity provider: {context.ProtocolMessage.RedirectUri}")
                             return Task.CompletedTask;
                         },
                         OnTokenValidated = async context =>
