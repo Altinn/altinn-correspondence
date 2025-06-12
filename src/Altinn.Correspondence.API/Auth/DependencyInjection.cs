@@ -132,7 +132,9 @@ namespace Altinn.Correspondence.API.Auth
                         },
                         OnTokenValidated = async context =>
                         {
+                            Console.WriteLine("Token validated");
                             var sessionId = Guid.NewGuid().ToString();
+                            Console.WriteLine($"SessionId: {sessionId}");
                             var cache = context.HttpContext.RequestServices.GetRequiredService<IDistributedCache>();
                             await cache.SetStringAsync(
                                 sessionId, 
@@ -141,6 +143,7 @@ namespace Altinn.Correspondence.API.Auth
                                 {
                                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
                                 });
+                            Console.WriteLine($"Cache: {cache.GetType().FullName}");
                             context.Properties.RedirectUri = CascadeAuthenticationHandler.AppendSessionToUrl($"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{context.Properties.RedirectUri}", sessionId);
                         }
                     };
