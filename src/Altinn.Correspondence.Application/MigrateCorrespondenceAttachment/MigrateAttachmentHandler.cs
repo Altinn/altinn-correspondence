@@ -41,6 +41,7 @@ public class MigrateAttachmentHandler(
                 request.Attachment.DataLocationUrl = uploadResult.AsT0.DataLocationUrl;
                 request.Attachment.Checksum = uploadResult.AsT0.Checksum;
                 request.Attachment.AttachmentSize = uploadResult.AsT0.Size;
+                request.Attachment.StorageProvider = uploadResult.AsT0.StorageProviderEntity;
             }
             try
             {

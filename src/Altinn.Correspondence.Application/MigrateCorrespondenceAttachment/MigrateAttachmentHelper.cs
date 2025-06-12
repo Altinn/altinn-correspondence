@@ -39,7 +39,7 @@ namespace Altinn.Correspondence.Application.MigrateCorrespondenceAttachment
             return storageProvider;
         }
 
-        public async Task<OneOf<(string DataLocationUrl, string? Checksum, long Size), Error>> UploadAttachment(MigrateAttachmentRequest request, Guid partyUuid, CancellationToken cancellationToken)
+        public async Task<OneOf<(string DataLocationUrl, string? Checksum, long Size, StorageProviderEntity StorageProviderEntity), Error>> UploadAttachment(MigrateAttachmentRequest request, Guid partyUuid, CancellationToken cancellationToken)
         {
             logger.LogInformation("Start upload of attachment {AttachmentId} for party {PartyUuid}", request.Attachment.Id, partyUuid);
             try
@@ -48,7 +48,7 @@ namespace Altinn.Correspondence.Application.MigrateCorrespondenceAttachment
                 var (dataLocationUrl, checksum, size) = await storageRepository.UploadAttachment(request.Attachment, request.UploadStream, provider, cancellationToken);
                 logger.LogInformation("Finished uploaded {AttachmentId} to Azure Storage", request.Attachment.Id);
 
-                return (dataLocationUrl, checksum, size);
+                return (dataLocationUrl, checksum, size, provider);
             }
             catch (DataLocationUrlException)
             {
