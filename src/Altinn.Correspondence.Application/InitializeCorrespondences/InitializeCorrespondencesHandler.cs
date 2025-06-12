@@ -35,8 +35,6 @@ public class InitializeCorrespondencesHandler(
     IOptions<GeneralSettings> generalSettings,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
-    private readonly GeneralSettings _generalSettings = generalSettings.Value;
-
     private class ValidationData
     {
         public List<AttachmentEntity> AttachmentsToBeUploaded { get; set; } = new();

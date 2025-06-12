@@ -25,6 +25,25 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
+        public async Task<CorrespondenceNotificationEntity?> GetNotificationById(Guid notificationId, CancellationToken cancellationToken)
+        {
+            return await _context.CorrespondenceNotifications
+                .Include(n => n.Correspondence)
+                .FirstOrDefaultAsync(n => n.Id == notificationId, cancellationToken);
+        }
+
+        public async Task UpdateNotificationSent(Guid notificationId, DateTimeOffset sentTime, string destination, CancellationToken cancellationToken)
+        {
+            var rows = await _context.CorrespondenceNotifications
+                .Where(n => n.Id == notificationId)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(n => n.NotificationSent, sentTime)
+                    .SetProperty(n => n.NotificationAddress, destination),
+                    cancellationToken);
+            if (rows == 0)
+                throw new ArgumentException($"Notification with id {notificationId} not found");
+        }
+
         public async Task WipeOrder(Guid notificationId, CancellationToken cancellationToken)
         {
             var notification = await _context.CorrespondenceNotifications.FirstOrDefaultAsync(notification => notification.Id == notificationId, cancellationToken);

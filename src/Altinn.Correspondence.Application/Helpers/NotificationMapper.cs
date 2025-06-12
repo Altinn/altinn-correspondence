@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Services;
 
@@ -67,22 +68,22 @@ public class NotificationMapper
     {
         var correspondence = notification.Correspondence ?? throw new ArgumentException($"Correspondence with id {notification.CorrespondenceId} not found when mapping notification", nameof(notification));
         var latestEmailRecipient = notificationDetails.Recipients
-            .Where(r => r.Type == "Email")
+            .Where(r => r.Type == NotificationType.Email)
             .OrderByDescending(r => r.LastUpdate)
             .FirstOrDefault();
 
         var latestSmsRecipient = notificationDetails.Recipients
-            .Where(r => r.Type == "SMS")
+            .Where(r => r.Type == NotificationType.SMS)
             .OrderByDescending(r => r.LastUpdate)
             .FirstOrDefault();
 
         var emailRecipients = notificationDetails.Recipients
-            .Where(r => r.Type == "Email")
+            .Where(r => r.Type == NotificationType.Email)
             .OrderByDescending(r => r.LastUpdate)
             .ToList();
 
         var smsRecipients = notificationDetails.Recipients
-            .Where(r => r.Type == "SMS")
+            .Where(r => r.Type == NotificationType.SMS)
             .OrderByDescending(r => r.LastUpdate)
             .ToList();
 
@@ -112,10 +113,10 @@ public class NotificationMapper
                     },
                     SendStatus = new StatusExt
                     {
-                        Status = latestEmailRecipient?.Status ?? string.Empty,
+                        Status = latestEmailRecipient?.Status.ToString() ?? string.Empty,
                         LastUpdate = latestEmailRecipient?.LastUpdate.DateTime ?? DateTime.MinValue
                     },
-                    Succeeded = latestEmailRecipient?.Status == "Email_Delivered"
+                    Succeeded = latestEmailRecipient?.IsSent() ?? false
                 } : null,
                 Sms = latestSmsRecipient != null ? new SmsNotificationWithResult
                 {
@@ -125,10 +126,10 @@ public class NotificationMapper
                     },
                     SendStatus = new StatusExt
                     {
-                        Status = latestSmsRecipient?.Status ?? string.Empty,
+                        Status = latestSmsRecipient?.Status.ToString() ?? string.Empty,
                         LastUpdate = latestSmsRecipient?.LastUpdate.DateTime ?? DateTime.MinValue
                     },
-                    Succeeded = latestSmsRecipient?.Status == "SMS_Delivered"
+                    Succeeded = latestSmsRecipient?.IsSent() ?? false
                 } : null,
                 Emails = emailRecipients != null && emailRecipients.Count != 0 ? [.. emailRecipients.Select(r => new EmailNotificationWithResult
                 {
@@ -138,10 +139,10 @@ public class NotificationMapper
                     },
                     SendStatus = new StatusExt
                     {
-                        Status = r.Status,
+                        Status = r.Status.ToString(),
                         LastUpdate = r.LastUpdate.DateTime
                     },
-                    Succeeded = r.Status == "Email_Delivered"
+                    Succeeded = r.IsSent()
                 })] : null,
                 Smses = smsRecipients != null && smsRecipients.Count != 0 ? [.. smsRecipients.Select(r => new SmsNotificationWithResult
                 {
@@ -151,10 +152,10 @@ public class NotificationMapper
                     },
                     SendStatus = new StatusExt
                     {
-                        Status = r.Status,
+                        Status = r.Status.ToString(),
                         LastUpdate = r.LastUpdate.DateTime
                     },
-                    Succeeded = r.Status == "SMS_Delivered"
+                    Succeeded = r.IsSent() 
                 })] : null,
             }
         };

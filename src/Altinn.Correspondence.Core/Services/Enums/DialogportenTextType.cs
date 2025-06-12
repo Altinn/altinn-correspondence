@@ -4,6 +4,7 @@
     {
         NotificationOrderCreated,
         NotificationOrderCancelled,
+        NotificationSent,
         DownloadStarted,
         CorrespondencePublished,
         CorrespondenceConfirmed,
