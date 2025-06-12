@@ -145,10 +145,12 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
         properties.Items.Add("endpoint", redirectUrl);
         if(_httpContextAccessor.HttpContext.Request.Headers["Authorization"].ToString().StartsWith("Bearer")) 
         {
+            _logger.LogInformation("Challenging with JwtBearer scheme for endpoint {Endpoint}", redirectUrl);
             return Context.ChallengeAsync(JwtBearerDefaults.AuthenticationScheme, properties);
         }
         else
         {
+            _logger.LogInformation("Challenging with OpenIdConnect scheme for endpoint {Endpoint}", redirectUrl);
             return Context.ChallengeAsync(OpenIdConnectDefaults.AuthenticationScheme, properties);
         }   
     }
