@@ -33,8 +33,6 @@ public class CreateNotificationHandler(
 
     public async Task Process(CreateNotificationRequest request, CancellationToken cancellationToken)
     {
-        var operationTimestamp = DateTimeOffset.UtcNow;
-
         logger.LogInformation("Starting notification creation process for correspondence {CorrespondenceId}", request.CorrespondenceId);
         var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, false, true, false, cancellationToken) ?? throw new Exception($"Correspondence with id {request.CorrespondenceId} not found when creating notification");
         try
@@ -63,7 +61,7 @@ public class CreateNotificationHandler(
                 request.Language);
 
             logger.LogInformation("Creating notification V2 for correspondence {CorrespondenceId}", request.CorrespondenceId);
-            await CreateNotificationV2(request.NotificationRequest, correspondence, notificationContents, operationTimestamp, cancellationToken);
+            await CreateNotificationV2(request.NotificationRequest, correspondence, notificationContents, cancellationToken);
             logger.LogInformation("Successfully created notification for correspondence {CorrespondenceId}", request.CorrespondenceId);
         }
         catch (Exception ex)
@@ -431,7 +429,6 @@ public class CreateNotificationHandler(
         NotificationRequest notificationRequest,
         CorrespondenceEntity correspondence,
         List<NotificationContent> notificationContents,
-        DateTimeOffset operationTimestamp,
         CancellationToken cancellationToken)
     {
         logger.LogInformation("Creating notification in Altinn Notification Service (v2) for correspondence {CorrespondenceId}", correspondence.Id);
@@ -491,9 +488,7 @@ public class CreateNotificationHandler(
                     handler => handler.Process(reminder.Id, CancellationToken.None),
                     reminder.RequestedSendTime.AddMinutes(5));
             }
-            // Create information activity in Dialogporten
-            logger.LogInformation("Creating activity after dialog created for correspondence {CorrespondenceId}", correspondence.Id);
-            await hangfireScheduleHelper.CreateActivityAfterDialogCreated(correspondence.Id, notificationRequestV2, operationTimestamp);
+            
 
             // Schedule notification delivery check for main notification
             logger.LogInformation("Scheduling notification delivery check for main notification {NotificationId}", notification.Id);
