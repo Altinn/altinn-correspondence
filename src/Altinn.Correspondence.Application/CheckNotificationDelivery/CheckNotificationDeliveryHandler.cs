@@ -15,6 +15,7 @@ public class CheckNotificationDeliveryHandler(
 {
     public async Task<OneOf<bool, Error>> Process(Guid notificationId, CancellationToken cancellationToken)
     {
+        var operationTimestamp = DateTimeOffset.UtcNow;
         logger.LogInformation("Checking delivery status for notification {NotificationId}", notificationId);
         
         var notification = await correspondenceNotificationRepository.GetNotificationById(notificationId, cancellationToken);
@@ -72,7 +73,6 @@ public class CheckNotificationDeliveryHandler(
                 await correspondenceNotificationRepository.UpdateNotificationSent(notificationId, sentTime, deliveryDestination, cancellationToken);
                 
                 // Create activity in Dialogporten for each recipient
-                var operationTimestamp = DateTimeOffset.UtcNow;
                 foreach (var recipient in sentRecipients)
                 {
                     await dialogportenService.CreateInformationActivity(

@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
+using Altinn.Correspondence.Application.CheckNotificationDelivery;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -483,10 +484,22 @@ public class CreateNotificationHandler(
                     ShipmentId = notificationResponse.Notification.Reminders.FirstOrDefault()?.ShipmentId
                 };
                 await correspondenceNotificationRepository.AddNotification(reminder, cancellationToken);
+
+                // Schedule notification delivery check for reminder
+                logger.LogInformation("Scheduling notification delivery check for reminder notification {NotificationId}", reminder.Id);
+                backgroundJobClient.Schedule<CheckNotificationDeliveryHandler>(
+                    handler => handler.Process(reminder.Id, CancellationToken.None),
+                    reminder.RequestedSendTime.AddMinutes(5));
             }
             // Create information activity in Dialogporten
             logger.LogInformation("Creating activity after dialog created for correspondence {CorrespondenceId}", correspondence.Id);
             await hangfireScheduleHelper.CreateActivityAfterDialogCreated(correspondence.Id, notificationRequestV2, operationTimestamp);
+
+            // Schedule notification delivery check for main notification
+            logger.LogInformation("Scheduling notification delivery check for main notification {NotificationId}", notification.Id);
+            backgroundJobClient.Schedule<CheckNotificationDeliveryHandler>(
+                handler => handler.Process(notification.Id, CancellationToken.None),
+                notification.RequestedSendTime.AddMinutes(5));
 
             logger.LogInformation("Publishing notification created event for correspondence {CorrespondenceId}", correspondence.Id);
             backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.NotificationCreated, correspondence.ResourceId, notificationResponse.NotificationOrderId.ToString(), "notification", correspondence.Sender, CancellationToken.None));
