@@ -33,53 +33,67 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Initialize Correspondences
+        /// Initialize Correspondences and uploads attachments in the same request
         /// </summary>
         /// <remarks>
-        /// One of the scopes: <br/>/>
+        /// One of the scopes: <br/>
         /// - altinn:correspondence.write <br />
         /// Requires uploads of specified attachments if any before it can be Published
         /// </remarks>
         /// <response code="200">Returns metadata about the initialized correspondence</response>
         /// <response code="400"><ul>
-        /// <li>Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService</li>
-        /// <li>Could not retrieve party uuid from lookup in Altinn Register</li>
-        /// <li>Recipients must be unique</li>
-        /// <li>DueDateTime is required when confirmation is needed</li>
-        /// <li>DueDateTime cannot be prior to today</li>
-        /// <li>DueDateTime cannot be prior to RequestedPublishTime</li>
-        /// <li>AllowSystemDelete cannot be prior to today</li>
-        /// <li>AllowSystemDelete cannot be prior to RequestedPublishTime</li>
-        /// <li>The Content field must be provided for the correspondence</li>
-        /// <li>Message title cannot be empty</li>
-        /// <li>Message title must be plain text</li>
-        /// <li>Message body cannot be empty</li>
-        /// <li>Message body must be markdown</li>
-        /// <li>Message summary cannot be empty</li>
-        /// <li>Message summary must be markdown</li>
-        /// <li>Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)</li>
-        /// <li>Recipient overrides with email or mobile number are not allowed when using notification recipient name because of name lookup</li>
-        /// <li>Could not find recipient with id: {id} to override</li>
-        /// <li>No recipients provided for one or more recipient overrides</li>
-        /// <li>Missing email information for custom recipient. Add email or use the OrganizationNumber or NationalIdentityNumber fields for contact information</li>
-        /// <li>Missing mobile number for custom recipient. Add mobile number or use the OrganizationNumber or NationalIdentityNumber fields for contact information</li>
-        /// <li>Organization number cannot be combined with email address, mobile number, or national identity number</li>
-        /// <li>National identity number cannot be combined with email address, mobile number, or organization number.</li>
-        /// <li>Invalid email provided for custom recipient</li>
-        /// <li>Invalid mobile number provided. Mobile number can contain only '+' and numeric characters, and it must adhere to the E.164 standard</li>
-        /// <li>Mismatch between uploaded files and attachment metadata</li>
-        /// <li>File must have content and has a max file size of 250 MB</li>
-        /// <li>The sender of the correspondence must be equal the sender of existing attachments</li>
-        /// <li>Existing attachment not found</li>
-        /// <li>Attachment is not published</li>
+        /// <li>1002: Message title must be plain text</li>
+        /// <li>1003: Message body must be markdown</li>
+        /// <li>1004: Message summary must be markdown</li>
+        /// <li>1006: Recipients must be unique</li>
+        /// <li>1007: Existing attachment not found</li>
+        /// <li>1008: DueDateTime cannot be prior to today</li>
+        /// <li>1009: DueDateTime cannot be prior to RequestedPublishTime</li>
+        /// <li>1010: AllowSystemDelete cannot be prior to today</li>
+        /// <li>1011: AllowSystemDelete cannot be prior to RequestedPublishTime</li>
+        /// <li>1012: AllowSystemDelete cannot be prior to DueDateTime</li>
+        /// <li>1013: Sender cannot delete correspondence that has been published</li>
+        /// <li>1016: DueDateTime is required when confirmation is needed</li>
+        /// <li>1017: The sender of the correspondence must be equal the sender of existing attachments</li>
+        /// <li>1018: Attachment is not published</li>
+        /// <li>1019: The Content field must be provided for the correspondence</li>
+        /// <li>1020: Message title cannot be empty</li>
+        /// <li>1021: Message body cannot be empty</li>
+        /// <li>1023: Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)</li>
+        /// <li>1033: The idempotency key must be a valid non-empty GUID</li>
+        /// <li>1035: Reply options must be well-formed URIs and HTTPS with a max length of 255 characters</li>
+        /// <li>3001: The requested notification template with the given language was not found</li>
+        /// <li>3002: Email body and subject must be provided when sending email notifications</li>
+        /// <li>3003: Reminder email body and subject must be provided when sending reminder email notifications</li>
+        /// <li>3004: SMS body must be provided when sending SMS notifications</li>
+        /// <li>3005: Reminder SMS body must be provided when sending reminder SMS notifications</li>
+        /// <li>3006: Email body, subject and SMS body must be provided when sending preferred notifications</li>
+        /// <li>3007: Reminder email body, subject and SMS body must be provided when sending reminder preferred notifications</li>
+        /// <li>3011: Invalid email provided for custom recipient</li>
+        /// <li>3012: Invalid mobile number provided. Mobile number can contain only '+' and numeric characters, and it must adhere to the E.164 standard</li>
+        /// <li>3015: Recipient overrides with email or mobile number are not allowed when using notification recipient name because of name lookup</li>
+        /// <li>3017: Custom recipient with multiple recipients is not allowed</li>
+        /// <li>3018: Custom recipient with multiple identifiers is not allowed</li>
+        /// <li>3019: Custom recipient without identifier is not allowed</li>
+        /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li>
+        /// <li>4009: Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService</li>
         /// </ul></response>
-        /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
-        /// <response code="403">Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no</response>
+        /// <response code="401"><ul>
+        /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</li>
+        /// </ul></response>
+        /// <response code="403"><ul>
+        /// <li>4008: Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no</li>
+        /// </ul></response>
         /// <response code="404"><ul>
-        /// <li>Could not find partyId for the following recipients: {recipients}</li> 
-        /// <li>The requested notification template with the given language was not found</li>
+        /// <li>1029: Could not find partyId for the following recipients: {recipients}</li>
+        /// <li>3001: The requested notification template with the given language was not found</li>
         /// </ul></response>
-        /// <response code="422">Recipient {recipientId} has reserved themselves from public correspondences. Can be overridden using the 'IgnoreReservation' flag</response>
+        /// <response code="409"><ul>
+        /// <li>1034: A correspondence with the same idempotent key already exists</li>
+        /// </ul></response>
+        /// <response code="422"><ul>
+        /// <li>1030: Recipient {recipientId} has reserved themselves from public correspondences. Can be overridden using the 'IgnoreReservation' flag</li>
+        /// </ul></response>
         [HttpPost]
         [Consumes("application/json")]
         [Produces("application/json")]
@@ -112,48 +126,75 @@ namespace Altinn.Correspondence.API.Controllers
         /// </summary>
         /// <remarks>
         /// One of the scopes: <br/>
-        /// - altinn:correspondence.write
+        /// - altinn:correspondence.write <br />
+        /// Requires uploads of specified attachments if any before it can be Published
         /// </remarks>
         /// <response code="200">Returns metadata about the initialized correspondence</response>
         /// <response code="400"><ul>
-        /// <li>Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService</li>
-        /// <li>Could not retrieve party uuid from lookup in Altinn Register</li>
-        /// <li>Recipients must be unique</li>
-        /// <li>DueDateTime is required when confirmation is needed</li>
-        /// <li>DueDateTime cannot be prior to today</li>
-        /// <li>DueDateTime cannot be prior to RequestedPublishTime</li>
-        /// <li>AllowSystemDelete cannot be prior to today</li>
-        /// <li>AllowSystemDelete cannot be prior to RequestedPublishTime</li>
-        /// <li>The Content field must be provided for the correspondence</li>
-        /// <li>Message title cannot be empty</li>
-        /// <li>Message title must be plain text</li>
-        /// <li>Message body cannot be empty</li>
-        /// <li>Message body must be markdown</li>
-        /// <li>Message summary cannot be empty</li>
-        /// <li>Message summary must be markdown</li>
-        /// <li>Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)</li>
-        /// <li>Recipient overrides with email or mobile number are not allowed when using notification recipient name because of name lookup</li>
-        /// <li>Could not find recipient with id: {id} to override</li>
-        /// <li>No recipients provided for one or more recipient overrides</li>
-        /// <li>Missing email information for custom recipient. Add email or use the OrganizationNumber or NationalIdentityNumber fields for contact information</li>
-        /// <li>Missing mobile number for custom recipient. Add mobile number or use the OrganizationNumber or NationalIdentityNumber fields for contact information</li>
-        /// <li>Organization number cannot be combined with email address, mobile number, or national identity number</li>
-        /// <li>National identity number cannot be combined with email address, mobile number, or organization number.</li>
-        /// <li>Invalid email provided for custom recipient</li>
-        /// <li>Invalid mobile number provided. Mobile number can contain only '+' and numeric characters, and it must adhere to the E.164 standard</li>
-        /// <li>Mismatch between uploaded files and attachment metadata</li>
-        /// <li>File must have content and has a max file size of 250 MB</li>
-        /// <li>The sender of the correspondence must be equal the sender of existing attachments</li>
-        /// <li>Existing attachment not found</li>
-        /// <li>Attachment is not published</li>
+        /// <li>1002: Message title must be plain text</li>
+        /// <li>1003: Message body must be markdown</li>
+        /// <li>1004: Message summary must be markdown</li>
+        /// <li>1005: Mismatch between uploaded files and attachment metadata</li>
+        /// <li>1006: Recipients must be unique</li>
+        /// <li>1007: Existing attachment not found</li>
+        /// <li>1008: DueDateTime cannot be prior to today</li>
+        /// <li>1009: DueDateTime cannot be prior to RequestedPublishTime</li>
+        /// <li>1010: AllowSystemDelete cannot be prior to today</li>
+        /// <li>1011: AllowSystemDelete cannot be prior to RequestedPublishTime</li>
+        /// <li>1012: AllowSystemDelete cannot be prior to DueDateTime</li>
+        /// <li>1013: Sender cannot delete correspondence that has been published</li>
+        /// <li>1016: DueDateTime is required when confirmation is needed</li>
+        /// <li>1017: The sender of the correspondence must be equal the sender of existing attachments</li>
+        /// <li>1018: Attachment is not published</li>
+        /// <li>1019: The Content field must be provided for the correspondence</li>
+        /// <li>1020: Message title cannot be empty</li>
+        /// <li>1021: Message body cannot be empty</li>
+        /// <li>1023: Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)</li>
+        /// <li>1033: The idempotency key must be a valid non-empty GUID</li>
+        /// <li>1035: Reply options must be well-formed URIs and HTTPS with a max length of 255 characters</li>
+        /// <li>2001: The requested attachment was not found</li>
+        /// <li>2004: File must have content and has a max file size of 250 MB</li>
+        /// <li>2008: Checksum mismatch</li>
+        /// <li>2009: Could not get data location url</li>
+        /// <li>2010: Filename is missing</li>
+        /// <li>2011: Filename is too long</li>
+        /// <li>2012: Filename contains invalid characters</li>
+        /// <li>2013: Filetype not allowed</li>
+        /// <li>3001: The requested notification template with the given language was not found</li>
+        /// <li>3002: Email body and subject must be provided when sending email notifications</li>
+        /// <li>3003: Reminder email body and subject must be provided when sending reminder email notifications</li>
+        /// <li>3004: SMS body must be provided when sending SMS notifications</li>
+        /// <li>3005: Reminder SMS body must be provided when sending reminder SMS notifications</li>
+        /// <li>3006: Email body, subject and SMS body must be provided when sending preferred notifications</li>
+        /// <li>3007: Reminder email body, subject and SMS body must be provided when sending reminder preferred notifications</li>
+        /// <li>3011: Invalid email provided for custom recipient</li>
+        /// <li>3012: Invalid mobile number provided. Mobile number can contain only '+' and numeric characters, and it must adhere to the E.164 standard</li>
+        /// <li>3015: Recipient overrides with email or mobile number are not allowed when using notification recipient name because of name lookup</li>
+        /// <li>3017: Custom recipient with multiple recipients is not allowed</li>
+        /// <li>3018: Custom recipient with multiple identifiers is not allowed</li>
+        /// <li>3019: Custom recipient without identifier is not allowed</li>
+        /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li>
+        /// <li>4009: Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService</li>
         /// </ul></response>
-        /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
-        /// <response code="403">Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no</response>
+        /// <response code="401"><ul>
+        /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</li>
+        /// </ul></response>
+        /// <response code="403"><ul>
+        /// <li>4008: Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no</li>
+        /// </ul></response>
         /// <response code="404"><ul>
-        /// <li>Could not find partyId for the following recipients: {recipients}</li> 
-        /// <li>The requested notification template with the given language was not found</li>
+        /// <li>1029: Could not find partyId for the following recipients: {recipients}</li>
+        /// <li>3001: The requested notification template with the given language was not found</li>
         /// </ul></response>
-        /// <response code="422">Recipient {recipientId} has reserved themselves from public correspondences. Can be overridden using the 'IgnoreReservation' flag</response>
+        /// <response code="409"><ul>
+        /// <li>1034: A correspondence with the same idempotent key already exists</li>
+        /// </ul></response>
+        /// <response code="422"><ul>
+        /// <li>1030: Recipient {recipientId} has reserved themselves from public correspondences. Can be overridden using the 'IgnoreReservation' flag</li>
+        /// </ul></response>
+        /// <response code="502"><ul>
+        /// <li>2002: Error occurred during upload</li>
+        /// </ul></response>
         [HttpPost]
         [Route("upload")]
         [Consumes("multipart/form-data")]
@@ -196,9 +237,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// Mostly for use by recipients and occasional status checks
         /// </remarks>
         /// <response code="200">Returns an overview of metadata about the published correspondence</response>
-        /// <response code="400">Could not retrieve party uuid from lookup in Altinn Register</response>
-        /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
-        /// <response code="404">The requested correspondence was not found</response>
+        /// <response code="400">4002: Could not retrieve party uuid from lookup in Altinn Register</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="404">1001: The requested correspondence was not found</response>
         [HttpGet]
         [Route("{correspondenceId}")]
         [Produces("application/json")]
@@ -235,9 +276,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// Meant for Senders that want a complete overview of the status and history of the Correspondence, but also available for Receivers
         /// </remarks>
         /// <response code="200">Detailed information about the correspondence with current status and status history</response>
-        /// <response code="400">Could not retrieve party uuid from lookup in Altinn Register</response>
-        /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
-        /// <response code="404">The requested correspondence was not found</response>
+        /// <response code="400">4002: Could not retrieve party uuid from lookup in Altinn Register</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="404">1001: The requested correspondence was not found</response>
         [HttpGet]
         [Produces("application/json")]
         [ProducesResponseType(typeof(CorrespondenceDetailsExt), StatusCodes.Status200OK)]
@@ -309,12 +350,12 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <response code="200">Returns a list of Correspondences</response>   
         /// <response code="400"><ul>
-        /// <li>Could not retrieve party uuid from lookup in Altinn Register</li>
-        /// <li>From date cannot be after to date</li>
+        /// <li>1027: From date cannot be after to date</li>
+        /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li>
         /// </ul></response>
         /// <response code="401"><ul>
-        /// <li>You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</li>
-        /// <li>Could not determine the caller</li>
+        /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</li>
+        /// <li>4006: Could not determine the caller</li>
         /// </ul></response>
         [HttpGet]
         [Produces("application/json")]
@@ -360,9 +401,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// - altinn:correspondence.read <br />
         /// </remarks>
         /// <response code="200">the Id of the correspondence</response>
-        /// <response code="400">Could not retrieve party uuid from lookup in Altinn Register</response>
-        /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
-        /// <response code="404">The requested correspondence was not found</response>
+        /// <response code="400">4002: Could not retrieve party uuid from lookup in Altinn Register</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="404">1001: The requested correspondence was not found</response>
         [HttpPost]
         [Produces("application/json")]
         [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
@@ -399,9 +440,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// - altinn:correspondence.read <br />
         /// </remarks>
         /// <response code="200">the Id of the correspondence</response>
-        /// <response code="400">Could not retrieve party uuid from lookup in Altinn Register</response>
-        /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
-        /// <response code="404">The requested correspondence was not found</response>
+        /// <response code="400">4002: Could not retrieve party uuid from lookup in Altinn Register</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="404">1001: The requested correspondence was not found</response>
         [HttpPost]
         [Produces("application/json")]
         [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
@@ -440,14 +481,14 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <response code="200">the Id of the correspondence</response>
         /// <response code="400"><ul>
-        /// <li>Could not retrieve party uuid from lookup in Altinn Register</li>
-        /// <li>Could not retrieve highest status for correspondence</li>
-        /// <li>Correspondence has already been purged</li>
-        /// <li>Sender cannot delete correspondence that has been published</li>
-        /// <li>Cannot archive or delete a correspondence which has not been confirmed when confirmation is required</li>
+        /// <li>1013: Sender cannot delete correspondence that has been published</li>
+        /// <li>1014: Correspondence has already been purged</li>
+        /// <li>1015: Could not retrieve highest status for correspondence</li>
+        /// <li>1026: Cannot archive or delete a correspondence which has not been confirmed when confirmation is required</li>
+        /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li> 
         /// </ul></response>
-        /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
-        /// <response code="404">The requested correspondence was not found</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="404">1001: The requested correspondence was not found</response>
         [HttpDelete]
         [Produces("application/json")]
         [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
@@ -484,10 +525,11 @@ namespace Altinn.Correspondence.API.Controllers
         /// - altinn:correspondence.read <br />
         /// </remarks>
         /// <response code="200">Returns the attachment file</response>
-        /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="400">4002: Could not retrieve party uuid from lookup in Altinn Register</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
         /// <response code="404"><ul>
-        /// <li>The requested correspondence was not found</li>
-        /// <li>The requested attachment was not found</li>
+        /// <li>1001: The requested correspondence was not found</li>
+        /// <li>2001: The requested attachment was not found</li>
         /// </ul></response>
         [HttpGet]
         [Produces("application/octet-stream")]
@@ -535,6 +577,9 @@ namespace Altinn.Correspondence.API.Controllers
             );
         }
 
-        private ActionResult Problem(Error error) => Problem(detail: error.Message, statusCode: (int)error.StatusCode);
+        private ActionResult Problem(Error error) => Problem(
+            detail: error.Message,
+            statusCode: (int)error.StatusCode, 
+            extensions: new Dictionary<string, object?> { { "errorCode", error.ErrorCode } });
     }
 }
