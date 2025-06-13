@@ -142,7 +142,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
             User = new LegacyUser
             {
                 PartyId = party?.PartyId,
-                Name = messageSender ?? party?.Name
+                Name = !string.IsNullOrWhiteSpace(messageSender) ? messageSender : party?.Name
             }
         };
     }
