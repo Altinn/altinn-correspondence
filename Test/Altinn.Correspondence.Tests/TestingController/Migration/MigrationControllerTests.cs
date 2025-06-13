@@ -94,8 +94,8 @@ public class MigrationControllerTests : MigrationTestBase
             .CreateMigrateCorrespondence()
             .WithMessageSender(messageSender)
             .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
-            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6), _testUserPartyUuId)
+            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7), _testUserPartyUuId)
             .Build();
         SetNotificationHistory(migrateCorrespondenceExt);
 
@@ -111,8 +111,8 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.Equal(4, response.Where(r => r.Notification != null && r.StatusChanged == migrateCorrespondenceExt.NotificationHistory.First().NotificationSent).Count());
         Assert.Equal(4, response.Where(r => r.Notification != null && r.StatusChanged == migrateCorrespondenceExt.NotificationHistory.Last().NotificationSent).Count());
         Assert.Equal(messageSender, response.First(r => r.Status == "Published").User.Name);
-        Assert.NotEqual(messageSender, response.First(r => r.Status == "Archived").User.Name);
-        Assert.NotEqual(messageSender, response.First(r => r.Status == "Read").User.Name);
+        Assert.Equal(_delegatedUserName, response.First(r => r.Status == "Archived").User.Name);
+        Assert.Equal(_delegatedUserName, response.First(r => r.Status == "Read").User.Name);
     }
 
     private static void SetNotificationHistory(MigrateCorrespondenceExt migrateCorrespondenceExt)
