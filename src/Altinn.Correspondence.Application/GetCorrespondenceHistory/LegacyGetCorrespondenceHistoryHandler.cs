@@ -47,7 +47,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
         {
             if (correspondenceStatus.Status.IsAvailableForLegacyRecipient())
             {
-                correspondenceHistory.Add(await GetCorrespondenceStatus(correspondenceStatus, recipientParty, senderParty, cancellationToken));
+                correspondenceHistory.Add(await GetCorrespondenceStatus(correspondenceStatus, recipientParty, senderParty, correspondence.MessageSender, cancellationToken));
             }
         }
 
@@ -117,7 +117,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
         return joinedList;
     }
 
-    private async Task<LegacyGetCorrespondenceHistoryResponse> GetCorrespondenceStatus(CorrespondenceStatusEntity status, Party recipientParty, Party senderParty, CancellationToken cancellationToken)
+    private async Task<LegacyGetCorrespondenceHistoryResponse> GetCorrespondenceStatus(CorrespondenceStatusEntity status, Party recipientParty, Party senderParty, string? messageSender, CancellationToken cancellationToken)
     {
         List<CorrespondenceStatus> statusBySender =
         [
@@ -142,7 +142,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
             User = new LegacyUser
             {
                 PartyId = party?.PartyId,
-                Name = party?.Name
+                Name = messageSender ?? party?.Name
             }
         };
     }
