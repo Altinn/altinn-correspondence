@@ -33,7 +33,7 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Initialize Correspondences and uploads attachments in the same request
+        /// Initialize Correspondences
         /// </summary>
         /// <remarks>
         /// One of the scopes: <br/>
