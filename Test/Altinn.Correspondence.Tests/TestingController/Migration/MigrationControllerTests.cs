@@ -86,6 +86,35 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.Equal(4, response.Where(r => r.Notification != null && r.StatusChanged == migrateCorrespondenceExt.NotificationHistory.Last().NotificationSent).Count());
     }
 
+    [Fact]
+    public async Task InitializeMigrateCorrespondence_GetCorrespondenceLegacy_GetsMessageSenderAsCreatingUserName()
+    {
+        const string messageSender = "Test MessageSender";
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithMessageSender(messageSender)
+            .WithIsMigrating(false)
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6), _testUserPartyUuId)
+            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7), _testUserPartyUuId)
+            .Build();
+        SetNotificationHistory(migrateCorrespondenceExt);
+
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        var result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        // Act
+        var getCorrespondenceDetailsResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{result.CorrespondenceId}/history");
+        var response = await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<List<LegacyCorrespondenceHistoryExt>>(_responseSerializerOptions);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse.StatusCode);
+        Assert.Equal(8, response.Where(r => r.Notification != null).Count());
+        Assert.Equal(4, response.Where(r => r.Notification != null && r.StatusChanged == migrateCorrespondenceExt.NotificationHistory.First().NotificationSent).Count());
+        Assert.Equal(4, response.Where(r => r.Notification != null && r.StatusChanged == migrateCorrespondenceExt.NotificationHistory.Last().NotificationSent).Count());
+        Assert.Equal(messageSender, response.First(r => r.Status == "Published").User.Name);
+        Assert.Equal(_delegatedUserName, response.First(r => r.Status == "Archived").User.Name);
+        Assert.Equal(_delegatedUserName, response.First(r => r.Status == "Read").User.Name);
+    }
+
     private static void SetNotificationHistory(MigrateCorrespondenceExt migrateCorrespondenceExt)
     {
         migrateCorrespondenceExt.NotificationHistory =
