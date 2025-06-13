@@ -50,6 +50,12 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public MigrateCorrespondenceBuilder WithMessageSender(string messageSender)
+        {
+            _migratedCorrespondence.CorrespondenceData.Correspondence.MessageSender = messageSender;
+            return this;
+        }
+
         public MigrateCorrespondenceBuilder WithAltinn2CorrespondenceId(int altinn2CorrespondenceId)
         {
             _migratedCorrespondence.Altinn2CorrespondenceId = altinn2CorrespondenceId;

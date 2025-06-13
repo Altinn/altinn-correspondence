@@ -132,8 +132,8 @@ public class LegacyGetCorrespondenceHistoryHandler(
         else
         {
             party = await altinnRegisterService.LookUpPartyByPartyUuid(status.PartyUuid, cancellationToken);
-        }        
-
+        }
+        var displayName = string.IsNullOrWhiteSpace(messageSender) ? party?.Name : messageSender;
         return new LegacyGetCorrespondenceHistoryResponse
         {
             Status = status.Status.ToString(),
@@ -142,7 +142,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
             User = new LegacyUser
             {
                 PartyId = party?.PartyId,
-                Name = !string.IsNullOrWhiteSpace(messageSender) ? messageSender : party?.Name
+                Name = displayName
             }
         };
     }

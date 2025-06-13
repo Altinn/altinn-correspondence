@@ -89,14 +89,15 @@ public class MigrationControllerTests : MigrationTestBase
     [Fact]
     public async Task InitializeMigrateCorrespondence_GetCorrespondenceLegacy_GetsMessageSenderAsCreatingUserName()
     {
+        const string messageSender = "Test MessageSender";
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
+            .WithMessageSender(messageSender)
             .WithIsMigrating(false)
             .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
         SetNotificationHistory(migrateCorrespondenceExt);
-        migrateCorrespondenceExt.CorrespondenceData.Correspondence.MessageSender = "Test MessageSender";
 
         var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
         var result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
@@ -109,7 +110,7 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.Equal(8, response.Where(r => r.Notification != null).Count());
         Assert.Equal(4, response.Where(r => r.Notification != null && r.StatusChanged == migrateCorrespondenceExt.NotificationHistory.First().NotificationSent).Count());
         Assert.Equal(4, response.Where(r => r.Notification != null && r.StatusChanged == migrateCorrespondenceExt.NotificationHistory.Last().NotificationSent).Count());
-        Assert.Equal(migrateCorrespondenceExt.CorrespondenceData.Correspondence.MessageSender, response.First().User.Name);
+        Assert.Equal(messageSender, response.First(r => r.Status == "Published").User.Name);
     }
 
     private static void SetNotificationHistory(MigrateCorrespondenceExt migrateCorrespondenceExt)
