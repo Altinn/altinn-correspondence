@@ -111,6 +111,8 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.Equal(4, response.Where(r => r.Notification != null && r.StatusChanged == migrateCorrespondenceExt.NotificationHistory.First().NotificationSent).Count());
         Assert.Equal(4, response.Where(r => r.Notification != null && r.StatusChanged == migrateCorrespondenceExt.NotificationHistory.Last().NotificationSent).Count());
         Assert.Equal(messageSender, response.First(r => r.Status == "Published").User.Name);
+        Assert.NotEqual(messageSender, response.First(r => r.Status == "Archived").User.Name);
+        Assert.NotEqual(messageSender, response.First(r => r.Status == "Read").User.Name);
     }
 
     private static void SetNotificationHistory(MigrateCorrespondenceExt migrateCorrespondenceExt)
