@@ -166,15 +166,27 @@ namespace Altinn.Correspondence.API.Auth
                             var sessionId = Guid.NewGuid().ToString();
                             Console.WriteLine($"SessionId: {sessionId}");
                             var cache = context.HttpContext.RequestServices.GetRequiredService<IDistributedCache>();
+                            
+                            if (context.TokenEndpointResponse?.AccessToken == null)
+                            {
+                                Console.WriteLine("No access token received in TokenEndpointResponse");
+                                return;
+                            }
+                            
+                            Console.WriteLine($"Storing token in cache for session {sessionId}");
                             await cache.SetStringAsync(
                                 sessionId, 
-                                context.TokenEndpointResponse?.AccessToken,
+                                context.TokenEndpointResponse.AccessToken,
                                 new DistributedCacheEntryOptions
                                 {
                                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
                                 });
-                            Console.WriteLine($"Cache: {cache.GetType().FullName}");
-                            context.Properties.RedirectUri = CascadeAuthenticationHandler.AppendSessionToUrl($"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{context.Properties.RedirectUri}", sessionId);
+                            Console.WriteLine($"Successfully stored token in cache for session {sessionId}");
+                            
+                            var redirectUrl = context.Properties?.Items["endpoint"] ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
+                            redirectUrl = CascadeAuthenticationHandler.AppendSessionToUrl($"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}", sessionId);
+                            Console.WriteLine($"Redirecting to {redirectUrl} with session {sessionId}");
+                            context.Properties.RedirectUri = redirectUrl;
                         }
                     };
                 });
