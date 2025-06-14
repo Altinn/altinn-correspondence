@@ -139,6 +139,8 @@ namespace Altinn.Correspondence.API.Auth
                         },
                         OnMessageReceived = context =>
                         {
+                            Console.WriteLine($"Message received from identity provider. Code: {context.ProtocolMessage.Code}, State: {context.ProtocolMessage.State}");
+                            
                             // This is to handle the case where the user is redirected back to the application with an error
                             if (context.ProtocolMessage.Error is not null)
                             {
@@ -149,6 +151,10 @@ namespace Altinn.Correspondence.API.Auth
                         OnRemoteFailure = context =>
                         {
                             Console.WriteLine($"Remote failure: {context.Failure}");
+                            if (context.Failure is Exception ex)
+                            {
+                                Console.WriteLine($"Exception details: {ex}");
+                            }
                             return Task.CompletedTask;
                         },
                         OnTokenResponseReceived = context =>
