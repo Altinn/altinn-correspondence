@@ -1,6 +1,5 @@
 ﻿using Altinn.Common.PEP.Authorization;
 using Altinn.Correspondence.API.Helpers;
-using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Authentication;
@@ -123,12 +122,42 @@ namespace Altinn.Correspondence.API.Auth
                     options.GetClaimsFromUserInfoEndpoint = true;
                     options.Scope.Add("openid");
                     options.Scope.Add("profile");
+                    
+                    // Add distributed state management
+                    //var cache = services.BuildServiceProvider().GetRequiredService<IDistributedCache>();
+                    //options.StateDataFormat = new DistributedCacheStateDataFormat(cache, "OpenIdConnectState");
+                    
                     options.Events = new OpenIdConnectEvents
                     {
                         OnRedirectToIdentityProvider = context =>
                         {
                             context.ProtocolMessage.RedirectUri = $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{options.CallbackPath}";
-                            Console.WriteLine($"Redirecting to identity provider: {context.ProtocolMessage.RedirectUri}")
+                            Console.WriteLine($"Redirecting to identity provider: {context.ProtocolMessage.RedirectUri}");
+                            context.ProtocolMessage.LoginHint = "testid:12345678901_idporten-loa-high";
+                            context.ProtocolMessage.Scope = "openid profile";
+                            return Task.CompletedTask;
+                        },
+                        OnMessageReceived = context =>
+                        {
+                            // This is to handle the case where the user is redirected back to the application with an error
+                            if (context.ProtocolMessage.Error is not null)
+                            {
+                                Console.WriteLine($"Error received from identity provider: {context.ProtocolMessage.Error}");
+                            }
+                            return Task.CompletedTask;
+                        },
+                        OnRemoteFailure = context =>
+                        {
+                            Console.WriteLine($"Remote failure: {context.Failure}");
+                            return Task.CompletedTask;
+                        },
+                        OnTokenResponseReceived = context =>
+                        {
+                            // This is to handle the case where the token response is received
+                            if (context.ProtocolMessage.AccessToken is not null)
+                            {
+                                Console.WriteLine($"Access token received: {context.ProtocolMessage.AccessToken}");
+                            }
                             return Task.CompletedTask;
                         },
                         OnTokenValidated = async context =>

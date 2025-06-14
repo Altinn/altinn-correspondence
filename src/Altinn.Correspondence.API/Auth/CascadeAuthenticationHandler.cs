@@ -98,15 +98,23 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
         await _cache.RemoveAsync(sessionId);
         _logger.LogDebug("Removed token from cache for session {SessionId}", sessionId);
 
-        var principal = await _tokenValidator.ValidateTokenAsync(token);
-        if (principal is not null)
+        try 
         {
-            _logger.LogInformation("Successfully validated token for session {SessionId}", sessionId);
-            var ticket = new AuthenticationTicket(principal, Scheme.Name);
-            return AuthenticateResult.Success(ticket);
+            var principal = await _tokenValidator.ValidateTokenAsync(token);
+            if (principal is not null)
+            {
+                _logger.LogInformation("Successfully validated token for session {SessionId}", sessionId);
+                var ticket = new AuthenticationTicket(principal, Scheme.Name);
+                return AuthenticateResult.Success(ticket);
+            }
+            _logger.LogWarning("Failed to validate token for session {SessionId}", sessionId);
+            return AuthenticateResult.Fail(new SecurityTokenMalformedException("Could not validate ID-Porten token"));
         }
-        _logger.LogWarning("Failed to validate token for session {SessionId}", sessionId);
-        return AuthenticateResult.Fail(new SecurityTokenMalformedException("Could not validate ID-Porten token"));
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating token for session {SessionId}", sessionId);
+            return AuthenticateResult.Fail(ex);
+        }
     }
 
     public async Task SignInAsync(ClaimsPrincipal user, AuthenticationProperties? properties)
