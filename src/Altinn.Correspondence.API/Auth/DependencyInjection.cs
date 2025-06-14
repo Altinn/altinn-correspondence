@@ -123,9 +123,9 @@ namespace Altinn.Correspondence.API.Auth
                     options.Scope.Add("openid");
                     options.Scope.Add("profile");
                     
-                    // Add distributed state management
-                    //var cache = services.BuildServiceProvider().GetRequiredService<IDistributedCache>();
-                    //options.StateDataFormat = new DistributedCacheStateDataFormat(cache, "OpenIdConnectState");
+                    // Configure distributed state management
+                    var cache = services.BuildServiceProvider().GetRequiredService<IDistributedCache>();
+                    options.StateDataFormat = new DistributedCacheStateDataFormat(cache, "OpenIdConnectState");
                     
                     options.Events = new OpenIdConnectEvents
                     {
