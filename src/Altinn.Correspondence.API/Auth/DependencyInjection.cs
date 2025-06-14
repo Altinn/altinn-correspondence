@@ -132,9 +132,9 @@ namespace Altinn.Correspondence.API.Auth
                         OnRedirectToIdentityProvider = context =>
                         {
                             context.ProtocolMessage.RedirectUri = $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{options.CallbackPath}";
-                            Console.WriteLine($"Redirecting to identity provider: {context.ProtocolMessage.RedirectUri}");
-                            context.ProtocolMessage.LoginHint = "testid:12345678901_idporten-loa-high";
-                            context.ProtocolMessage.Scope = "openid profile";
+                            //Console.WriteLine($"Redirecting to identity provider: {context.ProtocolMessage.RedirectUri}");
+                            //context.ProtocolMessage.LoginHint = "testid:12345678901_idporten-loa-high";
+                            //context.ProtocolMessage.Scope = "openid profile";
                             return Task.CompletedTask;
                         },
                         OnMessageReceived = context =>
