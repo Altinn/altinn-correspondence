@@ -36,7 +36,7 @@ public class AcceptHeaderValidationMiddleware
 
         await _next(context);
     }
-
+ 
     private static bool IsValidAcceptHeader(string acceptHeader, IEnumerable<string> validMimeTypes)
     {
         var acceptedMimeTypes = acceptHeader.Split(',')
