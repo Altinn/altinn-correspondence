@@ -12,6 +12,10 @@ public class MigrationTestBase
     internal readonly HttpClient _legacyClient;
     public readonly string _partyIdClaim = "urn:altinn:partyid";
     public readonly int _digdirPartyId = 50952483;
+    public readonly int _testUserPartyId = 100;
+    public readonly Guid _testUserPartyUuId = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920");
+    public readonly string _delegatedUserName = "Delegert test bruker";
+    
     internal readonly JsonSerializerOptions _responseSerializerOptions;
 
     public MigrationTestBase(CustomWebApplicationFactory factory)
