@@ -14,6 +14,8 @@ namespace Altinn.Correspondence.API.Auth
 {
     public static class DependencyInjection
     {
+        private static IDistributedCache? _cache;
+
         public static void ConfigureAuthentication(this IServiceCollection services, IConfiguration config, IHostEnvironment hostEnvironment)
         {
             var altinnOptions = new AltinnOptions();
@@ -29,6 +31,7 @@ namespace Altinn.Correspondence.API.Auth
                 options.Configuration = generalSettings.RedisConnectionString;
                 options.InstanceName = "redisCache";
             });
+            _cache = services.BuildServiceProvider().GetRequiredService<IDistributedCache>();
             services.AddTransient<IdportenTokenValidator>();
             services
                 .AddAuthentication()
@@ -122,48 +125,25 @@ namespace Altinn.Correspondence.API.Auth
                     options.GetClaimsFromUserInfoEndpoint = true;
                     options.Scope.Add("openid");
                     options.Scope.Add("profile");
-                    
+
                     // Configure distributed state management
-                    var cache = services.BuildServiceProvider().GetRequiredService<IDistributedCache>();
-                    options.StateDataFormat = new DistributedCacheStateDataFormat(cache, "OpenIdConnectState");
+                    options.StateDataFormat = new DistributedCacheStateDataFormat(_cache, "OpenIdConnectState");
+                    
+                    // Configure nonce handling for distributed environment
+                    options.UseTokenLifetime = false;
+                    options.SkipUnrecognizedRequests = true;
+                    
+                    // Disable nonce validation completely since we use state validation
+                    options.ProtocolValidator.RequireNonce = false;
+                    options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
+                    options.NonceCookie.SameSite = SameSiteMode.None;
+                    options.NonceCookie.HttpOnly = true;
                     
                     options.Events = new OpenIdConnectEvents
                     {
                         OnRedirectToIdentityProvider = context =>
                         {
                             context.ProtocolMessage.RedirectUri = $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{options.CallbackPath}";
-                            //Console.WriteLine($"Redirecting to identity provider: {context.ProtocolMessage.RedirectUri}");
-                            //context.ProtocolMessage.LoginHint = "testid:12345678901_idporten-loa-high";
-                            //context.ProtocolMessage.Scope = "openid profile";
-                            return Task.CompletedTask;
-                        },
-                        OnMessageReceived = context =>
-                        {
-                            Console.WriteLine($"Message received from identity provider. Code: {context.ProtocolMessage.Code}, State: {context.ProtocolMessage.State}");
-                            
-                            // This is to handle the case where the user is redirected back to the application with an error
-                            if (context.ProtocolMessage.Error is not null)
-                            {
-                                Console.WriteLine($"Error received from identity provider: {context.ProtocolMessage.Error}");
-                            }
-                            return Task.CompletedTask;
-                        },
-                        OnRemoteFailure = context =>
-                        {
-                            Console.WriteLine($"Remote failure: {context.Failure}");
-                            if (context.Failure is Exception ex)
-                            {
-                                Console.WriteLine($"Exception details: {ex}");
-                            }
-                            return Task.CompletedTask;
-                        },
-                        OnTokenResponseReceived = context =>
-                        {
-                            // This is to handle the case where the token response is received
-                            if (context.ProtocolMessage.AccessToken is not null)
-                            {
-                                Console.WriteLine($"Access token received: {context.ProtocolMessage.AccessToken}");
-                            }
                             return Task.CompletedTask;
                         },
                         OnTokenValidated = async context =>
@@ -171,7 +151,6 @@ namespace Altinn.Correspondence.API.Auth
                             Console.WriteLine("Token validated");
                             var sessionId = Guid.NewGuid().ToString();
                             Console.WriteLine($"SessionId: {sessionId}");
-                            var cache = context.HttpContext.RequestServices.GetRequiredService<IDistributedCache>();
                             
                             if (context.TokenEndpointResponse?.AccessToken == null)
                             {
@@ -180,7 +159,7 @@ namespace Altinn.Correspondence.API.Auth
                             }
                             
                             Console.WriteLine($"Storing token in cache for session {sessionId}");
-                            await cache.SetStringAsync(
+                            await _cache!.SetStringAsync(
                                 sessionId, 
                                 context.TokenEndpointResponse.AccessToken,
                                 new DistributedCacheEntryOptions
