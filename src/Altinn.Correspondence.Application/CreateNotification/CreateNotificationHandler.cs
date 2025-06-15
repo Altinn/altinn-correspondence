@@ -30,6 +30,7 @@ public class CreateNotificationHandler(
     ILogger<CreateNotificationHandler> logger)
 {
     private readonly GeneralSettings _generalSettings = generalSettings.Value;
+    private const int NotificationDeliveryCheckDelayMinutes = 5;
 
     public async Task Process(CreateNotificationRequest request, CancellationToken cancellationToken)
     {
@@ -485,16 +486,16 @@ public class CreateNotificationHandler(
                 // Schedule notification delivery check for reminder
                 logger.LogInformation("Scheduling notification delivery check for reminder notification {NotificationId}", reminder.Id);
                 backgroundJobClient.Schedule<CheckNotificationDeliveryHandler>(
-                    handler => handler.Process(reminder.Id, CancellationToken.None),
-                    reminder.RequestedSendTime.AddMinutes(5));
+                    handler => handler.Process(reminder.Id, cancellationToken),
+                    reminder.RequestedSendTime.AddMinutes(NotificationDeliveryCheckDelayMinutes));
             }
             
 
             // Schedule notification delivery check for main notification
             logger.LogInformation("Scheduling notification delivery check for main notification {NotificationId}", notification.Id);
             backgroundJobClient.Schedule<CheckNotificationDeliveryHandler>(
-                handler => handler.Process(notification.Id, CancellationToken.None),
-                notification.RequestedSendTime.AddMinutes(5));
+                handler => handler.Process(notification.Id, cancellationToken),
+                notification.RequestedSendTime.AddMinutes(NotificationDeliveryCheckDelayMinutes));
 
             logger.LogInformation("Publishing notification created event for correspondence {CorrespondenceId}", correspondence.Id);
             backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.NotificationCreated, correspondence.ResourceId, notificationResponse.NotificationOrderId.ToString(), "notification", correspondence.Sender, CancellationToken.None));
