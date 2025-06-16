@@ -216,7 +216,8 @@ namespace Altinn.Correspondence.API.Controllers
 
             var commandResult = await handler.Process(new GetCorrespondenceOverviewRequest()
             {
-                CorrespondenceId = correspondenceId
+                CorrespondenceId = correspondenceId,
+                OnlyGettingContent = false
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
@@ -286,7 +287,8 @@ namespace Altinn.Correspondence.API.Controllers
 
             var commandResult = await handler.Process(new GetCorrespondenceOverviewRequest()
             {
-                CorrespondenceId = correspondenceId
+                CorrespondenceId = correspondenceId,
+                OnlyGettingContent = true
             }, HttpContext.User, cancellationToken);
             return commandResult.Match(
                 data =>
