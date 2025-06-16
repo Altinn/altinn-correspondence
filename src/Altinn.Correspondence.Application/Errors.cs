@@ -1,4 +1,5 @@
 using System.Net;
+using Hangfire.Storage.Monitoring;
 
 namespace Altinn.Correspondence.Application;
 
@@ -77,6 +78,8 @@ public static class NotificationErrors
     public static Error CustomRecipientWithMultipleRecipientsNotAllowed = new Error(3017, "Custom recipient with multiple recipients is not allowed", HttpStatusCode.BadRequest);
     public static Error CustomRecipientWithMultipleIdentifiersNotAllowed = new Error(3018, "Custom recipient with multiple identifiers is not allowed", HttpStatusCode.BadRequest);
     public static Error CustomRecipientWithoutIdentifierNotAllowed = new Error(3019, "Custom recipient without identifier is not allowed", HttpStatusCode.BadRequest);
+    public static Error NotificationNotFound = new Error(3020, "Notification not found in the database", HttpStatusCode.NotFound);
+    public static Error NotificationDetailsNotFound = new Error(3021, "Cannot retrieve notification details from Altinn Notification API", HttpStatusCode.NotFound);
 }
 public static class AuthorizationErrors
 {

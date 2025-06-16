@@ -85,6 +85,9 @@ namespace Altinn.Correspondence.API.Controllers
             );
         }
 
-        private ActionResult Problem(Error error) => Problem(detail: error.Message, statusCode: (int)error.StatusCode);
+        private ActionResult Problem(Error error) => Problem(
+            detail: error.Message, 
+            statusCode: (int)error.StatusCode, 
+            extensions: new Dictionary<string, object?> { { "errorCode", error.ErrorCode } });
     }
 }
