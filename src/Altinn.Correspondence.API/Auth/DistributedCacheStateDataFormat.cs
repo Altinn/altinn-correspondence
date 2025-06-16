@@ -34,11 +34,13 @@ namespace Altinn.Correspondence.API.Auth
 
         public AuthenticationProperties Unprotect(string protectedText)
         {
-            var items = _cache.GetAsync<IDictionary<string, string>>(protectedText).GetAwaiter().GetResult();
-            if (items is null || items.Count == 0)
+            var json = _cache.GetAsync<string>(protectedText).GetAwaiter().GetResult();
+            if (string.IsNullOrEmpty(json))
             {
                 return null;
             }
+
+            var items = JsonSerializer.Deserialize<IDictionary<string, string>>(json);
             return new AuthenticationProperties(items);
         }
 
