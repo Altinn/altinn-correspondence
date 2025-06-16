@@ -29,17 +29,15 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// Only required if the attachment is to be shared, otherwise this is done as part of the Initialize Correspondence operation
     /// </remarks>
     /// <response code="200">Returns the attachment id</response>
-    /// <response code="400">
-    /// <ul>
-    /// <li>Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService. </li>
-    /// <li>Could not retrieve party uuid from lookup in Altinn Register </li>
-    /// <li>Filename is missing</li>
-    /// <li>Filename is too long</li>
-    /// <li>Filename contains invalid characters</li>
-    /// <li>Filetype not allowed</li>
-    /// </ul>
-    /// </response>
-    /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+    /// <response code="400"><ul>
+    /// <li>2010: Filename is missing</li>
+    /// <li>2011: Filename is too long</li>
+    /// <li>2012: Filename contains invalid characters</li>
+    /// <li>2013: Filetype not allowed</li>
+    /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register </li>
+    /// <li>4009: Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService. </li>
+    /// </ul></response>
+    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
     [HttpPost]
     [Consumes("application/json")]
     [Produces("application/json")]
@@ -70,19 +68,17 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <response code="200">Returns attachment metadata</response>
-    /// <response code="400">
-    /// <ul>
-    /// <li>File must have content and has a max file size of 250 MB</li>
-    /// <li>File has already been or is being uploaded</li>
-    /// <li>Cannot upload attachment to a correspondence that has been created</li>
-    /// <li>Could not retrieve party uuid from lookup in Altinn Register</li>
-    /// <li>Could not get data location url</li>  
-    /// <li>Checksum mismatch</li>
-    /// </ul>
-    /// </response>
-    /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
-    /// <response code="404">The requested attachment was not found</response>
-    /// <response code="502">Error occurred during upload</response>
+    /// <response code="400"><ul>
+    /// <li>2003: Cannot upload attachment to a correspondence that has been created</li>
+    /// <li>2004: File must have content and has a max file size of 250 MB</li>
+    /// <li>2005: File has already been or is being uploaded</li>
+    /// <li>2008: Checksum mismatch</li>
+    /// <li>2009: Could not get data location url</li>
+    /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li>
+    /// </ul></response>
+    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+    /// <response code="404">2001: The requested attachment was not found</response>
+    /// <response code="502">2002: Error occurred during upload</response>
     [HttpPost]
     [Produces("application/json")]
     [Route("{attachmentId}/upload")]
@@ -128,8 +124,8 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <response code="200">Returns attachment metadata</response>
-    /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
-    /// <response code="404">The requested attachment was not found</response>
+    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+    /// <response code="404">2001: The requested attachment was not found</response>
     [HttpGet]
     [Route("{attachmentId}")]
     [Produces("application/json")]
@@ -160,8 +156,8 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <response code="200">Returns attachment metadata</response>
-    /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
-    /// <response code="404">The requested attachment was not found</response>
+    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+    /// <response code="404">2001: The requested attachment was not found</response>
     [HttpGet]
     [Produces("application/json")]
     [ProducesResponseType(typeof(AttachmentDetailsExt), StatusCodes.Status200OK)]
@@ -193,15 +189,13 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <response code="200">Returns no data</response>
-    /// <response code="400">
-    /// <ul> 
-    /// <li>File has already been purged</li>
-    /// <li>Attachment cannot be purged as it is linked to at least one existing correspondence</li>
-    /// <li>Could not retrieve party uuid from lookup in Altinn Register</li>
-    /// </ul>
-    /// </response>
-    /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
-    /// <response code="404">The requested attachment was not found</response>
+    /// <response code="400"><ul> 
+    /// <li>2006: File has already been purged</li>
+    /// <li>2007: Attachment cannot be purged as it is linked to at least one existing correspondence</li>
+    /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li>
+    /// </ul></response>
+    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+    /// <response code="404">2001: The requested attachment was not found</response>
     [HttpDelete]
     [Route("{attachmentId}")]
     [Produces("application/json")]
@@ -232,8 +226,8 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <response code="200">Returns the attachment</response>
-    /// <response code="401">You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
-    /// <response code="404">The requested attachment was not found</response>
+    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+    /// <response code="404">2001: The requested attachment was not found</response>
     [HttpGet]
     [Produces("application/octet-stream")]
     [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
@@ -255,5 +249,8 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
             Problem
         );
     }
-    private ActionResult Problem(Error error) => Problem(detail: error.Message, statusCode: (int)error.StatusCode);
+    private ActionResult Problem(Error error) => Problem(
+        detail: error.Message, 
+        statusCode: (int)error.StatusCode, 
+        extensions: new Dictionary<string, object?> { { "errorCode", error.ErrorCode } });
 }
