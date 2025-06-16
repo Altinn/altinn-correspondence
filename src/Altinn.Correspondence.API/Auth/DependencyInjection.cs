@@ -125,19 +125,13 @@ namespace Altinn.Correspondence.API.Auth
                     options.GetClaimsFromUserInfoEndpoint = true;
                     options.Scope.Add("openid");
                     options.Scope.Add("profile");
-
-                    // Configure distributed state management
                     options.StateDataFormat = new DistributedCacheStateDataFormat(_cache, "OpenIdConnectState");
-                    
-                    // Configure nonce handling for distributed environment
-                    options.UseTokenLifetime = false;
+                    //options.UseTokenLifetime = false;
                     options.SkipUnrecognizedRequests = true;
-                    
-                    // Disable nonce validation completely since we use state validation
                     options.ProtocolValidator.RequireNonce = false;
-                    options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
-                    options.NonceCookie.SameSite = SameSiteMode.None;
-                    options.NonceCookie.HttpOnly = true;
+                    //options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
+                    //options.NonceCookie.SameSite = SameSiteMode.None;
+                    //options.NonceCookie.HttpOnly = true;
                     
                     options.Events = new OpenIdConnectEvents
                     {
