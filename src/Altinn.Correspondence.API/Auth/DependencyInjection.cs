@@ -1,12 +1,13 @@
 ﻿using Altinn.Common.PEP.Authorization;
 using Altinn.Correspondence.API.Helpers;
+using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 
@@ -14,7 +15,7 @@ namespace Altinn.Correspondence.API.Auth
 {
     public static class DependencyInjection
     {
-        private static IDistributedCache? _cache;
+        private static IHybridCacheWrapper? _cache;
 
         public static void ConfigureAuthentication(this IServiceCollection services, IConfiguration config, IHostEnvironment hostEnvironment)
         {
@@ -31,7 +32,7 @@ namespace Altinn.Correspondence.API.Auth
                 options.Configuration = generalSettings.RedisConnectionString;
                 options.InstanceName = "redisCache";
             });
-            _cache = services.BuildServiceProvider().GetRequiredService<IDistributedCache>();
+            _cache = services.BuildServiceProvider().GetRequiredService<IHybridCacheWrapper>();
             services.AddTransient<IdportenTokenValidator>();
             services
                 .AddAuthentication()
@@ -126,13 +127,8 @@ namespace Altinn.Correspondence.API.Auth
                     options.Scope.Add("openid");
                     options.Scope.Add("profile");
                     options.StateDataFormat = new DistributedCacheStateDataFormat(_cache, "OpenIdConnectState");
-                    //options.UseTokenLifetime = false;
                     options.SkipUnrecognizedRequests = true;
-                    options.ProtocolValidator.RequireNonce = false;
-                    //options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
-                    //options.NonceCookie.SameSite = SameSiteMode.None;
-                    //options.NonceCookie.HttpOnly = true;
-                    
+                    options.ProtocolValidator.RequireNonce = false;                    
                     options.Events = new OpenIdConnectEvents
                     {
                         OnRedirectToIdentityProvider = context =>
@@ -153,12 +149,12 @@ namespace Altinn.Correspondence.API.Auth
                             }
                             
                             Console.WriteLine($"Storing token in cache for session {sessionId}");
-                            await _cache!.SetStringAsync(
+                            await _cache.SetAsync(
                                 sessionId, 
                                 context.TokenEndpointResponse.AccessToken,
-                                new DistributedCacheEntryOptions
+                                new HybridCacheEntryOptions
                                 {
-                                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                                    Expiration = TimeSpan.FromMinutes(5)
                                 });
                             Console.WriteLine($"Successfully stored token in cache for session {sessionId}");
                             

@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Common.Caching;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Text.Json;
@@ -6,10 +7,10 @@ namespace Altinn.Correspondence.API.Auth
 {
     public class DistributedCacheStateDataFormat : ISecureDataFormat<AuthenticationProperties>
     {
-        private readonly IDistributedCache _cache;
+        private readonly IHybridCacheWrapper _cache;
         private readonly string _keyPrefix;
 
-        public DistributedCacheStateDataFormat(IDistributedCache cache, string keyPrefix)
+        public DistributedCacheStateDataFormat(IHybridCacheWrapper cache, string keyPrefix)
         {
             _cache = cache;
             _keyPrefix = keyPrefix;
@@ -19,10 +20,10 @@ namespace Altinn.Correspondence.API.Auth
         {
             var key = $"{_keyPrefix}_{Guid.NewGuid()}";
             var json = JsonSerializer.Serialize(data.Items);
-            _cache.SetString(key, json, new DistributedCacheEntryOptions
+            _cache.SetAsync(key, json, new Microsoft.Extensions.Caching.Hybrid.HybridCacheEntryOptions
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
-            });
+                Expiration = TimeSpan.FromMinutes(15)
+            }).GetAwaiter().GetResult();
             return key;
         }
 
@@ -33,13 +34,11 @@ namespace Altinn.Correspondence.API.Auth
 
         public AuthenticationProperties Unprotect(string protectedText)
         {
-            var json = _cache.GetString(protectedText);
-            if (string.IsNullOrEmpty(json))
+            var items = _cache.GetAsync<IDictionary<string, string>>(protectedText).GetAwaiter().GetResult();
+            if (items is null || items.Count == 0)
             {
                 return null;
             }
-
-            var items = JsonSerializer.Deserialize<IDictionary<string, string>>(json);
             return new AuthenticationProperties(items);
         }
 
