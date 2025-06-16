@@ -27,11 +27,6 @@ namespace Altinn.Correspondence.API.Auth
             config.GetSection(nameof(DialogportenSettings)).Bind(dialogportenSettings);
             var generalSettings = new GeneralSettings();
             config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
-            services.AddStackExchangeRedisCache(options =>
-            {
-                options.Configuration = generalSettings.RedisConnectionString;
-                options.InstanceName = "redisCache";
-            });
             _cache = services.BuildServiceProvider().GetRequiredService<IHybridCacheWrapper>();
             services.AddTransient<IdportenTokenValidator>();
             services
