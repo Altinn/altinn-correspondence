@@ -48,11 +48,6 @@ static void BuildAndRun(string[] args)
     bootstrapLogger.LogInformation($"Running in environment {builder.Environment.EnvironmentName} with base url {generalSettings?.CorrespondenceBaseUrl ?? "NULL"}");
     builder.Services.ConfigureOpenTelemetry(generalSettings.ApplicationInsightsConnectionString);
 
-#pragma warning disable EXTEXP0018
-    builder.Services.AddHybridCache();
-#pragma warning restore EXTEXP0018
-    builder.Services.AddSingleton<IHybridCacheWrapper, HybridCacheWrapper>();
-
     var app = builder.Build();
     bootstrapLogger.LogInformation("Application built");
 
@@ -118,6 +113,17 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
                               policy.AllowCredentials();
                           });
     });
+    var generalSettings = new GeneralSettings();
+    config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
+    services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = generalSettings.RedisConnectionString;
+        options.InstanceName = "redisCache";
+    });
+#pragma warning disable EXTEXP0018
+    services.AddHybridCache();
+#pragma warning restore EXTEXP0018
+    services.AddSingleton<IHybridCacheWrapper, HybridCacheWrapper>();
     services.ConfigureAuthentication(config, hostEnvironment);
     services.ConfigureAuthorization(config);
     services.AddEndpointsApiExplorer();

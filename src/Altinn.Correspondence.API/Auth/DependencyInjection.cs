@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 
@@ -15,6 +15,8 @@ namespace Altinn.Correspondence.API.Auth
 {
     public static class DependencyInjection
     {
+        private static IHybridCacheWrapper? _cache;
+
         public static void ConfigureAuthentication(this IServiceCollection services, IConfiguration config, IHostEnvironment hostEnvironment)
         {
             var altinnOptions = new AltinnOptions();
@@ -25,11 +27,7 @@ namespace Altinn.Correspondence.API.Auth
             config.GetSection(nameof(DialogportenSettings)).Bind(dialogportenSettings);
             var generalSettings = new GeneralSettings();
             config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
-            services.AddStackExchangeRedisCache(options =>
-            {
-                options.Configuration = generalSettings.RedisConnectionString;
-                options.InstanceName = "redisCache";
-            });
+            _cache = services.BuildServiceProvider().GetRequiredService<IHybridCacheWrapper>();
             services.AddTransient<IdportenTokenValidator>();
             services
                 .AddAuthentication()
@@ -123,6 +121,9 @@ namespace Altinn.Correspondence.API.Auth
                     options.GetClaimsFromUserInfoEndpoint = true;
                     options.Scope.Add("openid");
                     options.Scope.Add("profile");
+                    options.StateDataFormat = new DistributedCacheStateDataFormat(_cache, "OpenIdConnectState");
+                    options.SkipUnrecognizedRequests = true;
+                    options.ProtocolValidator.RequireNonce = false;                    
                     options.Events = new OpenIdConnectEvents
                     {
                         OnRedirectToIdentityProvider = context =>
@@ -133,16 +134,20 @@ namespace Altinn.Correspondence.API.Auth
                         OnTokenValidated = async context =>
                         {
                             var sessionId = Guid.NewGuid().ToString();
-                            var cache = context.HttpContext.RequestServices.GetRequiredService<IHybridCacheWrapper>();
-                            await cache.SetAsync(
+                            if (context.TokenEndpointResponse?.AccessToken == null)
+                            {
+                                return;
+                            }
+                            await _cache.SetAsync(
                                 sessionId, 
                                 context.TokenEndpointResponse.AccessToken,
-                                new Microsoft.Extensions.Caching.Hybrid.HybridCacheEntryOptions
+                                new HybridCacheEntryOptions
                                 {
                                     Expiration = TimeSpan.FromMinutes(5)
-                                }
-                            );
-                            context.Properties.RedirectUri = CascadeAuthenticationHandler.AppendSessionToUrl($"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{context.Properties.RedirectUri}", sessionId);
+                                });
+                            var redirectUrl = context.Properties?.Items["endpoint"] ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
+                            redirectUrl = CascadeAuthenticationHandler.AppendSessionToUrl($"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}", sessionId);
+                            context.Properties.RedirectUri = redirectUrl;
                         }
                     };
                 });
