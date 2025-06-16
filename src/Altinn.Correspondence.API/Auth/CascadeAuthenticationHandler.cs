@@ -87,33 +87,33 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
             return AuthenticateResult.NoResult();
         }
 
-        _logger.LogInformation("Attempting to retrieve token for session {SessionId}", sessionId);
+        _logger.LogInformation("Attempting to retrieve token for session");
         var token = await _cache.GetAsync<string>(sessionId);
         
         if (string.IsNullOrEmpty(token))
         {
-            _logger.LogWarning("No token found in cache for session {SessionId}", sessionId);
+            _logger.LogWarning("No token found in cache for session");
             return AuthenticateResult.NoResult();
         }
-        _logger.LogInformation("Successfully retrieved token from cache for session {SessionId}", sessionId);
+        _logger.LogInformation("Successfully retrieved token from cache for session");
         await _cache.RemoveAsync(sessionId);
-        _logger.LogDebug("Removed token from cache for session {SessionId}", sessionId);
+        _logger.LogDebug("Removed token from cache for session");
 
         try 
         {
             var principal = await _tokenValidator.ValidateTokenAsync(token);
             if (principal is not null)
             {
-                _logger.LogInformation("Successfully validated token for session {SessionId}", sessionId);
+                _logger.LogInformation("Successfully validated token for session");
                 var ticket = new AuthenticationTicket(principal, Scheme.Name);
                 return AuthenticateResult.Success(ticket);
             }
-            _logger.LogWarning("Failed to validate token for session {SessionId}", sessionId);
+            _logger.LogWarning("Failed to validate token for session");
             return AuthenticateResult.Fail(new SecurityTokenMalformedException("Could not validate ID-Porten token"));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating token for session {SessionId}", sessionId);
+            _logger.LogError(ex, "Error validating token for session");
             return AuthenticateResult.Fail(ex);
         }
     }
@@ -121,8 +121,7 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
     public async Task SignInAsync(ClaimsPrincipal user, AuthenticationProperties? properties)
     {
         var sessionId = Guid.NewGuid().ToString();
-        _logger.LogInformation("Storing token in cache for session {SessionId} in SignInAsync", sessionId);
-        
+        _logger.LogInformation("Storing token in cache for session in SignInAsync");
         await _cache.SetAsync(
             sessionId,
             properties.Items[".Token.access_token"],
@@ -130,11 +129,9 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
             {
                 Expiration = TimeSpan.FromMinutes(5)
             });
-        _logger.LogInformation("Successfully stored token in cache for session {SessionId} in SignInAsync", sessionId);
         
         var redirectUrl = properties?.Items["endpoint"] ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
         redirectUrl = AppendSessionToUrl($"{_generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}", sessionId);
-        _logger.LogInformation("Redirecting to {RedirectUrl} with session {SessionId}", redirectUrl, sessionId);
         Response.Redirect(redirectUrl);
     }
 
@@ -154,12 +151,12 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
         properties.Items.Add("endpoint", redirectUrl);
         if(_httpContextAccessor.HttpContext.Request.Headers["Authorization"].ToString().StartsWith("Bearer")) 
         {
-            _logger.LogInformation("Challenging with JwtBearer scheme for endpoint {Endpoint}", redirectUrl);
+            _logger.LogInformation("Challenging with JwtBearer scheme");
             return Context.ChallengeAsync(JwtBearerDefaults.AuthenticationScheme, properties);
         }
         else
         {
-            _logger.LogInformation("Challenging with OpenIdConnect scheme for endpoint {Endpoint}", redirectUrl);
+            _logger.LogInformation("Challenging with OpenIdConnect scheme");
             return Context.ChallengeAsync(OpenIdConnectDefaults.AuthenticationScheme, properties);
         }   
     }
