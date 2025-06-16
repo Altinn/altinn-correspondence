@@ -42,18 +42,19 @@ public static class StringExtensions
     {
         return (!string.IsNullOrWhiteSpace(identifier) && OrgPattern.IsMatch(identifier));
     }
+
     /// <summary>
     /// Extracts the identifier from a colon-separated string that may contain a prefix.
     /// </summary>
-    /// <param name="orgOrSsnNumber">The organization number or social security number to format</param>
+    /// <param name="identifierWithPrefix">An identifier with a prefix to format. f.eks an organization number or social security number</param>
     /// <returns>Returns the last sequence succeeding a colon.</returns>
-    public static string WithoutPrefix(this string orgOrSsnNumber)
+    public static string WithoutPrefix(this string identifierWithPrefix)
     {
-        if (string.IsNullOrWhiteSpace(orgOrSsnNumber))
+        if (string.IsNullOrWhiteSpace(identifierWithPrefix))
         {
             return string.Empty;
         }
-        return orgOrSsnNumber.Split(":").Last();
+        return identifierWithPrefix.Split(":").Last();
     }
 
     public static string SanitizeForLogging(this string input)

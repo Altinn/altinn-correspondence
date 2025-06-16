@@ -271,7 +271,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
             return new CorrespondenceEntity
             {
-                ResourceId = request.Correspondence.ResourceId,
+                ResourceId = request.Correspondence.ResourceId.WithoutPrefix(),
                 Recipient = recipient,
                 Sender = sender,
                 SendersReference = request.Correspondence.SendersReference,
