@@ -346,7 +346,6 @@ public class InitializeCorrespondencesHandler(
             }
 
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
-            var notificationDetails = new List<InitializedCorrespondencesNotifications>();
             if (!isReserved)
             {
                 if (correspondence.DueDateTime is not null)
@@ -358,7 +357,7 @@ public class InitializeCorrespondencesHandler(
                 if (request.Notification != null)
                 {
                     // Schedule notification creation as a background job
-                    var notificationJob = backgroundJobClient.Enqueue<CreateNotificationHandler>((handler) => handler.Process(new CreateNotificationRequest
+                    backgroundJobClient.Enqueue<CreateNotificationHandler>((handler) => handler.Process(new CreateNotificationRequest
                     {
                         NotificationRequest = request.Notification,
                         CorrespondenceId = correspondence.Id,
