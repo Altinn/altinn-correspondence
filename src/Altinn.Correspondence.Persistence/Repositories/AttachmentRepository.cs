@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Net.Mail;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
@@ -13,8 +14,18 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<AttachmentEntity> InitializeAttachment(AttachmentEntity attachment, CancellationToken cancellationToken)
         {
+            logger.LogInformation("Attachment storageprovider " + JsonSerializer.Serialize(attachment?.StorageProvider));
             await _context.Attachments.AddAsync(attachment, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation("Error saving attachment: {Message}, content: {Attachment}", ex.Message, JsonSerializer.Serialize(attachment));
+                throw;
+            }
+
             return attachment;
         }
 
