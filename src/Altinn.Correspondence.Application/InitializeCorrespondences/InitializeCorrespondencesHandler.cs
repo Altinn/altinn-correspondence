@@ -48,37 +48,36 @@ public class InitializeCorrespondencesHandler(
         ValidationData data,
         CancellationToken cancellationToken)
     {
-        var resourceId = request.Correspondence.ResourceId.WithoutPrefix();
         if (!string.IsNullOrWhiteSpace(generalSettings.Value.ResourceWhitelist))
         {
-            if (!generalSettings.Value.ResourceWhitelist.Split(',').Contains(resourceId))
+            if (!generalSettings.Value.ResourceWhitelist.Split(',').Contains(request.Correspondence.ResourceId))
             {
-                logger.LogError("Resource {ResourceId} is not whitelisted", resourceId);
+                logger.LogError("Resource {ResourceId} is not whitelisted", request.Correspondence.ResourceId);
                 return AuthorizationErrors.ResourceNotWhitelisted;
             }
         }
 
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
-            resourceId,
+            request.Correspondence.ResourceId,
             request.Correspondence.Sender.WithoutPrefix(),
             null,
             cancellationToken);
         if (!hasAccess)
         {
-            logger.LogWarning("Access denied for resource {ResourceId}", resourceId);
+            logger.LogWarning("Access denied for resource {ResourceId}", request.Correspondence.ResourceId);
             return AuthorizationErrors.NoAccessToResource;
         }
 
-        var resourceType = await resourceRegistryService.GetResourceType(resourceId, cancellationToken);
+        var resourceType = await resourceRegistryService.GetResourceType(request.Correspondence.ResourceId, cancellationToken);
         if (resourceType is null)
         {
-            logger.LogError("Resource type not found for {ResourceId} despite successful authorization", resourceId);
-            throw new Exception($"Resource type not found for {resourceId}. This should be impossible as authorization worked.");
+            logger.LogError("Resource type not found for {ResourceId} despite successful authorization", request.Correspondence.ResourceId);
+            throw new Exception($"Resource type not found for {request.Correspondence.ResourceId}. This should be impossible as authorization worked.");
         }
         if (resourceType != "GenericAccessResource" && resourceType != "CorrespondenceService")
         {
-            logger.LogError("Incorrect resource type {ResourceType} for {ResourceId}", resourceType, resourceId);
+            logger.LogError("Incorrect resource type {ResourceType} for {ResourceId}", resourceType, request.Correspondence.ResourceId);
             return AuthorizationErrors.IncorrectResourceType;
         }
 
@@ -211,7 +210,7 @@ public class InitializeCorrespondencesHandler(
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Processing correspondence initialization request for resource {ResourceId}", request.Correspondence.ResourceId.WithoutPrefix());
+        logger.LogInformation("Processing correspondence initialization request for resource {ResourceId}", request.Correspondence.ResourceId);
 
         if (request.IdempotentKey.HasValue)
         {
@@ -295,7 +294,7 @@ public class InitializeCorrespondencesHandler(
 
     private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, List<string> reservedRecipients, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Initializing {correspondenceCount} correspondences for {resourceId}", request.Recipients.Count, request.Correspondence.ResourceId.WithoutPrefix().SanitizeForLogging());
+        logger.LogInformation("Initializing {correspondenceCount} correspondences for {resourceId}", request.Recipients.Count, request.Correspondence.ResourceId.SanitizeForLogging());
         var correspondences = new List<CorrespondenceEntity>();
         var recipientsToSearch = request.Recipients.Select(r => r.WithoutPrefix()).ToList();
         var recipientDetails = new List<Party>();
@@ -345,7 +344,7 @@ public class InitializeCorrespondencesHandler(
                 {
                     backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
                 }
-                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId.WithoutPrefix(), correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
 
                 if (request.Notification != null)
                 {
