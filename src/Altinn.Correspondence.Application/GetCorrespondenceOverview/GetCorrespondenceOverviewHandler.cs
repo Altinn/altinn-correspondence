@@ -25,7 +25,7 @@ public class GetCorrespondenceOverviewHandler(
         logger.LogInformation("Processing correspondence overview request for {CorrespondenceId}", request.CorrespondenceId);
         
         var operationTimestamp = DateTimeOffset.UtcNow;
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, false, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, includeStatus: true, includeContent: true, includeForwardingEvents: false, cancellationToken);
         if (correspondence == null)
         {
             logger.LogWarning("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
@@ -83,6 +83,17 @@ public class GetCorrespondenceOverviewHandler(
                     PartyUuid = partyUuid
                 }, cancellationToken);
                 backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp));
+                if (request.OnlyGettingContent && !correspondence.StatusHasBeen(CorrespondenceStatus.Read))
+                {
+                    await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+                    {
+                        CorrespondenceId = correspondence.Id,
+                        Status = CorrespondenceStatus.Read,
+                        StatusText = CorrespondenceStatus.Read.ToString(),
+                        StatusChanged = DateTimeOffset.UtcNow,
+                        PartyUuid = partyUuid
+                    }, cancellationToken);
+                }
             }
             var notificationsOverview = new List<CorrespondenceNotificationOverview>();
             foreach (var notification in correspondence.Notifications)
