@@ -1,31 +1,22 @@
-/**
- * Load test for creating correspondence
- * This test will create correspondence for a random end user and a random service owner
- * 
- */
 import http from 'k6/http';
 import exec from 'k6/execution';
 import { URL, describe, expect, uuidv4, getPersonalToken  } from '../common/testimports.js';
 import { serviceOwners } from "../common/readTestdata.js";
-import { baseUrlCorrespondence, baseUrlDialogPortenEndUser } from '../common/config.js';
+import { baseUrlCorrespondence, baseUrlDialogPortenEndUser, buildOptions } from '../common/config.js';
 export { setup as setup } from "../common/readTestdata.js";
 
-export let options = {
-    summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(95)', 'p(99)', 'p(99.5)', 'p(99.9)', 'count'],
-    thresholds: {   
-        'http_req_duration{name:get correspondence}': ['p(99)<5000'],
-        'http_reqs{name:get correspondence}': [],
-        'checks{name:get correspondence}': ['rate>0.95'],
-        'http_req_duration{name:get correspondence details}': ['p(99)<5000'],
-        'http_reqs{name:get correspondence details}': [],
-        'checks{name:get correspondence details}': [],
-        'http_req_duration{name:get correspondence content}': ['p(99)<5000'],
-        'http_reqs{name:get correspondence content}': [],
-        'checks{name:get correspondence content}': [],
-        'http_req_duration{name:enduser search}': [],
-        'http_reqs{name:enduser search}': [],
-    }
-};
+const getCorrespondenceLabel = 'get correspondence';
+const getCorrespondenceDetailsLabel = 'get correspondence details';
+const getCorrespondenceContentLabel = 'get correspondence content';
+const endUserSearchLabel = 'enduser search';
+const labels = [
+    getCorrespondenceLabel,
+    getCorrespondenceDetailsLabel,
+    getCorrespondenceContentLabel,
+    endUserSearchLabel
+];
+
+export const options = buildOptions(labels);
 
 const traceCalls = (__ENV.traceCalls ?? 'false') === 'true';
 
@@ -54,7 +45,7 @@ function getCorrespondence(serviceOwner, endUser, traceCalls) {
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive'
         },
-        tags: { name: 'get correspondence'}
+        tags: { name: getCorrespondenceLabel }
     };
 
     if (traceCalls) {
@@ -83,7 +74,7 @@ function getContent(response, endUser, traceparent, paramsWithToken) {
 
     const listParams = {
         ...paramsWithToken,
-        tags: { ...paramsWithToken.tags, name: 'get correspondence details' }
+        tags: { ...paramsWithToken.tags, name: getCorrespondenceDetailsLabel }
     };
     
     describe('get correspondence details', () => {
@@ -105,7 +96,7 @@ function getCorrespondenceContent(correspondenceIds, detailsResponse, endUser, t
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive'
         },
-        tags: { name: 'get correspondence content'}
+        tags: { name: getCorrespondenceContentLabel }
     };
     for (const correspondenceId of correspondenceIds) {
         describe('get correspondence content', () => {
@@ -128,7 +119,7 @@ function getDialogPortenToken(endUser, detailsResponse, traceparent) {
             Authorization: "Bearer " + getPersonalToken(tokenOptions),
             traceparent: traceparent
         },
-        tags: { name: 'enduser search' } 
+        tags: { name: endUserSearchLabel } 
     }
     const dpUrl = baseUrlDialogPortenEndUser + 'dialogs/' + dialogPortenId.referenceValue;
     let r = http.get(dpUrl, paramsWithToken);

@@ -5,6 +5,7 @@ const yt01DialogPortenBaseUrl = "https://platform.yt01.altinn.cloud/dialogporten
 
 const endUserPath = "api/v1/correspondence/";
 const dialogPortenEndUserPath = "api/v1/enduser/";
+const legacyCorrespondencePath = "api/v1/legacy/correspondence"
 
 export const baseUrls = {
     v1: {
@@ -16,8 +17,11 @@ export const baseUrls = {
         dialogPortenEndUser: {
             test: testDialogPortenBaseUrl + dialogPortenEndUserPath,
             yt01: yt01DialogPortenBaseUrl + dialogPortenEndUserPath
+        },
+        legacyCorrespondence: {
+            test: testBaseUrl + legacyCorrespondencePath,
+            yt01: yt01BaseUrl + legacyCorrespondencePath
         }
-
     }
 };
 
@@ -35,6 +39,7 @@ if (!baseUrls[__ENV.API_VERSION]["correspondence"][__ENV.API_ENVIRONMENT]) {
 
 export const baseUrlCorrespondence = baseUrls[__ENV.API_VERSION]["correspondence"][__ENV.API_ENVIRONMENT];
 export const baseUrlDialogPortenEndUser = baseUrls[__ENV.API_VERSION]["dialogPortenEndUser"][__ENV.API_ENVIRONMENT];
+export const baseUrlLegacyCorrespondence = baseUrls[__ENV.API_VERSION]["legacyCorrespondence"][__ENV.API_ENVIRONMENT];
 export const tokenGeneratorEnv = __ENV.API_ENVIRONMENT == "yt01" ? "yt01" : "tt02"; // yt01 is the only environment that has a separate token generator environment
 
 const tokenGenLabel = "Token generator";
