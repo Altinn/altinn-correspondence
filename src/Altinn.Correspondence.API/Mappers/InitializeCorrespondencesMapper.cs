@@ -61,7 +61,7 @@ internal static class InitializeCorrespondencesMapper
         {
             SendersReference = initializeCorrespondenceExt.SendersReference,
             Recipient = null,
-            ResourceId = initializeCorrespondenceExt.ResourceId,
+            ResourceId = initializeCorrespondenceExt.ResourceId.WithoutPrefix(),
             Sender = initializeCorrespondenceExt.Sender,
             MessageSender = initializeCorrespondenceExt.MessageSender,
             RequestedPublishTime = initializeCorrespondenceExt.RequestedPublishTime ?? DateTimeOffset.UtcNow,
