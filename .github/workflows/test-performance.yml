@@ -57,6 +57,8 @@ on:
                 - 'Test/Altinn.Correspondence.LoadTests/correspondence/create-correspondence.js'
                 - 'Test/Altinn.Correspondence.LoadTests/correspondence/get-correspondence.js'
                 - 'Test/Altinn.Correspondence.LoadTests/correspondence/get-correspondence-overview.js'
+                - 'Test/Altinn.Correspondence.LoadTests/correspondence/get-legacy-correspondences.js'
+          
 
 permissions:
   id-token: write
