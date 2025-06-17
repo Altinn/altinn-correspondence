@@ -1,6 +1,7 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using System.Text.Json;
 
@@ -16,7 +17,7 @@ internal static class InitializeCorrespondencesMapper
         {
             SendersReference = request.Correspondence.SendersReference,
             Recipient = null,
-            ResourceId = request.Correspondence.ResourceId,
+            ResourceId = request.Correspondence.ResourceId.WithoutPrefix(),
             Sender = request.Correspondence.Sender,
             MessageSender = request.Correspondence.MessageSender,
             RequestedPublishTime = request.Correspondence.RequestedPublishTime ?? DateTimeOffset.UtcNow,
