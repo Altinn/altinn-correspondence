@@ -9,6 +9,7 @@
 import papaparse from 'https://jslib.k6.io/papaparse/5.1.1/index.js';
 import { SharedArray } from "k6/data";
 import exec from 'k6/execution';
+import { breakpoint, stages_target } from './config.js';
 
 /**
  * Function to read the CSV file specified by the filename parameter.
@@ -72,7 +73,12 @@ export function endUsersPart(totalVus, vuId) {
 }
 
 export function setup() {
-  const totalVus = exec.test.options.scenarios.default.vus;
+  let totalVus = 1;
+  if (breakpoint) {
+      totalVus = stages_target;
+  } else {
+      totalVus = exec.test.options.scenarios.default.vus;
+  }
   let parts = [];
   for (let i = 1; i <= totalVus; i++) {
       parts.push(endUsersPart(totalVus, i));

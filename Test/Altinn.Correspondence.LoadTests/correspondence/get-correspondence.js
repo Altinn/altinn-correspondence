@@ -5,14 +5,9 @@
  */
 import http from 'k6/http';
 import exec from 'k6/execution';
-import { randomItem } from 'https://jslib.k6.io/k6-utils/1.2.0/index.js';
-import { URL } from 'https://jslib.k6.io/url/1.0.0/index.js';
-import { describe } from "../common/describe.js";
-import { expect } from "../common/testimports.js";
+import { URL, describe, expect, uuidv4, getPersonalToken  } from '../common/testimports.js';
 import { serviceOwners } from "../common/readTestdata.js";
-import { getPersonalTokenForEndUser, getDialogPortenToken } from '../common/token.js';
-import { baseUrlCorrespondence } from '../common/config.js';
-import { uuidv7 } from '../common/uuid.js';
+import { baseUrlCorrespondence, baseUrlDialogPortenEndUser } from '../common/config.js';
 export { setup as setup } from "../common/readTestdata.js";
 
 export let options = {
@@ -41,11 +36,18 @@ export default function(data) {
 }
 
 function getCorrespondence(serviceOwner, endUser, traceCalls) {
-    var traceparent = uuidv7();
+    var traceparent = uuidv4();
+
+    const tokenOptions = {
+        scopes: endUser.scopes, 
+        pid: endUser.ssn,
+        orgno: serviceOwner.orgno,
+        consumerOrgNo: serviceOwner.orgno
+    }
 
     var paramsWithToken = {
         headers: {
-            Authorization: "Bearer " + getPersonalTokenForEndUser(serviceOwner, endUser),
+            Authorization: "Bearer " + getPersonalToken(tokenOptions),
             traceparent: traceparent,
             'Content-Type': 'application/json',
             'Accept': '*/*, application/json',
@@ -59,7 +61,6 @@ function getCorrespondence(serviceOwner, endUser, traceCalls) {
         paramsWithToken.tags.traceparent = traceparent;
         paramsWithToken.tags.enduser = endUser.ssn;
     }
-
 
     describe('get correspondence', () => {
         let url = new URL(baseUrlCorrespondence);
@@ -114,3 +115,24 @@ function getCorrespondenceContent(correspondenceIds, detailsResponse, endUser, t
         });
     }
 }
+
+function getDialogPortenToken(endUser, detailsResponse, traceparent) {
+    let correspondencesDetails = JSON.parse(detailsResponse.body);
+    let dialogPortenId = correspondencesDetails.externalReferences.find(ref => ref.referenceType === 'DialogportenDialogId');
+    const tokenOptions = {
+        scopes: 'digdir:dialogporten', 
+        pid: endUser.ssn
+    }
+    let paramsWithToken = {
+        headers: {
+            Authorization: "Bearer " + getPersonalToken(tokenOptions),
+            traceparent: traceparent
+        },
+        tags: { name: 'enduser search' } 
+    }
+    const dpUrl = baseUrlDialogPortenEndUser + 'dialogs/' + dialogPortenId.referenceValue;
+    let r = http.get(dpUrl, paramsWithToken);
+    expect(r.status, 'response status').to.equal(200);
+    const dialogDetails = JSON.parse(r.body);
+    return dialogDetails.dialogToken;
+  }

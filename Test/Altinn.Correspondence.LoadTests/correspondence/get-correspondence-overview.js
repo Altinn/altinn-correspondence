@@ -5,26 +5,16 @@
  */
 import http from 'k6/http';
 import exec from 'k6/execution';
-import { URL } from 'https://jslib.k6.io/url/1.0.0/index.js';
-import { describe } from "../common/describe.js";
-import { expect } from "../common/testimports.js";
-import { endUsers, serviceOwners, endUsersPart } from "../common/readTestdata.js";
-import { getPersonalTokenForEndUser } from '../common/token.js';
-import { baseUrlCorrespondence } from '../common/config.js';
-import { uuidv7 } from '../common/uuid.js';
+import { URL, describe, expect, getPersonalToken, uuidv4 } from '../common/testimports.js';
+import { serviceOwners } from "../common/readTestdata.js";
+import { baseUrlCorrespondence, buildOptions } from '../common/config.js';
 export { setup as setup } from "../common/readTestdata.js";
 
-export let options = {
-    summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(95)', 'p(99)', 'p(99.5)', 'p(99.9)', 'count'],
-    thresholds: {   
-        'http_req_duration{name:get correspondence}': ['p(99)<5000'],
-        'http_reqs{name:get correspondence}': [],
-        'checks{name:get correspondence}': ['rate>0.95'],
-        'http_req_duration{name:get correspondence details}': ['p(99)<5000'],
-        'http_reqs{name:get correspondence details}': [],
-        'checks{name:get correspondence details}': [],
-    }
-};
+const getCorrespondenceLabel = 'get correspondence';
+const getCorrespondenceDetailsLabel = 'get correspondence details';
+const labels = [getCorrespondenceLabel, getCorrespondenceDetailsLabel];
+
+export let options = buildOptions(labels);
 
 const traceCalls = (__ENV.traceCalls ?? 'false') === 'true';
 
@@ -36,18 +26,25 @@ export default function(data) {
 }
 
 function getCorrespondence(serviceOwner, endUser, traceCalls) {
-    var traceparent = uuidv7();
+    var traceparent = uuidv4();
+
+    const tokenOptions = {
+        scopes: endUser.scopes, 
+        pid: endUser.ssn,
+        orgno: serviceOwner.orgno,
+        consumerOrgNo: serviceOwner.orgno
+    }
 
     var paramsWithToken = {
         headers: {
-            Authorization: "Bearer " + getPersonalTokenForEndUser(serviceOwner, endUser),
+            Authorization: "Bearer " + getPersonalToken(tokenOptions),
             traceparent: traceparent,
             'Content-Type': 'application/json',
             'Accept': '*/*, application/json',
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive'
         },
-        tags: { name: 'get correspondence'}
+        tags: { name: getCorrespondenceLabel }
     };
 
     if (traceCalls) {
@@ -77,7 +74,7 @@ function getOverview(response, endUser, paramsWithToken) {
 
     const listParams = {
         ...paramsWithToken,
-        tags: { ...paramsWithToken.tags, name: 'get correspondence details' }
+        tags: { ...paramsWithToken.tags, name: getCorrespondenceDetailsLabel }
     };
     
     for (const correspondenceId of correspondences.ids) {
