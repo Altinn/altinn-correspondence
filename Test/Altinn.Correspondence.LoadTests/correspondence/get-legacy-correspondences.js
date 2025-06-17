@@ -1,6 +1,6 @@
 import http from 'k6/http';
 import exec from 'k6/execution';
-import { URL, describe, expect, uuidv4, getPersonalToken  } from '../common/testimports.js';
+import { URL, describe, expect, uuidv4, getPersonalToken, randomItem } from '../common/testimports.js';
 import { baseUrlLegacyCorrespondence, buildOptions } from '../common/config.js';
 export { setup as setup } from "../common/readLegacyTestdata.js";
 
@@ -14,7 +14,7 @@ const traceCalls = (__ENV.traceCalls ?? 'false') === 'true';
 export default function(data) {
     const myEndUsers = data[exec.vu.idInTest - 1];
     const ix = exec.vu.iterationInInstance % myEndUsers.length;
-    getLegacyCorrespondences(myEndUsers[ix], traceCalls);  
+    getLegacyCorrespondences(randomItem(myEndUsers), traceCalls);  
 }
 
 function getLegacyCorrespondences(endUser, traceCalls) {
