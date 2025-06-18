@@ -29,7 +29,7 @@ function getCorrespondence(serviceOwner, endUser, traceCalls) {
     var traceparent = uuidv4();
 
     const tokenOptions = {
-        scopes: endUser.scopes, 
+        scopes: "altinn:correspondence.read", 
         pid: endUser.ssn,
         orgno: serviceOwner.orgno,
         consumerOrgNo: serviceOwner.orgno

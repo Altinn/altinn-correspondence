@@ -13,7 +13,6 @@ const traceCalls = (__ENV.traceCalls ?? 'false') === 'true';
 
 export default function(data) {
     const myEndUsers = data[exec.vu.idInTest - 1];
-    const ix = exec.vu.iterationInInstance % myEndUsers.length;
     getLegacyCorrespondences(randomItem(myEndUsers), traceCalls);  
 }
 
