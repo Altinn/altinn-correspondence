@@ -105,7 +105,15 @@ public class PublishCorrespondenceHandler(
             }
             catch (BrregNotFoundException)
             {
-                OrganizationNotFoundInBrreg = true;
+                try
+                {
+                    details = await brregService.GetSubOrganizationDetailsAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
+                    roles = new OrganizationRoles();
+                }
+                catch (BrregNotFoundException)
+                {
+                    OrganizationNotFoundInBrreg = true;
+                }
             }
         }
 
