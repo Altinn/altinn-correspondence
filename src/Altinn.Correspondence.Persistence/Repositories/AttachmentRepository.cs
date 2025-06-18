@@ -15,6 +15,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<AttachmentEntity> InitializeAttachment(AttachmentEntity attachment, CancellationToken cancellationToken)
         {
             logger.LogInformation("Attachment storageprovider " + JsonSerializer.Serialize(attachment?.StorageProvider));
+            if (attachment.StorageProvider is not null) 
+            { 
+                _context.Entry(attachment.StorageProvider).State = EntityState.Unchanged;
+            }
             await _context.Attachments.AddAsync(attachment, cancellationToken);
             try
             {
