@@ -8,7 +8,7 @@
   
   <ItemGroup>
       <PackageReference Include="Hangfire.Core" Version="1.8.18" />
-      <PackageReference Include="libphonenumber-csharp" Version="8.13.55" />
+      <PackageReference Include="libphonenumber-csharp" Version="9.0.7" />
       <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.6" />
       <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="9.0.2" />
       <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.6" />
