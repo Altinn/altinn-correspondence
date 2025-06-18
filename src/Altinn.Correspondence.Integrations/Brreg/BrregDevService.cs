@@ -25,6 +25,20 @@ namespace Altinn.Correspondence.Integrations.Brreg
             return Task.FromResult(details);
         }
 
+        public Task<OrganizationDetails> GetSubOrganizationDetailsAsync(string organizationNumber, CancellationToken cancellationToken = default)
+        {
+            // Returns mock data for development testing
+            var details = new OrganizationDetails
+            {
+                OrganizationNumber = organizationNumber,
+                Name = "Test Sub Organization",
+                IsBankrupt = false,
+                DeletionDate = null
+            };
+            
+            return Task.FromResult(details);
+        }
+
         public Task<OrganizationRoles> GetOrganizationRolesAsync(string organizationNumber, CancellationToken cancellationToken = default)
         {
             // Returns mock data for development testing
