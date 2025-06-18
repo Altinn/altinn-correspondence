@@ -132,11 +132,6 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Correspondence {correspondenceId} not ready for publish";
         }
-        else if (correspondence.RequestedPublishTime > DateTimeOffset.UtcNow)
-        {
-            errorMessage = $"Correspondence {correspondenceId} not visible yet - publish time: {correspondence.RequestedPublishTime}";
-            logger.LogWarning(errorMessage);
-        }
         else if (!hasDialogportenDialog)
         {
             errorMessage = $"Dialogporten dialog not created for correspondence {correspondenceId}";
