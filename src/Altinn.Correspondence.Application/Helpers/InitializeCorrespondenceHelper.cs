@@ -216,7 +216,7 @@ namespace Altinn.Correspondence.Application.Helpers
             return text.Contains(tag, StringComparison.CurrentCultureIgnoreCase);
         }
 
-        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, Party? partyDetails, bool isReserved)
+        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, Party? partyDetails, bool isReserved, string serviceOwnerOrgNumber)
         {
             List<CorrespondenceStatusEntity> statuses =
             [
@@ -268,7 +268,6 @@ namespace Altinn.Correspondence.Application.Helpers
                 recipient = $"{UrnConstants.PersonIdAttribute}:{recipient}";
                 logger.LogInformation($"Social security number without urn prefix detected for recipient in creation of correspondece. Adding {UrnConstants.PersonIdAttribute} prefix to recipient.");
             }
-
             return new CorrespondenceEntity
             {
                 ResourceId = request.Correspondence.ResourceId,

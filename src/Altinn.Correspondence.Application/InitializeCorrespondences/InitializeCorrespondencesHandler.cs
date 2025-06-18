@@ -1,7 +1,6 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Application.CreateNotification;
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -314,11 +313,19 @@ public class InitializeCorrespondencesHandler(
             }
         }
 
+        var serviceOwnerOrgNumber = await resourceRegistryService.GetServiceOwnerOrganizationNumber(request.Correspondence.ResourceId, cancellationToken) ?? string.Empty;
+        if (serviceOwnerOrgNumber is null || serviceOwnerOrgNumber == string.Empty)
+        {
+            logger.LogError("Service owner/sender's organization number (9 digits) not found for resource {ResourceId}", request.Correspondence.ResourceId);
+            return CorrespondenceErrors.ServiceOwnerOrgNumberNotFound;
+        }
+        serviceOwnerOrgNumber = serviceOwnerOrgNumber.WithPrefix();
+
         foreach (var recipient in request.Recipients)
         {
             var isReserved = reservedRecipients.Contains(recipient.WithoutPrefix());
             var recipientParty = recipientDetails.FirstOrDefault(r => r.SSN == recipient.WithoutPrefix() || r.OrgNumber == recipient.WithoutPrefix());
-            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, attachmentsToBeUploaded, partyUuid, recipientParty, isReserved);
+            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, attachmentsToBeUploaded, partyUuid, recipientParty, isReserved, serviceOwnerOrgNumber);
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);

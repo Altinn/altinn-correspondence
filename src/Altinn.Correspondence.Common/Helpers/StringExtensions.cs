@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Text.RegularExpressions;
+using Altinn.Correspondence.Common.Constants;
 namespace Altinn.Correspondence.Common.Helpers;
 public static class StringExtensions
 {
@@ -40,7 +41,7 @@ public static class StringExtensions
     /// <returns>True if the string matches either a 9-digit format or a '4digits:9digits' format, false otherwise.</returns>
     public static bool IsOrganizationNumber(this string identifier)
     {
-        return (!string.IsNullOrWhiteSpace(identifier) && OrgPattern.IsMatch(identifier));
+        return !string.IsNullOrWhiteSpace(identifier) && OrgPattern.IsMatch(identifier);
     }
     /// <summary>
     /// Extracts the identifier from a colon-separated string that may contain a prefix.
@@ -63,5 +64,18 @@ public static class StringExtensions
             .Replace("\r", "\\r")
             .Replace("\n", "\\n")
             .Replace("\t", "\\t");
+    }
+
+    /// <summary>
+    /// Adds a prefix to the identifier if it is a organization number (9 digits).
+    /// </summary>
+    /// <param name="identifier">The organization number to add the prefix to.</param>
+    /// <returns>The organization number with the prefix.</returns>
+    /// <exception cref="ArgumentException">Thrown if the identifier is not a valid organization number.</exception>
+    public static string WithPrefix(this string identifier) {
+        if (identifier.IsOrganizationNumber()) {
+            return $"{UrnConstants.OrganizationNumberAttribute}:{identifier}";
+        }
+        throw new ArgumentException("Identifier is not a valid organization number", nameof(identifier));
     }
 }
