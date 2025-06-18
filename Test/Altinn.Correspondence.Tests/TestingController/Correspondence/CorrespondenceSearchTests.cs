@@ -28,7 +28,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
             var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={1}&status={0}&role={"recipientandsender"}");
-            Assert.True(correspondenceList?.Ids.Count > 0, string.Join(",", correspondenceList.Ids));
+            Assert.True(correspondenceList?.Ids.Count > 0, string.Join(",", correspondenceList?.Ids ?? []));
         }
 
         [Fact]
