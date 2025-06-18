@@ -16,7 +16,20 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             if (attachment.StorageProvider is not null) 
             { 
-                _context.Entry(attachment.StorageProvider).State = EntityState.Unchanged;
+                // Check if the StorageProvider is already being tracked by the context
+                var existingEntry = _context.ChangeTracker.Entries<StorageProviderEntity>()
+                    .FirstOrDefault(e => e.Entity.Id == attachment.StorageProvider.Id);
+                
+                if (existingEntry == null)
+                {
+                    // Set state to Unchanged if it's not already being tracked
+                    _context.Entry(attachment.StorageProvider).State = EntityState.Unchanged;
+                }
+                else
+                {
+                    // If already tracked, use the existing tracked entity
+                    attachment.StorageProvider = existingEntry.Entity;
+                }
             }
             await _context.Attachments.AddAsync(attachment, cancellationToken);
             try
