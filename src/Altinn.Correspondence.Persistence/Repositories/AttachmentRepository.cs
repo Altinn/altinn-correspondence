@@ -14,7 +14,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<AttachmentEntity> InitializeAttachment(AttachmentEntity attachment, CancellationToken cancellationToken)
         {
-            logger.LogInformation("Attachment storageprovider " + JsonSerializer.Serialize(attachment?.StorageProvider));
             if (attachment.StorageProvider is not null) 
             { 
                 _context.Entry(attachment.StorageProvider).State = EntityState.Unchanged;
@@ -26,7 +25,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
             catch (Exception ex)
             {
-                logger.LogInformation("Error saving attachment: {Message}, content: {Attachment}", ex.Message, JsonSerializer.Serialize(attachment));
+                logger.LogError("Error saving attachment: {Message}, content: {Attachment}", ex.Message, JsonSerializer.Serialize(attachment));
                 throw;
             }
 
