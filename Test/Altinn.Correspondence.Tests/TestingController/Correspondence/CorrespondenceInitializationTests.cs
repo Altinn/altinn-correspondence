@@ -1022,5 +1022,25 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var errorContent = await conflictResponse.Content.ReadAsStringAsync();
             Assert.Contains(CorrespondenceErrors.DuplicateInitCorrespondenceRequest.Message, errorContent);
         }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithUrnPrefixOnResourceId_Succeeds()
+        {
+            // Arrange
+            var resourceId = $"{UrnConstants.Resource}:1";
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithResourceId(resourceId)
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+            var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(response);
+            Assert.NotEmpty(response.Correspondences);
+        }
     }
 }
