@@ -14,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
+using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.Application.CreateNotification;
 
@@ -276,7 +277,7 @@ public class CreateNotificationHandler(
         if (notificationRequest.CustomRecipient != null)
         {
             var customRecipient = notificationRequest.CustomRecipient;
-            var resourceIdWithPrefix = "urn:altinn:resource:" + correspondence.ResourceId;
+            var resourceIdWithPrefix = UrnConstants.Resource + ":" + correspondence.ResourceId;
             var channel = isReminder
                 ? notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel
                 : notificationRequest.NotificationChannel;
@@ -376,7 +377,7 @@ public class CreateNotificationHandler(
         }
         // await SetRecipientNameOnNotificationContent(content, correspondence.Recipient, cancellationToken);
 
-        var resourceIdWithPrefix = "urn:altinn:resource:" + correspondence.ResourceId;
+        var resourceIdWithPrefix = UrnConstants.Resource + ":" + correspondence.ResourceId;
         var channel = isReminder
             ? notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel
             : notificationRequest.NotificationChannel;
