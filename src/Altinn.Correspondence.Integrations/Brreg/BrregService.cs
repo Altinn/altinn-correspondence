@@ -89,5 +89,35 @@ namespace Altinn.Correspondence.Integrations.Brreg
             
             return detailsResponse;
         }
+
+        public async Task<OrganizationDetails> GetSubOrganizationDetailsAsync(string organizationNumber, CancellationToken cancellationToken = default)
+        {
+            var endpoint = $"underenheter/{organizationNumber}";
+            var response = await _httpClient.GetAsync(endpoint, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("Sub organization with organization number {OrganizationNumber} not found in Brreg", organizationNumber);
+                    throw new BrregNotFoundException(organizationNumber);
+                }
+                
+                _logger.LogError("Failed to get sub organization details for organization {OrganizationNumber}. Status code: {StatusCode}, Error: {Error}", 
+                    organizationNumber, response.StatusCode, errorContent);
+                throw new HttpRequestException($"Failed to get sub organization details for organization {organizationNumber}. Status code: {response.StatusCode}, Error: {errorContent}");
+            }
+
+            var detailsResponse = await response.Content.ReadFromJsonAsync<OrganizationDetails>(cancellationToken: cancellationToken);
+            if (detailsResponse == null)
+            {
+                _logger.LogError("Unexpected response format from Brreg API when getting sub organization details for organization {OrganizationNumber}", organizationNumber);
+                throw new HttpRequestException($"Unexpected response format from Brreg API when getting sub organization details for organization {organizationNumber}");
+            }
+
+            return detailsResponse;
+        }
     }
 }

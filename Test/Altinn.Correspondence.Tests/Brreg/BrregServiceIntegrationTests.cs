@@ -94,11 +94,51 @@ namespace Altinn.Correspondence.Tests.Brreg
         public async Task GetOrganizationDetailsAsync_WithNonExisitingOrg_ThrowsNotFoundException()
         {
             // Arrange
-            var organizationNumber = "000000000"; // Invalid org
+            var organizationNumber = "000000000";
 
             // Act & Assert
             await Assert.ThrowsAsync<BrregNotFoundException>(() => 
                 _service.GetOrganizationDetailsAsync(organizationNumber));
+        }
+
+        [Fact]
+        public async Task GetOrganizationDetailsAsync_WithSubOrganization_ThrowsNotFoundException()
+        {
+            // Arrange
+            var organizationNumber = "315649978";
+
+            // Act & Assert
+            await Assert.ThrowsAsync<BrregNotFoundException>(() => 
+                _service.GetOrganizationDetailsAsync(organizationNumber));
+        }
+
+        [Fact]
+        public async Task GetSubOrganizationDetailsAsync_WithSubOrganization_ReturnsDetails()
+        {
+            // Arrange
+            var organizationNumber = "315649978";
+
+            // Act
+            var result = await _service.GetSubOrganizationDetailsAsync(organizationNumber);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(organizationNumber, result.OrganizationNumber);
+            Assert.NotNull(result.Name);
+            Assert.False(result.IsDeleted);
+            Assert.False(result.IsBankrupt);
+            Assert.NotNull(result.OrganizationNumber);
+        }
+
+        [Fact]
+        public async Task GetSubOrganizationDetailsAsync_WithNonExisitingSubOrg_ThrowsNotFoundException()
+        {
+            // Arrange
+            var organizationNumber = "000000000";
+
+            // Act & Assert
+            await Assert.ThrowsAsync<BrregNotFoundException>(() => 
+                _service.GetSubOrganizationDetailsAsync(organizationNumber));
         }
 
         public void Dispose()

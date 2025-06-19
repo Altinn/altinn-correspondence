@@ -17,6 +17,16 @@ namespace Altinn.Correspondence.Core.Services
         /// <exception cref="BrregNotFoundException">Thrown when the organization is not found</exception>
         /// <exception cref="HttpRequestException">Thrown when the API call fails for other reasons</exception>
         Task<OrganizationDetails> GetOrganizationDetailsAsync(string organizationNumber, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets detailed information about a sub organization
+        /// </summary>
+        /// <param name="organizationNumber">The organization number for the sub organization</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Organization details model</returns>
+        /// <exception cref="BrregNotFoundException">Thrown when the sub organization is not found</exception>
+        /// <exception cref="HttpRequestException">Thrown when the API call fails for other reasons</exception>
+        Task<OrganizationDetails> GetSubOrganizationDetailsAsync(string organizationNumber, CancellationToken cancellationToken = default);
         
         /// <summary>
         /// Gets roles information for an organization

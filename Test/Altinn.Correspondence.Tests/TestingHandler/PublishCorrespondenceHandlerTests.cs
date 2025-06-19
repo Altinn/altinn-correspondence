@@ -345,6 +345,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetOrganizationDetailsAsync(organizationNumber, It.IsAny<CancellationToken>()))
                 .Throws(new BrregNotFoundException(organizationNumber));
 
+            _brregServiceMock
+                .Setup(x => x.GetSubOrganizationDetailsAsync(organizationNumber, It.IsAny<CancellationToken>()))
+                .Throws(new BrregNotFoundException(organizationNumber));
+
             // Act
             await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
 
