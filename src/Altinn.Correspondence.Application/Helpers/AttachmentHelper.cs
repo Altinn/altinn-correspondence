@@ -9,7 +9,6 @@ using Azure;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
-using System.Threading;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
