@@ -323,24 +323,6 @@ public class InitializeCorrespondencesHandler(
             request.Correspondence.ResourceId.SanitizeForLogging());
         
         var correspondences = new List<CorrespondenceEntity>();
-        var recipientsToSearch = request.Recipients.Select(r => r.WithoutPrefix()).ToList();
-        var recipientDetails = new List<Party>();
-        if (request.Correspondence.Content!.MessageBody.Contains("{{recipientName}}") || request.Correspondence.Content!.MessageTitle.Contains("{{recipientName}}") || request.Correspondence.Content!.MessageSummary.Contains("{{recipientName}}"))
-        {
-            recipientDetails = await altinnRegisterService.LookUpPartiesByIds(recipientsToSearch, cancellationToken);
-            if (recipientDetails == null || recipientDetails?.Count != recipientsToSearch.Count)
-            {
-                return CorrespondenceErrors.RecipientLookupFailed(recipientsToSearch.Except(recipientDetails != null ? recipientDetails.Select(r => r.SSN ?? r.OrgNumber) : new List<string>()).ToList());
-            }
-            foreach (var details in recipientDetails)
-            {
-                if (details.PartyUuid == Guid.Empty)
-                {
-                    return CorrespondenceErrors.RecipientLookupFailed(new List<string> { details.SSN ?? details.OrgNumber });
-                }
-            }
-        }
-
         var serviceOwnerOrgNumber = await resourceRegistryService.GetServiceOwnerOrganizationNumber(request.Correspondence.ResourceId, cancellationToken) ?? string.Empty;
         if (serviceOwnerOrgNumber is null || serviceOwnerOrgNumber == string.Empty)
         {
@@ -348,10 +330,9 @@ public class InitializeCorrespondencesHandler(
             return CorrespondenceErrors.ServiceOwnerOrgNumberNotFound;
         }
         serviceOwnerOrgNumber = serviceOwnerOrgNumber.WithUrnPrefix();
-
         foreach (var recipient in request.Recipients)
         {
-           var isReserved = validatedData.ReservedRecipients.Contains(recipient.WithoutPrefix());
+            var isReserved = validatedData.ReservedRecipients.Contains(recipient.WithoutPrefix());
             var recipientParty = validatedData.RecipientDetails.FirstOrDefault(r => r.SSN == recipient.WithoutPrefix() || r.OrgNumber == recipient.WithoutPrefix());
             var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, validatedData.AttachmentsToBeUploaded, validatedData.PartyUuid, recipientParty, isReserved, serviceOwnerOrgNumber);
             correspondences.Add(correspondence);
