@@ -66,16 +66,32 @@ public static class StringExtensions
             .Replace("\t", "\\t");
     }
 
+    public static bool IsWithISO6523Prefix(this string identifier)
+    {
+        return identifier.StartsWith("0192:");
+    }
+
     /// <summary>
-    /// Adds a prefix to the identifier if it is a organization number (9 digits).
+    /// Adds a prefix to the identifier if it is a organization number (9 digits) or social security number (11 digits).
     /// </summary>
-    /// <param name="identifier">The organization number to add the prefix to.</param>
-    /// <returns>The organization number with the prefix.</returns>
-    /// <exception cref="ArgumentException">Thrown if the identifier is not a valid organization number.</exception>
-    public static string WithPrefix(this string identifier) {
-        if (identifier.IsOrganizationNumber()) {
+    /// <param name="identifier">The organization number or social security number to add the prefix to.</param>
+    /// <returns>The organization number or social security number with the prefix.</returns>
+    /// <exception cref="ArgumentException">Thrown if the identifier is not a valid organization number or social security number.</exception>
+    public static string WithUrnPrefix(this string identifier)
+    {
+        if (identifier.StartsWith(UrnConstants.OrganizationNumberAttribute)
+                || identifier.StartsWith(UrnConstants.PersonIdAttribute))
+        {
+            return identifier;
+        }
+        if (identifier.IsOrganizationNumber())
+        {
             return $"{UrnConstants.OrganizationNumberAttribute}:{identifier}";
         }
-        throw new ArgumentException("Identifier is not a valid organization number", nameof(identifier));
+        else if (identifier.IsSocialSecurityNumberWithNoPrefix())
+        {
+            return $"{UrnConstants.PersonIdAttribute}:{identifier}";
+        }
+        throw new ArgumentException("Identifier is not a valid organization number or social security number", nameof(identifier));
     }
 }

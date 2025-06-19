@@ -319,7 +319,7 @@ public class InitializeCorrespondencesHandler(
             logger.LogError("Service owner/sender's organization number (9 digits) not found for resource {ResourceId}", request.Correspondence.ResourceId);
             return CorrespondenceErrors.ServiceOwnerOrgNumberNotFound;
         }
-        serviceOwnerOrgNumber = serviceOwnerOrgNumber.WithPrefix();
+        serviceOwnerOrgNumber = serviceOwnerOrgNumber.WithUrnPrefix();
 
         foreach (var recipient in request.Recipients)
         {

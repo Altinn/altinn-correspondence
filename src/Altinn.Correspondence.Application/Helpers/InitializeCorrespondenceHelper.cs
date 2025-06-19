@@ -251,28 +251,22 @@ namespace Altinn.Correspondence.Application.Helpers
                     PartyUuid = partyUuid
                 });
             }
-            string sender = request.Correspondence.Sender;
-            if (sender.StartsWith("0192:"))
-            {
-                sender = $"{UrnConstants.OrganizationNumberAttribute}:{request.Correspondence.Sender.WithoutPrefix()}";
-                logger.LogInformation($"'0192:' prefix detected for sender in creation of correspondence. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
-            }
 
-            if (recipient.StartsWith("0192:"))
+            if (recipient.IsWithISO6523Prefix())
             {
-                recipient = $"{UrnConstants.OrganizationNumberAttribute}:{recipient.WithoutPrefix()}";
                 logger.LogInformation($"'0192:' prefix detected for recipient in creation of correspondence. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
             }
             else if (recipient.IsSocialSecurityNumberWithNoPrefix())
             {
-                recipient = $"{UrnConstants.PersonIdAttribute}:{recipient}";
                 logger.LogInformation($"Social security number without urn prefix detected for recipient in creation of correspondece. Adding {UrnConstants.PersonIdAttribute} prefix to recipient.");
             }
+            recipient = recipient.WithoutPrefix().WithUrnPrefix();
             return new CorrespondenceEntity
             {
                 ResourceId = request.Correspondence.ResourceId,
                 Recipient = recipient,
-                Sender = sender,
+                // serviceOwnerOrgNumber always has the URN prefix here from the caller
+                Sender = serviceOwnerOrgNumber,
                 SendersReference = request.Correspondence.SendersReference,
                 MessageSender = request.Correspondence.MessageSender,
                 Content = new CorrespondenceContentEntity
