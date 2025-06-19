@@ -1,7 +1,6 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Application.CreateNotification;
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -35,19 +34,21 @@ public class InitializeCorrespondencesHandler(
     IOptions<GeneralSettings> generalSettings,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
-    private class ValidationData
+    private class ValidatedData
     {
         public List<AttachmentEntity> AttachmentsToBeUploaded { get; set; } = new();
         public Guid PartyUuid { get; set; }
         public List<string> ReservedRecipients { get; set; } = new();
+        public List<Party> RecipientDetails { get; set; } = new();
     }
 
-    private async Task<Error?> ValidateAndPrepareData(
+    private async Task<OneOf<ValidatedData, Error>> ValidatePrepareDataAndUploadAttachments(
         InitializeCorrespondencesRequest request,
         ClaimsPrincipal? user,
-        ValidationData data,
         CancellationToken cancellationToken)
     {
+        var validatedData = new ValidatedData();
+
         if (!string.IsNullOrWhiteSpace(generalSettings.Value.ResourceWhitelist))
         {
             if (!generalSettings.Value.ResourceWhitelist.Split(',').Contains(request.Correspondence.ResourceId))
@@ -87,7 +88,7 @@ public class InitializeCorrespondencesHandler(
             logger.LogError("Could not find party UUID for organization {OrganizationId}", user.GetCallerOrganizationId());
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
-        data.PartyUuid = partyUuid;
+        validatedData.PartyUuid = partyUuid;
 
         if (request.Recipients.Count != request.Recipients.Distinct().Count())
         {
@@ -107,7 +108,7 @@ public class InitializeCorrespondencesHandler(
             logger.LogWarning("Contact reservation failed: {Error}", error);
             return error;
         }
-        data.ReservedRecipients = reservedRecipients;
+        validatedData.ReservedRecipients = reservedRecipients;
 
         logger.LogDebug("Validating date constraints");
         var dateError = initializeCorrespondenceHelper.ValidateDateConstraints(request.Correspondence);
@@ -170,13 +171,13 @@ public class InitializeCorrespondencesHandler(
             {
                 logger.LogDebug("Processing new attachment {AttachmentId}", attachment.AttachmentId);
                 var processedAttachment = await initializeCorrespondenceHelper.ProcessNewAttachment(attachment, partyUuid, cancellationToken);
-                data.AttachmentsToBeUploaded.Add(processedAttachment);
+                validatedData.AttachmentsToBeUploaded.Add(processedAttachment);
             }
         }
         if (existingAttachmentIds.Count > 0)
         {
             logger.LogDebug("Adding {Count} existing attachments", existingAttachmentIds.Count);
-            data.AttachmentsToBeUploaded.AddRange(existingAttachments.Where(a => a != null).Select(a => a!));
+            validatedData.AttachmentsToBeUploaded.AddRange(existingAttachments.Where(a => a != null).Select(a => a!));
         }
 
         if (request.Notification != null)
@@ -196,16 +197,38 @@ public class InitializeCorrespondencesHandler(
             }
         }
 
-        logger.LogDebug("Uploading {Count} attachments", data.AttachmentsToBeUploaded.Count);
-        var uploadError = await initializeCorrespondenceHelper.UploadAttachments(data.AttachmentsToBeUploaded, uploadAttachments, partyUuid, cancellationToken);
+        logger.LogDebug("Uploading {Count} attachments", validatedData.AttachmentsToBeUploaded.Count);
+        var uploadError = await initializeCorrespondenceHelper.UploadAttachments(validatedData.AttachmentsToBeUploaded, uploadAttachments, partyUuid, cancellationToken);
         if (uploadError != null)
         {
             logger.LogError("Attachment upload failed: {Error}", uploadError);
             return uploadError;
         }
 
+        if (request.Correspondence.Content!.MessageBody.Contains("{{recipientName}}") || 
+            request.Correspondence.Content!.MessageTitle.Contains("{{recipientName}}") || 
+            request.Correspondence.Content!.MessageSummary.Contains("{{recipientName}}"))
+        {
+            var recipientsToSearch = request.Recipients.Select(r => r.WithoutPrefix()).ToList();
+            validatedData.RecipientDetails = await altinnRegisterService.LookUpPartiesByIds(recipientsToSearch, cancellationToken);
+            if (validatedData.RecipientDetails == null || validatedData.RecipientDetails.Count != recipientsToSearch.Count)
+            {
+                return CorrespondenceErrors.RecipientLookupFailed(recipientsToSearch.Except(
+                    validatedData.RecipientDetails != null ? 
+                    validatedData.RecipientDetails.Select(r => r.SSN ?? r.OrgNumber) : 
+                    new List<string>()).ToList());
+            }
+            foreach (var details in validatedData.RecipientDetails)
+            {
+                if (details.PartyUuid == Guid.Empty)
+                {
+                    return CorrespondenceErrors.RecipientLookupFailed(new List<string> { details.SSN ?? details.OrgNumber });
+                }
+            }
+        }
+
         logger.LogInformation("Validation and data preparation completed successfully");
-        return null;
+        return validatedData;
     }
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -243,26 +266,24 @@ public class InitializeCorrespondencesHandler(
             }
         }
 
-        var validationData = new ValidationData();
-        var error = await ValidateAndPrepareData(request, user, validationData, cancellationToken);
-        if (error != null)
+        var validationResult = await ValidatePrepareDataAndUploadAttachments(request, user, cancellationToken);
+        if (validationResult.IsT1)
         {
             if (request.IdempotentKey.HasValue)
             {
                 logger.LogInformation("Deleting idempotency key {Key} due to validation failure", request.IdempotentKey.Value);
                 await idempotencyKeyRepository.DeleteAsync(request.IdempotentKey.Value, cancellationToken);
             }
-            return error;
+            return validationResult.AsT1;
         }
 
+        var validatedData = validationResult.AsT0;
         logger.LogInformation("Initializing correspondences with validated data");
         return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
         {
             return await InitializeCorrespondences(
                 request,
-                validationData.AttachmentsToBeUploaded,
-                validationData.PartyUuid,
-                validationData.ReservedRecipients,
+                validatedData,
                 cancellationToken);
         }, logger, cancellationToken);
     }
@@ -292,33 +313,21 @@ public class InitializeCorrespondencesHandler(
         }
     }
 
-    private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(InitializeCorrespondencesRequest request, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, List<string> reservedRecipients, CancellationToken cancellationToken)
+    private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(
+        InitializeCorrespondencesRequest request,
+        ValidatedData validatedData,
+        CancellationToken cancellationToken)
     {
-        logger.LogInformation("Initializing {correspondenceCount} correspondences for {resourceId}", request.Recipients.Count, request.Correspondence.ResourceId.SanitizeForLogging());
+        logger.LogInformation("Initializing {correspondenceCount} correspondences for {resourceId}", 
+            request.Recipients.Count, 
+            request.Correspondence.ResourceId.SanitizeForLogging());
+        
         var correspondences = new List<CorrespondenceEntity>();
-        var recipientsToSearch = request.Recipients.Select(r => r.WithoutPrefix()).ToList();
-        var recipientDetails = new List<Party>();
-        if (request.Correspondence.Content!.MessageBody.Contains("{{recipientName}}") || request.Correspondence.Content!.MessageTitle.Contains("{{recipientName}}") || request.Correspondence.Content!.MessageSummary.Contains("{{recipientName}}"))
-        {
-            recipientDetails = await altinnRegisterService.LookUpPartiesByIds(recipientsToSearch, cancellationToken);
-            if (recipientDetails == null || recipientDetails?.Count != recipientsToSearch.Count)
-            {
-                return CorrespondenceErrors.RecipientLookupFailed(recipientsToSearch.Except(recipientDetails != null ? recipientDetails.Select(r => r.SSN ?? r.OrgNumber) : new List<string>()).ToList());
-            }
-            foreach (var details in recipientDetails)
-            {
-                if (details.PartyUuid == Guid.Empty)
-                {
-                    return CorrespondenceErrors.RecipientLookupFailed(new List<string> { details.SSN ?? details.OrgNumber });
-                }
-            }
-        }
-
         foreach (var recipient in request.Recipients)
         {
-            var isReserved = reservedRecipients.Contains(recipient.WithoutPrefix());
-            var recipientParty = recipientDetails.FirstOrDefault(r => r.SSN == recipient.WithoutPrefix() || r.OrgNumber == recipient.WithoutPrefix());
-            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, attachmentsToBeUploaded, partyUuid, recipientParty, isReserved);
+            var isReserved = validatedData.ReservedRecipients.Contains(recipient.WithoutPrefix());
+            var recipientParty = validatedData.RecipientDetails.FirstOrDefault(r => r.SSN == recipient.WithoutPrefix() || r.OrgNumber == recipient.WithoutPrefix());
+            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, validatedData.AttachmentsToBeUploaded, validatedData.PartyUuid, recipientParty, isReserved);
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
@@ -337,7 +346,6 @@ public class InitializeCorrespondencesHandler(
             }
 
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
-            var notificationDetails = new List<InitializedCorrespondencesNotifications>();
             if (!isReserved)
             {
                 if (correspondence.DueDateTime is not null)
@@ -349,12 +357,11 @@ public class InitializeCorrespondencesHandler(
                 if (request.Notification != null)
                 {
                     // Schedule notification creation as a background job
-                    var notificationJob = backgroundJobClient.Enqueue<CreateNotificationHandler>((handler) => handler.Process(new CreateNotificationRequest
+                    backgroundJobClient.Enqueue<CreateNotificationHandler>((handler) => handler.Process(new CreateNotificationRequest
                     {
                         NotificationRequest = request.Notification,
                         CorrespondenceId = correspondence.Id,
                         Language = correspondence.Content != null ? correspondence.Content.Language : null,
-                        // RequestCorrespondence = correspondence
                     }, cancellationToken));
                 }
             }
