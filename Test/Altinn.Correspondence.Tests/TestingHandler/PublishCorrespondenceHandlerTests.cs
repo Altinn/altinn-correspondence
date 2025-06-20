@@ -143,7 +143,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private void SetupBrregServiceWithOrgDetails(string organizationNumber, bool isBankrupt = false)
         {
             _brregServiceMock
-                .Setup(x => x.GetSubOrganizationDetailsAsync(organizationNumber, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetOrganizationDetailsAsync(organizationNumber, It.IsAny<CancellationToken>()))
                 .Returns((string id, CancellationToken token) =>
                     Task.FromResult(new OrganizationDetails { IsBankrupt = isBankrupt }));
         }
