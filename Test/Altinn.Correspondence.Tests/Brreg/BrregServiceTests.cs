@@ -239,12 +239,13 @@ namespace Altinn.Correspondence.Tests.Brreg
         {
             // Arrange
             var organizationNumber = "123456789";
-            var expectedResponse = new OrganizationDetails
+            var expectedResponse = new SubOrganizationDetails
             {
                 OrganizationNumber = organizationNumber,
                 Name = "Test Sub Organization",
                 IsBankrupt = false,
-                DeletionDate = null
+                DeletionDate = null,
+                ParentOrganizationNumber = "312585065"
             };
 
             var jsonResponse = JsonSerializer.Serialize(expectedResponse);
@@ -272,6 +273,7 @@ namespace Altinn.Correspondence.Tests.Brreg
             Assert.Equal("Test Sub Organization", result.Name);
             Assert.False(result.IsBankrupt);
             Assert.False(result.IsDeleted);
+            Assert.Equal("312585065", result.ParentOrganizationNumber);
         }
 
         [Fact]

@@ -90,7 +90,7 @@ namespace Altinn.Correspondence.Integrations.Brreg
             return detailsResponse;
         }
 
-        public async Task<OrganizationDetails> GetSubOrganizationDetailsAsync(string organizationNumber, CancellationToken cancellationToken = default)
+        public async Task<SubOrganizationDetails> GetSubOrganizationDetailsAsync(string organizationNumber, CancellationToken cancellationToken = default)
         {
             var endpoint = $"underenheter/{organizationNumber}";
             var response = await _httpClient.GetAsync(endpoint, cancellationToken);
@@ -110,7 +110,7 @@ namespace Altinn.Correspondence.Integrations.Brreg
                 throw new HttpRequestException($"Failed to get sub organization details for organization {organizationNumber}. Status code: {response.StatusCode}, Error: {errorContent}");
             }
 
-            var detailsResponse = await response.Content.ReadFromJsonAsync<OrganizationDetails>(cancellationToken: cancellationToken);
+            var detailsResponse = await response.Content.ReadFromJsonAsync<SubOrganizationDetails>(cancellationToken: cancellationToken);
             if (detailsResponse == null)
             {
                 _logger.LogError("Unexpected response format from Brreg API when getting sub organization details for organization {OrganizationNumber}", organizationNumber);
