@@ -22,7 +22,7 @@ public static class ApplicationConstants
         ".png",
         ".json"
     ];
-    public static readonly List<string> RequiredOrganizationRolesForConfidentialPost = 
+    public static readonly List<string> RequiredOrganizationRolesForConfidentialCorrespondence = 
     [
         "BEST",
         "DAGL",
