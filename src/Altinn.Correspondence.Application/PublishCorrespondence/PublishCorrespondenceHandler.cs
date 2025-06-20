@@ -19,6 +19,7 @@ using System.Security.Claims;
 using Altinn.Correspondence.Integrations.Redlock;
 using Altinn.Correspondence.Core.Models.Brreg;
 using Altinn.Correspondence.Core.Exceptions;
+using Altinn.Correspondence.Application.Settings;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
 
@@ -95,7 +96,6 @@ public class PublishCorrespondenceHandler(
         OrganizationDetails? details = null;
         OrganizationRoles? roles = null;
         bool OrganizationNotFoundInBrreg = false;
-        var requiredOrganizationRolesForConfidentialPost = new List<string> { "BEST", "DAGL", "DTPR", "DTSO", "INNH", "LEDE"};
         if (correspondence.GetRecipientUrn().WithoutPrefix().IsOrganizationNumber())
         {
             (details, roles, OrganizationNotFoundInBrreg) = await GetOrganizationDetailsAndRolesAsync(correspondence, cancellationToken);
@@ -142,7 +142,7 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Recipient of {correspondenceId} is deleted";
         }
-        else if (roles != null && correspondence.IsConfidential && !roles.HasAnyOfRolesOnPerson(requiredOrganizationRolesForConfidentialPost))
+        else if (roles != null && correspondence.IsConfidential && !roles.HasAnyOfRolesOnPerson(ApplicationConstants.RequiredOrganizationRolesForConfidentialPost))
         {
             errorMessage = $"Recipient of {correspondenceId} is missing required roles to read confidential correspondences";
         }
