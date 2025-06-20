@@ -127,6 +127,56 @@ resource maxPreparedTransactions 'Microsoft.DBforPostgreSQL/flexibleServers/conf
   }
 }
 
+resource maxParallellWorkers 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'max_parallel_workers'
+  parent: postgres
+  dependsOn: [database, maintenanceWorkMemConfiguration]
+  properties: {
+    value: '32'
+    source: 'user-override'
+  }
+}
+
+resource maxParallellWorkersPerGather 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'max_parallel_workers_per_gather'
+  parent: postgres
+  dependsOn: [database, maxParallellWorkers]
+  properties: {
+    value: '16'
+    source: 'user-override'
+  }
+}
+
+resource parallelSetupCost 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'parallel_setup_cost'
+  parent: postgres
+  dependsOn: [database, maxParallellWorkersPerGather]
+  properties: {
+    value: '5'
+    source: 'user-override'
+  }
+}
+
+resource parallelTupleCost 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'parallel_tuple_cost'
+  parent: postgres
+  dependsOn: [database, parallelSetupCost]
+  properties: {
+    value: '0.05'
+    source: 'user-override'
+  }
+}
+
+resource sessionReplicationRole 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'session_replication_role'
+  parent: postgres
+  dependsOn: [database, maintenanceWorkMemConfiguration]
+  properties: {
+    value: 'Replica'
+    source: 'user-override'
+  }
+}
+
 resource allowAzureAccess 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
   name: 'azure-access'
   parent: postgres
