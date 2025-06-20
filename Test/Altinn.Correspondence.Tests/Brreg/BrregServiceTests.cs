@@ -233,5 +233,99 @@ namespace Altinn.Correspondence.Tests.Brreg
             // Act & Assert
             await Assert.ThrowsAsync<HttpRequestException>(() => _service.GetOrganizationDetailsAsync(organizationNumber));
         }
+
+        [Fact]
+        public async Task GetSubOrganizationDetailsAsync_WhenSuccessfulResponse_ReturnsDetails()
+        {
+            // Arrange
+            var organizationNumber = "123456789";
+            var expectedResponse = new SubOrganizationDetails
+            {
+                OrganizationNumber = organizationNumber,
+                Name = "Test Sub Organization",
+                IsBankrupt = false,
+                DeletionDate = null,
+                ParentOrganizationNumber = "312585065"
+            };
+
+            var jsonResponse = JsonSerializer.Serialize(expectedResponse);
+
+            _mockHttpMessageHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString().EndsWith($"underenheter/{organizationNumber}")),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent(jsonResponse)
+                });
+
+            // Act
+            var result = await _service.GetSubOrganizationDetailsAsync(organizationNumber);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(organizationNumber, result.OrganizationNumber);
+            Assert.Equal("Test Sub Organization", result.Name);
+            Assert.False(result.IsBankrupt);
+            Assert.False(result.IsDeleted);
+            Assert.Equal("312585065", result.ParentOrganizationNumber);
+        }
+
+        [Fact]
+        public async Task GetSubOrganizationDetailsAsync_WhenNotFound_ThrowsBrregNotFoundException()
+        {
+            // Arrange
+            var organizationNumber = "123456789";
+
+            _mockHttpMessageHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString().EndsWith($"underenheter/{organizationNumber}")),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.NotFound,
+                    Content = new StringContent("Not found")
+                });
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<BrregNotFoundException>(
+                () => _service.GetSubOrganizationDetailsAsync(organizationNumber));
+            
+            Assert.Equal(organizationNumber, exception.OrganizationNumber);
+            Assert.Contains(organizationNumber, exception.Message);
+        }
+
+        [Fact]
+        public async Task GetSubOrganizationDetailsAsync_WhenOtherError_ThrowsHttpRequestException()
+        {
+            // Arrange
+            var organizationNumber = "123456789";
+
+            _mockHttpMessageHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.Method == HttpMethod.Get &&
+                        req.RequestUri!.ToString().EndsWith($"underenheter/{organizationNumber}")),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.InternalServerError,
+                    Content = new StringContent("Server error")
+                });
+
+            // Act & Assert
+            await Assert.ThrowsAsync<HttpRequestException>(() => _service.GetSubOrganizationDetailsAsync(organizationNumber));
+        }
     }
 }
