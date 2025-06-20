@@ -73,7 +73,7 @@ public class PublishCorrespondenceHandler(
         if (shouldSkip)
         {
             logger.LogInformation("Skipping publish for correspondence {CorrespondenceId} - current status: {Status}", correspondenceId, status);
-        }        
+        }
         return shouldSkip;
     }
 
@@ -95,18 +95,10 @@ public class PublishCorrespondenceHandler(
         OrganizationDetails? details = null;
         OrganizationRoles? roles = null;
         bool OrganizationNotFoundInBrreg = false;
-        var requiredOrganizationRoles = new List<string> { "BEST", "DAGL", "DTPR", "DTSO", "INNH", "LEDE"};
+        var requiredOrganizationRolesForConfidentialPost = new List<string> { "BEST", "DAGL", "DTPR", "DTSO", "INNH", "LEDE"};
         if (correspondence.GetRecipientUrn().WithoutPrefix().IsOrganizationNumber())
         {
-            try
-            {
-                details = await brregService.GetOrganizationDetailsAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
-                roles = await brregService.GetOrganizationRolesAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
-            }
-            catch (BrregNotFoundException)
-            {
-                OrganizationNotFoundInBrreg = true;
-            }
+            (details, roles, OrganizationNotFoundInBrreg) = await GetOrganizationDetailsAndRolesAsync(correspondence, cancellationToken);
         }
 
         var errorMessage = "";
@@ -150,7 +142,7 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Recipient of {correspondenceId} is deleted";
         }
-        else if (roles != null && correspondence.IsConfidential && !roles.HasAnyOfRolesOnPerson(requiredOrganizationRoles))
+        else if (roles != null && correspondence.IsConfidential && !roles.HasAnyOfRolesOnPerson(requiredOrganizationRolesForConfidentialPost))
         {
             errorMessage = $"Recipient of {correspondenceId} is missing required roles to read confidential correspondences";
         }
@@ -251,5 +243,41 @@ public class PublishCorrespondenceHandler(
             }
         }
         return false;
+    }
+
+    private async Task<(OrganizationDetails?, OrganizationRoles?, bool)> GetOrganizationDetailsAndRolesAsync(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
+    {
+        OrganizationDetails? details = null;
+        OrganizationRoles? roles = null;
+        bool OrganizationNotFoundInBrreg = false;
+        if (correspondence.GetRecipientUrn().WithoutPrefix().IsOrganizationNumber())
+        {
+            try
+            {
+                details = await brregService.GetOrganizationDetailsAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
+                roles = await brregService.GetOrganizationRolesAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
+            }
+            catch (BrregNotFoundException)
+            {
+                try
+                {
+                    var subOrganizationDetails = await brregService.GetSubOrganizationDetailsAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
+                    details = subOrganizationDetails;
+                    if (correspondence.IsConfidential && subOrganizationDetails.ParentOrganizationNumber != null)
+                    {
+                        roles = await brregService.GetOrganizationRolesAsync(subOrganizationDetails.ParentOrganizationNumber, cancellationToken);
+                    }
+                    else
+                    {
+                        roles = new OrganizationRoles();
+                    }
+                }
+                catch (BrregNotFoundException)
+                {
+                    OrganizationNotFoundInBrreg = true;
+                }
+            }
+        }
+        return (details, roles, OrganizationNotFoundInBrreg);
     }
 }

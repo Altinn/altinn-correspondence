@@ -59,7 +59,27 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _backgroundJobClientMock.Object,
                 _brregServiceMock.Object,
                 _distributedLockHelperMock.Object);
+        }
 
+        private void SetupCommonMocks(Guid correspondenceId, Guid partyUuid, CorrespondenceEntity correspondence)
+        {
+            // Mock party lookup
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyById(
+                    It.IsAny<string>(), 
+                    It.IsAny<CancellationToken>()))
+                .Returns((string id, CancellationToken token) => 
+                    Task.FromResult<Party?>(new Party { PartyUuid = partyUuid }));
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .ReturnsAsync(correspondence);
+
+            _correspondenceRepositoryMock
+                .Setup(x => x.AreAllAttachmentsPublished(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            
             // Default setup for DistributedLockHelper to return acquired lock and not skip
             _distributedLockHelperMock
                 .Setup(x => x.ExecuteWithConditionalLockAsync(
@@ -73,25 +93,23 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .ReturnsAsync((false, true));
         }
 
-        [Fact]
-        public async Task Process_ConfidentialCorrespondenceWithOrgRecipientMissingRequiredRoles_FailsCorrespondence()
+        private CorrespondenceEntity CreateTestCorrespondence(
+            Guid correspondenceId, 
+            string senderUrn, 
+            string recipientUrn, 
+            bool isConfidential = true,
+            DateTimeOffset? requestedPublishTime = null)
         {
-            // Arrange
-            var correspondenceId = Guid.NewGuid();
-            var partyUuid = Guid.NewGuid();
-            var senderUrn = "urn:altinn:organization:identifier-no:313721779";
-            var recipientUrn = "urn:altinn:organization:identifier-no:310244007";
             var now = DateTimeOffset.UtcNow;
-            
-            var correspondence = new CorrespondenceEntity
+            return new CorrespondenceEntity
             {
                 Id = correspondenceId,
                 Sender = senderUrn,
                 Recipient = recipientUrn,
-                IsConfidential = true,
+                IsConfidential = isConfidential,
                 ResourceId = "resource-123",
                 SendersReference = "ref-123",
-                RequestedPublishTime = now.AddMinutes(-10),
+                RequestedPublishTime = requestedPublishTime ?? now.AddMinutes(-10),
                 Created = now.AddMinutes(-30),
                 ExternalReferences = new List<ExternalReferenceEntity>
                 {
@@ -112,22 +130,42 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     }
                 }
             };
+        }
 
-            // Mock party lookup
-            _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyById(
-                    It.IsAny<string>(), 
-                    It.IsAny<CancellationToken>()))
-                .Returns((string id, CancellationToken token) => 
-                    Task.FromResult<Party?>(new Party { PartyUuid = partyUuid }));
+        private void SetupBrregServiceWithRoles(string organizationNumber, OrganizationRoles organizationRoles)
+        {
+            _brregServiceMock
+                .Setup(x => x.GetOrganizationRolesAsync(organizationNumber, It.IsAny<CancellationToken>()))
+                .Returns((string id, CancellationToken token) =>
+                    Task.FromResult(organizationRoles));
+        }
 
-            // Mock correspondence repository
-            _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
-                .ReturnsAsync(correspondence);
+        private void SetupBrregServiceWithOrgDetails(string organizationNumber, bool isBankrupt = false)
+        {
+            _brregServiceMock
+                .Setup(x => x.GetSubOrganizationDetailsAsync(organizationNumber, It.IsAny<CancellationToken>()))
+                .Returns((string id, CancellationToken token) =>
+                    Task.FromResult(new OrganizationDetails { IsBankrupt = isBankrupt }));
+        }
 
-            // Mock Brreg service - to return organization roles without any of the required roles
-            var organizationRoles = new OrganizationRoles
+        private void SetupBrregServiceWithSubOrgDetails(string organizationNumber, string parentOrganizationNumber, bool isBankrupt = false)
+        {
+            _brregServiceMock
+                .Setup(x => x.GetSubOrganizationDetailsAsync(organizationNumber, It.IsAny<CancellationToken>()))
+                .Returns((string id, CancellationToken token) =>
+                    Task.FromResult(new SubOrganizationDetails { IsBankrupt = isBankrupt, ParentOrganizationNumber = parentOrganizationNumber }));
+        }
+
+        private void SetupBrregServiceToThrowNotFoundForOrg(string organizationNumber)
+        {
+            _brregServiceMock
+                .Setup(x => x.GetOrganizationDetailsAsync(organizationNumber, It.IsAny<CancellationToken>()))
+                .Throws(new BrregNotFoundException(organizationNumber));
+        }
+
+        private OrganizationRoles CreateOrganizationRolesWithRole(string roleCode)
+        {
+            return new OrganizationRoles
             {
                 RoleGroups = new List<RoleGroup>
                 {
@@ -137,7 +175,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                         {
                             new Role
                             {
-                                Type = new TypeInfo { Code = "ANNET" },
+                                Type = new TypeInfo { Code = roleCode },
                                 HasResigned = false,
                                 Person = new Person { IsDead = false }
                             }
@@ -145,16 +183,26 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     }
                 }
             };
+        }
 
-            _brregServiceMock
-                .Setup(x => x.GetOrganizationDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .Returns((string id, CancellationToken token) =>
-                    Task.FromResult(new OrganizationDetails { IsBankrupt = false }));
+        private OrganizationRoles CreateOrganizationRolesWithoutRequiredRoles()
+        {
+            return CreateOrganizationRolesWithRole("ANNET");
+        }
 
-            _brregServiceMock
-                .Setup(x => x.GetOrganizationRolesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .Returns((string id, CancellationToken token) =>
-                    Task.FromResult(organizationRoles));
+        [Fact]
+        public async Task Process_ConfidentialCorrespondenceWithOrgRecipientMissingRequiredRoles_FailsCorrespondence()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var partyUuid = Guid.NewGuid();
+            var senderUrn = "urn:altinn:organization:identifier-no:313721779";
+            var recipientUrn = "urn:altinn:organization:identifier-no:310244007";
+            
+            var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn);
+            SetupCommonMocks(correspondenceId, partyUuid, correspondence);
+            SetupBrregServiceWithOrgDetails("310244007");
+            SetupBrregServiceWithRoles("310244007", CreateOrganizationRolesWithoutRequiredRoles());
 
             // Act
             await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
@@ -169,7 +217,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     It.IsAny<CancellationToken>()),
                 Times.Once);
 
-            // Verify slack notification was sent using PostAsync
             _slackClientMock.Verify(
                 x => x.PostAsync(It.Is<SlackMessage>(m => m.Text.Contains("Correspondence failed"))),
                 Times.Once);
@@ -183,84 +230,11 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
             var senderUrn = "urn:altinn:organization:identifier-no:313721779";
             var recipientUrn = "urn:altinn:organization:identifier-no:310244007";
-            var now = DateTimeOffset.UtcNow;
             
-            var correspondence = new CorrespondenceEntity
-            {
-                Id = correspondenceId,
-                Sender = senderUrn,
-                Recipient = recipientUrn,
-                IsConfidential = true,
-                ResourceId = "resource-123",
-                SendersReference = "ref-123",
-                RequestedPublishTime = now.AddMinutes(-10),
-                Created = now.AddMinutes(-30),
-                ExternalReferences = new List<ExternalReferenceEntity>
-                {
-                    new ExternalReferenceEntity
-                    {
-                        ReferenceType = ReferenceType.DialogportenDialogId,
-                        ReferenceValue = "dialog-123"
-                    }
-                },
-                Statuses = new List<CorrespondenceStatusEntity>
-                {
-                    new CorrespondenceStatusEntity
-                    {
-                        CorrespondenceId = correspondenceId,
-                        Status = CorrespondenceStatus.ReadyForPublish,
-                        StatusChanged = now.AddMinutes(-10),
-                        StatusText = CorrespondenceStatus.ReadyForPublish.ToString()
-                    }
-                }
-            };
-
-            // Mock party lookup
-            _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyById(
-                    It.IsAny<string>(), 
-                    It.IsAny<CancellationToken>()))
-                .Returns((string id, CancellationToken token) => 
-                    Task.FromResult<Party?>(new Party { PartyUuid = partyUuid }));
-
-            // Mock correspondence repository
-            _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
-                .ReturnsAsync(correspondence);
-
-            _correspondenceRepositoryMock
-                .Setup(x => x.AreAllAttachmentsPublished(correspondenceId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(true);
-
-            // Mock Brreg service - return organization roles with a required role
-            var organizationRoles = new OrganizationRoles
-            {
-                RoleGroups = new List<RoleGroup>
-                {
-                    new RoleGroup
-                    {
-                        Roles = new List<Role>
-                        {
-                            new Role
-                            {
-                                Type = new TypeInfo { Code = "BEST" },
-                                HasResigned = false,
-                                Person = new Person { IsDead = false }
-                            }
-                        }
-                    }
-                }
-            };
-
-            _brregServiceMock
-                .Setup(x => x.GetOrganizationDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .Returns((string id, CancellationToken token) =>
-                    Task.FromResult(new OrganizationDetails { IsBankrupt = false }));
-
-            _brregServiceMock
-                .Setup(x => x.GetOrganizationRolesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .Returns((string id, CancellationToken token) =>
-                    Task.FromResult(organizationRoles));
+            var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn);
+            SetupCommonMocks(correspondenceId, partyUuid, correspondence);
+            SetupBrregServiceWithOrgDetails("310244007");
+            SetupBrregServiceWithRoles("310244007", CreateOrganizationRolesWithRole("BEST"));
 
             // Act
             await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
@@ -278,7 +252,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 x => x.UpdatePublished(correspondenceId, It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()),
                 Times.Once);
 
-            // Verify slack notification was not sent (no error)
             _slackClientMock.Verify(
                 x => x.PostAsync(It.Is<SlackMessage>(m => m.Text.Contains("Correspondence failed"))),
                 Times.Never);
@@ -292,58 +265,11 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
             var senderUrn = "urn:altinn:organization:identifier-no:313721779";
             var recipientUrn = "urn:altinn:organization:identifier-no:310244007";
-            var organizationNumber = "310244007"; // Extract just the org number for exception
-            var now = DateTimeOffset.UtcNow;
+            var organizationNumber = "310244007";
             
-            var correspondence = new CorrespondenceEntity
-            {
-                Id = correspondenceId,
-                Sender = senderUrn,
-                Recipient = recipientUrn,
-                IsConfidential = true,
-                ResourceId = "resource-123",
-                SendersReference = "ref-123",
-                RequestedPublishTime = now.AddMinutes(-10),
-                Created = now.AddMinutes(-30),
-                ExternalReferences = new List<ExternalReferenceEntity>
-                {
-                    new ExternalReferenceEntity
-                    {
-                        ReferenceType = ReferenceType.DialogportenDialogId,
-                        ReferenceValue = "dialog-123"
-                    }
-                },
-                Statuses = new List<CorrespondenceStatusEntity>
-                {
-                    new CorrespondenceStatusEntity
-                    {
-                        CorrespondenceId = correspondenceId,
-                        Status = CorrespondenceStatus.ReadyForPublish,
-                        StatusChanged = now.AddMinutes(-10),
-                        StatusText = CorrespondenceStatus.ReadyForPublish.ToString()
-                    }
-                }
-            };
-
-            _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyById(
-                    It.IsAny<string>(), 
-                    It.IsAny<CancellationToken>()))
-                .Returns((string id, CancellationToken token) => 
-                    Task.FromResult<Party?>(new Party { PartyUuid = partyUuid }));
-
-            _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
-                .ReturnsAsync(correspondence);
-
-            _correspondenceRepositoryMock
-                .Setup(x => x.AreAllAttachmentsPublished(correspondenceId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(true);
-
-            // Mock Brreg service to throw BrregNotFoundException
-            _brregServiceMock
-                .Setup(x => x.GetOrganizationDetailsAsync(organizationNumber, It.IsAny<CancellationToken>()))
-                .Throws(new BrregNotFoundException(organizationNumber));
+            var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn);
+            SetupCommonMocks(correspondenceId, partyUuid, correspondence);
+            SetupBrregServiceToThrowNotFoundForOrg(organizationNumber);
 
             // Act
             await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
@@ -358,10 +284,78 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     It.IsAny<CancellationToken>()),
                 Times.Once);
 
-            // Verify slack notification was sent
             _slackClientMock.Verify(
                 x => x.PostAsync(It.Is<SlackMessage>(m => 
                     m.Text.Contains("Correspondence failed"))),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task Process_ConfidentialCorrespondenceWithSubOrgRecipientThatHasParentOrgWithRequiredRoles_Succeeds()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var partyUuid = Guid.NewGuid();
+            var senderUrn = "urn:altinn:organization:identifier-no:313721779";
+            var recipientUrn = "urn:altinn:organization:identifier-no:310244007";
+            
+            var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn);
+            SetupCommonMocks(correspondenceId, partyUuid, correspondence);
+            SetupBrregServiceToThrowNotFoundForOrg("310244007");
+            SetupBrregServiceWithSubOrgDetails("310244007", "313721779");
+            SetupBrregServiceWithRoles("313721779", CreateOrganizationRolesWithRole("BEST"));
+
+            // Act
+            await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
+
+            // Assert
+            _correspondenceStatusRepositoryMock.Verify(
+                x => x.AddCorrespondenceStatus(
+                    It.Is<CorrespondenceStatusEntity>(s => 
+                        s.CorrespondenceId == correspondenceId && 
+                        s.Status == CorrespondenceStatus.Published),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+
+            _correspondenceRepositoryMock.Verify(
+                x => x.UpdatePublished(correspondenceId, It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()),
+                Times.Once);
+
+            _slackClientMock.Verify(
+                x => x.PostAsync(It.Is<SlackMessage>(m => m.Text.Contains("Correspondence failed"))),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task Process_ConfidentialCorrespondenceWithSubOrgRecipientThatHasParentOrgWithoutRequiredRoles_Fails()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var partyUuid = Guid.NewGuid();
+            var senderUrn = "urn:altinn:organization:identifier-no:313721779";
+            var recipientUrn = "urn:altinn:organization:identifier-no:310244007";
+            
+            var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn);
+            SetupCommonMocks(correspondenceId, partyUuid, correspondence);
+            SetupBrregServiceToThrowNotFoundForOrg("310244007");
+            SetupBrregServiceWithSubOrgDetails("310244007", "313721779");
+            SetupBrregServiceWithRoles("313721779", CreateOrganizationRolesWithoutRequiredRoles());
+
+            // Act
+            await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
+
+            // Assert
+            _correspondenceStatusRepositoryMock.Verify(
+                x => x.AddCorrespondenceStatus(
+                    It.Is<CorrespondenceStatusEntity>(s => 
+                        s.CorrespondenceId == correspondenceId && 
+                        s.Status == CorrespondenceStatus.Failed && 
+                        s.StatusText.Contains("missing required roles")),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+
+            _slackClientMock.Verify(
+                x => x.PostAsync(It.Is<SlackMessage>(m => m.Text.Contains("Correspondence failed"))),
                 Times.Once);
         }
     }
