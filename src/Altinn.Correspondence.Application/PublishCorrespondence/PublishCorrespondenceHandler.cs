@@ -255,7 +255,10 @@ public class PublishCorrespondenceHandler(
             try
             {
                 details = await brregService.GetOrganizationDetailsAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
-                roles = await brregService.GetOrganizationRolesAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
+                if (correspondence.IsConfidential)
+                {
+                    roles = await brregService.GetOrganizationRolesAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
+                }
             }
             catch (BrregNotFoundException)
             {
