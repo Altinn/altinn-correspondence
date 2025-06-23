@@ -79,7 +79,7 @@ namespace Altinn.Correspondence.Tests.Brreg
                 });
 
             // Act
-            var result = await _service.GetOrganizationRolesAsync(organizationNumber);
+            var result = await _service.GetOrganizationRoles(organizationNumber);
 
             // Assert
             Assert.NotNull(result);
@@ -112,7 +112,7 @@ namespace Altinn.Correspondence.Tests.Brreg
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<BrregNotFoundException>(
-                () => _service.GetOrganizationRolesAsync(organizationNumber));
+                () => _service.GetOrganizationRoles(organizationNumber));
             
             Assert.Equal(organizationNumber, exception.OrganizationNumber);
             Assert.Contains(organizationNumber, exception.Message);
@@ -139,7 +139,7 @@ namespace Altinn.Correspondence.Tests.Brreg
                 });
 
             // Act & Assert
-            await Assert.ThrowsAsync<HttpRequestException>(() => _service.GetOrganizationRolesAsync(organizationNumber));
+            await Assert.ThrowsAsync<HttpRequestException>(() => _service.GetOrganizationRoles(organizationNumber));
         }
 
         [Fact]
@@ -172,7 +172,7 @@ namespace Altinn.Correspondence.Tests.Brreg
                 });
 
             // Act
-            var result = await _service.GetOrganizationDetailsAsync(organizationNumber);
+            var result = await _service.GetOrganizationDetails(organizationNumber);
 
             // Assert
             Assert.NotNull(result);
@@ -204,7 +204,7 @@ namespace Altinn.Correspondence.Tests.Brreg
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<BrregNotFoundException>(
-                () => _service.GetOrganizationDetailsAsync(organizationNumber));
+                () => _service.GetOrganizationDetails(organizationNumber));
             
             Assert.Equal(organizationNumber, exception.OrganizationNumber);
             Assert.Contains(organizationNumber, exception.Message);
@@ -231,7 +231,7 @@ namespace Altinn.Correspondence.Tests.Brreg
                 });
 
             // Act & Assert
-            await Assert.ThrowsAsync<HttpRequestException>(() => _service.GetOrganizationDetailsAsync(organizationNumber));
+            await Assert.ThrowsAsync<HttpRequestException>(() => _service.GetOrganizationDetails(organizationNumber));
         }
 
         [Fact]
@@ -265,7 +265,7 @@ namespace Altinn.Correspondence.Tests.Brreg
                 });
 
             // Act
-            var result = await _service.GetSubOrganizationDetailsAsync(organizationNumber);
+            var result = await _service.GetSubOrganizationDetails(organizationNumber);
 
             // Assert
             Assert.NotNull(result);
@@ -298,7 +298,7 @@ namespace Altinn.Correspondence.Tests.Brreg
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<BrregNotFoundException>(
-                () => _service.GetSubOrganizationDetailsAsync(organizationNumber));
+                () => _service.GetSubOrganizationDetails(organizationNumber));
             
             Assert.Equal(organizationNumber, exception.OrganizationNumber);
             Assert.Contains(organizationNumber, exception.Message);
@@ -325,7 +325,7 @@ namespace Altinn.Correspondence.Tests.Brreg
                 });
 
             // Act & Assert
-            await Assert.ThrowsAsync<HttpRequestException>(() => _service.GetSubOrganizationDetailsAsync(organizationNumber));
+            await Assert.ThrowsAsync<HttpRequestException>(() => _service.GetSubOrganizationDetails(organizationNumber));
         }
     }
 }

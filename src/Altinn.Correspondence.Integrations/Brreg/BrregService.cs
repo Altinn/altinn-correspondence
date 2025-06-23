@@ -30,7 +30,7 @@ namespace Altinn.Correspondence.Integrations.Brreg
             }
         }
 
-        public async Task<OrganizationRoles> GetOrganizationRolesAsync(string organizationNumber, CancellationToken cancellationToken = default)
+        public async Task<OrganizationRoles> GetOrganizationRoles(string organizationNumber, CancellationToken cancellationToken = default)
         {
             var endpoint = $"enheter/{organizationNumber}/roller";
             var response = await _httpClient.GetAsync(endpoint, cancellationToken);
@@ -60,7 +60,7 @@ namespace Altinn.Correspondence.Integrations.Brreg
             return rolesResponse;
         }
 
-        public async Task<OrganizationDetails> GetOrganizationDetailsAsync(string organizationNumber, CancellationToken cancellationToken = default)
+        public async Task<OrganizationDetails> GetOrganizationDetails(string organizationNumber, CancellationToken cancellationToken = default)
         {
             var endpoint = $"enheter/{organizationNumber}";
             var response = await _httpClient.GetAsync(endpoint, cancellationToken);
@@ -90,7 +90,7 @@ namespace Altinn.Correspondence.Integrations.Brreg
             return detailsResponse;
         }
 
-        public async Task<SubOrganizationDetails> GetSubOrganizationDetailsAsync(string organizationNumber, CancellationToken cancellationToken = default)
+        public async Task<SubOrganizationDetails> GetSubOrganizationDetails(string organizationNumber, CancellationToken cancellationToken = default)
         {
             var endpoint = $"underenheter/{organizationNumber}";
             var response = await _httpClient.GetAsync(endpoint, cancellationToken);

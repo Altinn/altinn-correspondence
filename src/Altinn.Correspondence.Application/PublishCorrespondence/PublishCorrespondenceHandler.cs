@@ -98,7 +98,7 @@ public class PublishCorrespondenceHandler(
         bool OrganizationNotFoundInBrreg = false;
         if (correspondence.GetRecipientUrn().WithoutPrefix().IsOrganizationNumber())
         {
-            (details, roles, OrganizationNotFoundInBrreg) = await GetOrganizationDetailsAndRolesAsync(correspondence, cancellationToken);
+            (details, roles, OrganizationNotFoundInBrreg) = await GetOrganizationDetailsAndRoles(correspondence, cancellationToken);
         }
 
         var errorMessage = "";
@@ -240,7 +240,7 @@ public class PublishCorrespondenceHandler(
         return false;
     }
 
-    private async Task<(OrganizationDetails?, OrganizationRoles?, bool)> GetOrganizationDetailsAndRolesAsync(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
+    private async Task<(OrganizationDetails?, OrganizationRoles?, bool)> GetOrganizationDetailsAndRoles(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
     {
         OrganizationDetails? details = null;
         OrganizationRoles? roles = null;
@@ -249,21 +249,21 @@ public class PublishCorrespondenceHandler(
         {
             try
             {
-                details = await brregService.GetOrganizationDetailsAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
+                details = await brregService.GetOrganizationDetails(correspondence.Recipient.WithoutPrefix(), cancellationToken);
                 if (correspondence.IsConfidential)
                 {
-                    roles = await brregService.GetOrganizationRolesAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
+                    roles = await brregService.GetOrganizationRoles(correspondence.Recipient.WithoutPrefix(), cancellationToken);
                 }
             }
             catch (BrregNotFoundException)
             {
                 try
                 {
-                    var subOrganizationDetails = await brregService.GetSubOrganizationDetailsAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
+                    var subOrganizationDetails = await brregService.GetSubOrganizationDetails(correspondence.Recipient.WithoutPrefix(), cancellationToken);
                     details = subOrganizationDetails;
                     if (correspondence.IsConfidential && subOrganizationDetails.ParentOrganizationNumber != null)
                     {
-                        roles = await brregService.GetOrganizationRolesAsync(subOrganizationDetails.ParentOrganizationNumber, cancellationToken);
+                        roles = await brregService.GetOrganizationRoles(subOrganizationDetails.ParentOrganizationNumber, cancellationToken);
                     }
                     else
                     {

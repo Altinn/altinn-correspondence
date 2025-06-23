@@ -20,7 +20,7 @@ namespace Altinn.Correspondence.Tests.Brreg
             var organizationNumber = "123456789";
 
             // Act
-            var result = await _service.GetOrganizationDetailsAsync(organizationNumber);
+            var result = await _service.GetOrganizationDetails(organizationNumber);
 
             // Assert
             Assert.NotNull(result);
@@ -37,7 +37,7 @@ namespace Altinn.Correspondence.Tests.Brreg
             var organizationNumber = "123456789";
 
             // Act
-            var result = await _service.GetOrganizationRolesAsync(organizationNumber);
+            var result = await _service.GetOrganizationRoles(organizationNumber);
 
             // Assert
             Assert.NotNull(result);

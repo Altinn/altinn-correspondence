@@ -11,7 +11,7 @@ namespace Altinn.Correspondence.Integrations.Brreg
     /// </remarks>
     public class BrregDevService() : IBrregService
     {
-        public Task<OrganizationDetails> GetOrganizationDetailsAsync(string organizationNumber, CancellationToken cancellationToken = default)
+        public Task<OrganizationDetails> GetOrganizationDetails(string organizationNumber, CancellationToken cancellationToken = default)
         {
             // Returns mock data for development testing
             var details = new OrganizationDetails
@@ -25,7 +25,7 @@ namespace Altinn.Correspondence.Integrations.Brreg
             return Task.FromResult(details);
         }
 
-        public Task<SubOrganizationDetails> GetSubOrganizationDetailsAsync(string organizationNumber, CancellationToken cancellationToken = default)
+        public Task<SubOrganizationDetails> GetSubOrganizationDetails(string organizationNumber, CancellationToken cancellationToken = default)
         {
             // Returns mock data for development testing
             var details = new SubOrganizationDetails
@@ -40,7 +40,7 @@ namespace Altinn.Correspondence.Integrations.Brreg
             return Task.FromResult(details);
         }
 
-        public Task<OrganizationRoles> GetOrganizationRolesAsync(string organizationNumber, CancellationToken cancellationToken = default)
+        public Task<OrganizationRoles> GetOrganizationRoles(string organizationNumber, CancellationToken cancellationToken = default)
         {
             // Returns mock data for development testing
             var roles = new OrganizationRoles();

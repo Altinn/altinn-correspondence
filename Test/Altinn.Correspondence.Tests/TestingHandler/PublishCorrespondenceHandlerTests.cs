@@ -135,7 +135,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private void SetupBrregServiceWithRoles(string organizationNumber, OrganizationRoles organizationRoles)
         {
             _brregServiceMock
-                .Setup(x => x.GetOrganizationRolesAsync(organizationNumber, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetOrganizationRoles(organizationNumber, It.IsAny<CancellationToken>()))
                 .Returns((string id, CancellationToken token) =>
                     Task.FromResult(organizationRoles));
         }
@@ -143,7 +143,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private void SetupBrregServiceWithOrgDetails(string organizationNumber, bool isBankrupt = false)
         {
             _brregServiceMock
-                .Setup(x => x.GetOrganizationDetailsAsync(organizationNumber, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetOrganizationDetails(organizationNumber, It.IsAny<CancellationToken>()))
                 .Returns((string id, CancellationToken token) =>
                     Task.FromResult(new OrganizationDetails { IsBankrupt = isBankrupt }));
         }
@@ -151,7 +151,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private void SetupBrregServiceWithSubOrgDetails(string organizationNumber, string parentOrganizationNumber, bool isBankrupt = false)
         {
             _brregServiceMock
-                .Setup(x => x.GetSubOrganizationDetailsAsync(organizationNumber, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetSubOrganizationDetails(organizationNumber, It.IsAny<CancellationToken>()))
                 .Returns((string id, CancellationToken token) =>
                     Task.FromResult(new SubOrganizationDetails { IsBankrupt = isBankrupt, ParentOrganizationNumber = parentOrganizationNumber }));
         }
@@ -159,7 +159,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private void SetupBrregServiceToThrowNotFoundForOrg(string organizationNumber)
         {
             _brregServiceMock
-                .Setup(x => x.GetOrganizationDetailsAsync(organizationNumber, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetOrganizationDetails(organizationNumber, It.IsAny<CancellationToken>()))
                 .Throws(new BrregNotFoundException(organizationNumber));
         }
 
@@ -272,7 +272,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             SetupBrregServiceToThrowNotFoundForOrg(organizationNumber);
 
             _brregServiceMock
-                .Setup(x => x.GetSubOrganizationDetailsAsync(organizationNumber, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetSubOrganizationDetails(organizationNumber, It.IsAny<CancellationToken>()))
                 .Throws(new BrregNotFoundException(organizationNumber));
 
             // Act
