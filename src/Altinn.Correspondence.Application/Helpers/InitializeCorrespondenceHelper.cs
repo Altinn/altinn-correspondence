@@ -78,6 +78,10 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return CorrespondenceErrors.MessageBodyIsNotMarkdown;
             }
+            if (string.IsNullOrWhiteSpace(content.MessageSummary))
+            {
+                return CorrespondenceErrors.MessageSummaryEmpty;
+            }
             if (!TextValidation.ValidateMarkdown(content.MessageSummary))
             {
                 return CorrespondenceErrors.MessageSummaryIsNotMarkdown;

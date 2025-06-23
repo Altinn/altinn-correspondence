@@ -59,6 +59,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1019: The Content field must be provided for the correspondence</li>
         /// <li>1020: Message title cannot be empty</li>
         /// <li>1021: Message body cannot be empty</li>
+        /// <li>1022: Message summary cannot be empty</li>
         /// <li>1023: Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)</li>
         /// <li>1033: The idempotency key must be a valid non-empty GUID</li>
         /// <li>1035: Reply options must be well-formed URIs and HTTPS with a max length of 255 characters</li>
@@ -149,6 +150,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1019: The Content field must be provided for the correspondence</li>
         /// <li>1020: Message title cannot be empty</li>
         /// <li>1021: Message body cannot be empty</li>
+        /// <li>1022: Message summary cannot be empty</li>
         /// <li>1023: Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)</li>
         /// <li>1033: The idempotency key must be a valid non-empty GUID</li>
         /// <li>1035: Reply options must be well-formed URIs and HTTPS with a max length of 255 characters</li>
