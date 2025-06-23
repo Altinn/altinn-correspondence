@@ -63,7 +63,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Deploy to ${{ inputs.environment }}
+    - name: Deploy to environment
       uses: ./.github/actions/deploy-to-environment
       with:
         environment: ${{ inputs.environment }}
