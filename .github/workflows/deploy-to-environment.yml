@@ -20,6 +20,8 @@ on:
           - at23
           - at24
 
+run-name: Deploy to ${{ inputs.environment }}
+
 jobs:
   get-version: 
     name: Get version
@@ -61,7 +63,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Deploy to environment
+    - name: Deploy to ${{ inputs.environment }}
       uses: ./.github/actions/deploy-to-environment
       with:
         environment: ${{ inputs.environment }}
