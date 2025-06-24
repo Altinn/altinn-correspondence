@@ -2,8 +2,6 @@ targetScope = 'subscription'
 @minLength(3)
 param location string
 @secure()
-param correspondencePgAdminPassword string
-@secure()
 param sourceKeyVaultName string
 @secure()
 param tenantId string
@@ -117,8 +115,6 @@ module postgresql '../modules/postgreSql/create.bicep' = {
     namePrefix: namePrefix
     location: location
     environmentKeyVaultName: sourceKeyVaultName
-    srcKeyVault: srcKeyVault
-    administratorLoginPassword: correspondencePgAdminPassword
     tenantId: tenantId
     prodLikeEnvironment: prodLikeEnvironment
   }
