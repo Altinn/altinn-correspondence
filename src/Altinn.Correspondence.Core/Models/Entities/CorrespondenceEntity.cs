@@ -13,6 +13,8 @@ namespace Altinn.Correspondence.Core.Models.Entities
     [Index(nameof(IsMigrating))]
     [Index(nameof(Altinn2CorrespondenceId), IsUnique = true)]
     [Index(nameof(PartyId))]
+    [Index(nameof(Recipient), nameof(RequestedPublishTime), nameof(Id), IsDescending = new [] {false, true, false})]
+
     public class CorrespondenceEntity
     {
         [Key]
