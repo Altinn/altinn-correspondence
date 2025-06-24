@@ -107,7 +107,6 @@ var srcKeyVault = {
   resourceGroupName: resourceGroupName
 }
 
-var correspondenceAdminPasswordSecretName = 'correspondence-admin-password'
 module postgresql '../modules/postgreSql/create.bicep' = {
   scope: resourceGroup
   name: 'postgresql'
@@ -119,7 +118,6 @@ module postgresql '../modules/postgreSql/create.bicep' = {
     location: location
     environmentKeyVaultName: sourceKeyVaultName
     srcKeyVault: srcKeyVault
-    srcSecretName: correspondenceAdminPasswordSecretName
     administratorLoginPassword: correspondencePgAdminPassword
     tenantId: tenantId
     prodLikeEnvironment: prodLikeEnvironment
