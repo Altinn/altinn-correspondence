@@ -23,11 +23,6 @@ public class OnBehalfOfAttribute : ValidationAttribute
             return new ValidationResult("OnBehalfOf must be a string");
         }
 
-        if (string.IsNullOrWhiteSpace(stringValue))
-        {
-            return new ValidationResult("OnBehalfOf cannot be empty");
-        }
-
         if (OrgRegex.IsMatch(stringValue))
         {
             return ValidationResult.Success;
