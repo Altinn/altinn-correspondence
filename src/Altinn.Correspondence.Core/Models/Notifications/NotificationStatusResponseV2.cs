@@ -36,7 +36,6 @@ public class RecipientStatus
     [JsonConverter(typeof(CaseInsensitiveEnumConverter<NotificationType>))]
     public NotificationType Type { get; set; }
     public string Destination { get; set; } = null!;
-    [JsonConverter(typeof(CaseInsensitiveEnumConverter<NotificationStatusV2>))]
     public NotificationStatusV2 Status { get; set; }
     public DateTimeOffset LastUpdate { get; set; }
 

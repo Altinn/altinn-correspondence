@@ -20,6 +20,8 @@ on:
           - at23
           - at24
 
+run-name: Deploy to ${{ inputs.environment }}
+
 jobs:
   get-version: 
     name: Get version
