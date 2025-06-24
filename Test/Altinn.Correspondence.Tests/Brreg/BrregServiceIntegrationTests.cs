@@ -45,7 +45,7 @@ namespace Altinn.Correspondence.Tests.Brreg
             var requiredRoles = new List<string> { "BEST", "DAGL", "DTPR", "DTSO", "INNH", "LEDE"}; // Required roles for confidential correspondence
 
             // Act
-            var result = await _service.GetOrganizationRolesAsync(organizationNumber);
+            var result = await _service.GetOrganizationRoles(organizationNumber);
 
             // Assert
             Assert.NotNull(result);
@@ -63,7 +63,7 @@ namespace Altinn.Correspondence.Tests.Brreg
             var requiredRoles = new List<string> { "BEST", "DAGL", "DTPR", "DTSO", "INNH", "LEDE"}; // Required roles for confidential correspondence
 
             // Act
-            var result = await _service.GetOrganizationRolesAsync(organizationNumber);
+            var result = await _service.GetOrganizationRoles(organizationNumber);
 
             // Assert
             Assert.NotNull(result);
@@ -79,7 +79,7 @@ namespace Altinn.Correspondence.Tests.Brreg
             var organizationNumber = "312585065";
 
             // Act
-            var result = await _service.GetOrganizationDetailsAsync(organizationNumber);
+            var result = await _service.GetOrganizationDetails(organizationNumber);
 
             // Assert
             Assert.NotNull(result);
@@ -98,7 +98,7 @@ namespace Altinn.Correspondence.Tests.Brreg
 
             // Act & Assert
             await Assert.ThrowsAsync<BrregNotFoundException>(() => 
-                _service.GetOrganizationDetailsAsync(organizationNumber));
+                _service.GetOrganizationDetails(organizationNumber));
         }
 
         [Fact]
@@ -109,7 +109,7 @@ namespace Altinn.Correspondence.Tests.Brreg
 
             // Act & Assert
             await Assert.ThrowsAsync<BrregNotFoundException>(() => 
-                _service.GetOrganizationDetailsAsync(organizationNumber));
+                _service.GetOrganizationDetails(organizationNumber));
         }
 
         [Fact]
@@ -119,7 +119,7 @@ namespace Altinn.Correspondence.Tests.Brreg
             var organizationNumber = "315649978";
 
             // Act
-            var result = await _service.GetSubOrganizationDetailsAsync(organizationNumber);
+            var result = await _service.GetSubOrganizationDetails(organizationNumber);
 
             // Assert
             Assert.NotNull(result);
@@ -138,7 +138,7 @@ namespace Altinn.Correspondence.Tests.Brreg
 
             // Act & Assert
             await Assert.ThrowsAsync<BrregNotFoundException>(() => 
-                _service.GetSubOrganizationDetailsAsync(organizationNumber));
+                _service.GetSubOrganizationDetails(organizationNumber));
         }
 
         public void Dispose()

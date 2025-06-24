@@ -130,7 +130,7 @@ resource maxPreparedTransactions 'Microsoft.DBforPostgreSQL/flexibleServers/conf
 resource maxParallellWorkers 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
   name: 'max_parallel_workers'
   parent: postgres
-  dependsOn: [database, maintenanceWorkMemConfiguration]
+  dependsOn: [database, maxPreparedTransactions]
   properties: {
     value: '32'
     source: 'user-override'
@@ -170,7 +170,7 @@ resource parallelTupleCost 'Microsoft.DBforPostgreSQL/flexibleServers/configurat
 resource sessionReplicationRole 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
   name: 'session_replication_role'
   parent: postgres
-  dependsOn: [database, maintenanceWorkMemConfiguration]
+  dependsOn: [database, parallelTupleCost]
   properties: {
     value: 'Replica'
     source: 'user-override'
