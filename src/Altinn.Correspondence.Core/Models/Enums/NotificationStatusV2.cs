@@ -9,7 +9,11 @@ using Microsoft.Extensions.Logging.Abstractions;
 /// </summary>
 public class NotificationStatusV2Converter : JsonConverter<NotificationStatusV2>
 {
-    private static readonly ILogger _logger = NullLogger.Instance;
+    private readonly ILogger<NotificationStatusV2Converter> _logger;
+    public NotificationStatusV2Converter(ILogger<NotificationStatusV2Converter>? logger = null)
+    {
+        _logger = logger ?? NullLogger<NotificationStatusV2Converter>.Instance;
+    }
 
     public override NotificationStatusV2 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
