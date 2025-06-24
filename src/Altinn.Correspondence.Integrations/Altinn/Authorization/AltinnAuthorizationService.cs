@@ -127,6 +127,24 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             _logger.LogWarning("Authorization service disabled");
             return true;
         }
+
+        // New bypass rule: Check if user has altinn:serviceowner scope and matches resource service owner
+        var serviceOwnerScope = user.Claims.FirstOrDefault(c => c.Type == "scope" && c.Value.Contains("altinn:serviceowner"));
+        if (serviceOwnerScope != null)
+        {
+            var consumerOrg = user.Claims.FirstOrDefault(c => c.Type == "consumer.organization")?.Value;
+            if (!string.IsNullOrWhiteSpace(consumerOrg))
+            {
+                var resourceServiceOwner = await _resourceRepository.GetServiceOwnerNameOfResource(resourceId, cancellationToken);
+                if (!string.IsNullOrWhiteSpace(resourceServiceOwner) && consumerOrg.Equals(resourceServiceOwner, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogInformation("Bypass granted for service owner: {serviceOwner} accessing resource: {resourceId}", 
+                        consumerOrg.SanitizeForLogging(), resourceId.SanitizeForLogging());
+                    return true; // Allow access without PDP call
+                }
+            }
+        }
+
         var serviceOwnerId = await _resourceRepository.GetServiceOwnerNameOfResource(resourceId, cancellationToken);
         if (string.IsNullOrWhiteSpace(serviceOwnerId))
         {

@@ -40,6 +40,7 @@ public class InitializeCorrespondencesHandler(
         public Guid PartyUuid { get; set; }
         public List<string> ReservedRecipients { get; set; } = new();
         public List<Party> RecipientDetails { get; set; } = new();
+        public string ServiceOwnerOrgNumber { get; set; } = string.Empty;
     }
 
     private async Task<OneOf<ValidatedData, Error>> ValidatePrepareDataAndUploadAttachments(
@@ -58,12 +59,21 @@ public class InitializeCorrespondencesHandler(
             }
         }
 
+        var serviceOwnerOrgNumber = await resourceRegistryService.GetServiceOwnerOrganizationNumber(request.Correspondence.ResourceId, cancellationToken) ?? string.Empty;
+        if (serviceOwnerOrgNumber is null || serviceOwnerOrgNumber == string.Empty)
+        {
+            logger.LogError("Service owner/sender's organization number (9 digits) not found for resource {ResourceId}", request.Correspondence.ResourceId);
+            return CorrespondenceErrors.ServiceOwnerOrgNumberNotFound;
+        }
+        validatedData.ServiceOwnerOrgNumber = serviceOwnerOrgNumber;
+
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
             request.Correspondence.ResourceId,
-            request.Correspondence.Sender.WithoutPrefix(),
+            validatedData.ServiceOwnerOrgNumber.WithoutPrefix(),
             null,
             cancellationToken);
+            
         if (!hasAccess)
         {
             logger.LogWarning("Access denied for resource {ResourceId}", request.Correspondence.ResourceId);
@@ -131,7 +141,7 @@ public class InitializeCorrespondencesHandler(
         var uploadAttachmentMetadata = request.Correspondence.Content.Attachments;
 
         logger.LogDebug("Validating {ExistingCount} existing attachments", existingAttachmentIds.Count);
-        var getExistingAttachments = await initializeCorrespondenceHelper.GetExistingAttachments(existingAttachmentIds, request.Correspondence.Sender);
+        var getExistingAttachments = await initializeCorrespondenceHelper.GetExistingAttachments(existingAttachmentIds, validatedData.ServiceOwnerOrgNumber);
         if (getExistingAttachments.IsT1) return getExistingAttachments.AsT1;
         var existingAttachments = getExistingAttachments.AsT0;
         if (existingAttachments.Count != existingAttachmentIds.Count)
@@ -170,7 +180,7 @@ public class InitializeCorrespondencesHandler(
             foreach (var attachment in uploadAttachmentMetadata)
             {
                 logger.LogDebug("Processing new attachment {AttachmentId}", attachment.AttachmentId);
-                var processedAttachment = await initializeCorrespondenceHelper.ProcessNewAttachment(attachment, partyUuid, cancellationToken);
+                var processedAttachment = await initializeCorrespondenceHelper.ProcessNewAttachment(attachment, partyUuid, validatedData.ServiceOwnerOrgNumber, cancellationToken);
                 validatedData.AttachmentsToBeUploaded.Add(processedAttachment);
             }
         }
@@ -323,13 +333,7 @@ public class InitializeCorrespondencesHandler(
             request.Correspondence.ResourceId.SanitizeForLogging());
         
         var correspondences = new List<CorrespondenceEntity>();
-        var serviceOwnerOrgNumber = await resourceRegistryService.GetServiceOwnerOrganizationNumber(request.Correspondence.ResourceId, cancellationToken) ?? string.Empty;
-        if (serviceOwnerOrgNumber is null || serviceOwnerOrgNumber == string.Empty)
-        {
-            logger.LogError("Service owner/sender's organization number (9 digits) not found for resource {ResourceId}", request.Correspondence.ResourceId);
-            return CorrespondenceErrors.ServiceOwnerOrgNumberNotFound;
-        }
-        serviceOwnerOrgNumber = serviceOwnerOrgNumber.WithUrnPrefix();
+        var serviceOwnerOrgNumber = validatedData.ServiceOwnerOrgNumber;
         foreach (var recipient in request.Recipients)
         {
             var isReserved = validatedData.ReservedRecipients.Contains(recipient.WithoutPrefix());

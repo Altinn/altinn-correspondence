@@ -276,7 +276,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         }
 
-        [Fact]
+        [Fact(Skip = "Not applicable anymore. Sender is now automatically determined from the Resource Registry based on the resourceId.")]
         public async Task InitializeCorrespondence_With_Invalid_Sender_Returns_BadRequest()
         {
             var payload = new CorrespondenceBuilder()
@@ -648,7 +648,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 var resourceRegistryService = new Mock<IResourceRegistryService>();
                 resourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-broker-test-resource");
                 resourceRegistryService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("BrokerService");
-                services.AddSingleton(resourceRegistryService.Object);
+                resourceRegistryService.Setup(x => x.GetServiceOwnerOrganizationNumber(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("991825827");
+                services.AddScoped(_ => resourceRegistryService.Object);
             });
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()

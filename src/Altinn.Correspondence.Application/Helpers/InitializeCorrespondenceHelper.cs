@@ -261,12 +261,14 @@ namespace Altinn.Correspondence.Application.Helpers
                 logger.LogInformation($"Social security number without urn prefix detected for recipient in creation of correspondece. Adding {UrnConstants.PersonIdAttribute} prefix to recipient.");
             }
             recipient = recipient.WithoutPrefix().WithUrnPrefix();
+
+            var sender = serviceOwnerOrgNumber.WithoutPrefix().WithUrnPrefix();
+
             return new CorrespondenceEntity
             {
                 ResourceId = request.Correspondence.ResourceId,
                 Recipient = recipient,
-                // serviceOwnerOrgNumber always has the URN prefix here from the caller
-                Sender = serviceOwnerOrgNumber,
+                Sender = sender,
                 SendersReference = request.Correspondence.SendersReference,
                 MessageSender = request.Correspondence.MessageSender,
                 Content = new CorrespondenceContentEntity
@@ -388,7 +390,7 @@ namespace Altinn.Correspondence.Application.Helpers
             return null;
         }
 
-        public async Task<AttachmentEntity> ProcessNewAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, Guid partyUuid, CancellationToken cancellationToken)
+        public async Task<AttachmentEntity> ProcessNewAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, Guid partyUuid, string serviceOwnerOrgNumber, CancellationToken cancellationToken)
         {
             var status = new List<AttachmentStatusEntity>(){
                 new AttachmentStatusEntity
@@ -401,11 +403,11 @@ namespace Altinn.Correspondence.Application.Helpers
             };
             var attachment = correspondenceAttachment.Attachment!;
             attachment.Statuses = status;
-            if (attachment.Sender.StartsWith("0192:"))
-            {
-                attachment.Sender = $"{UrnConstants.OrganizationNumberAttribute}:{attachment.Sender.WithoutPrefix()}";
-                logger.LogInformation($"'0192:' prefix detected for sender in initialization of attachment. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
-            }
+            
+            // Set the Sender from the service owner organization number
+            var sender = serviceOwnerOrgNumber.WithoutPrefix().WithUrnPrefix();
+            attachment.Sender = sender;
+            
             return await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
         }
 
