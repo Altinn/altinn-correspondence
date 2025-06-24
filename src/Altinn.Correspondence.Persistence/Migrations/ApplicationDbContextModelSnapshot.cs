@@ -264,6 +264,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("Sender");
 
+                    b.HasIndex("Recipient", "RequestedPublishTime", "Id")
+                        .IsDescending(false, true, false);
+
                     b.ToTable("Correspondences", "correspondence");
                 });
 

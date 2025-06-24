@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250624102016_CompositeIndexForLegacySearch")]
-    partial class CompositeIndexForLegacySearch
+    [Migration("20250624104708_AddLegacyCompositeIndex")]
+    partial class AddLegacyCompositeIndex
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -266,6 +266,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasIndex("ResourceId");
 
                     b.HasIndex("Sender");
+
+                    b.HasIndex("Recipient", "RequestedPublishTime", "Id")
+                        .IsDescending(false, true, false);
 
                     b.ToTable("Correspondences", "correspondence");
                 });
