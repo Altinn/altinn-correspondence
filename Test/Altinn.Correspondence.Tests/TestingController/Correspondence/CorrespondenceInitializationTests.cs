@@ -186,7 +186,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response1.StatusCode);
-            Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, response2.StatusCode);
             Assert.Equal(HttpStatusCode.BadRequest, response3.StatusCode);
         }
 
