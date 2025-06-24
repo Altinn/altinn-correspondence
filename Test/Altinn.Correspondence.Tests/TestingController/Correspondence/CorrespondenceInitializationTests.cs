@@ -276,18 +276,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         }
 
-        [Fact(Skip = "Not applicable anymore. Sender is now automatically determined from the Resource Registry based on the resourceId.")]
-        public async Task InitializeCorrespondence_With_Invalid_Sender_Returns_BadRequest()
-        {
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithSender("invalid-sender")
-                .Build();
-
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-        }
-
         [Theory]
         [InlineData("invalid-recipient")]
         [InlineData("123456789")]

@@ -2,6 +2,7 @@
 using Altinn.Common.PEP.Helpers;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Common.Helpers.Models;
 
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
@@ -16,6 +17,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Authorization;
 
@@ -120,7 +122,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         return validationResult;
     }
 
-    private async Task<bool?> EvaluateBypassConditions(ClaimsPrincipal? user, string resourceId, CancellationToken cancellationToken)
+    private async Task<bool?> EvaluateBypassConditions(ClaimsPrincipal user, string resourceId, CancellationToken cancellationToken)
     {
         if (_httpClient.BaseAddress is null)
         {
@@ -129,14 +131,29 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         }
 
         // New bypass rule: Check if user has altinn:serviceowner scope and matches resource service owner
-        var serviceOwnerScope = user.Claims.FirstOrDefault(c => c.Type == "scope" && c.Value.Contains("altinn:serviceowner"));
+        var serviceOwnerScope = user.Claims.FirstOrDefault(c => c.Type == "scope" && c.Value.Split(' ').Contains("altinn:serviceowner"));
         if (serviceOwnerScope != null)
         {
-            var consumerOrg = user.Claims.FirstOrDefault(c => c.Type == "consumer.organization")?.Value;
+            var consumerClaim = user.Claims.FirstOrDefault(c => c.Type == "consumer")?.Value;
+            var consumerOrg = string.Empty;
+            
+            if (!string.IsNullOrWhiteSpace(consumerClaim))
+            {
+                try
+                {
+                    var consumerObject = JsonSerializer.Deserialize<TokenConsumer>(consumerClaim);
+                    consumerOrg = consumerObject?.ID.WithoutPrefix() ?? string.Empty;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to parse consumer claim JSON");
+                }
+            }
+            var serviceOwnerId = await _resourceRepository.GetServiceOwnerOrganizationNumber(resourceId, cancellationToken);
+
             if (!string.IsNullOrWhiteSpace(consumerOrg))
             {
-                var resourceServiceOwner = await _resourceRepository.GetServiceOwnerNameOfResource(resourceId, cancellationToken);
-                if (!string.IsNullOrWhiteSpace(resourceServiceOwner) && consumerOrg.Equals(resourceServiceOwner, StringComparison.OrdinalIgnoreCase))
+                if (!string.IsNullOrWhiteSpace(serviceOwnerId) && consumerOrg.Equals(serviceOwnerId, StringComparison.OrdinalIgnoreCase))
                 {
                     _logger.LogInformation("Bypass granted for service owner: {serviceOwner} accessing resource: {resourceId}", 
                         consumerOrg.SanitizeForLogging(), resourceId.SanitizeForLogging());
@@ -145,8 +162,8 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             }
         }
 
-        var serviceOwnerId = await _resourceRepository.GetServiceOwnerNameOfResource(resourceId, cancellationToken);
-        if (string.IsNullOrWhiteSpace(serviceOwnerId))
+        var serviceOwnerName = await _resourceRepository.GetServiceOwnerNameOfResource(resourceId, cancellationToken);
+        if (string.IsNullOrWhiteSpace(serviceOwnerName))
         {
             _logger.LogWarning("Service owner not found for resource");
             return false;
