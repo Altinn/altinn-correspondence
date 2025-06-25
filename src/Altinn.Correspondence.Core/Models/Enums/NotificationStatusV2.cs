@@ -9,30 +9,16 @@ public class NotificationStatusV2Converter : JsonConverter<NotificationStatusV2>
 {
     public override NotificationStatusV2 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        try
-        {
-            if (reader.TokenType != JsonTokenType.String)
-            {
-                return NotificationStatusV2.Unknown;
-            }
+        if (reader.TokenType != JsonTokenType.String)
+            return NotificationStatusV2.Unknown;
 
-            string enumValue = reader.GetString();
-            if (string.IsNullOrEmpty(enumValue))
-            {
-                return NotificationStatusV2.Unknown;
-            }
+        var enumValue = reader.GetString();
+        if (string.IsNullOrEmpty(enumValue) || int.TryParse(enumValue, out _))
+            return NotificationStatusV2.Unknown;
 
-            if (Enum.TryParse<NotificationStatusV2>(enumValue, true, out NotificationStatusV2 result))
-            {
-                return result;
-            }
-        }
-        catch
-        {
-            // Silently handle any parsing exceptions
-        }
-        
-        return NotificationStatusV2.Unknown;
+        return Enum.TryParse<NotificationStatusV2>(enumValue, true, out var result)
+            ? result
+            : NotificationStatusV2.Unknown;
     }
 
     public override void Write(Utf8JsonWriter writer, NotificationStatusV2 value, JsonSerializerOptions options)
