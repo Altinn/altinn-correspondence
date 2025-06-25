@@ -65,7 +65,6 @@ namespace Altinn.Correspondence.API.Controllers
         )
         {
             Guid attachmentId = Guid.NewGuid();
-            _logger.LogInformation("{AttachmentId};Uploading attachment", attachmentId.ToString());
 
             Request.EnableBuffering();
             var attachment = new MigrateAttachmentRequest()
