@@ -15,80 +15,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten;
 
 public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IOptions<GeneralSettings> generalSettings, ILogger<DialogportenService> logger, IIdempotencyKeyRepository _idempotencyKeyRepository) : IDialogportenService
 {
-    /// <summary>
-    /// Create Dialog in Dialogportern without creating any events. Used in regards to old correspondences being migrated from Altinn 2 to Altinn 3.
-    /// </summary>
-    public async Task<string> SilentCreateCorrespondenceDialog(Guid correspondenceId)
-    {
-        var cancellationTokenSource = new CancellationTokenSource();
-        var cancellationToken = cancellationTokenSource.Token;
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
-        if (correspondence is null)
-        {
-            logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
-            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
-        }
-
-        logger.LogInformation("CreateCorrespondenceDialog for correspondence {correspondenceId}", correspondence.Id);
-
-        // Create idempotency key for open dialog activity
-        var openActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
-        var openIdempotencyKey = new IdempotencyKeyEntity
-        {
-            Id = openActivityId,
-            CorrespondenceId = correspondence.Id,
-            AttachmentId = null, // No attachment for opened activity
-            StatusAction = StatusAction.Fetched,
-            IdempotencyType = IdempotencyType.DialogportenActivity
-        };
-        await _idempotencyKeyRepository.CreateAsync(openIdempotencyKey, cancellationToken);
-
-        // Create idempotency key for confirm activity if confirmation is needed
-        if (correspondence.IsConfirmationNeeded)
-        {
-            var confirmActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
-            var confirmIdempotencyKey = new IdempotencyKeyEntity
-            {
-                Id = confirmActivityId,
-                CorrespondenceId = correspondence.Id,
-                AttachmentId = null, // No attachment for confirm activity
-                StatusAction = StatusAction.Confirmed,
-                IdempotencyType = IdempotencyType.DialogportenActivity
-            };
-            await _idempotencyKeyRepository.CreateAsync(confirmIdempotencyKey, cancellationToken);
-        }
-
-        // Create idempotency keys for each attachment's download activity
-        var attachmentIdempotencyKeys = new List<IdempotencyKeyEntity>();
-        foreach (var attachment in correspondence.Content?.Attachments ?? Enumerable.Empty<CorrespondenceAttachmentEntity>())
-        {
-            var downloadActivityId = Uuid.NewDatabaseFriendly(UUIDNext.Database.PostgreSql);
-            var downloadIdempotencyKey = new IdempotencyKeyEntity
-            {
-                Id = downloadActivityId,
-                CorrespondenceId = correspondence.Id,
-                AttachmentId = attachment.AttachmentId,
-                StatusAction = StatusAction.AttachmentDownloaded
-            };
-            attachmentIdempotencyKeys.Add(downloadIdempotencyKey);
-        }
-        await _idempotencyKeyRepository.CreateRangeAsync(attachmentIdempotencyKeys, cancellationToken);
-
-        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl);
-        var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs?IsSilentUpdate=true", createDialogRequest, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
-        }
-
-        var dialogResponse = await response.Content.ReadFromJsonAsync<string>(cancellationToken);
-        if (dialogResponse is null)
-        {
-            throw new Exception("Dialogporten did not return a dialogId");
-        }
-        return dialogResponse;
-    }
-
     public async Task<string> CreateCorrespondenceDialog(Guid correspondenceId)
     {
         var cancellationTokenSource = new CancellationTokenSource();
@@ -254,13 +180,13 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 logger.LogError("Invalid attachment ID token for download activity on correspondence {correspondenceId}", correspondenceId);
                 throw new ArgumentException("Invalid attachment ID token", nameof(tokens));
             }
-            
+
             if (correspondence.Statuses.Count(s => s.Status == CorrespondenceStatus.AttachmentsDownloaded && s.StatusText.Contains(attachmentId.ToString())) >= 2)
             {
                 logger.LogInformation("Correspondence with id {correspondenceId} already has an AttachmentsDownloaded status for attachment {attachmentId}, skipping activity creation on Dialogporten", correspondenceId, attachmentId);
                 return;
             }
-            
+
             var existingIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
                 correspondence.Id,
                 attachmentId,
@@ -442,4 +368,77 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
         return dialogRequest;
     }
+
+    #region MigrationRelated    
+    /// <summary>
+    /// Create Dialog in Dialogportern without creating any events. Used in regards to old correspondences being migrated from Altinn 2 to Altinn 3.
+    /// </summary>
+    public async Task<string> CreateCorrespondenceDialogForMigratedCorrespondence(Guid correspondenceId, CorrespondenceEntity? correspondence, bool enableEvents = false)
+    {
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        if (correspondence is null)
+        {
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+
+        // Create idempotency key for open dialog activity
+        var openActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
+        var openIdempotencyKey = new IdempotencyKeyEntity
+        {
+            Id = openActivityId,
+            CorrespondenceId = correspondence.Id,
+            AttachmentId = null, // No attachment for opened activity
+            StatusAction = StatusAction.Fetched,
+            IdempotencyType = IdempotencyType.DialogportenActivity
+        };
+        await _idempotencyKeyRepository.CreateAsync(openIdempotencyKey, cancellationToken);
+
+        // Create idempotency key for confirm activity if confirmation is needed
+        if (correspondence.IsConfirmationNeeded)
+        {
+            var confirmActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
+            var confirmIdempotencyKey = new IdempotencyKeyEntity
+            {
+                Id = confirmActivityId,
+                CorrespondenceId = correspondence.Id,
+                AttachmentId = null, // No attachment for confirm activity
+                StatusAction = StatusAction.Confirmed,
+                IdempotencyType = IdempotencyType.DialogportenActivity
+            };
+            await _idempotencyKeyRepository.CreateAsync(confirmIdempotencyKey, cancellationToken);
+        }
+
+        // Create idempotency keys for each attachment's download activity
+        var attachmentIdempotencyKeys = new List<IdempotencyKeyEntity>();
+        foreach (var attachment in correspondence.Content?.Attachments ?? Enumerable.Empty<CorrespondenceAttachmentEntity>())
+        {
+            var downloadActivityId = Uuid.NewDatabaseFriendly(UUIDNext.Database.PostgreSql);
+            var downloadIdempotencyKey = new IdempotencyKeyEntity
+            {
+                Id = downloadActivityId,
+                CorrespondenceId = correspondence.Id,
+                AttachmentId = attachment.AttachmentId,
+                StatusAction = StatusAction.AttachmentDownloaded
+            };
+            attachmentIdempotencyKeys.Add(downloadIdempotencyKey);
+        }
+        await _idempotencyKeyRepository.CreateRangeAsync(attachmentIdempotencyKeys, cancellationToken);
+
+        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, true);
+        string updateType = enableEvents ? "" : "?IsSilentUpdate=true";
+        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs{updateType}", createDialogRequest, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        }
+
+        var dialogResponse = await response.Content.ReadFromJsonAsync<string>(cancellationToken);
+        if (dialogResponse is null)
+        {
+            throw new Exception("Dialogporten did not return a dialogId");
+        }
+        return dialogResponse;
+    }
+    #endregion
 }

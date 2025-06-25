@@ -7,6 +7,7 @@ using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Migration.Base;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
@@ -115,77 +116,6 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.Equal(_delegatedUserName, response.First(r => r.Status == "Read").User.Name);
     }
 
-    private static void SetNotificationHistory(MigrateCorrespondenceExt migrateCorrespondenceExt)
-    {
-        migrateCorrespondenceExt.NotificationHistory =
-        [
-            new MigrateCorrespondenceNotificationExt()
-            {
-                Altinn2NotificationId = 1,
-                NotificationAddress = "testemail@altinn.no",
-                NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
-                IsReminder = false
-            },
-            new MigrateCorrespondenceNotificationExt()
-            {
-                Altinn2NotificationId = 2,
-                NotificationAddress = "testemail2@altinn.no",
-                NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
-                IsReminder = false
-            },
-            new MigrateCorrespondenceNotificationExt()
-            {
-                Altinn2NotificationId = 3,
-                NotificationAddress = "testemail3@altinn.no",
-                NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
-                IsReminder = false
-            },
-            new MigrateCorrespondenceNotificationExt()
-            {
-                Altinn2NotificationId = 4,
-                NotificationAddress = "testemail4@altinn.no",
-                NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
-                IsReminder = false
-            },
-            new MigrateCorrespondenceNotificationExt()
-            {
-                Altinn2NotificationId = 5,
-                NotificationAddress = "123456789",
-                NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 05)),
-                IsReminder = false
-            },
-            new MigrateCorrespondenceNotificationExt()
-            {
-                Altinn2NotificationId = 6,
-                NotificationAddress = "223456789",
-                NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 05)),
-                IsReminder = false
-            },
-            new MigrateCorrespondenceNotificationExt()
-            {
-                Altinn2NotificationId = 7,
-                NotificationAddress = "323456789",
-                NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 05)),
-                IsReminder = false
-            },
-            new MigrateCorrespondenceNotificationExt()
-            {
-                Altinn2NotificationId = 754537533,
-                NotificationAddress = "423456789",
-                NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 05)),
-                IsReminder = false
-            }
-        ];
-    }
-
     [Fact]
     public async Task InitializeMigrateCorrespondence_WithForwarded()
     {
@@ -196,73 +126,7 @@ public class MigrationControllerTests : MigrationTestBase
             .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
 
-        migrateCorrespondenceExt.NotificationHistory =
-        [
-            new MigrateCorrespondenceNotificationExt()
-            {
-                Altinn2NotificationId = 1,
-                NotificationAddress = "testemail@altinn.no",
-                NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
-                IsReminder = false
-            },
-            new MigrateCorrespondenceNotificationExt()
-            {
-                Altinn2NotificationId = 2,
-                NotificationAddress = "testemail2@altinn.no",
-                NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
-                IsReminder = false
-            },
-            new MigrateCorrespondenceNotificationExt()
-            {
-                Altinn2NotificationId = 3,
-                NotificationAddress = "testemail3@altinn.no",
-                NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
-                IsReminder = false
-            },
-            new MigrateCorrespondenceNotificationExt()
-            {
-                Altinn2NotificationId = 4,
-                NotificationAddress = "testemail4@altinn.no",
-                NotificationChannel = NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
-                IsReminder = false
-            },
-            new MigrateCorrespondenceNotificationExt()
-            {
-                Altinn2NotificationId = 5,
-                NotificationAddress = "123456789",
-                NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
-                IsReminder = false
-            },
-            new MigrateCorrespondenceNotificationExt()
-            {
-                Altinn2NotificationId = 6,
-                NotificationAddress = "223456789",
-                NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
-                IsReminder = false
-            },
-            new MigrateCorrespondenceNotificationExt()
-            {
-                Altinn2NotificationId = 7,
-                NotificationAddress = "323456789",
-                NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
-                IsReminder = false
-            },
-            new MigrateCorrespondenceNotificationExt()
-            {
-                Altinn2NotificationId = 754537533,
-                NotificationAddress = "423456789",
-                NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
-                IsReminder = false
-            }
-        ];
+        SetNotificationHistory(migrateCorrespondenceExt);
 
         migrateCorrespondenceExt.ForwardingHistory = new List<MigrateCorrespondenceForwardingEventExt>
         {
@@ -347,6 +211,63 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.Equal(attachment1Id, attachment2Id);
     }
 
+    [Fact]
+    public async Task MakeAvailableInDialogPorten()
+    {
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithIsMigrating(false)
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
+            .Build();
+
+        SetNotificationHistory(migrateCorrespondenceExt);
+
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
+
+        CorrespondenceMigrationStatusExt resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
+        Assert.NotNull(resultObj);
+
+        MigrateCorrespondenceMakeAvailableExt request = new MigrateCorrespondenceMakeAvailableExt()
+        {
+            CreateEvents = false,
+            CorrespondenceIds = [resultObj.CorrespondenceId],
+            CorrespondenceId = resultObj.CorrespondenceId
+        };
+
+        var makeAvailableResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/dialogporten", request);
+        MakeAvailableInDialogportenResponseExt respExt = await makeAvailableResponse.Content.ReadFromJsonAsync<MakeAvailableInDialogportenResponseExt>();
+
+        Assert.True(makeAvailableResponse.IsSuccessStatusCode);
+        Assert.NotNull(respExt.Statuses);
+        Assert.Equal(1, respExt.Statuses.Count);
+        Assert.True(respExt.Statuses.First().Ok);
+    }
+
+    [Fact]
+    public async Task MakeAvailableInDialogPortenOnCall()
+    {
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithIsMigrating(false)
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
+            .Build();
+
+        SetNotificationHistory(migrateCorrespondenceExt);
+
+        migrateCorrespondenceExt.MakeAvailable = true;
+
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
+
+        CorrespondenceMigrationStatusExt resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
+        Assert.NotNull(resultObj.DialogId);
+    }
+
     private string GetAttachmentCommand(MigrateInitializeAttachmentExt attachment)
     {
         return $"correspondence/api/v1/migration/attachment" +
@@ -426,5 +347,76 @@ public class MigrationControllerTests : MigrationTestBase
         // Assert
         Assert.NotNull(correspondence);
         Assert.True(correspondence.IsMigrating);
+    }
+    
+    private static void SetNotificationHistory(MigrateCorrespondenceExt migrateCorrespondenceExt)
+    {
+        migrateCorrespondenceExt.NotificationHistory =
+        [
+            new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 1,
+                NotificationAddress = "testemail@altinn.no",
+                NotificationChannel = NotificationChannelExt.Email,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
+            },
+            new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 2,
+                NotificationAddress = "testemail2@altinn.no",
+                NotificationChannel = NotificationChannelExt.Email,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
+            },
+            new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 3,
+                NotificationAddress = "testemail3@altinn.no",
+                NotificationChannel = NotificationChannelExt.Email,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
+            },
+            new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 4,
+                NotificationAddress = "testemail4@altinn.no",
+                NotificationChannel = NotificationChannelExt.Email,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 04)),
+                IsReminder = false
+            },
+            new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 5,
+                NotificationAddress = "123456789",
+                NotificationChannel = NotificationChannelExt.Sms,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 05)),
+                IsReminder = false
+            },
+            new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 6,
+                NotificationAddress = "223456789",
+                NotificationChannel = NotificationChannelExt.Sms,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 05)),
+                IsReminder = false
+            },
+            new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 7,
+                NotificationAddress = "323456789",
+                NotificationChannel = NotificationChannelExt.Sms,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 05)),
+                IsReminder = false
+            },
+            new MigrateCorrespondenceNotificationExt()
+            {
+                Altinn2NotificationId = 754537533,
+                NotificationAddress = "423456789",
+                NotificationChannel = NotificationChannelExt.Sms,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 05)),
+                IsReminder = false
+            }
+        ];
     }
 }

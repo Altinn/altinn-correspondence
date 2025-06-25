@@ -38,11 +38,18 @@ public class MigrateCorrespondenceHandler(
         try
         {
             var correspondence = await correspondenceRepository.CreateCorrespondence(request.CorrespondenceEntity, cancellationToken);
+            string dialogId = "";
+            if (request.MakeAvailable)
+            {
+                dialogId = await CreateDialogportenDialog(correspondence.Id, cancellationToken, correspondence, true);
+            }
+            
             return new MigrateCorrespondenceResponse()
             {
                 Altinn2CorrespondenceId = request.Altinn2CorrespondenceId,
                 CorrespondenceId = correspondence.Id,
-                AttachmentMigrationStatuses = correspondence.Content?.Attachments.Select(a => new AttachmentMigrationStatus() { AttachmentId = a.AttachmentId, AttachmentStatus = AttachmentStatus.Initialized }).ToList() ?? null
+                AttachmentMigrationStatuses = correspondence.Content?.Attachments.Select(a => new AttachmentMigrationStatus() { AttachmentId = a.AttachmentId, AttachmentStatus = AttachmentStatus.Initialized }).ToList() ?? null,
+                DialogId = request.MakeAvailable ? dialogId : null
             };
         }
         catch (DbUpdateException e)
@@ -69,32 +76,51 @@ public class MigrateCorrespondenceHandler(
         string? dialogId;
         MakeAvailableInDialogportenResponse response = new MakeAvailableInDialogportenResponse()
         {
-            IsAlreadyMadeAvailable = false
+            Statuses = new ()
         };
         if (request.CorrespondenceId.HasValue)
         {
-            dialogId = await dialogportenService.SilentCreateCorrespondenceDialog(request.CorrespondenceId.Value);
-            await correspondenceRepository.AddExternalReference(request.CorrespondenceId.Value, ReferenceType.DialogportenDialogId, dialogId);
-            response.CorrespondenceId = request.CorrespondenceId;
+            try
+            {
+                dialogId = await CreateDialogportenDialog(request.CorrespondenceId.Value, cancellationToken);
+                response.Statuses.Add(new(request.CorrespondenceId.Value, null, dialogId, true));
+            }
+            catch (Exception ex)
+            {
+                response.Statuses.Add(new(request.CorrespondenceId.Value, ex.ToString()));
+            }
         }
         else if (request.CorrespondenceIds != null && request.CorrespondenceIds.Any())
         {
-            response.CorrespondenceIds = new List<Guid>();
             foreach (var cid in request.CorrespondenceIds)
             {
-                dialogId = await dialogportenService.SilentCreateCorrespondenceDialog(cid);
-                await correspondenceRepository.AddExternalReference(cid, ReferenceType.DialogportenDialogId, dialogId);
-                response.CorrespondenceIds.Add(cid);
+                try
+                {
+                    dialogId = await CreateDialogportenDialog(cid, cancellationToken);
+                    response.Statuses.Add(new(cid, null, dialogId, true));
+                }
+                catch (Exception ex)
+                {
+                    response.Statuses.Add(new(cid, ex.ToString()));
+                }
             }
         }
 
         return response;
     }
 
-    public async Task CreateDialogportenDialog(Guid correspondenceId)
+    private async Task<string> CreateDialogportenDialog(Guid correspondenceId, CancellationToken cancellationToken, CorrespondenceEntity? correspondenceEntity = null, bool createEvents = false)
     {
-        var dialogId = await dialogportenService.SilentCreateCorrespondenceDialog(correspondenceId);
+        var correspondence = correspondenceEntity ?? await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        if (correspondence == null)
+        {
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+        var dialogId = await dialogportenService.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId, correspondence, createEvents);
         await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
+        correspondence.ExternalReferences.Add(new ExternalReferenceEntity() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = dialogId });
+        
+        return dialogId;
     }
 
     public static Error? MigrationValidateCorrespondenceContent(CorrespondenceContentEntity? content)

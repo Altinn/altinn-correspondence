@@ -43,6 +43,9 @@ public class CreateDialogRequest
     [JsonPropertyName("status")]
     public string Status { get; set; }
 
+    [JsonPropertyName("systemLabel")]
+    public string SystemLabel { get; set; } = "Default";
+
     [JsonPropertyName("content")]
     public Content Content { get; set; }
 

@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Services;
+﻿using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten
@@ -40,7 +41,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.CompletedTask;
         }
 
-        public Task<string> SilentCreateCorrespondenceDialog(Guid correspondenceId)
+        public Task<string> CreateCorrespondenceDialogForMigratedCorrespondence(Guid correspondenceId, CorrespondenceEntity? correspondence, bool enableEvents = false)
         {
             return Task.FromResult(Guid.NewGuid().ToString());
         }

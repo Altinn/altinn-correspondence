@@ -13,7 +13,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         {
             return CreateDialogActivityRequest(correspondence, actorType, textType, type, DateTime.UtcNow, tokens);
         }
-        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, DateTime dateOfDialog, params string[] tokens)
+        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, DateTimeOffset dateOfDialog, params string[] tokens)
         {
             var dialogActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString(); // Dialogporten requires time-stamped GUIDs, not supported natively until .NET 9.0
             var urnActorId = actorType switch
