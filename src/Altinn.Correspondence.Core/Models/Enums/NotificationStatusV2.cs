@@ -1,34 +1,24 @@
 namespace Altinn.Correspondence.Core.Models.Enums;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// Custom JSON converter for NotificationStatusV2 that defaults to Unknown when parsing fails
 /// </summary>
 public class NotificationStatusV2Converter : JsonConverter<NotificationStatusV2>
 {
-    private readonly ILogger<NotificationStatusV2Converter> _logger;
-    public NotificationStatusV2Converter(ILogger<NotificationStatusV2Converter>? logger = null)
-    {
-        _logger = logger ?? NullLogger<NotificationStatusV2Converter>.Instance;
-    }
-
     public override NotificationStatusV2 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         try
         {
             if (reader.TokenType != JsonTokenType.String)
             {
-                _logger.LogWarning("Unexpected token type {TokenType} for NotificationStatusV2, expected String", reader.TokenType);
                 return NotificationStatusV2.Unknown;
             }
 
             string enumValue = reader.GetString();
             if (string.IsNullOrEmpty(enumValue))
             {
-                _logger.LogWarning("Empty or null value received for NotificationStatusV2");
                 return NotificationStatusV2.Unknown;
             }
 
@@ -36,12 +26,10 @@ public class NotificationStatusV2Converter : JsonConverter<NotificationStatusV2>
             {
                 return result;
             }
-
-            _logger.LogWarning("Failed to parse NotificationStatusV2: {Value}", enumValue);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Exception while parsing NotificationStatusV2");
+            // Silently handle any parsing exceptions
         }
         
         return NotificationStatusV2.Unknown;
