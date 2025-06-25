@@ -49,7 +49,8 @@ public static class OpenTelemetryConfiguration
                                    !path.Contains("/migration");
                         };
                     })
-                    .AddHttpClientInstrumentation();
+                    .AddHttpClientInstrumentation()
+                    .AddProcessor(new RequestFilterProcessor(true, new HttpContextAccessor()));
             })
             .WithLogging(logging =>
             {
