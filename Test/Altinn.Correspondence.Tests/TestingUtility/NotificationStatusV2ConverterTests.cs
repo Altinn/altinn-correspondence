@@ -110,8 +110,15 @@ public class NotificationStatusV2ConverterTests
         var originalValues = new[]
         {
             NotificationStatusV2.Email_New,
-            NotificationStatusV2.SMS_Delivered,
+            NotificationStatusV2.Email_Succeeded,
+            NotificationStatusV2.Email_Delivered,
             NotificationStatusV2.Email_Failed,
+            NotificationStatusV2.Email_Failed_TTL,
+            NotificationStatusV2.SMS_New,
+            NotificationStatusV2.SMS_Accepted,
+            NotificationStatusV2.SMS_Delivered,
+            NotificationStatusV2.SMS_Failed,
+            NotificationStatusV2.SMS_Failed_TTL,
             NotificationStatusV2.Unknown
         };
 
