@@ -158,32 +158,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             };
             activity.CreatedAt = status.StatusChanged;
             activity.Type = isConfirmation ? "CorrespondenceConfirmed" : "CorrespondenceOpened";
-
-            if (isConfirmation)
-            {
-                activity.Description =
-                [
-                    new ()
-                    {
-                        LanguageCode = "nb",
-                        Value = DialogportenText.GetDialogportenText(DialogportenTextType.CorrespondenceConfirmed, Enums.DialogportenLanguageCode.NB)
-                    },
-                    new ()
-                    {
-                        LanguageCode = "nn",
-                        Value = DialogportenText.GetDialogportenText(DialogportenTextType.CorrespondenceConfirmed, Enums.DialogportenLanguageCode.NN)
-                    },
-                    new ()
-                    {
-                        LanguageCode = "rn",
-                        Value = DialogportenText.GetDialogportenText(DialogportenTextType.CorrespondenceConfirmed, Enums.DialogportenLanguageCode.EN)
-                    },
-                ];
-            }
-            else
-            {
-                activity.Description = [];
-            }
+            activity.Description = [];
 
             return activity;
         }

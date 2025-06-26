@@ -126,7 +126,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         }
     }
-
+    
     public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, params string[] tokens)
     {
         logger.LogInformation("CreateInformationActivity {actorType}: {textType} for correspondence {correspondenceId}",
