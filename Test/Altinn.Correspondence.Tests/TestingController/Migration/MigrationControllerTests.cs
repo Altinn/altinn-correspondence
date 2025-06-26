@@ -252,8 +252,12 @@ public class MigrationControllerTests : MigrationTestBase
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
             .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
-            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 12, 14, 20, 11))
+            .WithStatusEvent(CorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 12, 14, 21, 05))
+            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 22, 09, 55, 20))
+            .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
+            .WithRecipient("urn:altinn:person:identifier-no:29909898925")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
             .Build();
 
         SetNotificationHistory(migrateCorrespondenceExt);
@@ -390,7 +394,7 @@ public class MigrationControllerTests : MigrationTestBase
                 Altinn2NotificationId = 5,
                 NotificationAddress = "123456789",
                 NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 05)),
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 11)),
                 IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
@@ -398,7 +402,7 @@ public class MigrationControllerTests : MigrationTestBase
                 Altinn2NotificationId = 6,
                 NotificationAddress = "223456789",
                 NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 05)),
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 11)),
                 IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
@@ -406,7 +410,7 @@ public class MigrationControllerTests : MigrationTestBase
                 Altinn2NotificationId = 7,
                 NotificationAddress = "323456789",
                 NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 05)),
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 11)),
                 IsReminder = false
             },
             new MigrateCorrespondenceNotificationExt()
@@ -414,7 +418,7 @@ public class MigrationControllerTests : MigrationTestBase
                 Altinn2NotificationId = 754537533,
                 NotificationAddress = "423456789",
                 NotificationChannel = NotificationChannelExt.Sms,
-                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 05)),
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 11)),
                 IsReminder = false
             }
         ];

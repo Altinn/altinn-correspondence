@@ -8,7 +8,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
     internal static class SystemLabel
     {
-        internal static string Archived = "Archived";
+        internal static string Archived = "Archive";
         internal static string Default = "Default";
         internal static string Bin = "Bin";
     }
@@ -19,15 +19,15 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             var dialogId = Guid.CreateVersion7().ToString(); // Dialogporten requires time-stamped GUIDs
             bool isArchived = correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Archived);
-
+            
             return new CreateDialogRequest
             {
                 Id = dialogId,
                 ServiceResource = "urn:altinn:resource:" + correspondence.ResourceId,
                 Party = correspondence.GetRecipientUrn(),
-                CreatedAt = null,
-                UpdatedAt = null,
-                VisibleFrom = correspondence.RequestedPublishTime < DateTime.UtcNow.AddMinutes(1) ? DateTime.UtcNow.AddMinutes(1) : correspondence.RequestedPublishTime,
+                CreatedAt = correspondence.Created,
+                UpdatedAt = correspondence.Statuses?.Select(s => s.StatusChanged).Max(),
+                VisibleFrom = correspondence.RequestedPublishTime < DateTime.UtcNow.AddMinutes(1) ? null : correspondence.RequestedPublishTime,
                 Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
                 ExpiresAt = correspondence.AllowSystemDeleteAfter,
                 DueAt = correspondence.DueDateTime != default ? correspondence.DueDateTime : null,

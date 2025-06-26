@@ -74,9 +74,28 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public MigrateCorrespondenceBuilder WithCreatedAt(DateTimeOffset createdAt)
+        {
+            _migratedCorrespondence.Created = createdAt;
+            return this;
+        }
+
+        public MigrateCorrespondenceBuilder WithRecipient(string recipient)
+        {
+            _migratedCorrespondence.CorrespondenceData.Recipients.Clear();
+            _migratedCorrespondence.CorrespondenceData.Recipients.Add(recipient);
+            return this;
+        }
+
+        public MigrateCorrespondenceBuilder WithResourceId(string resourceId)
+        {
+            _migratedCorrespondence.CorrespondenceData.Correspondence.ResourceId= resourceId;
+            return this;
+        }
+
         public MigrateCorrespondenceBuilder WithStatusEvent(CorrespondenceStatusExt status, DateTime occurred, Guid? userPartyUuid = null)
         {
-            if(userPartyUuid == null)
+            if (userPartyUuid == null)
             {
                 userPartyUuid = _defaultUserPartyUuid;
             }
