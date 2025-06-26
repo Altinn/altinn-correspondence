@@ -8,6 +8,7 @@ using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Integrations;
 using Altinn.Correspondence.Integrations.Azure;
 using Altinn.Correspondence.Integrations.Hangfire;
+using Altinn.Correspondence.Integrations.OpenTelemetry;
 using Altinn.Correspondence.Integrations.Slack;
 using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
