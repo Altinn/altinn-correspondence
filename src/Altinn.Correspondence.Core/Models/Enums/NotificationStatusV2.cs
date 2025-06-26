@@ -1,50 +1,24 @@
 namespace Altinn.Correspondence.Core.Models.Enums;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// Custom JSON converter for NotificationStatusV2 that defaults to Unknown when parsing fails
 /// </summary>
 public class NotificationStatusV2Converter : JsonConverter<NotificationStatusV2>
 {
-    private readonly ILogger<NotificationStatusV2Converter> _logger;
-    public NotificationStatusV2Converter(ILogger<NotificationStatusV2Converter>? logger = null)
-    {
-        _logger = logger ?? NullLogger<NotificationStatusV2Converter>.Instance;
-    }
-
     public override NotificationStatusV2 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        try
-        {
-            if (reader.TokenType != JsonTokenType.String)
-            {
-                _logger.LogWarning("Unexpected token type {TokenType} for NotificationStatusV2, expected String", reader.TokenType);
-                return NotificationStatusV2.Unknown;
-            }
+        if (reader.TokenType != JsonTokenType.String)
+            return NotificationStatusV2.Unknown;
 
-            string enumValue = reader.GetString();
-            if (string.IsNullOrEmpty(enumValue))
-            {
-                _logger.LogWarning("Empty or null value received for NotificationStatusV2");
-                return NotificationStatusV2.Unknown;
-            }
+        var enumValue = reader.GetString();
+        if (string.IsNullOrEmpty(enumValue) || int.TryParse(enumValue, out _))
+            return NotificationStatusV2.Unknown;
 
-            if (Enum.TryParse<NotificationStatusV2>(enumValue, true, out NotificationStatusV2 result))
-            {
-                return result;
-            }
-
-            _logger.LogWarning("Failed to parse NotificationStatusV2: {Value}", enumValue);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception while parsing NotificationStatusV2");
-        }
-        
-        return NotificationStatusV2.Unknown;
+        return Enum.TryParse<NotificationStatusV2>(enumValue, true, out var result)
+            ? result
+            : NotificationStatusV2.Unknown;
     }
 
     public override void Write(Utf8JsonWriter writer, NotificationStatusV2 value, JsonSerializerOptions options)
