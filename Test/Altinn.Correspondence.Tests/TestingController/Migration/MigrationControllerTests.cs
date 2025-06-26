@@ -247,7 +247,7 @@ public class MigrationControllerTests : MigrationTestBase
     }
 
     [Fact]
-    public async Task MakeAvailableInDialogPortenOnCall()
+    public async Task MakeAvailableInDialogPorten_OnCall()
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
@@ -270,6 +270,65 @@ public class MigrationControllerTests : MigrationTestBase
 
         CorrespondenceMigrationStatusExt resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
         Assert.NotNull(resultObj.DialogId);
+    }
+
+    [Fact]
+    public async Task MakeAvailableInDialogPorten_Multiple()
+    {
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithIsMigrating(false)
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
+            .Build();
+
+        SetNotificationHistory(migrateCorrespondenceExt);
+
+        MigrateCorrespondenceMakeAvailableExt request = new MigrateCorrespondenceMakeAvailableExt()
+        {
+            CreateEvents = false,
+            CorrespondenceIds = new(),
+            CorrespondenceId = null
+        };
+
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
+
+        CorrespondenceMigrationStatusExt resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
+        Assert.NotNull(resultObj);
+
+        request.CorrespondenceIds.Add(resultObj.CorrespondenceId);
+
+        migrateCorrespondenceExt.Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId + 1;
+        initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
+
+        resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
+        Assert.NotNull(resultObj);
+
+        request.CorrespondenceIds.Add(resultObj.CorrespondenceId);
+
+        migrateCorrespondenceExt.Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId + 1;
+        initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
+
+        resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
+        Assert.NotNull(resultObj);
+
+        request.CorrespondenceIds.Add(resultObj.CorrespondenceId);
+
+        var makeAvailableResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/dialogporten", request);
+        MakeAvailableInDialogportenResponseExt respExt = await makeAvailableResponse.Content.ReadFromJsonAsync<MakeAvailableInDialogportenResponseExt>();
+
+        Assert.True(makeAvailableResponse.IsSuccessStatusCode);
+        Assert.NotNull(respExt.Statuses);
+        Assert.Equal(3, respExt.Statuses.Count);
+        Assert.True(respExt.Statuses.First().Ok);
+        Assert.True(respExt.Statuses.Last().Ok);
+        Assert.NotSame(respExt.Statuses.First().CorrespondenceId, respExt.Statuses.Last().CorrespondenceId);
     }
 
     private string GetAttachmentCommand(MigrateInitializeAttachmentExt attachment)

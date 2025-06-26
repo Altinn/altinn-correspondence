@@ -14,6 +14,7 @@ public class MakeAvailableInDialogPortenStatus : IComparable
         CorrespondenceId = correspondenceId;
         DialogId = dialogId;
         Ok = ok;
+        Error = error;
     }
     public Guid CorrespondenceId { get; set; }
     public string? DialogId { get; set; }
