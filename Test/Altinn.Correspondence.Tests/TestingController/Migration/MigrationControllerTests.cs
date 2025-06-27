@@ -18,6 +18,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Migration;
 [Collection(nameof(CustomWebApplicationTestsCollection))]
 public class MigrationControllerTests : MigrationTestBase
 {
+    const string makeAvailableUrl = "correspondence/api/v1/migration/makemigratedcorrespondenceavailable";
+    const string migrateCorresponenceUrl = "correspondence/api/v1/migration/correspondence";
     public MigrationControllerTests(CustomWebApplicationFactory factory) : base(factory)
     {
     }
@@ -34,7 +36,7 @@ public class MigrationControllerTests : MigrationTestBase
 
         SetNotificationHistory(migrateCorrespondenceExt);
 
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorresponenceUrl, migrateCorrespondenceExt);
         string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
     }
@@ -51,7 +53,7 @@ public class MigrationControllerTests : MigrationTestBase
 
         SetNotificationHistory(migrateCorrespondenceExt);
 
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorresponenceUrl, migrateCorrespondenceExt);
         var result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
         // Act
         var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{result.CorrespondenceId}/details");
@@ -74,7 +76,7 @@ public class MigrationControllerTests : MigrationTestBase
             .Build();
         SetNotificationHistory(migrateCorrespondenceExt);
 
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorresponenceUrl, migrateCorrespondenceExt);
         var result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
         // Act
         var getCorrespondenceDetailsResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{result.CorrespondenceId}/history");
@@ -100,7 +102,7 @@ public class MigrationControllerTests : MigrationTestBase
             .Build();
         SetNotificationHistory(migrateCorrespondenceExt);
 
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorresponenceUrl, migrateCorrespondenceExt);
         var result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
         // Act
         var getCorrespondenceDetailsResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{result.CorrespondenceId}/history");
@@ -163,7 +165,7 @@ public class MigrationControllerTests : MigrationTestBase
             }
         };
 
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorresponenceUrl, migrateCorrespondenceExt);
         string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
     }
@@ -176,7 +178,7 @@ public class MigrationControllerTests : MigrationTestBase
              .WithIsMigrating(false)
              .Build();
 
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorresponenceUrl, migrateCorrespondenceExt);
         string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
     }
@@ -223,11 +225,8 @@ public class MigrationControllerTests : MigrationTestBase
 
         SetNotificationHistory(migrateCorrespondenceExt);
 
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
-        string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
-        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
-
-        CorrespondenceMigrationStatusExt resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
+        
+        CorrespondenceMigrationStatusExt resultObj = await MigrateSingleCorrespondence(migrateCorrespondenceExt);
         Assert.NotNull(resultObj);
 
         MakeCorrespondenceAvailableRequestExt request = new MakeCorrespondenceAvailableRequestExt()
@@ -237,7 +236,7 @@ public class MigrationControllerTests : MigrationTestBase
             CorrespondenceId = resultObj.CorrespondenceId
         };
 
-        var makeAvailableResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/dialogporten", request);
+        var makeAvailableResponse = await _migrationClient.PostAsJsonAsync(makeAvailableUrl, request);
         MakeCorrespondenceAvailableResponseExt respExt = await makeAvailableResponse.Content.ReadFromJsonAsync<MakeCorrespondenceAvailableResponseExt>();
 
         Assert.True(makeAvailableResponse.IsSuccessStatusCode);
@@ -264,7 +263,7 @@ public class MigrationControllerTests : MigrationTestBase
 
         migrateCorrespondenceExt.MakeAvailable = true;
 
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorresponenceUrl, migrateCorrespondenceExt);
         string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
 
@@ -291,36 +290,22 @@ public class MigrationControllerTests : MigrationTestBase
             CorrespondenceId = null
         };
 
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
-        string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
-        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
+        var resultObj = await MigrateSingleCorrespondence(migrateCorrespondenceExt);
+        Assert.NotNull(resultObj);
 
-        CorrespondenceMigrationStatusExt resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
+        request.CorrespondenceIds.Add(resultObj.CorrespondenceId);
+        resultObj = await MigrateSingleCorrespondence(migrateCorrespondenceExt);
         Assert.NotNull(resultObj);
 
         request.CorrespondenceIds.Add(resultObj.CorrespondenceId);
 
         migrateCorrespondenceExt.Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId + 1;
-        initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
-        result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
-        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
-
-        resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
+        resultObj = await MigrateSingleCorrespondence(migrateCorrespondenceExt);
         Assert.NotNull(resultObj);
 
         request.CorrespondenceIds.Add(resultObj.CorrespondenceId);
 
-        migrateCorrespondenceExt.Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId + 1;
-        initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
-        result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
-        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
-
-        resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
-        Assert.NotNull(resultObj);
-
-        request.CorrespondenceIds.Add(resultObj.CorrespondenceId);
-
-        var makeAvailableResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/dialogporten", request);
+        var makeAvailableResponse = await _migrationClient.PostAsJsonAsync(makeAvailableUrl, request);
         MakeCorrespondenceAvailableResponseExt respExt = await makeAvailableResponse.Content.ReadFromJsonAsync<MakeCorrespondenceAvailableResponseExt>();
 
         Assert.True(makeAvailableResponse.IsSuccessStatusCode);
@@ -329,6 +314,15 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.True(respExt.Statuses.First().Ok);
         Assert.True(respExt.Statuses.Last().Ok);
         Assert.NotSame(respExt.Statuses.First().CorrespondenceId, respExt.Statuses.Last().CorrespondenceId);
+    }
+
+    private async Task<CorrespondenceMigrationStatusExt> MigrateSingleCorrespondence(MigrateCorrespondenceExt migrateCorrespondenceExt)
+    {
+        migrateCorrespondenceExt.Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId + 1;
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorresponenceUrl, migrateCorrespondenceExt);
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode);
+        CorrespondenceMigrationStatusExt resultObj = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>();
+        return resultObj;
     }
 
     private string GetAttachmentCommand(MigrateInitializeAttachmentExt attachment)
@@ -383,7 +377,7 @@ public class MigrationControllerTests : MigrationTestBase
             .WithExistingAttachments([attachmentId, attachmentId2])
             .Build();
 
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorresponenceUrl, migrateCorrespondenceExt);
 
         Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
         Assert.True(uploadResponse2.IsSuccessStatusCode, uploadResponse2.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
@@ -399,7 +393,7 @@ public class MigrationControllerTests : MigrationTestBase
             .Build();
 
         // Act
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migrateCorrespondenceExt);
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorresponenceUrl, migrateCorrespondenceExt);
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
         CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
         Assert.NotNull(result);
