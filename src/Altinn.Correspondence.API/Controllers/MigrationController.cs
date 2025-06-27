@@ -101,7 +101,7 @@ namespace Altinn.Correspondence.API.Controllers
         )
         {
             var internalRequest = MigrateCorrespondenceMapper.MapMakeAvailableToInternal(request);
-            var result = await migrateCorrespondenceHandler.MakeAvailableInDialogPorten(internalRequest, cancellationToken);
+            var result = await migrateCorrespondenceHandler.MakeCorrespondenceAvailable(internalRequest, cancellationToken);
 
             return result.Match(
                 result => Ok(MigrateCorrespondenceMapper.MakeAvailableResponseToExternal(result)),

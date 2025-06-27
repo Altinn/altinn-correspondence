@@ -41,7 +41,7 @@ public class MigrateCorrespondenceHandler(
             string dialogId = "";
             if (request.MakeAvailable)
             {
-                dialogId = await CreateDialogportenDialog(correspondence.Id, cancellationToken, correspondence, true);
+                dialogId = await MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, cancellationToken, correspondence, true);
             }
             
             return new MigrateCorrespondenceResponse()
@@ -71,7 +71,7 @@ public class MigrateCorrespondenceHandler(
         }
     }
 
-    public async Task<OneOf<MakeCorrespondenceAvailableResponse, Error>> MakeAvailableInDialogPorten(MakeCorrespondenceAvailableRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<MakeCorrespondenceAvailableResponse, Error>> MakeCorrespondenceAvailable(MakeCorrespondenceAvailableRequest request, CancellationToken cancellationToken)
     {
         string? dialogId;
         MakeCorrespondenceAvailableResponse response = new MakeCorrespondenceAvailableResponse()
@@ -82,7 +82,7 @@ public class MigrateCorrespondenceHandler(
         {
             try
             {
-                dialogId = await CreateDialogportenDialog(request.CorrespondenceId.Value, cancellationToken);
+                dialogId = await MakeCorrespondenceAvailableInDialogportenAndApi(request.CorrespondenceId.Value, cancellationToken);
                 response.Statuses.Add(new(request.CorrespondenceId.Value, null, dialogId, true));
             }
             catch (Exception ex)
@@ -96,7 +96,7 @@ public class MigrateCorrespondenceHandler(
             {
                 try
                 {
-                    dialogId = await CreateDialogportenDialog(cid, cancellationToken);
+                    dialogId = await MakeCorrespondenceAvailableInDialogportenAndApi(cid, cancellationToken);
                     response.Statuses.Add(new(cid, null, dialogId, true));
                 }
                 catch (Exception ex)
@@ -109,9 +109,9 @@ public class MigrateCorrespondenceHandler(
         return response;
     }
 
-    private async Task<string> CreateDialogportenDialog(Guid correspondenceId, CancellationToken cancellationToken, CorrespondenceEntity? correspondenceEntity = null, bool createEvents = false)
+    private async Task<string> MakeCorrespondenceAvailableInDialogportenAndApi(Guid correspondenceId, CancellationToken cancellationToken, CorrespondenceEntity? correspondenceEntity = null, bool createEvents = false)
     {
-        var correspondence = correspondenceEntity ?? await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        var correspondence = correspondenceEntity ?? await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken, true);
         if (correspondence == null)
         {
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));

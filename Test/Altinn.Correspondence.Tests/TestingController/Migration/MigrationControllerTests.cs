@@ -214,18 +214,16 @@ public class MigrationControllerTests : MigrationTestBase
     }
 
     [Fact]
-    public async Task MakeAvailableInDialogPorten()
+    public async Task MakeCorrespondenceAvailable()
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
+            .WithIsMigrating(true)
             .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
-
         SetNotificationHistory(migrateCorrespondenceExt);
 
-        
         CorrespondenceMigrationStatusExt resultObj = await MigrateSingleCorrespondence(migrateCorrespondenceExt);
         Assert.NotNull(resultObj);
 
@@ -235,9 +233,12 @@ public class MigrationControllerTests : MigrationTestBase
             CorrespondenceIds = [resultObj.CorrespondenceId],
             CorrespondenceId = resultObj.CorrespondenceId
         };
-
         var makeAvailableResponse = await _migrationClient.PostAsJsonAsync(makeAvailableUrl, request);
         MakeCorrespondenceAvailableResponseExt respExt = await makeAvailableResponse.Content.ReadFromJsonAsync<MakeCorrespondenceAvailableResponseExt>();
+
+        // Verify that correspondence has IsMigrating set to false, which means we can retrieve it through GetOverview.
+        var getCorrespondenceOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{resultObj.CorrespondenceId}/content");
+        Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode);
 
         Assert.True(makeAvailableResponse.IsSuccessStatusCode);
         Assert.NotNull(respExt.Statuses);
@@ -246,11 +247,11 @@ public class MigrationControllerTests : MigrationTestBase
     }
 
     [Fact]
-    public async Task MakeAvailableInDialogPorten_OnCall()
+    public async Task MakeCorrespondenceAvailable_OnCall()
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
+            .WithIsMigrating(true)
             .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 12, 14, 20, 11))
             .WithStatusEvent(CorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 12, 14, 21, 05))
             .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 22, 09, 55, 20))
@@ -258,7 +259,6 @@ public class MigrationControllerTests : MigrationTestBase
             .WithRecipient("urn:altinn:person:identifier-no:29909898925")
             .WithResourceId("skd-migratedcorrespondence-5229-1")
             .Build();
-
         SetNotificationHistory(migrateCorrespondenceExt);
 
         migrateCorrespondenceExt.MakeAvailable = true;
@@ -266,21 +266,23 @@ public class MigrationControllerTests : MigrationTestBase
         var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorresponenceUrl, migrateCorrespondenceExt);
         string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
-
         CorrespondenceMigrationStatusExt resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
         Assert.NotNull(resultObj.DialogId);
+        
+        // Verify that correspondence has IsMigrating set to false, which means we can retrieve it through GetOverview.
+        var getCorrespondenceOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{resultObj.CorrespondenceId}/content");
+        Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode);
     }
 
     [Fact]
-    public async Task MakeAvailableInDialogPorten_Multiple()
+    public async Task MakeCorrespondenceAvailable_Multiple()
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
+            .WithIsMigrating(true)
             .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
-
         SetNotificationHistory(migrateCorrespondenceExt);
 
         MakeCorrespondenceAvailableRequestExt request = new MakeCorrespondenceAvailableRequestExt()
@@ -314,6 +316,14 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.True(respExt.Statuses.First().Ok);
         Assert.True(respExt.Statuses.Last().Ok);
         Assert.NotSame(respExt.Statuses.First().CorrespondenceId, respExt.Statuses.Last().CorrespondenceId);
+        
+        // Verify that correspondence has IsMigrating set to false, which means we can retrieve it through GetOverview.
+        var getCorrespondenceOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{respExt.Statuses.Last().CorrespondenceId}/content");
+        Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode);
+
+        // Verify that correspondence has IsMigrating set to false, which means we can retrieve it through GetOverview.
+        getCorrespondenceOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{respExt.Statuses.First().CorrespondenceId}/content");
+        Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode);
     }
 
     private async Task<CorrespondenceMigrationStatusExt> MigrateSingleCorrespondence(MigrateCorrespondenceExt migrateCorrespondenceExt)
