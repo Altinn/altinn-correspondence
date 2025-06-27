@@ -123,7 +123,6 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
             {
                 "/correspondence/api/v1/migration/correspondence" => true,
                 "/correspondence/api/v1/migration/attachment" => true,
-                "/correspondence/api/v1/correspondence/upload" => true,
                 _ => false
             };
         }
