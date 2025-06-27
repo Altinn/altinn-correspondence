@@ -13,6 +13,7 @@ namespace Altinn.Correspondence.Application.MigrateCorrespondence;
 public class MigrateCorrespondenceHandler(
     ICorrespondenceRepository correspondenceRepository,
     IDialogportenService dialogportenService,
+    HangfireScheduleHelper hangfireScheduleHelper,
     ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRequest, MigrateCorrespondenceResponse>
 {
     public async Task<OneOf<MigrateCorrespondenceResponse, Error>> Process(MigrateCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -42,6 +43,7 @@ public class MigrateCorrespondenceHandler(
             if (request.MakeAvailable)
             {
                 dialogId = await MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, cancellationToken, correspondence, true);
+                hangfireScheduleHelper.SchedulePublishAtPublishTime(correspondence.Id, cancellationToken);
             }
             
             return new MigrateCorrespondenceResponse()
