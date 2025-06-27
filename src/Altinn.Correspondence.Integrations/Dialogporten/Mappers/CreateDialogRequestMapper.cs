@@ -206,7 +206,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 },
                 new ()
                 {
-                    LanguageCode = "rn",
+                    LanguageCode = "en",
                     Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, Enums.DialogportenLanguageCode.EN, tokens)
                 },
             ];
