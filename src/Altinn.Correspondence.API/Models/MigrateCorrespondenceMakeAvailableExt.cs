@@ -9,7 +9,7 @@ public class MakeCorrespondenceAvailableRequestExt
     public Guid? CorrespondenceId { get; set; }
     
     [JsonPropertyName("createEvents")]
-    public required bool CreateEvents { get; set; } = false;
+    public bool CreateEvents { get; set; } = false;
 
     [JsonPropertyName("correspondenceIds")]
     public List<Guid>? CorrespondenceIds { get; set; }
