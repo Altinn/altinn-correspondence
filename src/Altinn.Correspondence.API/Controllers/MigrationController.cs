@@ -94,7 +94,7 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpPost]
         [Route("makemigratedcorrespondenceavailable")]
         [Authorize(Policy = AuthorizationConstants.Migrate)]
-        public async Task<ActionResult<MakeCorrespondenceAvailableResponseExt>> MakeMigratedCorrespondenceAccessible(
+        public async Task<ActionResult<MakeCorrespondenceAvailableResponseExt>> MakeMigratedCorrespondenceAvailable(
             MakeCorrespondenceAvailableRequestExt request, 
             [FromServices] MigrateCorrespondenceHandler migrateCorrespondenceHandler,
             CancellationToken cancellationToken = default
