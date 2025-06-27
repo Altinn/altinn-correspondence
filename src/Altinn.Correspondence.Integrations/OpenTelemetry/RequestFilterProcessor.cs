@@ -1,4 +1,5 @@
 ﻿using Altinn.AccessManagement.Core.Models;
+using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using OpenTelemetry;
@@ -16,6 +17,7 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
     private const string RequestKind = "Microsoft.AspNetCore.Hosting.HttpRequestIn";
     private readonly IHttpContextAccessor _httpContextAccessor;
     private static readonly FrozenDictionary<string, Action<Claim, Activity>> _claimActions = InitClaimActions();
+    private GeneralSettings _generalSettings;
 
     private static FrozenDictionary<string, Action<Claim, Activity>> InitClaimActions()
     {
@@ -59,8 +61,9 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
     /// <summary>
     /// Initializes a new instance of the <see cref="RequestFilterProcessor"/> class.
     /// </summary>
-    public RequestFilterProcessor(IHttpContextAccessor httpContextAccessor = null) : base()
+    public RequestFilterProcessor(GeneralSettings generalSettings, IHttpContextAccessor httpContextAccessor = null) : base()
     {
+        _generalSettings = generalSettings;
         _httpContextAccessor = httpContextAccessor;
     }
 
@@ -110,9 +113,17 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
 
     private bool ExcludeRequest(string localpath)
     {
+        if (localpath == "/health")
+        { 
+            return true;
+        }
+        if (_generalSettings.DisableTelemetryForMigration)
+        {
+            // If OpenTelemetry is enabled, we do not want to exclude migration requests
+            return false;
+        }
         return localpath switch
         {
-            "/health" => true,
             "/correspondence/api/v1/migration/correspondence" => true,
             "/correspondence/api/v1/migration/attachment" => true,
             _ => false

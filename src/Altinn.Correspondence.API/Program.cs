@@ -47,7 +47,7 @@ static void BuildAndRun(string[] args)
 
     var generalSettings = builder.Configuration.GetSection(nameof(GeneralSettings)).Get<GeneralSettings>();
     bootstrapLogger.LogInformation($"Running in environment {builder.Environment.EnvironmentName} with base url {generalSettings?.CorrespondenceBaseUrl ?? "NULL"}");
-    builder.Services.ConfigureOpenTelemetry(generalSettings.ApplicationInsightsConnectionString);
+    builder.Services.ConfigureOpenTelemetry(generalSettings);
 
     var app = builder.Build();
     bootstrapLogger.LogInformation("Application built");
