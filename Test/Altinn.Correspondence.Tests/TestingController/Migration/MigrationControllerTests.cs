@@ -218,7 +218,6 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(true)
             .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
@@ -251,7 +250,6 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(true)
             .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 12, 14, 20, 11))
             .WithStatusEvent(CorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 12, 14, 21, 05))
             .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 22, 09, 55, 20))
@@ -279,7 +277,6 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(true)
             .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
