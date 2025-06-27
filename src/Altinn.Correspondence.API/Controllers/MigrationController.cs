@@ -1,7 +1,7 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.InitializeAttachment;
-using Altinn.Correspondence.Application.InitializeCorrespondence;
+using Altinn.Correspondence.Application.MigrateCorrespondence;
 using Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Helpers;
@@ -86,19 +86,20 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Make Migrated Correspondence available in Dialogporten
+        /// Creates a dialog with connected activities in Dialogporten.
+        /// Also sets the IsMigrating value to false, which makes the correspondence available in the Altinn 3 Correspondence API.
+        /// Setting 
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        [Route("dialogporten")]
+        [Route("makemigratedcorrespondenceavailable")]
         [Authorize(Policy = AuthorizationConstants.Migrate)]
-        public async Task<ActionResult<MakeAvailableInDialogportenResponseExt>> MakeMigratedCorrespondenceAccessible(
-            MigrateCorrespondenceMakeAvailableExt request, 
+        public async Task<ActionResult<MakeCorrespondenceAvailableResponseExt>> MakeMigratedCorrespondenceAccessible(
+            MakeCorrespondenceAvailableRequestExt request, 
             [FromServices] MigrateCorrespondenceHandler migrateCorrespondenceHandler,
             CancellationToken cancellationToken = default
         )
         {
-            Guid attachmentId = Guid.NewGuid();
             var internalRequest = MigrateCorrespondenceMapper.MapMakeAvailableToInternal(request);
             var result = await migrateCorrespondenceHandler.MakeAvailableInDialogPorten(internalRequest, cancellationToken);
 

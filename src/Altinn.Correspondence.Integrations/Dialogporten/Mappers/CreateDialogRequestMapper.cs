@@ -26,7 +26,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 ServiceResource = "urn:altinn:resource:" + correspondence.ResourceId,
                 Party = correspondence.GetRecipientUrn(),
                 CreatedAt = correspondence.Created,
-                UpdatedAt = correspondence.Statuses?.Select(s => s.StatusChanged).Max(),
+                UpdatedAt = correspondence.Statuses?.Select(s => s.StatusChanged).DefaultIfEmpty().Max(),
                 VisibleFrom = correspondence.RequestedPublishTime < DateTime.UtcNow.AddMinutes(1) ? null : correspondence.RequestedPublishTime,
                 Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
                 ExpiresAt = correspondence.AllowSystemDeleteAfter,
@@ -168,13 +168,13 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             List<Activity> notificationActivities = new List<Activity>();
             foreach (var notification in correspondence.Notifications.Where(n => n.Altinn2NotificationId != null))
             {
-                notificationActivities.Add(GetActivityFromNotification(correspondence, notification));
+                notificationActivities.Add(GetActivityFromAltinn2Notification(correspondence, notification));
             }
 
             return notificationActivities;
         }
 
-        private static Activity GetActivityFromNotification(CorrespondenceEntity correspondence, CorrespondenceNotificationEntity notification)
+        private static Activity GetActivityFromAltinn2Notification(CorrespondenceEntity correspondence, CorrespondenceNotificationEntity notification)
         {
             Activity activity = new Activity();
             activity.Id = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString();

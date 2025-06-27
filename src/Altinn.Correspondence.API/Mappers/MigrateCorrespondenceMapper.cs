@@ -1,6 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Application.InitializeCorrespondence;
+using Altinn.Correspondence.Application.MigrateCorrespondence;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 
@@ -89,9 +89,9 @@ internal static class MigrateCorrespondenceMapper
         };
     }
 
-    internal static MakeAvailableInDialogportenRequest MapMakeAvailableToInternal(MigrateCorrespondenceMakeAvailableExt maExt)
+    internal static MakeCorrespondenceAvailableRequest MapMakeAvailableToInternal(MakeCorrespondenceAvailableRequestExt maExt)
     {
-        return new MakeAvailableInDialogportenRequest()
+        return new MakeCorrespondenceAvailableRequest()
         {
             CreateEvents = maExt.CreateEvents,
             CorrespondenceId = maExt.CorrespondenceId,
@@ -99,11 +99,11 @@ internal static class MigrateCorrespondenceMapper
         };
     }
 
-    internal static MakeAvailableInDialogportenResponseExt MakeAvailableResponseToExternal(MakeAvailableInDialogportenResponse response)
+    internal static MakeCorrespondenceAvailableResponseExt MakeAvailableResponseToExternal(MakeCorrespondenceAvailableResponse response)
     {
-        return new MakeAvailableInDialogportenResponseExt
+        return new MakeCorrespondenceAvailableResponseExt
         {
-            Statuses = response.Statuses?.Select(s => new MakeAvailableInDialogPortenStatusExt(s.CorrespondenceId, s.Error, s.DialogId, s.Ok)).ToList()
+            Statuses = response.Statuses?.Select(s => new MakeCorrespondenceAvailableStatusExt(s.CorrespondenceId, s.Error, s.DialogId, s.Ok)).ToList()
         };
     }
 

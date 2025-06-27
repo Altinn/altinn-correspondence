@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
 
-namespace Altinn.Correspondence.Application.InitializeCorrespondence;
+namespace Altinn.Correspondence.Application.MigrateCorrespondence;
 
 public class MigrateCorrespondenceHandler(
     ICorrespondenceRepository correspondenceRepository,
@@ -71,10 +71,10 @@ public class MigrateCorrespondenceHandler(
         }
     }
 
-    public async Task<OneOf<MakeAvailableInDialogportenResponse, Error>> MakeAvailableInDialogPorten(MakeAvailableInDialogportenRequest request, CancellationToken cancellationToken)
+    public async Task<OneOf<MakeCorrespondenceAvailableResponse, Error>> MakeAvailableInDialogPorten(MakeCorrespondenceAvailableRequest request, CancellationToken cancellationToken)
     {
         string? dialogId;
-        MakeAvailableInDialogportenResponse response = new MakeAvailableInDialogportenResponse()
+        MakeCorrespondenceAvailableResponse response = new MakeCorrespondenceAvailableResponse()
         {
             Statuses = new ()
         };
@@ -119,8 +119,17 @@ public class MigrateCorrespondenceHandler(
         var dialogId = await dialogportenService.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId, correspondence, createEvents);
         await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
         correspondence.ExternalReferences.Add(new ExternalReferenceEntity() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = dialogId });
-        correspondence.IsMigrating = false;
+        await SetIsMigrating(correspondenceId, false, cancellationToken);
         return dialogId;
+    }
+
+    /// <summary>
+    /// This should only really be used when a Correspondence is being made available in Dialogporten and API, which means IsMigrating should always be false.
+    /// However we are making it take a boolean in case we find it necessary to make Correspondences unavailable for some reason in the future.
+    /// </summary>
+    private async Task SetIsMigrating(Guid correspondenceId, bool isMigrating, CancellationToken cancellationToken)
+    {
+        await correspondenceRepository.UpdateIsMigrating(correspondenceId, isMigrating, cancellationToken);
     }
 
     public static Error? MigrationValidateCorrespondenceContent(CorrespondenceContentEntity? content)

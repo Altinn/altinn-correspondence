@@ -29,47 +29,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         logger.LogInformation("CreateCorrespondenceDialog for correspondence {correspondenceId}", correspondence.Id);
 
         // Create idempotency key for open dialog activity
-        var openActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
-        var openIdempotencyKey = new IdempotencyKeyEntity
-        {
-            Id = openActivityId,
-            CorrespondenceId = correspondence.Id,
-            AttachmentId = null, // No attachment for opened activity
-            StatusAction = StatusAction.Fetched,
-            IdempotencyType = IdempotencyType.DialogportenActivity
-        };
-        await _idempotencyKeyRepository.CreateAsync(openIdempotencyKey, cancellationToken);
-
-        // Create idempotency key for confirm activity if confirmation is needed
-        if (correspondence.IsConfirmationNeeded)
-        {
-            var confirmActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
-            var confirmIdempotencyKey = new IdempotencyKeyEntity
-            {
-                Id = confirmActivityId,
-                CorrespondenceId = correspondence.Id,
-                AttachmentId = null, // No attachment for confirm activity
-                StatusAction = StatusAction.Confirmed,
-                IdempotencyType = IdempotencyType.DialogportenActivity
-            };
-            await _idempotencyKeyRepository.CreateAsync(confirmIdempotencyKey, cancellationToken);
-        }
-
-        // Create idempotency keys for each attachment's download activity
-        var attachmentIdempotencyKeys = new List<IdempotencyKeyEntity>();
-        foreach (var attachment in correspondence.Content?.Attachments ?? Enumerable.Empty<CorrespondenceAttachmentEntity>())
-        {
-            var downloadActivityId = Uuid.NewDatabaseFriendly(UUIDNext.Database.PostgreSql);
-            var downloadIdempotencyKey = new IdempotencyKeyEntity
-            {
-                Id = downloadActivityId,
-                CorrespondenceId = correspondence.Id,
-                AttachmentId = attachment.AttachmentId,
-                StatusAction = StatusAction.AttachmentDownloaded
-            };
-            attachmentIdempotencyKeys.Add(downloadIdempotencyKey);
-        }
-        await _idempotencyKeyRepository.CreateRangeAsync(attachmentIdempotencyKeys, cancellationToken);
+        await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
 
         var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl);
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest, cancellationToken);
@@ -369,26 +329,15 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return dialogRequest;
     }
 
-    #region MigrationRelated    
-    /// <summary>
-    /// Create Dialog in Dialogportern without creating any events. Used in regards to old correspondences being migrated from Altinn 2 to Altinn 3.
-    /// </summary>
-    public async Task<string> CreateCorrespondenceDialogForMigratedCorrespondence(Guid correspondenceId, CorrespondenceEntity? correspondence, bool enableEvents = false)
+    private async Task CreateIdempotencyKeysForCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
     {
-        var cancellationTokenSource = new CancellationTokenSource();
-        var cancellationToken = cancellationTokenSource.Token;
-        if (correspondence is null)
-        {
-            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
-        }
-
         // Create idempotency key for open dialog activity
         var openActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
         var openIdempotencyKey = new IdempotencyKeyEntity
         {
             Id = openActivityId,
             CorrespondenceId = correspondence.Id,
-            AttachmentId = null, // No attachment for opened activity
+            AttachmentId = null,
             StatusAction = StatusAction.Fetched,
             IdempotencyType = IdempotencyType.DialogportenActivity
         };
@@ -402,7 +351,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             {
                 Id = confirmActivityId,
                 CorrespondenceId = correspondence.Id,
-                AttachmentId = null, // No attachment for confirm activity
+                AttachmentId = null,
                 StatusAction = StatusAction.Confirmed,
                 IdempotencyType = IdempotencyType.DialogportenActivity
             };
@@ -424,6 +373,23 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             attachmentIdempotencyKeys.Add(downloadIdempotencyKey);
         }
         await _idempotencyKeyRepository.CreateRangeAsync(attachmentIdempotencyKeys, cancellationToken);
+    }
+
+
+    #region MigrationRelated    
+    /// <summary>
+    /// Create Dialog in Dialogportern without creating any events. Used in regards to old correspondences being migrated from Altinn 2 to Altinn 3.
+    /// </summary>
+    public async Task<string> CreateCorrespondenceDialogForMigratedCorrespondence(Guid correspondenceId, CorrespondenceEntity? correspondence, bool enableEvents = false)
+    {
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        if (correspondence is null)
+        {
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+
+        await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
 
         var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, true);
         string updateType = enableEvents ? "" : "?IsSilentUpdate=true";

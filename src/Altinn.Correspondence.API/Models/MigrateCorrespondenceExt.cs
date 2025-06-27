@@ -32,7 +32,7 @@ namespace Altinn.Correspondence.API.Models
         public int PartyId { get; set; }
 
         /// <summary>
-        /// Gets or sets whether to make correspondence available in DialogPorten.
+        /// Gets or sets whether to make correspondence available in DialogPorten and Altinn 3 Correspondence API.
         /// </summary>
         [JsonPropertyName("makeAvailable")]
         public bool MakeAvailable { get; set; } = false;

@@ -1,15 +1,15 @@
 using Altinn.Correspondence.Core.Models.Entities;
 
-namespace Altinn.Correspondence.Application.InitializeCorrespondence;
+namespace Altinn.Correspondence.Application.MigrateCorrespondence;
 
-public class MakeAvailableInDialogportenResponse
+public class MakeCorrespondenceAvailableResponse
 {
-    public List<MakeAvailableInDialogPortenStatus>? Statuses { get; set; }
+    public List<MakeCorrespondenceAvailableStatus>? Statuses { get; set; }
 }
 
-public class MakeAvailableInDialogPortenStatus : IComparable
+public class MakeCorrespondenceAvailableStatus : IComparable
 {
-    public MakeAvailableInDialogPortenStatus(Guid correspondenceId, string? error = null, string? dialogId = null, bool ok = false)
+    public MakeCorrespondenceAvailableStatus(Guid correspondenceId, string? error = null, string? dialogId = null, bool ok = false)
     {
         CorrespondenceId = correspondenceId;
         DialogId = dialogId;
@@ -22,12 +22,10 @@ public class MakeAvailableInDialogPortenStatus : IComparable
     public string? Error { get; set; }
     public int CompareTo(object? obj)
     {
-        MakeAvailableInDialogPortenStatus inc = obj as MakeAvailableInDialogPortenStatus;
-        if (inc != null)
+        if (obj is MakeCorrespondenceAvailableStatus other)
         {
-            return this.CorrespondenceId.CompareTo(inc.CorrespondenceId);
+            return this.CorrespondenceId.CompareTo(other.CorrespondenceId);
         }
-
-        throw new NullReferenceException();
+        throw new ArgumentException($"Object is not a {nameof(MakeCorrespondenceAvailableStatus)}", nameof(obj));
     }
 }

@@ -1,8 +1,8 @@
 using Altinn.Correspondence.Core.Models.Entities;
 
-namespace Altinn.Correspondence.Application.InitializeCorrespondence;
+namespace Altinn.Correspondence.Application.MigrateCorrespondence;
 
-public class MakeAvailableInDialogportenRequest
+public class MakeCorrespondenceAvailableRequest
 {
     public Guid? CorrespondenceId { get; set; }
     public required bool CreateEvents { get; set; }

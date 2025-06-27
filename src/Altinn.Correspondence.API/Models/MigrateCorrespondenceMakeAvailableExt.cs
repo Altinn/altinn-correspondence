@@ -3,7 +3,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 
 namespace Altinn.Correspondence.API.Models;
 
-public class MigrateCorrespondenceMakeAvailableExt
+public class MakeCorrespondenceAvailableRequestExt
 {
     [JsonPropertyName("correspondenceId")]
     public Guid? CorrespondenceId { get; set; }

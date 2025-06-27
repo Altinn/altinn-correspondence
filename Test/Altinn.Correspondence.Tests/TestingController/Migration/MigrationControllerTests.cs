@@ -230,7 +230,7 @@ public class MigrationControllerTests : MigrationTestBase
         CorrespondenceMigrationStatusExt resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
         Assert.NotNull(resultObj);
 
-        MigrateCorrespondenceMakeAvailableExt request = new MigrateCorrespondenceMakeAvailableExt()
+        MakeCorrespondenceAvailableRequestExt request = new MakeCorrespondenceAvailableRequestExt()
         {
             CreateEvents = false,
             CorrespondenceIds = [resultObj.CorrespondenceId],
@@ -238,7 +238,7 @@ public class MigrationControllerTests : MigrationTestBase
         };
 
         var makeAvailableResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/dialogporten", request);
-        MakeAvailableInDialogportenResponseExt respExt = await makeAvailableResponse.Content.ReadFromJsonAsync<MakeAvailableInDialogportenResponseExt>();
+        MakeCorrespondenceAvailableResponseExt respExt = await makeAvailableResponse.Content.ReadFromJsonAsync<MakeCorrespondenceAvailableResponseExt>();
 
         Assert.True(makeAvailableResponse.IsSuccessStatusCode);
         Assert.NotNull(respExt.Statuses);
@@ -284,7 +284,7 @@ public class MigrationControllerTests : MigrationTestBase
 
         SetNotificationHistory(migrateCorrespondenceExt);
 
-        MigrateCorrespondenceMakeAvailableExt request = new MigrateCorrespondenceMakeAvailableExt()
+        MakeCorrespondenceAvailableRequestExt request = new MakeCorrespondenceAvailableRequestExt()
         {
             CreateEvents = false,
             CorrespondenceIds = new(),
@@ -321,7 +321,7 @@ public class MigrationControllerTests : MigrationTestBase
         request.CorrespondenceIds.Add(resultObj.CorrespondenceId);
 
         var makeAvailableResponse = await _migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/dialogporten", request);
-        MakeAvailableInDialogportenResponseExt respExt = await makeAvailableResponse.Content.ReadFromJsonAsync<MakeAvailableInDialogportenResponseExt>();
+        MakeCorrespondenceAvailableResponseExt respExt = await makeAvailableResponse.Content.ReadFromJsonAsync<MakeCorrespondenceAvailableResponseExt>();
 
         Assert.True(makeAvailableResponse.IsSuccessStatusCode);
         Assert.NotNull(respExt.Statuses);
