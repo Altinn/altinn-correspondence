@@ -22,7 +22,7 @@ resource application_insights 'Microsoft.Insights/components@2020-02-02' = {
   kind: 'web'
   properties: {
     Application_Type: 'web'
-    WorkspaceResourceId: log_analytics_workspace.id
+    //WorkspaceResourceId: log_analytics_workspace.id
     DisableIpMasking: true
   }
 }
