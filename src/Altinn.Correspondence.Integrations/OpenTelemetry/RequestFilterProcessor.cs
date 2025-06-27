@@ -119,14 +119,14 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
         }
         if (_generalSettings.DisableTelemetryForMigration)
         {
-            // If OpenTelemetry is enabled, we do not want to exclude migration requests
-            return false;
+            return localpath switch
+            {
+                "/correspondence/api/v1/migration/correspondence" => true,
+                "/correspondence/api/v1/migration/attachment" => true,
+                "/correspondence/api/v1/correspondence/upload" => true,
+                _ => false
+            };
         }
-        return localpath switch
-        {
-            "/correspondence/api/v1/migration/correspondence" => true,
-            "/correspondence/api/v1/migration/attachment" => true,
-            _ => false
-        };
+        return false;
     }
 }
