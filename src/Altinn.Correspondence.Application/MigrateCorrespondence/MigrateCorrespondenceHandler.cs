@@ -43,7 +43,7 @@ public class MigrateCorrespondenceHandler(
             if (request.MakeAvailable)
             {
                 dialogId = await MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, cancellationToken, correspondence, true);
-                hangfireScheduleHelper.SchedulePublishAtPublishTime(correspondence.Id, cancellationToken);
+                hangfireScheduleHelper.SchedulePublishAtPublishTime(correspondence, cancellationToken);
             }
             
             return new MigrateCorrespondenceResponse()
