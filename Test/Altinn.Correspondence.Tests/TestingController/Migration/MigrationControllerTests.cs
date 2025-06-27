@@ -29,7 +29,6 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
             .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
@@ -44,6 +43,7 @@ public class MigrationControllerTests : MigrationTestBase
     [Fact]
     public async Task InitializeMigrateCorrespondence_GetCorrespondenceDetails_IncludesAltinn2Notifications()
     {
+        // IsMigrating is set to false because we are not testing MakeAvailable, but we have to retrieve correspondence via GetcorrespondenceDetails to check Notifications.
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
             .WithIsMigrating(false)
@@ -70,7 +70,6 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
             .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
@@ -96,7 +95,6 @@ public class MigrationControllerTests : MigrationTestBase
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
             .WithMessageSender(messageSender)
-            .WithIsMigrating(false)
             .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6), _testUserPartyUuId)
             .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7), _testUserPartyUuId)
             .Build();
@@ -123,7 +121,6 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
             .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
@@ -175,7 +172,6 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
              .CreateMigrateCorrespondence()
-             .WithIsMigrating(false)
              .Build();
 
         var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorresponenceUrl, migrateCorrespondenceExt);
