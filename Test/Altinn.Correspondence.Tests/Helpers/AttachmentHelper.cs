@@ -89,6 +89,7 @@ namespace Altinn.Correspondence.Tests.Helpers
             
             // Status didn't update within the expected time
             var finalAttachment = await client.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", responseSerializerOptions);
+            Assert.NotNull(finalAttachment);
             Assert.Fail($"Attachment status did not update to {expectedStatus} within {maxRetries * delayMs}ms. Current status: {finalAttachment?.Status}");
             return finalAttachment;
         }

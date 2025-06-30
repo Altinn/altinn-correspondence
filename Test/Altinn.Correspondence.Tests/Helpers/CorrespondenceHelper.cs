@@ -93,6 +93,7 @@ internal static class CorrespondenceHelper
 
         // If we get here, the status didn't update within the expected time
         var finalCorrespondence = await client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceId}", responseSerializerOptions);
+        Assert.NotNull(finalCorrespondence);
         Assert.Fail($"Correspondence status did not update to {expectedStatus} within {maxRetries * delayMs}ms. Current status: {finalCorrespondence?.Status}");
         return finalCorrespondence;
     }
