@@ -78,7 +78,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
         }
 
         /// <summary>
-        /// Should trace all activities when disableTelemetryForMigration setting is false
+        /// Should disable tracing for migration activities when disableTelemetryForMigration setting is true
         /// </summary>
         [Fact]
         public void ShouldMarkAsNoneWhenDisableMigrationTelemetry()
@@ -121,7 +121,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
         }
 
         /// <summary>
-        /// Should allow non-migration activities when disableTelemetryForMigration setting is true
+        /// Should trace non-migration activities when disableTelemetryForMigration setting is false
         /// </summary>
         [Fact]
         public void ShouldMarkAsRecordenWhenOtherActivityAndDisableMigrationTelemetry()
