@@ -50,15 +50,12 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
             if (storageProviderEntity is not null)
             {
-                _logger.LogInformation("Using storage provider: {storageProvider} and resource {storageResourceName}",
-                    storageProviderEntity.Id.ToString(), storageProviderEntity.StorageResourceName);
                 var blobServiceClient = GetOrCreateBlobServiceClient(storageProviderEntity.StorageResourceName);
                 var containerClient = blobServiceClient.GetBlobContainerClient("attachments");
                 return containerClient.GetBlobClient(fileId.ToString());
             }
             else // Legacy implementation
             {
-                _logger.LogInformation("Using Correspondence's storage account");
                 _logger.LogInformation("Using Correspondence's storage account");
                 var connectionString = _options.ConnectionString;
                 var blobServiceClient = new BlobServiceClient(connectionString,
@@ -91,12 +88,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<(string locationUrl, string hash, long size)> UploadAttachment(AttachmentEntity attachment, Stream stream, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
-            _logger.LogInformation(
-                "Uploading attachment with id: {attachmentId} to blob storage. Storage resource: {storageProvider} and resource {storageResourceName}",
-                attachment.Id,
-                storageProviderEntity?.Id.ToString() ?? "Legacy",
-                storageProviderEntity?.StorageResourceName ?? "Legacy");
-
             BlobClient blobClient = await InitializeBlobClient(attachment.Id, storageProviderEntity);
             var locationUrl = blobClient.Uri.ToString() ?? throw new DataLocationUrlException("Could not get data location url");
             
@@ -134,12 +125,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<Stream> DownloadAttachment(Guid attachmentId, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
-            _logger.LogInformation(
-                "Downloading attachment with id: {attachmentId} from blob storage. Storage resource: {storageProvider} and resource {storageResourceName}",
-                attachmentId,
-                storageProviderEntity?.Id.ToString() ?? "Legacy",
-                storageProviderEntity?.StorageResourceName ?? "Legacy");
-
             BlobClient blobClient = await InitializeBlobClient(attachmentId, storageProviderEntity);
 
             try
@@ -156,12 +141,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task PurgeAttachment(Guid attachmentId, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
-            _logger.LogInformation(
-                "Purging attachment with id: {attachmentId} to blob storage. Storage resource: {storageProvider} and resource {storageResourceName}",
-                attachmentId,
-                storageProviderEntity?.Id.ToString() ?? "Legacy",
-                storageProviderEntity?.StorageResourceName ?? "Legacy");
-
             BlobClient blobClient = await InitializeBlobClient(attachmentId, storageProviderEntity);
 
             try
