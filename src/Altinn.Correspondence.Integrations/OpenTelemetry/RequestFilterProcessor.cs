@@ -75,7 +75,7 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
         bool skip = false;
         if (activity.OperationName == RequestKind)
         {
-            skip = ExcludeRequest(_httpContextAccessor.HttpContext.Request.Path.Value);
+            skip = ExcludeRequest(_httpContextAccessor?.HttpContext?.Request.Path.Value);
         }
         else if (!(activity.Parent?.ActivityTraceFlags.HasFlag(ActivityTraceFlags.Recorded) ?? true))
         {
@@ -110,22 +110,31 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
             }
         }
     }
-
-    private bool ExcludeRequest(string localpath)
+    private bool ExcludeRequest(string? localpath)
     {
-        if (localpath == "/health")
+        if (string.IsNullOrWhiteSpace(localpath)) 
         { 
+            return false;
+        }
+
+        var pathSpan = localpath.AsSpan();
+        int queryIndex = pathSpan.IndexOf('?');
+        if (queryIndex >= 0)
+        {
+            pathSpan = pathSpan.Slice(0, queryIndex);
+        }
+
+        if (pathSpan.SequenceEqual("/health".AsSpan()))
+        {
             return true;
         }
+
         if (_generalSettings.DisableTelemetryForMigration)
         {
-            return localpath switch
-            {
-                "/correspondence/api/v1/migration/correspondence" => true,
-                "/correspondence/api/v1/migration/attachment" => true,
-                _ => false
-            };
+            return pathSpan.SequenceEqual("/correspondence/api/v1/migration/correspondence".AsSpan())
+                || pathSpan.SequenceEqual("/correspondence/api/v1/migration/attachment".AsSpan());
         }
+
         return false;
     }
 }
