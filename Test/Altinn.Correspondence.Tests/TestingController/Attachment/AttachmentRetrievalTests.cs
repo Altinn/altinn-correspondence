@@ -19,6 +19,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             var getAttachmentOverviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}");
             Assert.True(getAttachmentOverviewResponse.IsSuccessStatusCode, await getAttachmentOverviewResponse.Content.ReadAsStringAsync());
         }
+        
         [Fact]
         public async Task GetAttachmentOverview_AsRecipient_ReturnsForbidden()
         {

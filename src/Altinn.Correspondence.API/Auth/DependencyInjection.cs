@@ -158,7 +158,9 @@ namespace Altinn.Correspondence.API.Auth
             services.AddTransient<IAuthorizationHandler, ScopeAccessHandler>();
             services.AddAuthorization(options =>
             {
-                options.AddPolicy(AuthorizationConstants.Sender, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.SenderScope)).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
+                options.AddPolicy(AuthorizationConstants.Sender, policy => 
+                    policy.RequireScopesByTokenIssuer(AuthorizationConstants.SenderScope)
+                          .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.Recipient, policy =>
                     policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme));
                 options.AddPolicy(AuthorizationConstants.SenderOrRecipient, policy =>

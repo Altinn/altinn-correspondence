@@ -73,6 +73,19 @@ namespace Altinn.Correspondence.Tests.Helpers
                 }
                 return PolicyAuthorizationResult.Forbid();
             }
+            
+            // Handle RequireAssertion requirements (used by RequireScopesByTokenIssuer and RequireScopeIfAltinn)
+            foreach (var requirement in policy.Requirements.OfType<AssertionRequirement>())
+            {
+                var authorizationContext = new AuthorizationHandlerContext(policy.Requirements, user, resource);
+                await requirement.HandleAsync(authorizationContext);
+                if (authorizationContext.HasSucceeded)
+                {
+                    return PolicyAuthorizationResult.Success();
+                }
+                return PolicyAuthorizationResult.Forbid();
+            }
+            
             return PolicyAuthorizationResult.Forbid();
         }
     }
