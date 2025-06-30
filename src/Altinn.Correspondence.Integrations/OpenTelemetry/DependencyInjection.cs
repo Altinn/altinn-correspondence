@@ -1,9 +1,7 @@
 using Altinn.Correspondence.Core.Options;
 using Azure.Monitor.OpenTelemetry.Exporter;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using OpenTelemetry.Logs;
@@ -11,13 +9,13 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
-namespace Altinn.Correspondence.Integrations.Azure;
+namespace Altinn.Correspondence.Integrations.OpenTelemetry;
 
-public static class OpenTelemetryConfiguration
+public static class DependencyInjection
 {
     public static IServiceCollection ConfigureOpenTelemetry(
         this IServiceCollection services,
-        string applicationInsightsConnectionString)
+        GeneralSettings generalSettings)
     {
         var attributes = new List<KeyValuePair<string, object>>
         {
@@ -53,22 +51,23 @@ public static class OpenTelemetryConfiguration
                                    !path.Contains("/migration");
                         };
                     })
-                    .AddHttpClientInstrumentation();
+                    .AddHttpClientInstrumentation()
+                    .AddProcessor(new RequestFilterProcessor(generalSettings, new HttpContextAccessor()));
             })
             .WithLogging(logging =>
             {
             });
 
-        if (!string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
+        if (!string.IsNullOrWhiteSpace(generalSettings.ApplicationInsightsConnectionString))
         {
             services.ConfigureOpenTelemetryMeterProvider(metrics =>
-                metrics.AddAzureMonitorMetricExporter(o => o.ConnectionString = applicationInsightsConnectionString));
+                metrics.AddAzureMonitorMetricExporter(o => o.ConnectionString = generalSettings.ApplicationInsightsConnectionString));
 
             services.ConfigureOpenTelemetryTracerProvider(tracing =>
-                tracing.AddAzureMonitorTraceExporter(o => o.ConnectionString = applicationInsightsConnectionString));
+                tracing.AddAzureMonitorTraceExporter(o => o.ConnectionString = generalSettings.ApplicationInsightsConnectionString));
 
-            services.ConfigureOpenTelemetryLoggerProvider(logging => 
-                logging.AddAzureMonitorLogExporter(o => o.ConnectionString = applicationInsightsConnectionString));
+            services.ConfigureOpenTelemetryLoggerProvider(logging =>
+                logging.AddAzureMonitorLogExporter(o => o.ConnectionString = generalSettings.ApplicationInsightsConnectionString));
         }
 
         return services;

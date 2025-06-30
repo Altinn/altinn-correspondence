@@ -41,7 +41,6 @@ namespace Altinn.Correspondence.API.Controllers
             CancellationToken cancellationToken)
         {
             LogContextHelpers.EnrichLogsWithMigrateCorrespondence(migrateCorrespondence);
-            _logger.LogInformation("Initialize correspondence");
 
             var commandRequest = MigrateCorrespondenceMapper.MapToRequest(migrateCorrespondence);
             var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
@@ -66,7 +65,6 @@ namespace Altinn.Correspondence.API.Controllers
         )
         {
             Guid attachmentId = Guid.NewGuid();
-            _logger.LogInformation("{AttachmentId};Uploading attachment", attachmentId.ToString());
 
             Request.EnableBuffering();
             var attachment = new MigrateAttachmentRequest()
