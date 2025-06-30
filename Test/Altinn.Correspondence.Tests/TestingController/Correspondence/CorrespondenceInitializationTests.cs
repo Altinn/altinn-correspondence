@@ -276,18 +276,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         }
 
-        [Fact]
-        public async Task InitializeCorrespondence_With_Invalid_Sender_Returns_BadRequest()
-        {
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithSender("invalid-sender")
-                .Build();
-
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-        }
-
         [Theory]
         [InlineData("invalid-recipient")]
         [InlineData("123456789")]
@@ -648,7 +636,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 var resourceRegistryService = new Mock<IResourceRegistryService>();
                 resourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-broker-test-resource");
                 resourceRegistryService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("BrokerService");
-                services.AddSingleton(resourceRegistryService.Object);
+                resourceRegistryService.Setup(x => x.GetServiceOwnerOrganizationNumber(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("991825827");
+                services.AddScoped(_ => resourceRegistryService.Object);
             });
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()

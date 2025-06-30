@@ -41,6 +41,7 @@ public static class CorrespondenceErrors
     public static Error InvalidIdempotencyKey = new Error(1033, "The idempotency key must be a valid non-empty GUID", HttpStatusCode.BadRequest);
     public static Error DuplicateInitCorrespondenceRequest = new Error(1034, "A correspondence with the same idempotent key already exists", HttpStatusCode.Conflict);
     public static Error InvalidReplyOptions = new Error(1035, "Reply options must be well-formed URIs and HTTPS with a max length of 255 characters", HttpStatusCode.BadRequest);
+    public static Error ServiceOwnerOrgNumberNotFound = new Error(1036, "Service owner/sender's organization number (9 digits) not found for resource", HttpStatusCode.InternalServerError);
 }
 
 public static class AttachmentErrors

@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Models.Entities;
+﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
@@ -23,7 +24,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return new CreateDialogRequest
             {
                 Id = dialogId,
-                ServiceResource = "urn:altinn:resource:" + correspondence.ResourceId,
+                ServiceResource = UrnConstants.Resource + ":" + correspondence.ResourceId,
                 Party = correspondence.GetRecipientUrn(),
                 CreatedAt = correspondence.Created,
                 UpdatedAt = correspondence.Statuses?.Select(s => s.StatusChanged).DefaultIfEmpty().Max(),

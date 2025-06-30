@@ -114,4 +114,14 @@ public class ResourceRegistryService : IResourceRegistryService
         }
         return name ?? string.Empty;
     }
+
+    public async Task<string?> GetServiceOwnerOrganizationNumber(string resourceId, CancellationToken cancellationToken = default)
+    {
+        var altinnResourceResponse = await GetResource(resourceId, cancellationToken);
+        if (altinnResourceResponse is null)
+        {
+            return null;
+        }
+        return altinnResourceResponse.HasCompetentAuthority?.Organization;
+    }
 }
