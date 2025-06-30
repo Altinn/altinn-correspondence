@@ -44,7 +44,7 @@ namespace Altinn.Correspondence.Tests.Helpers
             var attachmentId = await initializeAttachmentResponse.Content.ReadFromJsonAsync<Guid>();
             var uploadResponse = await UploadAttachment(attachmentId, client);
             Assert.Equal(HttpStatusCode.OK, uploadResponse.StatusCode);
-            var attachmentOverview = await (await client.GetAsync($"correspondence/api/v1/attachment/{attachmentId}")).Content.ReadFromJsonAsync<AttachmentOverviewExt>(responseSerializerOptions);
+            var attachmentOverview = await WaitForAttachmentStatusUpdate(client, responseSerializerOptions, attachmentId, AttachmentStatusExt.Published);
             Assert.Equal(AttachmentStatusExt.Published, attachmentOverview?.Status);
             return attachmentId;
         }
@@ -67,6 +67,30 @@ namespace Altinn.Correspondence.Tests.Helpers
                 byte[] hash = md5.ComputeHash(data);
                 return BitConverter.ToString(hash).Replace("-", "").ToLower();
             }
+        }
+        public static async Task<AttachmentOverviewExt> WaitForAttachmentStatusUpdate(HttpClient client, JsonSerializerOptions responseSerializerOptions, Guid attachmentId, AttachmentStatusExt expectedStatus, int maxRetries = 5, int delayMs = 2000)
+        {
+            for (int i = 0; i < maxRetries; i++)
+            {
+                var attachment = await client.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", responseSerializerOptions);
+
+                if (attachment?.Status == expectedStatus)
+                {
+                    return attachment;
+                }
+
+                if (attachment?.Status == AttachmentStatusExt.Failed)
+                {
+                    Assert.Fail($"Attachment failed with status: {attachment.StatusText}");
+                }
+
+                await Task.Delay(delayMs);
+            }
+            
+            // Status didn't update within the expected time
+            var finalAttachment = await client.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", responseSerializerOptions);
+            Assert.Fail($"Attachment status did not update to {expectedStatus} within {maxRetries * delayMs}ms. Current status: {finalAttachment?.Status}");
+            return finalAttachment;
         }
     }
 }
