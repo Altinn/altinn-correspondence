@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Altinn.Correspondence.API.ValidationAttributes;
 
 namespace Altinn.Correspondence.API.Controllers
 {
@@ -374,7 +375,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] GetCorrespondencesHandler handler,
             [FromQuery] CorrespondenceStatusExt? status,
             [FromQuery, RequiredEnum] CorrespondencesRoleType role,
-            [FromQuery] string? onBehalfOf,
+            [FromQuery, OnBehalfOf] string? onBehalfOf,
             [FromQuery] string? sendersReference,
             CancellationToken cancellationToken = default)
         {
