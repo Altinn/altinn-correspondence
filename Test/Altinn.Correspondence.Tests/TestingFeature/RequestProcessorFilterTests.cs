@@ -27,6 +27,33 @@ namespace Altinn.Correspondence.Tests.TestingFeature
         }
 
         /// <summary>
+        /// Should not throw exception if log outside of HttpContext
+        /// </summary>
+        [Fact]
+        public void ShouldNotFailOutsideOfHttpContext()
+        {
+            // Arrange
+            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration = true }, null);
+
+            var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
+            activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
+
+            // Act
+            try
+            {
+                dependencyFilterProcessor.OnStart(activity);
+            }
+            catch (Exception e)
+            {
+                // Assert
+                Assert.False(true, $"Exception thrown: {e.Message}");
+            }
+
+            // Assert
+            Assert.Equal(System.Diagnostics.ActivityTraceFlags.Recorded, activity.ActivityTraceFlags);
+        }
+
+        /// <summary>
         /// Should exclude activities even if url contains query parameters
         /// </summary>
         [Fact]
