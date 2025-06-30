@@ -128,11 +128,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             List<Activity> activities = new();
             var orderedStatuses = correspondence.Statuses.OrderBy(s => s.StatusChanged);
-            var readStatus = orderedStatuses.FirstOrDefault(s => s.Status == CorrespondenceStatus.Read);
-            if (readStatus != null)
-            {
-                activities.Add(GetActivityFromStatus(correspondence, readStatus));
-            }
+
+            orderedStatuses.Where(s => s.Status == CorrespondenceStatus.Read).ToList().ForEach(s => activities.Add(GetActivityFromStatus(correspondence, s)));
 
             var confirmedStatus = orderedStatuses.FirstOrDefault(s => s.Status == CorrespondenceStatus.Confirmed);
             if(confirmedStatus != null)

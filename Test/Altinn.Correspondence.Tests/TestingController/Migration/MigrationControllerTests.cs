@@ -214,8 +214,11 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
-            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6, 11, 10, 21))
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 7, 15, 11, 56))
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 8, 14, 19, 22))
+            .WithStatusEvent(CorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 8, 14, 20, 5))
+            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 9, 10, 50, 17))
             .Build();
         SetNotificationHistory(migrateCorrespondenceExt);
 
