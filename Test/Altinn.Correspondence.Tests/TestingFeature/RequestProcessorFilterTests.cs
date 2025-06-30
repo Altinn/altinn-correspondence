@@ -27,6 +27,30 @@ namespace Altinn.Correspondence.Tests.TestingFeature
         }
 
         /// <summary>
+        /// Should exclude activities even if url contains query parameters
+        /// </summary>
+        [Fact]
+        public void ShouldMarkAsNoneWithQueryParameters()
+        {
+            // Arrange
+            Mock<IHttpContextAccessor> httpContextAccessor = new Mock<IHttpContextAccessor>(MockBehavior.Strict);
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Path = "/correspondence/api/v1/migration/attachment?resourceId=123";
+            httpContextAccessor.SetupGet(accessor => accessor.HttpContext).Returns(httpContext);
+
+            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration = true }, httpContextAccessor.Object);
+
+            var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
+            activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
+
+            // Act
+            dependencyFilterProcessor.OnStart(activity);
+
+            // Assert
+            Assert.Equal(System.Diagnostics.ActivityTraceFlags.None, activity.ActivityTraceFlags);
+        }
+
+        /// <summary>
         /// Should trace all activities when disableTelemetryForMigration setting is false
         /// </summary>
         [Fact]

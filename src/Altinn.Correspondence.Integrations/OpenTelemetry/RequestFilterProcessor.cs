@@ -110,22 +110,26 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
             }
         }
     }
-
     private bool ExcludeRequest(string localpath)
     {
-        if (localpath == "/health")
-        { 
+        var pathSpan = localpath.AsSpan();
+        int queryIndex = pathSpan.IndexOf('?');
+        if (queryIndex >= 0)
+        {
+            pathSpan = pathSpan.Slice(0, queryIndex);
+        }
+
+        if (pathSpan.SequenceEqual("/health".AsSpan()))
+        {
             return true;
         }
+
         if (_generalSettings.DisableTelemetryForMigration)
         {
-            return localpath switch
-            {
-                "/correspondence/api/v1/migration/correspondence" => true,
-                "/correspondence/api/v1/migration/attachment" => true,
-                _ => false
-            };
+            return pathSpan.SequenceEqual("/correspondence/api/v1/migration/correspondence".AsSpan())
+                || pathSpan.SequenceEqual("/correspondence/api/v1/migration/attachment".AsSpan());
         }
+
         return false;
     }
 }
