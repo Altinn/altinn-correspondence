@@ -1,23 +1,33 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
+using UUIDNext;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
+    internal static class SystemLabel
+    {
+        internal static string Archived = "Archive";
+        internal static string Default = "Default";
+        internal static string Bin = "Bin";
+    }
+
     internal static class CreateDialogRequestMapper
     {
-        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl)
+        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false)
         {
             var dialogId = Guid.CreateVersion7().ToString(); // Dialogporten requires time-stamped GUIDs
-
+            bool isArchived = correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Archived);
+            
             return new CreateDialogRequest
             {
                 Id = dialogId,
                 ServiceResource = "urn:altinn:resource:" + correspondence.ResourceId,
                 Party = correspondence.GetRecipientUrn(),
-                CreatedAt = null,
-                UpdatedAt = null,
-                VisibleFrom = correspondence.RequestedPublishTime < DateTime.UtcNow.AddMinutes(1) ? DateTime.UtcNow.AddMinutes(1) : correspondence.RequestedPublishTime,
+                CreatedAt = correspondence.Created,
+                UpdatedAt = correspondence.Statuses?.Select(s => s.StatusChanged).DefaultIfEmpty().Max(),
+                VisibleFrom = correspondence.RequestedPublishTime < DateTime.UtcNow.AddMinutes(1) ? null : correspondence.RequestedPublishTime,
                 Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
                 ExpiresAt = correspondence.AllowSystemDeleteAfter,
                 DueAt = correspondence.DueDateTime != default ? correspondence.DueDateTime : null,
@@ -28,8 +38,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
                 GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
                 Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
-                Activities = GetActivitiesForCorrespondence(correspondence),
-                Transmissions = new List<Transmission>()
+                Activities = includeActivities ? GetActivitiesForCorrespondence(correspondence) : new List<Activity>(),
+                Transmissions = new List<Transmission>(),
+                SystemLabel = isArchived ? SystemLabel.Archived : SystemLabel.Default
             };
         }
 
@@ -115,7 +126,89 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static List<Activity> GetActivitiesForCorrespondence(CorrespondenceEntity correspondence)
         {
-            return new List<Activity>();
+            List<Activity> activities = new();
+            var orderedStatuses = correspondence.Statuses.OrderBy(s => s.StatusChanged);
+
+            orderedStatuses.Where(s => s.Status == CorrespondenceStatus.Read).ToList().ForEach(s => activities.Add(GetActivityFromStatus(correspondence, s)));
+
+            var confirmedStatus = orderedStatuses.FirstOrDefault(s => s.Status == CorrespondenceStatus.Confirmed);
+            if(confirmedStatus != null)
+            {
+                activities.Add(GetActivityFromStatus(correspondence, confirmedStatus));
+            }
+
+            activities.AddRange(GetActivitiesFromNotifications(correspondence));
+
+            return activities.OrderBy(a => a.CreatedAt).ToList();
+        }
+
+        private static Activity GetActivityFromStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity status)
+        {
+            bool isConfirmation = status.Status == CorrespondenceStatus.Confirmed;
+
+            Activity activity = new Activity();
+            activity.Id = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString();
+            activity.PerformedBy = new PerformedBy()
+            {
+                ActorId = correspondence.GetRecipientUrn(),
+                ActorType = "PartyRepresentative"
+            };
+            activity.CreatedAt = status.StatusChanged;
+            activity.Type = isConfirmation ? "CorrespondenceConfirmed" : "CorrespondenceOpened";
+            activity.Description = [];
+
+            return activity;
+        }
+
+        private static List<Activity> GetActivitiesFromNotifications(CorrespondenceEntity correspondence)
+        {
+            List<Activity> notificationActivities = new List<Activity>();
+            foreach (var notification in correspondence.Notifications.Where(n => n.Altinn2NotificationId != null))
+            {
+                notificationActivities.Add(GetActivityFromAltinn2Notification(correspondence, notification));
+            }
+
+            return notificationActivities;
+        }
+
+        private static Activity GetActivityFromAltinn2Notification(CorrespondenceEntity correspondence, CorrespondenceNotificationEntity notification)
+        {
+            Activity activity = new Activity();
+            activity.Id = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString();
+            activity.PerformedBy = new PerformedBy()
+            {
+                ActorType = "ServiceOwner"
+            };
+            activity.CreatedAt = notification.NotificationSent ?? notification.RequestedSendTime;
+            activity.Type = "Information";
+
+
+            string[] tokens = [];
+            if (notification.NotificationAddress != null)
+            {
+                tokens = [notification.NotificationAddress, notification.NotificationChannel == NotificationChannel.Email ? "Email" : "SMS"];
+            }
+
+            activity.Description =
+            [
+                new ()
+                {
+                    LanguageCode = "nb",
+                    Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, Enums.DialogportenLanguageCode.NB, tokens)
+                },
+                new ()
+                {
+                    LanguageCode = "nn",
+                    Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, Enums.DialogportenLanguageCode.NN, tokens)
+                },
+                new ()
+                {
+                    LanguageCode = "en",
+                    Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, Enums.DialogportenLanguageCode.EN, tokens)
+                },
+            ];
+
+            return activity;
         }
 
         private static string GetDownloadAttachmentEndpoint(string baseUrl, Guid correspondenceId, Guid attachmentId)
@@ -137,7 +230,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                             Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}"
                         }
                     },
-                    
+
                 },
                 new ApiAction()
                 {
@@ -164,7 +257,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                         }
                     }
             });
-                    
+
             foreach (var attachment in correspondence.Content?.Attachments)
             {
                 apiActions.Add(new ApiAction()

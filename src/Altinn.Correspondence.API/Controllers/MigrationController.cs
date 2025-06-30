@@ -1,7 +1,7 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.InitializeAttachment;
-using Altinn.Correspondence.Application.InitializeCorrespondence;
+using Altinn.Correspondence.Application.MigrateCorrespondence;
 using Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Helpers;
@@ -79,6 +79,30 @@ namespace Altinn.Correspondence.API.Controllers
 
             return uploadAttachmentResult.Match(
                 attachment => Ok(attachment.AttachmentId),
+                Problem
+            );
+        }
+
+        /// <summary>
+        /// Creates a dialog with connected activities in Dialogporten.
+        /// Also sets the IsMigrating value to false, which makes the correspondence available in the Altinn 3 Correspondence API.
+        /// Setting 
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("makemigratedcorrespondenceavailable")]
+        [Authorize(Policy = AuthorizationConstants.Migrate)]
+        public async Task<ActionResult<MakeCorrespondenceAvailableResponseExt>> MakeMigratedCorrespondenceAvailable(
+            MakeCorrespondenceAvailableRequestExt request, 
+            [FromServices] MigrateCorrespondenceHandler migrateCorrespondenceHandler,
+            CancellationToken cancellationToken = default
+        )
+        {
+            var internalRequest = MigrateCorrespondenceMapper.MapMakeAvailableToInternal(request);
+            var result = await migrateCorrespondenceHandler.MakeCorrespondenceAvailable(internalRequest, cancellationToken);
+
+            return result.Match(
+                result => Ok(MigrateCorrespondenceMapper.MakeAvailableResponseToExternal(result)),
                 Problem
             );
         }

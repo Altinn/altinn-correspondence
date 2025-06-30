@@ -1,6 +1,6 @@
 using Altinn.Correspondence.Core.Models.Enums;
 
-namespace Altinn.Correspondence.Application.InitializeCorrespondence;
+namespace Altinn.Correspondence.Application.MigrateCorrespondence;
 
 public class AttachmentMigrationStatus
 {

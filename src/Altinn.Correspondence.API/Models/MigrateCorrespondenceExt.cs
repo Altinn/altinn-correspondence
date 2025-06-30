@@ -6,10 +6,10 @@ namespace Altinn.Correspondence.API.Models
     {
         [JsonPropertyName("correspondenceData")]
         public required MigrateInitializeCorrespondencesExt CorrespondenceData { get; set; }
-        
+
         [JsonPropertyName("altinn2CorrespondenceId")]
         public required int Altinn2CorrespondenceId { get; set; }
-        
+
         [JsonPropertyName("eventHistory")]
         public List<MigrateCorrespondenceStatusEventExt> EventHistory { get; set; } = new List<MigrateCorrespondenceStatusEventExt>();
 
@@ -30,5 +30,11 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("partyId")]
         public int PartyId { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether to make correspondence available in DialogPorten and Altinn 3 Correspondence API.
+        /// </summary>
+        [JsonPropertyName("makeAvailable")]
+        public bool MakeAvailable { get; set; } = false;
     }
 }

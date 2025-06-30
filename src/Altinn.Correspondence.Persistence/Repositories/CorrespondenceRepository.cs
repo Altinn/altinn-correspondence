@@ -146,6 +146,15 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 await _context.SaveChangesAsync(cancellationToken);
             }
         }
+        public async Task UpdateIsMigrating(Guid correspondenceId, bool isMigrating, CancellationToken cancellationToken)
+        {
+            var correspondence = await _context.Correspondences.SingleOrDefaultAsync(c => c.Id == correspondenceId, cancellationToken);
+            if (correspondence != null)
+            {
+                correspondence.IsMigrating = isMigrating;
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+        }
 
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, bool includeActive, bool includeArchived, bool includePurged, string searchString, CancellationToken cancellationToken, bool filterMigrated = true)
         {

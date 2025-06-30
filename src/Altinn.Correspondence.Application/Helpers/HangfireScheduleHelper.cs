@@ -1,5 +1,6 @@
 ﻿using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Common.Caching;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -36,6 +37,12 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 throw new Exception($"Correspondence with id {correspondenceId} not found when scheduling publish");
             }
+
+            SchedulePublishAtPublishTime(correspondence, cancellationToken);
+        }
+
+        public void SchedulePublishAtPublishTime(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
+        {
             backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), GetActualPublishTime(correspondence.RequestedPublishTime));
         }
 
