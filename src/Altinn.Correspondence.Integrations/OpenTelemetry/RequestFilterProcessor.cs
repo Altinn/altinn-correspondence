@@ -75,7 +75,7 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
         bool skip = false;
         if (activity.OperationName == RequestKind)
         {
-            skip = ExcludeRequest(_httpContextAccessor.HttpContext.Request.Path.Value);
+            skip = ExcludeRequest(_httpContextAccessor?.HttpContext?.Request.Path.Value);
         }
         else if (!(activity.Parent?.ActivityTraceFlags.HasFlag(ActivityTraceFlags.Recorded) ?? true))
         {
@@ -110,7 +110,7 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
             }
         }
     }
-    private bool ExcludeRequest(string localpath)
+    private bool ExcludeRequest(string? localpath)
     {
         if (string.IsNullOrWhiteSpace(localpath)) 
         { 
