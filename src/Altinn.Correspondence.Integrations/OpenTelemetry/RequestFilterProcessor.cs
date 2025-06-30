@@ -112,6 +112,11 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
     }
     private bool ExcludeRequest(string localpath)
     {
+        if (string.IsNullOrWhiteSpace(localpath)) 
+        { 
+            return false;
+        }
+
         var pathSpan = localpath.AsSpan();
         int queryIndex = pathSpan.IndexOf('?');
         if (queryIndex >= 0)
