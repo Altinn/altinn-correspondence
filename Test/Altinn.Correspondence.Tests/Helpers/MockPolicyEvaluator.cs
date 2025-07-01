@@ -16,64 +16,63 @@ namespace Altinn.Correspondence.Tests.Helpers
         }
         public virtual async Task<AuthenticateResult> AuthenticateAsync(AuthorizationPolicy policy, HttpContext context)
         {
-            // Do we not already get the correct principal here? Check with debugger.
+            // Preserve the claims from the test context
             var claims = context.User.Claims;
             var principal = new ClaimsPrincipal();
-            // Check if the user meets the authorization policy's requirements
-            foreach (var requirement in policy.Requirements.OfType<ScopeAccessRequirement>())
-            {
-                bool hasMatchingClaim = claims
-                    .Any(claim => requirement.Scope
-                        .Any(scope => scope.Equals(claim.Value)));
-
-                if (!hasMatchingClaim)
-                {
-                    return await Task.FromResult(AuthenticateResult.Fail($"Missing or invalid claim: {requirement.Scope}"));
-                }
-            }
+            
+            // Determine the authentication scheme based on claims
             var issuer = claims.FirstOrDefault(c => c.Type == "iss")?.Value;
-            if (issuer.Contains("dialogporten"))
+            var authenticationScheme = "Bearer"; // Default to JWT Bearer for Altinn tokens
+            
+            if (issuer != null && issuer.Contains("dialogporten"))
             {
-                principal.AddIdentity(new ClaimsIdentity(claims, AuthorizationConstants.DialogportenScheme));
-            } else
+                authenticationScheme = AuthorizationConstants.DialogportenScheme;
+            } 
+            else if (issuer != null && issuer.Contains("maskinporten"))
             {
-                principal.AddIdentity(new ClaimsIdentity(claims, "MockScheme"));
+                authenticationScheme = AuthorizationConstants.MaskinportenScheme;
             }
-            return await Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(principal,
-                new AuthenticationProperties(), "MockScheme")));
+            
+            principal.AddIdentity(new ClaimsIdentity(claims, authenticationScheme));
+            return AuthenticateResult.Success(new AuthenticationTicket(principal, authenticationScheme));
         }
 
-        public virtual async Task<PolicyAuthorizationResult> AuthorizeAsync(AuthorizationPolicy policy, AuthenticateResult authenticationResult, HttpContext context, object resource)
+        public virtual async Task<PolicyAuthorizationResult> AuthorizeAsync(AuthorizationPolicy policy, AuthenticateResult authenticationResult, HttpContext context, object? resource)
         {
-            // Is this hook not just replicating default functionality?
-            if (authenticationResult == null)
-            {
-                return PolicyAuthorizationResult.Forbid();
-            }
-
             var user = authenticationResult.Principal;
-            if (user == null)
+            
+            // Handle custom assertion requirements (e.g., the new Sender policy)
+            foreach (var requirement in policy.Requirements.OfType<AssertionRequirement>())
             {
-                return PolicyAuthorizationResult.Forbid();
+                var authzContext = new AuthorizationHandlerContext(new[] { requirement }, user, resource);
+                var result = await Task.Run(() => requirement.Handler(authzContext));
+                if (!result)
+                {
+                    return PolicyAuthorizationResult.Forbid();
+                }
             }
 
-            foreach (var requirement in policy.Requirements.OfType<ScopeAccessRequirement>())
-            {
-                if (requirement.Scope.Any(scope => user.HasClaim("scope", scope)))
-                {
-                    return PolicyAuthorizationResult.Success();
-                }
-                return PolicyAuthorizationResult.Forbid();
-            }
+            // Handle other standard requirements like DenyAnonymousAuthorizationRequirement
             foreach (var requirement in policy.Requirements.OfType<DenyAnonymousAuthorizationRequirement>())
             {
-                if (user.Identity.IsAuthenticated)
+                if (!user?.Identity?.IsAuthenticated == true)
                 {
-                    return PolicyAuthorizationResult.Success();
+                    return PolicyAuthorizationResult.Forbid();
                 }
-                return PolicyAuthorizationResult.Forbid();
             }
-            return PolicyAuthorizationResult.Forbid();
+
+            // Handle role-based requirements
+            foreach (var requirement in policy.Requirements.OfType<RolesAuthorizationRequirement>())
+            {
+                var hasRole = requirement.AllowedRoles.Any(role => user?.IsInRole(role) == true);
+                if (!hasRole)
+                {
+                    return PolicyAuthorizationResult.Forbid();
+                }
+            }
+
+            return PolicyAuthorizationResult.Success();
         }
     }
 }
+    

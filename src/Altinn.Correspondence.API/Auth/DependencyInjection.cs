@@ -158,7 +158,30 @@ namespace Altinn.Correspondence.API.Auth
             services.AddTransient<IAuthorizationHandler, ScopeAccessHandler>();
             services.AddAuthorization(options =>
             {
-                options.AddPolicy(AuthorizationConstants.Sender, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.SenderScope)).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme));
+                options.AddPolicy(AuthorizationConstants.Sender, policy => 
+                    policy.RequireAssertion(context =>
+                    {
+                        // Allow Altinn JWT Bearer tokens with the sender scope
+                        if (context.User.Identity?.AuthenticationType == JwtBearerDefaults.AuthenticationScheme)
+                        {
+                            return context.User.HasClaim(c => c.Type == "scope" && c.Value.Split(' ').Contains(AuthorizationConstants.SenderScope));
+                        }
+                        
+                        // Allow Maskinporten tokens with both serviceowner and correspondence.write scopes
+                        if (context.User.Identity?.AuthenticationType == AuthorizationConstants.MaskinportenScheme)
+                        {
+                            var scopeClaim = context.User.Claims.FirstOrDefault(c => c.Type == "scope");
+                            if (scopeClaim != null)
+                            {
+                                var scopes = scopeClaim.Value.Split(' ');
+                                return scopes.Contains(AuthorizationConstants.ServiceOwnerScope) && 
+                                       scopes.Contains(AuthorizationConstants.SenderScope);
+                            }
+                        }
+                        
+                        return false;
+                    })
+                    .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.Recipient, policy =>
                     policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme));
                 options.AddPolicy(AuthorizationConstants.SenderOrRecipient, policy =>
