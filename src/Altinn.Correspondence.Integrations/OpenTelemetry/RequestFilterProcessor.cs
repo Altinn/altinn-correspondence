@@ -94,7 +94,7 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
     /// <param name="activity">xx</param>
     public override void OnEnd(Activity activity)
     {
-        if (activity.OperationName == RequestKind && _httpContextAccessor.HttpContext is not null)
+        if (activity.OperationName == RequestKind && _httpContextAccessor?.HttpContext?.Request is not null)
         {
             if (_httpContextAccessor.HttpContext.Request.Headers.TryGetValue("X-Forwarded-For", out StringValues ipAddress))
             {
