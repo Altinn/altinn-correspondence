@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
+using System.Linq;
 
 namespace Altinn.Correspondence.API.Auth
 {
@@ -161,14 +162,17 @@ namespace Altinn.Correspondence.API.Auth
                 options.AddPolicy(AuthorizationConstants.Sender, policy => 
                     policy.RequireAssertion(context =>
                     {
+                        var issuerClaim = context.User.Claims.FirstOrDefault(c => c.Type == "iss");
+                        if (issuerClaim == null) return false;
+
                         // Allow Altinn JWT Bearer tokens with the sender scope
-                        if (context.User.Identity?.AuthenticationType == JwtBearerDefaults.AuthenticationScheme)
+                        if (issuerClaim.Value.Contains("altinn.no"))
                         {
                             return context.User.HasClaim(c => c.Type == "scope" && c.Value.Split(' ').Contains(AuthorizationConstants.SenderScope));
                         }
                         
                         // Allow Maskinporten tokens with both serviceowner and correspondence.write scopes
-                        if (context.User.Identity?.AuthenticationType == AuthorizationConstants.MaskinportenScheme)
+                        if (issuerClaim.Value.Contains("maskinporten.no"))
                         {
                             var scopeClaim = context.User.Claims.FirstOrDefault(c => c.Type == "scope");
                             if (scopeClaim != null)

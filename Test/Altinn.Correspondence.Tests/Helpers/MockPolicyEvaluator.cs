@@ -1,5 +1,4 @@
-﻿using Altinn.Common.PEP.Authorization;
-using Altinn.Correspondence.Common.Constants;
+﻿using Altinn.Correspondence.Common.Constants;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
@@ -20,7 +19,7 @@ namespace Altinn.Correspondence.Tests.Helpers
             var claims = context.User.Claims;
             var principal = new ClaimsPrincipal();
             
-            // Determine the authentication scheme based on claims
+            // Determine the authentication scheme based on the issuer claim
             var issuer = claims.FirstOrDefault(c => c.Type == "iss")?.Value;
             var authenticationScheme = "Bearer"; // Default to JWT Bearer for Altinn tokens
             
@@ -28,12 +27,14 @@ namespace Altinn.Correspondence.Tests.Helpers
             {
                 authenticationScheme = AuthorizationConstants.DialogportenScheme;
             } 
-            else if (issuer != null && issuer.Contains("maskinporten"))
+            else if (issuer != null && issuer.Contains("maskinporten.no"))
             {
                 authenticationScheme = AuthorizationConstants.MaskinportenScheme;
             }
             
-            principal.AddIdentity(new ClaimsIdentity(claims, authenticationScheme));
+            var identity = new ClaimsIdentity(claims, authenticationScheme);
+            principal.AddIdentity(identity);
+            
             return AuthenticateResult.Success(new AuthenticationTicket(principal, authenticationScheme));
         }
 
