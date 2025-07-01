@@ -72,8 +72,9 @@ internal static class CorrespondenceHelper
         return formData;
     }
 
-    public static async Task<CorrespondenceOverviewExt> WaitForCorrespondenceStatusUpdate(HttpClient client, JsonSerializerOptions responseSerializerOptions, Guid correspondenceId, CorrespondenceStatusExt expectedStatus, int maxRetries = 5, int delayMs = 2000)
+    public static async Task<CorrespondenceOverviewExt> WaitForCorrespondenceStatusUpdate(HttpClient client, JsonSerializerOptions responseSerializerOptions, Guid correspondenceId, CorrespondenceStatusExt expectedStatus, int maxRetries = 4, int delayMs = 2000)
     {
+        await Task.Delay(1000);
         for (int i = 0; i < maxRetries; i++)
         {
             var correspondence = await client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceId}", responseSerializerOptions);
