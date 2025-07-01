@@ -112,6 +112,7 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
     }
     private bool ExcludeRequest(string? localpath)
     {
+        Console.WriteLine($"Log entry path: {localpath}");
         if (string.IsNullOrWhiteSpace(localpath)) 
         { 
             return false;
@@ -128,11 +129,10 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
         {
             return true;
         }
-
         if (_generalSettings.DisableTelemetryForMigration)
         {
-            return pathSpan.SequenceEqual("/correspondence/api/v1/migration/correspondence".AsSpan())
-                || pathSpan.SequenceEqual("/correspondence/api/v1/migration/attachment".AsSpan());
+            return pathSpan.Contains("/correspondence/api/v1/migration/correspondence".AsSpan(), StringComparison.InvariantCultureIgnoreCase)
+                || pathSpan.Contains("/correspondence/api/v1/migration/attachment".AsSpan(), StringComparison.InvariantCultureIgnoreCase);
         }
 
         return false;
