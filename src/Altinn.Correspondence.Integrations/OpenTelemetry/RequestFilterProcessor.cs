@@ -94,7 +94,7 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
     /// <param name="activity">xx</param>
     public override void OnEnd(Activity activity)
     {
-        if (activity.OperationName == RequestKind && _httpContextAccessor.HttpContext is not null)
+        if (activity.OperationName == RequestKind && _httpContextAccessor?.HttpContext?.Request is not null)
         {
             if (_httpContextAccessor.HttpContext.Request.Headers.TryGetValue("X-Forwarded-For", out StringValues ipAddress))
             {
@@ -128,11 +128,10 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
         {
             return true;
         }
-
         if (_generalSettings.DisableTelemetryForMigration)
         {
-            return pathSpan.SequenceEqual("/correspondence/api/v1/migration/correspondence".AsSpan())
-                || pathSpan.SequenceEqual("/correspondence/api/v1/migration/attachment".AsSpan());
+            return pathSpan.Contains("/correspondence/api/v1/migration/correspondence".AsSpan(), StringComparison.InvariantCultureIgnoreCase)
+                || pathSpan.Contains("/correspondence/api/v1/migration/attachment".AsSpan(), StringComparison.InvariantCultureIgnoreCase);
         }
 
         return false;
