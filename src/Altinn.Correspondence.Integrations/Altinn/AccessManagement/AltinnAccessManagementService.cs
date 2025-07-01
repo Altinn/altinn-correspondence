@@ -89,6 +89,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
                 parties.AddRange(GetPartiesFromSubunits(p.subunits));
             }
         }
+        _logger.LogInformation("Retrieved {Count} authorized parties from Access Management Service.", parties.Count);
 
         try {
             await CacheHelpers.StoreObjectInCacheAsync(cacheKey, parties, _cache, _cacheOptions, cancellationToken);
