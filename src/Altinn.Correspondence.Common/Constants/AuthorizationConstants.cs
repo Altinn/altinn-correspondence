@@ -17,6 +17,7 @@ public static class AuthorizationConstants
     public const string MigrateScope = "altinn:correspondence.migrate";
     public const string LegacyScope = "altinn:portal/enduser";
     public const string NotificationCheckScope = "altinn:system/notifications.condition.check";
+    public const string ServiceOwnerScope = "altinn:serviceowner";
     public const string MaskinportenScheme = "Maskinporten";
     public const string ArbeidsflateCors = "ArbeidsflateCors";
     public const string DownloadAttachmentPolicy = "DownloadAttachmentPolicy";
