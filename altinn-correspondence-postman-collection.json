@@ -1,9 +1,9 @@
 {
 	"info": {
-		"_postman_id": "5a313771-886c-4660-b615-02c7783d5b8e",
+		"_postman_id": "67f7529e-3c7c-4acc-a4cf-073092e354e2",
 		"name": "Altinn.Correspondence.API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "38927211"
+		"_exporter_id": "43464698"
 	},
 	"item": [
 		{
@@ -78,7 +78,7 @@
 							"script": {
 								"exec": [
 									"var responseData = JSON.parse(responseBody);\r",
-									"pm.globals.set(\"test_token\", responseData.access_token);"
+									"pm.globals.set(\"maskinporten_token\", responseData.access_token);"
 								],
 								"type": "text/javascript",
 								"packages": {}
@@ -150,7 +150,7 @@
 							"script": {
 								"exec": [
 									"var responseData = JSON.parse(responseBody);\r",
-									"pm.globals.set(\"test_token\", responseData.access_token);"
+									"pm.globals.set(\"maskinporten_token\", responseData.access_token);"
 								],
 								"type": "text/javascript",
 								"packages": {}
@@ -222,7 +222,79 @@
 							"script": {
 								"exec": [
 									"var responseData = JSON.parse(responseBody);\r",
-									"pm.globals.set(\"test_token\", responseData.access_token);"
+									"pm.globals.set(\"maskinporten_token\", responseData.access_token);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+									"type": "text"
+								},
+								{
+									"key": "assertion",
+									"value": "{{sender_jwt}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "https://test.maskinporten.no/token",
+							"protocol": "https",
+							"host": [
+								"test",
+								"maskinporten",
+								"no"
+							],
+							"path": [
+								"token"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login to Maskinporten (Direct authentication)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"    eval(pm.variables.get(\"pmlib_code\"))\r",
+									"    const jwt = pmlib.jwtSign(\r",
+									"    jwk = JSON.parse(pm.variables.get(\"maskinporten_client_jwk\")), \r",
+									"    payload = {\r",
+									"        \"aud\": \"https://test.maskinporten.no/\",\r",
+									"        \"scope\": \"altinn:serviceowner altinn:correspondence.write\",\r",
+									"        \"iss\": pm.variables.get(\"maskinporten_client_id\")\r",
+									"    }, \r",
+									"    header = {}, \r",
+									"    exp = 120, \r",
+									"    alg = 'RS256');\r",
+									"pm.variables.set('sender_jwt', jwt);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var responseData = JSON.parse(responseBody);\r",
+									"pm.globals.set(\"maskinporten_token\", responseData.access_token);"
 								],
 								"type": "text/javascript",
 								"packages": {}
@@ -277,6 +349,13 @@
 								"type": "text/javascript",
 								"packages": {}
 							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"packages": {},
+								"type": "text/javascript"
+							}
 						}
 					],
 					"request": {
@@ -285,7 +364,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{test_token}}",
+									"value": "{{maskinporten_token}}",
 									"type": "string"
 								}
 							]
@@ -751,7 +830,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"Correspondence\": {\n        \"resourceId\": \"{{resource_id}}\",\n        \"sender\": \"urn:altinn:organization:identifier-no:{{senderOrgNo}}\",\n        \"sendersReference\": \"1\",\n        \"content\": {\n            \"language\": \"nb\",\n            \"messageTitle\": \"Meldingstittel\",\n            \"messageSummary\": \"Ett sammendrag for meldingen\",\n            \"messageBody\": \"# meldingsteksten. Som kan være plain text eller markdown \",\n            \"attachments\": []\n        },\n        \"RequestedPublishTime\": \"2024-09-28T12:44:28.290518+00:00\",\n        \"allowSystemDeleteAfter\": \"2025-08-29T13:31:28.290518+00:00\",\n        \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n        \"externalReferences\": [\n            {\n                \"referenceValue\": \"1\",\n                \"referenceType\": \"AltinnBrokerFileTransfer\"\n            }\n        ],\n        \"propertyList\": {\n            \"deserunt_12\": \"1\",\n            \"culpa_852\": \"2\",\n            \"anim5\": \"3\",\n            \"Æ*'1??`  \": \"asdfgklasjd\"\n        },\n        \"replyOptions\": [\n            {\n                \"linkURL\": \"https://www.test.no\",\n                \"linkText\": \"test\"\n            },\n            {\n                \"linkURL\": \"https://test.no\",\n                \"linkText\": \"test\"\n            }\n        ],\n        \"notification\": {\n            \"notificationTemplate\": 0,\n            \"notificationChannel\": 3,\n            \"SendReminder\": true,\n            \"EmailBody\": \"Test av varsel\",\n            \"EmailSubject\": \"Dette er innholdet i ett varsel\",\n            \"SmsBody\": \"Dette er innholdet i ett testvarsel\",\n            \"ReminderEmailBody\": \"Dette er test av revarsling \",\n            \"ReminderEmailSubject\": \"Test av revarsel\",\n            \"ReminderSmsBody\": \"Dette er en test av revarslingl\"\n        },\n        \"IgnoreReservation\": true,\n        \"IsConfirmationNeeded\": false\n    },\n    \"Recipients\": [\n        \"urn:altinn:organization:identifier-no:{{recipientOrgNo}}\",\n        \"urn:altinn:person:identifier-no:{{recipientSsn}}\"\n    ],\n    \"existingAttachments\": []\n}",
+							"raw": "{\n    \"Correspondence\": {\n        \"resourceId\": \"{{resource_id}}\",\n        \"sendersReference\": \"1\",\n        \"content\": {\n            \"language\": \"nb\",\n            \"messageTitle\": \"Meldingstittel\",\n            \"messageSummary\": \"Ett sammendrag for meldingen\",\n            \"messageBody\": \"# meldingsteksten. Som kan være plain text eller markdown \",\n            \"attachments\": []\n        },\n        \"RequestedPublishTime\": \"2024-09-28T12:44:28.290518+00:00\",\n        \"allowSystemDeleteAfter\": \"2025-08-29T13:31:28.290518+00:00\",\n        \"dueDateTime\": \"2025-05-29T13:31:28.290518+00:00\",\n        \"externalReferences\": [\n            {\n                \"referenceValue\": \"1\",\n                \"referenceType\": \"AltinnBrokerFileTransfer\"\n            }\n        ],\n        \"propertyList\": {\n            \"deserunt_12\": \"1\",\n            \"culpa_852\": \"2\",\n            \"anim5\": \"3\",\n            \"Æ*'1??`  \": \"asdfgklasjd\"\n        },\n        \"replyOptions\": [\n            {\n                \"linkURL\": \"https://www.test.no\",\n                \"linkText\": \"test\"\n            },\n            {\n                \"linkURL\": \"https://test.no\",\n                \"linkText\": \"test\"\n            }\n        ],\n        \"notification\": {\n            \"notificationTemplate\": 0,\n            \"notificationChannel\": 3,\n            \"SendReminder\": true,\n            \"EmailBody\": \"Test av varsel\",\n            \"EmailSubject\": \"Dette er innholdet i ett varsel\",\n            \"SmsBody\": \"Dette er innholdet i ett testvarsel\",\n            \"ReminderEmailBody\": \"Dette er test av revarsling\",\n            \"ReminderEmailSubject\": \"Test av revarsel\",\n            \"ReminderSmsBody\": \"Dette er en test av revarsling\"\n        },\n        \"IgnoreReservation\": true,\n        \"IsConfirmationNeeded\": false\n    },\n    \"Recipients\": [\n        \"urn:altinn:organization:identifier-no:{{recipientOrgNo}}\",\n        \"urn:altinn:person:identifier-no:{{recipientSsn}}\"\n    ],\n    \"existingAttachments\": []\n}",
 							"options": {
 								"raw": {
 									"headerFamily": "json",
@@ -872,11 +951,7 @@
 									"value": "{{resource_id}}",
 									"type": "text"
 								},
-								{
-									"key": "Correspondence.Sender",
-									"value": "urn:altinn:organization:identifier-no:{{senderOrgNo}}",
-									"type": "text"
-								},
+
 								{
 									"key": "Correspondence.sendersReference",
 									"value": "1234",
@@ -914,7 +989,7 @@
 								},
 								{
 									"key": "Correspondence.content.attachments[0].FileName",
-									"value": "version.txt",
+									"value": "Tai_test.txt",
 									"type": "text"
 								},
 								{
@@ -934,12 +1009,12 @@
 								},
 								{
 									"key": "Correspondence.allowSystemDeleteAfter",
-									"value": "2025-05-29T13:31:28.290518+00:00",
+									"value": "2025-10-29T13:31:28.290518+00:00",
 									"type": "text"
 								},
 								{
 									"key": "Correspondence.dueDateTime",
-									"value": "2025-05-29T13:31:28.290518+00:00",
+									"value": "2025-10-29T13:31:28.290518+00:00",
 									"type": "text"
 								},
 								{
@@ -1045,7 +1120,7 @@
 								{
 									"key": "Attachments",
 									"type": "file",
-									"src": "postman-cloud:///1ef7ccd7-bbc9-40b0-b540-3c47a5226c58"
+									"src": "postman-cloud:///1f020471-ff34-4990-8f4f-a7127aec8152"
 								}
 							]
 						},
