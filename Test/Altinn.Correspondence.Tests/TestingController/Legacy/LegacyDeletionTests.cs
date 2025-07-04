@@ -63,7 +63,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
             await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
-            var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            using var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockRegisterService = new Mock<IAltinnRegisterService>();
                 mockRegisterService

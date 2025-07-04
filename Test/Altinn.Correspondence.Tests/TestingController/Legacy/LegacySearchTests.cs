@@ -124,7 +124,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         [Fact]
         public async Task LegacyGetCorrespondences_InvalidPartyId_ReturnsUnauthorized()
         {
-            var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            using var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockRegisterService = new Mock<IAltinnRegisterService>();
                 mockRegisterService
