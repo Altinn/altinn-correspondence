@@ -989,7 +989,7 @@
 								},
 								{
 									"key": "Correspondence.content.attachments[0].FileName",
-									"value": "Tai_test.txt",
+									"value": "version.txt",
 									"type": "text"
 								},
 								{
@@ -1120,7 +1120,7 @@
 								{
 									"key": "Attachments",
 									"type": "file",
-									"src": "postman-cloud:///1f020471-ff34-4990-8f4f-a7127aec8152"
+									"src": "postman-cloud:///1ef7ccd7-bbc9-40b0-b540-3c47a5226c58"
 								}
 							]
 						},
