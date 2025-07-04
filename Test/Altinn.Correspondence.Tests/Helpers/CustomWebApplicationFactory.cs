@@ -24,9 +24,8 @@ using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests.Helpers;
 
-public class CustomWebApplicationFactory : WebApplicationFactory<Program>
+public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisposable
 {
-    internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
     public const string ReservedSsn = "08900499559";
     public Action<IServiceCollection>? CustomServices;
     protected override void ConfigureWebHost(
@@ -104,20 +103,22 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         {
             try
             {
-                var serviceProvider = Services;
-                if (serviceProvider.GetService(typeof(IRecurringJobManager)) is IDisposable recurringJobManager)
-                {
-                    recurringJobManager.Dispose();
-                }
+                using var scope = Services.CreateScope();
+
+                var dataSource = scope.ServiceProvider.GetService<NpgsqlDataSource>();
+                dataSource?.Dispose();
                 
-                // Give time for connections to close
-                Thread.Sleep(100);
+                var connectionFactory = scope.ServiceProvider.GetService<IConnectionFactory>();
+                if (connectionFactory is IDisposable disposableFactory)
+                {
+                    disposableFactory.Dispose();
+                }
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"Error during test cleanup: {ex}");
             }
         }
-        base.Dispose(disposing);
     }
 
     public HttpClient CreateClientWithAddedClaims(params (string type, string value)[] claims)
