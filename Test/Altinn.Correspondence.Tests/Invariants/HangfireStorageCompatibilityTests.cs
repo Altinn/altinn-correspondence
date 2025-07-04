@@ -6,9 +6,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using System.Transactions;
 
-namespace Altinn.Correspondence.Tests;
+namespace Altinn.Correspondence.Tests.Invariants;
+
 [Collection(nameof(CustomWebApplicationTestsCollection))]
-public class HangfireStorageCompatibilityTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
+public class HangfireStorageCompatibilityTests(CustomWebApplicationFactory factory)
 {
     private readonly CustomWebApplicationFactory _factory = factory;
 
@@ -36,18 +37,23 @@ public class HangfireStorageCompatibilityTests(CustomWebApplicationFactory facto
                 command.CommandText = "select COUNT(job) FROM hangfire.job WHERE id = @jobId";
                 command.Parameters.AddWithValue("jobId", parentJobId);
                 var result = command.ExecuteScalar();
-                Assert.True((long)command.ExecuteScalar() == 0);
+                Assert.Equal(0, (long?)command.ExecuteScalar());
                 transaction.Complete();
             }
             var postCommitCommand = testDataSource.CreateCommand("select COUNT(job) FROM hangfire.job WHERE id = @jobId");
             postCommitCommand.Parameters.AddWithValue("jobId", parentJobId);
-            Assert.True((long)postCommitCommand.ExecuteScalar() == 1);
+            Assert.Equal(1, (long?)postCommitCommand.ExecuteScalar());
         }
         finally
         {
-            await migrateConnection.CloseAsync();
-            migrateConnection.Dispose();
-            _factory.Dispose();
+            try
+            {
+                await migrateConnection.CloseAsync();
+            }
+            finally
+            {
+                migrateConnection.Dispose();
+            }
         }
     }
 
