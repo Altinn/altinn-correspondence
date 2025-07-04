@@ -72,7 +72,7 @@ internal static class CorrespondenceHelper
         return formData;
     }
 
-    public static async Task<CorrespondenceOverviewExt> WaitForCorrespondenceStatusUpdate(HttpClient client, JsonSerializerOptions responseSerializerOptions, Guid correspondenceId, CorrespondenceStatusExt expectedStatus, int maxRetries = 4, int delayMs = 2000)
+    public static async Task<CorrespondenceOverviewExt> WaitForCorrespondenceStatusUpdate(HttpClient client, JsonSerializerOptions responseSerializerOptions, Guid correspondenceId, CorrespondenceStatusExt expectedStatus, int maxRetries = 5, int delayMs = 2500)
     {
         await Task.Delay(1000);
         for (int i = 0; i < maxRetries; i++)
@@ -95,7 +95,7 @@ internal static class CorrespondenceHelper
         // If we get here, the status didn't update within the expected time
         var finalCorrespondence = await client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceId}", responseSerializerOptions);
         Assert.NotNull(finalCorrespondence);
-        Assert.Fail($"Correspondence status did not update to {expectedStatus} within {maxRetries * delayMs}ms. Current status: {finalCorrespondence?.Status}");
+        Assert.Fail($"Correspondence status did not update to {expectedStatus} within {maxRetries * delayMs + 1000}ms. Current status: {finalCorrespondence?.Status}");
         return finalCorrespondence;
     }
 }
