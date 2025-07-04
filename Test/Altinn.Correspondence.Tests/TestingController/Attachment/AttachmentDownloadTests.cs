@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Application;
+﻿using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
@@ -59,6 +60,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             Assert.True(downloadResponseBeforeAttached.IsSuccessStatusCode, await downloadResponseBeforeAttached.Content.ReadAsStringAsync());
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondencePayload, CancellationToken.None);
             Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, correspondencePayload);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
             var downloadResponseAfterAttached = await _senderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}/download");
 
             // Assert
