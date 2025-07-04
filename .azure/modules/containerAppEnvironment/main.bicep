@@ -22,7 +22,7 @@ resource application_insights 'Microsoft.Insights/components@2020-02-02' = {
   kind: 'web'
   properties: {
     Application_Type: 'web'
-    WorkspaceResourceId: log_analytics_workspace.id
+    //WorkspaceResourceId: log_analytics_workspace.id
     DisableIpMasking: true
   }
 }
@@ -31,13 +31,13 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2023-11-02-p
   location: location
   properties: {
     infrastructureResourceGroup: '${namePrefix}-rg'
-    appLogsConfiguration: {
+    /*appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
         customerId: log_analytics_workspace.properties.customerId
         sharedKey: log_analytics_workspace.listKeys().primarySharedKey
       }
-    }
+    }*/
   }
 }
 

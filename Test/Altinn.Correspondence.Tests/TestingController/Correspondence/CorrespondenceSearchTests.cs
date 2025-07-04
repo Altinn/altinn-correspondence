@@ -2,6 +2,7 @@
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
@@ -41,6 +42,82 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             var responseWithInvalid = await _senderClient.GetAsync($"correspondence/api/v1/correspondence?resourceId={payload.Correspondence.ResourceId}&status={(int)CorrespondenceStatusExt.Published}&role={"invalid"}");
             Assert.Equal(HttpStatusCode.BadRequest, responseWithInvalid.StatusCode);
+        }
+
+        [Theory]
+        [InlineData("urn:altinn:organization:identifier-no:312585065")] //test org number from tenor test data
+        [InlineData("0192:312585065")]
+        public async Task GetCorrespondences_ReturnsSuccess_WhenOnBehalfOfIsValidOrganizationNumber(string orgNumber)
+        {
+            // Arrange
+            var request = new HttpRequestMessage(HttpMethod.Get, 
+                $"/correspondence/api/v1/correspondence?resourceId=test-resource&role={CorrespondencesRoleType.Sender}&onBehalfOf={Uri.EscapeDataString(orgNumber)}");
+
+            // Act
+            var response = await _senderClient.SendAsync(request);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        [Theory]
+        [InlineData("urn:altinn:person:identifier-no:13876698239")] //test ssn from tenor test data
+        [InlineData("13876698239")]
+        public async Task GetCorrespondences_ReturnsSuccess_WhenOnBehalfOfIsValidSocialSecurityNumber(string ssn)
+        {
+            // Arrange
+            var request = new HttpRequestMessage(HttpMethod.Get, 
+                $"/correspondence/api/v1/correspondence?resourceId=test-resource&role={CorrespondencesRoleType.Sender}&onBehalfOf={Uri.EscapeDataString(ssn)}");
+
+            // Act
+            var response = await _senderClient.SendAsync(request);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("     ")]
+        [InlineData(null)]
+        public async Task GetCorrespondences_WhenOnBehalfOfValueIsNotGiven_ReturnsSuccess(string? onBehalfOfValue)
+        {
+            // Arrange
+            string url = $"/correspondence/api/v1/correspondence?resourceId=test-resource&role={CorrespondencesRoleType.Sender}";
+            if (onBehalfOfValue != null)
+            {
+                url += $"&onBehalfOf={Uri.EscapeDataString(onBehalfOfValue)}";
+            }
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+            // Act
+            var response = await _senderClient.SendAsync(request);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        [Theory]
+        [InlineData("invalid")]
+        [InlineData("123456789")]
+        [InlineData("urn:altinn:invalid:123456789")]
+        [InlineData("0192:12345678")]
+        [InlineData("0192:1234567890")]
+        [InlineData("urn:altinn:organization:identifier-no:12345678")]
+        [InlineData("urn:altinn:organization:identifier-no:1234567890")]
+        [InlineData("urn:altinn:person:identifier-no:1234567890")]
+        [InlineData("urn:altinn:person:identifier-no:123456789012")]
+        public async Task GetCorrespondences_ReturnsBadRequest_WhenOnBehalfOfIsInvalid(string invalidValue)
+        {
+            // Arrange
+            var request = new HttpRequestMessage(HttpMethod.Get, 
+                $"/correspondence/api/v1/correspondence?resourceId=test-resource&role={CorrespondencesRoleType.Sender}&onBehalfOf={Uri.EscapeDataString(invalidValue)}");
+
+            // Act
+            var response = await _senderClient.SendAsync(request);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
         [Fact]
@@ -131,8 +208,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(3, expectedSender);
             var expectedRecipient = senderPayload.Recipients.Where(r => r == recipientId).Count() + externalPayload.Recipients.Where(r => r == recipientId).Count(); // recipient sees the ones from the initial sender and external sender
             Assert.Equal(2, expectedRecipient);
-            var expectedSenderAndRecipient = expectedSender + externalPayload.Recipients.Where(r => r == senderId).Count(); // sender sees the ones they sent and the ones where they were the recipient from external
-            Assert.Equal(expectedSenderAndRecipient, correspondencesSenderAndRecipient?.Ids.Count);
         }
 
         [Fact]

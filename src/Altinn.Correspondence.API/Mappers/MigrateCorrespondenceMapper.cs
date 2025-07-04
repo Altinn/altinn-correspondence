@@ -1,6 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Application.InitializeCorrespondence;
+using Altinn.Correspondence.Application.MigrateCorrespondence;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 
@@ -73,7 +73,8 @@ internal static class MigrateCorrespondenceMapper
         {
             CorrespondenceEntity = correspondence,
             Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId,
-            ExistingAttachments = migrateCorrespondenceExt.CorrespondenceData.ExistingAttachments ?? new List<Guid>()
+            ExistingAttachments = migrateCorrespondenceExt.CorrespondenceData.ExistingAttachments ?? new List<Guid>(),
+            MakeAvailable = migrateCorrespondenceExt.MakeAvailable
         };
     }
 
@@ -83,15 +84,34 @@ internal static class MigrateCorrespondenceMapper
         {
             CorrespondenceId = migrateCorrespondenceResponse.CorrespondenceId,
             Altinn2CorrespondenceId = migrateCorrespondenceResponse.Altinn2CorrespondenceId,
-            AttachmentStatuses = MapToExternal(migrateCorrespondenceResponse.AttachmentMigrationStatuses)
+            AttachmentStatuses = MapToExternal(migrateCorrespondenceResponse.AttachmentMigrationStatuses),
+            DialogId = migrateCorrespondenceResponse.DialogId
+        };
+    }
+
+    internal static MakeCorrespondenceAvailableRequest MapMakeAvailableToInternal(MakeCorrespondenceAvailableRequestExt maExt)
+    {
+        return new MakeCorrespondenceAvailableRequest()
+        {
+            CreateEvents = maExt.CreateEvents,
+            CorrespondenceId = maExt.CorrespondenceId,
+            CorrespondenceIds = maExt.CorrespondenceIds
+        };
+    }
+
+    internal static MakeCorrespondenceAvailableResponseExt MakeAvailableResponseToExternal(MakeCorrespondenceAvailableResponse response)
+    {
+        return new MakeCorrespondenceAvailableResponseExt
+        {
+            Statuses = response.Statuses?.Select(s => new MakeCorrespondenceAvailableStatusExt(s.CorrespondenceId, s.Error, s.DialogId, s.Ok)).ToList()
         };
     }
 
     private static List<AttachmentMigrationStatusExt>? MapToExternal(List<AttachmentMigrationStatus>? attachmentMigrationStatuses)
     {
-        if(attachmentMigrationStatuses == null)
+        if (attachmentMigrationStatuses == null)
             return null;
-            
+
         return attachmentMigrationStatuses.Select(MapToExternal).ToList();
     }
 

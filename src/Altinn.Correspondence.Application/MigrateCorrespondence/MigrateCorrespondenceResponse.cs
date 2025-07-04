@@ -1,4 +1,4 @@
-namespace Altinn.Correspondence.Application.InitializeCorrespondence;
+namespace Altinn.Correspondence.Application.MigrateCorrespondence;
 
 public class MigrateCorrespondenceResponse
 {
@@ -8,4 +8,6 @@ public class MigrateCorrespondenceResponse
 
     public List<AttachmentMigrationStatus>? AttachmentMigrationStatuses { get; set; }
     public bool IsAlreadyMigrated { get; set; } = false;
+
+    public string? DialogId { get; set; }
 }

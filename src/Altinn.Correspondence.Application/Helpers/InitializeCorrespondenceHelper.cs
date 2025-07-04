@@ -220,7 +220,7 @@ namespace Altinn.Correspondence.Application.Helpers
             return text.Contains(tag, StringComparison.CurrentCultureIgnoreCase);
         }
 
-        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, Party? partyDetails, bool isReserved)
+        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, Party? partyDetails, bool isReserved, string serviceOwnerOrgNumber)
         {
             List<CorrespondenceStatusEntity> statuses =
             [
@@ -243,23 +243,18 @@ namespace Altinn.Correspondence.Application.Helpers
                     PartyUuid = partyUuid
                 });
             }
-            string sender = request.Correspondence.Sender;
-            if (sender.StartsWith("0192:"))
-            {
-                sender = $"{UrnConstants.OrganizationNumberAttribute}:{request.Correspondence.Sender.WithoutPrefix()}";
-                logger.LogInformation($"'0192:' prefix detected for sender in creation of correspondence. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
-            }
 
-            if (recipient.StartsWith("0192:"))
+            if (recipient.IsWithISO6523Prefix())
             {
-                recipient = $"{UrnConstants.OrganizationNumberAttribute}:{recipient.WithoutPrefix()}";
                 logger.LogInformation($"'0192:' prefix detected for recipient in creation of correspondence. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
             }
             else if (recipient.IsSocialSecurityNumberWithNoPrefix())
             {
-                recipient = $"{UrnConstants.PersonIdAttribute}:{recipient}";
                 logger.LogInformation($"Social security number without urn prefix detected for recipient in creation of correspondece. Adding {UrnConstants.PersonIdAttribute} prefix to recipient.");
             }
+            recipient = recipient.WithoutPrefix().WithUrnPrefix();
+
+            var sender = serviceOwnerOrgNumber.WithoutPrefix().WithUrnPrefix();
 
             return new CorrespondenceEntity
             {
@@ -387,7 +382,7 @@ namespace Altinn.Correspondence.Application.Helpers
             return null;
         }
 
-        public async Task<AttachmentEntity> ProcessNewAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, Guid partyUuid, CancellationToken cancellationToken)
+        public async Task<AttachmentEntity> ProcessNewAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, Guid partyUuid, string serviceOwnerOrgNumber, CancellationToken cancellationToken)
         {
             var status = new List<AttachmentStatusEntity>(){
                 new AttachmentStatusEntity
@@ -400,11 +395,11 @@ namespace Altinn.Correspondence.Application.Helpers
             };
             var attachment = correspondenceAttachment.Attachment!;
             attachment.Statuses = status;
-            if (attachment.Sender.StartsWith("0192:"))
-            {
-                attachment.Sender = $"{UrnConstants.OrganizationNumberAttribute}:{attachment.Sender.WithoutPrefix()}";
-                logger.LogInformation($"'0192:' prefix detected for sender in initialization of attachment. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
-            }
+            
+            // Set the Sender from the service owner organization number
+            var sender = serviceOwnerOrgNumber.WithoutPrefix().WithUrnPrefix();
+            attachment.Sender = sender;
+            
             return await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
         }
 

@@ -89,6 +89,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             var resourceRegistryService = new Mock<IResourceRegistryService>();
             resourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
             resourceRegistryService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("CorrespondenceService");
+            resourceRegistryService.Setup(x => x.GetServiceOwnerOrganizationNumber(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("991825827");
             services.AddScoped(_ => resourceRegistryService.Object);
         });
         if (CustomServices is not null)

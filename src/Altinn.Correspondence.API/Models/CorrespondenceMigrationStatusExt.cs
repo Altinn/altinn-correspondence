@@ -25,5 +25,11 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("attachmentStatuses")]
         public List<AttachmentMigrationStatusExt>? AttachmentStatuses { get; set; } = new List<AttachmentMigrationStatusExt>();
+
+        /// <summary>
+        /// Assigns dialogId if dialog has been created.
+        /// </summary>
+        [JsonPropertyName("dialogId")]
+        public string? DialogId { get; set; }
     }
 }

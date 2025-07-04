@@ -9,7 +9,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
 {
     internal class CreateDialogActivityRequestMapper
     {
-        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, DateTimeOffset activityTimestamp, params string[] tokens)
+        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, params string[] tokens)
+        {
+            return CreateDialogActivityRequest(correspondence, actorType, textType, type, DateTime.UtcNow, tokens);
+        }
+        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, DateTimeOffset dateOfDialog, params string[] tokens)
         {
             var dialogActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString(); // Dialogporten requires time-stamped GUIDs, not supported natively until .NET 9.0
             var urnActorId = actorType switch
@@ -23,7 +27,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             var createDialogActivityRequest = new CreateDialogActivityRequest()
             {
                 Id = dialogActivityId,
-                CreatedAt = activityTimestamp,
+                CreatedAt = dateOfDialog,
                 PerformedBy = new ActivityPerformedBy()
                 {
                     ActorType = actorType == DialogportenActorType.ServiceOwner ? "ServiceOwner" : "PartyRepresentative",
@@ -57,7 +61,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                     }
                 };
             }
-            else 
+            else
             {
                 createDialogActivityRequest.Description = new();
             }

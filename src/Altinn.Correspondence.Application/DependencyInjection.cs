@@ -10,7 +10,7 @@ using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeAttachment;
-using Altinn.Correspondence.Application.InitializeCorrespondence;
+using Altinn.Correspondence.Application.MigrateCorrespondence;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.InitializeServiceOwner;
 using Altinn.Correspondence.Application.MigrateToStorageProvider;
