@@ -5,11 +5,11 @@ using Altinn.Correspondence.Integrations.Altinn.AccessManagement;
 using Altinn.Correspondence.Integrations.Altinn.Events;
 using Altinn.Correspondence.Integrations.Altinn.Notifications;
 using Altinn.Correspondence.Integrations.Altinn.Register;
+using Altinn.Correspondence.Integrations.Brreg;
 using Altinn.Correspondence.Integrations.Dialogporten;
+using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
-using Hangfire.Common;
-using Hangfire.MemoryStorage;
-using Hangfire.States;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -17,15 +17,15 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
+using Npgsql;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests.Helpers;
 
-public class CustomWebApplicationFactory : WebApplicationFactory<Program>
+public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisposable
 {
-    internal Mock<IBackgroundJobClient>? HangfireBackgroundJobClient;
     public const string ReservedSsn = "08900499559";
     public Action<IServiceCollection>? CustomServices;
     protected override void ConfigureWebHost(
@@ -39,19 +39,44 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         // Overwrite registrations from Program.cs
         builder.ConfigureTestServices((services) =>
         {
-            services.AddHangfire(config =>
-                           config.UseMemoryStorage()
-                       );
             services.RemoveAll<IRecurringJobManager>();
             services.AddSingleton(new Mock<IRecurringJobManager>().Object);
-            HangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
-            HangfireBackgroundJobClient.Setup(x => x.Create(
-                It.IsAny<Job>(),
-                It.IsAny<IState>())).Returns("1");
-            services.AddSingleton(HangfireBackgroundJobClient.Object);
+            
+            services.AddSingleton<IConnectionFactory>(serviceProvider =>
+            {
+                var dataSource = serviceProvider.GetRequiredService<NpgsqlDataSource>();
+                return new HangfireConnectionFactory(dataSource);
+            });
+            
+            services.AddHangfire((provider, config) =>
+            {
+                config.UsePostgreSqlStorage(
+                    c => c.UseConnectionFactory(provider.GetService<IConnectionFactory>()),
+                    new PostgreSqlStorageOptions
+                    {
+                        PrepareSchemaIfNecessary = true,
+                        QueuePollInterval = TimeSpan.FromSeconds(1),
+                        SchemaName = "hangfire",
+                        InvisibilityTimeout = TimeSpan.FromMinutes(1),
+                        DistributedLockTimeout = TimeSpan.FromSeconds(10)
+                    }
+                );
+            });
+            
+            services.AddHangfireServer(options => 
+            {
+                options.SchedulePollingInterval = TimeSpan.FromSeconds(1);
+                options.WorkerCount = 1;
+                options.Queues = new[] { "default" };
+                options.ServerTimeout = TimeSpan.FromSeconds(2);
+                options.ShutdownTimeout = TimeSpan.FromSeconds(1);
+                options.StopTimeout = TimeSpan.FromSeconds(1);
+            });
+            
             services.AddScoped<IEventBus, ConsoleLogEventBus>();
             services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
             services.AddScoped<IDialogportenService, DialogportenDevService>();
+            services.AddScoped<IBrregService, BrregDevService>();
             services.OverrideAuthentication();
             services.OverrideAuthorization();
             services.OverrideAltinnAuthorization();
@@ -73,6 +98,41 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         }
     }
 
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            try
+            {
+                using var scope = Services.CreateScope();
+
+                var recurringJobManager = scope.ServiceProvider.GetService<IRecurringJobManager>();
+                if (recurringJobManager is IDisposable disposable && !recurringJobManager.GetType().Name.Contains("Mock"))
+                {
+                    disposable.Dispose();
+                }
+                
+                var hangfireServer = scope.ServiceProvider.GetService<BackgroundJobServer>();
+                if (hangfireServer != null && !hangfireServer.GetType().Name.Contains("Mock"))
+                {
+                    hangfireServer.Dispose();
+                }
+
+                var dataSource = scope.ServiceProvider.GetService<NpgsqlDataSource>();
+                dataSource?.Dispose();
+                
+                var connectionFactory = scope.ServiceProvider.GetService<IConnectionFactory>();
+                if (connectionFactory is IDisposable disposableFactory)
+                {
+                    disposableFactory.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during test cleanup: {ex}");
+            }
+        }
+    }
 
     public HttpClient CreateClientWithAddedClaims(params (string type, string value)[] claims)
     {

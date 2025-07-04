@@ -112,7 +112,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             var overviewContent = await attachmentOverview.Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
 
             // Assert
-            Assert.Equal(overviewContent.Sender, $"{UrnConstants.OrganizationNumberAttribute}:{sender.WithoutPrefix()}");
+            Assert.Equal(overviewContent?.Sender, $"{UrnConstants.OrganizationNumberAttribute}:{sender.WithoutPrefix()}");
         }
     }
 }

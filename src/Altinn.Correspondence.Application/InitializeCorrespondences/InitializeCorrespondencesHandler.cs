@@ -351,7 +351,7 @@ public class InitializeCorrespondencesHandler(
             {
                 Expiration = TimeSpan.FromHours(24)
             });
-            if (request.Correspondence.Content.Attachments.Count == 0)
+            if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
             {
                 await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
             }
@@ -375,10 +375,6 @@ public class InitializeCorrespondencesHandler(
                         Language = correspondence.Content != null ? correspondence.Content.Language : null,
                     }, cancellationToken));
                 }
-            }
-            if (request.Correspondence.Content.Attachments.Count > 0 && await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
-            {
-                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
             }
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {
