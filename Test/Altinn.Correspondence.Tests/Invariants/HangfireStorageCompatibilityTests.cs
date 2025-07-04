@@ -9,16 +9,16 @@ using System.Transactions;
 namespace Altinn.Correspondence.Tests.Invariants;
 
 [Collection(nameof(CustomWebApplicationTestsCollection))]
-public class HangfireStorageCompatibilityTests(CustomWebApplicationFactory factory)
+public class HangfireStorageCompatibilityTests
 {
-    private readonly CustomWebApplicationFactory _factory = factory;
-
     // TransactionScope is used to ensure eventual consistency for scheduled background jobs (as used for outbox pattern for posts to events API) 
     // Test ensures that Hangfire implementation is compatible with TransactionScope.
+
     [Fact]
     public async Task BackgroundJobClient_TransactionScopeCompatible()
     {
-        using var testDataSource = _factory.Services.GetRequiredService<NpgsqlDataSource>();
+        using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) => { });
+        using var testDataSource = testFactory.Services.GetRequiredService<NpgsqlDataSource>();
 
         var migrateConnection = await testDataSource.OpenConnectionAsync();
         try
