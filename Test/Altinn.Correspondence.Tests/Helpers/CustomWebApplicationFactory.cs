@@ -105,6 +105,18 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             {
                 using var scope = Services.CreateScope();
 
+                var recurringJobManager = scope.ServiceProvider.GetService<IRecurringJobManager>();
+                if (recurringJobManager is IDisposable disposable && !recurringJobManager.GetType().Name.Contains("Mock"))
+                {
+                    disposable.Dispose();
+                }
+                
+                var hangfireServer = scope.ServiceProvider.GetService<BackgroundJobServer>();
+                if (hangfireServer != null && !hangfireServer.GetType().Name.Contains("Mock"))
+                {
+                    hangfireServer.Dispose();
+                }
+
                 var dataSource = scope.ServiceProvider.GetService<NpgsqlDataSource>();
                 dataSource?.Dispose();
                 
