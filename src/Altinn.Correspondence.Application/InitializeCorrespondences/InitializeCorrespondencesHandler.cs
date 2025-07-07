@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
@@ -266,8 +267,22 @@ public class InitializeCorrespondencesHandler(
                     StatusAction = null,
                     IdempotencyType = IdempotencyType.Correspondence
                 };
-                await idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
-                return new OneOf<InitializeCorrespondencesResponse, Error>();
+                
+                try
+                {
+                    await idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
+                    return new OneOf<InitializeCorrespondencesResponse, Error>();
+                }
+                catch (DbUpdateException e)
+                {
+                    var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
+                    if (sqlState == "23505") // PostgreSQL unique constraint violation
+                    {
+                        logger.LogWarning("Idempotency key {Key} already exists in database", request.IdempotentKey.Value);
+                        return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
+                    }
+                    throw;
+                }
             }, logger, cancellationToken);
 
             if (result.IsT1)
