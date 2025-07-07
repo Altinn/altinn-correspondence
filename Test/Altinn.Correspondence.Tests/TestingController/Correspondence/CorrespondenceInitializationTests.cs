@@ -992,7 +992,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Contains(CorrespondenceErrors.InvalidIdempotencyKey.Message, errorContent);
         }
 
-        [Fact (Skip = "This test is skipped")]
+        [Fact]
         public async Task InitializeCorrespondence_WithConcurrentRequests_ShouldHandleCorrectly()
         {
             // Arrange
