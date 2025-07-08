@@ -8,7 +8,6 @@ using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Brreg;
 using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Integrations.Hangfire;
-using Altinn.Correspondence.Integrations.Slack;
 using Slack.Webhooks;
 using Hangfire;
 using Hangfire.PostgreSql;
@@ -30,6 +29,12 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
 {
     public const string ReservedSsn = "08900499559";
     public Action<IServiceCollection>? CustomServices;
+    private readonly string _hangfireSchemaName;
+
+    public CustomWebApplicationFactory()
+    {
+        _hangfireSchemaName = $"hangfire_test_{Guid.NewGuid():N}";
+    }
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)
     {
@@ -58,7 +63,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
                     {
                         PrepareSchemaIfNecessary = true,
                         QueuePollInterval = TimeSpan.FromSeconds(1),
-                        SchemaName = "hangfire",
+                        SchemaName = _hangfireSchemaName,
                         InvisibilityTimeout = TimeSpan.FromMinutes(1),
                         DistributedLockTimeout = TimeSpan.FromSeconds(10)
                     }
@@ -79,7 +84,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
             services.AddScoped<IDialogportenService, DialogportenDevService>();
             services.AddScoped<IBrregService, BrregDevService>();
-            services.AddSingleton<ISlackClient>(new SlackDevClient(""));
+            services.AddSingleton(new Mock<ISlackClient>().Object);
             services.OverrideAuthentication();
             services.OverrideAuthorization();
             services.OverrideAltinnAuthorization();
@@ -122,18 +127,39 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
                 }
 
                 var dataSource = scope.ServiceProvider.GetService<NpgsqlDataSource>();
+                CleanupHangfireSchema(dataSource!);
                 dataSource?.Dispose();
                 
                 var connectionFactory = scope.ServiceProvider.GetService<IConnectionFactory>();
                 if (connectionFactory is IDisposable disposableFactory)
                 {
                     disposableFactory.Dispose();
-                }
+                }               
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error during test cleanup: {ex}");
             }
+        }
+    }
+
+    private void CleanupHangfireSchema(NpgsqlDataSource dataSource)
+    {
+        try
+        {
+            if (dataSource != null)
+            {
+                using var connection = dataSource.CreateConnection();
+                connection.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText = $"DROP SCHEMA IF EXISTS {_hangfireSchemaName} CASCADE";
+                command.ExecuteNonQuery();
+                Console.WriteLine($"Cleaned up Hangfire schema: {_hangfireSchemaName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cleaning up Hangfire schema {_hangfireSchemaName}: {ex.Message}");
         }
     }
 
