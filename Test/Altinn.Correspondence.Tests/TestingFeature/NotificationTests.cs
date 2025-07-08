@@ -1,4 +1,5 @@
 using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.CheckNotification;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Tests.Factories;
@@ -31,6 +32,7 @@ public class NotificationTests
     public async Task CheckNotification_For_Non_Existing_Correspondence()
     {
         var correspondenceId = Guid.NewGuid();
+        
         var response = await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/notification/check");
         response.EnsureSuccessStatusCode();
         var responseContent = await response.Content.ReadAsStringAsync();
@@ -44,10 +46,13 @@ public class NotificationTests
     {
         var client = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
         var correspondence = new CorrespondenceBuilder().CreateCorrespondence().Build();
+        
         var initializeCorrespondenceResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         var responseContent = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
-        var correspondenceId = JsonSerializer.Deserialize<InitializeCorrespondencesResponseExt>(responseContent, _responseSerializerOptions).Correspondences.First().CorrespondenceId;
+        var correspondenceId = JsonSerializer.Deserialize<InitializeCorrespondencesResponseExt>(responseContent, _responseSerializerOptions)!.Correspondences.First().CorrespondenceId;
+        
+        await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(client, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
 
         var response = await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/notification/check");
         var content = await response.Content.ReadAsStringAsync();
@@ -68,8 +73,10 @@ public class NotificationTests
         var initializeCorrespondenceResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         var responseContent = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
-        var correspondenceId = JsonSerializer.Deserialize<InitializeCorrespondencesResponseExt>(responseContent, _responseSerializerOptions).Correspondences.First().CorrespondenceId;;
-
+        var correspondenceId = JsonSerializer.Deserialize<InitializeCorrespondencesResponseExt>(responseContent, _responseSerializerOptions)!.Correspondences.First().CorrespondenceId;
+        
+        await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(client, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+        
         var recipientClient = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.RecipientScope));
         var fetchResponse = await recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}"); // Fetch in order to read
         fetchResponse.EnsureSuccessStatusCode();

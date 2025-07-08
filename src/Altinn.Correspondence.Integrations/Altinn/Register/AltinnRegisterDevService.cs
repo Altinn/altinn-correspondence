@@ -16,7 +16,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
 
     public Task<int?> LookUpPartyId(string identificationId, CancellationToken cancellationToken)
     {
-        if (IdentificationIDRegex.IsMatch(identificationId))
+        if (IdentificationIDRegex.IsMatch(identificationId.WithoutPrefix()))
         {
             return Task.FromResult<int?>(_digdirPartyId);
         }
@@ -24,7 +24,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
     }
     public Task<string?> LookUpName(string identificationId, CancellationToken cancellationToken)
     {
-        if (IdentificationIDRegex.IsMatch(identificationId))
+        if (IdentificationIDRegex.IsMatch(identificationId.WithoutPrefix()))
         {
             return Task.FromResult<string?>("Digitaliseringsdirektoratet");
         }

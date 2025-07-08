@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Application.UploadAttachment;
+using Altinn.Correspondence.Application.MalwareScanResult.Models;
 using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -9,6 +10,7 @@ using Azure;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
+using Hangfire;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
@@ -19,6 +21,8 @@ namespace Altinn.Correspondence.Application.Helpers
         IResourceRegistryService resourceRegistryService,
         IServiceOwnerRepository serviceOwnerRepository,
         IHostEnvironment hostEnvironment,
+        IBackgroundJobClient backgroundJobClient,
+        MalwareScanResultHandler malwareScanResultHandler,
         ILogger<AttachmentHelper> logger)
     {
         public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, bool forMigration, CancellationToken cancellationToken)
@@ -54,6 +58,11 @@ namespace Altinn.Correspondence.Application.Helpers
                     await storageRepository.PurgeAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
                     return AttachmentErrors.UploadFailed;
                 }
+                if (hostEnvironment.IsDevelopment())
+                {
+                    logger.LogInformation("Development mode detected. Enqueing simulated malware scan result for attachment {attachmentId}", attachmentId);
+                    backgroundJobClient.Enqueue<AttachmentHelper>(helper => helper.SimulateMalwareScanResult(attachmentId));
+                }
             }
             catch (DataLocationUrlException)
             {
@@ -71,10 +80,6 @@ namespace Altinn.Correspondence.Application.Helpers
                 return AttachmentErrors.UploadFailed;
             }
 
-            if (hostEnvironment.IsDevelopment()) // No malware scan when running locally
-            {
-                currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.Published, partyUuid, cancellationToken);
-            }
             logger.LogInformation("Finished upload of attachment {attachmentId} for party {partyUuid}", attachmentId, partyUuid);
 
             return new UploadAttachmentResponse()
@@ -149,6 +154,45 @@ namespace Altinn.Correspondence.Application.Helpers
                 }
             }
             return null;
+        }
+        /// <summary>
+        /// Simulates a malware scan result for local development and tests by calling the MalwareScanResultHandler with fake ScanResultData.
+        /// </summary>
+        public async Task SimulateMalwareScanResult(Guid attachmentId)
+        {
+            if (!hostEnvironment.IsDevelopment())
+            {
+                logger.LogWarning("SimulateMalwareScanResult called outside development environment");
+                return;
+            }
+
+            logger.LogInformation("Simulating malware scan result for attachment {attachmentId}", attachmentId);
+
+            var simulatedScanResult = new ScanResultData
+            {
+                BlobUri = $"http://127.0.0.1:10000/devstoreaccount1/attachments/{attachmentId}",
+                CorrelationId = Guid.NewGuid().ToString(),
+                ETag = "simulated-etag",
+                ScanFinishedTimeUtc = DateTime.UtcNow,
+                ScanResultDetails = new ScanResultDetails
+                {
+                    MalwareNamesFound = new List<string>(),
+                    Sha256 = "simulated-sha256"
+                },
+                ScanResultType = "No threats found"
+            };
+
+            var result = await malwareScanResultHandler.Process(simulatedScanResult, null, CancellationToken.None);
+
+            if (result.IsT0)
+            {
+                logger.LogInformation("Successfully simulated malware scan result for attachment {attachmentId} using MalwareScanResultHandler", attachmentId);
+            }
+            else
+            {
+                var error = result.AsT1;
+                logger.LogError("Error in simulated malware scan result for attachment {attachmentId}: {Error}", attachmentId, error.Message);
+            }
         }
     }
 }

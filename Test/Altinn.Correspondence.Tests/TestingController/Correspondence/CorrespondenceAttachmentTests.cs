@@ -19,7 +19,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task UploadCorrespondence_Gives_Ok()
+        public async Task UploadCorrespondence_GivesOk()
         {
             // Arrange
             using var stream = File.OpenRead("./Data/Markdown.txt");
@@ -74,7 +74,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [InlineData(".bmp")]
         [InlineData(".png")]
         [InlineData(".json")]
-        public async Task UploadCorrespondence_Gives_Ok_For_All_Supported_FileTypes(string filetype)
+        public async Task UploadCorrespondence_WithSupportedFileTypeAttachment_GivesOk(string filetype)
         {
             // Arrange
             using var memoryStream = new MemoryStream();
@@ -101,7 +101,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task UploadCorrespondence_Gives_BadRequest_When_Uploading_UnSupported_FileType()
+        public async Task UploadCorrespondence_WithUnsupportedFileTypeAttachment_GivesBadRequest()
         {
             // Arrange
             using var memoryStream = new MemoryStream();
@@ -128,7 +128,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task UploadCorrespondenceWithoutAttachments_Gives_Ok()
+        public async Task UploadCorrespondence_WithoutAttachments_GivesOk()
         {
             // Arrange
             var payload = new CorrespondenceBuilder()
@@ -160,7 +160,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task UploadCorrespondence_With_Multiple_Files()
+        public async Task UploadCorrespondence_WithMultipleFiles_GivesOk()
         {
             using var stream = System.IO.File.OpenRead("./Data/Markdown.txt");
             var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
@@ -186,7 +186,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task UploadCorrespondence_No_Files_Gives_Bad_request()
+        public async Task UploadCorrespondence_WithNoFiles_GivesBadrequest()
         {
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
@@ -198,7 +198,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task UploadCorrespondences_With_Multiple_Files()
+        public async Task UploadCorrespondences_WithMultipleFiles_GivesOk()
         {
             using var stream = File.OpenRead("./Data/Markdown.txt");
             var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
@@ -228,7 +228,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
 
         [Fact]
-        public async Task Correspondence_with_dataLocationUrl_Reuses_Attachment()
+        public async Task Correspondence_WithDataLocationUrl_ReusesAttachment()
         {
             var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
             var payload = new CorrespondenceBuilder()
@@ -253,9 +253,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build();
 
             // Act
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
-            var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{response?.Correspondences.FirstOrDefault().CorrespondenceId}/attachment/{attachmentId}/download");
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+            var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence.CorrespondenceId}/attachment/{attachmentId}/download");
             var data = downloadResponse.Content.ReadAsByteArrayAsync();
 
             // Assert
@@ -331,9 +331,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build();
 
             // Act
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
-            var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            var correspondenceId = response?.Correspondences.FirstOrDefault().CorrespondenceId;
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = correspondence.CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
             
             // Download the attachment
             var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentId}/download");
@@ -344,6 +344,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var details = await detailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
 
             // Assert
+            Assert.NotNull(details);
             Assert.Contains(details.StatusHistory, s => 
                 s.Status == CorrespondenceStatusExt.AttachmentsDownloaded && 
                 s.StatusText.Contains(attachmentId.ToString()));
@@ -360,9 +361,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build();
 
             // Act
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
-            var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            var correspondenceId = response?.Correspondences.FirstOrDefault().CorrespondenceId;
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = correspondence.CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
             
             // Download the attachment
             var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentId}/download");
@@ -373,6 +374,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var details = await detailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
 
             // Assert
+            Assert.NotNull(details);   
             var statusHistory = details.StatusHistory.ToList();
             var publishedStatus = statusHistory.FirstOrDefault(s => s.Status == CorrespondenceStatusExt.Published);
             var downloadedStatus = statusHistory.FirstOrDefault(s => s.Status == CorrespondenceStatusExt.AttachmentsDownloaded);
