@@ -29,47 +29,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         logger.LogInformation("CreateCorrespondenceDialog for correspondence {correspondenceId}", correspondence.Id);
 
         // Create idempotency key for open dialog activity
-        var openActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
-        var openIdempotencyKey = new IdempotencyKeyEntity
-        {
-            Id = openActivityId,
-            CorrespondenceId = correspondence.Id,
-            AttachmentId = null, // No attachment for opened activity
-            StatusAction = StatusAction.Fetched,
-            IdempotencyType = IdempotencyType.DialogportenActivity
-        };
-        await _idempotencyKeyRepository.CreateAsync(openIdempotencyKey, cancellationToken);
-
-        // Create idempotency key for confirm activity if confirmation is needed
-        if (correspondence.IsConfirmationNeeded)
-        {
-            var confirmActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
-            var confirmIdempotencyKey = new IdempotencyKeyEntity
-            {
-                Id = confirmActivityId,
-                CorrespondenceId = correspondence.Id,
-                AttachmentId = null, // No attachment for confirm activity
-                StatusAction = StatusAction.Confirmed,
-                IdempotencyType = IdempotencyType.DialogportenActivity
-            };
-            await _idempotencyKeyRepository.CreateAsync(confirmIdempotencyKey, cancellationToken);
-        }
-
-        // Create idempotency keys for each attachment's download activity
-        var attachmentIdempotencyKeys = new List<IdempotencyKeyEntity>();
-        foreach (var attachment in correspondence.Content?.Attachments ?? Enumerable.Empty<CorrespondenceAttachmentEntity>())
-        {
-            var downloadActivityId = Uuid.NewDatabaseFriendly(UUIDNext.Database.PostgreSql);
-            var downloadIdempotencyKey = new IdempotencyKeyEntity
-            {
-                Id = downloadActivityId,
-                CorrespondenceId = correspondence.Id,
-                AttachmentId = attachment.AttachmentId,
-                StatusAction = StatusAction.AttachmentDownloaded
-            };
-            attachmentIdempotencyKeys.Add(downloadIdempotencyKey);
-        }
-        await _idempotencyKeyRepository.CreateRangeAsync(attachmentIdempotencyKeys, cancellationToken);
+        await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
 
         var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl);
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest, cancellationToken);
@@ -99,6 +59,11 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
+            if (correspondence.Altinn2CorrespondenceId.GetValueOrDefault() > 0)
+            {
+                logger.LogWarning("Skipping patching correspondence {correspondenceId} to confirmed as it is an Altinn2 correspondence without Dialogporten dialog", correspondenceId);
+                return;
+            }
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
         var patchRequestBuilder = new DialogPatchRequestBuilder();
@@ -126,7 +91,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         }
     }
-
+    
     public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, params string[] tokens)
     {
         logger.LogInformation("CreateInformationActivity {actorType}: {textType} for correspondence {correspondenceId}",
@@ -146,6 +111,11 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
+            if (correspondence.Altinn2CorrespondenceId.GetValueOrDefault() > 0)
+            {
+                logger.LogWarning("Skipping creating information activity for {correspondenceId} as it is an Altinn2 correspondence without Dialogporten dialog", correspondenceId);
+                return;
+            }
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
 
@@ -180,13 +150,13 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 logger.LogError("Invalid attachment ID token for download activity on correspondence {correspondenceId}", correspondenceId);
                 throw new ArgumentException("Invalid attachment ID token", nameof(tokens));
             }
-            
+
             if (correspondence.Statuses.Count(s => s.Status == CorrespondenceStatus.AttachmentsDownloaded && s.StatusText.Contains(attachmentId.ToString())) >= 2)
             {
                 logger.LogInformation("Correspondence with id {correspondenceId} already has an AttachmentsDownloaded status for attachment {attachmentId}, skipping activity creation on Dialogporten", correspondenceId, attachmentId);
                 return;
             }
-            
+
             var existingIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
                 correspondence.Id,
                 attachmentId,
@@ -240,6 +210,11 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
+            if (correspondence.Altinn2CorrespondenceId.GetValueOrDefault() > 0)
+            {
+                logger.LogWarning("Skipping creating opened activity for {correspondenceId} as it is an Altinn2 correspondence without Dialogporten dialog", correspondenceId);
+                return;
+            }
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
 
@@ -296,6 +271,11 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
+            if (correspondence.Altinn2CorrespondenceId.GetValueOrDefault() > 0)
+            {
+                logger.LogWarning("Skipping purging correspondence {correspondenceId} as it is an Altinn2 correspondence without Dialogporten dialog", correspondenceId);
+                return;
+            }
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
 
@@ -335,6 +315,11 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
+            if (correspondence.Altinn2CorrespondenceId.GetValueOrDefault() > 0)
+            {
+                logger.LogWarning("Skipping creating dialog purged activity for correspondence {correspondenceId} as it is an Altinn2 correspondence without Dialogporten dialog", correspondenceId);
+                return;
+            }
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
 
@@ -368,4 +353,83 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
         return dialogRequest;
     }
+
+    private async Task CreateIdempotencyKeysForCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
+    {
+        // Create idempotency key for open dialog activity
+        var openActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
+        var openIdempotencyKey = new IdempotencyKeyEntity
+        {
+            Id = openActivityId,
+            CorrespondenceId = correspondence.Id,
+            AttachmentId = null,
+            StatusAction = StatusAction.Fetched,
+            IdempotencyType = IdempotencyType.DialogportenActivity
+        };
+        await _idempotencyKeyRepository.CreateAsync(openIdempotencyKey, cancellationToken);
+
+        // Create idempotency key for confirm activity if confirmation is needed
+        if (correspondence.IsConfirmationNeeded)
+        {
+            var confirmActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
+            var confirmIdempotencyKey = new IdempotencyKeyEntity
+            {
+                Id = confirmActivityId,
+                CorrespondenceId = correspondence.Id,
+                AttachmentId = null,
+                StatusAction = StatusAction.Confirmed,
+                IdempotencyType = IdempotencyType.DialogportenActivity
+            };
+            await _idempotencyKeyRepository.CreateAsync(confirmIdempotencyKey, cancellationToken);
+        }
+
+        // Create idempotency keys for each attachment's download activity
+        var attachmentIdempotencyKeys = new List<IdempotencyKeyEntity>();
+        foreach (var attachment in correspondence.Content?.Attachments ?? Enumerable.Empty<CorrespondenceAttachmentEntity>())
+        {
+            var downloadActivityId = Uuid.NewDatabaseFriendly(UUIDNext.Database.PostgreSql);
+            var downloadIdempotencyKey = new IdempotencyKeyEntity
+            {
+                Id = downloadActivityId,
+                CorrespondenceId = correspondence.Id,
+                AttachmentId = attachment.AttachmentId,
+                StatusAction = StatusAction.AttachmentDownloaded
+            };
+            attachmentIdempotencyKeys.Add(downloadIdempotencyKey);
+        }
+        await _idempotencyKeyRepository.CreateRangeAsync(attachmentIdempotencyKeys, cancellationToken);
+    }
+
+
+    #region MigrationRelated    
+    /// <summary>
+    /// Create Dialog in Dialogportern without creating any events. Used in regards to old correspondences being migrated from Altinn 2 to Altinn 3.
+    /// </summary>
+    public async Task<string> CreateCorrespondenceDialogForMigratedCorrespondence(Guid correspondenceId, CorrespondenceEntity? correspondence, bool enableEvents = false)
+    {
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        if (correspondence is null)
+        {
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+
+        await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
+
+        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, true);
+        string updateType = enableEvents ? "" : "?IsSilentUpdate=true";
+        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs{updateType}", createDialogRequest, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        }
+
+        var dialogResponse = await response.Content.ReadFromJsonAsync<string>(cancellationToken);
+        if (dialogResponse is null)
+        {
+            throw new Exception("Dialogporten did not return a dialogId");
+        }
+        return dialogResponse;
+    }
+    #endregion
 }

@@ -186,7 +186,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response1.StatusCode);
-            Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, response2.StatusCode);
             Assert.Equal(HttpStatusCode.BadRequest, response3.StatusCode);
         }
 
@@ -274,18 +274,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build();
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             initializeCorrespondenceResponse.EnsureSuccessStatusCode();
-        }
-
-        [Fact]
-        public async Task InitializeCorrespondence_With_Invalid_Sender_Returns_BadRequest()
-        {
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithSender("invalid-sender")
-                .Build();
-
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
         }
 
         [Theory]
@@ -648,7 +636,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 var resourceRegistryService = new Mock<IResourceRegistryService>();
                 resourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-broker-test-resource");
                 resourceRegistryService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("BrokerService");
-                services.AddSingleton(resourceRegistryService.Object);
+                resourceRegistryService.Setup(x => x.GetServiceOwnerOrganizationNumber(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("991825827");
+                services.AddScoped(_ => resourceRegistryService.Object);
             });
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()

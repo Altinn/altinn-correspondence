@@ -19,6 +19,7 @@ using System.Security.Claims;
 using Altinn.Correspondence.Integrations.Redlock;
 using Altinn.Correspondence.Core.Models.Brreg;
 using Altinn.Correspondence.Core.Exceptions;
+using Altinn.Correspondence.Application.Settings;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
 
@@ -73,7 +74,7 @@ public class PublishCorrespondenceHandler(
         if (shouldSkip)
         {
             logger.LogInformation("Skipping publish for correspondence {CorrespondenceId} - current status: {Status}", correspondenceId, status);
-        }        
+        }
         return shouldSkip;
     }
 
@@ -95,26 +96,9 @@ public class PublishCorrespondenceHandler(
         OrganizationDetails? details = null;
         OrganizationRoles? roles = null;
         bool OrganizationNotFoundInBrreg = false;
-        var requiredOrganizationRoles = new List<string> { "BEST", "DAGL", "DTPR", "DTSO", "INNH", "LEDE"};
         if (correspondence.GetRecipientUrn().WithoutPrefix().IsOrganizationNumber())
         {
-            try
-            {
-                details = await brregService.GetOrganizationDetailsAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
-                roles = await brregService.GetOrganizationRolesAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
-            }
-            catch (BrregNotFoundException)
-            {
-                try
-                {
-                    details = await brregService.GetSubOrganizationDetailsAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
-                    roles = new OrganizationRoles();
-                }
-                catch (BrregNotFoundException)
-                {
-                    OrganizationNotFoundInBrreg = true;
-                }
-            }
+            (details, roles, OrganizationNotFoundInBrreg) = await GetOrganizationDetailsAndRoles(correspondence, cancellationToken);
         }
 
         var errorMessage = "";
@@ -153,7 +137,7 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Recipient of {correspondenceId} is deleted";
         }
-        else if (roles != null && correspondence.IsConfidential && !roles.HasAnyOfRolesOnPerson(requiredOrganizationRoles))
+        else if (roles != null && correspondence.IsConfidential && !roles.HasAnyOfRolesOnPerson(ApplicationConstants.RequiredOrganizationRolesForConfidentialCorrespondence))
         {
             errorMessage = $"Recipient of {correspondenceId} is missing required roles to read confidential correspondences";
         }
@@ -254,5 +238,44 @@ public class PublishCorrespondenceHandler(
             }
         }
         return false;
+    }
+
+    private async Task<(OrganizationDetails?, OrganizationRoles?, bool)> GetOrganizationDetailsAndRoles(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
+    {
+        OrganizationDetails? details = null;
+        OrganizationRoles? roles = null;
+        bool OrganizationNotFoundInBrreg = false;
+        if (correspondence.GetRecipientUrn().WithoutPrefix().IsOrganizationNumber())
+        {
+            try
+            {
+                details = await brregService.GetOrganizationDetails(correspondence.Recipient.WithoutPrefix(), cancellationToken);
+                if (correspondence.IsConfidential)
+                {
+                    roles = await brregService.GetOrganizationRoles(correspondence.Recipient.WithoutPrefix(), cancellationToken);
+                }
+            }
+            catch (BrregNotFoundException)
+            {
+                try
+                {
+                    var subOrganizationDetails = await brregService.GetSubOrganizationDetails(correspondence.Recipient.WithoutPrefix(), cancellationToken);
+                    details = subOrganizationDetails;
+                    if (correspondence.IsConfidential && subOrganizationDetails.ParentOrganizationNumber != null)
+                    {
+                        roles = await brregService.GetOrganizationRoles(subOrganizationDetails.ParentOrganizationNumber, cancellationToken);
+                    }
+                    else
+                    {
+                        roles = new OrganizationRoles();
+                    }
+                }
+                catch (BrregNotFoundException)
+                {
+                    OrganizationNotFoundInBrreg = true;
+                }
+            }
+        }
+        return (details, roles, OrganizationNotFoundInBrreg);
     }
 }

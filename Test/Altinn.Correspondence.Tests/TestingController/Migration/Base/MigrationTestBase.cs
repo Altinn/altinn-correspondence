@@ -10,6 +10,7 @@ public class MigrationTestBase
     internal readonly CustomWebApplicationFactory _factory;
     internal readonly HttpClient _migrationClient;
     internal readonly HttpClient _legacyClient;
+    internal readonly HttpClient _recipientClient;
     public readonly string _partyIdClaim = "urn:altinn:partyid";
     public readonly int _digdirPartyId = 50952483;
     public readonly int _testUserPartyId = 100;
@@ -25,6 +26,10 @@ public class MigrationTestBase
         _legacyClient = _factory.CreateClientWithAddedClaims(
                 ("scope", AuthorizationConstants.LegacyScope),
                 (_partyIdClaim, _digdirPartyId.ToString()));
+        _recipientClient = _factory.CreateClientWithAddedClaims(
+            ("notSender", "true"),
+            ("scope", AuthorizationConstants.RecipientScope)
+        );
         _responseSerializerOptions = new JsonSerializerOptions(new JsonSerializerOptions()
         {
             PropertyNameCaseInsensitive = true

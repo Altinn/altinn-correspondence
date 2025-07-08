@@ -1,5 +1,8 @@
-﻿using Altinn.Correspondence.Core.Services;
+﻿using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
+using Newtonsoft.Json;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten
 {
@@ -38,6 +41,14 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         public Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType,  string actorName, DateTimeOffset activityTimestamp)
         {
             return Task.CompletedTask;
+        }
+
+        public Task<string> CreateCorrespondenceDialogForMigratedCorrespondence(Guid correspondenceId, CorrespondenceEntity? correspondence, bool enableEvents = false)
+        {
+            // var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, "https://platform.tt02.altinn.no/", true);
+            // string result = JsonConvert.SerializeObject(createDialogRequest);
+            // File.WriteAllText(@"c:\temp\output8.json", result);
+            return Task.FromResult(Guid.NewGuid().ToString());
         }
     }
 }

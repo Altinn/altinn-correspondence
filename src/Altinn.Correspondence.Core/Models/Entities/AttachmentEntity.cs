@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations;
 namespace Altinn.Correspondence.Core.Models.Entities
 {
     [Index(nameof(Altinn2AttachmentId), IsUnique = true)]
+    [Index(nameof(DataLocationUrl))]
     public class AttachmentEntity
     {
         [Key]
