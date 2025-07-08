@@ -8,6 +8,8 @@ using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Brreg;
 using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Integrations.Hangfire;
+using Altinn.Correspondence.Integrations.Slack;
+using Slack.Webhooks;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Hosting;
@@ -77,6 +79,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
             services.AddScoped<IDialogportenService, DialogportenDevService>();
             services.AddScoped<IBrregService, BrregDevService>();
+            services.AddSingleton<ISlackClient>(new SlackDevClient(""));
             services.OverrideAuthentication();
             services.OverrideAuthorization();
             services.OverrideAltinnAuthorization();
