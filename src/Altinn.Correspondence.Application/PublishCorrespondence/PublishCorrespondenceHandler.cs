@@ -105,7 +105,15 @@ public class PublishCorrespondenceHandler(
             }
             catch (BrregNotFoundException)
             {
-                OrganizationNotFoundInBrreg = true;
+                try
+                {
+                    details = await brregService.GetSubOrganizationDetailsAsync(correspondence.Recipient.WithoutPrefix(), cancellationToken);
+                    roles = new OrganizationRoles();
+                }
+                catch (BrregNotFoundException)
+                {
+                    OrganizationNotFoundInBrreg = true;
+                }
             }
         }
 
@@ -123,11 +131,6 @@ public class PublishCorrespondenceHandler(
         else if (!await IsCorrespondenceReadyForPublish(correspondence, partyUuid, cancellationToken))
         {
             errorMessage = $"Correspondence {correspondenceId} not ready for publish";
-        }
-        else if (correspondence.RequestedPublishTime > DateTimeOffset.UtcNow)
-        {
-            errorMessage = $"Correspondence {correspondenceId} not visible yet - publish time: {correspondence.RequestedPublishTime}";
-            logger.LogWarning(errorMessage);
         }
         else if (!hasDialogportenDialog)
         {

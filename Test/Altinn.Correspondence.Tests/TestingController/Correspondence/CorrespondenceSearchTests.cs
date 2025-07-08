@@ -1,15 +1,13 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Application.GetCorrespondences;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
 using System.Net;
 using System.Net.Http.Json;
-using Altinn.Correspondence.Tests.Fixtures;
-using Altinn.Correspondence.Application.PublishCorrespondence;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -27,8 +25,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
-            var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={1}&status={0}&role={"recipientandsender"}");
-            Assert.True(correspondenceList?.Ids.Count > 0);
+            var correspondenceList = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={payload.Correspondence.ResourceId}&status={(int)CorrespondenceStatusExt.Published}&role={"recipientandsender"}");
+            Assert.True(correspondenceList?.Ids.Count > 0, string.Join(",", correspondenceList?.Ids ?? []));
         }
 
         [Fact]
@@ -38,10 +36,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
-            var responseWithout = await _senderClient.GetAsync($"correspondence/api/v1/correspondence?resourceId={1}&status={0}");
+            var responseWithout = await _senderClient.GetAsync($"correspondence/api/v1/correspondence?resourceId={payload.Correspondence.ResourceId}&status={(int)CorrespondenceStatusExt.Published}");
             Assert.Equal(HttpStatusCode.BadRequest, responseWithout.StatusCode);
 
-            var responseWithInvalid = await _senderClient.GetAsync($"correspondence/api/v1/correspondence?resourceId={1}&status={0}&role={"invalid"}");
+            var responseWithInvalid = await _senderClient.GetAsync($"correspondence/api/v1/correspondence?resourceId={payload.Correspondence.ResourceId}&status={(int)CorrespondenceStatusExt.Published}&role={"invalid"}");
             Assert.Equal(HttpStatusCode.BadRequest, responseWithInvalid.StatusCode);
         }
 

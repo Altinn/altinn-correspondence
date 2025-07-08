@@ -15,6 +15,7 @@ namespace Altinn.Correspondence.API.Models
         [JsonPropertyName("resourceId")]
         [StringLength(255, MinimumLength = 1)]
         [Required]
+        [ResourceIdentifier]
         public required string ResourceId { get; set; }
 
         /// <summary>

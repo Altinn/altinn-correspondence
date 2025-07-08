@@ -43,6 +43,10 @@ public static class OpenTelemetryConfiguration
                     {
                         options.Filter = httpContext =>
                         {
+                            if (httpContext.Request.Method == "OPTIONS")
+                            {
+                                return false;
+                            }
                             var path = httpContext.Request.Path.Value?.ToLowerInvariant();
                             return path != null &&
                                    !path.Contains("/health") &&
