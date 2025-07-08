@@ -32,5 +32,18 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             );
             return this;
         }
+
+        internal DialogPatchRequestBuilder WithReplaceStatusOperation(string newStatus)
+        {
+            _PatchDialogRequest.Add(
+                new 
+                {
+                    op = "replace",
+                    path = "/status",
+                    value = newStatus
+                }
+            );
+            return this;
+        }
     }
 }
