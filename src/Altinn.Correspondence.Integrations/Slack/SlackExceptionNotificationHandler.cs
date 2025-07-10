@@ -62,7 +62,8 @@ public class SlackExceptionNotificationHandler(
     public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, int retryCount, CancellationToken cancellationToken)
     {
         // Only send Slack notification on every 3rd retry (3, 6, 9)
-        if (retryCount % 3 != 0)
+        // retryCount is 0-based, so we want retries 3, 6, 9 (not 0, 3, 6, 9)
+        if (retryCount == 0 || retryCount % 3 != 0)
         {
             logger.LogInformation("Skipping Slack notification for job {JobId} on retry {RetryCount} (only posting every 3rd retry)", jobId, retryCount);
             return true;
