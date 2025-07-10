@@ -59,9 +59,16 @@ public class SlackExceptionNotificationHandler(
         }
     }
 
-    public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, CancellationToken cancellationToken)
+    public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, int retryCount, CancellationToken cancellationToken)
     {
-        var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception);
+        // Only send Slack notification on every 3rd retry (3, 6, 9)
+        if (retryCount % 3 != 0)
+        {
+            logger.LogInformation("Skipping Slack notification for job {JobId} on retry {RetryCount} (only posting every 3rd retry)", jobId, retryCount);
+            return true;
+        }
+
+        var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception, retryCount);
         logger.LogError(
             exception,
             null);
@@ -90,13 +97,14 @@ public class SlackExceptionNotificationHandler(
                $"*Stacktrace:* \n{exception.StackTrace}";
     }
 
-    private string FormatExceptionMessage(string jobId, string jobName, Exception exception)
+    private string FormatExceptionMessage(string jobId, string jobName, Exception exception, int retryCount)
     {
         return $":warning: *Unhandled Exception*\n" +
                 $"*Environment:* {hostEnvironment.EnvironmentName}\n" +
                 $"*System:* Correspondence\n" +
                 $"*Job ID:* {jobId}\n" +
                 $"*Job Name:* {jobName}\n" +
+                $"*Retry Count:* {retryCount}\n" +
                 $"*Type:* {exception.GetType().Name}\n" +
                 $"*Message:* {exception.Message}\n" +
                 $"*Stacktrace:* \n{exception.StackTrace}\n" + 
