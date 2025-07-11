@@ -59,9 +59,18 @@ public class SlackExceptionNotificationHandler(
         }
     }
 
-    public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, CancellationToken cancellationToken)
+    public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, int retryCount, CancellationToken cancellationToken)
     {
-        var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception);
+        // Skip notifications for retries 0-6 (likely transient issues)
+        // retryCount is 0-based: 0=first attempt, 1=first retry, etc.
+        if (retryCount >= 0 && retryCount < 7)
+        {
+            logger.LogInformation("Skipping Slack notification for job {JobId} on retry {RetryCount} (skipping notifications for retries 0-6)", jobId, retryCount);
+            return true;
+        }
+
+        // Always notify on retries 7, 8, 9, and 10 (likely persistent issues)
+        var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception, retryCount);
         logger.LogError(
             exception,
             null);
@@ -90,13 +99,18 @@ public class SlackExceptionNotificationHandler(
                $"*Stacktrace:* \n{exception.StackTrace}";
     }
 
-    private string FormatExceptionMessage(string jobId, string jobName, Exception exception)
+    private string FormatExceptionMessage(string jobId, string jobName, Exception exception, int retryCount)
     {
-        return $":warning: *Unhandled Exception*\n" +
+        // Use error severity for final retry, warning for intermediate retries
+        var severity = retryCount == 10 ? ":x:" : ":warning:";
+        var severityText = retryCount == 10 ? "CRITICAL FAILURE" : "Unhandled Exception";
+        
+        return $"{severity} *{severityText}*\n" +
                 $"*Environment:* {hostEnvironment.EnvironmentName}\n" +
                 $"*System:* Correspondence\n" +
                 $"*Job ID:* {jobId}\n" +
                 $"*Job Name:* {jobName}\n" +
+                $"*Retry Count:* {retryCount}\n" +
                 $"*Type:* {exception.GetType().Name}\n" +
                 $"*Message:* {exception.Message}\n" +
                 $"*Stacktrace:* \n{exception.StackTrace}\n" + 

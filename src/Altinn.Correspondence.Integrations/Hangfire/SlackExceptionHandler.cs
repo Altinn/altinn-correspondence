@@ -33,9 +33,12 @@ namespace Altinn.Correspondence.Integrations.Hangfire
             var jobName = filterContext.BackgroundJob.Job.Type.Name;
             _logger.LogInformation("Completed job {JobId} of type {JobName}", jobId, jobName);
             
+            // Get retry count from the job context
+            var retryCount = filterContext.GetJobParameter<int>("RetryCount");
+            
             // Properly await the notification
             if(exception != null) {
-                await _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception, CancellationToken.None);
+                await _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception, retryCount, CancellationToken.None);
             }
         }
 
@@ -46,11 +49,14 @@ namespace Altinn.Correspondence.Integrations.Hangfire
                 var exception = failedState.Exception;
                 var jobId = context.BackgroundJob.Id;
                 var jobName = context.BackgroundJob.Job.Type.Name;
+                
+                // Get retry count from the job context
+                var retryCount = context.GetJobParameter<int>("RetryCount");
 
                 _logger.LogError(exception, "Job {JobId} of type {JobName} failed", jobId, jobName);
                 
                 // Properly await the notification
-                await _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception, CancellationToken.None);
+                await _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception, retryCount, CancellationToken.None);
             }
         }
     }
