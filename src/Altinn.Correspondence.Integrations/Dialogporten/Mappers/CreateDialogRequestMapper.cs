@@ -32,7 +32,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
                 ExpiresAt = correspondence.AllowSystemDeleteAfter,
                 DueAt = correspondence.DueDateTime != default ? correspondence.DueDateTime : null,
-                Status = "New",
+                Status = GetDialogStatusForCorrespondence(correspondence),
                 ExternalReference = correspondence.SendersReference,
                 Content = CreateCorrespondenceContent(correspondence, baseUrl),
                 SearchTags = GetSearchTagsForCorrespondence(correspondence),
@@ -43,6 +43,15 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Transmissions = new List<Transmission>(),
                 SystemLabel = isArchived ? SystemLabel.Archived : SystemLabel.Default
             };
+        }
+
+        private static string GetDialogStatusForCorrespondence(CorrespondenceEntity correspondence)
+        {
+            if (correspondence.IsConfirmationNeeded)
+            {
+                return "RequiresAttention";
+            }
+            return "NotApplicable";
         }
 
         private static Content CreateCorrespondenceContent(CorrespondenceEntity correspondence, string baseUrl) => new()

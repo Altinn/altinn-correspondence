@@ -79,6 +79,10 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         {
             patchRequestBuilder.WithRemoveApiActionOperation(apiActionIndexToDelete);
         }
+        if (dialog.Status == "RequiresAttention")
+        {
+            patchRequestBuilder.WithReplaceStatusOperation("NotApplicable");
+        }
         var patchRequest = patchRequestBuilder.Build();
         if (patchRequest.Count == 0)
         {
