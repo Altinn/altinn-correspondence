@@ -61,14 +61,15 @@ public class SlackExceptionNotificationHandler(
 
     public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, int retryCount, CancellationToken cancellationToken)
     {
-        // Only send Slack notification on every 3rd retry (3, 6, 9)
-        // retryCount is 0-based, so we want retries 3, 6, 9 (not 0, 3, 6, 9)
-        if (retryCount == 0 || retryCount % 3 != 0)
+        // Skip notifications for retries 0-6 (likely transient issues)
+        // retryCount is 0-based: 0=first attempt, 1=first retry, etc.
+        if (retryCount >= 0 && retryCount < 7)
         {
-            logger.LogInformation("Skipping Slack notification for job {JobId} on retry {RetryCount} (only posting every 3rd retry)", jobId, retryCount);
+            logger.LogInformation("Skipping Slack notification for job {JobId} on retry {RetryCount} (skipping notifications for retries 0-6)", jobId, retryCount);
             return true;
         }
 
+        // Always notify on retries 7, 8, 9, and 10 (likely persistent issues)
         var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception, retryCount);
         logger.LogError(
             exception,
@@ -100,7 +101,11 @@ public class SlackExceptionNotificationHandler(
 
     private string FormatExceptionMessage(string jobId, string jobName, Exception exception, int retryCount)
     {
-        return $":warning: *Unhandled Exception*\n" +
+        // Use error severity for final retry, warning for intermediate retries
+        var severity = retryCount == 10 ? ":x:" : ":warning:";
+        var severityText = retryCount == 10 ? "CRITICAL FAILURE" : "Unhandled Exception";
+        
+        return $"{severity} *{severityText}*\n" +
                 $"*Environment:* {hostEnvironment.EnvironmentName}\n" +
                 $"*System:* Correspondence\n" +
                 $"*Job ID:* {jobId}\n" +
