@@ -26,10 +26,18 @@ public class InitializeAttachmentHandler(
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Starting attachment initialization process for resource {ResourceId}", request.Attachment.ResourceId.SanitizeForLogging());
+        
+        var serviceOwnerOrgNumber = await resourceRegistryService.GetServiceOwnerOrganizationNumber(request.Attachment.ResourceId, cancellationToken);
+        if (serviceOwnerOrgNumber is null || serviceOwnerOrgNumber == string.Empty)
+        {
+            logger.LogError("Service owner/sender's organization number (9 digits) not found for resource {ResourceId}", request.Attachment.ResourceId);
+            return CorrespondenceErrors.ServiceOwnerOrgNumberNotFound;
+        }
+        
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
             request.Attachment.ResourceId,
-            request.Attachment.Sender.WithoutPrefix(),
+            serviceOwnerOrgNumber.WithoutPrefix(),
             null,
             cancellationToken);
         if (!hasAccess)
@@ -63,13 +71,11 @@ public class InitializeAttachmentHandler(
             logger.LogWarning("Invalid attachment name for resource {ResourceId}: {Error}", request.Attachment.ResourceId, attachmentNameError);
             return attachmentNameError;
         }
-        if (attachment.Sender.StartsWith("0192:"))
-        {
-            logger.LogInformation("Converting legacy sender prefix '0192:' to {UrnPrefix} for resource {ResourceId}", 
-                UrnConstants.OrganizationNumberAttribute, 
-                request.Attachment.ResourceId);
-            attachment.Sender = $"{UrnConstants.OrganizationNumberAttribute}:{attachment.Sender.WithoutPrefix()}";
-        }
+        
+        // Set the Sender from the service owner organization number
+        var sender = serviceOwnerOrgNumber.WithoutPrefix().WithUrnPrefix();
+        attachment.Sender = sender;
+        
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             var initializedAttachment = await attachmentRepository.InitializeAttachment(attachment, cancellationToken);   

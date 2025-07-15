@@ -25,8 +25,7 @@ namespace Altinn.Correspondence.API.Models
         /// Organization number in countrycode:organizationnumber format.
         /// </remarks>
         [JsonPropertyName("sender")]
-        [OrganizationNumber(ErrorMessage = $"Organization numbers should be on the format '{UrnConstants.OrganizationNumberAttribute}:organizationnumber' or the format countrycode:organizationnumber, for instance 0192:910753614")]
-        [Required]
-        public required string Sender { get; set; }
+        [Obsolete("Sender is deprecated and will be removed in a future version. The sender is now automatically determined from the Resource Registry based on the resourceId.")]
+        public string? Sender { get; set; }
     }
 }

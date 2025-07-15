@@ -56,9 +56,9 @@ namespace Altinn.Correspondence.Tests.Factories
             _attachment.Checksum = checksum;
             return this;
         }
-        public MigrateAttachmentBuilder WithSenderPartyUuid(Guid sender)
+        public MigrateAttachmentBuilder WithSenderPartyUuid(Guid senderPartyUuid)
         {
-            _attachment.SenderPartyUuid = sender;
+            _attachment.SenderPartyUuid = senderPartyUuid;
             return this;
         }
     }

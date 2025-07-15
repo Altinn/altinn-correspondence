@@ -428,11 +428,9 @@ public class MigrationAccessTests : MigrationTestBase
         using StreamContent content = new(memoryStream);
         string command = GetAttachmentCommand(migrateAttachmentExt);
         var uploadResponse = await _migrationClient.PostAsync(command, content);
-
         Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
-        string attachmentId = await uploadResponse.Content.ReadAsStringAsync();
-
-        return new Guid(attachmentId.Trim('"'));
+        Guid attachmentId = Guid.Parse(uploadResponse.Content.ReadAsStringAsync().Result.Trim('"'));
+        return attachmentId;
     }
 
     private LegacyGetCorrespondencesRequestExt GetBasicLegacyGetCorrespondenceRequestExt()
