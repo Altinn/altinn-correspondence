@@ -245,6 +245,44 @@ public class MigrationControllerTests : MigrationTestBase
     }
 
     [Fact]
+    public async Task MakeCorrespondenceAvailable_NoSummary()
+    {
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6, 11, 10, 21))
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 7, 15, 11, 56))
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 8, 14, 19, 22))
+            .WithStatusEvent(CorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 8, 14, 20, 5))
+            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 9, 10, 50, 17))
+            .Build();
+        SetNotificationHistory(migrateCorrespondenceExt);
+
+        // In this case, summary field sent to DialogPorten should be a null value. This can be checked by changing the DialogportenDevService to write result to file and checking the content.
+        migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content.MessageSummary = "";
+
+        CorrespondenceMigrationStatusExt resultObj = await MigrateSingleCorrespondence(migrateCorrespondenceExt);
+        Assert.NotNull(resultObj);
+
+        MakeCorrespondenceAvailableRequestExt request = new MakeCorrespondenceAvailableRequestExt()
+        {
+            CreateEvents = false,
+            CorrespondenceIds = [resultObj.CorrespondenceId],
+            CorrespondenceId = resultObj.CorrespondenceId
+        };
+        var makeAvailableResponse = await _migrationClient.PostAsJsonAsync(makeAvailableUrl, request);
+        MakeCorrespondenceAvailableResponseExt respExt = await makeAvailableResponse.Content.ReadFromJsonAsync<MakeCorrespondenceAvailableResponseExt>();
+
+        // Verify that correspondence has IsMigrating set to false, which means we can retrieve it through GetOverview.
+        var getCorrespondenceOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{resultObj.CorrespondenceId}/content");
+        Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode);
+
+        Assert.True(makeAvailableResponse.IsSuccessStatusCode);
+        Assert.NotNull(respExt.Statuses);
+        Assert.Equal(1, respExt.Statuses.Count);
+        Assert.True(respExt.Statuses.First().Ok);
+    }
+
+    [Fact]
     public async Task MakeCorrespondenceAvailable_OnCall()
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
@@ -325,6 +363,15 @@ public class MigrationControllerTests : MigrationTestBase
     private async Task<CorrespondenceMigrationStatusExt> MigrateSingleCorrespondence(MigrateCorrespondenceExt migrateCorrespondenceExt)
     {
         migrateCorrespondenceExt.Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId + 1;
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorresponenceUrl, migrateCorrespondenceExt);
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode);
+        CorrespondenceMigrationStatusExt resultObj = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>();
+        return resultObj;
+    }
+
+
+    private async Task<CorrespondenceMigrationStatusExt> MigrateSingleCorrespondence_NoAdd(MigrateCorrespondenceExt migrateCorrespondenceExt)
+    {
         var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorresponenceUrl, migrateCorrespondenceExt);
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode);
         CorrespondenceMigrationStatusExt resultObj = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>();
