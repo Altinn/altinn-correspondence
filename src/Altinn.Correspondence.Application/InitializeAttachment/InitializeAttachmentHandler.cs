@@ -25,12 +25,13 @@ public class InitializeAttachmentHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Starting attachment initialization process for resource {ResourceId}", request.Attachment.ResourceId.SanitizeForLogging());
+        var sanitizedResourceId = request.Attachment.ResourceId.SanitizeForLogging();
+        logger.LogInformation("Starting attachment initialization process for resource {ResourceId}", sanitizedResourceId);
         
         var serviceOwnerOrgNumber = await resourceRegistryService.GetServiceOwnerOrganizationNumber(request.Attachment.ResourceId, cancellationToken);
         if (serviceOwnerOrgNumber is null || serviceOwnerOrgNumber == string.Empty)
         {
-            logger.LogError("Service owner/sender's organization number (9 digits) not found for resource {ResourceId}", request.Attachment.ResourceId);
+            logger.LogError("Service owner/sender's organization number (9 digits) not found for resource {ResourceId}", sanitizedResourceId);
             return CorrespondenceErrors.ServiceOwnerOrgNumberNotFound;
         }
         
@@ -42,18 +43,18 @@ public class InitializeAttachmentHandler(
             cancellationToken);
         if (!hasAccess)
         {
-            logger.LogWarning("Access denied for resource {ResourceId} - user does not have sender access", request.Attachment.ResourceId.SanitizeForLogging());
+            logger.LogWarning("Access denied for resource {ResourceId} - user does not have sender access", sanitizedResourceId);
             return AuthorizationErrors.NoAccessToResource;
         }
         var resourceType = await resourceRegistryService.GetResourceType(request.Attachment.ResourceId, cancellationToken);
         if (resourceType is null)
         {
-            logger.LogError("Resource type not found for {ResourceId} despite successful authorization", request.Attachment.ResourceId);
-            throw new Exception($"Resource type not found for {request.Attachment.ResourceId}. This should be impossible as authorization worked.");
+            logger.LogError("Resource type not found for {ResourceId} despite successful authorization", sanitizedResourceId);
+            throw new Exception($"Resource type not found for {sanitizedResourceId}. This should be impossible as authorization worked.");
         }
         if (resourceType != "GenericAccessResource" && resourceType != "CorrespondenceService")
         {
-            logger.LogWarning("Incorrect resource type {ResourceType} for {ResourceId}", resourceType, request.Attachment.ResourceId);
+            logger.LogWarning("Incorrect resource type {ResourceType} for {ResourceId}", resourceType, sanitizedResourceId);
             return AuthorizationErrors.IncorrectResourceType;
         }
 
@@ -68,7 +69,7 @@ public class InitializeAttachmentHandler(
         var attachmentNameError = attachmentHelper.ValidateAttachmentName(request.Attachment);
         if (attachmentNameError is not null)
         {
-            logger.LogWarning("Invalid attachment name for resource {ResourceId}: {Error}", request.Attachment.ResourceId, attachmentNameError);
+            logger.LogWarning("Invalid attachment name for resource {ResourceId}: {Error}", sanitizedResourceId, attachmentNameError);
             return attachmentNameError;
         }
         
@@ -89,7 +90,7 @@ public class InitializeAttachmentHandler(
                 CancellationToken.None));
             logger.LogInformation("Successfully initialized attachment {AttachmentId} for resource {ResourceId}", 
                 initializedAttachment.Id, 
-                request.Attachment.ResourceId);
+                sanitizedResourceId);
             return initializedAttachment.Id;
         }, logger, cancellationToken);
     }
