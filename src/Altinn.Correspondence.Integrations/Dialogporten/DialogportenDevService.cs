@@ -47,7 +47,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         {
             // var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, "https://platform.tt02.altinn.no/", true);
             // string result = JsonConvert.SerializeObject(createDialogRequest);
-            // File.WriteAllText(@"c:\temp\output8.json", result);
+            // File.WriteAllText($@"c:\temp\{Guid.NewGuid()}.json", result);
             return Task.FromResult(Guid.NewGuid().ToString());
         }
     }
