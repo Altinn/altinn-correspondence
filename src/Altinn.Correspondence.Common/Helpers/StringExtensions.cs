@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 using Altinn.Correspondence.Common.Constants;
 namespace Altinn.Correspondence.Common.Helpers;

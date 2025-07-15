@@ -951,7 +951,6 @@
 									"value": "{{resource_id}}",
 									"type": "text"
 								},
-
 								{
 									"key": "Correspondence.sendersReference",
 									"value": "1234",
@@ -1535,7 +1534,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"expirationTime\": \"2024-12-12\",\n  \"resourceId\": \"{{resource_id}}\",\n  \"sender\": \"0192:{{senderOrgNo}}\",\n  \"sendersReference\": \"1234\",\n  \"fileName\": \"test-file.txt\",\n  \"displayName\": \"Logical name\",\n  \"isEncrypted\": false\n}",
+							"raw": "{\n  \"expirationTime\": \"2024-12-12\",\n  \"resourceId\": \"{{resource_id}}\",\n  \"sendersReference\": \"1234\",\n  \"fileName\": \"test-file.txt\",\n  \"displayName\": \"Logical name\",\n  \"isEncrypted\": false\n}",
 							"options": {
 								"raw": {
 									"headerFamily": "json",
