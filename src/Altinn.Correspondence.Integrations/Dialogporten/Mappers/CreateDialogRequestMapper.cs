@@ -20,29 +20,36 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             var dialogId = Guid.CreateVersion7().ToString(); // Dialogporten requires time-stamped GUIDs
             bool isArchived = correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Archived);
+            DateTimeOffset? dueAt = correspondence.DueDateTime != default ? correspondence.DueDateTime : null;
+
+            // The problem of DueAt being in the past should only occur for migrated data, as such we are checking includeActivities flag first, since this is only set when making migrated correspondences available.
+            if (includeActivities && dueAt.HasValue && dueAt < DateTimeOffset.Now)
+            {
+                dueAt = null;
+            }
             
             return new CreateDialogRequest
-            {
-                Id = dialogId,
-                ServiceResource = UrnConstants.Resource + ":" + correspondence.ResourceId,
-                Party = correspondence.GetRecipientUrn(),
-                CreatedAt = correspondence.Created,
-                UpdatedAt = (correspondence.Statuses ?? []).Select(s => s.StatusChanged).Concat([correspondence.Created]).Max(),
-                VisibleFrom = correspondence.RequestedPublishTime < DateTime.UtcNow.AddMinutes(1) ? null : correspondence.RequestedPublishTime,
-                Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
-                ExpiresAt = correspondence.AllowSystemDeleteAfter,
-                DueAt = correspondence.DueDateTime != default ? correspondence.DueDateTime : null,
-                Status = GetDialogStatusForCorrespondence(correspondence),
-                ExternalReference = correspondence.SendersReference,
-                Content = CreateCorrespondenceContent(correspondence, baseUrl),
-                SearchTags = GetSearchTagsForCorrespondence(correspondence),
-                ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
-                GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
-                Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
-                Activities = includeActivities ? GetActivitiesForCorrespondence(correspondence) : new List<Activity>(),
-                Transmissions = new List<Transmission>(),
-                SystemLabel = isArchived ? SystemLabel.Archived : SystemLabel.Default
-            };
+                {
+                    Id = dialogId,
+                    ServiceResource = UrnConstants.Resource + ":" + correspondence.ResourceId,
+                    Party = correspondence.GetRecipientUrn(),
+                    CreatedAt = correspondence.Created,
+                    UpdatedAt = (correspondence.Statuses ?? []).Select(s => s.StatusChanged).Concat([correspondence.Created]).Max(),
+                    VisibleFrom = correspondence.RequestedPublishTime < DateTime.UtcNow.AddMinutes(1) ? null : correspondence.RequestedPublishTime,
+                    Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
+                    ExpiresAt = correspondence.AllowSystemDeleteAfter,
+                    DueAt = dueAt,
+                    Status = GetDialogStatusForCorrespondence(correspondence),
+                    ExternalReference = correspondence.SendersReference,
+                    Content = CreateCorrespondenceContent(correspondence, baseUrl),
+                    SearchTags = GetSearchTagsForCorrespondence(correspondence),
+                    ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
+                    GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
+                    Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
+                    Activities = includeActivities ? GetActivitiesForCorrespondence(correspondence) : new List<Activity>(),
+                    Transmissions = new List<Transmission>(),
+                    SystemLabel = isArchived ? SystemLabel.Archived : SystemLabel.Default
+                };
         }
 
         private static string GetDialogStatusForCorrespondence(CorrespondenceEntity correspondence)
