@@ -61,15 +61,14 @@ public class SlackExceptionNotificationHandler(
 
     public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, int retryCount, CancellationToken cancellationToken)
     {
-        // Skip notifications for retries 0-6 (likely transient issues)
-        // retryCount is 0-based: 0=first attempt, 1=first retry, etc.
-        if (retryCount >= 0 && retryCount < 7)
+        var shouldNotify = retryCount == 3 || retryCount == 6 || retryCount == 10;
+        
+        if (!shouldNotify)
         {
-            logger.LogInformation("Skipping Slack notification for job {JobId} on retry {RetryCount} (skipping notifications for retries 0-6)", jobId, retryCount);
+            logger.LogInformation("Skipping Slack notification for job {JobId} on retry {RetryCount} (only notifying on retries 3, 6, and 10)", jobId, retryCount);
             return true;
         }
 
-        // Always notify on retries 7, 8, 9, and 10 (likely persistent issues)
         var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception, retryCount);
         logger.LogError(
             exception,
