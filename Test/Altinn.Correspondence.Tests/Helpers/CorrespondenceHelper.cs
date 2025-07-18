@@ -1,8 +1,8 @@
-
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models.Enums;
 
 namespace Altinn.Correspondence.Tests.Helpers;
 internal static class CorrespondenceHelper
@@ -70,5 +70,32 @@ internal static class CorrespondenceHelper
         correspondence.PropertyList.ToList()
         .ForEach((item) => formData.Add(new StringContent(item.Value), "correspondence.propertyLists." + item.Key));
         return formData;
+    }
+
+    public static async Task<CorrespondenceOverviewExt> WaitForCorrespondenceStatusUpdate(HttpClient client, JsonSerializerOptions responseSerializerOptions, Guid correspondenceId, CorrespondenceStatusExt expectedStatus, int maxRetries = 5, int delayMs = 900)
+    {
+        await Task.Delay(200);
+        for (int i = 0; i < maxRetries; i++)
+        {
+            var correspondence = await client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceId}", responseSerializerOptions);
+
+            if (correspondence?.Status == expectedStatus)
+            {
+                return correspondence;
+            }
+
+            if (correspondence?.Status == CorrespondenceStatusExt.Failed)
+            {
+                Assert.Fail($"Correspondence failed with status: {correspondence.Status}");
+            }
+
+            await Task.Delay(delayMs);
+        }
+
+        // If we get here, the status didn't update within the expected time
+        var finalCorrespondence = await client.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceId}", responseSerializerOptions);
+        Assert.NotNull(finalCorrespondence);
+        Assert.Fail($"Correspondence status did not update to {expectedStatus} within {maxRetries * delayMs + 1000}ms. Current status: {finalCorrespondence?.Status}");
+        return finalCorrespondence;
     }
 }

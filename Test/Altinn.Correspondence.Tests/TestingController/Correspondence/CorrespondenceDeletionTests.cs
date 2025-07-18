@@ -46,18 +46,18 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Arrange
             var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
 
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-            var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            Assert.NotNull(correspondenceResponse);
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = correspondence.CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
 
             // Act (Call sender first to ensure that the correspondence is not purged)
-            var senderResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}/purge");
-            var recipientResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}/purge");
+            var senderResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
+            var recipientResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, senderResponse.StatusCode);
             Assert.Equal(HttpStatusCode.OK, recipientResponse.StatusCode);
-            var overviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}");
+            var overviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
             Assert.Equal(HttpStatusCode.NotFound, overviewResponse.StatusCode);
         }
 
@@ -70,10 +70,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(1))
                 .WithConfirmationNeeded(true)
                 .Build();
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-            var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            Assert.Equal(CorrespondenceStatusExt.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
-            var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = correspondence.CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
 
             //  Act
             var deleteResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
@@ -91,10 +90,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(1))
                 .WithConfirmationNeeded(true)
                 .Build();
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-            var correspondenceResponse = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            Assert.Equal(CorrespondenceStatusExt.Published, correspondenceResponse?.Correspondences?.FirstOrDefault()?.Status);
-            var correspondenceId = correspondenceResponse?.Correspondences?.FirstOrDefault()?.CorrespondenceId;
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = correspondence.CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
 
             //  Act
             var fetchResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}"); // Fetch in order to be able to confirm
