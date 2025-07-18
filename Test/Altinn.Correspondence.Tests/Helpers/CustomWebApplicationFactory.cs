@@ -49,16 +49,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             services.RemoveAll<IRecurringJobManager>();
             services.AddSingleton(new Mock<IRecurringJobManager>().Object);
             
-            services.AddSingleton<IConnectionFactory>(serviceProvider =>
-            {
-                var dataSource = serviceProvider.GetRequiredService<NpgsqlDataSource>();
-                return new HangfireConnectionFactory(dataSource);
-            });
-            
             services.AddHangfire((provider, config) =>
             {
+                var dataSource = provider.GetRequiredService<NpgsqlDataSource>();
                 config.UsePostgreSqlStorage(
-                    c => c.UseConnectionFactory(provider.GetService<IConnectionFactory>()),
+                    c => c.UseConnectionFactory(new HangfireConnectionFactory(dataSource)),
                     new PostgreSqlStorageOptions
                     {
                         PrepareSchemaIfNecessary = true,
@@ -68,6 +63,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
                         DistributedLockTimeout = TimeSpan.FromSeconds(10)
                     }
                 );
+                config.UseColouredConsoleLogProvider();
             });
             
             services.AddHangfireServer(options => 
@@ -79,7 +75,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
                 options.ShutdownTimeout = TimeSpan.FromSeconds(1);
                 options.StopTimeout = TimeSpan.FromSeconds(1);
             });
-            
+
             services.AddScoped<IEventBus, ConsoleLogEventBus>();
             services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
             services.AddScoped<IDialogportenService, DialogportenDevService>();
@@ -112,34 +108,31 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
         {
             try
             {
-                using var scope = Services.CreateScope();
-
-                var recurringJobManager = scope.ServiceProvider.GetService<IRecurringJobManager>();
-                if (recurringJobManager is IDisposable disposable && !recurringJobManager.GetType().Name.Contains("Mock"))
-                {
-                    disposable.Dispose();
-                }
-                
-                var hangfireServer = scope.ServiceProvider.GetService<BackgroundJobServer>();
-                if (hangfireServer != null && !hangfireServer.GetType().Name.Contains("Mock"))
-                {
-                    hangfireServer.Dispose();
-                }
-
-                var dataSource = scope.ServiceProvider.GetService<NpgsqlDataSource>();
-                CleanupHangfireSchema(dataSource!);
-                dataSource?.Dispose();
-                
-                var connectionFactory = scope.ServiceProvider.GetService<IConnectionFactory>();
-                if (connectionFactory is IDisposable disposableFactory)
-                {
-                    disposableFactory.Dispose();
-                }               
+                var hangfireServer = Services.GetRequiredService<BackgroundJobServer>();
+                hangfireServer.Dispose();
+                Console.WriteLine($"Hangfire server stopped for schema: {_hangfireSchemaName}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error during test cleanup: {ex}");
+                Console.WriteLine($"Error stopping Hangfire server: {ex.Message}");
             }
+            
+            var dataSource = Services.GetRequiredService<NpgsqlDataSource>();
+            try
+            {
+                base.Dispose(disposing);
+                Console.WriteLine($"Base application disposed for schema: {_hangfireSchemaName}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during base application disposal: {ex}");
+            }
+            CleanupHangfireSchema(dataSource!);
+            dataSource?.Dispose();
+        }
+        else
+        {
+            base.Dispose(disposing);
         }
     }
 
