@@ -33,7 +33,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
 
     public CustomWebApplicationFactory()
     {
-        _hangfireSchemaName = $"hangfire_test_{Guid.NewGuid():N}";
+        _hangfireSchemaName = $"hangfire_test";
     }
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)
@@ -127,32 +127,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             {
                 Console.WriteLine($"Error during base application disposal: {ex}");
             }
-            CleanupHangfireSchema(dataSource!);
             dataSource?.Dispose();
         }
         else
         {
             base.Dispose(disposing);
-        }
-    }
-
-    private void CleanupHangfireSchema(NpgsqlDataSource dataSource)
-    {
-        try
-        {
-            if (dataSource != null)
-            {
-                using var connection = dataSource.CreateConnection();
-                connection.Open();
-                using var command = connection.CreateCommand();
-                command.CommandText = $"DROP SCHEMA IF EXISTS {_hangfireSchemaName} CASCADE";
-                command.ExecuteNonQuery();
-                Console.WriteLine($"Cleaned up Hangfire schema: {_hangfireSchemaName}");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error cleaning up Hangfire schema {_hangfireSchemaName}: {ex.Message}");
         }
     }
 
