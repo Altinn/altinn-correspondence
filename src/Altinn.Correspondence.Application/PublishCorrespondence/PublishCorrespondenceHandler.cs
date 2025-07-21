@@ -139,7 +139,7 @@ public class PublishCorrespondenceHandler(
         }
         else if (roles != null && !roles.HasAnyOfRolesOnPerson(ApplicationConstants.RequiredOrganizationRolesForCorrespondenceRecipient))
         {
-            errorMessage = $"Recipient of {correspondenceId} is missing roles to read correspondences. Consider sending physical post to this recipient instead.";
+            errorMessage = $"Recipient of {correspondenceId} lacks roles required to read correspondences. Consider sending physical mail to this recipient instead.";
         }
         CorrespondenceStatusEntity status;
         AltinnEventType eventType = AltinnEventType.CorrespondencePublished;

@@ -213,7 +213,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     It.Is<CorrespondenceStatusEntity>(s => 
                         s.CorrespondenceId == correspondenceId && 
                         s.Status == CorrespondenceStatus.Failed && 
-                        s.StatusText.Contains("missing roles")),
+                        s.StatusText.Contains("lacks roles")),
                     It.IsAny<CancellationToken>()),
                 Times.Once);
 
@@ -354,7 +354,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     It.Is<CorrespondenceStatusEntity>(s => 
                         s.CorrespondenceId == correspondenceId && 
                         s.Status == CorrespondenceStatus.Failed && 
-                        s.StatusText.Contains("missing roles")),
+                        s.StatusText.Contains("lacks roles")),
                     It.IsAny<CancellationToken>()),
                 Times.Once);
 
