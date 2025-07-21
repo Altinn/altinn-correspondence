@@ -250,10 +250,7 @@ public class PublishCorrespondenceHandler(
             try
             {
                 details = await brregService.GetOrganizationDetails(correspondence.Recipient.WithoutPrefix(), cancellationToken);
-                if (correspondence.IsConfidential)
-                {
-                    roles = await brregService.GetOrganizationRoles(correspondence.Recipient.WithoutPrefix(), cancellationToken);
-                }
+                roles = await brregService.GetOrganizationRoles(correspondence.Recipient.WithoutPrefix(), cancellationToken);
             }
             catch (BrregNotFoundException)
             {
@@ -261,7 +258,7 @@ public class PublishCorrespondenceHandler(
                 {
                     var subOrganizationDetails = await brregService.GetSubOrganizationDetails(correspondence.Recipient.WithoutPrefix(), cancellationToken);
                     details = subOrganizationDetails;
-                    if (correspondence.IsConfidential && subOrganizationDetails.ParentOrganizationNumber != null)
+                    if (subOrganizationDetails.ParentOrganizationNumber != null)
                     {
                         roles = await brregService.GetOrganizationRoles(subOrganizationDetails.ParentOrganizationNumber, cancellationToken);
                     }
