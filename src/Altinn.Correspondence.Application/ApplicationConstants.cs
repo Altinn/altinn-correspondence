@@ -22,13 +22,14 @@ public static class ApplicationConstants
         ".png",
         ".json"
     ];
-    public static readonly List<string> RequiredOrganizationRolesForConfidentialCorrespondence = 
+    public static readonly List<string> RequiredOrganizationRolesForCorrespondenceRecipient = 
     [
         "BEST",
         "DAGL",
         "DTPR",
         "DTSO",
         "INNH",
-        "LEDE"
+        "LEDE",
+        "REPR"
     ];
 }
