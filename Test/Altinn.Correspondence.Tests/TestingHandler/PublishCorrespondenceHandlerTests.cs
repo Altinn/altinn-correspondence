@@ -191,7 +191,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Process_ConfidentialCorrespondenceWithOrgRecipientMissingRequiredRoles_FailsCorrespondence()
+        public async Task Process_CorrespondenceWithOrgRecipientMissingRequiredRoles_FailsCorrespondence()
         {
             // Arrange
             var correspondenceId = Guid.NewGuid();
@@ -213,7 +213,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     It.Is<CorrespondenceStatusEntity>(s => 
                         s.CorrespondenceId == correspondenceId && 
                         s.Status == CorrespondenceStatus.Failed && 
-                        s.StatusText.Contains("missing required roles")),
+                        s.StatusText.Contains("missing roles")),
                     It.IsAny<CancellationToken>()),
                 Times.Once);
 
@@ -223,7 +223,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Process_ConfidentialCorrespondenceWithOrgRecipientHavingRequiredRoles_Succeeds()
+        public async Task Process_CorrespondenceWithOrgRecipientHavingRequiredRoles_Succeeds()
         {
             // Arrange
             var correspondenceId = Guid.NewGuid();
@@ -295,7 +295,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Process_ConfidentialCorrespondenceWithSubOrgRecipientThatHasParentOrgWithRequiredRoles_Succeeds()
+        public async Task Process_CorrespondenceWithSubOrgRecipientThatHasParentOrgWithRequiredRoles_Succeeds()
         {
             // Arrange
             var correspondenceId = Guid.NewGuid();
@@ -331,7 +331,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Process_ConfidentialCorrespondenceWithSubOrgRecipientThatHasParentOrgWithoutRequiredRoles_Fails()
+        public async Task Process_CorrespondenceWithSubOrgRecipientThatHasParentOrgWithoutRequiredRoles_Fails()
         {
             // Arrange
             var correspondenceId = Guid.NewGuid();
@@ -354,7 +354,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     It.Is<CorrespondenceStatusEntity>(s => 
                         s.CorrespondenceId == correspondenceId && 
                         s.Status == CorrespondenceStatus.Failed && 
-                        s.StatusText.Contains("missing required roles")),
+                        s.StatusText.Contains("missing roles")),
                     It.IsAny<CancellationToken>()),
                 Times.Once);
 
