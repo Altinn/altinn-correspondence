@@ -137,9 +137,9 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Recipient of {correspondenceId} is deleted";
         }
-        else if (roles != null && correspondence.IsConfidential && !roles.HasAnyOfRolesOnPerson(ApplicationConstants.RequiredOrganizationRolesForConfidentialCorrespondence))
+        else if (roles != null && !roles.HasAnyOfRolesOnPerson(ApplicationConstants.RequiredOrganizationRolesForConfidentialCorrespondence))
         {
-            errorMessage = $"Recipient of {correspondenceId} is missing required roles to read confidential correspondences";
+            errorMessage = $"Recipient of {correspondenceId} is missing roles to read correspondences. Consider sending physical post to this recipient instead.";
         }
         CorrespondenceStatusEntity status;
         AltinnEventType eventType = AltinnEventType.CorrespondencePublished;
