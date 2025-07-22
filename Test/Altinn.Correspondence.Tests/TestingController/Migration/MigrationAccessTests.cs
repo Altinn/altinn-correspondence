@@ -14,8 +14,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Migration;
 
 [Collection(nameof(CustomWebApplicationTestsCollection))]
 public class MigrationAccessTests : MigrationTestBase
-{   
-    private readonly HttpClient  _recipientClient, _legacyClient;
+{
+    private readonly HttpClient _recipientClient, _legacyClient;
     private readonly string _partyIdClaim = "urn:altinn:partyid";
     private readonly int _digdirPartyId = 50952483;
 
@@ -97,7 +97,7 @@ public class MigrationAccessTests : MigrationTestBase
         var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", correspondenceListRequest);
         Assert.True(correspondenceList.IsSuccessStatusCode, await correspondenceList.Content.ReadAsStringAsync());
 
-        var correspondenceListResponse = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);        
+        var correspondenceListResponse = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);
         Assert.False(correspondenceListResponse?.Items.Any(x => x.CorrespondenceId == createdCorrespondenceId));
 
         var correspondenceOverview = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{createdCorrespondenceId}/overview");
@@ -369,10 +369,10 @@ public class MigrationAccessTests : MigrationTestBase
         Assert.Equal(HttpStatusCode.NotFound, fetchResponse.StatusCode);
 
         var downloadAttachmentResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{createdCorrespondenceId}/attachment/{attachmentId}/download");
-        var data = await downloadAttachmentResponse.Content.ReadAsByteArrayAsync();        
+        var data = await downloadAttachmentResponse.Content.ReadAsByteArrayAsync();
         Assert.Equal(HttpStatusCode.NotFound, downloadAttachmentResponse.StatusCode);
 
-        var markAsReadResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{createdCorrespondenceId}/markasread", null);        
+        var markAsReadResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{createdCorrespondenceId}/markasread", null);
         Assert.Equal(HttpStatusCode.NotFound, markAsReadResponse.StatusCode);
 
         var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{createdCorrespondenceId}/confirm", null);
@@ -428,11 +428,10 @@ public class MigrationAccessTests : MigrationTestBase
         using StreamContent content = new(memoryStream);
         string command = GetAttachmentCommand(migrateAttachmentExt);
         var uploadResponse = await _migrationClient.PostAsync(command, content);
-
         Assert.True(uploadResponse.IsSuccessStatusCode, uploadResponse.ReasonPhrase + ":" + await uploadResponse.Content.ReadAsStringAsync());
-        string attachmentId = await uploadResponse.Content.ReadAsStringAsync();
-
-        return new Guid(attachmentId.Trim('"'));
+        string responseContent = await uploadResponse.Content.ReadAsStringAsync();
+        Guid attachmentId = Guid.Parse(responseContent.Trim('"'));
+        return attachmentId;
     }
 
     private LegacyGetCorrespondencesRequestExt GetBasicLegacyGetCorrespondenceRequestExt()
