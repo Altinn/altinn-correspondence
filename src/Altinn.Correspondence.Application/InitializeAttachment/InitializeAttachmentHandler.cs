@@ -29,7 +29,7 @@ public class InitializeAttachmentHandler(
         logger.LogInformation("Starting attachment initialization process for resource {ResourceId}", sanitizedResourceId);
         
         var serviceOwnerOrgNumber = await resourceRegistryService.GetServiceOwnerOrganizationNumber(request.Attachment.ResourceId, cancellationToken);
-        if (serviceOwnerOrgNumber is null || serviceOwnerOrgNumber == string.Empty)
+        if (string.IsNullOrEmpty(serviceOwnerOrgNumber))
         {
             logger.LogError("Service owner/sender's organization number (9 digits) not found for resource {ResourceId}", sanitizedResourceId);
             return CorrespondenceErrors.ServiceOwnerOrgNumberNotFound;
