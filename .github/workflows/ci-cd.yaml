@@ -248,12 +248,17 @@ jobs:
           git fetch --tags
           latestTag=$(git tag | sort --version-sort | tail -n1)
           currentVersion="${{ needs.get-version.outputs.version }}"
-          if [[ "$latestTag" != *"$currentVersion"* ]]; then
+          
+          echo "📋 Latest git tag: $latestTag"
+          echo "📋 Current version: $currentVersion"
+          
+          # Check if current version is newer than latest tag
+          if [[ $(printf '%s\n' "$latestTag" "$currentVersion" | sort --version-sort | tail -n1) == "$currentVersion" ]] && [[ "$latestTag" != "$currentVersion" ]]; then
             echo "should-release=true" >> $GITHUB_OUTPUT
-            echo "Version bump detected: $latestTag -> $currentVersion"
+            echo "✅ Version bump detected: $latestTag -> $currentVersion"
           else
             echo "should-release=false" >> $GITHUB_OUTPUT
-            echo "No version bump detected: $latestTag"
+            echo "⏸️  No version bump - current version ($currentVersion) is not newer than latest tag ($latestTag)"
           fi
 
   release-to-git:  
