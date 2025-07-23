@@ -37,4 +37,8 @@ public static class UrnConstants
     /// Placeholder sender value used in mappers before the actual serviceOwnerOrgNumber is determined from ResourceRegistryService
     /// </summary>
     public const string PlaceholderSender = "urn:altinn:organization:identifier-no:000000000";
+    /// <summary>
+    /// xacml string that refers to systemuser authentication
+    /// </summary>
+    public const string SystemUser = "urn:altinn:systemuser";
 }

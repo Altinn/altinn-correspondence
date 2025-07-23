@@ -1,15 +1,12 @@
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers.Models;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
-using Microsoft.AspNetCore.Identity.Data;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Xunit;
 
 namespace Altinn.Correspondence.Tests.TestingFeature
 {
@@ -51,17 +48,17 @@ namespace Altinn.Correspondence.Tests.TestingFeature
 
             var authorizationDetails = new SystemUserAuthorizationDetails()
             {
-                Type = "",
+                Type = UrnConstants.SystemUser,
                 SystemUserOrg = new SystemUserOrg()
                 {
-                    Authority = "",
-                    ID = ""
+                    Authority = "iso6523-actorid-upis",
+                    ID = "991825827"
                 },
                 SystemUserId = new List<string>()
                     {
                         Guid.NewGuid().ToString()
                     },
-                SystemId = ""
+                SystemId = "991825827_correspondencesystem"
             };
 
             var authDetailsJson = JsonSerializer.Serialize(authorizationDetails);
@@ -340,7 +337,10 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             // Arrange
             var maskinportenSenderClient = CreateMaskinportenClient(AuthorizationConstants.SenderScope, AuthorizationConstants.ServiceOwnerScope);
             var systemUserRecipientClient = CreateMaskinportenSystemUserClient(AuthorizationConstants.RecipientScope);
-            var correspondence = CreateTestCorrespondence();
+            var correspondence = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddMinutes(-1))
+                .Build();
 
             // Act
             var initializeResponse = await maskinportenSenderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
@@ -349,7 +349,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             var contentResponse = await systemUserRecipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/content");
 
             // Assert
-            Assert.Equal(HttpStatusCode.OK, contentResponse.StatusCode);
+            Assert.True(contentResponse.IsSuccessStatusCode, await contentResponse.Content.ReadAsStringAsync());
         }
     }
 }
