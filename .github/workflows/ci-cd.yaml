@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       imageTag: ${{ steps.get-version.outputs.imageTag }}
+      version: ${{ steps.get-version.outputs.version }}
     permissions: 
       contents: read
     steps:
@@ -246,7 +247,7 @@ jobs:
         run: |
           git fetch --tags
           latestTag=$(git tag | sort --version-sort | tail -n1)
-          currentVersion="${{ needs.get-version.outputs.imageTag }}"
+          currentVersion="${{ needs.get-version.outputs.version }}"
           if [[ "$latestTag" != *"$currentVersion"* ]]; then
             echo "should-release=true" >> $GITHUB_OUTPUT
             echo "Version bump detected: $latestTag -> $currentVersion"
