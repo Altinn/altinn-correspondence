@@ -45,7 +45,7 @@ jobs:
     name: Internal test
     runs-on: ubuntu-latest
     environment: test
-    if: always() && !failure() && !cancelled() 
+    if: always() && !failure() && !cancelled() && !contains(github.ref, '874-ikke-feil-release')
     needs: [get-version, publish, test]
     permissions: 
       id-token: write
@@ -90,7 +90,7 @@ jobs:
     name: deploy at22
     runs-on: ubuntu-latest
     environment: test
-    if: always() && !failure() && !cancelled() 
+    if: always() && !failure() && !cancelled() && !contains(github.ref, '874-ikke-feil-release')
     needs: [get-version, publish, test, deploy-test]
     permissions: 
       id-token: write
@@ -233,7 +233,7 @@ jobs:
   check-version-bump:
     name: Check if version was bumped
     runs-on: ubuntu-latest
-    needs: [get-version, deploy-test]
+    needs: [get-version, publish]
     if: ${{ !failure() && !cancelled()}}
     outputs:
       should-release: ${{ steps.check-version.outputs.should-release }}
