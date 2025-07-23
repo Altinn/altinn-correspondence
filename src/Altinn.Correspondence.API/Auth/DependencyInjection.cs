@@ -191,7 +191,16 @@ namespace Altinn.Correspondence.API.Auth
             // Altinn
             if (issuerClaim.Value.Contains("altinn.no"))
             {
-                return context.User.HasClaim(c => c.Type == "scope" && c.Value.Split(' ').Contains(AuthorizationConstants.SenderScope));
+                var scopeClaim = context.User.Claims.FirstOrDefault(c => c.Type == "scope");
+                if (scopeClaim != null)
+                {
+                    var scopes = scopeClaim.Value.Split(' ');
+                    if (scopes.Contains(AuthorizationConstants.MigrateScope))
+                    {
+                        return true;
+                    }
+                    return scopes.Contains(AuthorizationConstants.SenderScope);
+                }
             }
 
             // Maskinporten
@@ -201,6 +210,10 @@ namespace Altinn.Correspondence.API.Auth
                 if (scopeClaim != null)
                 {
                     var scopes = scopeClaim.Value.Split(' ');
+                    if (scopes.Contains(AuthorizationConstants.MigrateScope))
+                    {
+                        return true;
+                    }
                     return scopes.Contains(AuthorizationConstants.ServiceOwnerScope) &&
                            scopes.Contains(AuthorizationConstants.SenderScope);
                 }
@@ -228,7 +241,16 @@ namespace Altinn.Correspondence.API.Auth
             // Altinn
             if (issuerClaim.Value.Contains("altinn.no"))
             {
-                return context.User.HasClaim(c => c.Type == "scope" && c.Value.Split(' ').Contains(AuthorizationConstants.RecipientScope));
+                var scopeClaim = context.User.Claims.FirstOrDefault(c => c.Type == "scope");
+                if (scopeClaim != null)
+                {
+                    var scopes = scopeClaim.Value.Split(' ');
+                    if (scopes.Contains(AuthorizationConstants.MigrateScope))
+                    {
+                        return true;
+                    }
+                    return scopes.Contains(AuthorizationConstants.RecipientScope);
+                }
             }
 
             // Maskinporten
@@ -238,6 +260,10 @@ namespace Altinn.Correspondence.API.Auth
                 if (scopeClaim != null)
                 {
                     var scopes = scopeClaim.Value.Split(' ');
+                    if (scopes.Contains(AuthorizationConstants.MigrateScope))
+                    {
+                        return true;
+                    }
                     return scopes.Contains(AuthorizationConstants.RecipientScope);
                 }
             }
