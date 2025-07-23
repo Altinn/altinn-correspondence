@@ -162,11 +162,9 @@ namespace Altinn.Correspondence.API.Auth
                 options.AddPolicy(AuthorizationConstants.Sender, policy =>
                     policy.RequireAssertion(SenderScopePolicy)
                           .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.MaskinportenScheme));
-
                 options.AddPolicy(AuthorizationConstants.Recipient, policy =>
-                    policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope)
+                    policy.RequireAssertion(RecipientScopePolicy)
                           .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme));
-
                 options.AddPolicy(AuthorizationConstants.SenderOrRecipient, policy =>
                     policy.RequireAssertion(context => SenderScopePolicy(context) || RecipientScopePolicy(context))
                     .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.MaskinportenScheme, AuthorizationConstants.DialogportenScheme));
