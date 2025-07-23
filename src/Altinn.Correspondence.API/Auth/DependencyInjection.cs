@@ -231,7 +231,7 @@ namespace Altinn.Correspondence.API.Auth
                 var actionsClaim = context.User.Claims.FirstOrDefault(c => c.Type == "a");
                 if (actionsClaim != null)
                 {
-                    var actions = actionsClaim.Value.Split(',');
+                    var actions = actionsClaim.Value.Split(';');
                     return actions.Contains("read");
                 }
             }
