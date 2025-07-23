@@ -1,8 +1,9 @@
 name: CI/CD
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [ main, 874-ikke-feil-release-fordi-vi-ikke-har-bumpet-versjon ]
     paths-ignore:
     - "Test/**" # ignore changes to tests
 
@@ -45,7 +46,7 @@ jobs:
     name: Internal test
     runs-on: ubuntu-latest
     environment: test
-    if: always() && !failure() && !cancelled() 
+    if: always() && !failure() && !cancelled() && !contains(github.ref, '874-ikke-feil-release')
     needs: [get-version, publish, test]
     permissions: 
       id-token: write
@@ -90,7 +91,7 @@ jobs:
     name: deploy at22
     runs-on: ubuntu-latest
     environment: test
-    if: always() && !failure() && !cancelled() 
+    if: always() && !failure() && !cancelled() && !contains(github.ref, '874-ikke-feil-release')
     needs: [get-version, publish, test, deploy-test]
     permissions: 
       id-token: write
@@ -136,7 +137,7 @@ jobs:
     name: Internal staging
     runs-on: ubuntu-latest
     environment: staging
-    if: always() && !failure() && !cancelled() 
+    if: always() && !failure() && !cancelled() && !contains(github.ref, '874-ikke-feil-release')
     needs: [ 
       get-version,
       deploy-test,
@@ -185,7 +186,7 @@ jobs:
     name: Production
     runs-on: ubuntu-latest
     environment: production
-    if: (!failure() && !cancelled())
+    if: (!failure() && !cancelled() && !contains(github.ref, '874-ikke-feil-release-fordi-vi-ikke-har-bumpet-versjon'))
     needs: [
       get-version,
       deploy-staging,
