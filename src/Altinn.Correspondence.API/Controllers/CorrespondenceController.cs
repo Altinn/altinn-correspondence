@@ -250,7 +250,7 @@ namespace Altinn.Correspondence.API.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         public async Task<ActionResult<CorrespondenceOverviewExt>> GetCorrespondenceOverview(
             Guid correspondenceId,
             [FromServices] GetCorrespondenceOverviewHandler handler,
@@ -290,7 +290,7 @@ namespace Altinn.Correspondence.API.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Route("{correspondenceId}/details")]
-        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         public async Task<ActionResult<CorrespondenceDetailsExt>> GetCorrespondenceDetails(
             Guid correspondenceId,
             [FromServices] GetCorrespondenceDetailsHandler handler,
@@ -319,7 +319,7 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpGet]
         [Route("{correspondenceId}/content")]
         [Produces("text/plain")]
-        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient, AuthenticationSchemes = AuthorizationConstants.AltinnTokenOrDialogportenScheme)]
+        [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<ActionResult> GetCorrespondenceContent(
