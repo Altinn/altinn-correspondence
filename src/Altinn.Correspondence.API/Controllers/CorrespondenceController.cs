@@ -583,9 +583,8 @@ namespace Altinn.Correspondence.API.Controllers
             );
         }
 
-        #if DEBUG
         /// <summary>
-        /// Test-endepunkt for å trigge en exception (kun for utvikling)
+        /// Test-endepunkt for å trigge en exception (for verifikasjon i alle miljøer)
         /// </summary>
         [HttpGet]
         [Route("test-exception")]
@@ -597,7 +596,7 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Test-endepunkt for å trigge en Hangfire-jobb som feiler (kun for utvikling)
+        /// Test-endepunkt for å trigge en Hangfire-jobb som feiler (for verifikasjon i alle miljøer)
         /// </summary>
         [HttpPost]
         [Route("test-hangfire-exception")]
@@ -614,7 +613,6 @@ namespace Altinn.Correspondence.API.Controllers
         {
             throw new Exception("Dette er en test-exception fra en Hangfire-jobb for å verifisere Slack og Application Insights-integrasjon.");
         }
-#endif
 
         private ActionResult Problem(Error error) => Problem(
             detail: error.Message,
