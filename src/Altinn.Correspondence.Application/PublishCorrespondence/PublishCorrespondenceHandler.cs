@@ -132,9 +132,9 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Recipient of {correspondenceId} is deleted";
         }
-        else if (roles != null && correspondence.IsConfidential && !roles.HasAnyOfRolesOnPerson(ApplicationConstants.RequiredOrganizationRolesForConfidentialCorrespondence))
+        else if (roles != null && !roles.HasAnyOfRolesOnPerson(ApplicationConstants.RequiredOrganizationRolesForCorrespondenceRecipient))
         {
-            errorMessage = $"Recipient of {correspondenceId} is missing required roles to read confidential correspondences";
+            errorMessage = $"Recipient of {correspondenceId} lacks roles required to read correspondences. Consider sending physical mail to this recipient instead.";
         }
         CorrespondenceStatusEntity status;
         AltinnEventType eventType = AltinnEventType.CorrespondencePublished;
@@ -245,10 +245,7 @@ public class PublishCorrespondenceHandler(
             try
             {
                 details = await brregService.GetOrganizationDetails(correspondence.Recipient.WithoutPrefix(), cancellationToken);
-                if (correspondence.IsConfidential)
-                {
-                    roles = await brregService.GetOrganizationRoles(correspondence.Recipient.WithoutPrefix(), cancellationToken);
-                }
+                roles = await brregService.GetOrganizationRoles(correspondence.Recipient.WithoutPrefix(), cancellationToken);
             }
             catch (BrregNotFoundException)
             {
@@ -256,7 +253,7 @@ public class PublishCorrespondenceHandler(
                 {
                     var subOrganizationDetails = await brregService.GetSubOrganizationDetails(correspondence.Recipient.WithoutPrefix(), cancellationToken);
                     details = subOrganizationDetails;
-                    if (correspondence.IsConfidential && subOrganizationDetails.ParentOrganizationNumber != null)
+                    if (subOrganizationDetails.ParentOrganizationNumber != null)
                     {
                         roles = await brregService.GetOrganizationRoles(subOrganizationDetails.ParentOrganizationNumber, cancellationToken);
                     }

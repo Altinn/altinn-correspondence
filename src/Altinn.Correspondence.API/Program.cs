@@ -109,8 +109,8 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
                           policy =>
                           {
                               policy.WithOrigins("https://af.tt.altinn.no").SetIsOriginAllowedToAllowWildcardSubdomains();
-                              policy.WithMethods("GET", "POST", "DELETE");
-                              policy.WithHeaders("Authorization");
+                              policy.WithMethods("GET", "POST", "DELETE", "OPTIONS");
+                              policy.WithHeaders("Authorization", "request-id", "request-context", "traceparent");
                               policy.AllowCredentials();
                           });
     });

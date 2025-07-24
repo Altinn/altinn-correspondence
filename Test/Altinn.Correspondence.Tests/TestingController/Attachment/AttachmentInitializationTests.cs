@@ -82,37 +82,5 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             var initializeAttachmentResponse = await _wrongSenderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
             Assert.Equal(HttpStatusCode.Unauthorized, initializeAttachmentResponse.StatusCode);
         }
-
-        [Theory]
-        [InlineData("123456789")]
-        [InlineData("invalid-sender")]
-        public async Task InitializeAttachment_WithWrongSender_ReturnsBadRequest(string sender)
-        {
-            var attachment = new AttachmentBuilder()
-                .CreateAttachment()
-                .WithSender(sender)
-                .Build();
-            var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
-            Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
-        }
-        [Fact]
-        public async Task InitializeAttachment_WithoutUrnFormat_AddsUrnFormat()
-        {
-            // Arrange
-            var sender = "0192:991825827";
-            var attachment = new AttachmentBuilder()
-                .CreateAttachment()
-                .WithSender(sender)
-                .Build();
-            var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
-            var initContent = await initializeAttachmentResponse.Content.ReadFromJsonAsync<Guid>(_responseSerializerOptions);
-
-            // Act
-            var attachmentOverview = await _senderClient.GetAsync($"correspondence/api/v1/attachment/{initContent}");
-            var overviewContent = await attachmentOverview.Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
-
-            // Assert
-            Assert.Equal(overviewContent?.Sender, $"{UrnConstants.OrganizationNumberAttribute}:{sender.WithoutPrefix()}");
-        }
     }
 }

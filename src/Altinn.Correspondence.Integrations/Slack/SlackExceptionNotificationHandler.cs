@@ -59,9 +59,17 @@ public class SlackExceptionNotificationHandler(
         }
     }
 
-    public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, CancellationToken cancellationToken)
+    public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, int retryCount, CancellationToken cancellationToken)
     {
-        var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception);
+        var shouldNotify = retryCount == 3 || retryCount == 6 || retryCount == 10;
+        
+        if (!shouldNotify)
+        {
+            logger.LogInformation("Skipping Slack notification for job {JobId} on retry {RetryCount} (only notifying on retries 3, 6, and 10)", jobId, retryCount);
+            return true;
+        }
+
+        var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception, retryCount);
         logger.LogError(
             exception,
             null);
@@ -90,13 +98,18 @@ public class SlackExceptionNotificationHandler(
                $"*Stacktrace:* \n{exception.StackTrace}";
     }
 
-    private string FormatExceptionMessage(string jobId, string jobName, Exception exception)
+    private string FormatExceptionMessage(string jobId, string jobName, Exception exception, int retryCount)
     {
-        return $":warning: *Unhandled Exception*\n" +
+        // Use error severity for final retry, warning for intermediate retries
+        var severity = retryCount == 10 ? ":x:" : ":warning:";
+        var severityText = retryCount == 10 ? "CRITICAL FAILURE" : "Unhandled Exception";
+        
+        return $"{severity} *{severityText}*\n" +
                 $"*Environment:* {hostEnvironment.EnvironmentName}\n" +
                 $"*System:* Correspondence\n" +
                 $"*Job ID:* {jobId}\n" +
                 $"*Job Name:* {jobName}\n" +
+                $"*Retry Count:* {retryCount}\n" +
                 $"*Type:* {exception.GetType().Name}\n" +
                 $"*Message:* {exception.Message}\n" +
                 $"*Stacktrace:* \n{exception.StackTrace}\n" + 
