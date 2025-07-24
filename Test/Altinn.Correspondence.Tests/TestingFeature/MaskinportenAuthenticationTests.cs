@@ -1,13 +1,12 @@
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers.Models;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Xunit;
 
 namespace Altinn.Correspondence.Tests.TestingFeature
 {
@@ -43,7 +42,34 @@ namespace Altinn.Correspondence.Tests.TestingFeature
                 ("consumer", TestConsumerClaim)
             );
         }
+        private HttpClient CreateMaskinportenSystemUserClient(params string[] scopes)
+        {
+            var scopeString = string.Join(" ", scopes);
 
+            var authorizationDetails = new SystemUserAuthorizationDetails()
+            {
+                Type = UrnConstants.SystemUser,
+                SystemUserOrg = new SystemUserOrg()
+                {
+                    Authority = "iso6523-actorid-upis",
+                    ID = "991825827"
+                },
+                SystemUserId = new List<string>()
+                    {
+                        Guid.NewGuid().ToString()
+                    },
+                SystemId = "991825827_correspondencesystem"
+            };
+
+            var authDetailsJson = JsonSerializer.Serialize(authorizationDetails);
+
+            return _factory.CreateClientWithAddedClaims(
+                ("scope", scopeString),
+                ("iss", MaskinportenIssuer),
+                ("consumer", TestConsumerClaim),
+                ("authorization_details", authDetailsJson)
+            );
+        }
         private HttpClient CreateValidMaskinportenClient()
         {
             return CreateMaskinportenClient(AuthorizationConstants.ServiceOwnerScope, AuthorizationConstants.SenderScope);
@@ -178,9 +204,9 @@ namespace Altinn.Correspondence.Tests.TestingFeature
         {
             // Arrange
             var maskinportenClient = CreateMaskinportenClient(
-                "some:other:scope", 
-                AuthorizationConstants.ServiceOwnerScope, 
-                AuthorizationConstants.SenderScope, 
+                "some:other:scope",
+                AuthorizationConstants.ServiceOwnerScope,
+                AuthorizationConstants.SenderScope,
                 "another:scope"
             );
             var correspondence = CreateTestCorrespondence();
@@ -251,5 +277,79 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             // Assert - Should succeed, indicating the authentication scheme was correctly identified
             Assert.True(initializeResponse.IsSuccessStatusCode, await initializeResponse.Content.ReadAsStringAsync());
         }
+
+        [Fact]
+        public async Task GetCorrespondenceDetails_WithMaskinportenToken_BothRequiredScopes_Succeeds()
+        {
+            // Arrange
+            var maskinportenClient = CreateValidMaskinportenClient();
+            var correspondence = CreateTestCorrespondence();
+
+            // Act
+            var initializeResponse = await maskinportenClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+            var correspondenceResponse = await initializeResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var correspondenceId = correspondenceResponse.Correspondences.First().CorrespondenceId;
+            var detailsResponse = await maskinportenClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+
+            // Assert
+            Assert.True(detailsResponse.IsSuccessStatusCode, await detailsResponse.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task GetCorrespondenceDetails_WithMaskinportenToken_OnlyServiceOwnerScope_Fails()
+        {
+            // Arrange
+            var validMaskinportenClient = CreateMaskinportenClient(AuthorizationConstants.SenderScope, AuthorizationConstants.ServiceOwnerScope);
+            var invalidMaskinportenClient = CreateMaskinportenClient(AuthorizationConstants.ServiceOwnerScope);
+            var correspondence = CreateTestCorrespondence();
+
+            // Act
+            var initializeResponse = await validMaskinportenClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+            var correspondenceResponse = await initializeResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var correspondenceId = correspondenceResponse.Correspondences.First().CorrespondenceId;
+            var detailsResponse = await invalidMaskinportenClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.Forbidden, detailsResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetCorrespondenceDetails_WithMaskinportenToken_OnlyCorrespondenceWriteScope_Fails()
+        {
+            // Arrange
+            var validMaskinportenClient = CreateMaskinportenClient(AuthorizationConstants.SenderScope, AuthorizationConstants.ServiceOwnerScope);
+            var invalidMaskinportenClient = CreateMaskinportenClient(AuthorizationConstants.SenderScope);
+            var correspondence = CreateTestCorrespondence();
+
+            // Act
+            var initializeResponse = await validMaskinportenClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+            var correspondenceResponse = await initializeResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var correspondenceId = correspondenceResponse.Correspondences.First().CorrespondenceId;
+            var detailsResponse = await invalidMaskinportenClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.Forbidden, detailsResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetCorrespondenceContent_WithMaskinportenSystemUserToken_CorrespondenceReadScope_Succeeds()
+        {
+            // Arrange
+            var maskinportenSenderClient = CreateMaskinportenClient(AuthorizationConstants.SenderScope, AuthorizationConstants.ServiceOwnerScope);
+            var systemUserRecipientClient = CreateMaskinportenSystemUserClient(AuthorizationConstants.RecipientScope);
+            var correspondence = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddMinutes(-1))
+                .Build();
+
+            // Act
+            var initializeResponse = await maskinportenSenderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+            var correspondenceResponse = await initializeResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var correspondenceId = correspondenceResponse.Correspondences.First().CorrespondenceId;
+            var contentResponse = await systemUserRecipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/content");
+
+            // Assert
+            Assert.True(contentResponse.IsSuccessStatusCode, await contentResponse.Content.ReadAsStringAsync());
+        }
     }
-} 
+}

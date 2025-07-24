@@ -159,37 +159,15 @@ namespace Altinn.Correspondence.API.Auth
             services.AddTransient<IAuthorizationHandler, ScopeAccessHandler>();
             services.AddAuthorization(options =>
             {
-                options.AddPolicy(AuthorizationConstants.Sender, policy => 
-                    policy.RequireAssertion(context =>
-                    {
-                        var issuerClaim = context.User.Claims.FirstOrDefault(c => c.Type == "iss");
-                        if (issuerClaim == null) return false;
-
-                        // Allow Altinn JWT Bearer tokens with the sender scope
-                        if (issuerClaim.Value.Contains("altinn.no"))
-                        {
-                            return context.User.HasClaim(c => c.Type == "scope" && c.Value.Split(' ').Contains(AuthorizationConstants.SenderScope));
-                        }
-                        
-                        // Allow Maskinporten tokens with both serviceowner and correspondence.write scopes
-                        if (issuerClaim.Value.Contains("maskinporten.no"))
-                        {
-                            var scopeClaim = context.User.Claims.FirstOrDefault(c => c.Type == "scope");
-                            if (scopeClaim != null)
-                            {
-                                var scopes = scopeClaim.Value.Split(' ');
-                                return scopes.Contains(AuthorizationConstants.ServiceOwnerScope) && 
-                                       scopes.Contains(AuthorizationConstants.SenderScope);
-                            }
-                        }
-                        
-                        return false;
-                    })
-                    .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.MaskinportenScheme));
+                options.AddPolicy(AuthorizationConstants.Sender, policy =>
+                    policy.RequireAssertion(SenderScopePolicy)
+                          .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.Recipient, policy =>
-                    policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme));
+                    policy.RequireAssertion(RecipientScopePolicy)
+                          .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme));
                 options.AddPolicy(AuthorizationConstants.SenderOrRecipient, policy =>
-                    policy.RequireScopeIfAltinn(config, AuthorizationConstants.SenderScope, AuthorizationConstants.RecipientScope).AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme));
+                    policy.RequireAssertion(context => SenderScopePolicy(context) || RecipientScopePolicy(context))
+                    .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.MaskinportenScheme, AuthorizationConstants.DialogportenScheme));
                 options.AddPolicy(AuthorizationConstants.DialogportenPolicy, policy =>
                 {
                     policy.AddAuthenticationSchemes(AuthorizationConstants.DialogportenScheme).RequireAuthenticatedUser();
@@ -201,6 +179,94 @@ namespace Altinn.Correspondence.API.Auth
                           .AddAuthenticationSchemes(AuthorizationConstants.AllSchemes));
                 options.AddPolicy(AuthorizationConstants.Legacy, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.LegacyScope)).AddAuthenticationSchemes(AuthorizationConstants.LegacyScheme));
             });
+        }
+
+        private static bool SenderScopePolicy(AuthorizationHandlerContext context)
+        {
+            var issuerClaim = context.User.Claims.FirstOrDefault(c => c.Type == "iss");
+            if (issuerClaim == null) return false;
+
+            // Altinn
+            if (issuerClaim.Value.Contains("altinn.no"))
+            {
+                var scopeClaim = context.User.Claims.FirstOrDefault(c => c.Type == "scope");
+                if (scopeClaim != null)
+                {
+                    var scopes = scopeClaim.Value.Split(' ');
+                    if (scopes.Contains(AuthorizationConstants.MigrateScope))
+                    {
+                        return true;
+                    }
+                    return scopes.Contains(AuthorizationConstants.SenderScope);
+                }
+            }
+
+            // Maskinporten
+            if (issuerClaim.Value.Contains("maskinporten.no"))
+            {
+                var scopeClaim = context.User.Claims.FirstOrDefault(c => c.Type == "scope");
+                if (scopeClaim != null)
+                {
+                    var scopes = scopeClaim.Value.Split(' ');
+                    if (scopes.Contains(AuthorizationConstants.MigrateScope))
+                    {
+                        return true;
+                    }
+                    return scopes.Contains(AuthorizationConstants.ServiceOwnerScope) &&
+                           scopes.Contains(AuthorizationConstants.SenderScope);
+                }
+            }
+
+            return false;
+        }
+
+        private static bool RecipientScopePolicy(AuthorizationHandlerContext context)
+        {
+            var issuerClaim = context.User.Claims.FirstOrDefault(c => c.Type == "iss");
+            if (issuerClaim == null) return false;
+
+            // Dialogporten
+            if (issuerClaim.Value.Contains("dialogporten"))
+            {
+                var actionsClaim = context.User.Claims.FirstOrDefault(c => c.Type == "a");
+                if (actionsClaim != null)
+                {
+                    var actions = actionsClaim.Value.Split(';');
+                    return actions.Contains("read");
+                }
+            }
+
+            // Altinn
+            if (issuerClaim.Value.Contains("altinn.no"))
+            {
+                var scopeClaim = context.User.Claims.FirstOrDefault(c => c.Type == "scope");
+                if (scopeClaim != null)
+                {
+                    var scopes = scopeClaim.Value.Split(' ');
+                    if (scopes.Contains(AuthorizationConstants.MigrateScope))
+                    {
+                        return true;
+                    }
+                    return scopes.Contains(AuthorizationConstants.RecipientScope);
+                }
+            }
+
+            // Maskinporten
+            if (issuerClaim.Value.Contains("maskinporten.no"))
+            {
+                var scopeClaim = context.User.Claims.FirstOrDefault(c => c.Type == "scope");
+                if (scopeClaim != null)
+                {
+                    var scopes = scopeClaim.Value.Split(' ');
+                    if (scopes.Contains(AuthorizationConstants.MigrateScope))
+                    {
+                        return true;
+                    }
+                    return scopes.Contains(AuthorizationConstants.RecipientScope);
+                }
+            }
+
+            return false;
         }
     }
 }
