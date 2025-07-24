@@ -583,37 +583,6 @@ namespace Altinn.Correspondence.API.Controllers
             );
         }
 
-        /// <summary>
-        /// Test-endepunkt for å trigge en exception (for verifikasjon i alle miljøer)
-        /// </summary>
-        [HttpGet]
-        [Route("test-exception")]
-        [ApiExplorerSettings(IgnoreApi = true)]
-        [AllowAnonymous]
-        public ActionResult TriggerTestException()
-        {
-            throw new Exception("Dette er en test-exception for å verifisere Slack og Application Insights-integrasjon.");
-        }
-
-        /// <summary>
-        /// Test-endepunkt for å trigge en Hangfire-jobb som feiler (for verifikasjon i alle miljøer)
-        /// </summary>
-        [HttpGet]
-        [Route("test-hangfire-exception")]
-        [ApiExplorerSettings(IgnoreApi = true)]
-        [AllowAnonymous]
-        public ActionResult TriggerHangfireException([FromServices] Hangfire.IBackgroundJobClient backgroundJobClient)
-        {
-            // Enqueue en jobb som kaster exception
-            var jobId = backgroundJobClient.Enqueue(() => ThrowInBackgroundJob());
-            return Ok(new { jobId });
-        }
-
-        public static void ThrowInBackgroundJob()
-        {
-            throw new Exception("Dette er en test-exception fra en Hangfire-jobb for å verifisere Slack og Application Insights-integrasjon.");
-        }
-
         private ActionResult Problem(Error error) => Problem(
             detail: error.Message,
             statusCode: (int)error.StatusCode, 
