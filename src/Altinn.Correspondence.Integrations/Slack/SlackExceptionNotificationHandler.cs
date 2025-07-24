@@ -24,12 +24,13 @@ public class SlackExceptionNotificationHandler(
         CancellationToken cancellationToken)
     {
         var exceptionMessage = FormatExceptionMessage(exception, httpContext);
+        var sanitizedPath = httpContext.Request.Path.ToString().Replace("\n", "").Replace("\r", "");
         logger.LogError(
             exception,
             "Unhandled exception occurred. Type: {ExceptionType}, Message: {Message}, Path: {Path}, User: {User}, TraceId: {TraceId}, Environment: {Environment}",
             exception.GetType().Name,
             exception.Message,
-            httpContext.Request.Path,
+            sanitizedPath,
             httpContext.User?.Identity?.Name ?? "Unknown",
             Activity.Current?.Id ?? httpContext.TraceIdentifier,
             hostEnvironment.EnvironmentName);
