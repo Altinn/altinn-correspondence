@@ -18,7 +18,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Altinn.Correspondence.API.ValidationAttributes;
-using Hangfire;
 
 namespace Altinn.Correspondence.API.Controllers
 {
