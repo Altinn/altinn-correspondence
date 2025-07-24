@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Altinn.Correspondence.API.ValidationAttributes;
+using Hangfire;
 
 namespace Altinn.Correspondence.API.Controllers
 {
@@ -581,6 +582,39 @@ namespace Altinn.Correspondence.API.Controllers
                 Problem
             );
         }
+
+        #if DEBUG
+        /// <summary>
+        /// Test-endepunkt for å trigge en exception (kun for utvikling)
+        /// </summary>
+        [HttpGet]
+        [Route("test-exception")]
+        [ApiExplorerSettings(IgnoreApi = true)]
+        [AllowAnonymous]
+        public ActionResult TriggerTestException()
+        {
+            throw new Exception("Dette er en test-exception for å verifisere Slack og Application Insights-integrasjon.");
+        }
+
+        /// <summary>
+        /// Test-endepunkt for å trigge en Hangfire-jobb som feiler (kun for utvikling)
+        /// </summary>
+        [HttpPost]
+        [Route("test-hangfire-exception")]
+        [ApiExplorerSettings(IgnoreApi = true)]
+        [AllowAnonymous]
+        public ActionResult TriggerHangfireException([FromServices] Hangfire.IBackgroundJobClient backgroundJobClient)
+        {
+            // Enqueue en jobb som kaster exception
+            var jobId = backgroundJobClient.Enqueue(() => ThrowInBackgroundJob());
+            return Ok(new { jobId });
+        }
+
+        public static void ThrowInBackgroundJob()
+        {
+            throw new Exception("Dette er en test-exception fra en Hangfire-jobb for å verifisere Slack og Application Insights-integrasjon.");
+        }
+#endif
 
         private ActionResult Problem(Error error) => Problem(
             detail: error.Message,
