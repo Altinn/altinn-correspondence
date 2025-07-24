@@ -107,11 +107,6 @@ public class PublishCorrespondenceHandler(
             errorMessage = "Correspondence " + correspondenceId + " not found when publishing";
             logger.LogError(errorMessage);
         }
-        else if (hostEnvironment.IsDevelopment() && correspondence.StatusHasBeen(CorrespondenceStatus.Published))
-        {
-            logger.LogInformation("Skipping publish in development environment for already published correspondence {CorrespondenceId}", correspondenceId);
-            return Task.CompletedTask;
-        }
         else if (!await IsCorrespondenceReadyForPublish(correspondence, partyUuid, cancellationToken))
         {
             errorMessage = $"Correspondence {correspondenceId} not ready for publish";

@@ -243,18 +243,6 @@ namespace Altinn.Correspondence.Application.Helpers
                     PartyUuid = partyUuid
                 });
             }
-            if (hostEnvironment.IsDevelopment()
-                && currentStatus == CorrespondenceStatus.ReadyForPublish
-                && request.Correspondence.RequestedPublishTime < DateTime.UtcNow)
-            {
-                statuses.Add(new CorrespondenceStatusEntity
-                {
-                    Status = CorrespondenceStatus.Published,
-                    StatusChanged = DateTimeOffset.UtcNow,
-                    StatusText = CorrespondenceStatus.Published.ToString(),
-                    PartyUuid = partyUuid
-                });
-            }
 
             if (recipient.IsWithISO6523Prefix())
             {

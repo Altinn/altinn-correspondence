@@ -20,6 +20,7 @@ using Altinn.Correspondence.Persistence;
 using System.Text;
 using Altinn.Correspondence.Tests.TestingFeature;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.API.Models.Enums;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -65,7 +66,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [InlineData("nu")]
         [InlineData(null)]
         [InlineData("")]
-        public async Task InitializeCorrespondence_WithInvalidLanguageCode_ReturnsBadRequest(string languageCode)
+        public async Task InitializeCorrespondence_WithInvalidLanguageCode_ReturnsBadRequest(string? languageCode)
         {
             // Arrange
             var payload = new CorrespondenceBuilder()
@@ -465,8 +466,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             var responseObject = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
             Assert.NotNull(responseObject);
-            Assert.True(responseObject.Correspondences.Exists(responseObject => responseObject.Status == API.Models.Enums.CorrespondenceStatusExt.Published));
-            Assert.True(responseObject.Correspondences.Exists(responseObject => responseObject.Status != API.Models.Enums.CorrespondenceStatusExt.Published));
+            Assert.True(responseObject.Correspondences.Exists(responseObject => responseObject.Status == CorrespondenceStatusExt.ReadyForPublish));
+            Assert.True(responseObject.Correspondences.Exists(responseObject => responseObject.Status != CorrespondenceStatusExt.ReadyForPublish));
         }
 
         [Fact]
@@ -507,7 +508,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             var contactReservationRegistry = new Mock<IContactReservationRegistryService>();
             contactReservationRegistry.Setup(contactReservationRegistry => contactReservationRegistry.GetReservedRecipients(It.IsAny<List<string>>())).Throws<HttpRequestException>();
-            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 services.AddSingleton(contactReservationRegistry.Object);
             });
@@ -519,6 +520,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build();
 
             // Act
+            
             var initializeCorrespondenceResponse = await testFactory.CreateSenderClient().PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
             // Assert
@@ -532,7 +534,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             var contactReservationRegistry = new Mock<IContactReservationRegistryService>();
             contactReservationRegistry.Setup(contactReservationRegistry => contactReservationRegistry.GetReservedRecipients(It.IsAny<List<string>>())).Throws<HttpRequestException>();
-            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 services.AddSingleton(contactReservationRegistry.Object);
             });
@@ -631,7 +633,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task InitializeCorrespondence_WithABrokerService_FailsWithBadRequest()
         {
             // Arrange
-            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var resourceRegistryService = new Mock<IResourceRegistryService>();
                 resourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-broker-test-resource");
@@ -663,7 +665,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 It.IsAny<IState>()))
                 .Returns("123456");
 
-            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 services.AddSingleton(hangfireBackgroundJobClient.Object);
             });
@@ -692,13 +694,21 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 It.IsAny<IState>()))
                 .Returns("123456");
 
-            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 services.AddSingleton(hangfireBackgroundJobClient.Object);
             });
 
+            using var scope = testFactory.Services.CreateScope();
+            var attachmentHelper = scope.ServiceProvider.GetRequiredService<Application.Helpers.AttachmentHelper>();
             var senderClient = testFactory.CreateSenderClient();
-            var attachmentId = await AttachmentHelper.GetPublishedAttachment(senderClient, _responseSerializerOptions);
+
+            var attachmentId = await AttachmentHelper.GetInitializedAttachment(senderClient, _responseSerializerOptions);
+            var attachment = new AttachmentBuilder().CreateAttachment().Build();
+            await AttachmentHelper.UploadAttachment(attachmentId, senderClient);
+
+            // Manually trigger malware scan simulation since background job client is mocked
+            await attachmentHelper.SimulateMalwareScanResult(attachmentId);
 
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
@@ -737,7 +747,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 return "123456";
             });
 
-            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 services.AddSingleton(hangfireBackgroundJobClient.Object);
             });
@@ -760,7 +770,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Act
             var uploadCorrespondenceResponseTask = senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
             using var scope = testFactory.Services.CreateScope();
-            var applicationDbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            using var applicationDbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             int retryAttempts = 30;
             while (!applicationDbContext.Attachments.Any(attachment => attachment.FileName == filename))
             {
@@ -787,7 +797,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 It.Is<Job>(job => job.Method.Name == "CreateDialogportenDialog"),
                 It.IsAny<IState>()), Times.Once);
 
-            // Tear down
+            // Teardown
             memoryStream.Dispose();
         }
 
@@ -870,7 +880,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             for (int i = 0; i < 100; i++)
             {
                 var attachment = AttachmentHelper.GetAttachmentMetaData($"file{i}.txt");
-                attachment.DataLocationType = API.Models.Enums.InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment;
+                attachment.DataLocationType = InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment;
                 attachment.ExpirationTime = DateTimeOffset.UtcNow.AddDays(1);
                 attachments.Add(attachment);
             }
