@@ -598,7 +598,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <summary>
         /// Test-endepunkt for å trigge en Hangfire-jobb som feiler (for verifikasjon i alle miljøer)
         /// </summary>
-        [HttpPost]
+        [HttpGet]
         [Route("test-hangfire-exception")]
         [ApiExplorerSettings(IgnoreApi = true)]
         [AllowAnonymous]
