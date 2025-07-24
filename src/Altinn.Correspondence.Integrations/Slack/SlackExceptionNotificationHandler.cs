@@ -27,13 +27,15 @@ public class SlackExceptionNotificationHandler(
         var sanitizedPath = httpContext.Request.Path.ToString().Replace("\n", "").Replace("\r", "");
         logger.LogError(
             exception,
-            "Unhandled exception occurred. Type: {ExceptionType}, Message: {Message}, Path: {Path}, User: {User}, TraceId: {TraceId}, Environment: {Environment}",
+            "Unhandled exception occurred. Type: {ExceptionType}, Message: {Message}, Path: {Path}, User: {User}, TraceId: {TraceId}, Environment: {Environment}, SlackMessage: {SlackMessage}",
             exception.GetType().Name,
             exception.Message,
             sanitizedPath,
             httpContext.User?.Identity?.Name ?? "Unknown",
             Activity.Current?.Id ?? httpContext.TraceIdentifier,
-            hostEnvironment.EnvironmentName);
+            hostEnvironment.EnvironmentName,
+            exceptionMessage // SlackMessage
+        );
         try
         {
             await SendSlackNotificationWithMessage(exceptionMessage);
@@ -75,13 +77,15 @@ public class SlackExceptionNotificationHandler(
         var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception, retryCount);
         logger.LogError(
             exception,
-            "Unhandled exception occurred. Job ID: {JobId}, Job Name: {JobName}, RetryCount: {RetryCount}, Type: {ExceptionType}, Message: {Message}, Environment: {Environment}",
+            "Unhandled exception occurred. Job ID: {JobId}, Job Name: {JobName}, RetryCount: {RetryCount}, Type: {ExceptionType}, Message: {Message}, Environment: {Environment}, SlackMessage: {SlackMessage}",
             jobId,
             jobName,
             retryCount,
             exception.GetType().Name,
             exception.Message,
-            hostEnvironment.EnvironmentName);
+            hostEnvironment.EnvironmentName,
+            exceptionMessage // SlackMessage
+        );
         try
         {
             await SendSlackNotificationWithMessage(exceptionMessage);
