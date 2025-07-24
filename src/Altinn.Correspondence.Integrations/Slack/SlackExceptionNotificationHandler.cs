@@ -100,12 +100,13 @@ public class SlackExceptionNotificationHandler(
 
     private string FormatExceptionMessage(Exception exception, HttpContext context)
     {
+        var sanitizedPath = context.Request.Path.ToString().Replace("\n", "").Replace("\r", "");
         return $":warning: *Unhandled Exception*\n" +
                $"*Environment:* {hostEnvironment.EnvironmentName}\n" +
                $"*System:* Correspondence\n" +
                $"*Type:* {exception.GetType().Name}\n" +
                $"*Message:* {exception.Message}\n" +
-               $"*Path:* {context.Request.Path}\n" +
+               $"*Path:* {sanitizedPath}\n" +
                $"*Time:* {DateTime.UtcNow:u}\n" +
                $"*Stacktrace:* \n{exception.StackTrace}";
     }
