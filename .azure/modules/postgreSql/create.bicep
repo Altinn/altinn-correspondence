@@ -1,20 +1,50 @@
 param namePrefix string
 param location string
 param environmentKeyVaultName string
+param srcSecretName string
 
+@secure()
+param srcKeyVault object
+
+@secure()
+param administratorLoginPassword string
 @secure()
 param tenantId string
 
 param prodLikeEnvironment bool
 
 var databaseName = 'correspondence'
+var databaseUser = 'adminuser'
 var poolSize = prodLikeEnvironment ? 100 : 25
+
+module saveAdmPassword '../keyvault/upsertSecret.bicep' = {
+  name: 'Save_${srcSecretName}'
+  scope: resourceGroup(srcKeyVault.subscriptionId, srcKeyVault.resourceGroupName)
+  params: {
+    destKeyVaultName: srcKeyVault.name
+    secretName: srcSecretName
+    secretValue: administratorLoginPassword
+  }
+}
+
+var migrationConnectionStringName = 'correspondence-migration-connection-string'
+module saveMigrationConnectionString '../keyvault/upsertSecret.bicep' = {
+  name: 'Save_${migrationConnectionStringName}'
+  scope: resourceGroup(srcKeyVault.subscriptionId, srcKeyVault.resourceGroupName)
+  params: {
+    destKeyVaultName: srcKeyVault.name
+    secretName: migrationConnectionStringName
+    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${databaseUser};Password=${administratorLoginPassword};'
+  }
+}
 
 resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   name: '${namePrefix}-dbserver'
   location: location
   properties: {
     version: '16'
+    administratorLogin: databaseUser
+    administratorLoginPassword: administratorLoginPassword
     storage: {
       storageSizeGB: prodLikeEnvironment ? 2048 : 32
       autoGrow: 'Enabled'
@@ -23,7 +53,7 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
     backup: { backupRetentionDays: 35 }
     authConfig: {
       activeDirectoryAuth: 'Enabled'
-      passwordAuth: 'Disabled'
+      passwordAuth: 'Enabled'
       tenantId: tenantId
     }
   }
