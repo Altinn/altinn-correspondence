@@ -1,5 +1,4 @@
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers.Models;
 using Altinn.Correspondence.Tests.Factories;
@@ -347,7 +346,6 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             var initializeResponse = await maskinportenSenderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
             var correspondenceResponse = await initializeResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
             var correspondenceId = correspondenceResponse.Correspondences.First().CorrespondenceId;
-            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(maskinportenSenderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
             var contentResponse = await systemUserRecipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/content");
 
             // Assert
