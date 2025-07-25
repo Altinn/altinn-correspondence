@@ -70,31 +70,3 @@ public class ApplicationDbContext : DbContext
             .HaveConversion<DateTimeOffsetConverter>();
     }
 }
-
-public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
-{
-    public ApplicationDbContext CreateDbContext(string[] args)
-    {
-        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";   
-        var configuration = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: true)
-            .AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true)
-            .AddEnvironmentVariables()
-            .Build();
-
-        var databaseOptions = new DatabaseOptions() { ConnectionString = "" };
-        configuration.GetSection(nameof(DatabaseOptions)).Bind(databaseOptions);
-
-        if (string.IsNullOrEmpty(databaseOptions.ConnectionString))
-        {
-            throw new InvalidOperationException($"Connection string 'DatabaseOptions:ConnectionString' not found for environment {environment}.");
-        }
-
-        Console.WriteLine($"Using environment: {environment}");
-        var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        optionsBuilder.UseNpgsql(databaseOptions.ConnectionString);
-
-        return new ApplicationDbContext(optionsBuilder.Options);
-    }
-}
