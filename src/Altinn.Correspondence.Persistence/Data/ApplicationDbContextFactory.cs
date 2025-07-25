@@ -27,23 +27,36 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
         }
 
         Console.WriteLine($"Using environment: {environment}");
+        Console.WriteLine($"Connection string: {databaseOptions.ConnectionString}");
 
-        // Check if we need to add a token
-        var connectionStringBuilder = new NpgsqlConnectionStringBuilder(databaseOptions.ConnectionString);
-        if (string.IsNullOrWhiteSpace(connectionStringBuilder.Password))
-        {
-            Console.WriteLine("No password found, acquiring Azure AD token...");
-            var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions());
-            var token = credential.GetToken(
-                new Azure.Core.TokenRequestContext(new[] { "https://ossrdbms-aad.database.windows.net/.default" })
-            );
-            connectionStringBuilder.Password = token.Token;
-            Console.WriteLine("Token acquired successfully");
-        }
+        // Use the same NpgsqlDataSource approach as your DI
+        var dataSource = BuildAzureNpgsqlDataSource(databaseOptions.ConnectionString);
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        optionsBuilder.UseNpgsql(connectionStringBuilder.ConnectionString);
+        optionsBuilder.UseNpgsql(dataSource);
 
         return new ApplicationDbContext(optionsBuilder.Options);
+    }
+
+    private static NpgsqlDataSource BuildAzureNpgsqlDataSource(string connectionString)
+    {
+        var dataSourceBuilder = new NpgsqlDataSourceBuilder();
+        dataSourceBuilder.ConnectionStringBuilder.ConnectionString = connectionString;
+
+        if (!string.IsNullOrWhiteSpace(dataSourceBuilder.ConnectionStringBuilder.Password))
+        {
+            Console.WriteLine("Using database connection with password (local development)");
+            return dataSourceBuilder.Build();
+        }
+
+        Console.WriteLine("Using database connection with token (remote)");
+        var psqlServerTokenProvider = new DefaultAzureCredential();
+        var tokenRequestContext = new Azure.Core.TokenRequestContext(scopes: ["https://ossrdbms-aad.database.windows.net/.default"]) { };
+        dataSourceBuilder.UsePeriodicPasswordProvider(async (_, cancellationToken) =>
+            psqlServerTokenProvider.GetTokenAsync(tokenRequestContext).Result.Token,
+            TimeSpan.FromMinutes(45),
+            TimeSpan.FromSeconds(0)
+        );
+        return dataSourceBuilder.Build();
     }
 }
