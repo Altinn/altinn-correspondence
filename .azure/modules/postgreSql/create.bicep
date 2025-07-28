@@ -46,7 +46,7 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
     administratorLogin: databaseUser
     administratorLoginPassword: administratorLoginPassword
     storage: {
-      storageSizeGB: prodLikeEnvironment ? 2048 : 32
+      storageSizeGB: prodLikeEnvironment ? 4096 : 32
       autoGrow: 'Enabled'
       tier: prodLikeEnvironment ? 'P40' : 'P4'
     }
