@@ -76,6 +76,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
                     statusesToFilter.Add(CorrespondenceStatus.Read);
                     statusesToFilter.Add(CorrespondenceStatus.Confirmed);
                     statusesToFilter.Add(CorrespondenceStatus.Replied);
+                    statusesToFilter.Add(CorrespondenceStatus.AttachmentsDownloaded);
                 }
 
                 if (includeArchived) // Include correspondences with active status
