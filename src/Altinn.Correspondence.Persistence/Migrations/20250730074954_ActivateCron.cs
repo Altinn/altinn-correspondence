@@ -40,12 +40,15 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 DO $do$
                 BEGIN
                     BEGIN
-                        -- Try to unschedule the job
+                        -- Try to unschedule the job first
                         PERFORM cron.unschedule('weekly_analyze');
+                        
+                        -- Then remove the extension
+                        DROP EXTENSION IF EXISTS pg_cron;
                     EXCEPTION
                         WHEN OTHERS THEN
                             -- Log the error but don't fail the migration
-                            RAISE NOTICE 'pg_cron unschedule failed: %', SQLERRM;
+                            RAISE NOTICE 'pg_cron cleanup failed: %', SQLERRM;
                     END;
                 END
                 $do$;
