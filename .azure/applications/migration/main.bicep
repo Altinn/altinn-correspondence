@@ -13,7 +13,7 @@ param apimIp string
 
 var containerAppJobName = '${namePrefix}-migration'
 var containerAppEnvName = '${namePrefix}-env'
-var migrationConnectionStringName = 'correspondence-ado-connection-string'
+var migrationConnectionStringName = 'correspondence-migration-connection-string'
 
 resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: '${namePrefix}-migration-identity'

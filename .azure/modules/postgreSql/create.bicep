@@ -165,3 +165,13 @@ module adoConnectionString '../keyvault/upsertSecret.bicep' = {
     secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${namePrefix}-app-identity;Ssl Mode=Require;Trust Server Certificate=True;Maximum Pool Size=${poolSize};options=-c role=azure_pg_admin;'
   }
 }
+    
+module saveMigrationConnectionString '../keyvault/upsertSecret.bicep' = {
+  name: 'migrationConnectionString'
+  scope: resourceGroup(srcKeyVault.subscriptionId, srcKeyVault.resourceGroupName)
+  params: {
+    destKeyVaultName: srcKeyVault.name
+    secretName: 'correspondence-migration-connection-string'
+    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${namePrefix}-migration-identity;Ssl Mode=Require;Trust Server Certificate=True;Maximum Pool Size=1;options=-c role=azure_pg_admin;'
+  }
+}
