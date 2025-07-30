@@ -12,43 +12,12 @@
   ],
   "packageRules": [
     {
-      "matchPaths": ["**/*.bicep"],
+      "matchPaths": [ "**/*.bicep" ],
       "enabled": false
     },
     {
-      "groupName": "Microsoft packages",
-      "matchPackagePatterns": ["^Microsoft\\."],
-      "matchUpdateTypes": ["minor", "patch"]
-    },
-    {
-      "groupName": "OpenTelemetry packages",
-      "matchPackagePatterns": ["^OpenTelemetry"],
-      "matchUpdateTypes": ["minor", "patch"]
-    },
-    {
-      "groupName": "Hangfire packages",
-      "matchPackagePatterns": ["^Hangfire"],
-      "matchUpdateTypes": ["minor", "patch"]
-    },
-    {
-      "groupName": "Azure packages",
-      "matchPackagePatterns": ["^Azure\\."],
-      "matchUpdateTypes": ["minor", "patch"]
-    },
-    {
-      "groupName": "Newtonsoft packages",
-      "matchPackagePatterns": ["^Newtonsoft\\."],
-      "matchUpdateTypes": ["minor", "patch"]
-    },
-    {
-      "groupName": "Swashbuckle packages",
-      "matchPackagePatterns": ["^Swashbuckle\\."],
-      "matchUpdateTypes": ["minor", "patch"]
-    },
-    {
-      "groupName": "StackExchange packages",
-      "matchPackagePatterns": ["^StackExchange\\."],
-      "matchUpdateTypes": ["minor", "patch"]
+      "groupName": "All dependencies",
+      "matchUpdateTypes": [ "major", "minor", "patch" ]
     }
   ]
 }
