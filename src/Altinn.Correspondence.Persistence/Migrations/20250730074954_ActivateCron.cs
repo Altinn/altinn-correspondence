@@ -10,21 +10,28 @@ namespace Altinn.Correspondence.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql("CREATE EXTENSION IF NOT EXISTS pg_cron;");
-            
-            migrationBuilder.Sql(@"
-                SELECT cron.schedule(
-                  'weekly_analyze',
-                  '0 4 * * 0',
-                  $$ ANALYZE; $$
-                );
-            ");
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            if (!string.Equals(environment, "Test", StringComparison.OrdinalIgnoreCase))
+            {
+                migrationBuilder.Sql("CREATE EXTENSION IF NOT EXISTS pg_cron;");
+                migrationBuilder.Sql(@"
+                    SELECT cron.schedule(
+                        'weekly_analyze',
+                        '0 4 * * 0',
+                        $$ ANALYZE; $$
+                    );
+                ");
+            }
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql("SELECT cron.unschedule('weekly_analyze');");
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            if (!string.Equals(environment, "Test", StringComparison.OrdinalIgnoreCase))
+            {
+                migrationBuilder.Sql("SELECT cron.unschedule('weekly_analyze');");
+            }
         }
     }
 }
