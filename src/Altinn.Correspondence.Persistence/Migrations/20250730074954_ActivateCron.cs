@@ -15,7 +15,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 BEGIN
                     BEGIN
                         -- Try to create the extension
-                        CREATE EXTENSION pg_cron;
+                        CREATE EXTENSION IF NOT EXISTS pg_cron;
                         
                         -- If successful, schedule the weekly ANALYZE job
                         PERFORM cron.schedule(
