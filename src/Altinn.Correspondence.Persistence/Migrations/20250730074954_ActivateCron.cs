@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -11,41 +10,45 @@ namespace Altinn.Correspondence.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "test_migration_table",
-                schema: "correspondence",
-                columns: table => new
-                {
-                    id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_test_migration_table", x => x.id);
-                });
-
-            migrationBuilder.InsertData(
-                schema: "correspondence",
-                table: "test_migration_table",
-                columns: new[] { "name" },
-                values: new object[,]
-                {
-                    { "Test Row 1" },
-                    { "Test Row 2" },
-                    { "Test Row 3" },
-                    { "Test Row 4" },
-                    { "Test Row 5" }
-                });
+            migrationBuilder.Sql(@"
+                DO $do$
+                BEGIN
+                    -- Try to create the extension
+                    CREATE EXTENSION IF NOT EXISTS pg_cron;
+                    
+                    -- If successful, schedule the weekly ANALYZE job
+                    PERFORM cron.schedule(
+                      'weekly_analyze',
+                      '0 4 * * 0',
+                      $$ ANALYZE; $$
+                    );
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        -- Log the error but don't fail the migration
+                        RAISE NOTICE 'pg_cron could not be activated: %', SQLERRM;
+                END
+                $do$;
+            ");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "test_migration_table",
-                schema: "correspondence");
+            migrationBuilder.Sql(@"
+                DO $do$
+                BEGIN
+                    -- Try to unschedule the job first
+                    PERFORM cron.unschedule('weekly_analyze');
+                    
+                    -- Then try to remove the extension
+                    DROP EXTENSION IF EXISTS pg_cron;
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        -- Log the error but don't fail the migration
+                        RAISE NOTICE 'pg_cron cleanup failed: %', SQLERRM;
+                END
+                $do$;
+            ");
         }
     }
 }
