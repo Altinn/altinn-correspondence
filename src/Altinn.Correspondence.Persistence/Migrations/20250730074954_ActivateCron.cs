@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -10,30 +11,41 @@ namespace Altinn.Correspondence.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql(@"
-                -- Create test table
-                CREATE TABLE IF NOT EXISTS test_migration_table (
-                    id SERIAL PRIMARY KEY,
-                    name VARCHAR(100),
-                    created_at TIMESTAMP DEFAULT NOW()
-                );
-                
-                -- Insert test data
-                INSERT INTO test_migration_table (name) VALUES 
-                    ('Test Row 1'),
-                    ('Test Row 2'),
-                    ('Test Row 3'),
-                    ('Test Row 4'),
-                    ('Test Row 5');
-                
-                RAISE NOTICE 'Test table created with 5 rows';
-            ");
+            migrationBuilder.CreateTable(
+                name: "test_migration_table",
+                schema: "correspondence",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_test_migration_table", x => x.id);
+                });
+
+            migrationBuilder.InsertData(
+                schema: "correspondence",
+                table: "test_migration_table",
+                columns: new[] { "name" },
+                values: new object[,]
+                {
+                    { "Test Row 1" },
+                    { "Test Row 2" },
+                    { "Test Row 3" },
+                    { "Test Row 4" },
+                    { "Test Row 5" }
+                });
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql("DROP TABLE IF EXISTS test_migration_table;");
+            migrationBuilder.DropTable(
+                name: "test_migration_table",
+                schema: "correspondence");
         }
     }
 }
