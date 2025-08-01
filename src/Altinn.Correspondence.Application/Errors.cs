@@ -50,7 +50,7 @@ public static class AttachmentErrors
     public static Error AttachmentNotFound = new Error(2001, "The requested attachment was not found", HttpStatusCode.NotFound);
     public static Error UploadFailed = new Error(2002, "Error occurred during upload", HttpStatusCode.BadGateway);
     public static Error CantUploadToExistingCorrespondence = new Error(2003, "Cannot upload attachment to a correspondence that has been created", HttpStatusCode.BadRequest);
-    public static Error InvalidFileSize = new Error(2004, "File must have content and has a max file size of 250 MB", HttpStatusCode.BadRequest);
+    public static Error InvalidFileSize = new Error(2004, "File must have content and has a max file size of 2GB", HttpStatusCode.BadRequest);
     public static Error FileAlreadyUploaded = new Error(2005, "File has already been or is being uploaded", HttpStatusCode.BadRequest);
     public static Error FileHasBeenPurged = new Error(2006, "File has already been purged", HttpStatusCode.BadRequest);
     public static Error PurgeAttachmentWithExistingCorrespondence = new Error(2007, "Attachment cannot be purged as it is linked to at least one existing correspondence", HttpStatusCode.BadRequest);

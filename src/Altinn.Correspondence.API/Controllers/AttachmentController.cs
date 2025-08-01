@@ -70,7 +70,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <response code="200">Returns attachment metadata</response>
     /// <response code="400"><ul>
     /// <li>2003: Cannot upload attachment to a correspondence that has been created</li>
-    /// <li>2004: File must have content and has a max file size of 250 MB</li>
+    /// <li>2004: File must have content and has a max file size of 2GB</li>
     /// <li>2005: File has already been or is being uploaded</li>
     /// <li>2008: Checksum mismatch</li>
     /// <li>2009: Could not get data location url</li>
