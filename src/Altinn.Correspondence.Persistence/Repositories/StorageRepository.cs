@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Models.Entities;
+﻿using Altinn.Correspondence.Core.Exceptions;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Azure;
@@ -176,7 +177,12 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 _logger.LogInformation($"Successfully uploaded {position / (1024.0 * 1024.0 * 1024.0):N2} GiB " +
                     $"in {stopwatch.ElapsedMilliseconds / 1000.0:N1}s (avg: {finalSpeedMBps:N2} MB/s)");
 
-                return (blockBlobClient.Uri.ToString(), BitConverter.ToString(blobMd5.Hash).Replace("-", "").ToLowerInvariant(), streamLength);
+                var hash = BitConverter.ToString(blobMd5.Hash).Replace("-", "").ToLowerInvariant();
+                if (!string.IsNullOrWhiteSpace(attachment.Checksum) && !string.Equals(hash, attachment.Checksum, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    throw new HashMismatchException("Hash mismatch");
+                }
+                return (blockBlobClient.Uri.ToString(), hash, streamLength);
             }
             catch (Exception ex)
             {
