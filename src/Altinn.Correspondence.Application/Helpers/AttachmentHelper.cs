@@ -25,7 +25,7 @@ namespace Altinn.Correspondence.Application.Helpers
         MalwareScanResultHandler malwareScanResultHandler,
         ILogger<AttachmentHelper> logger)
     {
-        public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, bool forMigration, CancellationToken cancellationToken)
+        public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, long fileLength, Guid attachmentId, Guid partyUuid, bool forMigration, CancellationToken cancellationToken)
         {
             logger.LogInformation("Start upload of attachment {attachmentId} for party {partyUuid}", attachmentId, partyUuid);
             var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
@@ -40,7 +40,7 @@ namespace Altinn.Correspondence.Application.Helpers
             try
             {
                 var storageProvider = await GetStorageProvider(attachment, forMigration, cancellationToken);
-                var (dataLocationUrl, checksum, size) = await storageRepository.UploadAttachment(attachment, file, storageProvider, cancellationToken);
+                var (dataLocationUrl, checksum, size) = await storageRepository.UploadAttachment(attachment, file, fileLength, storageProvider, cancellationToken);
                 logger.LogInformation("Uploaded {attachmentId} to Azure Storage", attachmentId);
 
                 var isValidUpdate = await attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, storageProvider, cancellationToken);
