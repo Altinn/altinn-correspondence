@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250801105409_AddServiceOwnerIdsCorrespondenceAndAttachment")]
+    [Migration("20250801111910_AddServiceOwnerIdsCorrespondenceAndAttachment")]
     partial class AddServiceOwnerIdsCorrespondenceAndAttachment
     {
         /// <inheritdoc />
