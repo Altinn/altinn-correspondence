@@ -94,7 +94,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return null;
         }
 
-        public async Task<(string locationUrl, string hash, long size)> UploadAttachment(AttachmentEntity attachment, Stream stream, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
+        public async Task<(string locationUrl, string hash, long size)> UploadAttachment(AttachmentEntity attachment, Stream stream, long streamLength, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
             _logger.LogInformation($"Starting upload of {attachment.Id} for {storageProviderEntity?.ServiceOwnerId}");
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -112,7 +112,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 var uploadTasks = new List<Task>();
                 using var semaphore = new SemaphoreSlim(CONCURRENT_UPLOAD_THREADS); // Limit concurrent uploads
 
-                var streamLength = stream.Length;
                 while (position < streamLength)
                 {
                     int bytesRead = await stream.ReadAsync(networkReadBuffer, 0, networkReadBuffer.Length, cancellationToken);
