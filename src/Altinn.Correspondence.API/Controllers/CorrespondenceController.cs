@@ -156,7 +156,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1033: The idempotency key must be a valid non-empty GUID</li>
         /// <li>1035: Reply options must be well-formed URIs and HTTPS with a max length of 255 characters</li>
         /// <li>2001: The requested attachment was not found</li>
-        /// <li>2004: File must have content and has a max file size of 250 MB</li>
+        /// <li>2004: File must have content and has a max file size of 2GB</li>
         /// <li>2008: Checksum mismatch</li>
         /// <li>2009: Could not get data location url</li>
         /// <li>2010: Filename is missing</li>
