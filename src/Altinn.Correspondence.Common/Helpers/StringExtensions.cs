@@ -58,13 +58,56 @@ public static class StringExtensions
         return identifierWithPrefix.Split(":").Last();
     }
 
+    /// <summary>
+    /// Sanitizes a string for safe logging by escaping control characters and HTML/XML entities
+    /// to prevent log injection and HTML injection attacks.
+    /// </summary>
+    /// <param name="input">The input string to sanitize.</param>
+    /// <returns>A sanitized string safe for logging.</returns>
     public static string SanitizeForLogging(this string input)
     {
         if (string.IsNullOrEmpty(input)) return input;
-        return input
+        
+        // Replace control characters that could be used for log injection
+        var sanitized = input
             .Replace("\r", "\\r")
             .Replace("\n", "\\n")
-            .Replace("\t", "\\t");
+            .Replace("\t", "\\t")
+            .Replace("\0", "\\0")
+            .Replace("\b", "\\b")
+            .Replace("\f", "\\f")
+            .Replace("\v", "\\v");
+        
+        // Replace HTML/XML characters to prevent HTML injection in log viewers
+        sanitized = sanitized
+            .Replace("&", "&amp;")  // Must be first to avoid double-encoding
+            .Replace("<", "&lt;")
+            .Replace(">", "&gt;")
+            .Replace("\"", "&quot;")
+            .Replace("'", "&#x27;");
+        
+        // Remove or replace other potentially dangerous control characters
+        var result = new StringBuilder();
+        foreach (char c in sanitized)
+        {
+            if (char.IsControl(c) && c != '\u0009' && c != '\u000A' && c != '\u000D') // Allow tab, LF, CR (already escaped above)
+            {
+                result.Append($"\\u{(int)c:X4}");
+            }
+            else
+            {
+                result.Append(c);
+            }
+        }
+        
+        // Limit length to prevent log flooding
+        var finalResult = result.ToString();
+        if (finalResult.Length > 1000)
+        {
+            finalResult = finalResult.Substring(0, 997) + "...";
+        }
+        
+        return finalResult;
     }
 
     public static bool IsWithISO6523Prefix(this string identifier)
