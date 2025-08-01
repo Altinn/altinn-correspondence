@@ -82,7 +82,7 @@ resource extensionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/conf
   parent: postgres
   dependsOn: [database]
   properties: {
-    value: 'UUID-OSSP,HSTORE'
+    value: 'UUID-OSSP,HSTORE,PG_CRON'
     source: 'user-override'
   }
 }
@@ -173,6 +173,16 @@ resource sessionReplicationRole 'Microsoft.DBforPostgreSQL/flexibleServers/confi
   dependsOn: [database, parallelTupleCost]
   properties: {
     value: 'Replica'
+    source: 'user-override'
+  }
+}
+
+resource cronDatabaseName 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'cron.database_name'
+  parent: postgres
+  dependsOn: [database, sessionReplicationRole]
+  properties: {
+    value: 'correspondence'
     source: 'user-override'
   }
 }
