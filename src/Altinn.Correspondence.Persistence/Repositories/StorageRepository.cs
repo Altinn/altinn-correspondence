@@ -180,7 +180,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 var hash = BitConverter.ToString(blobMd5.Hash).Replace("-", "").ToLowerInvariant();
                 if (!string.IsNullOrWhiteSpace(attachment.Checksum) && !string.Equals(hash, attachment.Checksum, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    throw new HashMismatchException("Hash mismatch");
+                    throw new HashMismatchException("Failed to calculate MD5 hash of uploaded file");
                 }
                 return (blockBlobClient.Uri.ToString(), hash, streamLength);
             }
