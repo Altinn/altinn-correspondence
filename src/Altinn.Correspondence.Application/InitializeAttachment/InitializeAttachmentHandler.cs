@@ -73,9 +73,11 @@ public class InitializeAttachmentHandler(
             return attachmentNameError;
         }
         
-        // Set the Sender from the service owner organization number
+        // Set the Sender and ServiceOwnerId from the service owner organization number
         var sender = serviceOwnerOrgNumber.WithoutPrefix().WithUrnPrefix();
+        var serviceOwnerId = serviceOwnerOrgNumber.WithoutPrefix();
         attachment.Sender = sender;
+        attachment.ServiceOwnerId = serviceOwnerId;
         
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {

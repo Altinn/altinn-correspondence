@@ -20,6 +20,7 @@ internal static class InitializeCorrespondencesMapper
             Recipient = null,
             ResourceId = request.Correspondence.ResourceId.WithoutPrefix(),
             Sender = UrnConstants.PlaceholderSender, // This is not required anymore from caller, but it still has to be set to a valid format
+            ServiceOwnerId = null, // Will be populated by the handler after determining service owner from ResourceRegistry
             MessageSender = request.Correspondence.MessageSender,
             RequestedPublishTime = request.Correspondence.RequestedPublishTime ?? DateTimeOffset.UtcNow,
             AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,

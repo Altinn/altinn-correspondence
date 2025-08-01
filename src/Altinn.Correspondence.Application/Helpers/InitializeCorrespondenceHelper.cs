@@ -255,12 +255,14 @@ namespace Altinn.Correspondence.Application.Helpers
             recipient = recipient.WithoutPrefix().WithUrnPrefix();
 
             var sender = serviceOwnerOrgNumber.WithoutPrefix().WithUrnPrefix();
+            var serviceOwnerId = serviceOwnerOrgNumber.WithoutPrefix();
 
             return new CorrespondenceEntity
             {
                 ResourceId = request.Correspondence.ResourceId,
                 Recipient = recipient,
                 Sender = sender,
+                ServiceOwnerId = serviceOwnerId,
                 SendersReference = request.Correspondence.SendersReference,
                 MessageSender = request.Correspondence.MessageSender,
                 Content = new CorrespondenceContentEntity
@@ -399,6 +401,7 @@ namespace Altinn.Correspondence.Application.Helpers
             // Set the Sender from the service owner organization number
             var sender = serviceOwnerOrgNumber.WithoutPrefix().WithUrnPrefix();
             attachment.Sender = sender;
+            attachment.ServiceOwnerId = serviceOwnerOrgNumber.WithoutPrefix();
             
             return await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
         }

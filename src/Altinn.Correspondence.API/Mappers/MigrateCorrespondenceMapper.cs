@@ -1,6 +1,7 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.MigrateCorrespondence;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 
@@ -46,6 +47,7 @@ internal static class MigrateCorrespondenceMapper
             Recipient = migrateCorrespondenceExt.CorrespondenceData.Recipients.First(),
             ResourceId = migrateCorrespondenceExt.CorrespondenceData.Correspondence.ResourceId,
             Sender = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Sender,
+            ServiceOwnerId = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Sender?.WithoutPrefix(), // Extract organization number from Sender
             MessageSender = migrateCorrespondenceExt.CorrespondenceData.Correspondence.MessageSender,
             RequestedPublishTime = (DateTimeOffset)migrateCorrespondenceExt.CorrespondenceData.Correspondence.RequestedPublishTime,
             AllowSystemDeleteAfter = migrateCorrespondenceExt.CorrespondenceData.Correspondence.AllowSystemDeleteAfter,

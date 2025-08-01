@@ -15,6 +15,7 @@ namespace Altinn.Correspondence.Tests.Factories
                 ResourceId = "test-resource-id",
                 Recipient = "test-recipient",
                 Sender = "test-sender",
+                ServiceOwnerId = "123456789", // Default test service owner ID
                 SendersReference = "test-senders-reference",
                 RequestedPublishTime = DateTimeOffset.UtcNow,
                 Statuses = new List<CorrespondenceStatusEntity>(),
@@ -45,6 +46,12 @@ namespace Altinn.Correspondence.Tests.Factories
                 ReferenceType = referenceType,
                 ReferenceValue = referenceValue
             });
+            return this;
+        }
+
+        public CorrespondenceEntityBuilder WithServiceOwnerId(string serviceOwnerId)
+        {
+            _correspondenceEntity.ServiceOwnerId = serviceOwnerId;
             return this;
         }
     }
