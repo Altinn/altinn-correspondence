@@ -5,7 +5,6 @@ param location = 'norwayeast'
 param environment = readEnvironmentVariable('ENVIRONMENT')
 
 // secrets
-param correspondencePgAdminPassword = readEnvironmentVariable('DB_PWD')
 param tenantId = readEnvironmentVariable('TENANT_ID')
 param test_client_id = readEnvironmentVariable('TEST_CLIENT_ID')
 param sourceKeyVaultName = readEnvironmentVariable('KEY_VAULT_NAME')
