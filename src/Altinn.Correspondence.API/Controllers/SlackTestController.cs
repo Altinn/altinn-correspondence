@@ -87,8 +87,7 @@ public class SlackTestController : ControllerBase
             _logger.LogError(ex, "Error sending simple test message");
             return StatusCode(500, new { 
                 success = false, 
-                message = "Internal server error while sending simple test message",
-                error = ex.Message
+                message = "Internal server error while sending simple test message"
             });
         }
     }
