@@ -27,9 +27,17 @@ public class SlackTestController : ControllerBase
     /// </summary>
     /// <returns>Current Slack configuration information</returns>
     [HttpGet("config")]
+    [Authorize] // Add appropriate authorization
     public IActionResult GetSlackConfig()
     {
         var hostEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+
+        // Only allow in non-production environments
+        if (!hostEnvironment.Equals("Development", StringComparison.OrdinalIgnoreCase) &&
+            !hostEnvironment.Equals("Staging", StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound();
+        }
         
         return Ok(new
         {
