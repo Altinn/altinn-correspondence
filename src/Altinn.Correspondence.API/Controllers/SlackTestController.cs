@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Slack.Webhooks;
 using Altinn.Correspondence.Core.Options;
+using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -22,31 +24,7 @@ public class SlackTestController : ControllerBase
         _logger = logger;
     }
 
-    /// <summary>
-    /// Get current Slack configuration status
-    /// </summary>
-    /// <returns>Current Slack configuration information</returns>
-    [HttpGet("config")]
-    [Authorize] // Add appropriate authorization
-    public IActionResult GetSlackConfig()
-    {
-        var hostEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
 
-        // Only allow in non-production environments
-        if (!hostEnvironment.Equals("Development", StringComparison.OrdinalIgnoreCase) &&
-            !hostEnvironment.Equals("Staging", StringComparison.OrdinalIgnoreCase))
-        {
-            return NotFound();
-        }
-        
-        return Ok(new
-        {
-            channel = _slackSettings.NotificationChannel,
-            environment = hostEnvironment,
-            slackClientType = _slackClient.GetType().Name,
-            isDevelopment = hostEnvironment.Equals("Development", StringComparison.OrdinalIgnoreCase)
-        });
-    }
 
     /// <summary>
     /// Send a simple test message to Slack
@@ -54,6 +32,7 @@ public class SlackTestController : ControllerBase
     /// <param name="message">The message to send</param>
     /// <returns>Result indicating success or failure</returns>
     [HttpPost("send-simple-message")]
+    [Authorize(Policy = AuthorizationConstants.Developer)]
     public async Task<IActionResult> SendSimpleMessage([FromBody] string message)
     {
         if (string.IsNullOrWhiteSpace(message))
