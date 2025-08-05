@@ -3,10 +3,14 @@ using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.MigrateCorrespondence;
 using Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
+using Altinn.Correspondence.Application.PurgeCorrespondence;
+using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Correspondence.API.Controllers
@@ -103,6 +107,117 @@ namespace Altinn.Correspondence.API.Controllers
 
             return result.Match(
                 result => Ok(MigrateCorrespondenceMapper.MakeAvailableResponseToExternal(result)),
+                Problem
+            );
+        }
+
+        [HttpPost]
+        [Produces("application/json")]
+        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Policy = AuthorizationConstants.Migrate)]
+        [Route("{correspondenceId}/sync/markasread")]
+
+        public async Task<ActionResult> SyncMarkAsRead(
+            Guid correspondenceId,
+            [FromQuery] Guid partyUuid,
+            [FromServices] SyncCorrespondenceStatusHandler handler,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Sync from Altinn 2: Marking Correspondence as read for {correspondenceId}", correspondenceId.ToString());
+
+            var commandResult = await handler.Process(new SyncCorrespondenceStatusRequest
+            {
+                CorrespondenceId = correspondenceId,
+                Status = CorrespondenceStatus.Read,
+                PartyUuid = partyUuid
+            }, HttpContext.User, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
+                Problem
+            );
+        }
+
+        [HttpPost]
+        [Produces("application/json")]
+        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Policy = AuthorizationConstants.Migrate)]        
+        [Route("{correspondenceId}/sync/confirm")]
+        public async Task<ActionResult> SyncConfirm(
+            Guid correspondenceId,
+            [FromQuery] Guid partyUuid,
+            [FromServices] SyncCorrespondenceStatusHandler handler,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Sync from Altinn 2: Marking Correspondence as confirmed for {correspondenceId}", correspondenceId.ToString());
+
+            var commandResult = await handler.Process(new SyncCorrespondenceStatusRequest
+            {
+                CorrespondenceId = correspondenceId,
+                Status = CorrespondenceStatus.Confirmed,
+                PartyUuid = partyUuid
+            }, HttpContext.User, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
+                Problem
+            );
+        }
+        
+        [HttpDelete]
+        [Produces("application/json")]
+        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("{correspondenceId}/sync/purge")]
+        [Authorize(Policy = AuthorizationConstants.Migrate)]
+        public async Task<ActionResult> SyncPurge(
+            Guid correspondenceId,
+            [FromServices] PurgeCorrespondenceHandler handler,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Purging Correspondence with id: {correspondenceId}", correspondenceId.ToString());
+
+            var commandResult = await handler.Process(new PurgeCorrespondenceRequest()
+            {
+                CorrespondenceId = correspondenceId
+            }, HttpContext.User, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
+                Problem
+            );
+        }
+
+        [HttpDelete]
+        [Produces("application/json")]
+        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("{correspondenceId}/sync/archive")]
+        [Authorize(Policy = AuthorizationConstants.Migrate)]
+        public async Task<ActionResult> SyncArchive(
+            Guid correspondenceId,
+            [FromServices] PurgeCorrespondenceHandler handler,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Archive Correspondence with id: {correspondenceId}", correspondenceId.ToString());
+
+            var commandResult = await handler.Process(new PurgeCorrespondenceRequest()
+            {
+                CorrespondenceId = correspondenceId
+            }, HttpContext.User, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
                 Problem
             );
         }

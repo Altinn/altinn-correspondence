@@ -8,16 +8,16 @@ using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 
-public class UpdateCorrespondenceStatusHandler(
+public class SyncCorrespondenceStatusHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
-    ILogger<UpdateCorrespondenceStatusHandler> logger) : IHandler<UpdateCorrespondenceStatusRequest, Guid>
+    ILogger<SyncCorrespondenceStatusHandler> logger) : IHandler<SyncCorrespondenceStatusRequest, Guid>
 {
-    public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceStatusRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Processing status update request for correspondence {CorrespondenceId} to status {Status}", 
+        logger.LogInformation("Processing status Sync request for correspondence {CorrespondenceId} to status {Status}", 
             request.CorrespondenceId, 
             request.Status);
         var operationTimestamp = DateTimeOffset.UtcNow;
@@ -28,16 +28,7 @@ public class UpdateCorrespondenceStatusHandler(
             logger.LogWarning("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        var hasAccess = await altinnAuthorizationService.CheckAccessAsRecipient(
-            user,
-            correspondence,
-            cancellationToken);
-        if (!hasAccess)
-        {
-            logger.LogWarning("Access denied for correspondence {CorrespondenceId} - user does not have recipient access", request.CorrespondenceId);
-            return AuthorizationErrors.NoAccessToResource;
-        }
-
+        // TODO: Change validation to handle IDempotent Key instead of current status.
         var currentStatusError = updateCorrespondenceStatusHelper.ValidateCurrentStatus(correspondence);
         if (currentStatusError is not null)
         {
@@ -54,20 +45,18 @@ public class UpdateCorrespondenceStatusHandler(
                 updateError);
             return updateError;
         }
-        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
-        if (party?.PartyUuid is not Guid partyUuid)
-        {
-            logger.LogError("Could not find party UUID for organization {OrganizationId}", user.GetCallerOrganizationId());
-            return AuthorizationErrors.CouldNotFindPartyUuid;
-        }
 
         logger.LogInformation("Executing status update transaction for correspondence {CorrespondenceId}", request.CorrespondenceId);
         await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
         {
-            await updateCorrespondenceStatusHelper.AddCorrespondenceStatus(correspondence, request.Status, partyUuid, cancellationToken);
-            updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status, operationTimestamp);
-            updateCorrespondenceStatusHelper.PatchCorrespondenceDialog(request.CorrespondenceId, request.Status);
-            updateCorrespondenceStatusHelper.PublishEvent(correspondence, request.Status);
+            await updateCorrespondenceStatusHelper.AddCorrespondenceStatus(correspondence, request.Status, request.PartyUuid, cancellationToken);
+
+            if (correspondence.IsMigrating == false)
+            {
+                updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status, operationTimestamp);
+                updateCorrespondenceStatusHelper.PatchCorrespondenceDialog(request.CorrespondenceId, request.Status);
+                updateCorrespondenceStatusHelper.PublishEvent(correspondence, request.Status);
+            }
 
             return Task.CompletedTask;
         }, logger, cancellationToken);
