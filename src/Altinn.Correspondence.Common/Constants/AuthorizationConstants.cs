@@ -12,6 +12,7 @@ public static class AuthorizationConstants
     public const string DialogportenPolicy = "DialogportenPolicy";
     public const string DialogportenScheme = "DialogportenScheme";
     public const string NotificationCheck = "NotificationCheck";
+    public const string Developer = "Developer";
     public const string SenderScope = "altinn:correspondence.write";
     public const string RecipientScope = "altinn:correspondence.read";
     public const string MigrateScope = "altinn:correspondence.migrate";
