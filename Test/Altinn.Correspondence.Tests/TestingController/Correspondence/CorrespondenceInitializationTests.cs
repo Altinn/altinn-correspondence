@@ -224,6 +224,41 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
         }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithTitleTooLong_ReturnsBadRequest()
+        {
+            // Arrange - Create a title that exceeds 255 characters
+            var longTitle = new string('A', 256); // 256 characters to exceed the limit
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle(longTitle)
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithTitleAt255Characters_Succeeds()
+        {
+            // Arrange - Create a title exactly at the 255 character limit
+            var maxLengthTitle = new string('A', 255); // Exactly 255 characters
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle(maxLengthTitle)
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+        }
+
         [Fact]
         public async Task InitializeCorrespondence_With_RecipientToken_succeeds()
         {

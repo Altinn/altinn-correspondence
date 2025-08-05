@@ -70,6 +70,10 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return CorrespondenceErrors.MessageTitleIsNotPlainText;
             }
+            if (content.MessageTitle.Length > 255)
+            {
+                return CorrespondenceErrors.MessageTitleTooLong;
+            }
             if (string.IsNullOrWhiteSpace(content.MessageBody))
             {
                 return CorrespondenceErrors.MessageBodyEmpty;
