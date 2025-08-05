@@ -16,6 +16,7 @@ namespace Altinn.Correspondence.Tests.Factories
                 ResourceId = "test-resource-id",
                 Recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
                 Sender = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
+                ServiceOwnerId = "123456789", // Default test service owner ID
                 SendersReference = "test-senders-reference",
                 RequestedPublishTime = DateTimeOffset.UtcNow,
                 Statuses = new List<CorrespondenceStatusEntity>(),
@@ -64,6 +65,12 @@ namespace Altinn.Correspondence.Tests.Factories
             {
                 _correspondenceEntity.Content.MessageTitle = messageTitle ?? "";
             }
+            return this;
+        }
+
+        public CorrespondenceEntityBuilder WithServiceOwnerId(string serviceOwnerId)
+        {
+            _correspondenceEntity.ServiceOwnerId = serviceOwnerId;
             return this;
         }
     }
