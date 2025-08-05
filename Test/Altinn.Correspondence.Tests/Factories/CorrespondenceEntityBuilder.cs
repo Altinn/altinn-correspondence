@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.Tests.Factories
 {
@@ -13,14 +14,23 @@ namespace Altinn.Correspondence.Tests.Factories
             {
                 Id = Guid.NewGuid(),
                 ResourceId = "test-resource-id",
-                Recipient = "test-recipient",
-                Sender = "test-sender",
+                Recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
+                Sender = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
                 ServiceOwnerId = "123456789", // Default test service owner ID
                 SendersReference = "test-senders-reference",
                 RequestedPublishTime = DateTimeOffset.UtcNow,
                 Statuses = new List<CorrespondenceStatusEntity>(),
                 ExternalReferences = new List<ExternalReferenceEntity>(),
-                Created = DateTimeOffset.UtcNow
+                Created = DateTimeOffset.UtcNow,
+                Content = new CorrespondenceContentEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Language = "nb",
+                    MessageTitle = "Default title",
+                    MessageSummary = "Default summary",
+                    MessageBody = "Default body",
+                    Attachments = new List<CorrespondenceAttachmentEntity>()
+                }
             };
         }
 
@@ -46,6 +56,15 @@ namespace Altinn.Correspondence.Tests.Factories
                 ReferenceType = referenceType,
                 ReferenceValue = referenceValue
             });
+            return this;
+        }
+
+        public CorrespondenceEntityBuilder WithMessageTitle(string? messageTitle)
+        {
+            if (_correspondenceEntity.Content != null)
+            {
+                _correspondenceEntity.Content.MessageTitle = messageTitle ?? "";
+            }
             return this;
         }
 
