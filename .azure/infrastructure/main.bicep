@@ -107,27 +107,6 @@ var srcKeyVault = {
   resourceGroupName: resourceGroupName
 }
 
-var correspondenceAdminPasswordSecretName = 'correspondence-admin-password'
-module postgresql '../modules/postgreSql/create.bicep' = {
-  scope: resourceGroup
-  name: 'postgresql'
-  dependsOn: [
-    environmentKeyVault
-    containerAppEnv
-  ]
-  params: {
-    namePrefix: namePrefix
-    location: location
-    environmentKeyVaultName: sourceKeyVaultName
-    srcKeyVault: srcKeyVault
-    srcSecretName: correspondenceAdminPasswordSecretName
-    administratorLoginPassword: correspondencePgAdminPassword
-    tenantId: tenantId
-    prodLikeEnvironment: prodLikeEnvironment
-    logAnalyticsWorkspaceId: containerAppEnv.outputs.logAnalyticsWorkspaceId
-  }
-}
-
 module storageAccount '../modules/storageAccount/create.bicep' = {
   scope: resourceGroup
   name: storageAccountName
@@ -147,6 +126,27 @@ module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
     location: location
     namePrefix: namePrefix
     storageAccountName: storageAccountName
+  }
+}
+
+var correspondenceAdminPasswordSecretName = 'correspondence-admin-password'
+module postgresql '../modules/postgreSql/create.bicep' = {
+  scope: resourceGroup
+  name: 'postgresql'
+  dependsOn: [
+    environmentKeyVault
+    containerAppEnv
+  ]
+  params: {
+    namePrefix: namePrefix
+    location: location
+    environmentKeyVaultName: sourceKeyVaultName
+    srcKeyVault: srcKeyVault
+    srcSecretName: correspondenceAdminPasswordSecretName
+    administratorLoginPassword: correspondencePgAdminPassword
+    tenantId: tenantId
+    prodLikeEnvironment: prodLikeEnvironment
+    logAnalyticsWorkspaceId: containerAppEnv.outputs.logAnalyticsWorkspaceId
   }
 }
 

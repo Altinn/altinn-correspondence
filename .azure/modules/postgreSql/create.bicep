@@ -268,15 +268,15 @@ module adoConnectionString '../keyvault/upsertSecret.bicep' = {
   }
 }
 
-// Diagnostic settings for Query Store and monitoring
+// Diagnostic settings for PostgreSQL monitoring
 resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (!empty(logAnalyticsWorkspaceId)) {
-  name: 'QueryStoreDiagnostics'
+  name: 'PostgreSQLDiagnostics'
   scope: postgres
   properties: {
     workspaceId: logAnalyticsWorkspaceId
     logs: [
       {
-        category: 'PostgreSQL query store runtime'
+        category: 'PostgreSQLLogs'
         enabled: true
         retentionPolicy: {
           days: 30
@@ -284,15 +284,7 @@ resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
         }
       }
       {
-        category: 'PostgreSQL query store wait statistics'
-        enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true
-        }
-      }
-      {
-        category: 'PostgreSQL Sessions'
+        category: 'PostgreSQLSlowLogs'
         enabled: true
         retentionPolicy: {
           days: 30
