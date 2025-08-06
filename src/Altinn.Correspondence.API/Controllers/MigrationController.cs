@@ -182,7 +182,7 @@ namespace Altinn.Correspondence.API.Controllers
         {
             _logger.LogInformation($"Sync from Altinn 2 - Notification Event for correspondence {request.CorrespondenceId}");
             
-            var commandRequest = MigrateCorrespondenceMapper.MapSyncCorrespondenceNotifcationEventToInternal(request);
+            var commandRequest = MigrateCorrespondenceMapper.MapSyncCorrespondenceNotificationEventToInternal(request);
             var commandResult = await handler.Process(commandRequest, null, cancellationToken);
 
 

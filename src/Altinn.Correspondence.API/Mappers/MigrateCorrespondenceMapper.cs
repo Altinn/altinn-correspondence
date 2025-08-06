@@ -101,7 +101,7 @@ internal static class MigrateCorrespondenceMapper
         };
     }
 
-    internal static SyncCorrespondenceNotificationEventRequest MapSyncCorrespondenceNotifcationEventToInternal(SyncCorrespondenceNotificationEventRequestExt requestExt)
+    internal static SyncCorrespondenceNotificationEventRequest MapSyncCorrespondenceNotificationEventToInternal(SyncCorrespondenceNotificationEventRequestExt requestExt)
     {
         return new SyncCorrespondenceNotificationEventRequest()
         {
@@ -163,7 +163,8 @@ internal static class MigrateCorrespondenceMapper
             NotificationChannel = (NotificationChannel)notificationExt.NotificationChannel,
             NotificationTemplate = NotificationTemplate.Altinn2Message,
             NotificationAddress = notificationExt.NotificationAddress,
-            Altinn2NotificationId = notificationExt.Altinn2NotificationId
+            Altinn2NotificationId = notificationExt.Altinn2NotificationId,
+            IsReminder = notificationExt.IsReminder,
         };
     }
 }

@@ -5,7 +5,7 @@ namespace Altinn.Correspondence.API.Models;
 public class SyncCorrespondenceForwardingEventRequestExt
 {
     [JsonPropertyName("correspondenceId")]
-    public Guid CorrespondenceId { get; set; }
+    public required Guid CorrespondenceId { get; set; }
     [JsonPropertyName("syncedForwardingEvent")]
-    public MigrateCorrespondenceForwardingEventExt SyncedEvent { get; set; }
+    public required MigrateCorrespondenceForwardingEventExt SyncedEvent { get; set; }
 }

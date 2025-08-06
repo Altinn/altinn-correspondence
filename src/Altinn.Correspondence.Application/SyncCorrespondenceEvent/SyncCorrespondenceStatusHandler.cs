@@ -31,10 +31,17 @@ public class SyncCorrespondenceStatusEventHandler(
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
         // TODO: Change validation to handle IDempotent Key instead of current status.==
+        // IDempotent Key == CorrespondenceId + Status + StatusChanged + PartyUuid
         
-        ValidateCurrentStatus(correspondence);
 
-
+        var currentStatusError = ValidateCurrentStatus(correspondence);
+        if (currentStatusError is not null)
+        {
+            logger.LogWarning("Current status validation failed for correspondence {CorrespondenceId}: {Error}",
+                request.CorrespondenceId,
+                currentStatusError);
+            return currentStatusError;
+        }
 
         logger.LogInformation("Executing status update transaction for correspondence {CorrespondenceId}", request.CorrespondenceId);
         await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
@@ -57,7 +64,7 @@ public class SyncCorrespondenceStatusEventHandler(
         return request.CorrespondenceId;
     }
 
-    // <summary>
+    /// <summary>
     /// Validates if the status of the synced correspondence allows for status updates.
     /// </summary>
     /// <param name="correspondence">The correspondence entity to validate</param>
