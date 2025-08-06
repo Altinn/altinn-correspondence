@@ -2,6 +2,9 @@ using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models;
 
+/// <summary>
+/// Request model for synchronizing correspondence notification events from Altinn 2
+/// </summary>
 public class SyncCorrespondenceNotificationEventRequestExt
 {
     [JsonPropertyName("correspondenceId")]

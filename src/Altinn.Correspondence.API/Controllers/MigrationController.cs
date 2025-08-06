@@ -109,7 +109,7 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Syncronizes an event that occurred in Altinn 2 on an migrated correspondence
+        ///  Synchronizes an event that occurred in Altinn 2 on a migrated correspondence
         /// </summary>
         /// <returns></returns>
         [HttpPost]
@@ -136,7 +136,7 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Syncronizes an forwarding event that occurred in Altinn 2 on an migrated correspondence
+        /// Synchronizes a forwarding event that occurred in Altinn 2 on a migrated correspondence
         /// </summary>
         /// <returns></returns>
         [HttpPost]
@@ -165,7 +165,7 @@ namespace Altinn.Correspondence.API.Controllers
         }
 
         /// <summary>
-        /// Syncronizes an forwarding event that occurred in Altinn 2 on an migrated correspondence
+        /// Synchronizes a notification event that occurred in Altinn 2 on a migrated correspondence
         /// </summary>
         /// <returns></returns>
         [HttpPost]
