@@ -13,6 +13,7 @@ param tenantId string
 
 param prodLikeEnvironment bool
 
+
 var databaseName = 'correspondence'
 var databaseUser = 'adminuser'
 var poolSize = prodLikeEnvironment ? 100 : 25
@@ -187,10 +188,53 @@ resource cronDatabaseName 'Microsoft.DBforPostgreSQL/flexibleServers/configurati
   }
 }
 
+// Query Store and pg_stat_statements configurations
+resource sharedPreloadLibraries 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'shared_preload_libraries'
+  parent: postgres
+  dependsOn: [database, cronDatabaseName]
+  properties: {
+    value: 'pg_stat_statements'
+    source: 'user-override'
+  }
+}
+
+resource pgStatStatementsTrack 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'pg_stat_statements.track'
+  parent: postgres
+  dependsOn: [database, sharedPreloadLibraries]
+  properties: {
+    value: 'all'
+    source: 'user-override'
+  }
+}
+
+resource pgStatStatementsMax 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'pg_stat_statements.max'
+  parent: postgres
+  dependsOn: [database, pgStatStatementsTrack]
+  properties: {
+    value: '10000'
+    source: 'user-override'
+  }
+}
+
+resource trackIoTiming 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'track_io_timing'
+  parent: postgres
+  dependsOn: [database, pgStatStatementsMax]
+  properties: {
+    value: 'on'
+    source: 'user-override'
+  }
+}
+
+
+
 resource allowAzureAccess 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
   name: 'azure-access'
   parent: postgres
-  dependsOn: [database, maxPreparedTransactions] // Needs to depend on database to avoid updating at the same time
+  dependsOn: [database, trackIoTiming] // Needs to depend on database to avoid updating at the same time
   properties: {
     startIpAddress: '0.0.0.0'
     endIpAddress: '0.0.0.0'
@@ -205,3 +249,5 @@ module adoConnectionString '../keyvault/upsertSecret.bicep' = {
     secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${namePrefix}-app-identity;Ssl Mode=Require;Trust Server Certificate=True;Maximum Pool Size=${poolSize};options=-c role=azure_pg_admin;'
   }
 }
+
+

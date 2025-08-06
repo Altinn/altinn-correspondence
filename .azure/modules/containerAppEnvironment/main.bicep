@@ -91,3 +91,4 @@ module storageAccountConnectionStringSecret '../keyvault/upsertSecret.bicep' = {
 
 
 output containerAppEnvironmentId string = containerAppEnvironment.id
+output logAnalyticsWorkspaceId string = log_analytics_workspace.id
