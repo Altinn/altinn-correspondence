@@ -12,6 +12,7 @@ param administratorLoginPassword string
 param tenantId string
 
 param prodLikeEnvironment bool
+param logAnalyticsWorkspaceId string = ''
 
 var databaseName = 'correspondence'
 var databaseUser = 'adminuser'
@@ -82,7 +83,7 @@ resource extensionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/conf
   parent: postgres
   dependsOn: [database]
   properties: {
-    value: 'UUID-OSSP,HSTORE,PG_CRON'
+    value: 'UUID-OSSP,HSTORE,PG_CRON,PG_STAT_STATEMENTS'
     source: 'user-override'
   }
 }
@@ -187,10 +188,71 @@ resource cronDatabaseName 'Microsoft.DBforPostgreSQL/flexibleServers/configurati
   }
 }
 
+// Query Store and pg_stat_statements configurations
+resource sharedPreloadLibraries 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'shared_preload_libraries'
+  parent: postgres
+  dependsOn: [database, cronDatabaseName]
+  properties: {
+    value: 'pg_stat_statements'
+    source: 'user-override'
+  }
+}
+
+resource pgStatStatementsTrack 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'pg_stat_statements.track'
+  parent: postgres
+  dependsOn: [database, sharedPreloadLibraries]
+  properties: {
+    value: 'all'
+    source: 'user-override'
+  }
+}
+
+resource pgStatStatementsMax 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'pg_stat_statements.max'
+  parent: postgres
+  dependsOn: [database, pgStatStatementsTrack]
+  properties: {
+    value: '10000'
+    source: 'user-override'
+  }
+}
+
+resource trackIoTiming 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'track_io_timing'
+  parent: postgres
+  dependsOn: [database, pgStatStatementsMax]
+  properties: {
+    value: 'on'
+    source: 'user-override'
+  }
+}
+
+resource pgQsQueryCaptureMode 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'pg_qs.query_capture_mode'
+  parent: postgres
+  dependsOn: [database, trackIoTiming]
+  properties: {
+    value: 'all'
+    source: 'user-override'
+  }
+}
+
+resource pgmsWaitSamplingQueryCaptureMode 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'pgms_wait_sampling.query_capture_mode'
+  parent: postgres
+  dependsOn: [database, pgQsQueryCaptureMode]
+  properties: {
+    value: 'all'
+    source: 'user-override'
+  }
+}
+
 resource allowAzureAccess 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
   name: 'azure-access'
   parent: postgres
-  dependsOn: [database, maxPreparedTransactions] // Needs to depend on database to avoid updating at the same time
+  dependsOn: [database, pgmsWaitSamplingQueryCaptureMode] // Needs to depend on database to avoid updating at the same time
   properties: {
     startIpAddress: '0.0.0.0'
     endIpAddress: '0.0.0.0'
@@ -203,5 +265,40 @@ module adoConnectionString '../keyvault/upsertSecret.bicep' = {
     destKeyVaultName: environmentKeyVaultName
     secretName: 'correspondence-ado-connection-string'
     secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${namePrefix}-app-identity;Ssl Mode=Require;Trust Server Certificate=True;Maximum Pool Size=${poolSize};options=-c role=azure_pg_admin;'
+  }
+}
+
+// Diagnostic settings for Query Store and monitoring
+resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (!empty(logAnalyticsWorkspaceId)) {
+  name: 'QueryStoreDiagnostics'
+  scope: postgres
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      {
+        category: 'PostgreSQL query store runtime'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true
+        }
+      }
+      {
+        category: 'PostgreSQL query store wait statistics'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true
+        }
+      }
+      {
+        category: 'PostgreSQL Sessions'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true
+        }
+      }
+    ]
   }
 }

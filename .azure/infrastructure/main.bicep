@@ -113,6 +113,7 @@ module postgresql '../modules/postgreSql/create.bicep' = {
   name: 'postgresql'
   dependsOn: [
     environmentKeyVault
+    containerAppEnv
   ]
   params: {
     namePrefix: namePrefix
@@ -123,6 +124,7 @@ module postgresql '../modules/postgreSql/create.bicep' = {
     administratorLoginPassword: correspondencePgAdminPassword
     tenantId: tenantId
     prodLikeEnvironment: prodLikeEnvironment
+    logAnalyticsWorkspaceId: containerAppEnv.outputs.logAnalyticsWorkspaceId
   }
 }
 
@@ -136,18 +138,6 @@ module storageAccount '../modules/storageAccount/create.bicep' = {
   }
 }
 
-module reddis '../modules/redis/main.bicep' = {
-  scope: resourceGroup
-  name: 'redis'
-  params: {
-    location: location
-    namePrefix: namePrefix
-    keyVaultName: sourceKeyVaultName
-    prodLikeEnvironment: prodLikeEnvironment
-    environment: environment
-  }
-}
-
 module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
   scope: resourceGroup
   name: 'container-app-environment'
@@ -157,6 +147,18 @@ module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
     location: location
     namePrefix: namePrefix
     storageAccountName: storageAccountName
+  }
+}
+
+module reddis '../modules/redis/main.bicep' = {
+  scope: resourceGroup
+  name: 'redis'
+  params: {
+    location: location
+    namePrefix: namePrefix
+    keyVaultName: sourceKeyVaultName
+    prodLikeEnvironment: prodLikeEnvironment
+    environment: environment
   }
 }
 output resourceGroupName string = resourceGroup.name
