@@ -12,7 +12,7 @@ param administratorLoginPassword string
 param tenantId string
 
 param prodLikeEnvironment bool
-param logAnalyticsWorkspaceId string = ''
+
 
 var databaseName = 'correspondence'
 var databaseUser = 'adminuser'
@@ -268,29 +268,4 @@ module adoConnectionString '../keyvault/upsertSecret.bicep' = {
   }
 }
 
-// Diagnostic settings for PostgreSQL monitoring
-resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (!empty(logAnalyticsWorkspaceId)) {
-  name: 'PostgreSQLDiagnostics'
-  scope: postgres
-  properties: {
-    workspaceId: logAnalyticsWorkspaceId
-    logs: [
-      {
-        category: 'PostgreSQLLogs'
-        enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true
-        }
-      }
-      {
-        category: 'PostgreSQLSlowLogs'
-        enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true
-        }
-      }
-    ]
-  }
-}
+
