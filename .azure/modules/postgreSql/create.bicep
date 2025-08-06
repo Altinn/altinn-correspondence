@@ -83,7 +83,7 @@ resource extensionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/conf
   parent: postgres
   dependsOn: [database]
   properties: {
-    value: 'UUID-OSSP,HSTORE,PG_CRON,PG_STAT_STATEMENTS'
+    value: 'UUID-OSSP,HSTORE,PG_CRON'
     source: 'user-override'
   }
 }
