@@ -138,10 +138,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
                         {
                             try
                             {
+                                int currentBlock = blocksInBatch;
                                 await UploadBlock(client, currentBlockId, currentBlockData, cancellationToken);
 
                                 var uploadSpeedMBps = position / (1024.0 * 1024) / (stopwatch.ElapsedMilliseconds / 1000.0);
-                                _logger.LogInformation($"Uploaded block {blockList.Count}. Progress: " +
+                                _logger.LogInformation($"Uploaded block {currentBlock}. Progress: " +
                                     $"{position / (1024.0 * 1024.0 * 1024.0):N2} GiB ({uploadSpeedMBps:N2} MB/s)");
                             }
                             finally
