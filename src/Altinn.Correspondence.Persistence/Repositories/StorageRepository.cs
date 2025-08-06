@@ -197,6 +197,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             await BlobRetryPolicy.ExecuteAsync(_logger, async () =>
             {
+                _logger.LogInformation("Uploading block " + blockId);
                 using var blockMd5 = MD5.Create();
                 using var blockStream = new MemoryStream(blockData, writable: false);
                 blockStream.Position = 0;
@@ -220,10 +221,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             await BlobRetryPolicy.ExecuteAsync(_logger, async () =>
             {
+                _logger.LogInformation($"Committing {blockList.Count} blocks");
                 var options = new CommitBlockListOptions
                 {
                     // Only use ifNoneMatch for the first commit to ensure concurrent upload attempts do not work simultaneously
-                    Conditions = firstCommit ? new BlobRequestConditions { IfNoneMatch = new ETag("*") } : null,
+                    Conditions = null,
                     HttpHeaders = finalMd5 is null ? null : new BlobHttpHeaders
                     {
                         ContentHash = finalMd5
