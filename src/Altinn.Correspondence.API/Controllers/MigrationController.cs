@@ -4,7 +4,7 @@ using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.MigrateCorrespondence;
 using Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
-using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
+using Altinn.Correspondence.Application.SyncCorrespondenceStatusEvent;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
@@ -50,7 +50,7 @@ namespace Altinn.Correspondence.API.Controllers
             var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
-                data => Ok(MigrateCorrespondenceMapper.MapToExternal(data)),
+                data => Ok(MigrateCorrespondenceMapper.MapCorrespondenceMigrationStatusToExternal(data)),
                 Problem
             );
         }
@@ -106,34 +106,31 @@ namespace Altinn.Correspondence.API.Controllers
             var result = await migrateCorrespondenceHandler.MakeCorrespondenceAvailable(internalRequest, cancellationToken);
 
             return result.Match(
-                result => Ok(MigrateCorrespondenceMapper.MakeAvailableResponseToExternal(result)),
+                result => Ok(MigrateCorrespondenceMapper.MapMakeAvailableResponseToExternal(result)),
                 Problem
             );
         }
 
+        /// <summary>
+        /// Syncronizes an event that occurred in Altinn 2 on an migrated correspondence
+        /// </summary>
+        /// <returns></returns>
         [HttpPost]
-        [Produces("application/json")]
-        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("syncStatusEvent")]
         [Authorize(Policy = AuthorizationConstants.Migrate)]
-        [Route("{correspondenceId}/sync/markasread")]
-
-        public async Task<ActionResult> SyncMarkAsRead(
-            Guid correspondenceId,
-            [FromQuery] Guid partyUuid,
+        public async Task<ActionResult> SyncStatusEvent(
+            SyncCorrespondenceStatusEventRequestExt request,
             [FromServices] SyncCorrespondenceStatusHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Sync from Altinn 2: Marking Correspondence as read for {correspondenceId}", correspondenceId.ToString());
+            _logger.LogInformation($"Sync from Altinn 2 - {request.SyncedEvent.Status} for correspondence {request.CorrespondenceId}");
 
-            var commandResult = await handler.Process(new SyncCorrespondenceStatusRequest
-            {
-                CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Read,
-                PartyUuid = partyUuid
-            }, HttpContext.User, cancellationToken);
+            var commandRequest = MigrateCorrespondenceMapper.MapSyncStatusEventToInternal(request);
+            var commandResult = await handler.Process(commandRequest, null, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(data),
@@ -141,80 +138,56 @@ namespace Altinn.Correspondence.API.Controllers
             );
         }
 
+        /// <summary>
+        /// Syncronizes an forwarding event that occurred in Altinn 2 on an migrated correspondence
+        /// </summary>
+        /// <returns></returns>
         [HttpPost]
-        [Produces("application/json")]
-        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [Authorize(Policy = AuthorizationConstants.Migrate)]        
-        [Route("{correspondenceId}/sync/confirm")]
-        public async Task<ActionResult> SyncConfirm(
-            Guid correspondenceId,
-            [FromQuery] Guid partyUuid,
+        [Route("syncForwardingEvent")]
+        [Authorize(Policy = AuthorizationConstants.Migrate)]
+        public async Task<ActionResult> SyncForwardingEvent(
+            SyncCorrespondenceForwardingEventRequestExt request,
             [FromServices] SyncCorrespondenceStatusHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Sync from Altinn 2: Marking Correspondence as confirmed for {correspondenceId}", correspondenceId.ToString());
+            _logger.LogInformation($"Sync from Altinn 2 - Forwarding Event for correspondence {request.CorrespondenceId}");
 
-            var commandResult = await handler.Process(new SyncCorrespondenceStatusRequest
-            {
-                CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Confirmed,
-                PartyUuid = partyUuid
-            }, HttpContext.User, cancellationToken);
+            throw new NotImplementedException();
+            //var commandRequest = MigrateCorrespondenceMapper.MapSyncStatusEventToInternal(request);
+            //var commandResult = await handler.Process(commandRequest, null, cancellationToken);
 
-            return commandResult.Match(
-                data => Ok(data),
-                Problem
-            );
+
+            //return commandResult.Match(
+            //    data => Ok(data),
+            //    Problem
+            //);
         }
-        
-        [HttpDelete]
-        [Produces("application/json")]
-        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+
+        /// <summary>
+        /// Syncronizes an forwarding event that occurred in Altinn 2 on an migrated correspondence
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [Route("{correspondenceId}/sync/purge")]
+        [Route("syncNotificationEvent")]
         [Authorize(Policy = AuthorizationConstants.Migrate)]
-        public async Task<ActionResult> SyncPurge(
-            Guid correspondenceId,
-            [FromServices] PurgeCorrespondenceHandler handler,
+        public async Task<ActionResult> SyncNotificationEvent(
+            SyncCorrespondenceNotificationEventRequestExt request,
+            [FromServices] SyncCorrespondenceNotificationEventHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Purging Correspondence with id: {correspondenceId}", correspondenceId.ToString());
+            _logger.LogInformation($"Sync from Altinn 2 - Notification Event for correspondence {request.CorrespondenceId}");
+            
+            var commandRequest = MigrateCorrespondenceMapper.MapSyncCorrespondenceNotifcationEventToInternal(request);
+            var commandResult = await handler.Process(commandRequest, null, cancellationToken);
 
-            var commandResult = await handler.Process(new PurgeCorrespondenceRequest()
-            {
-                CorrespondenceId = correspondenceId
-            }, HttpContext.User, cancellationToken);
-
-            return commandResult.Match(
-                data => Ok(data),
-                Problem
-            );
-        }
-
-        [HttpDelete]
-        [Produces("application/json")]
-        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [Route("{correspondenceId}/sync/archive")]
-        [Authorize(Policy = AuthorizationConstants.Migrate)]
-        public async Task<ActionResult> SyncArchive(
-            Guid correspondenceId,
-            [FromServices] PurgeCorrespondenceHandler handler,
-            CancellationToken cancellationToken)
-        {
-            _logger.LogInformation("Archive Correspondence with id: {correspondenceId}", correspondenceId.ToString());
-
-            var commandResult = await handler.Process(new PurgeCorrespondenceRequest()
-            {
-                CorrespondenceId = correspondenceId
-            }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(data),

@@ -1,8 +1,10 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.MigrateCorrespondence;
+using Altinn.Correspondence.Application.SyncCorrespondenceStatusEvent;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Altinn.Correspondence.Mappers;
 
@@ -13,35 +15,9 @@ internal static class MigrateCorrespondenceMapper
         var correspondence = new CorrespondenceEntity
         {
             Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId,
-            Statuses = [.. migrateCorrespondenceExt.EventHistory.Select(eh => new CorrespondenceStatusEntity()
-            {
-                Status = (CorrespondenceStatus)eh.Status,
-                StatusChanged = eh.StatusChanged,
-                StatusText = eh.StatusText ?? eh.Status.ToString(),
-                PartyUuid = eh.EventUserPartyUuid
-            })],
-            Notifications = migrateCorrespondenceExt.NotificationHistory.Select(n => new CorrespondenceNotificationEntity()
-            {
-                Created = n.NotificationSent,
-                NotificationSent = n.NotificationSent,
-                NotificationChannel = (NotificationChannel)n.NotificationChannel,
-                NotificationTemplate = NotificationTemplate.Altinn2Message,
-                NotificationAddress = n.NotificationAddress,
-                Altinn2NotificationId = n.Altinn2NotificationId
-            }).ToList(),
-            ForwardingEvents = migrateCorrespondenceExt.ForwardingHistory.Select(fh => new CorrespondenceForwardingEventEntity()
-            {
-                ForwardedOnDate = fh.ForwardedOnDate,
-                ForwardedByPartyUuid = fh.ForwardedByPartyUuid,
-                ForwardedByUserId = fh.ForwardedByUserId,
-                ForwardedByUserUuid = fh.ForwardedByUserUuid,
-                ForwardedToUserId = fh.ForwardedToUserId,
-                ForwardedToUserUuid = fh.ForwardedToUserUuid,
-                ForwardingText = fh.ForwardingText,
-                ForwardedToEmailAddress = fh.ForwardedToEmail,
-                MailboxSupplier = fh.MailboxSupplier
-
-            }).ToList(),
+            Statuses = [.. migrateCorrespondenceExt.EventHistory.Select(MapCorrespondenceStatusEventToInternal)],
+            Notifications = [.. migrateCorrespondenceExt.NotificationHistory.Select(MapNotificationToInternal)],
+            ForwardingEvents = [.. migrateCorrespondenceExt.ForwardingHistory.Select(MapForwardingEventToInternal)],
             SendersReference = migrateCorrespondenceExt.CorrespondenceData.Correspondence.SendersReference,
             Recipient = migrateCorrespondenceExt.CorrespondenceData.Recipients.First(),
             ResourceId = migrateCorrespondenceExt.CorrespondenceData.Correspondence.ResourceId,
@@ -78,13 +54,13 @@ internal static class MigrateCorrespondenceMapper
         };
     }
 
-    internal static CorrespondenceMigrationStatusExt MapToExternal(MigrateCorrespondenceResponse migrateCorrespondenceResponse)
+    internal static CorrespondenceMigrationStatusExt MapCorrespondenceMigrationStatusToExternal(MigrateCorrespondenceResponse migrateCorrespondenceResponse)
     {
         return new CorrespondenceMigrationStatusExt()
         {
             CorrespondenceId = migrateCorrespondenceResponse.CorrespondenceId,
             Altinn2CorrespondenceId = migrateCorrespondenceResponse.Altinn2CorrespondenceId,
-            AttachmentStatuses = MapToExternal(migrateCorrespondenceResponse.AttachmentMigrationStatuses),
+            AttachmentStatuses = MapAttachmentMigrationStatusToExternal(migrateCorrespondenceResponse.AttachmentMigrationStatuses),
             DialogId = migrateCorrespondenceResponse.DialogId
         };
     }
@@ -99,7 +75,7 @@ internal static class MigrateCorrespondenceMapper
         };
     }
 
-    internal static MakeCorrespondenceAvailableResponseExt MakeAvailableResponseToExternal(MakeCorrespondenceAvailableResponse response)
+    internal static MakeCorrespondenceAvailableResponseExt MapMakeAvailableResponseToExternal(MakeCorrespondenceAvailableResponse response)
     {
         return new MakeCorrespondenceAvailableResponseExt
         {
@@ -107,20 +83,87 @@ internal static class MigrateCorrespondenceMapper
         };
     }
 
-    private static List<AttachmentMigrationStatusExt>? MapToExternal(List<AttachmentMigrationStatus>? attachmentMigrationStatuses)
+    internal static SyncCorrespondenceStatusEventRequest MapSyncStatusEventToInternal(SyncCorrespondenceStatusEventRequestExt requestExt)
+    {
+        return new SyncCorrespondenceStatusEventRequest()
+        {
+            CorrespondenceId = requestExt.CorrespondenceId,
+            SyncedEvent = MapCorrespondenceStatusEventToInternal(requestExt.SyncedEvent)
+        };
+    }
+
+    internal static SyncCorrespondenceForwardingEventRequest MapSyncForwardingEventToInternal(SyncCorrespondenceForwardingEventRequestExt requestExt)
+    {
+        return new SyncCorrespondenceForwardingEventRequest()
+        {
+            CorrespondenceId = requestExt.CorrespondenceId,
+            SyncedEvent = MapForwardingEventToInternal(requestExt.SyncedEvent)
+        };
+    }
+
+    internal static SyncCorrespondenceNotificationEventRequest MapSyncCorrespondenceNotifcationEventToInternal(SyncCorrespondenceNotificationEventRequestExt requestExt)
+    {
+        return new SyncCorrespondenceNotificationEventRequest()
+        {
+            CorrespondenceId = requestExt.CorrespondenceId,
+            SyncedEvent = MapNotificationToInternal(requestExt.SyncedEvent)
+        };
+    }
+
+    private static CorrespondenceStatusEntity MapCorrespondenceStatusEventToInternal(MigrateCorrespondenceStatusEventExt statusEventExt)
+    {
+        return new CorrespondenceStatusEntity
+        {
+            Status = (CorrespondenceStatus)statusEventExt.Status,
+            StatusChanged = statusEventExt.StatusChanged,
+            StatusText = statusEventExt.StatusText ?? statusEventExt.Status.ToString(),
+            PartyUuid = statusEventExt.EventUserPartyUuid
+        };
+    }
+
+    private static CorrespondenceForwardingEventEntity MapForwardingEventToInternal(MigrateCorrespondenceForwardingEventExt forwardingEvent)
+    {
+        return new CorrespondenceForwardingEventEntity()
+        {
+            ForwardedOnDate = forwardingEvent.ForwardedOnDate,
+            ForwardedByPartyUuid = forwardingEvent.ForwardedByPartyUuid,
+            ForwardedByUserId = forwardingEvent.ForwardedByUserId,
+            ForwardedByUserUuid = forwardingEvent.ForwardedByUserUuid,
+            ForwardedToUserId = forwardingEvent.ForwardedToUserId,
+            ForwardedToUserUuid = forwardingEvent.ForwardedToUserUuid,
+            ForwardingText = forwardingEvent.ForwardingText,
+            ForwardedToEmailAddress = forwardingEvent.ForwardedToEmail,
+            MailboxSupplier = forwardingEvent.MailboxSupplier
+        };
+    }
+
+    private static List<AttachmentMigrationStatusExt>? MapAttachmentMigrationStatusToExternal(List<AttachmentMigrationStatus>? attachmentMigrationStatuses)
     {
         if (attachmentMigrationStatuses == null)
             return null;
 
-        return attachmentMigrationStatuses.Select(MapToExternal).ToList();
+        return attachmentMigrationStatuses.Select(MapAttachmentMigrationStatusToExternal).ToList();
     }
 
-    private static AttachmentMigrationStatusExt MapToExternal(AttachmentMigrationStatus attachmentMigrationStatus)
+    private static AttachmentMigrationStatusExt MapAttachmentMigrationStatusToExternal(AttachmentMigrationStatus attachmentMigrationStatus)
     {
         return new AttachmentMigrationStatusExt()
         {
             AttachmentId = attachmentMigrationStatus.AttachmentId,
             Status = (AttachmentStatusExt)attachmentMigrationStatus.AttachmentStatus
+        };
+    }
+
+    private static CorrespondenceNotificationEntity MapNotificationToInternal(MigrateCorrespondenceNotificationExt notificationExt)
+    {
+        return new CorrespondenceNotificationEntity()
+        {
+            Created = notificationExt.NotificationSent,
+            NotificationSent = notificationExt.NotificationSent,
+            NotificationChannel = (NotificationChannel)notificationExt.NotificationChannel,
+            NotificationTemplate = NotificationTemplate.Altinn2Message,
+            NotificationAddress = notificationExt.NotificationAddress,
+            Altinn2NotificationId = notificationExt.Altinn2NotificationId
         };
     }
 }
