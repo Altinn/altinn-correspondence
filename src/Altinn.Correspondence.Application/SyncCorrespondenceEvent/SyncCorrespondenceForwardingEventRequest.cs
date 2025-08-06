@@ -1,6 +1,6 @@
 using Altinn.Correspondence.Core.Models.Entities;
 
-namespace Altinn.Correspondence.Application.SyncCorrespondenceStatusEvent;
+namespace Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 
 public class SyncCorrespondenceForwardingEventRequest
 {

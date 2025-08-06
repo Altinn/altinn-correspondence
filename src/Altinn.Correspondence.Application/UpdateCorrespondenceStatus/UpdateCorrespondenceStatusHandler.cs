@@ -46,7 +46,7 @@ public class UpdateCorrespondenceStatusHandler(
                 currentStatusError);
             return currentStatusError;
         }
-        var updateError = updateCorrespondenceStatusHelper.ValidateUpdateRequestStatus(request.Status, correspondence);
+        var updateError = updateCorrespondenceStatusHelper.ValidateUpdateRequest(request, correspondence);
         if (updateError is not null)
         {
             logger.LogWarning("Update request validation failed for correspondence {CorrespondenceId}: {Error}", 

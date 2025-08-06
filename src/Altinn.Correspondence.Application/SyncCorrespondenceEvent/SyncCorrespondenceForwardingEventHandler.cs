@@ -8,15 +8,15 @@ using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
 
-namespace Altinn.Correspondence.Application.SyncCorrespondenceStatusEvent;
+namespace Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 
-public class SyncCorrespondenceNotificationEventHandler(
+public class SyncCorrespondenceForwardingEventHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,    
-    ILogger<SyncCorrespondenceNotificationEventHandler> logger) : IHandler<SyncCorrespondenceNotificationEventRequest, Guid>
+    ILogger<SyncCorrespondenceForwardingEventHandler> logger) : IHandler<SyncCorrespondenceForwardingEventRequest, Guid>
 {
-    public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceNotificationEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceForwardingEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }

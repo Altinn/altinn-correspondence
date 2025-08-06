@@ -1,7 +1,7 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.MigrateCorrespondence;
-using Altinn.Correspondence.Application.SyncCorrespondenceStatusEvent;
+using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Microsoft.AspNetCore.Http.HttpResults;

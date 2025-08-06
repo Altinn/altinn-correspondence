@@ -3,14 +3,11 @@ using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.MigrateCorrespondence;
 using Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
-using Altinn.Correspondence.Application.PurgeCorrespondence;
-using Altinn.Correspondence.Application.SyncCorrespondenceStatusEvent;
+using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 using Altinn.Correspondence.Common.Constants;
-using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Correspondence.API.Controllers
@@ -124,7 +121,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Authorize(Policy = AuthorizationConstants.Migrate)]
         public async Task<ActionResult> SyncStatusEvent(
             SyncCorrespondenceStatusEventRequestExt request,
-            [FromServices] SyncCorrespondenceStatusHandler handler,
+            [FromServices] SyncCorrespondenceStatusEventHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation($"Sync from Altinn 2 - {request.SyncedEvent.Status} for correspondence {request.CorrespondenceId}");
@@ -151,7 +148,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Authorize(Policy = AuthorizationConstants.Migrate)]
         public async Task<ActionResult> SyncForwardingEvent(
             SyncCorrespondenceForwardingEventRequestExt request,
-            [FromServices] SyncCorrespondenceStatusHandler handler,
+            [FromServices] SyncCorrespondenceForwardingEventHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation($"Sync from Altinn 2 - Forwarding Event for correspondence {request.CorrespondenceId}");

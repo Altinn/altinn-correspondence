@@ -38,20 +38,20 @@ public class UpdateCorrespondenceStatusHelper(
     /// <summary>
     /// Validates if the requested status update is allowed based on the current correspondence state.
     /// </summary>
-    /// <param name="requestStatus">The requested status update to validate.</param>
+    /// <param name="request">The status update request to validate.</param>
     /// <param name="correspondence">The correspondence entity to update.</param>
     /// <returns>An Error if validation fails, null if successful.</returns>
-    public Error? ValidateUpdateRequestStatus(CorrespondenceStatus requestStatus, CorrespondenceEntity correspondence)
+    public Error? ValidateUpdateRequest(UpdateCorrespondenceStatusRequest request, CorrespondenceEntity correspondence)
     {
-        if (requestStatus == CorrespondenceStatus.Read && !correspondence.StatusHasBeen(CorrespondenceStatus.Fetched))
+        if (request.Status == CorrespondenceStatus.Read && !correspondence.StatusHasBeen(CorrespondenceStatus.Fetched))
         {
             return CorrespondenceErrors.ReadBeforeFetched;
         }
-        if (requestStatus == CorrespondenceStatus.Confirmed && !correspondence.StatusHasBeen(CorrespondenceStatus.Fetched))
+        if (request.Status == CorrespondenceStatus.Confirmed && !correspondence.StatusHasBeen(CorrespondenceStatus.Fetched))
         {
             return CorrespondenceErrors.ConfirmBeforeFetched;
         }
-        if (requestStatus == CorrespondenceStatus.Archived && correspondence.IsConfirmationNeeded is true && !correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
+        if (request.Status == CorrespondenceStatus.Archived && correspondence.IsConfirmationNeeded is true && !correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
         {
             return CorrespondenceErrors.ArchiveBeforeConfirmed;
         }

@@ -8,14 +8,14 @@ using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
 
-namespace Altinn.Correspondence.Application.SyncCorrespondenceStatusEvent;
+namespace Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 
-public class SyncCorrespondenceStatusHandler(
+public class SyncCorrespondenceStatusEventHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
-    ILogger<SyncCorrespondenceStatusHandler> logger) : IHandler<SyncCorrespondenceStatusEventRequest, Guid>
+    ILogger<SyncCorrespondenceStatusEventHandler> logger) : IHandler<SyncCorrespondenceStatusEventRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceStatusEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
