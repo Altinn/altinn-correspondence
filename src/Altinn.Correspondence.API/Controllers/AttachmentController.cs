@@ -98,7 +98,6 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     {
         _logger.LogInformation("Uploading attachment {attachmentId}", attachmentId.ToString());
 
-        Request.EnableBuffering();
         var uploadAttachmentResult = await uploadAttachmentHandler.Process(new UploadAttachmentRequest()
         {
             AttachmentId = attachmentId,
