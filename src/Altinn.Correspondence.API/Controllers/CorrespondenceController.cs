@@ -216,10 +216,6 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] InitializeCorrespondencesHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"System temp path: {Path.GetTempPath()}");
-            _logger.LogInformation($"TMPDIR: {Environment.GetEnvironmentVariable("TMPDIR")}");
-            _logger.LogInformation($"Available space in /tmp: {new DriveInfo("/tmp").AvailableFreeSpace / (1024 * 1024 * 1024)} GB");
-
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
             _logger.LogInformation("Insert correspondences with attachment data");
             
