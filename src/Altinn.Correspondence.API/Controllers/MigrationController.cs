@@ -116,7 +116,7 @@ namespace Altinn.Correspondence.API.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [Route("syncStatusEvent")]
+        [Route("correspondence/syncStatusEvent")]
         [Authorize(Policy = AuthorizationConstants.Migrate)]
         public async Task<ActionResult> SyncStatusEvent(
             SyncCorrespondenceStatusEventRequestExt request,
@@ -142,7 +142,7 @@ namespace Altinn.Correspondence.API.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [Route("syncForwardingEvent")]
+        [Route("correspondence/syncForwardingEvent")]
         [Authorize(Policy = AuthorizationConstants.Migrate)]
         public async Task<ActionResult> SyncForwardingEvent(
             SyncCorrespondenceForwardingEventRequestExt request,
@@ -168,7 +168,7 @@ namespace Altinn.Correspondence.API.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [Route("syncNotificationEvent")]
+        [Route("correspondence/syncNotificationEvent")]
         [Authorize(Policy = AuthorizationConstants.Migrate)]
         public async Task<ActionResult> SyncNotificationEvent(
             SyncCorrespondenceNotificationEventRequestExt request,

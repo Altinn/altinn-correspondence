@@ -21,10 +21,9 @@ public class SyncCorrespondenceStatusEventHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceStatusEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-
         logger.LogInformation($"Processing status Sync request for correspondence {request.CorrespondenceId} with {request.SyncedEvents.Count} # of status events");
 
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, false, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, false, cancellationToken, true);
         if (correspondence == null)
         {
             logger.LogWarning("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
@@ -50,7 +49,7 @@ public class SyncCorrespondenceStatusEventHandler(
             {
                 // IDempotent Key == CorrespondenceId + Status + StatusChanged + PartyUuid
                 if (statusEventToSync.Status == statusEventInAltinn3.Status &&
-                    statusEventToSync.StatusChanged.EqualsToSecond(statusEventInAltinn3.StatusChanged) && // Only compare to nearest second
+                    statusEventToSync.StatusChanged.EqualsToWithinSecond(statusEventInAltinn3.StatusChanged) && // Only compare to nearest second
                     statusEventToSync.PartyUuid == statusEventInAltinn3.PartyUuid)
                 {
                     existsAlready = true;                    
@@ -97,7 +96,7 @@ public class SyncCorrespondenceStatusEventHandler(
 
 public static class DateTimeOffsetExtensions
 {
-    public static bool EqualsToSecond(this DateTimeOffset dto1, DateTimeOffset dto2)
+    public static bool EqualsToWithinSecond(this DateTimeOffset dto1, DateTimeOffset dto2)
     {
         // Normalize to UTC to handle different offsets correctly
         DateTimeOffset utcDto1 = dto1.ToUniversalTime();
