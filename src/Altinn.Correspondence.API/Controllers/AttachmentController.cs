@@ -1,14 +1,16 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application;
-using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Application.DownloadAttachment;
 using Altinn.Correspondence.Application.GetAttachmentDetails;
 using Altinn.Correspondence.Application.GetAttachmentOverview;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.PurgeAttachment;
+using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Application.UploadAttachment;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Correspondence.API.Controllers;
@@ -97,6 +99,11 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     )
     {
         _logger.LogInformation("Uploading attachment {attachmentId}", attachmentId.ToString());
+        var maxSizeFeature = HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>();
+        if (maxSizeFeature != null && !maxSizeFeature.IsReadOnly)
+        {
+            maxSizeFeature.MaxRequestBodySize = ApplicationConstants.MaxFileUploadSize;
+        }
 
         var uploadAttachmentResult = await uploadAttachmentHandler.Process(new UploadAttachmentRequest()
         {
