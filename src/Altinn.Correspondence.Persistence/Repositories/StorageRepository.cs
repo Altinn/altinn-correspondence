@@ -95,7 +95,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return null;
         }
 
-        public async Task<(string locationUrl, string hash, long size)> UploadAttachment(AttachmentEntity attachment, Stream stream, long streamLength, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
+        public async Task<(string locationUrl, string hash, long size)> UploadAttachment(AttachmentEntity attachment, Stream stream, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
             _logger.LogInformation($"Starting upload of {attachment.Id} for {storageProviderEntity?.ServiceOwnerId}");
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -106,23 +106,39 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 using var accumulationBuffer = new MemoryStream();
                 var networkReadBuffer = new byte[1024 * 1024];
                 var blockList = new List<string>();
-                long position = 0;
+                long totalBytesRead = 0;
                 using var blobMd5 = MD5.Create();
 
                 int blocksInBatch = 0;
                 var uploadTasks = new List<Task>();
-                using var semaphore = new SemaphoreSlim(CONCURRENT_UPLOAD_THREADS); // Limit concurrent uploads
+                using var semaphore = new SemaphoreSlim(CONCURRENT_UPLOAD_THREADS);
 
-                while (position < streamLength)
+                while (true)
                 {
                     int bytesRead = await stream.ReadAsync(networkReadBuffer, 0, networkReadBuffer.Length, cancellationToken);
-                    if (bytesRead <= 0) break;
+                    if (bytesRead <= 0)
+                    {
+                        // Handle any remaining data in accumulation buffer
+                        if (accumulationBuffer.Length > 0)
+                        {
+                            accumulationBuffer.Position = 0;
+                            var blockId = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+                            byte[] blockData = accumulationBuffer.ToArray();
+                            blobMd5.TransformBlock(blockData, 0, blockData.Length, null, 0);
+
+                            blockList.Add(blockId);
+                            blocksInBatch++;
+
+                            await semaphore.WaitAsync(cancellationToken);
+                            uploadTasks.Add(UploadBlock(blockBlobClient, blockId, blockData, cancellationToken));
+                        }
+                        break; // End of stream
+                    }
 
                     accumulationBuffer.Write(networkReadBuffer, 0, bytesRead);
-                    position += bytesRead;
+                    totalBytesRead += bytesRead;
 
-                    bool isLastBlock = position >= streamLength;
-                    if (accumulationBuffer.Length >= BLOCK_SIZE || isLastBlock)
+                    if (accumulationBuffer.Length >= BLOCK_SIZE)
                     {
                         accumulationBuffer.Position = 0;
                         var blockId = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
@@ -132,8 +148,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
                         blockList.Add(blockId);
                         blocksInBatch++;
                         accumulationBuffer.SetLength(0); // Clear accumulation buffer for next block
+
                         await semaphore.WaitAsync(cancellationToken);
                         uploadTasks.Add(UploadBlockAsync(blockBlobClient, blockId, blockData, cancellationToken));
+
                         async Task UploadBlockAsync(BlockBlobClient client, string currentBlockId, byte[] currentBlockData, CancellationToken cancellationToken)
                         {
                             try
@@ -141,9 +159,9 @@ namespace Altinn.Correspondence.Persistence.Repositories
                                 int currentBlock = blocksInBatch;
                                 await UploadBlock(client, currentBlockId, currentBlockData, cancellationToken);
 
-                                var uploadSpeedMBps = position / (1024.0 * 1024) / (stopwatch.ElapsedMilliseconds / 1000.0);
+                                var uploadSpeedMBps = totalBytesRead / (1024.0 * 1024) / (stopwatch.ElapsedMilliseconds / 1000.0);
                                 _logger.LogInformation($"Uploaded block {currentBlock}. Progress: " +
-                                    $"{position / (1024.0 * 1024.0 * 1024.0):N2} GiB ({uploadSpeedMBps:N2} MB/s)");
+                                    $"{totalBytesRead / (1024.0 * 1024.0 * 1024.0):N2} GiB ({uploadSpeedMBps:N2} MB/s)");
                             }
                             finally
                             {
@@ -164,6 +182,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                         }
                     }
                 }
+
                 await Task.WhenAll(uploadTasks);
 
                 // Calculate final MD5
@@ -174,8 +193,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 }
                 await CommitBlocks(blockBlobClient, blockList, firstCommit: blockList.Count <= BLOCKS_BEFORE_COMMIT, null, cancellationToken);
 
-                double finalSpeedMBps = position / (1024.0 * 1024) / (stopwatch.ElapsedMilliseconds / 1000.0);
-                _logger.LogInformation($"Successfully uploaded {position / (1024.0 * 1024.0 * 1024.0):N2} GiB " +
+                double finalSpeedMBps = totalBytesRead / (1024.0 * 1024) / (stopwatch.ElapsedMilliseconds / 1000.0);
+                _logger.LogInformation($"Successfully uploaded {totalBytesRead / (1024.0 * 1024.0 * 1024.0):N2} GiB " +
                     $"in {stopwatch.ElapsedMilliseconds / 1000.0:N1}s (avg: {finalSpeedMBps:N2} MB/s)");
 
                 var hash = BitConverter.ToString(blobMd5.Hash).Replace("-", "").ToLowerInvariant();
@@ -183,7 +202,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 {
                     throw new HashMismatchException("Hash mismatch");
                 }
-                return (blockBlobClient.Uri.ToString(), hash, streamLength);
+                return (blockBlobClient.Uri.ToString(), hash, totalBytesRead);
             }
             catch (Exception ex)
             {

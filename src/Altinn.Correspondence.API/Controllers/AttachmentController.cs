@@ -102,7 +102,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
         {
             AttachmentId = attachmentId,
             UploadStream = Request.Body,
-            ContentLength = Request.ContentLength ?? Request.Body.Length
+            ContentLength = Request.ContentLength
         }, HttpContext.User, cancellationToken);
         var attachmentOverviewResult = await attachmentOverviewHandler.Process(attachmentId, HttpContext.User, cancellationToken);
         if (!attachmentOverviewResult.TryPickT0(out var attachmentOverview, out var error))

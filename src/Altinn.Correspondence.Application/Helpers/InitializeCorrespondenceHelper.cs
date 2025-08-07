@@ -374,7 +374,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 OneOf<UploadAttachmentResponse, Error> uploadResponse;
                 await using (var f = file.OpenReadStream())
                 {
-                    uploadResponse = await attachmentHelper.UploadAttachment(f, file.Length, attachment.Id, partyUuid, forMigration: false, cancellationToken);
+                    uploadResponse = await attachmentHelper.UploadAttachment(f, attachment.Id, partyUuid, forMigration: false, cancellationToken);
                 }
                 var error = uploadResponse.Match(
                     _ => { return null; },
