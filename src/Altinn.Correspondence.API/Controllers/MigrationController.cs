@@ -115,7 +115,6 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Route("syncStatusEvent")]
         [Authorize(Policy = AuthorizationConstants.Migrate)]
@@ -124,7 +123,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] SyncCorrespondenceStatusEventHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"Sync from Altinn 2 - {request.SyncedEvent.Status} for correspondence {request.CorrespondenceId}");
+            _logger.LogInformation($"Sync from Altinn 2 - {request.SyncedEvents.Count} # of StatusEvents for correspondence {request.CorrespondenceId}");
 
             var commandRequest = MigrateCorrespondenceMapper.MapSyncStatusEventToInternal(request);
             var commandResult = await handler.Process(commandRequest, null, cancellationToken);
@@ -142,7 +141,6 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Route("syncForwardingEvent")]
         [Authorize(Policy = AuthorizationConstants.Migrate)]
@@ -151,17 +149,15 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] SyncCorrespondenceForwardingEventHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"Sync from Altinn 2 - Forwarding Event for correspondence {request.CorrespondenceId}");
+            _logger.LogInformation($"Sync from Altinn 2 - {request.SyncedEvents.Count} # of ForwardingEvents for correspondence {request.CorrespondenceId}");
+                        
+            var commandRequest = MigrateCorrespondenceMapper.MapSyncForwardingEventToInternal(request);
+            var commandResult = await handler.Process(commandRequest, null, cancellationToken);
 
-            throw new NotImplementedException();
-            //var commandRequest = MigrateCorrespondenceMapper.MapSyncStatusEventToInternal(request);
-            //var commandResult = await handler.Process(commandRequest, null, cancellationToken);
-
-
-            //return commandResult.Match(
-            //    data => Ok(data),
-            //    Problem
-            //);
+            return commandResult.Match(
+                data => Ok(data),
+                Problem
+            );
         }
 
         /// <summary>
@@ -171,7 +167,6 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Route("syncNotificationEvent")]
         [Authorize(Policy = AuthorizationConstants.Migrate)]
@@ -180,7 +175,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] SyncCorrespondenceNotificationEventHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"Sync from Altinn 2 - Notification Event for correspondence {request.CorrespondenceId}");
+            _logger.LogInformation($"Sync from Altinn 2 - {request.SyncedEvents.Count} # of NotificationEvents for correspondence {request.CorrespondenceId}");
             
             var commandRequest = MigrateCorrespondenceMapper.MapSyncCorrespondenceNotificationEventToInternal(request);
             var commandResult = await handler.Process(commandRequest, null, cancellationToken);

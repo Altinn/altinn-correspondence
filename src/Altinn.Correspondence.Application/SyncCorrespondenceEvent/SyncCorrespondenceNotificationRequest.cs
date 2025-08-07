@@ -5,5 +5,5 @@ namespace Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 public class SyncCorrespondenceNotificationEventRequest
 {
     public required Guid CorrespondenceId { get; set; }
-    public required CorrespondenceNotificationEntity SyncedEvent { get; set; }
+    public required List<CorrespondenceNotificationEntity> SyncedEvents { get; set; }
 }

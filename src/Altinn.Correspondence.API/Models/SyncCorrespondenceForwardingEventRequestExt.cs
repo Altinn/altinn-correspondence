@@ -9,6 +9,6 @@ public class SyncCorrespondenceForwardingEventRequestExt
 {
     [JsonPropertyName("correspondenceId")]
     public required Guid CorrespondenceId { get; set; }
-    [JsonPropertyName("syncedForwardingEvent")]
-    public required MigrateCorrespondenceForwardingEventExt SyncedEvent { get; set; }
+    [JsonPropertyName("syncedForwardingEvents")]
+    public required List<MigrateCorrespondenceForwardingEventExt> SyncedEvents { get; set; }
 }

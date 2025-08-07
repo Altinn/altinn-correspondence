@@ -88,7 +88,7 @@ internal static class MigrateCorrespondenceMapper
         return new SyncCorrespondenceStatusEventRequest()
         {
             CorrespondenceId = requestExt.CorrespondenceId,
-            SyncedEvent = MapCorrespondenceStatusEventToInternal(requestExt.SyncedEvent)
+            SyncedEvents = [.. requestExt.SyncedEvents.Select(MapCorrespondenceStatusEventToInternal)]
         };
     }
 
@@ -97,7 +97,7 @@ internal static class MigrateCorrespondenceMapper
         return new SyncCorrespondenceForwardingEventRequest()
         {
             CorrespondenceId = requestExt.CorrespondenceId,
-            SyncedEvent = MapForwardingEventToInternal(requestExt.SyncedEvent)
+            SyncedEvents = [.. requestExt.SyncedEvents.Select(MapForwardingEventToInternal)]
         };
     }
 
@@ -106,7 +106,7 @@ internal static class MigrateCorrespondenceMapper
         return new SyncCorrespondenceNotificationEventRequest()
         {
             CorrespondenceId = requestExt.CorrespondenceId,
-            SyncedEvent = MapNotificationToInternal(requestExt.SyncedEvent)
+            SyncedEvents = [.. requestExt.SyncedEvents.Select(MapNotificationToInternal)]
         };
     }
 

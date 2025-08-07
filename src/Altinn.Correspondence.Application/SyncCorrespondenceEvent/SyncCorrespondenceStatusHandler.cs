@@ -19,49 +19,50 @@ public class SyncCorrespondenceStatusEventHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceStatusEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Processing status Sync request for correspondence {CorrespondenceId} to status {Status}", 
-            request.CorrespondenceId, 
-            request.SyncedEvent.Status);
-        var operationTimestamp = DateTimeOffset.UtcNow;
+        throw new NotImplementedException();
+        ////logger.LogInformation("Processing status Sync request for correspondence {CorrespondenceId} to status {Status}", 
+        ////    request.CorrespondenceId, 
+        ////    request.SyncedEvent.Status);
+        ////var operationTimestamp = DateTimeOffset.UtcNow;
         
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, false, cancellationToken);
-        if (correspondence == null)
-        {
-            logger.LogWarning("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
-            return CorrespondenceErrors.CorrespondenceNotFound;
-        }
-        // TODO: Change validation to handle IDempotent Key instead of current status.==
-        // IDempotent Key == CorrespondenceId + Status + StatusChanged + PartyUuid
+        ////var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, false, cancellationToken);
+        ////if (correspondence == null)
+        ////{
+        ////    logger.LogWarning("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
+        ////    return CorrespondenceErrors.CorrespondenceNotFound;
+        ////}
+        ////// TODO: Change validation to handle IDempotent Key instead of current status.==
+        ////// IDempotent Key == CorrespondenceId + Status + StatusChanged + PartyUuid
         
 
-        var currentStatusError = ValidateCurrentStatus(correspondence);
-        if (currentStatusError is not null)
-        {
-            logger.LogWarning("Current status validation failed for correspondence {CorrespondenceId}: {Error}",
-                request.CorrespondenceId,
-                currentStatusError);
-            return currentStatusError;
-        }
+        ////var currentStatusError = ValidateCurrentStatus(correspondence);
+        ////if (currentStatusError is not null)
+        ////{
+        ////    logger.LogWarning("Current status validation failed for correspondence {CorrespondenceId}: {Error}",
+        ////        request.CorrespondenceId,
+        ////        currentStatusError);
+        ////    return currentStatusError;
+        ////}
 
-        logger.LogInformation("Executing status update transaction for correspondence {CorrespondenceId}", request.CorrespondenceId);
-        await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
-        {
-            await updateCorrespondenceStatusHelper.AddCorrespondenceStatus(correspondence, request.SyncedEvent.Status, request.SyncedEvent.PartyUuid, cancellationToken);
+        ////logger.LogInformation("Executing status update transaction for correspondence {CorrespondenceId}", request.CorrespondenceId);
+        ////await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
+        ////{
+        ////    await updateCorrespondenceStatusHelper.AddCorrespondenceStatus(correspondence, request.SyncedEvent.Status, request.SyncedEvent.PartyUuid, cancellationToken);
 
-            if (correspondence.IsMigrating == false)
-            {
-                updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.SyncedEvent.Status, operationTimestamp);
-                updateCorrespondenceStatusHelper.PatchCorrespondenceDialog(request.CorrespondenceId, request.SyncedEvent.Status);
-                updateCorrespondenceStatusHelper.PublishEvent(correspondence, request.SyncedEvent.Status);
-            }
+        ////    if (correspondence.IsMigrating == false)
+        ////    {
+        ////        updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.SyncedEvent.Status, operationTimestamp);
+        ////        updateCorrespondenceStatusHelper.PatchCorrespondenceDialog(request.CorrespondenceId, request.SyncedEvent.Status);
+        ////        updateCorrespondenceStatusHelper.PublishEvent(correspondence, request.SyncedEvent.Status);
+        ////    }
 
-            return Task.CompletedTask;
-        }, logger, cancellationToken);
+        ////    return Task.CompletedTask;
+        ////}, logger, cancellationToken);
 
-        logger.LogInformation("Successfully synced status to {Status} for correspondence {CorrespondenceId}", 
-            request.SyncedEvent.Status, 
-            request.CorrespondenceId);
-        return request.CorrespondenceId;
+        ////logger.LogInformation("Successfully synced status to {Status} for correspondence {CorrespondenceId}", 
+        ////    request.SyncedEvent.Status, 
+        ////    request.CorrespondenceId);
+        ////return request.CorrespondenceId;
     }
 
     /// <summary>
