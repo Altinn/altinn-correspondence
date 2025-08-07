@@ -11,9 +11,7 @@ using System.Security.Claims;
 namespace Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 
 public class SyncCorrespondenceNotificationEventHandler(
-    IAltinnAuthorizationService altinnAuthorizationService,
-    IAltinnRegisterService altinnRegisterService,
-    ICorrespondenceRepository correspondenceRepository,    
+    ICorrespondenceNotificationRepository notificationRepository,    
     ILogger<SyncCorrespondenceNotificationEventHandler> logger) : IHandler<SyncCorrespondenceNotificationEventRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceNotificationEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
