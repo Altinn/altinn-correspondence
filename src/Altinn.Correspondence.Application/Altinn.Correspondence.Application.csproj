@@ -8,11 +8,11 @@
   
   <ItemGroup>
       <PackageReference Include="Hangfire.Core" Version="1.8.20" />
-      <PackageReference Include="libphonenumber-csharp" Version="9.0.10" />
-      <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.7" />
-      <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="9.0.7" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.7" />
-      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.7" />
+      <PackageReference Include="libphonenumber-csharp" Version="9.0.11" />
+      <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.8" />
+      <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="9.0.8" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.8" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.8" />
       <PackageReference Include="OneOf" Version="3.0.271" />
       <PackageReference Include="Markdig" Version="0.41.3" />
       <PackageReference Include="Polly" Version="8.6.2" />
