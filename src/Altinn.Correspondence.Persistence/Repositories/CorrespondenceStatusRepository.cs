@@ -15,4 +15,11 @@ public class CorrespondenceStatusRepository(ApplicationDbContext context, ILogge
         await _context.SaveChangesAsync();
         return status.Id;
     }
+
+    public async Task<List<CorrespondenceStatusEntity>> AddCorrespondenceStatuses(List<CorrespondenceStatusEntity> correspondenceStatusEntities, CancellationToken cancellationToken)
+    {
+        await _context.CorrespondenceStatuses.AddRangeAsync(correspondenceStatusEntities, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+        return correspondenceStatusEntities;
+    }
 }

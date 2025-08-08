@@ -101,6 +101,10 @@ public class UpdateCorrespondenceStatusHelper(
         {
             _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondenceId));
         }
+        else if (status == CorrespondenceStatus.Archived)
+        {
+            _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.SetArchivedSystemLabelOnDialog(correspondenceId));
+        }
         return;
     }
 
