@@ -435,5 +435,10 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
         return dialogResponse;
     }
+
+    public Task SetArchivedSystemLabelOnDialog(Guid correspondenceId)
+    {
+        throw new NotImplementedException();
+    }
     #endregion
 }

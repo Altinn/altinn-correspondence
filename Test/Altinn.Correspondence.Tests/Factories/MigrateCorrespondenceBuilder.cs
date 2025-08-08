@@ -26,10 +26,14 @@ namespace Altinn.Correspondence.Tests.Factories
             };
 
             migrateCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
+            
+            migrateCorrespondence.Correspondence.Published = new DateTimeOffset(new DateTime(2024, 1, 6));
 
             _migratedCorrespondence = new()
             {
                 CorrespondenceData = migrateCorrespondence,
+                Created = new DateTimeOffset(new DateTime(2024, 1, 5)),
+                
                 Altinn2CorrespondenceId = (new Random().Next()),
                 EventHistory =
             [
@@ -37,13 +41,16 @@ namespace Altinn.Correspondence.Tests.Factories
                     {
                         Status = CorrespondenceStatusExt.Initialized,
                         StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
-                        EventUserPartyUuid = _defaultUserPartyUuid
+                        EventUserPartyUuid = _defaultUserPartyUuid,
+                        EventUserUuid = _defaultUserUuid
+
                     },
                     new MigrateCorrespondenceStatusEventExt()
                     {
                         Status = CorrespondenceStatusExt.Published,
                         StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6)),
-                        EventUserPartyUuid = _defaultUserPartyUuid
+                        EventUserPartyUuid = _defaultUserPartyUuid,
+                        EventUserUuid = _defaultUserUuid
                     }
                 ],
                 IsMigrating = true
