@@ -81,7 +81,7 @@ namespace Altinn.Correspondence.Application.MigrateToStorageProvider
                     throw new ArgumentException($"Attachment with id {attachmentId} not found in storage", nameof(attachmentId));
                 }
 
-                var uploadResult = await storageRepository.UploadAttachment(attachment, fileStream, attachment.AttachmentSize, storageProvider, CancellationToken.None);
+                var uploadResult = await storageRepository.UploadAttachment(attachment, fileStream, storageProvider, CancellationToken.None);
                 if (attachment.AttachmentSize == 0)
                 {
                     attachment.AttachmentSize = uploadResult.size;
