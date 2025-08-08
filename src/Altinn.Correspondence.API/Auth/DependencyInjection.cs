@@ -187,7 +187,7 @@ namespace Altinn.Correspondence.API.Auth
             if (issuerClaim == null) return false;
 
             // Altinn
-            if (issuerClaim.Value.Contains("altinn.no"))
+            if (issuerClaim.Value.Contains("altinn"))
             {
                 var scopeClaim = context.User.Claims.FirstOrDefault(c => c.Type == "scope");
                 if (scopeClaim != null)
