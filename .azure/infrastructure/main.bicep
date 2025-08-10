@@ -2,8 +2,6 @@ targetScope = 'subscription'
 @minLength(3)
 param location string
 @secure()
-param correspondencePgAdminPassword string
-@secure()
 param sourceKeyVaultName string
 @secure()
 param tenantId string
@@ -107,7 +105,6 @@ var srcKeyVault = {
   resourceGroupName: resourceGroupName
 }
 
-var correspondenceAdminPasswordSecretName = 'correspondence-admin-password'
 module postgresql '../modules/postgreSql/create.bicep' = {
   scope: resourceGroup
   name: 'postgresql'
@@ -118,9 +115,6 @@ module postgresql '../modules/postgreSql/create.bicep' = {
     namePrefix: namePrefix
     location: location
     environmentKeyVaultName: sourceKeyVaultName
-    srcKeyVault: srcKeyVault
-    srcSecretName: correspondenceAdminPasswordSecretName
-    administratorLoginPassword: correspondencePgAdminPassword
     tenantId: tenantId
     prodLikeEnvironment: prodLikeEnvironment
   }
