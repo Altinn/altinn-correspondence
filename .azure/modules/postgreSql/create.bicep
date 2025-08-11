@@ -12,6 +12,7 @@ param administratorLoginPassword string
 param tenantId string
 
 param prodLikeEnvironment bool
+param logAnalyticsWorkspaceId string = ''
 
 
 var databaseName = 'correspondence'
@@ -267,6 +268,41 @@ module adoConnectionString '../keyvault/upsertSecret.bicep' = {
     destKeyVaultName: environmentKeyVaultName
     secretName: 'correspondence-ado-connection-string'
     secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${namePrefix}-app-identity;Ssl Mode=Require;Trust Server Certificate=True;Maximum Pool Size=${poolSize};options=-c role=azure_pg_admin;'
+  }
+}
+
+// Diagnostic settings for Query Store and monitoring
+resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (!empty(logAnalyticsWorkspaceId)) {
+  name: 'QueryStoreDiagnostics'
+  scope: postgres
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      {
+        category: 'PostgreSQL query store runtime'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true
+        }
+      }
+      {
+        category: 'PostgreSQL query store wait statistics'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true
+        }
+      }
+      {
+        category: 'PostgreSQL Sessions'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true
+        }
+      }
+    ]
   }
 }
 

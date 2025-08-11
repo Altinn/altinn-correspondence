@@ -113,6 +113,7 @@ module postgresql '../modules/postgreSql/create.bicep' = {
   name: 'postgresql'
   dependsOn: [
     environmentKeyVault
+    containerAppEnv
   ]
   params: {
     namePrefix: namePrefix
@@ -123,6 +124,7 @@ module postgresql '../modules/postgreSql/create.bicep' = {
     administratorLoginPassword: correspondencePgAdminPassword
     tenantId: tenantId
     prodLikeEnvironment: prodLikeEnvironment
+    logAnalyticsWorkspaceId: containerAppEnv.outputs.logAnalyticsWorkspaceId
   }
 }
 
