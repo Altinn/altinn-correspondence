@@ -278,7 +278,7 @@ resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
     workspaceId: logAnalyticsWorkspaceId
     logs: [
       {
-        category: 'PostgreSQL query store runtime'
+        category: 'PostgreSQLFlexQueryStoreRuntime'
         enabled: true
         retentionPolicy: {
           days: 30
@@ -286,7 +286,7 @@ resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
         }
       }
       {
-        category: 'PostgreSQL query store wait statistics'
+        category: 'PostgreSQLFlexQueryStoreWaitStats'
         enabled: true
         retentionPolicy: {
           days: 30
@@ -294,7 +294,7 @@ resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
         }
       }
       {
-        category: 'PostgreSQL Sessions'
+        category: 'PostgreSQLFlexSessions'
         enabled: true
         retentionPolicy: {
           days: 30
