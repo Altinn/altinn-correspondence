@@ -12,5 +12,6 @@ public interface IDialogportenService
     Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp);
     Task PurgeCorrespondenceDialog(Guid correspondenceId);
     Task SoftDeleteDialog(string dialogId);
+    Task<bool> TrySoftDeleteDialogAsync(string dialogId);
     Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType, string actorName, DateTimeOffset activityTimestamp);
 }

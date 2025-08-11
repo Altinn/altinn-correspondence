@@ -302,6 +302,23 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
     }
 
+    public async Task<bool> TrySoftDeleteDialogAsync(string dialogId)
+    {
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+
+        var response = await _httpClient.DeleteAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound || response.StatusCode == System.Net.HttpStatusCode.Gone)
+        {
+            return false;
+        }
+        throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+    }
+
     public async Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType, string actorName, DateTimeOffset activityTimestamp)
     {
         logger.LogInformation("CreateCorrespondencePurgedActivity by {actorType}: for correspondence {correspondenceId}",
