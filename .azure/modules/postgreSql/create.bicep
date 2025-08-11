@@ -83,7 +83,7 @@ resource extensionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/conf
   parent: postgres
   dependsOn: [database]
   properties: {
-    value: 'UUID-OSSP,HSTORE,PG_CRON'
+    value: 'UUID-OSSP,HSTORE,PG_CRON,PG_STAT_STATEMENTS'
     source: 'user-override'
   }
 }
@@ -229,12 +229,32 @@ resource trackIoTiming 'Microsoft.DBforPostgreSQL/flexibleServers/configurations
   }
 }
 
+resource pgQsQueryCaptureMode 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'pg_qs.query_capture_mode'
+  parent: postgres
+  dependsOn: [database, trackIoTiming]
+  properties: {
+    value: 'all'
+    source: 'user-override'
+  }
+}
+
+resource pgmsWaitSamplingQueryCaptureMode 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'pgms_wait_sampling.query_capture_mode'
+  parent: postgres
+  dependsOn: [database, pgQsQueryCaptureMode]
+  properties: {
+    value: 'all'
+    source: 'user-override'
+  }
+}
+
 
 
 resource allowAzureAccess 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
   name: 'azure-access'
   parent: postgres
-  dependsOn: [database, trackIoTiming] // Needs to depend on database to avoid updating at the same time
+  dependsOn: [database, pgmsWaitSamplingQueryCaptureMode] // Needs to depend on database to avoid updating at the same time
   properties: {
     startIpAddress: '0.0.0.0'
     endIpAddress: '0.0.0.0'
