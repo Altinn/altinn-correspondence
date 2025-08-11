@@ -112,11 +112,6 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
     volumeMounts: volumeMounts
     principalId: userAssignedIdentity.id
   }
-  properties: {
-    configuration: {
-      replicaTimeout: 5400
-    }
-  }
 }
 
 output name string = containerAppJob.name
