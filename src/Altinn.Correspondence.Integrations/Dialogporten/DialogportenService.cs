@@ -302,7 +302,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
     }
 
-    public async Task<bool> TrySoftDeleteDialogAsync(string dialogId)
+    public async Task<bool> TrySoftDeleteDialog(string dialogId)
     {
         var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;

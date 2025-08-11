@@ -38,7 +38,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.CompletedTask;
         }
 
-        public Task<bool> TrySoftDeleteDialogAsync(string dialogId)
+        public Task<bool> TrySoftDeleteDialog(string dialogId)
         {
             return Task.FromResult(true);
         }
