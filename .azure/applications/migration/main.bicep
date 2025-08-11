@@ -102,7 +102,7 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
     containerAppEnvId: containerAppEnv.id
     environmentVariables: containerAppEnvVars
     secrets: secrets
-    command: ['/bin/bash', '-c', './migrations/bundle.exe --connection "$(DatabaseOptions__ConnectionString)";']
+    command: ['/bin/bash', '-c', 'cp ./migrations/bundle.exe /tmp/bundle.exe && cp ./migrations/appsettings.json /tmp/ && chmod +x /tmp/bundle.exe && cd /tmp && ./bundle.exe --connection "$(DatabaseOptions__ConnectionString)";']
     image: 'ubuntu:latest'
     volumes: volumes
     volumeMounts: volumeMounts
