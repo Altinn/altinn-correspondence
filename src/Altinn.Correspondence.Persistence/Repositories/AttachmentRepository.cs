@@ -18,7 +18,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 attachment.StorageProvider = await _context.StorageProviders
                     .FirstOrDefaultAsync(sp => sp.Id == attachment.StorageProvider.Id, cancellationToken);
-            } 
+            }
             else
             {
                 logger.LogWarning("Could not find any storage provider for attachment");
@@ -32,8 +32,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
             catch (Exception ex)
             {
-                logger.LogError("Error saving attachment: {Message}, content: {Attachment}",
-                    ex.Message, JsonSerializer.Serialize(attachment));
+                logger.LogError(ex,
+                    "Error saving attachment {AttachmentId} (ResourceId: {ResourceId}, StorageProviderId: {StorageProviderId})",
+                    attachment?.Id, attachment?.ResourceId, attachment?.StorageProvider?.Id);
+
                 throw;
             }
 
