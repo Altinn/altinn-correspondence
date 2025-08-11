@@ -353,7 +353,7 @@ public class InitializeCorrespondencesHandler(
         {
             var isReserved = validatedData.ReservedRecipients.Contains(recipient.WithoutPrefix());
             var recipientParty = validatedData.RecipientDetails.FirstOrDefault(r => r.SSN == recipient.WithoutPrefix() || r.OrgNumber == recipient.WithoutPrefix());
-            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, validatedData.AttachmentsToBeUploaded, validatedData.PartyUuid, recipientParty, isReserved, serviceOwnerOrgNumber);
+            var correspondence = await initializeCorrespondenceHelper.MapToCorrespondenceEntityAsync(request, recipient, validatedData.AttachmentsToBeUploaded, validatedData.PartyUuid, recipientParty, isReserved, serviceOwnerOrgNumber, cancellationToken);
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Altinn.Correspondence.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250801111910_AddServiceOwnerIdsCorrespondenceAndAttachment")]
+    partial class AddServiceOwnerIdsCorrespondenceAndAttachment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -318,9 +321,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<string>("MailboxSupplier")
                         .HasColumnType("text");
 
-                    b.Property<DateTimeOffset?>("SyncedFromAltinn2")
-                        .HasColumnType("timestamp with time zone");
-
                     b.HasKey("Id");
 
                     b.HasIndex("CorrespondenceId");
@@ -369,9 +369,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.Property<Guid?>("ShipmentId")
                         .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("SyncedFromAltinn2")
-                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -424,9 +421,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<string>("StatusText")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<DateTimeOffset?>("SyncedFromAltinn2")
-                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
