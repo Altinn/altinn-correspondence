@@ -195,11 +195,10 @@ resource sharedPreloadLibraries 'Microsoft.DBforPostgreSQL/flexibleServers/confi
   parent: postgres
   dependsOn: [database, cronDatabaseName]
   properties: {
-    value: 'pg_stat_statements'
+    value: 'pg_stat_statements,pg_cron'
     source: 'user-override'
   }
 }
-
 resource pgStatStatementsTrack 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
   name: 'pg_stat_statements.track'
   parent: postgres
