@@ -63,7 +63,7 @@ var containerAppEnvVars = [
   }
   {
     name: 'DatabaseOptions__CommandTimeout'
-    value: '300'
+    value: '3600'
   }
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription().subscriptionId }
   { name: 'AzureResourceManagerOptions__Location', value: 'norwayeast' }
@@ -106,12 +106,16 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
     containerAppEnvId: containerAppEnv.id
     environmentVariables: containerAppEnvVars
     secrets: secrets
-    command: ['/bin/bash', '-c', 'cp ./migrations/bundle.exe /tmp/bundle.exe && cp ./migrations/appsettings.json /tmp/ && chmod +x /tmp/bundle.exe && cd /tmp && ./bundle.exe --connection "$(DatabaseOptions__ConnectionString);CommandTimeout=300";']
+    command: ['/bin/bash', '-c', 'cp ./migrations/bundle.exe /tmp/bundle.exe && cp ./migrations/appsettings.json /tmp/ && chmod +x /tmp/bundle.exe && cd /tmp && ./bundle.exe --connection "$(DatabaseOptions__ConnectionString);CommandTimeout=3600";']
     image: 'ubuntu:latest'
     volumes: volumes
     volumeMounts: volumeMounts
     principalId: userAssignedIdentity.id
-    jobTimeout: 'PT10M'
+  }
+  properties: {
+    configuration: {
+      replicaTimeout: 5400
+    }
   }
 }
 
