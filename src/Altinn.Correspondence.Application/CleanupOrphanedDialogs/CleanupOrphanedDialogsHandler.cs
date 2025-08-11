@@ -31,7 +31,8 @@ public class CleanupOrphanedDialogsHandler(
         });
     }
 
-    [AutomaticRetry(Attempts = 3)]
+    [AutomaticRetry(Attempts = 0)]
+    [DisableConcurrentExecution(timeoutInSeconds: 1800)]
     public async Task ExecuteCleanupInBackground(CancellationToken cancellationToken)
     {
         logger.LogInformation("Executing cleanup of orphaned dialogs in background job");

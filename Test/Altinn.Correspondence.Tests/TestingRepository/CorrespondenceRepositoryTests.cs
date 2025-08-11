@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Repositories;
 using Altinn.Correspondence.Tests.Fixtures;
@@ -90,27 +91,96 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         }
 
         [Fact]
+        public async Task GetPurgedCorrespondencesWithDialogsAfter_TieBreakerOnEqualCreated_UsesIdAscending()
+        {
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+            var baseTime = new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+            var idA = new Guid("00000000-0000-0000-0000-000000000001");
+            var idB = new Guid("00000000-0000-0000-0000-000000000002");
+            var items = new List<CorrespondenceEntity>
+            {
+                new CorrespondenceEntity
+                {
+                    Id = idA,
+                    Created = baseTime,
+                    Recipient = "0192:987654321",
+                    RequestedPublishTime = baseTime,
+                    ResourceId = "r",
+                    Sender = "0192:123456789",
+                    SendersReference = "A",
+                    Statuses = new List<CorrespondenceStatusEntity> { new() { Status = CorrespondenceStatus.PurgedByAltinn, StatusChanged = baseTime } },
+                    ExternalReferences = new List<ExternalReferenceEntity> { new() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = "dA" } }
+                },
+                new CorrespondenceEntity
+                {
+                    Id = idB,
+                    Created = baseTime,
+                    Recipient = "0192:987654321",
+                    RequestedPublishTime = baseTime,
+                    ResourceId = "r",
+                    Sender = "0192:123456789",
+                    SendersReference = "B",
+                    Statuses = new List<CorrespondenceStatusEntity> { new() { Status = CorrespondenceStatus.PurgedByAltinn, StatusChanged = baseTime } },
+                    ExternalReferences = new List<ExternalReferenceEntity> { new() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = "dB" } }
+                }
+            };
+            context.Correspondences.AddRange(items);
+            await context.SaveChangesAsync();
+
+            var page1 = await repo.GetPurgedCorrespondencesWithDialogsAfter(1, null, null, true, CancellationToken.None);
+            Assert.Single(page1);
+            Assert.Equal(idA, page1[0].Id);
+
+            var page2 = await repo.GetPurgedCorrespondencesWithDialogsAfter(1, page1[0].Created, page1[0].Id, true, CancellationToken.None);
+            Assert.Single(page2);
+            Assert.Equal(idB, page2[0].Id);
+        }
+
+        [Fact]
         public async Task GetPurgedCorrespondencesWithDialogsAfter_ReturnsInOrderAndPages()
         {
             await using var context = _fixture.CreateDbContext();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
-            var baseTime = DateTimeOffset.UtcNow.AddMinutes(-10);
+            var baseTime = new DateTimeOffset(2000, 1, 2, 0, 0, 0, TimeSpan.Zero);
 
-            var items = new List<CorrespondenceEntity>();
-            for (int i = 0; i < 3; i++)
+            var items = new List<CorrespondenceEntity>
             {
-                items.Add(new CorrespondenceEntity
+                new CorrespondenceEntity
                 {
-                    Created = baseTime.AddMinutes(i),
+                    Created = baseTime,
                     Recipient = "0192:987654321",
-                    RequestedPublishTime = baseTime.AddMinutes(i),
+                    RequestedPublishTime = baseTime,
                     ResourceId = "r",
                     Sender = "0192:123456789",
-                    SendersReference = i.ToString(),
-                    Statuses = new List<CorrespondenceStatusEntity> { new() { Status = Altinn.Correspondence.Core.Models.Enums.CorrespondenceStatus.PurgedByAltinn, StatusChanged = baseTime.AddMinutes(i) } },
-                    ExternalReferences = new List<ExternalReferenceEntity> { new() { ReferenceType = Altinn.Correspondence.Core.Models.Enums.ReferenceType.DialogportenDialogId, ReferenceValue = $"d{i}" } }
-                });
-            }
+                    SendersReference = "A",
+                    Statuses = new List<CorrespondenceStatusEntity> { new() { Status = CorrespondenceStatus.PurgedByAltinn, StatusChanged = baseTime } },
+                    ExternalReferences = new List<ExternalReferenceEntity> { new() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = "dA" } }
+                },
+                new CorrespondenceEntity
+                {
+                    Created = baseTime.AddMinutes(1),
+                    Recipient = "0192:987654321",
+                    RequestedPublishTime = baseTime.AddMinutes(1),
+                    ResourceId = "r",
+                    Sender = "0192:123456789",
+                    SendersReference = "B",
+                    Statuses = new List<CorrespondenceStatusEntity> { new() { Status = CorrespondenceStatus.PurgedByAltinn, StatusChanged = baseTime.AddMinutes(1) } },
+                    ExternalReferences = new List<ExternalReferenceEntity> { new() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = "dB" } }
+                },
+                new CorrespondenceEntity
+                {
+                    Created = baseTime.AddMinutes(2),
+                    Recipient = "0192:987654321",
+                    RequestedPublishTime = baseTime.AddMinutes(2),
+                    ResourceId = "r",
+                    Sender = "0192:123456789",
+                    SendersReference = "C",
+                    Statuses = new List<CorrespondenceStatusEntity> { new() { Status = CorrespondenceStatus.PurgedByAltinn, StatusChanged = baseTime.AddMinutes(2) } },
+                    ExternalReferences = new List<ExternalReferenceEntity> { new() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = "dC" } }
+                }
+            };
             context.Correspondences.AddRange(items);
             await context.SaveChangesAsync();
 
