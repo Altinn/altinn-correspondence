@@ -111,7 +111,7 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
     volumes: volumes
     volumeMounts: volumeMounts
     principalId: userAssignedIdentity.id
-    timeout: 'PT10M'
+    jobTimeout: 'PT10M'
   }
 }
 
