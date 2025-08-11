@@ -184,5 +184,37 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     .All(correspondenceAttachment => correspondenceAttachment.Attachment!.Statuses.Any(status => status.Status == AttachmentStatus.Published)))
                 .SingleOrDefaultAsync(cancellationToken);
         }
+
+        public async Task<List<CorrespondenceEntity>> GetPurgedCorrespondencesWithDialogsAfter(
+            int limit,
+            DateTimeOffset? lastCreated,
+            Guid? lastId,
+            bool filterMigrated,
+            CancellationToken cancellationToken)
+        {
+            var query = _context.Correspondences
+                .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId))
+                .IncludeByStatuses(includeActive: false, includeArchived: false, includePurged: true, specificStatus: null)
+                .FilterMigrated(filterMigrated)
+                .Include(c => c.Statuses)
+                .Include(c => c.ExternalReferences)
+                .AsQueryable();
+
+            if (lastCreated.HasValue)
+            {
+                if (lastId.HasValue)
+                {
+                    query = query.Where(c => c.Created > lastCreated.Value || (c.Created == lastCreated.Value && c.Id > lastId.Value));
+                }
+                else
+                {
+                    query = query.Where(c => c.Created > lastCreated.Value);
+                }
+            }
+
+            query = query.OrderBy(c => c.Created).ThenBy(c => c.Id).Take(limit);
+
+            return await query.ToListAsync(cancellationToken);
+        }
     }
 }
