@@ -107,6 +107,28 @@ var srcKeyVault = {
   resourceGroupName: resourceGroupName
 }
 
+module storageAccount '../modules/storageAccount/create.bicep' = {
+  scope: resourceGroup
+  name: storageAccountName
+  params: {
+    storageAccountName: storageAccountName
+    location: location
+    fileshare: 'migrations'
+  }
+}
+
+module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
+  scope: resourceGroup
+  name: 'container-app-environment'
+  dependsOn: [storageAccount]
+  params: {
+    keyVaultName: sourceKeyVaultName
+    location: location
+    namePrefix: namePrefix
+    storageAccountName: storageAccountName
+  }
+}
+
 var correspondenceAdminPasswordSecretName = 'correspondence-admin-password'
 module postgresql '../modules/postgreSql/create.bicep' = {
   scope: resourceGroup
@@ -128,16 +150,6 @@ module postgresql '../modules/postgreSql/create.bicep' = {
   }
 }
 
-module storageAccount '../modules/storageAccount/create.bicep' = {
-  scope: resourceGroup
-  name: storageAccountName
-  params: {
-    storageAccountName: storageAccountName
-    location: location
-    fileshare: 'migrations'
-  }
-}
-
 module reddis '../modules/redis/main.bicep' = {
   scope: resourceGroup
   name: 'redis'
@@ -147,18 +159,6 @@ module reddis '../modules/redis/main.bicep' = {
     keyVaultName: sourceKeyVaultName
     prodLikeEnvironment: prodLikeEnvironment
     environment: environment
-  }
-}
-
-module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
-  scope: resourceGroup
-  name: 'container-app-environment'
-  dependsOn: [storageAccount]
-  params: {
-    keyVaultName: sourceKeyVaultName
-    location: location
-    namePrefix: namePrefix
-    storageAccountName: storageAccountName
   }
 }
 output resourceGroupName string = resourceGroup.name
