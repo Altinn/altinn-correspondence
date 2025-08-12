@@ -39,6 +39,12 @@ namespace Altinn.Correspondence.Tests.Factories
             return _correspondenceEntity;
         }
 
+        public CorrespondenceEntityBuilder WithCreated(DateTime created)
+        {
+            _correspondenceEntity.Created = new DateTimeOffset(created);
+            return this;
+        }
+
         public CorrespondenceEntityBuilder WithStatus(CorrespondenceStatus status)
         {
             _correspondenceEntity.Statuses.Add(new CorrespondenceStatusEntity
@@ -94,6 +100,24 @@ namespace Altinn.Correspondence.Tests.Factories
         public CorrespondenceEntityBuilder WithIsMigrating(bool isMigrating)
         {
             _correspondenceEntity.IsMigrating = isMigrating;
+            return this;
+        }
+
+        public CorrespondenceEntityBuilder WithAttachment(string attachmentName)
+        {
+            _correspondenceEntity.Content.Attachments.Add(new CorrespondenceAttachmentEntity
+            {
+                Id = Guid.NewGuid(),
+                Attachment = new AttachmentEntity
+                {
+                    Id = Guid.NewGuid(),
+                    ResourceId = "test-attachment-resource-id",
+                    FileName = attachmentName,
+                    SendersReference = "test-attachment-senders-reference",
+                    Sender = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
+                    Created = _correspondenceEntity.Created
+                }
+            });
             return this;
         }
     }

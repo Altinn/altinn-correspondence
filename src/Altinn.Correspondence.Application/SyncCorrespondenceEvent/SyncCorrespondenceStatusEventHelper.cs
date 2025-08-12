@@ -1,5 +1,3 @@
-using Altinn.Correspondence.Application.CancelNotification;
-using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -44,7 +42,7 @@ public class SyncCorrespondenceStatusEventHelper(
         await correspondenceStatusRepository.AddCorrespondenceStatuses(statuses, cancellationToken);
     }
 
-    public async Task<Guid> PurgeCorrespondence(CorrespondenceEntity correspondence, CorrespondenceStatusEntity statusToSync, CancellationToken cancellationToken)
+    public async Task<Guid> PurgeCorrespondence(CorrespondenceEntity correspondence, CorrespondenceStatusEntity statusToSync, bool isAvailable, CancellationToken cancellationToken)
     {   
         await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity()
         {
@@ -55,17 +53,19 @@ public class SyncCorrespondenceStatusEventHelper(
             PartyUuid = statusToSync.PartyUuid,            
             SyncedFromAltinn2 = DateTime.UtcNow
         }, cancellationToken);
-
-        backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-        await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondence.Id, statusToSync.PartyUuid, cancellationToken);
-        var reportToDialogportenJob = ReportActivityToDialogporten(statusToSync.Status, correspondence.Id, statusToSync.StatusChanged);
-        var cancelNotificationJob = backgroundJobClient.ContinueJobWith<CancelNotificationHandler>(reportToDialogportenJob,
-            handler => handler.Process(null, correspondence.Id, null, cancellationToken));
-        var dialogId = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
-        if (dialogId is not null)
+        
+        if(isAvailable)
         {
-            backgroundJobClient.ContinueJobWith<IDialogportenService>(cancelNotificationJob, service => service.SoftDeleteDialog(dialogId.ReferenceValue));
+            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None)); 
         }
+        
+        await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondence.Id, statusToSync.PartyUuid, cancellationToken);
+
+        if (isAvailable)
+        {
+            var reportToDialogportenJob = ReportActivityToDialogporten(statusToSync.Status, correspondence.Id, statusToSync.StatusChanged);
+        }         
+        
         return correspondence.Id;
     }
 

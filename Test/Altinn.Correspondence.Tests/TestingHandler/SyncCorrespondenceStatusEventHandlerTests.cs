@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.CancelNotification;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
@@ -79,7 +80,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithStatus(CorrespondenceStatus.Published)                
                 .WithAltinn2CorrespondenceId(12345)
-                .WithIsMigrating(true)                
+                .WithIsMigrating(true) // Not available in Altinn 3 APIs
                 .Build();
             var correspondenceId = correspondence.Id;
 
@@ -147,7 +148,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithStatus(CorrespondenceStatus.Published)
                 .WithAltinn2CorrespondenceId(12345)
-                .WithIsMigrating(true)
+                .WithIsMigrating(true) // Not available in Altinn 3 APIs
                 .Build();
             var correspondenceId = correspondence.Id;
 
@@ -208,7 +209,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .WithStatus(CorrespondenceStatus.Published)
                 .WithStatus(CorrespondenceStatus.Read, new DateTime(2023, 10, 1, 12, 0, 0), partyUuid)
                 .WithAltinn2CorrespondenceId(12345)
-                .WithIsMigrating(true)
+                .WithIsMigrating(true) // Not available in Altinn 3 APIs
                 .Build();
             var correspondenceId = correspondence.Id;
 
@@ -257,7 +258,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .WithStatus(CorrespondenceStatus.Published)
                 .WithStatus(CorrespondenceStatus.Read, new DateTime(2023, 10, 1, 12, 0, 0), partyUuid)
                 .WithAltinn2CorrespondenceId(12345)
-                .WithIsMigrating(true)
+                .WithIsMigrating(true) // Not available in Altinn 3 APIs
                 .Build();
             var correspondenceId = correspondence.Id;
 
@@ -318,7 +319,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithStatus(CorrespondenceStatus.Published)
                 .WithAltinn2CorrespondenceId(12345)
-                .WithIsMigrating(false) // Available in Altinn 3
                 .Build();
             var correspondenceId = correspondence.Id;
             var recipient = correspondence.Recipient;
@@ -383,6 +383,292 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _dialogPortenServiceMock.VerifyNoOtherCalls();
         }
 
+        [Fact]
+        public async Task Available_PurgedByRecipient_OKEvents()
+        {
+            // Arrange
+            var partyUuid = Guid.NewGuid();
+
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .WithAltinn2CorrespondenceId(12345)
+                .Build();
+            var correspondenceId = correspondence.Id;
+            var recipient = correspondence.Recipient;
+            var sender = correspondence.Sender;
+            var request = new SyncCorrespondenceStatusEventRequest
+            {
+                CorrespondenceId = correspondenceId,
+                SyncedEvents = new List<CorrespondenceStatusEntity>
+                {
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.PurgedByRecipient,
+                        StatusChanged = new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)),
+                        PartyUuid = partyUuid
+                    }
+                }
+            };
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .ReturnsAsync(correspondence);
+            _correspondenceStatusRepositoryMock
+                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
+            _attachmentRepositoryMock
+                .Setup(x => x.GetAttachmentsByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<AttachmentEntity>());
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert OK Return
+            Assert.True(result.IsT0);
+            Assert.Equal(correspondenceId, result.AsT0);
+
+            // Verify correct calls to Correspondence repository
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify that the statuses were added to Repository with SyncedFromAltinn2 set
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.PurgedByRecipient &&
+                    e.StatusChanged.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0))) &&
+                    e.PartyUuid == partyUuid &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify background job for Altinn Events
+            VerifyAltinnEventEnqueued(correspondenceId, AltinnEventType.CorrespondencePurged, sender);
+            // Verify background jobs Dialogporten activities
+            VerifyDialogportenServiceCreatePurgedActivityEnqueued(correspondenceId,DialogportenActorType.Recipient, "mottaker", new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)));
+
+            // Should not trigger any additional Dialogporten changes or background jobs
+            _backgroundJobClientMock.VerifyNoOtherCalls();
+            _dialogPortenServiceMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task Available_PurgedByAltinnWithAttachments__OKEvents()
+        {
+            // Arrange
+            var partyUuid = Guid.NewGuid();
+
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithCreated(new DateTime(2025, 8, 1, 12, 0, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 8, 1, 12, 0, 0), partyUuid)
+                .WithAltinn2CorrespondenceId(12345)
+                .WithAttachment("fjas.txt")
+                .Build();
+            var correspondenceId = correspondence.Id;
+            var recipient = correspondence.Recipient;
+            var sender = correspondence.Sender;
+            var request = new SyncCorrespondenceStatusEventRequest
+            {
+                CorrespondenceId = correspondenceId,
+                SyncedEvents = new List<CorrespondenceStatusEntity>
+                {
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.PurgedByAltinn,
+                        StatusChanged = new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0))
+                    }
+                }
+            };
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .ReturnsAsync(correspondence);
+            _correspondenceStatusRepositoryMock
+                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
+            _attachmentRepositoryMock
+                .Setup(x => x.GetAttachmentsByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<AttachmentEntity>
+                {
+                    new AttachmentEntity
+                    {
+                        Id = Guid.NewGuid(),
+                        ResourceId = correspondence.ResourceId,
+                        FileName  = correspondence.Content.Attachments.First().Attachment.FileName,
+                        SendersReference = correspondence.Content.Attachments.First().Attachment.SendersReference,
+                        Sender = sender,
+                        Created =  correspondence.Content.Attachments.First().Attachment.Created
+                    }
+                });
+            
+            _attachmentRepositoryMock
+                .Setup(x => x.CanAttachmentBeDeleted(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            _attachmentStatusRepositoryMock
+                .Setup(x => x.AddAttachmentStatus(It.IsAny<AttachmentStatusEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Guid.NewGuid());
+
+            _storageRepositoryMock
+                .Setup(x => x.PurgeAttachment(It.IsAny<Guid>(), It.IsAny<StorageProviderEntity>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert OK Return
+            Assert.True(result.IsT0);
+            Assert.Equal(correspondenceId, result.AsT0);
+
+            // Verify correct calls to Correspondence repository
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify that the statuses were added to Repository with SyncedFromAltinn2 set
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.PurgedByAltinn &&
+                    e.StatusChanged.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0))) &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify background job for Altinn Events
+            VerifyAltinnEventEnqueued(correspondenceId, AltinnEventType.CorrespondencePurged, sender);
+            // Verify background jobs Dialogporten activities
+            VerifyDialogportenServiceCreatePurgedActivityEnqueued(correspondenceId, DialogportenActorType.Sender, "avsender", new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)));
+
+            // Should not trigger any additional Dialogporten changes or background jobs
+            _backgroundJobClientMock.VerifyNoOtherCalls();
+            _dialogPortenServiceMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task NotAvailable_PurgedByRecipient_OKNoEvents()
+        {
+            // Arrange
+            var partyUuid = Guid.NewGuid();
+
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .WithAltinn2CorrespondenceId(12345)
+                .WithIsMigrating(true) 
+                .Build();
+            var correspondenceId = correspondence.Id;
+            var recipient = correspondence.Recipient;
+            var sender = correspondence.Sender;
+            var request = new SyncCorrespondenceStatusEventRequest
+            {
+                CorrespondenceId = correspondenceId,
+                SyncedEvents = new List<CorrespondenceStatusEntity>
+                {
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.PurgedByRecipient,
+                        StatusChanged = new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)),
+                        PartyUuid = partyUuid
+                    }
+                }
+            };
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .ReturnsAsync(correspondence);
+            _correspondenceStatusRepositoryMock
+                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
+            _attachmentRepositoryMock
+                .Setup(x => x.GetAttachmentsByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<AttachmentEntity>());
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert OK Return
+            Assert.True(result.IsT0);
+            Assert.Equal(correspondenceId, result.AsT0);
+
+            // Verify correct calls to Correspondence repository
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify that the statuses were added to Repository with SyncedFromAltinn2 set
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.PurgedByRecipient &&
+                    e.StatusChanged.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0))) &&
+                    e.PartyUuid == partyUuid &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+
+            // Should not trigger any additional Dialogporten changes or background jobs
+            _backgroundJobClientMock.VerifyNoOtherCalls();
+            _dialogPortenServiceMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task NotAvailable_PurgedByRecipient_AlreadyPurged_NoEvents()
+        {
+            // Arrange
+            var partyUuid = Guid.NewGuid();
+
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.PurgedByRecipient, new DateTime(2025, 8, 1, 12, 0, 0), partyUuid)
+                .WithAltinn2CorrespondenceId(12345)
+                .WithIsMigrating(true) // Not Available in Altinn 3                
+                .Build();
+            var correspondenceId = correspondence.Id;
+            var recipient = correspondence.Recipient;
+            var sender = correspondence.Sender;
+            var request = new SyncCorrespondenceStatusEventRequest
+            {
+                CorrespondenceId = correspondenceId,
+                SyncedEvents = new List<CorrespondenceStatusEntity>
+                {
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.PurgedByRecipient,
+                        StatusChanged = new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)),
+                        PartyUuid = partyUuid
+                    }
+                }
+            };
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .ReturnsAsync(correspondence);
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert OK Return
+            Assert.True(result.IsT0);
+            Assert.Equal(correspondenceId, result.AsT0);
+
+            // Verify correct calls to Correspondence repository
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify that no statuses were added to Repository
+            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+
+            // Should not trigger any additional Dialogporten changes or background jobs
+            _backgroundJobClientMock.VerifyNoOtherCalls();
+            _dialogPortenServiceMock.VerifyNoOtherCalls();
+        }
+
+
         private void VerifyAltinnEventEnqueued(Guid correspondenceId, AltinnEventType eventType, string recipient)
         {
             _backgroundJobClientMock.Verify(x => x.Create(
@@ -394,6 +680,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             _backgroundJobClientMock.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateInformationActivity) && (Guid)job.Args[0] == correspondenceId && (DialogportenActorType)job.Args[1] == actorType && (DialogportenTextType)job.Args[2] == dpTextType),
+                It.IsAny<EnqueuedState>()));
+        }
+
+        private void VerifyDialogportenServiceCreatePurgedActivityEnqueued(Guid correspondenceId, DialogportenActorType actorType, string actorname, DateTimeOffset operationTimestamp)
+        {
+            _backgroundJobClientMock.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateCorrespondencePurgedActivity) && (Guid)job.Args[0] == correspondenceId && (DialogportenActorType)job.Args[1] == actorType && (string)job.Args[2] == actorname && (DateTimeOffset)job.Args[3] == operationTimestamp),
                 It.IsAny<EnqueuedState>()));
         }
 

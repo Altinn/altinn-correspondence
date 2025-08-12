@@ -94,7 +94,7 @@ public class SyncCorrespondenceStatusEventHandler(
             else
             {
                 logger.LogInformation($"Purge Correspondence based on sync Event from Altinn 2: {request.CorrespondenceId}");
-                await syncCorrespondenceStatusHelper.PurgeCorrespondence(correspondence, purgeEvent, cancellationToken);
+                await syncCorrespondenceStatusHelper.PurgeCorrespondence(correspondence, purgeEvent, correspondence.IsMigrating == false, cancellationToken);
             }
             eventsFilteredForDuplicates.Remove(purgeEvent);
         }
