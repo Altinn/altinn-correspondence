@@ -28,7 +28,8 @@ internal static class MigrateCorrespondenceMapper
                 NotificationChannel = (NotificationChannel)n.NotificationChannel,
                 NotificationTemplate = NotificationTemplate.Altinn2Message,
                 NotificationAddress = n.NotificationAddress,
-                Altinn2NotificationId = n.Altinn2NotificationId
+                Altinn2NotificationId = n.Altinn2NotificationId,
+                IsReminder = n.IsReminder
             }).ToList(),
             ForwardingEvents = migrateCorrespondenceExt.ForwardingHistory.Select(fh => new CorrespondenceForwardingEventEntity()
             {
