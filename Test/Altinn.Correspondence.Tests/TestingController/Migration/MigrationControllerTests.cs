@@ -63,6 +63,8 @@ public class MigrationControllerTests : MigrationTestBase
         // Assert
         Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse.StatusCode);
         Assert.Equal(8, response.Notifications.Count);
+        Assert.Equal(4, response.Notifications.Where(n => n.IsReminder == false).Count());
+        Assert.Equal(4, response.Notifications.Where(n => n.IsReminder == true).Count());
         Assert.Equal(migrateCorrespondenceExt.Altinn2CorrespondenceId, response.Altinn2CorrespondenceId);
     }
 
@@ -539,7 +541,7 @@ public class MigrationControllerTests : MigrationTestBase
                 NotificationAddress = "123456789",
                 NotificationChannel = NotificationChannelExt.Sms,
                 NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 11)),
-                IsReminder = false
+                IsReminder = true
             },
             new MigrateCorrespondenceNotificationExt()
             {
@@ -547,7 +549,7 @@ public class MigrationControllerTests : MigrationTestBase
                 NotificationAddress = "223456789",
                 NotificationChannel = NotificationChannelExt.Sms,
                 NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 11)),
-                IsReminder = false
+                IsReminder = true
             },
             new MigrateCorrespondenceNotificationExt()
             {
@@ -555,7 +557,7 @@ public class MigrationControllerTests : MigrationTestBase
                 NotificationAddress = "323456789",
                 NotificationChannel = NotificationChannelExt.Sms,
                 NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 11)),
-                IsReminder = false
+                IsReminder = true
             },
             new MigrateCorrespondenceNotificationExt()
             {
@@ -563,7 +565,7 @@ public class MigrationControllerTests : MigrationTestBase
                 NotificationAddress = "423456789",
                 NotificationChannel = NotificationChannelExt.Sms,
                 NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 11)),
-                IsReminder = false
+                IsReminder = true
             }
         ];
     }
