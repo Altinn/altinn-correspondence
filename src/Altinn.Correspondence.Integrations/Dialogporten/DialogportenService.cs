@@ -8,6 +8,7 @@ using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Net;
 using System.Net.Http.Json;
 using UUIDNext;
 
@@ -312,7 +313,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         {
             return true;
         }
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound || response.StatusCode == System.Net.HttpStatusCode.Gone)
+        if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.Gone)
         {
             return false;
         }
