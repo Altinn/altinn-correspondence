@@ -14,31 +14,28 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<AttachmentEntity> InitializeAttachment(AttachmentEntity attachment, CancellationToken cancellationToken)
         {
-            if (attachment.StorageProvider is not null) 
-            { 
-                // Check if the StorageProvider is already being tracked by the context
-                var existingEntry = _context.ChangeTracker.Entries<StorageProviderEntity>()
-                    .FirstOrDefault(e => e.Entity.Id == attachment.StorageProvider.Id);
-                
-                if (existingEntry == null)
-                {
-                    // Set state to Unchanged if it's not already being tracked
-                    _context.Entry(attachment.StorageProvider).State = EntityState.Unchanged;
-                }
-                else
-                {
-                    // If already tracked, use the existing tracked entity
-                    attachment.StorageProvider = existingEntry.Entity;
-                }
+            if (attachment.StorageProvider?.Id is not null)
+            {
+                attachment.StorageProvider = await _context.StorageProviders
+                    .FirstOrDefaultAsync(sp => sp.Id == attachment.StorageProvider.Id, cancellationToken);
             }
+            else
+            {
+                logger.LogWarning("Could not find any storage provider for attachment");
+            }
+
             await _context.Attachments.AddAsync(attachment, cancellationToken);
+
             try
             {
                 await _context.SaveChangesAsync(cancellationToken);
             }
             catch (Exception ex)
             {
-                logger.LogError("Error saving attachment: {Message}, content: {Attachment}", ex.Message, JsonSerializer.Serialize(attachment));
+                logger.LogError(ex,
+                    "Error saving attachment {AttachmentId} (ResourceId: {ResourceId}, StorageProviderId: {StorageProviderId})",
+                    attachment?.Id, attachment?.ResourceId, attachment?.StorageProvider?.Id);
+
                 throw;
             }
 
