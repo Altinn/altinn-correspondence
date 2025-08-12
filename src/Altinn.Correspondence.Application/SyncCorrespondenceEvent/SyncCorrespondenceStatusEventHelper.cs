@@ -9,7 +9,7 @@ using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
 
 namespace Altinn.Correspondence.Application.SyncCorrespondenceEvent;
-public class SyncCorrespondenceStatusHelper(    
+public class SyncCorrespondenceStatusEventHelper(    
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IDialogportenService dialogportenService,
     IBackgroundJobClient backgroundJobClient,

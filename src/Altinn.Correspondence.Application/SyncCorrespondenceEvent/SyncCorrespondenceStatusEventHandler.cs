@@ -21,7 +21,7 @@ public class SyncCorrespondenceStatusEventHandler(
     ICorrespondenceRepository correspondenceRepository,
     UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
     PurgeCorrespondenceHelper purgeCorrespondenceHelper,
-    SyncCorrespondenceStatusHelper syncCorrespondenceStatusHelper,
+    SyncCorrespondenceStatusEventHelper syncCorrespondenceStatusHelper,
     ILogger<SyncCorrespondenceStatusEventHandler> logger) : IHandler<SyncCorrespondenceStatusEventRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceStatusEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
