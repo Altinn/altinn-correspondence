@@ -86,6 +86,24 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
         }
 
         [Fact]
+        public async Task UploadAttachmentData_NoContentLength_Succeeds()
+        {
+            var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+            var originalAttachmentData = new byte[] { 1, 2, 3, 4 };
+            var uploadResponse = await AttachmentHelper.UploadAttachmentStreamed(attachmentId, _senderClient, new MemoryStream(originalAttachmentData));
+            Assert.False(uploadResponse.RequestMessage!.Content!.Headers.Contains("Content-Length"), "Content-Length header should not be set for streamed uploads");
+
+            // Download the attachment data
+            var downloadResponse = await _senderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}/download");
+            downloadResponse.EnsureSuccessStatusCode();
+
+            var downloadedAttachmentData = await downloadResponse.Content.ReadAsByteArrayAsync();
+
+            // Assert that the uploaded and downloaded bytes are the same
+            Assert.Equal(originalAttachmentData, downloadedAttachmentData);
+        }
+
+        [Fact]
         public async Task UploadAtttachmentData_ChecksumCorrect_Succeeds()
         {
             // Arrange
