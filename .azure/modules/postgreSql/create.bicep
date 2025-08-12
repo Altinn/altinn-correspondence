@@ -272,25 +272,25 @@ module adoConnectionString '../keyvault/upsertSecret.bicep' = {
 
         // Diagnostic settings for Query Store and monitoring
         resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (logAnalyticsWorkspaceId != '') {
-  name: 'QueryStoreDiagnostics'
-  scope: postgres
-  properties: {
-    workspaceId: logAnalyticsWorkspaceId
+          name: 'QueryStoreDiagnostics'
+          scope: postgres
+          properties: {
+            workspaceId: logAnalyticsWorkspaceId
             logs: [
-          {
-            category: 'PostgreSQLFlexQueryStoreRuntime'
-            enabled: true
+              {
+                category: 'PostgreSQLFlexQueryStoreRuntime'
+                enabled: true
+              }
+              {
+                category: 'PostgreSQLFlexQueryStoreWaitStats'
+                enabled: true
+              }
+              {
+                category: 'PostgreSQLFlexSessions'
+                enabled: true
+              }
+            ]
           }
-          {
-            category: 'PostgreSQLFlexQueryStoreWaitStats'
-            enabled: true
-          }
-          {
-            category: 'PostgreSQLFlexSessions'
-            enabled: true
-          }
-        ]
-  }
-}
+        }
 
 
