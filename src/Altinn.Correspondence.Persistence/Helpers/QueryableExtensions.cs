@@ -105,7 +105,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
                 return query.Where(_ => false);
             }
 
-            return query.Where(c => statuses.Contains(
+            return query.Where(c => c.Statuses.Any() &&statuses.Contains(
                 c.Statuses
                     .OrderBy(s => s.StatusChanged)
                     .ThenBy(s => s.Id)
