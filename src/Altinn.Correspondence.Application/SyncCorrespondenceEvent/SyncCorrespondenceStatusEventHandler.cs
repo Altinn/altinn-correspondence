@@ -1,26 +1,16 @@
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
-using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
-using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Integrations.Dialogporten.Models;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
-using System.Linq;
-using Slack.Webhooks.Elements;
 
 namespace Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 
 public class SyncCorrespondenceStatusEventHandler(
-    IAltinnAuthorizationService altinnAuthorizationService,
-    IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
-    PurgeCorrespondenceHelper purgeCorrespondenceHelper,
     SyncCorrespondenceStatusEventHelper syncCorrespondenceStatusHelper,
     ILogger<SyncCorrespondenceStatusEventHandler> logger) : IHandler<SyncCorrespondenceStatusEventRequest, Guid>
 {
@@ -35,9 +25,29 @@ public class SyncCorrespondenceStatusEventHandler(
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
 
-        var eventsFilteredForDuplicates = new List<CorrespondenceStatusEntity>();
+        var eventsFilteredForCorrectStatus = new List<CorrespondenceStatusEntity>();
+        {
+            foreach(var statusEventToSync in request.SyncedEvents)
+            {
+                // Validate if the status event is valid for this handler / sync operation (unlikely, but possible)
+                if (syncCorrespondenceStatusHelper.ValidateStatusUpdate(statusEventToSync))
+                {
+                    eventsFilteredForCorrectStatus.Add(statusEventToSync);
+                }
+                else
+                {
+                    logger.LogInformation($"Status Event for {request.CorrespondenceId} has been deemed invalid and will be ignored. Status: {statusEventToSync.Status}- StatusChanged: {statusEventToSync.StatusChanged}- PartyUuid: {statusEventToSync.PartyUuid}");
+                }
+            }
+        }
+        if (eventsFilteredForCorrectStatus.Count == 0)
+        {
+            logger.LogWarning($"None of the Status Events for {request.CorrespondenceId} has been deemed valid and no sync will be performed.");
+            return request.CorrespondenceId;
+        }
 
-        foreach (var statusEventToSync in request.SyncedEvents)
+        var eventsFilteredForDuplicates = new List<CorrespondenceStatusEntity>();
+        foreach (var statusEventToSync in eventsFilteredForCorrectStatus)
         {
             bool existsAlready = false;
 
@@ -54,59 +64,62 @@ public class SyncCorrespondenceStatusEventHandler(
 
             if(existsAlready)
             {
-                logger.LogInformation($"Current Status Event for {request.CorrespondenceId} has been deemed duplicate of existing and will be ignored. Status: {statusEventToSync.Status}- StatusChanged: {statusEventToSync.StatusChanged}- PartyUuid: {statusEventToSync.PartyUuid}");
+                logger.LogInformation($"Current Status Event for {request.CorrespondenceId} has been deemed duplicate of existing and will be skipped. Status: {statusEventToSync.Status}- StatusChanged: {statusEventToSync.StatusChanged}- PartyUuid: {statusEventToSync.PartyUuid}");
             }
             else
             {
                 eventsFilteredForDuplicates.Add(statusEventToSync);
             }
         }
+        if (eventsFilteredForDuplicates.Count == 0)
+        {
+            logger.LogWarning($"None of the Status Events for {request.CorrespondenceId} were unique, and no sync will be performed.");
+            return request.CorrespondenceId;
+        }
+        
+        logger.LogInformation($"Executing status synctransaction for correspondence for {request.CorrespondenceId} with {request.SyncedEvents.Count} # of status events");
 
+        // Special case for Purge events, we need to handle them differently
+        var purgeEvent = eventsFilteredForDuplicates
+        .FirstOrDefault(e =>
+            e.Status == Core.Models.Enums.CorrespondenceStatus.PurgedByRecipient ||
+            e.Status == Core.Models.Enums.CorrespondenceStatus.PurgedByAltinn);
+        if (purgeEvent != null)
+        {
+            var alreadyPurged = correspondence.GetPurgedStatus();
+            if (alreadyPurged is not null)
+            {
+                logger.LogInformation($"Current Status Event for {request.CorrespondenceId} is a Purge Event, but Correspondence has already been purged, so skipping action.");
+            }
+            else
+            {
+                logger.LogInformation($"Purge Correspondence based on sync Event from Altinn 2: {request.CorrespondenceId}");
+                await syncCorrespondenceStatusHelper.PurgeCorrespondence(correspondence, purgeEvent, cancellationToken);
+            }
+            eventsFilteredForDuplicates.Remove(purgeEvent);
+        }
+
+        // Handle the rest of the status events collectively
         if (eventsFilteredForDuplicates.Count > 0)
         {
-            logger.LogInformation($"Executing status synctransaction for correspondence for {request.CorrespondenceId} with {request.SyncedEvents.Count} # of status events");
-
-            // Special case for Purge events, we need to handle them differently
-            var purgeEvent = eventsFilteredForDuplicates
-            .FirstOrDefault(e =>
-                e.Status == Core.Models.Enums.CorrespondenceStatus.PurgedByRecipient ||
-                e.Status == Core.Models.Enums.CorrespondenceStatus.PurgedByAltinn);
-            if (purgeEvent != null)
+            await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
             {
-                var alreadyPurged = correspondence.GetPurgedStatus();
-                if (alreadyPurged is not null)
-                {
-                    logger.LogInformation($"Purge Event received, but Correspondence has already been purged, so skipping action: {request.CorrespondenceId}");
-                }
-                else
-                {
-                    logger.LogInformation($"Purge Correspondence based on sync Event from Altinn 2: {request.CorrespondenceId}");
-                    await syncCorrespondenceStatusHelper.PurgeCorrespondence(correspondence, purgeEvent, cancellationToken);
-                }
-                eventsFilteredForDuplicates.Remove(purgeEvent);
-            }
+                await syncCorrespondenceStatusHelper.AddSyncedCorrespondenceStatuses(correspondence, eventsFilteredForDuplicates, cancellationToken);
 
-            // Handle the rest of the status events collectively
-            if (eventsFilteredForDuplicates.Count > 0)
-            {
-                await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
+                if (correspondence.IsMigrating == false)
                 {
-                    await syncCorrespondenceStatusHelper.AddSyncedCorrespondenceStatuses(correspondence, eventsFilteredForDuplicates, cancellationToken);
-
-                    if (correspondence.IsMigrating == false)
+                    foreach (var eventToExecute in eventsFilteredForDuplicates)
                     {
-                        foreach (var eventToExecute in eventsFilteredForDuplicates)
-                        {
-                            updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, eventToExecute.Status, eventToExecute.StatusChanged); // Set the operationtime to the time the status was changed in Altinn 2
-                            updateCorrespondenceStatusHelper.PatchCorrespondenceDialog(request.CorrespondenceId, eventToExecute.Status);
-                            updateCorrespondenceStatusHelper.PublishEvent(correspondence, eventToExecute.Status);
-                        }
+                        updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, eventToExecute.Status, eventToExecute.StatusChanged); // Set the operationtime to the time the status was changed in Altinn 2
+                        updateCorrespondenceStatusHelper.PatchCorrespondenceDialog(request.CorrespondenceId, eventToExecute.Status);
+                        updateCorrespondenceStatusHelper.PublishEvent(correspondence, eventToExecute.Status);
                     }
+                }
 
-                    return Task.CompletedTask;
-                }, logger, cancellationToken);
-            }
+                return Task.CompletedTask;
+            }, logger, cancellationToken);
         }
+        
 
         logger.LogInformation($"Successfully synced request for correspondence {request.CorrespondenceId} with {request.SyncedEvents.Count} # of status events");
         return request.CorrespondenceId;

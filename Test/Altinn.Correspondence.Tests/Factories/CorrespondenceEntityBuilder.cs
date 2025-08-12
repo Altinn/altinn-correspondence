@@ -49,6 +49,17 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public CorrespondenceEntityBuilder WithStatus(CorrespondenceStatus status, DateTime statusChanged, Guid partyUuid)
+        {
+            _correspondenceEntity.Statuses.Add(new CorrespondenceStatusEntity
+            {
+                Status = status,
+                StatusChanged = new DateTimeOffset(statusChanged),
+                PartyUuid = partyUuid
+            });
+            return this;
+        }
+
         public CorrespondenceEntityBuilder WithExternalReference(ReferenceType referenceType, string referenceValue)
         {
             _correspondenceEntity.ExternalReferences.Add(new ExternalReferenceEntity
@@ -71,6 +82,18 @@ namespace Altinn.Correspondence.Tests.Factories
         public CorrespondenceEntityBuilder WithServiceOwnerId(string serviceOwnerId)
         {
             _correspondenceEntity.ServiceOwnerId = serviceOwnerId;
+            return this;
+        }
+
+        public CorrespondenceEntityBuilder WithAltinn2CorrespondenceId(int altinn2CorrespondenceId)
+        {
+            _correspondenceEntity.Altinn2CorrespondenceId = altinn2CorrespondenceId;
+            return this;
+        }
+
+        public CorrespondenceEntityBuilder WithIsMigrating(bool isMigrating)
+        {
+            _correspondenceEntity.IsMigrating = isMigrating;
             return this;
         }
     }

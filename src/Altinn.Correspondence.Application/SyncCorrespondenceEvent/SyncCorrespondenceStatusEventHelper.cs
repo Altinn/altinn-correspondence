@@ -15,7 +15,24 @@ public class SyncCorrespondenceStatusEventHelper(
     IBackgroundJobClient backgroundJobClient,
     PurgeCorrespondenceHelper purgeCorrespondenceHelper)
 {
-    
+
+    /// <summary>
+    /// Validates if the current status of the correspondence should be synced
+    /// </summary>
+    /// <param name="correspondence">The correspondence entity to validate</param>
+    /// <returns></returns>
+    public bool ValidateStatusUpdate(CorrespondenceStatusEntity statusEntity)
+    {
+        var validStatuses = new[] { CorrespondenceStatus.Read, CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived, CorrespondenceStatus.PurgedByAltinn, CorrespondenceStatus.PurgedByRecipient };
+
+        if (!validStatuses.Contains(statusEntity.Status))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     public async Task AddSyncedCorrespondenceStatuses(CorrespondenceEntity correspondence, List<CorrespondenceStatusEntity> statuses, CancellationToken cancellationToken)
     {
         foreach (var entity in statuses)
