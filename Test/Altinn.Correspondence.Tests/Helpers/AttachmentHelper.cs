@@ -60,6 +60,23 @@ namespace Altinn.Correspondence.Tests.Helpers
             var uploadResponse = await client.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", content);
             return uploadResponse;
         }
+        public async static Task<HttpResponseMessage> UploadAttachmentStreamed(Guid? attachmentId, HttpClient client, Stream originalAttachmentData)
+        {
+            if (attachmentId is null)
+            {
+                Assert.Fail("AttachmentId is null");
+            }
+            var request = new HttpRequestMessage(HttpMethod.Post, $"correspondence/api/v1/attachment/{attachmentId}/upload");
+            var content = new StreamContent(originalAttachmentData);
+            content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+            request.Headers.TransferEncodingChunked = true;
+            request.Content = content;
+            var uploadResponse = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+            return uploadResponse;
+
+
+        }
+
         public static string CalculateChecksum(byte[] data)
         {
             using (var md5 = System.Security.Cryptography.MD5.Create())
