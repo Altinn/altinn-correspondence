@@ -20,7 +20,8 @@ public class CleanupOrphanedDialogsHandler(
     {
         logger.LogInformation("Starting cleanup of orphaned dialogs");
 
-        var jobId = backgroundJobClient.Enqueue(() => ExecuteCleanupInBackground(CancellationToken.None));
+        const int batchSize = 200;
+        var jobId = backgroundJobClient.Enqueue(() => ExecuteCleanupInBackground(batchSize, CancellationToken.None));
 
         logger.LogInformation("Cleanup job {jobId} has been enqueued", jobId);
 
@@ -33,7 +34,7 @@ public class CleanupOrphanedDialogsHandler(
 
     [AutomaticRetry(Attempts = 0)]
     [DisableConcurrentExecution(timeoutInSeconds: 1800)]
-    public async Task ExecuteCleanupInBackground(CancellationToken cancellationToken)
+    public async Task ExecuteCleanupInBackground(int batchSize, CancellationToken cancellationToken)
     {
         logger.LogInformation("Executing cleanup of orphaned dialogs in background job");
         
@@ -45,7 +46,6 @@ public class CleanupOrphanedDialogsHandler(
 
         try
         {
-            const int batchSize = 100;
             DateTimeOffset? lastCreated = null;
             Guid? lastId = null;
             bool isMoreCorrespondences = true;
@@ -64,10 +64,14 @@ public class CleanupOrphanedDialogsHandler(
                 isMoreCorrespondences = correspondencesWithDialogs.Count > batchSize;
                 if (isMoreCorrespondences)
                 {
-                    var last = correspondencesWithDialogs[batchSize - 1];
+                    correspondencesWithDialogs = correspondencesWithDialogs.Take(batchSize).ToList();
+                }
+
+                if (correspondencesWithDialogs.Count > 0)
+                {
+                    var last = correspondencesWithDialogs[^1];
                     lastCreated = last.Created;
                     lastId = last.Id;
-                    correspondencesWithDialogs = correspondencesWithDialogs.Take(batchSize).ToList();
                 }
                 
                 logger.LogInformation("Found {count} correspondences with dialogs in this batch (IsMore: {isMore})", 

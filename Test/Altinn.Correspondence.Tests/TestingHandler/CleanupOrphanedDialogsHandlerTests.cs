@@ -68,11 +68,64 @@ public class CleanupOrphanedDialogsHandlerTests
         var handler = new CleanupOrphanedDialogsHandler(repo.Object, dialog.Object, bg.Object, logger.Object);
 
         // Act
-        await handler.ExecuteCleanupInBackground(CancellationToken.None);
+        await handler.ExecuteCleanupInBackground(100, CancellationToken.None);
 
         // Assert
         dialog.Verify(s => s.TrySoftDeleteDialog("d1"), Times.Once);
         dialog.Verify(s => s.TrySoftDeleteDialog("d2"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteCleanupInBackground_DoesNotReprocessOrSkipItemsBetweenBatches()
+    {
+        // Arrange
+        var baseTime = new DateTimeOffset(2001, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var all = new List<CorrespondenceEntity>();
+        for (int i = 0; i < 5; i++)
+        {
+            all.Add(new CorrespondenceEntity
+            {
+                Id = Guid.NewGuid(),
+                Created = baseTime.AddSeconds(i),
+                Recipient = "0192:987654321",
+                RequestedPublishTime = baseTime.AddSeconds(i),
+                ResourceId = "r",
+                Sender = "0192:123456789",
+                SendersReference = i.ToString(),
+                Statuses = new List<CorrespondenceStatusEntity> { new() { Status = CorrespondenceStatus.PurgedByAltinn, StatusChanged = baseTime.AddSeconds(i) } },
+                ExternalReferences = new List<ExternalReferenceEntity> { new() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = $"d{i}" } }
+            });
+        }
+
+        var repo = new Mock<ICorrespondenceRepository>();
+        repo.Setup(r => r.GetPurgedCorrespondencesWithDialogsAfter(It.IsAny<int>(), It.IsAny<DateTimeOffset?>(), It.IsAny<Guid?>(), true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((int limit, DateTimeOffset? lastCreated, Guid? lastId, bool _, CancellationToken __) =>
+            {
+                var query = all
+                    .Where(c => !lastCreated.HasValue
+                        || c.Created > lastCreated.Value
+                        || (c.Created == lastCreated.Value && lastId.HasValue && c.Id.CompareTo(lastId.Value) > 0))
+                    .OrderBy(c => c.Created).ThenBy(c => c.Id)
+                    .Take(limit)
+                    .ToList();
+                return query;
+            });
+
+        var processed = new HashSet<string>();
+        var dialog = new Mock<IDialogportenService>();
+        dialog.Setup(s => s.TrySoftDeleteDialog(It.IsAny<string>()))
+              .ReturnsAsync((string id) => { processed.Add(id); return true; });
+
+        var bg = new Mock<IBackgroundJobClient>();
+        var logger = new Mock<ILogger<CleanupOrphanedDialogsHandler>>();
+
+        var handler = new CleanupOrphanedDialogsHandler(repo.Object, dialog.Object, bg.Object, logger.Object);
+
+        // Act
+        await handler.ExecuteCleanupInBackground(2, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(all.Count, processed.Count);
     }
 }
 
