@@ -96,6 +96,22 @@ namespace Altinn.Correspondence.Persistence.Helpers
                 .Where(cs => statusesToFilter.Contains(cs.Statuses.OrderBy(cs => cs.Status).Last().Status));
         }
 
+        public static IQueryable<CorrespondenceEntity> WhereCurrentStatusIn(
+            this IQueryable<CorrespondenceEntity> query,
+            params CorrespondenceStatus[] statuses)
+        {
+            if (statuses == null || statuses.Length == 0)
+            {
+                return query.Where(_ => false);
+            }
+
+            return query.Where(c => statuses.Contains(
+                c.Statuses
+                    .OrderBy(s => s.StatusChanged)
+                    .ThenBy(s => s.Id)
+                    .Last().Status));
+        }
+
         /// <summary>
         /// Filters out migrated correspondences when filterMigrated is true
         /// </summary>

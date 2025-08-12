@@ -194,7 +194,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             var query = _context.Correspondences
                 .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId))
-                .IncludeByStatuses(includeActive: false, includeArchived: false, includePurged: true, specificStatus: null)
+                .WhereCurrentStatusIn(CorrespondenceStatus.PurgedByAltinn, CorrespondenceStatus.PurgedByRecipient)
                 .FilterMigrated(filterMigrated)
                 .Include(c => c.Statuses)
                 .Include(c => c.ExternalReferences)
