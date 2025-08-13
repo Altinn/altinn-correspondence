@@ -59,7 +59,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
-            if (correspondence.Altinn2CorrespondenceId.GetValueOrDefault() > 0)
+            if (correspondence.IsMigrating)
             {
                 logger.LogWarning("Skipping patching correspondence {correspondenceId} to confirmed as it is an Altinn2 correspondence without Dialogporten dialog", correspondenceId);
                 return;
@@ -434,6 +434,18 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new Exception("Dialogporten did not return a dialogId");
         }
         return dialogResponse;
+    }
+
+    /// <summary>
+    /// Create a batch of migrated correspondence for Dialogporten.
+    /// </summary>
+    /// <param name="size"></param>
+    /// <returns></returns>
+    public async Task CreateBatchOfMigratedCorrespondenceForDialogporten(int size)
+    {
+        // Use ApplicationDbContext
+        // Get all correspondences that have been migrated from Altinn 2 and has no associated external reference indicating that it already has a dialog
+        // Schedule background job for these
     }
     #endregion
 }
