@@ -184,5 +184,13 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     .All(correspondenceAttachment => correspondenceAttachment.Attachment!.Statuses.Any(status => status.Status == AttachmentStatus.Published)))
                 .SingleOrDefaultAsync(cancellationToken);
         }
+
+        public Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, CancellationToken cancellationToken = default)
+        {
+            return _context.Correspondences
+                .Where(c => c.Altinn2CorrespondenceId != null && c.IsMigrating) // Only include correspondences that are not already migrated 
+                .Take(batchSize)
+                .ToListAsync(cancellationToken);
+        }
     }
 }
