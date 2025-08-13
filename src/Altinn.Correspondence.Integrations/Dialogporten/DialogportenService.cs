@@ -453,17 +453,5 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
         return dialogResponse;
     }
-
-    /// <summary>
-    /// Create a batch of migrated correspondence for Dialogporten.
-    /// </summary>
-    /// <param name="size"></param>
-    /// <returns></returns>
-    public async Task CreateBatchOfMigratedCorrespondenceForDialogporten(int size)
-    {
-        // Use ApplicationDbContext
-        // Get all correspondences that have been migrated from Altinn 2 and has no associated external reference indicating that it already has a dialog
-        // Schedule background job for these
-    }
     #endregion
 }
