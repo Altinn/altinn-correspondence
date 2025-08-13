@@ -57,7 +57,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool includeContent,
             bool includeForwardingEvents,
             CancellationToken cancellationToken,
-            bool includeIsMigrating=false)
+            bool includeIsMigrating = false)
         {
             logger.LogDebug("Retrieving correspondence {CorrespondenceId} including: status={IncludeStatus} content={IncludeContent}", guid, includeStatus, includeContent);
             var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
@@ -75,7 +75,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a.Statuses);
             }
-            if(includeForwardingEvents)
+            if (includeForwardingEvents)
             {
                 correspondences = correspondences.Include(c => c.ForwardingEvents);
             }
@@ -192,7 +192,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Take(batchSize)
                 .ToListAsync(cancellationToken);
         }
-        
+
         public async Task<List<CorrespondenceEntity>> GetPurgedCorrespondencesWithDialogsAfter(
             int limit,
             DateTimeOffset? lastCreated,
@@ -224,4 +224,5 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
             return await query.ToListAsync(cancellationToken);
         }
+    }
 }
