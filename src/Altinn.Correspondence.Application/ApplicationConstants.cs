@@ -30,6 +30,18 @@ public static class ApplicationConstants
         "DTSO",
         "INNH",
         "LEDE",
-        "REPR"
+        "KOMP",
+        "BOBE"
+    ];
+
+    public static readonly List<string> RequiredOrganizationRolesForConfidentialCorrespondenceRecipient = 
+    [
+        "BEST",
+        "DAGL",
+        "DTPR",
+        "DTSO",
+        "INNH",
+        "LEDE",
+        "KOMP"
     ];
 }
