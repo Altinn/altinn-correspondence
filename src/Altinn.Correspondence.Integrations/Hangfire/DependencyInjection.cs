@@ -1,7 +1,9 @@
-﻿using Altinn.Correspondence.Integrations.Slack;
+﻿using Altinn.Correspondence.Core.Options;
+using Altinn.Correspondence.Integrations.Slack;
 using Hangfire;
 using Hangfire.AspNetCore;
 using Hangfire.PostgreSql;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -9,8 +11,10 @@ using Newtonsoft.Json;
 namespace Altinn.Correspondence.Integrations.Hangfire;
 public static class DependencyInjection
 {
-    public static void ConfigureHangfire(this IServiceCollection services)
+    public static void ConfigureHangfire(this IServiceCollection services, IConfiguration config)
     {
+        var generalSettings = new GeneralSettings();
+        config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
         services.AddSingleton<IConnectionFactory, HangfireConnectionFactory>();
         services.AddHangfire((provider, config) =>
         {
@@ -27,6 +31,10 @@ public static class DependencyInjection
                 );
         });
 
-        services.AddHangfireServer(options => options.SchedulePollingInterval = TimeSpan.FromSeconds(2));
+        services.AddHangfireServer(options =>
+        {
+            options.SchedulePollingInterval = TimeSpan.FromSeconds(2);
+            options.Queues = generalSettings.EnableMigrationQueue ? ["default", "migration"] : ["default"];
+        });
     }
 }

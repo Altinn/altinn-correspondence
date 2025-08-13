@@ -1,10 +1,15 @@
-﻿using Altinn.Correspondence.Tests.Fixtures;
+﻿using Altinn.Correspondence.Core.Options;
+using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Hangfire.PostgreSql;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using System.Collections.Concurrent;
 using System.Data;
@@ -221,32 +226,55 @@ public class HangfireStorageCompatibilityTests
         var serverType = hangfireServer.GetType();
         var optionsField = serverType.GetField("_options", BindingFlags.NonPublic | BindingFlags.Instance);
 
-        if (optionsField != null)
-        {
-            var serverOptions = (BackgroundJobServerOptions)optionsField.GetValue(hangfireServer);
+        var serverOptions = (BackgroundJobServerOptions)optionsField.GetValue(hangfireServer);
 
-            Assert.NotNull(serverOptions);
-            Assert.Equal(new[] { "default", "migration" }, serverOptions.Queues);
-            Assert.Equal("default", serverOptions.Queues[0]); // Should be highest priority
-        }
-        else
-        {
-            // Alternative approach: check if options are accessible via properties
-            var optionsProperty = serverType.GetProperty("Options", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
-            if (optionsProperty != null)
-            {
-                var serverOptions = (BackgroundJobServerOptions)optionsProperty.GetValue(hangfireServer);
+        Assert.NotNull(serverOptions);
+        Assert.Equal(new[] { "default", "migration" }, serverOptions.Queues);
+        Assert.Equal("default", serverOptions.Queues[0]); // Should be highest priority
+    }
 
-                Assert.NotNull(serverOptions);
-                Assert.Equal(new[] { "default", "migration" }, serverOptions.Queues);
-                Assert.Equal(TimeSpan.FromSeconds(2), serverOptions.SchedulePollingInterval);
-            }
-            else
+    [Fact]
+    public void MigrationHangfireQueue_CanBeDisabled()
+    {
+        var testId = Guid.NewGuid().ToString("N")[..8];
+        var schemaName = $"hangfire_test_{testId}";
+
+        using var testFactory = new DisabledMigrationWebApplicationFactory();
+
+        // Get the Hangfire server hosted service to inspect its configuration
+        var hostedServices = testFactory.Services.GetServices<IHostedService>();
+        var hangfireServer = hostedServices.FirstOrDefault(s => s.GetType().Name.Contains("BackgroundJobServer"));
+
+        Assert.NotNull(hangfireServer);
+
+        // Use reflection to get the server options from the Hangfire server
+        var serverType = hangfireServer.GetType();
+        var optionsField = serverType.GetField("_options", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        var serverOptions = (BackgroundJobServerOptions)optionsField.GetValue(hangfireServer);
+
+        Assert.NotNull(serverOptions);
+        Assert.Equal(new[] { "default" }, serverOptions.Queues);
+    }
+
+    internal class DisabledMigrationWebApplicationFactory : WebApplicationFactory<Program>
+    {
+        protected override void ConfigureWebHost(
+    IWebHostBuilder builder)
+        {
+            var customConfigValues = new Dictionary<string, string>
             {
-                Assert.True(false, "Could not access BackgroundJobServerOptions from the Hangfire server instance");
-            }
+                ["GeneralSettings:EnableMigrationQueue"] = "false"
+            };
+
+            builder.UseConfiguration(new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json")
+                .AddJsonFile("appsettings.Development.json")
+                .AddInMemoryCollection(customConfigValues) // This will override the JSON values
+                .Build());
         }
     }
+
     internal class TestJobTracker
     {
         private readonly ConcurrentQueue<string> ExecutionOrder = new();

@@ -142,7 +142,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.AddHttpClient();
     services.AddProblemDetails();
 
-    services.ConfigureHangfire();
+    services.ConfigureHangfire(config);
 
     services.Configure<KestrelServerOptions>(options =>
     {
