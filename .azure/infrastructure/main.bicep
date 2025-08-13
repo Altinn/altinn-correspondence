@@ -120,7 +120,6 @@ module storageAccount '../modules/storageAccount/create.bicep' = {
 module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
   scope: resourceGroup
   name: 'container-app-environment'
-  dependsOn: [storageAccount]
   params: {
     keyVaultName: sourceKeyVaultName
     location: location
