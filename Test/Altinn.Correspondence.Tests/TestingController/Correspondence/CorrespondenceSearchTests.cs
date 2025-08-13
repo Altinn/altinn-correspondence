@@ -138,11 +138,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithResourceId(resourceB)
                 .Build();
 
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadResourceA);
-            Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+            var initializedCorrespondenceA = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payloadResourceA);
+            var initializedCorrespondenceB = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payloadResourceB);
 
-            var initializeCorrespondenceResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadResourceB);
-            Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, await initializeCorrespondenceResponse2.Content.ReadAsStringAsync());
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedCorrespondenceA.CorrespondenceId, CorrespondenceStatusExt.Published);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedCorrespondenceB.CorrespondenceId, CorrespondenceStatusExt.Published);
 
             int status = (int)CorrespondenceStatusExt.Published;
             var correspondenceListResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence?resourceId={resourceA}&status={status}&role={"recipientandsender"}");
@@ -215,31 +215,29 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             // Arrange
             var resourceId = Guid.NewGuid().ToString();
-            var initializedCorrespondence = new CorrespondenceBuilder()
+            var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithResourceId(resourceId)
                 .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(1))
                 .Build();
-            var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", initializedCorrespondence);
-            var correspondence = await initializeResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            var getCorrespondenceOverviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.Correspondences.FirstOrDefault().CorrespondenceId}");
-            var b = await getCorrespondenceOverviewResponse.Content.ReadFromJsonAsync<CorrespondenceOverviewExt>(_responseSerializerOptions);
+            await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
 
-            var publishedCorrespondences = new CorrespondenceBuilder()
+            var payloadPublished = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithResourceId(resourceId)
                 .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(-1))
                 .Build();
-            await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", publishedCorrespondences);
+            var initializedCorrespondencePublished = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payloadPublished);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedCorrespondencePublished.CorrespondenceId, CorrespondenceStatusExt.Published);
 
             // Act
             var responseWithReadyForPublish = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&status={(int)CorrespondenceStatusExt.ReadyForPublish}&role={"sender"}");
             var responseWithPublished = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&status={(int)CorrespondenceStatusExt.Published}&role={"sender"}");
 
             // Assert
-            var expectedInitialized = initializedCorrespondence.Recipients.Count;
+            var expectedInitialized = payload.Recipients.Count;
             Assert.Equal(expectedInitialized, responseWithReadyForPublish?.Ids.Count);
-            var expectedPublished = publishedCorrespondences.Recipients.Count;
+            var expectedPublished = payloadPublished.Recipients.Count;
             Assert.Equal(expectedPublished, responseWithPublished?.Ids.Count);
         }
 
@@ -269,11 +267,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build(); // One ready for publish
 
             // Act
-            var responsePublished = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadPublished);
-            Assert.True(responsePublished.IsSuccessStatusCode, await responsePublished.Content.ReadAsStringAsync());
-            var responsePublishedContent = await responsePublished.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            var responseReadyForPublish = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payloadReadyForPublish);
-            Assert.True(responseReadyForPublish.IsSuccessStatusCode, await responseReadyForPublish.Content.ReadAsStringAsync());
+            var initializedCorrespondencePublished = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payloadPublished);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedCorrespondencePublished.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            var initializedCorrespondenceReadyForPublish = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payloadReadyForPublish);
+
             var correspondenceList = await recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&role={"recipient"}");
 
             // Assert

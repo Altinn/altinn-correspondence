@@ -2,7 +2,7 @@ namespace Altinn.Correspondence.Application.Settings;
 
 public static class ApplicationConstants
 {
-    public const long MaxFileUploadSize = 250 * 1024 * 1024;
+    public const long MaxFileUploadSize = 2L * 1000 * 1000 * 1000;
     public static readonly List<string> AllowedFileTypes =
     [
         ".doc",
@@ -22,13 +22,14 @@ public static class ApplicationConstants
         ".png",
         ".json"
     ];
-    public static readonly List<string> RequiredOrganizationRolesForConfidentialCorrespondence = 
+    public static readonly List<string> RequiredOrganizationRolesForCorrespondenceRecipient = 
     [
         "BEST",
         "DAGL",
         "DTPR",
         "DTSO",
         "INNH",
-        "LEDE"
+        "LEDE",
+        "REPR"
     ];
 }

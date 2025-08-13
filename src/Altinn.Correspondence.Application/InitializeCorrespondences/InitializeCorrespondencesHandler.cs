@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
@@ -266,8 +267,22 @@ public class InitializeCorrespondencesHandler(
                     StatusAction = null,
                     IdempotencyType = IdempotencyType.Correspondence
                 };
-                await idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
-                return new OneOf<InitializeCorrespondencesResponse, Error>();
+                
+                try
+                {
+                    await idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
+                    return new OneOf<InitializeCorrespondencesResponse, Error>();
+                }
+                catch (DbUpdateException e)
+                {
+                    var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
+                    if (sqlState == "23505") // PostgreSQL unique constraint violation
+                    {
+                        logger.LogWarning("Idempotency key {Key} already exists in database", request.IdempotentKey.Value);
+                        return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
+                    }
+                    throw;
+                }
             }, logger, cancellationToken);
 
             if (result.IsT1)
@@ -338,7 +353,7 @@ public class InitializeCorrespondencesHandler(
         {
             var isReserved = validatedData.ReservedRecipients.Contains(recipient.WithoutPrefix());
             var recipientParty = validatedData.RecipientDetails.FirstOrDefault(r => r.SSN == recipient.WithoutPrefix() || r.OrgNumber == recipient.WithoutPrefix());
-            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, validatedData.AttachmentsToBeUploaded, validatedData.PartyUuid, recipientParty, isReserved, serviceOwnerOrgNumber);
+            var correspondence = await initializeCorrespondenceHelper.MapToCorrespondenceEntityAsync(request, recipient, validatedData.AttachmentsToBeUploaded, validatedData.PartyUuid, recipientParty, isReserved, serviceOwnerOrgNumber, cancellationToken);
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
@@ -351,7 +366,7 @@ public class InitializeCorrespondencesHandler(
             {
                 Expiration = TimeSpan.FromHours(24)
             });
-            if (request.Correspondence.Content.Attachments.Count == 0)
+            if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
             {
                 await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
             }
@@ -375,10 +390,6 @@ public class InitializeCorrespondencesHandler(
                         Language = correspondence.Content != null ? correspondence.Content.Language : null,
                     }, cancellationToken));
                 }
-            }
-            if (request.Correspondence.Content.Attachments.Count > 0 && await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
-            {
-                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
             }
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {

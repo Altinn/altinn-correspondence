@@ -1,14 +1,16 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application;
-using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Application.DownloadAttachment;
 using Altinn.Correspondence.Application.GetAttachmentDetails;
 using Altinn.Correspondence.Application.GetAttachmentOverview;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.PurgeAttachment;
+using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Application.UploadAttachment;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Correspondence.API.Controllers;
@@ -70,7 +72,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <response code="200">Returns attachment metadata</response>
     /// <response code="400"><ul>
     /// <li>2003: Cannot upload attachment to a correspondence that has been created</li>
-    /// <li>2004: File must have content and has a max file size of 250 MB</li>
+    /// <li>2004: File must have content and has a max file size of 2GB</li>
     /// <li>2005: File has already been or is being uploaded</li>
     /// <li>2008: Checksum mismatch</li>
     /// <li>2009: Could not get data location url</li>
@@ -97,13 +99,17 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     )
     {
         _logger.LogInformation("Uploading attachment {attachmentId}", attachmentId.ToString());
+        var maxSizeFeature = HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>();
+        if (maxSizeFeature != null && !maxSizeFeature.IsReadOnly)
+        {
+            maxSizeFeature.MaxRequestBodySize = ApplicationConstants.MaxFileUploadSize;
+        }
 
-        Request.EnableBuffering();
         var uploadAttachmentResult = await uploadAttachmentHandler.Process(new UploadAttachmentRequest()
         {
             AttachmentId = attachmentId,
             UploadStream = Request.Body,
-            ContentLength = Request.ContentLength ?? Request.Body.Length
+            ContentLength = Request.ContentLength
         }, HttpContext.User, cancellationToken);
         var attachmentOverviewResult = await attachmentOverviewHandler.Process(attachmentId, HttpContext.User, cancellationToken);
         if (!attachmentOverviewResult.TryPickT0(out var attachmentOverview, out var error))

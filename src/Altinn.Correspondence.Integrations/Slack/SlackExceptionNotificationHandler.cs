@@ -24,9 +24,18 @@ public class SlackExceptionNotificationHandler(
         CancellationToken cancellationToken)
     {
         var exceptionMessage = FormatExceptionMessage(exception, httpContext);
+        var sanitizedPath = httpContext.Request.Path.ToString().Replace("\n", "").Replace("\r", "");
         logger.LogError(
             exception,
-            null);
+            "Unhandled exception occurred. Type: {ExceptionType}, Message: {Message}, Path: {Path}, User: {User}, TraceId: {TraceId}, Environment: {Environment}, SlackMessage: {SlackMessage}",
+            exception.GetType().Name,
+            exception.Message,
+            sanitizedPath,
+            httpContext.User?.Identity?.Name ?? "Unknown",
+            Activity.Current?.Id ?? httpContext.TraceIdentifier,
+            hostEnvironment.EnvironmentName,
+            exceptionMessage // SlackMessage
+        );
         try
         {
             await SendSlackNotificationWithMessage(exceptionMessage);
@@ -41,31 +50,42 @@ public class SlackExceptionNotificationHandler(
             };
             var traceId = Activity.Current?.Id ?? httpContext.TraceIdentifier;
             problemDetails.Extensions["traceId"] = traceId;
-
             await problemDetailsService.WriteAsync(new ProblemDetailsContext
             {
                 HttpContext = httpContext,
                 ProblemDetails = problemDetails
             });
-
             return true;
         }
         catch (Exception slackEx)
         {
             logger.LogError(
                 slackEx,
-                null);
+                "Failed to send Slack notification");
             return true;
         }
     }
 
-    public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, CancellationToken cancellationToken)
+    public async ValueTask<bool> TryHandleAsync(string jobId, string jobName, Exception exception, int retryCount, CancellationToken cancellationToken)
     {
-        var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception);
+        var shouldNotify = retryCount == 3 || retryCount == 6 || retryCount == 10;
+        if (!shouldNotify)
+        {
+            logger.LogInformation("Skipping Slack notification for job {JobId} on retry {RetryCount} (only notifying on retries 3, 6, and 10)", jobId, retryCount);
+            return true;
+        }
+        var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception, retryCount);
         logger.LogError(
             exception,
-            null);
-
+            "Unhandled exception occurred. Job ID: {JobId}, Job Name: {JobName}, RetryCount: {RetryCount}, Type: {ExceptionType}, Message: {Message}, Environment: {Environment}, SlackMessage: {SlackMessage}",
+            jobId,
+            jobName,
+            retryCount,
+            exception.GetType().Name,
+            exception.Message,
+            hostEnvironment.EnvironmentName,
+            exceptionMessage // SlackMessage
+        );
         try
         {
             await SendSlackNotificationWithMessage(exceptionMessage);
@@ -73,30 +93,36 @@ public class SlackExceptionNotificationHandler(
         }
         catch (Exception slackEx)
         {
-            logger.LogError(slackEx, null);
+            logger.LogError(slackEx, "Failed to send Slack notification");
             return false;
         }
-    }   
+    }
 
     private string FormatExceptionMessage(Exception exception, HttpContext context)
     {
+        var sanitizedPath = context.Request.Path.ToString().Replace("\n", "").Replace("\r", "");
         return $":warning: *Unhandled Exception*\n" +
                $"*Environment:* {hostEnvironment.EnvironmentName}\n" +
                $"*System:* Correspondence\n" +
                $"*Type:* {exception.GetType().Name}\n" +
                $"*Message:* {exception.Message}\n" +
-               $"*Path:* {context.Request.Path}\n" +
+               $"*Path:* {sanitizedPath}\n" +
                $"*Time:* {DateTime.UtcNow:u}\n" +
                $"*Stacktrace:* \n{exception.StackTrace}";
     }
 
-    private string FormatExceptionMessage(string jobId, string jobName, Exception exception)
+    private string FormatExceptionMessage(string jobId, string jobName, Exception exception, int retryCount)
     {
-        return $":warning: *Unhandled Exception*\n" +
+        // Use error severity for final retry, warning for intermediate retries
+        var severity = retryCount == 10 ? ":x:" : ":warning:";
+        var severityText = retryCount == 10 ? "CRITICAL FAILURE" : "Unhandled Exception";
+        
+        return $"{severity} *{severityText}*\n" +
                 $"*Environment:* {hostEnvironment.EnvironmentName}\n" +
                 $"*System:* Correspondence\n" +
                 $"*Job ID:* {jobId}\n" +
                 $"*Job Name:* {jobName}\n" +
+                $"*Retry Count:* {retryCount}\n" +
                 $"*Type:* {exception.GetType().Name}\n" +
                 $"*Message:* {exception.Message}\n" +
                 $"*Stacktrace:* \n{exception.StackTrace}\n" + 

@@ -22,7 +22,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             // Arrange
             var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
-            Assert.Equal(CorrespondenceStatusExt.Published, correspondence.Status);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
 
             // Act
             var archiveResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/archive", null);
@@ -75,7 +75,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 .CreateCorrespondence()
                 .Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
-            Assert.Equal(CorrespondenceStatusExt.Published, correspondence.Status);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
             var correspondenceId = correspondence.CorrespondenceId;
 
             // Act
@@ -93,6 +93,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 .Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
             var correspondenceId = correspondence.CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
 
             //  Act
             var readResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondenceId}/markasread", null);
@@ -106,6 +107,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             //  Arrange
             var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
 
             //  Act
             var confirmResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/confirm", null);
@@ -120,6 +122,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             //  Arrange
             var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
 
             //  Act
             var fetchResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview");
@@ -140,7 +143,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 .WithConfirmationNeeded(true)
                 .Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
-            Assert.Equal(CorrespondenceStatusExt.Published, correspondence.Status);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
 
             //  Act
             var archiveResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/archive", null);
@@ -159,7 +162,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 .WithConfirmationNeeded(true)
                 .Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
-            Assert.Equal(CorrespondenceStatusExt.Published, correspondence.Status);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
 
             //  Act
             var fetchResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview"); // Fetch in order to be able to Confirm
@@ -181,6 +184,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 .Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
             var correspondenceId = correspondence.CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
 
             // Act
             var response = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondenceId}/overview");
@@ -200,7 +204,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                  .CreateCorrespondence()
                  .Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
-            Assert.Equal(CorrespondenceStatusExt.Published, correspondence.Status);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
             var correspondenceId = correspondence.CorrespondenceId;
 
             var purgeRequest = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{correspondenceId}/purge");

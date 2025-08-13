@@ -1,6 +1,7 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using System.Text.Json;
@@ -18,7 +19,8 @@ internal static class InitializeCorrespondencesMapper
             SendersReference = request.Correspondence.SendersReference,
             Recipient = null,
             ResourceId = request.Correspondence.ResourceId.WithoutPrefix(),
-            Sender = "urn:altinn:organization:identifier-no:000000000", // This is not required anymore from caller, but it still has to be set to a valid format
+            Sender = UrnConstants.PlaceholderSender, // This is not required anymore from caller, but it still has to be set to a valid format
+            ServiceOwnerId = null, // Will be populated by the handler after determining service owner from ResourceRegistry
             MessageSender = request.Correspondence.MessageSender,
             RequestedPublishTime = request.Correspondence.RequestedPublishTime ?? DateTimeOffset.UtcNow,
             AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,

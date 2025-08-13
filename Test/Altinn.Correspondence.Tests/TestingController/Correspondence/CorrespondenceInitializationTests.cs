@@ -20,6 +20,7 @@ using Altinn.Correspondence.Persistence;
 using System.Text;
 using Altinn.Correspondence.Tests.TestingFeature;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.API.Models.Enums;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -65,7 +66,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [InlineData("nu")]
         [InlineData(null)]
         [InlineData("")]
-        public async Task InitializeCorrespondence_WithInvalidLanguageCode_ReturnsBadRequest(string languageCode)
+        public async Task InitializeCorrespondence_WithInvalidLanguageCode_ReturnsBadRequest(string? languageCode)
         {
             // Arrange
             var payload = new CorrespondenceBuilder()
@@ -223,6 +224,41 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
         }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithTitleTooLong_ReturnsBadRequest()
+        {
+            // Arrange - Create a title that exceeds 255 characters
+            var longTitle = new string('A', 256); // 256 characters to exceed the limit
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle(longTitle)
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithTitleAt255Characters_Succeeds()
+        {
+            // Arrange - Create a title exactly at the 255 character limit
+            var maxLengthTitle = new string('A', 255); // Exactly 255 characters
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle(maxLengthTitle)
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+        }
+
         [Fact]
         public async Task InitializeCorrespondence_With_RecipientToken_succeeds()
         {
@@ -465,8 +501,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             var responseObject = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
             Assert.NotNull(responseObject);
-            Assert.True(responseObject.Correspondences.Exists(responseObject => responseObject.Status == API.Models.Enums.CorrespondenceStatusExt.Published));
-            Assert.True(responseObject.Correspondences.Exists(responseObject => responseObject.Status != API.Models.Enums.CorrespondenceStatusExt.Published));
+            Assert.True(responseObject.Correspondences.Exists(responseObject => responseObject.Status == CorrespondenceStatusExt.ReadyForPublish));
+            Assert.True(responseObject.Correspondences.Exists(responseObject => responseObject.Status != CorrespondenceStatusExt.ReadyForPublish));
         }
 
         [Fact]
@@ -507,7 +543,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             var contactReservationRegistry = new Mock<IContactReservationRegistryService>();
             contactReservationRegistry.Setup(contactReservationRegistry => contactReservationRegistry.GetReservedRecipients(It.IsAny<List<string>>())).Throws<HttpRequestException>();
-            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 services.AddSingleton(contactReservationRegistry.Object);
             });
@@ -519,6 +555,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build();
 
             // Act
+            
             var initializeCorrespondenceResponse = await testFactory.CreateSenderClient().PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
             // Assert
@@ -532,7 +569,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             var contactReservationRegistry = new Mock<IContactReservationRegistryService>();
             contactReservationRegistry.Setup(contactReservationRegistry => contactReservationRegistry.GetReservedRecipients(It.IsAny<List<string>>())).Throws<HttpRequestException>();
-            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 services.AddSingleton(contactReservationRegistry.Object);
             });
@@ -631,7 +668,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task InitializeCorrespondence_WithABrokerService_FailsWithBadRequest()
         {
             // Arrange
-            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var resourceRegistryService = new Mock<IResourceRegistryService>();
                 resourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-broker-test-resource");
@@ -663,7 +700,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 It.IsAny<IState>()))
                 .Returns("123456");
 
-            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 services.AddSingleton(hangfireBackgroundJobClient.Object);
             });
@@ -692,13 +729,21 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 It.IsAny<IState>()))
                 .Returns("123456");
 
-            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 services.AddSingleton(hangfireBackgroundJobClient.Object);
             });
 
+            using var scope = testFactory.Services.CreateScope();
+            var attachmentHelper = scope.ServiceProvider.GetRequiredService<Application.Helpers.AttachmentHelper>();
             var senderClient = testFactory.CreateSenderClient();
-            var attachmentId = await AttachmentHelper.GetPublishedAttachment(senderClient, _responseSerializerOptions);
+
+            var attachmentId = await AttachmentHelper.GetInitializedAttachment(senderClient, _responseSerializerOptions);
+            var attachment = new AttachmentBuilder().CreateAttachment().Build();
+            await AttachmentHelper.UploadAttachment(attachmentId, senderClient);
+
+            // Manually trigger malware scan simulation since background job client is mocked
+            await attachmentHelper.SimulateMalwareScanResult(attachmentId);
 
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
@@ -737,7 +782,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 return "123456";
             });
 
-            var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 services.AddSingleton(hangfireBackgroundJobClient.Object);
             });
@@ -760,7 +805,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Act
             var uploadCorrespondenceResponseTask = senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
             using var scope = testFactory.Services.CreateScope();
-            var applicationDbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            using var applicationDbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             int retryAttempts = 30;
             while (!applicationDbContext.Attachments.Any(attachment => attachment.FileName == filename))
             {
@@ -787,7 +832,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 It.Is<Job>(job => job.Method.Name == "CreateDialogportenDialog"),
                 It.IsAny<IState>()), Times.Once);
 
-            // Tear down
+            // Teardown
             memoryStream.Dispose();
         }
 
@@ -870,7 +915,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             for (int i = 0; i < 100; i++)
             {
                 var attachment = AttachmentHelper.GetAttachmentMetaData($"file{i}.txt");
-                attachment.DataLocationType = API.Models.Enums.InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment;
+                attachment.DataLocationType = InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment;
                 attachment.ExpirationTime = DateTimeOffset.UtcNow.AddDays(1);
                 attachments.Add(attachment);
             }
@@ -911,6 +956,181 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     stream.Dispose();
                 }
             }
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_MultipleAttachments_Succeeds()
+        {
+            // Arrange
+            var attachments = new List<InitializeCorrespondenceAttachmentExt>();
+            var attachmentFiles = new[] { "document1.pdf", "image2.jpg", "data3.xlsx" };
+            
+            foreach (var fileName in attachmentFiles)
+            {
+                var attachment = AttachmentHelper.GetAttachmentMetaData(fileName);
+                attachment.DataLocationType = InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment;
+                attachment.ExpirationTime = DateTimeOffset.UtcNow.AddYears(1);
+                attachments.Add(attachment);
+            }
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithAttachments(attachments)
+                .Build();
+
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
+
+            var streamsToDispose = new List<MemoryStream>();
+
+            try
+            {
+                foreach (var attachment in attachments)
+                {
+                    var memoryStream = new MemoryStream();
+                    streamsToDispose.Add(memoryStream);
+                    memoryStream.Write(Encoding.UTF8.GetBytes($"test content for {attachment.FileName}"));
+                    memoryStream.Position = 0;
+
+                    var streamContent = new StreamContent(memoryStream);
+                    formData.Add(streamContent, "attachments", attachment.FileName);
+                }
+
+                // Act
+                var response = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+
+                // Assert
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                var responseContent = await response.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+                Assert.NotNull(responseContent);
+                Assert.NotEmpty(responseContent.Correspondences);
+                Assert.Equal(3, responseContent.AttachmentIds.Count());
+            }
+            finally
+            {
+                foreach (var stream in streamsToDispose)
+                {
+                    stream.Dispose();
+                }
+            }
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_MultipleAttachmentsButOneMalware_SucceedsInitializeButFailedOnPoll()
+        {
+            // Arrange
+            var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            hangfireBackgroundJobClient
+                .Setup(x => x.Create(
+                    It.IsAny<Job>(),
+                    It.IsAny<IState>()))
+                .Returns<Job, IState>((job, state) =>
+                {
+                    // Apply 5-second delay only for CreateDialogportenDialog to give us time to poll for attachments
+                    if (job.Method.Name == "CreateDialogportenDialog")
+                    {
+                        Task.Delay(5000).Wait();
+                        return "dialog-job-id-123";
+                    }
+
+                    // For other jobs, return immediately
+                    return "123456";
+                });
+
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                services.AddSingleton(hangfireBackgroundJobClient.Object);
+            });
+            using var webhookClient = testFactory.CreateClient();
+            using var senderClient = testFactory.CreateSenderClient();
+            using var memoryStream1 = new MemoryStream();
+            using var memoryStream2 = new MemoryStream();
+            using var memoryStream3 = new MemoryStream();
+            
+            memoryStream1.Write("safe content"u8);
+            memoryStream2.Write("malware content"u8);
+            memoryStream3.Write("safe content 2"u8);
+            
+            var filename1 = $"safe1-{Guid.NewGuid()}.txt";
+            var filename2 = $"malware-{Guid.NewGuid()}.txt";
+            var filename3 = $"safe2-{Guid.NewGuid()}.txt";
+            
+            var file1 = new FormFile(memoryStream1, 0, memoryStream1.Length, "file", filename1);
+            var file2 = new FormFile(memoryStream2, 0, memoryStream2.Length, "file", filename2);
+            var file3 = new FormFile(memoryStream3, 0, memoryStream3.Length, "file", filename3);
+            
+            var attachmentData1 = AttachmentHelper.GetAttachmentMetaData(filename1);
+            var attachmentData2 = AttachmentHelper.GetAttachmentMetaData(filename2);
+            var attachmentData3 = AttachmentHelper.GetAttachmentMetaData(filename3);
+            
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithAttachments([attachmentData1, attachmentData2, attachmentData3])
+                .Build();
+            
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
+            
+            using var fileStream1 = file1.OpenReadStream();
+            using var fileStream2 = file2.OpenReadStream();
+            using var fileStream3 = file3.OpenReadStream();
+            formData.Add(new StreamContent(fileStream1), "attachments", file1.FileName);
+            formData.Add(new StreamContent(fileStream2), "attachments", file2.FileName);
+            formData.Add(new StreamContent(fileStream3), "attachments", file3.FileName);
+
+            // Act
+            var uploadCorrespondenceResponse = await senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+            Assert.NotNull(uploadCorrespondenceResponse);
+            Assert.True(uploadCorrespondenceResponse.StatusCode == HttpStatusCode.OK, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
+            var uploadResponseContent = await uploadCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+
+            using var scope = testFactory.Services.CreateScope();
+            using var applicationDbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            
+            // Wait for attachments to be created in database
+            int retryAttempts = 30;
+            while (!applicationDbContext.Attachments.Any(attachment => attachment.FileName == filename1) ||
+                   !applicationDbContext.Attachments.Any(attachment => attachment.FileName == filename2) ||
+                   !applicationDbContext.Attachments.Any(attachment => attachment.FileName == filename3))
+            {
+                if (retryAttempts == 0)
+                {
+                    break;
+                }
+                retryAttempts--;
+                await Task.Delay(100);
+            }
+            
+            var attachment1 = applicationDbContext.Attachments.FirstOrDefault(attachment => attachment.FileName == filename1);
+            var attachment2 = applicationDbContext.Attachments.FirstOrDefault(attachment => attachment.FileName == filename2);
+            var attachment3 = applicationDbContext.Attachments.FirstOrDefault(attachment => attachment.FileName == filename3);
+            
+            Assert.NotNull(attachment1); // Safe attachment 1 not found in database
+            Assert.NotNull(attachment2); // Malware attachment not found in database
+            Assert.NotNull(attachment3); // Safe attachment 2 not found in database
+            
+            // Simulate malware scan results - one safe, one malware, one safe
+            var jsonBody1 = MalwareScanResultControllerTests.GetMalwareScanResultJson("Data/MalwareScanResult_NoThreatFound.json", attachment1.Id.ToString());
+            var jsonBody2 = MalwareScanResultControllerTests.GetMalwareScanResultJson("Data/MalwareScanResult_Malicious.json", attachment2.Id.ToString());
+            var jsonBody3 = MalwareScanResultControllerTests.GetMalwareScanResultJson("Data/MalwareScanResult_NoThreatFound.json", attachment3.Id.ToString());
+
+            var malwareScanHandler = scope.ServiceProvider.GetRequiredService<MalwareScanResultHandler>();
+            var result1 = await webhookClient.PostAsync("correspondence/api/v1/webhooks/malwarescanresults", new StringContent(jsonBody1, Encoding.UTF8, "application/json"));
+            await malwareScanHandler.CheckCorrespondenceStatusesAfterDeleteAndPublish(attachment1.Id, Guid.NewGuid(), CancellationToken.None);
+            var result2 = await webhookClient.PostAsync("correspondence/api/v1/webhooks/malwarescanresults", new StringContent(jsonBody2, Encoding.UTF8, "application/json"));
+            await malwareScanHandler.CheckCorrespondenceStatusesAfterDeleteAndPublish(attachment2.Id, Guid.NewGuid(), CancellationToken.None);
+            var result3 = await webhookClient.PostAsync("correspondence/api/v1/webhooks/malwarescanresults", new StringContent(jsonBody3, Encoding.UTF8, "application/json"));
+            await malwareScanHandler.CheckCorrespondenceStatusesAfterDeleteAndPublish(attachment3.Id, Guid.NewGuid(), CancellationToken.None);
+
+            // Assert
+
+            // Verify that the correspondence was scheduled to be failed because of one malware attachment
+            hangfireBackgroundJobClient.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == "FailAssociatedCorrespondences"),
+                It.IsAny<IState>()), Times.Once);
+            var correspondenceId = uploadResponseContent.Correspondences.First().CorrespondenceId;
+            await malwareScanHandler.FailAssociatedCorrespondences(attachment2.Id, Guid.NewGuid(), CancellationToken.None);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, uploadResponseContent.Correspondences.First().CorrespondenceId, CorrespondenceStatusExt.Failed);
         }
 
         [Fact]

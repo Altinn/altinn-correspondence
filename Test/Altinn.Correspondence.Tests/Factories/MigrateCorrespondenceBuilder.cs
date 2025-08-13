@@ -93,6 +93,19 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public MigrateCorrespondenceBuilder WithSummary(string summary)
+        {
+            _migratedCorrespondence.CorrespondenceData.Correspondence.Content.MessageSummary = summary;
+            return this;
+        }
+
+
+        public MigrateCorrespondenceBuilder WithDueAt(DateTime dueAt)
+        {
+            _migratedCorrespondence.CorrespondenceData.Correspondence.DueDateTime= new DateTimeOffset(dueAt);
+            return this;
+        }
+
         public MigrateCorrespondenceBuilder WithStatusEvent(CorrespondenceStatusExt status, DateTime occurred, Guid? userPartyUuid = null)
         {
             if (userPartyUuid == null)

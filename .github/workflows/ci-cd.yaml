@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       imageTag: ${{ steps.get-version.outputs.imageTag }}
+      version: ${{ steps.get-version.outputs.version }}
     permissions: 
       contents: read
     steps:
@@ -229,11 +230,41 @@ jobs:
           APIM_IP: ${{ secrets.APIM_IP }}
           DB_PWD: ${{ secrets.DB_PWD }}
 
+  check-version-bump:
+    name: Check if version was bumped
+    runs-on: ubuntu-latest
+    needs: [get-version, deploy-production]
+    if: ${{ !failure() && !cancelled()}}
+    outputs:
+      should-release: ${{ steps.check-version.outputs.should-release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check version bump
+        id: check-version
+        shell: bash
+        run: |
+          git fetch --tags
+          latestTag=$(git tag | sort --version-sort | tail -n1)
+          currentVersion="${{ needs.get-version.outputs.version }}"
+          
+          echo "📋 Latest git tag: $latestTag"
+          echo "📋 Current version: $currentVersion"
+          
+          # Check if current version is newer than latest tag
+          if [[ $(printf '%s\n' "$latestTag" "$currentVersion" | sort --version-sort | tail -n1) == "$currentVersion" ]] && [[ "$latestTag" != "$currentVersion" ]]; then
+            echo "should-release=true" >> $GITHUB_OUTPUT
+            echo "✅ Version bump detected: $latestTag -> $currentVersion"
+          else
+            echo "should-release=false" >> $GITHUB_OUTPUT
+            echo "⏸️  No version bump - current version ($currentVersion) is not newer than latest tag ($latestTag)"
+          fi
+
   release-to-git:  
     name: Release to git
     runs-on: ubuntu-latest
-    needs: [deploy-production]
-    if: ${{ !failure() && !cancelled()}}
+    needs: [check-version-bump]
+    if: ${{ needs.check-version-bump.outputs.should-release == 'true' }}
     permissions: 
       id-token: write
       contents: write
@@ -241,7 +272,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Release
-        if: (!failure() && !cancelled())
+        if: ${{ !failure() && !cancelled() }}
         uses: ./.github/actions/release-to-git
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

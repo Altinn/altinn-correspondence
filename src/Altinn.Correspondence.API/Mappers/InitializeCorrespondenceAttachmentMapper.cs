@@ -1,4 +1,5 @@
 using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 
@@ -19,6 +20,7 @@ internal static class InitializeCorrespondenceAttachmentMapper
                 DisplayName = initializeAttachmentExt.DisplayName,
                 ResourceId = resourceId,
                 Sender = sender,
+                ServiceOwnerId = sender.WithoutPrefix(),
                 SendersReference = initializeAttachmentExt.SendersReference,
                 Checksum = initializeAttachmentExt.Checksum,
                 IsEncrypted = initializeAttachmentExt.IsEncrypted,

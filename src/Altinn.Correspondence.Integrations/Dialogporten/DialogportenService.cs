@@ -8,6 +8,7 @@ using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Net;
 using System.Net.Http.Json;
 using UUIDNext;
 
@@ -78,6 +79,10 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         if (apiActionIndexToDelete != -1)
         {
             patchRequestBuilder.WithRemoveApiActionOperation(apiActionIndexToDelete);
+        }
+        if (dialog.Status == "RequiresAttention")
+        {
+            patchRequestBuilder.WithReplaceStatusOperation("NotApplicable");
         }
         var patchRequest = patchRequestBuilder.Build();
         if (patchRequest.Count == 0)
@@ -296,6 +301,23 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         {
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         }
+    }
+
+    public async Task<bool> TrySoftDeleteDialog(string dialogId)
+    {
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+
+        var response = await _httpClient.DeleteAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+        if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.Gone)
+        {
+            return false;
+        }
+        throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
     }
 
     public async Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType, string actorName, DateTimeOffset activityTimestamp)

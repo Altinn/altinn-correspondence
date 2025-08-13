@@ -1,5 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Factories;
@@ -62,6 +63,8 @@ public class MigrationControllerTests : MigrationTestBase
         // Assert
         Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse.StatusCode);
         Assert.Equal(8, response.Notifications.Count);
+        Assert.Equal(4, response.Notifications.Where(n => n.IsReminder == false).Count());
+        Assert.Equal(4, response.Notifications.Where(n => n.IsReminder == true).Count());
         Assert.Equal(migrateCorrespondenceExt.Altinn2CorrespondenceId, response.Altinn2CorrespondenceId);
     }
 
@@ -245,6 +248,81 @@ public class MigrationControllerTests : MigrationTestBase
     }
 
     [Fact]
+    public async Task MakeCorrespondenceAvailable_Defined()
+    {
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6, 11, 10, 21))
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 7, 15, 11, 56))
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 8, 14, 19, 22))
+            .WithStatusEvent(CorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 8, 14, 20, 5))
+            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 9, 10, 50, 17))
+            .Build();
+        SetNotificationHistory(migrateCorrespondenceExt);
+        string jsonCorr = "{\"correspondenceData\":{\"correspondence\":{\"resourceId\":\"skd-migratedcorrespondence-3476-130314\",\"sender\":\"urn:altinn:organization:identifier-no:974761076\",\"senderPartyUuid\":\"e6e80419-0019-4892-b8a7-78ac03eb3c51\",\"sendersReference\":\"b4199d2c-c063-4bb2-bce6-0b4d69f5acea\",\"messageSender\":\"Skatteetaten\",\"content\":{\"language\":\"nb\",\"messageTitle\":\"A03 a-melding tilbakemelding for 2025-05 - meldingsId: tlx-1232714052\",\"messageSummary\":\"\",\"messageBody\":\"Tilbakemelding på a-melding\"},\"requestedPublishTime\":\"2025-06-30T12:06:09.487+02:00\",\"allowSystemDeleteAfter\":null,\"dueDateTime\":null,\"externalReferences\":[],\"propertyList\":{\"Altinn2ArchiveUnitReference\":\"AR20699019\"},\"replyOptions\":[],\"ignoreReservation\":null,\"published\":\"2025-06-30T12:06:09.487+02:00\",\"isConfirmationNeeded\":false},\"recipients\":[\"urn:altinn:organization:identifier-no:313414450\"],\"recipientPartyUuids\":[\"aa0c3933-4d4e-4bbb-8ac6-1becd706ffe8\"],\"existingAttachments\":[]},\"altinn2CorrespondenceId\":30088189,\"eventHistory\":[{\"status\":0,\"statusText\":\"Correspondence Created in Altinn 2\",\"statusChanged\":\"2025-06-30T12:06:09.487+02:00\",\"eventUserUuid\":\"00000000-0000-0000-0000-000000000000\",\"eventUserPartyUuid\":\"00000000-0000-0000-0000-000000000000\"},{\"status\":2,\"statusText\":\"Correspondence Published in Altinn 2\",\"statusChanged\":\"2025-06-30T12:06:09.487+02:00\",\"eventUserUuid\":\"e6e80419-0019-4892-b8a7-78ac03eb3c51\",\"eventUserPartyUuid\":\"e6e80419-0019-4892-b8a7-78ac03eb3c51\"},{\"status\":4,\"statusText\":\"Migrated event Read from Altinn 2\",\"statusChanged\":\"2025-06-30T12:06:46.337+02:00\",\"eventUserUuid\":\"2a064dc8-193e-4ca0-9027-9aef49c96db1\",\"eventUserPartyUuid\":\"2a064dc8-193e-4ca0-9027-9aef49c96db1\"}],\"notificationHistory\":[],\"forwardingHistory\":[],\"IsMigrating\":true,\"created\":\"2025-06-30T12:06:09.487+02:00\",\"partyId\":51843981}";
+
+        migrateCorrespondenceExt = JsonConvert.DeserializeObject<MigrateCorrespondenceExt>(jsonCorr);
+        CorrespondenceMigrationStatusExt resultObj = await MigrateSingleCorrespondence_NoAdd(migrateCorrespondenceExt);
+        Assert.NotNull(resultObj);
+
+        MakeCorrespondenceAvailableRequestExt request = new MakeCorrespondenceAvailableRequestExt()
+        {
+            CreateEvents = false,
+            CorrespondenceIds = [resultObj.CorrespondenceId],
+            CorrespondenceId = resultObj.CorrespondenceId
+        };
+        var makeAvailableResponse = await _migrationClient.PostAsJsonAsync(makeAvailableUrl, request);
+        MakeCorrespondenceAvailableResponseExt respExt = await makeAvailableResponse.Content.ReadFromJsonAsync<MakeCorrespondenceAvailableResponseExt>();
+
+        // Verify that correspondence has IsMigrating set to false, which means we can retrieve it through GetOverview.
+        var getCorrespondenceOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{resultObj.CorrespondenceId}/content");
+        Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode);
+
+        Assert.True(makeAvailableResponse.IsSuccessStatusCode);
+        Assert.NotNull(respExt.Statuses);
+        Assert.Equal(1, respExt.Statuses.Count);
+        Assert.True(respExt.Statuses.First().Ok);
+    }
+
+    [Fact]
+    public async Task MakeCorrespondenceAvailable_DueAtInThePastNoSummary()
+    {
+        // In this case, summary and DueAt.
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6, 11, 10, 21))
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 7, 15, 11, 56))
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 8, 14, 19, 22))
+            .WithStatusEvent(CorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 8, 14, 20, 5))
+            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 9, 10, 50, 17))
+            .WithDueAt(new DateTime(2025, 05, 01))
+            .WithSummary("")
+            .Build();
+        SetNotificationHistory(migrateCorrespondenceExt);
+
+        CorrespondenceMigrationStatusExt resultObj = await MigrateSingleCorrespondence(migrateCorrespondenceExt);
+        Assert.NotNull(resultObj);
+
+        MakeCorrespondenceAvailableRequestExt request = new MakeCorrespondenceAvailableRequestExt()
+        {
+            CreateEvents = false,
+            CorrespondenceIds = [resultObj.CorrespondenceId],
+            CorrespondenceId = resultObj.CorrespondenceId
+        };
+        var makeAvailableResponse = await _migrationClient.PostAsJsonAsync(makeAvailableUrl, request);
+        MakeCorrespondenceAvailableResponseExt respExt = await makeAvailableResponse.Content.ReadFromJsonAsync<MakeCorrespondenceAvailableResponseExt>();
+
+        // Verify that correspondence has IsMigrating set to false, which means we can retrieve it through GetOverview.
+        var getCorrespondenceOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{resultObj.CorrespondenceId}/content");
+        Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode);
+
+        Assert.True(makeAvailableResponse.IsSuccessStatusCode);
+        Assert.NotNull(respExt.Statuses);
+        Assert.Equal(1, respExt.Statuses.Count);
+        Assert.True(respExt.Statuses.First().Ok);
+    }
+
+    [Fact]
     public async Task MakeCorrespondenceAvailable_OnCall()
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
@@ -325,6 +403,15 @@ public class MigrationControllerTests : MigrationTestBase
     private async Task<CorrespondenceMigrationStatusExt> MigrateSingleCorrespondence(MigrateCorrespondenceExt migrateCorrespondenceExt)
     {
         migrateCorrespondenceExt.Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId + 1;
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorresponenceUrl, migrateCorrespondenceExt);
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode);
+        CorrespondenceMigrationStatusExt resultObj = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>();
+        return resultObj;
+    }
+
+
+    private async Task<CorrespondenceMigrationStatusExt> MigrateSingleCorrespondence_NoAdd(MigrateCorrespondenceExt migrateCorrespondenceExt)
+    {
         var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorresponenceUrl, migrateCorrespondenceExt);
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode);
         CorrespondenceMigrationStatusExt resultObj = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>();
@@ -454,7 +541,7 @@ public class MigrationControllerTests : MigrationTestBase
                 NotificationAddress = "123456789",
                 NotificationChannel = NotificationChannelExt.Sms,
                 NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 11)),
-                IsReminder = false
+                IsReminder = true
             },
             new MigrateCorrespondenceNotificationExt()
             {
@@ -462,7 +549,7 @@ public class MigrationControllerTests : MigrationTestBase
                 NotificationAddress = "223456789",
                 NotificationChannel = NotificationChannelExt.Sms,
                 NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 11)),
-                IsReminder = false
+                IsReminder = true
             },
             new MigrateCorrespondenceNotificationExt()
             {
@@ -470,7 +557,7 @@ public class MigrationControllerTests : MigrationTestBase
                 NotificationAddress = "323456789",
                 NotificationChannel = NotificationChannelExt.Sms,
                 NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 11)),
-                IsReminder = false
+                IsReminder = true
             },
             new MigrateCorrespondenceNotificationExt()
             {
@@ -478,7 +565,7 @@ public class MigrationControllerTests : MigrationTestBase
                 NotificationAddress = "423456789",
                 NotificationChannel = NotificationChannelExt.Sms,
                 NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 11)),
-                IsReminder = false
+                IsReminder = true
             }
         ];
     }

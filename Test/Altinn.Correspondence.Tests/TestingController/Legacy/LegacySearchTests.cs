@@ -25,8 +25,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         public async Task GetCorrespondences()
         {
             var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-            Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
 
             var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", GetBasicLegacyGetCorrespondenceRequestExt());
             var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
@@ -52,6 +52,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         {
             var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
             var listPayload = GetBasicLegacyGetCorrespondenceRequestExt();
             listPayload.Status = CorrespondenceStatusExt.Published;
 
@@ -80,7 +81,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                       .WithConfirmationNeeded(true)
                       .Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
-            Assert.Equal(CorrespondenceStatusExt.Published, correspondence.Status);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
 
             //  Act
             var fetchResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview"); // Fetch in order to be able to Confirm
@@ -107,7 +108,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                       .WithConfirmationNeeded(true)
                       .Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
-            Assert.Equal(CorrespondenceStatusExt.Published, correspondence.Status);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
 
             await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/purge");
 
@@ -123,12 +124,12 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         [Fact]
         public async Task LegacyGetCorrespondences_InvalidPartyId_ReturnsUnauthorized()
         {
-            var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            using var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockRegisterService = new Mock<IAltinnRegisterService>();
                 mockRegisterService
                     .Setup(service => service.LookUpPartyByPartyId(It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync((Party)null);
+                    .ReturnsAsync((Party?)null);
                 services.AddSingleton(mockRegisterService.Object);
             });
             var failClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.LegacyScope), (_partyIdClaim, "123"));

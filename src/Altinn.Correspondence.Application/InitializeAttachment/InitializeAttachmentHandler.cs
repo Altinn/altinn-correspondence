@@ -21,31 +21,41 @@ public class InitializeAttachmentHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     ILogger<InitializeAttachmentHandler> logger,
     IBackgroundJobClient backgroundJobClient,
-    AttachmentHelper attachmentHelper) : IHandler<InitializeAttachmentRequest, Guid>
+    AttachmentHelper attachmentHelper,
+    ServiceOwnerHelper serviceOwnerHelper) : IHandler<InitializeAttachmentRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Starting attachment initialization process for resource {ResourceId}", request.Attachment.ResourceId.SanitizeForLogging());
+        var sanitizedResourceId = request.Attachment.ResourceId.SanitizeForLogging();
+        logger.LogInformation("Starting attachment initialization process for resource {ResourceId}", sanitizedResourceId);
+        
+        var serviceOwnerOrgNumber = await resourceRegistryService.GetServiceOwnerOrganizationNumber(request.Attachment.ResourceId, cancellationToken);
+        if (string.IsNullOrEmpty(serviceOwnerOrgNumber))
+        {
+            logger.LogError("Service owner/sender's organization number (9 digits) not found for resource {ResourceId}", sanitizedResourceId);
+            return CorrespondenceErrors.ServiceOwnerOrgNumberNotFound;
+        }
+        
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
             request.Attachment.ResourceId,
-            request.Attachment.Sender.WithoutPrefix(),
+            serviceOwnerOrgNumber.WithoutPrefix(),
             null,
             cancellationToken);
         if (!hasAccess)
         {
-            logger.LogWarning("Access denied for resource {ResourceId} - user does not have sender access", request.Attachment.ResourceId.SanitizeForLogging());
+            logger.LogWarning("Access denied for resource {ResourceId} - user does not have sender access", sanitizedResourceId);
             return AuthorizationErrors.NoAccessToResource;
         }
         var resourceType = await resourceRegistryService.GetResourceType(request.Attachment.ResourceId, cancellationToken);
         if (resourceType is null)
         {
-            logger.LogError("Resource type not found for {ResourceId} despite successful authorization", request.Attachment.ResourceId);
-            throw new Exception($"Resource type not found for {request.Attachment.ResourceId}. This should be impossible as authorization worked.");
+            logger.LogError("Resource type not found for {ResourceId} despite successful authorization", sanitizedResourceId);
+            throw new Exception($"Resource type not found for {sanitizedResourceId}. This should be impossible as authorization worked.");
         }
         if (resourceType != "GenericAccessResource" && resourceType != "CorrespondenceService")
         {
-            logger.LogWarning("Incorrect resource type {ResourceType} for {ResourceId}", resourceType, request.Attachment.ResourceId);
+            logger.LogWarning("Incorrect resource type {ResourceType} for {ResourceId}", resourceType, sanitizedResourceId);
             return AuthorizationErrors.IncorrectResourceType;
         }
 
@@ -60,16 +70,15 @@ public class InitializeAttachmentHandler(
         var attachmentNameError = attachmentHelper.ValidateAttachmentName(request.Attachment);
         if (attachmentNameError is not null)
         {
-            logger.LogWarning("Invalid attachment name for resource {ResourceId}: {Error}", request.Attachment.ResourceId, attachmentNameError);
+            logger.LogWarning("Invalid attachment name for resource {ResourceId}: {Error}", sanitizedResourceId, attachmentNameError);
             return attachmentNameError;
         }
-        if (attachment.Sender.StartsWith("0192:"))
-        {
-            logger.LogInformation("Converting legacy sender prefix '0192:' to {UrnPrefix} for resource {ResourceId}", 
-                UrnConstants.OrganizationNumberAttribute, 
-                request.Attachment.ResourceId);
-            attachment.Sender = $"{UrnConstants.OrganizationNumberAttribute}:{attachment.Sender.WithoutPrefix()}";
-        }
+        
+        // Set the Sender and ServiceOwnerId from the service owner organization number
+        var (sender, serviceOwnerId) = await serviceOwnerHelper.GetSenderAndServiceOwnerIdAsync(serviceOwnerOrgNumber, cancellationToken);
+        attachment.Sender = sender;
+        attachment.ServiceOwnerId = serviceOwnerId;
+        
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             var initializedAttachment = await attachmentRepository.InitializeAttachment(attachment, cancellationToken);   
@@ -83,7 +92,7 @@ public class InitializeAttachmentHandler(
                 CancellationToken.None));
             logger.LogInformation("Successfully initialized attachment {AttachmentId} for resource {ResourceId}", 
                 initializedAttachment.Id, 
-                request.Attachment.ResourceId);
+                sanitizedResourceId);
             return initializedAttachment.Id;
         }, logger, cancellationToken);
     }

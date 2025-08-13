@@ -27,6 +27,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             // Arrange
             var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
 
             // Act
             var deleteResponse = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/purge");
@@ -44,6 +45,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var payload = new CorrespondenceBuilder().CreateCorrespondence().WithDueDateTime(DateTime.UtcNow.AddDays(5)).WithConfirmationNeeded(true).Build();
 
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
 
             // Act
             var deleteResponse = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/purge");
@@ -60,7 +62,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             // Arrange
             var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
-            var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+            using var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockRegisterService = new Mock<IAltinnRegisterService>();
                 mockRegisterService
@@ -117,6 +120,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 .WithConfirmationNeeded(true)
                 .Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
 
             // Act
             var fetchResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview"); // Fetch in order to be able to Confirm

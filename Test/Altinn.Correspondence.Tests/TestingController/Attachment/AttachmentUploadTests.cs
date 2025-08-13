@@ -3,24 +3,20 @@ using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Attachment.Base;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http.Json;
 using System.Net;
 using System.Text;
-using System.Threading.Tasks;
 using System.Text.Json;
 using Altinn.Correspondence.Tests.Fixtures;
+using Altinn.Correspondence.API.Models.Enums;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Correspondence.Tests.TestingController.Attachment
 {
     [Collection(nameof(CustomWebApplicationTestsCollection))]
-    public class AttachmentUploadTests : AttachmentTestBase
+    public class AttachmentUploadTests(CustomWebApplicationFactory factory) : AttachmentTestBase(factory)
     {
-        public AttachmentUploadTests(CustomWebApplicationFactory factory) : base(factory)
-        {
-        }
         [Fact]
         public async Task UploadAttachmentData_WhenAttachmentDoesNotExist_ReturnsNotFound()
         {
@@ -88,6 +84,25 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             // Assert that the uploaded and downloaded bytes are the same
             Assert.Equal(originalAttachmentData, downloadedAttachmentData);
         }
+
+        [Fact]
+        public async Task UploadAttachmentData_NoContentLength_Succeeds()
+        {
+            var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+            var originalAttachmentData = new byte[] { 1, 2, 3, 4 };
+            var uploadResponse = await AttachmentHelper.UploadAttachmentStreamed(attachmentId, _senderClient, new MemoryStream(originalAttachmentData));
+            Assert.False(uploadResponse.RequestMessage!.Content!.Headers.Contains("Content-Length"), "Content-Length header should not be set for streamed uploads");
+
+            // Download the attachment data
+            var downloadResponse = await _senderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}/download");
+            downloadResponse.EnsureSuccessStatusCode();
+
+            var downloadedAttachmentData = await downloadResponse.Content.ReadAsByteArrayAsync();
+
+            // Assert that the uploaded and downloaded bytes are the same
+            Assert.Equal(originalAttachmentData, downloadedAttachmentData);
+        }
+
         [Fact]
         public async Task UploadAtttachmentData_ChecksumCorrect_Succeeds()
         {
@@ -109,6 +124,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             // Assert
             Assert.True(uploadResponse.IsSuccessStatusCode, await uploadResponse.Content.ReadAsStringAsync());
         }
+
         [Fact]
         public async Task UploadAttachment_MismatchChecksum_Fails()
         {
@@ -134,6 +150,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             Assert.False(uploadResponse.IsSuccessStatusCode);
             Assert.Equal(HttpStatusCode.BadRequest, uploadResponse.StatusCode);
         }
+
         [Fact]
         public async Task UploadAttachment_NoChecksumSetWhenInitialized_ChecksumSetAfterUpload()
         {
@@ -156,6 +173,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             Assert.NotEmpty(attachmentOverview.Checksum);
             Assert.Equal(checksum, attachmentOverview.Checksum);
         }
+
         [Fact]
         public async Task UploadAttachment_ChecksumSetWhenInitialized_SameChecksumSetAfterUpload()
         {
@@ -184,6 +202,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             Assert.NotEmpty(attachmentOverview.Checksum);
             Assert.Equal(prevOverview.Checksum, attachmentOverview.Checksum);
         }
+
         [Fact]
         public async Task UploadAtttachmentData_AsRecipient_ReturnsForbidden()
         {
@@ -196,6 +215,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             // Assert
             Assert.Equal(HttpStatusCode.Forbidden, uploadResponse.StatusCode);
         }
+
         [Fact]
         public async Task DownloadAttachment_AsSender_Succeeds()
         {
@@ -209,6 +229,26 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             // Assert
             Assert.Equal(HttpStatusCode.OK, downloadResponse.StatusCode);
             Assert.NotEmpty(data);
+        }
+
+        [Fact]
+        public async Task UploadAttachmentData_InDevelopmentMode_GetsPublishedAfterSimulatedMalwareScan()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var hostEnvironment = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
+            Assert.True(hostEnvironment.IsDevelopment(), "Test requires Development environment for automatic malware scan simulation");
+            var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+            var content = new ByteArrayContent(Encoding.UTF8.GetBytes("Test content"));
+            
+            // Act
+            var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _senderClient, content);
+            Assert.True(uploadResponse.IsSuccessStatusCode, await uploadResponse.Content.ReadAsStringAsync());
+            var attachmentOverview = await AttachmentHelper.WaitForAttachmentStatusUpdate(_senderClient, _responseSerializerOptions, attachmentId, AttachmentStatusExt.Published);
+            
+            // Assert
+            Assert.NotNull(attachmentOverview);
+            Assert.Equal(AttachmentStatusExt.Published, attachmentOverview.Status);
         }
     }
 }

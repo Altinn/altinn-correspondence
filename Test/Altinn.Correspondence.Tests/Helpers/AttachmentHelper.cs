@@ -44,7 +44,7 @@ namespace Altinn.Correspondence.Tests.Helpers
             var attachmentId = await initializeAttachmentResponse.Content.ReadFromJsonAsync<Guid>();
             var uploadResponse = await UploadAttachment(attachmentId, client);
             Assert.Equal(HttpStatusCode.OK, uploadResponse.StatusCode);
-            var attachmentOverview = await (await client.GetAsync($"correspondence/api/v1/attachment/{attachmentId}")).Content.ReadFromJsonAsync<AttachmentOverviewExt>(responseSerializerOptions);
+            var attachmentOverview = await WaitForAttachmentStatusUpdate(client, responseSerializerOptions, attachmentId, AttachmentStatusExt.Published);
             Assert.Equal(AttachmentStatusExt.Published, attachmentOverview?.Status);
             return attachmentId;
         }
@@ -60,6 +60,23 @@ namespace Altinn.Correspondence.Tests.Helpers
             var uploadResponse = await client.PostAsync($"correspondence/api/v1/attachment/{attachmentId}/upload", content);
             return uploadResponse;
         }
+        public async static Task<HttpResponseMessage> UploadAttachmentStreamed(Guid? attachmentId, HttpClient client, Stream originalAttachmentData)
+        {
+            if (attachmentId is null)
+            {
+                Assert.Fail("AttachmentId is null");
+            }
+            var request = new HttpRequestMessage(HttpMethod.Post, $"correspondence/api/v1/attachment/{attachmentId}/upload");
+            var content = new StreamContent(originalAttachmentData);
+            content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+            request.Headers.TransferEncodingChunked = true;
+            request.Content = content;
+            var uploadResponse = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+            return uploadResponse;
+
+
+        }
+
         public static string CalculateChecksum(byte[] data)
         {
             using (var md5 = System.Security.Cryptography.MD5.Create())
@@ -67,6 +84,32 @@ namespace Altinn.Correspondence.Tests.Helpers
                 byte[] hash = md5.ComputeHash(data);
                 return BitConverter.ToString(hash).Replace("-", "").ToLower();
             }
+        }
+        public static async Task<AttachmentOverviewExt> WaitForAttachmentStatusUpdate(HttpClient client, JsonSerializerOptions responseSerializerOptions, Guid attachmentId, AttachmentStatusExt expectedStatus, int maxRetries = 5, int delayMs = 900)
+        {
+            await Task.Delay(200);
+            for (int i = 0; i < maxRetries; i++)
+            {
+                var attachment = await client.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", responseSerializerOptions);
+
+                if (attachment?.Status == expectedStatus)
+                {
+                    return attachment;
+                }
+
+                if (attachment?.Status == AttachmentStatusExt.Failed)
+                {
+                    Assert.Fail($"Attachment failed with status: {attachment.StatusText}");
+                }
+
+                await Task.Delay(delayMs);
+            }
+            
+            // Status didn't update within the expected time
+            var finalAttachment = await client.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", responseSerializerOptions);
+            Assert.NotNull(finalAttachment);
+            Assert.Fail($"Attachment status did not update to {expectedStatus} within {maxRetries * delayMs + 1000}ms. Current status: {finalAttachment?.Status}");
+            return finalAttachment;
         }
     }
 }

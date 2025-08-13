@@ -42,6 +42,7 @@ public static class CorrespondenceErrors
     public static Error DuplicateInitCorrespondenceRequest = new Error(1034, "A correspondence with the same idempotent key already exists", HttpStatusCode.Conflict);
     public static Error InvalidReplyOptions = new Error(1035, "Reply options must be well-formed URIs and HTTPS with a max length of 255 characters", HttpStatusCode.BadRequest);
     public static Error ServiceOwnerOrgNumberNotFound = new Error(1036, "Service owner/sender's organization number (9 digits) not found for resource", HttpStatusCode.InternalServerError);
+    public static Error MessageTitleTooLong = new Error(1037, "Message title cannot exceed 255 characters", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
@@ -50,7 +51,7 @@ public static class AttachmentErrors
     public static Error AttachmentNotFound = new Error(2001, "The requested attachment was not found", HttpStatusCode.NotFound);
     public static Error UploadFailed = new Error(2002, "Error occurred during upload", HttpStatusCode.BadGateway);
     public static Error CantUploadToExistingCorrespondence = new Error(2003, "Cannot upload attachment to a correspondence that has been created", HttpStatusCode.BadRequest);
-    public static Error InvalidFileSize = new Error(2004, "File must have content and has a max file size of 250 MB", HttpStatusCode.BadRequest);
+    public static Error InvalidFileSize = new Error(2004, "File must have content and has a max file size of 2GB", HttpStatusCode.BadRequest);
     public static Error FileAlreadyUploaded = new Error(2005, "File has already been or is being uploaded", HttpStatusCode.BadRequest);
     public static Error FileHasBeenPurged = new Error(2006, "File has already been purged", HttpStatusCode.BadRequest);
     public static Error PurgeAttachmentWithExistingCorrespondence = new Error(2007, "Attachment cannot be purged as it is linked to at least one existing correspondence", HttpStatusCode.BadRequest);
