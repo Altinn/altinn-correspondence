@@ -4,22 +4,20 @@
  * 
  */
 import http from 'k6/http';
-import { describe } from "../common/describe.js";
-import { baseUrlCorrespondence } from '../common/config.js';
-import { expect } from "../common/testimports.js";
+import { 
+    describe,
+    getPersonalToken,
+    uuidv4,
+    expect
+ } from "../common/testimports.js";
+import { baseUrlCorrespondence, buildOptions } from '../common/config.js';
 import { endUsers, serviceOwners } from "../common/readTestdata.js";
 import { getCorrespondenceForm } from '../data/correspondence-form.js';
-import { getPersonalTokenForServiceOwner } from '../common/token.js';
-import { uuidv7 } from '../common/uuid.js';
 
-export let options = {
-    summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(95)', 'p(99)', 'p(99.5)', 'p(99.9)', 'count'],
-    thresholds: {   
-        'http_req_duration{name:upload correspondence}': ['p(99)<5000'],
-        'http_reqs{name:upload correspondence}': [],
-        'checks{name:upload correspondence}': ['rate>0.95'],
-    }
-};
+const uploadCorrespondenceLabel = 'upload correspondence';
+const labels = [uploadCorrespondenceLabel];
+
+export let options = buildOptions(labels);
 
 const traceCalls = (__ENV.traceCalls ?? 'false') === 'true';
 
@@ -28,19 +26,25 @@ export default function() {
 }
 
 export function uploadCorrespondence(serviceOwner, endUser, traceCalls) {
-    var traceparent = uuidv7();
+    var traceparent = uuidv4();
     const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
-    const formData = getCorrespondenceForm(serviceOwner.resource, serviceOwner.orgno, endUser.ssn);
+    const formData = getCorrespondenceForm(serviceOwner.resource, serviceOwner.orgno, endUser.ssn, boundary);
+    const tokenOptions = {
+        scopes: serviceOwner.scopes, 
+        pid: serviceOwner.ssn,
+        orgno: serviceOwner.orgno,
+        consumerOrgNo: serviceOwner.orgno
+    }
     var paramsWithToken = {
         headers: {
-            Authorization: "Bearer " + getPersonalTokenForServiceOwner(serviceOwner),
+            Authorization: "Bearer " + getPersonalToken(tokenOptions),
             traceparent: traceparent,
             'Content-Type': 'multipart/form-data; boundary=' + boundary,
             'Accept': '*/*, application/json',
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive'
         },
-        tags: { name: 'upload correspondence'}
+        tags: { name: uploadCorrespondenceLabel }
     };
 
     if (traceCalls) {

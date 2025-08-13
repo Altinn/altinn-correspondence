@@ -18,7 +18,7 @@ import { breakpoint, stages_target } from './config.js';
  */
 function readCsv(filename) {
   try {
-    return papaparse.parse(open(filename), { header: true, skipEmptyLines: true }).data;
+    return papaparse.parse(open(filename), { header: true, skipEmptyLines: true,  }).data;
   } catch (error) {
     console.log(`Error reading CSV file: ${error}`);
     return [];
@@ -28,8 +28,7 @@ function readCsv(filename) {
 if (!__ENV.API_ENVIRONMENT) {
   throw new Error('API_ENVIRONMENT must be set');
 }
-const filenameEndusers = `../data/endusers-${__ENV.API_ENVIRONMENT}.csv`;
-const filenameServiceowners = `../data/serviceowners-${__ENV.API_ENVIRONMENT}.csv`;
+const filenameOrgs = `../data/orgs-${__ENV.API_ENVIRONMENT}.csv`;
 
 /**
  * SharedArray variable that stores the service owners data.
@@ -38,29 +37,18 @@ const filenameServiceowners = `../data/serviceowners-${__ENV.API_ENVIRONMENT}.cs
  * @name serviceOwners
  * @type {SharedArray}
  */
-export const serviceOwners = new SharedArray('serviceOwners', function () {
-  return readCsv(filenameServiceowners);
+export const orgs = new SharedArray('orgs', function () {
+  return readCsv(filenameOrgs);
 });
 
-/**
- * SharedArray variable that stores the end users data.
- * The data is parsed from the CSV file specified by the filenameEndusers variable.
- * The filenameEndusers variable is dynamically generated based on the value of the API_ENVIRONMENT environment variable.
- * 
- * @name endUsers
- * @type {SharedArray}
- */
-export const endUsers = new SharedArray('endUsers', function () {
-  return readCsv(filenameEndusers); 
-});
 
-export function endUsersPart(totalVus, vuId) {
-    const endUsersLength = endUsers.length;
+export function orgsParts(totalVus, vuId) {
+    const orgsLength = orgs.length;
     if (totalVus == 1) {
-        return endUsers.slice(0, endUsersLength);
+        return orgs.slice(0, orgsLength);
     }
-    let usersPerVU = Math.floor(endUsersLength / totalVus);
-    let extras = endUsersLength % totalVus;
+    let usersPerVU = Math.floor(orgsLength / totalVus);
+    let extras = orgsLength % totalVus;
     let ixStart = (vuId-1) * usersPerVU;
     if (vuId <= extras) {
         usersPerVU++;
@@ -69,7 +57,7 @@ export function endUsersPart(totalVus, vuId) {
     else {
         ixStart += extras;
     }
-    return endUsers.slice(ixStart, ixStart + usersPerVU);
+    return orgs.slice(ixStart, ixStart + usersPerVU);
 }
 
 export function setup() {
@@ -81,7 +69,7 @@ export function setup() {
   }
   let parts = [];
   for (let i = 1; i <= totalVus; i++) {
-      parts.push(endUsersPart(totalVus, i));
+      parts.push(orgsParts(totalVus, i));
   }
   return parts;
 }

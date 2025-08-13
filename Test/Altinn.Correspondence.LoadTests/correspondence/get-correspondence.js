@@ -1,36 +1,22 @@
-/**
- * Load test for creating correspondence
- * This test will create correspondence for a random end user and a random service owner
- * 
- */
 import http from 'k6/http';
 import exec from 'k6/execution';
-import { randomItem } from 'https://jslib.k6.io/k6-utils/1.2.0/index.js';
-import { URL } from 'https://jslib.k6.io/url/1.0.0/index.js';
-import { describe } from "../common/describe.js";
-import { expect } from "../common/testimports.js";
+import { URL, describe, expect, uuidv4, getPersonalToken  } from '../common/testimports.js';
 import { serviceOwners } from "../common/readTestdata.js";
-import { getPersonalTokenForEndUser, getDialogPortenToken } from '../common/token.js';
-import { baseUrlCorrespondence } from '../common/config.js';
-import { uuidv7 } from '../common/uuid.js';
+import { baseUrlCorrespondence, baseUrlDialogPortenEndUser, buildOptions } from '../common/config.js';
 export { setup as setup } from "../common/readTestdata.js";
 
-export let options = {
-    summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(95)', 'p(99)', 'p(99.5)', 'p(99.9)', 'count'],
-    thresholds: {   
-        'http_req_duration{name:get correspondence}': ['p(99)<5000'],
-        'http_reqs{name:get correspondence}': [],
-        'checks{name:get correspondence}': ['rate>0.95'],
-        'http_req_duration{name:get correspondence details}': ['p(99)<5000'],
-        'http_reqs{name:get correspondence details}': [],
-        'checks{name:get correspondence details}': [],
-        'http_req_duration{name:get correspondence content}': ['p(99)<5000'],
-        'http_reqs{name:get correspondence content}': [],
-        'checks{name:get correspondence content}': [],
-        'http_req_duration{name:enduser search}': [],
-        'http_reqs{name:enduser search}': [],
-    }
-};
+const getCorrespondenceLabel = 'get correspondence';
+const getCorrespondenceDetailsLabel = 'get correspondence details';
+const getCorrespondenceContentLabel = 'get correspondence content';
+const endUserSearchLabel = 'enduser search';
+const labels = [
+    getCorrespondenceLabel,
+    getCorrespondenceDetailsLabel,
+    getCorrespondenceContentLabel,
+    endUserSearchLabel
+];
+
+export const options = buildOptions(labels);
 
 const traceCalls = (__ENV.traceCalls ?? 'false') === 'true';
 
@@ -41,25 +27,31 @@ export default function(data) {
 }
 
 function getCorrespondence(serviceOwner, endUser, traceCalls) {
-    var traceparent = uuidv7();
+    var traceparent = uuidv4();
+
+    const tokenOptions = {
+        scopes: "altinn:correspondence.read", 
+        pid: endUser.ssn,
+        orgno: serviceOwner.orgno,
+        consumerOrgNo: serviceOwner.orgno
+    }
 
     var paramsWithToken = {
         headers: {
-            Authorization: "Bearer " + getPersonalTokenForEndUser(serviceOwner, endUser),
+            Authorization: "Bearer " + getPersonalToken(tokenOptions),
             traceparent: traceparent,
             'Content-Type': 'application/json',
             'Accept': '*/*, application/json',
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive'
         },
-        tags: { name: 'get correspondence'}
+        tags: { name: getCorrespondenceLabel }
     };
 
     if (traceCalls) {
         paramsWithToken.tags.traceparent = traceparent;
         paramsWithToken.tags.enduser = endUser.ssn;
     }
-
 
     describe('get correspondence', () => {
         let url = new URL(baseUrlCorrespondence);
@@ -82,7 +74,7 @@ function getContent(response, endUser, traceparent, paramsWithToken) {
 
     const listParams = {
         ...paramsWithToken,
-        tags: { ...paramsWithToken.tags, name: 'get correspondence details' }
+        tags: { ...paramsWithToken.tags, name: getCorrespondenceDetailsLabel }
     };
     
     describe('get correspondence details', () => {
@@ -104,7 +96,7 @@ function getCorrespondenceContent(correspondenceIds, detailsResponse, endUser, t
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive'
         },
-        tags: { name: 'get correspondence content'}
+        tags: { name: getCorrespondenceContentLabel }
     };
     for (const correspondenceId of correspondenceIds) {
         describe('get correspondence content', () => {
@@ -114,3 +106,24 @@ function getCorrespondenceContent(correspondenceIds, detailsResponse, endUser, t
         });
     }
 }
+
+function getDialogPortenToken(endUser, detailsResponse, traceparent) {
+    let correspondencesDetails = JSON.parse(detailsResponse.body);
+    let dialogPortenId = correspondencesDetails.externalReferences.find(ref => ref.referenceType === 'DialogportenDialogId');
+    const tokenOptions = {
+        scopes: 'digdir:dialogporten', 
+        pid: endUser.ssn
+    }
+    let paramsWithToken = {
+        headers: {
+            Authorization: "Bearer " + getPersonalToken(tokenOptions),
+            traceparent: traceparent
+        },
+        tags: { name: endUserSearchLabel } 
+    }
+    const dpUrl = baseUrlDialogPortenEndUser + 'dialogs/' + dialogPortenId.referenceValue;
+    let r = http.get(dpUrl, paramsWithToken);
+    expect(r.status, 'response status').to.equal(200);
+    const dialogDetails = JSON.parse(r.body);
+    return dialogDetails.dialogToken;
+  }
