@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Repositories;
 using Altinn.Correspondence.Tests.Fixtures;
@@ -87,6 +88,110 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             Assert.NotEmpty(correspondences);
             Assert.Equal(1, correspondences?.Count);
             Assert.Equal(addedCorrespondence.Id, correspondences.FirstOrDefault()?.Id);
+        }
+
+        [Fact]
+        public async Task GetPurgedCorrespondencesWithDialogsAfter_TieBreakerOnEqualCreated_UsesIdAscending()
+        {
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+            var baseTime = new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+            var idA = new Guid("00000000-0000-0000-0000-000000000001");
+            var idB = new Guid("00000000-0000-0000-0000-000000000002");
+            var items = new List<CorrespondenceEntity>
+            {
+                new CorrespondenceEntity
+                {
+                    Id = idA,
+                    Created = baseTime,
+                    Recipient = "0192:987654321",
+                    RequestedPublishTime = baseTime,
+                    ResourceId = "r",
+                    Sender = "0192:123456789",
+                    SendersReference = "A",
+                    Statuses = new List<CorrespondenceStatusEntity> { new() { Status = CorrespondenceStatus.PurgedByAltinn, StatusChanged = baseTime } },
+                    ExternalReferences = new List<ExternalReferenceEntity> { new() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = "dA" } }
+                },
+                new CorrespondenceEntity
+                {
+                    Id = idB,
+                    Created = baseTime,
+                    Recipient = "0192:987654321",
+                    RequestedPublishTime = baseTime,
+                    ResourceId = "r",
+                    Sender = "0192:123456789",
+                    SendersReference = "B",
+                    Statuses = new List<CorrespondenceStatusEntity> { new() { Status = CorrespondenceStatus.PurgedByAltinn, StatusChanged = baseTime } },
+                    ExternalReferences = new List<ExternalReferenceEntity> { new() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = "dB" } }
+                }
+            };
+            context.Correspondences.AddRange(items);
+            await context.SaveChangesAsync();
+
+            var page1 = await repo.GetPurgedCorrespondencesWithDialogsAfter(1, null, null, true, CancellationToken.None);
+            Assert.Single(page1);
+            Assert.Equal(idA, page1[0].Id);
+
+            var page2 = await repo.GetPurgedCorrespondencesWithDialogsAfter(1, page1[0].Created, page1[0].Id, true, CancellationToken.None);
+            Assert.Single(page2);
+            Assert.Equal(idB, page2[0].Id);
+        }
+
+        [Fact]
+        public async Task GetPurgedCorrespondencesWithDialogsAfter_ReturnsInOrderAndPages()
+        {
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+            var baseTime = new DateTimeOffset(2000, 1, 2, 0, 0, 0, TimeSpan.Zero);
+
+            var items = new List<CorrespondenceEntity>
+            {
+                new CorrespondenceEntity
+                {
+                    Created = baseTime,
+                    Recipient = "0192:987654321",
+                    RequestedPublishTime = baseTime,
+                    ResourceId = "r",
+                    Sender = "0192:123456789",
+                    SendersReference = "A",
+                    Statuses = new List<CorrespondenceStatusEntity> { new() { Status = CorrespondenceStatus.PurgedByAltinn, StatusChanged = baseTime } },
+                    ExternalReferences = new List<ExternalReferenceEntity> { new() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = "dA" } }
+                },
+                new CorrespondenceEntity
+                {
+                    Created = baseTime.AddMinutes(1),
+                    Recipient = "0192:987654321",
+                    RequestedPublishTime = baseTime.AddMinutes(1),
+                    ResourceId = "r",
+                    Sender = "0192:123456789",
+                    SendersReference = "B",
+                    Statuses = new List<CorrespondenceStatusEntity> { new() { Status = CorrespondenceStatus.PurgedByAltinn, StatusChanged = baseTime.AddMinutes(1) } },
+                    ExternalReferences = new List<ExternalReferenceEntity> { new() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = "dB" } }
+                },
+                new CorrespondenceEntity
+                {
+                    Created = baseTime.AddMinutes(2),
+                    Recipient = "0192:987654321",
+                    RequestedPublishTime = baseTime.AddMinutes(2),
+                    ResourceId = "r",
+                    Sender = "0192:123456789",
+                    SendersReference = "C",
+                    Statuses = new List<CorrespondenceStatusEntity> { new() { Status = CorrespondenceStatus.PurgedByAltinn, StatusChanged = baseTime.AddMinutes(2) } },
+                    ExternalReferences = new List<ExternalReferenceEntity> { new() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = "dC" } }
+                }
+            };
+            context.Correspondences.AddRange(items);
+            await context.SaveChangesAsync();
+
+            var page1 = await repo.GetPurgedCorrespondencesWithDialogsAfter(2, null, null, true, CancellationToken.None);
+            Assert.Equal(2, page1.Count);
+            Assert.True(page1[0].Created <= page1[1].Created);
+
+            var last = page1.Last();
+            var page2 = await repo.GetPurgedCorrespondencesWithDialogsAfter(2, last.Created, last.Id, true, CancellationToken.None);
+            Assert.Single(page2);
+            Assert.True(page2[0].Created >= last.Created);
         }
     }
 }

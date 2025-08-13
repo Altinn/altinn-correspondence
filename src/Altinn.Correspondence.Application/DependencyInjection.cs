@@ -23,6 +23,7 @@ using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Notifications.Core.Helpers;
 using Microsoft.Extensions.DependencyInjection;
+using Altinn.Correspondence.Application.CleanupOrphanedDialogs;
 
 namespace Altinn.Correspondence.Application;
 
@@ -56,6 +57,9 @@ public static class DependencyInjection
         services.AddScoped<CheckNotificationHandler>();
         services.AddScoped<ProcessLegacyPartyHandler>();
         services.AddScoped<CancelNotificationHandler>();
+
+        // Maintenance
+        services.AddScoped<CleanupOrphanedDialogsHandler>();
 
         // Helpers
         services.AddScoped<AttachmentHelper>();

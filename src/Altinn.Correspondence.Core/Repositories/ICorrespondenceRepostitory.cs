@@ -55,5 +55,11 @@ namespace Altinn.Correspondence.Core.Repositories
         Task UpdateIsMigrating(Guid correspondenceId, bool isMigrating, CancellationToken cancellationToken);
         Task<bool> AreAllAttachmentsPublished(Guid correspondenceId, CancellationToken cancellationToken = default);
         Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, CancellationToken cancellationToken = default);
+        Task<List<CorrespondenceEntity>> GetPurgedCorrespondencesWithDialogsAfter(
+            int limit,
+            DateTimeOffset? lastCreated,
+            Guid? lastId,
+            bool filterMigrated,
+            CancellationToken cancellationToken);
     }
 }

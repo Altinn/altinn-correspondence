@@ -31,7 +31,7 @@ public enum ActivityType
     TransmissionOpened,
     PaymentMade,
     SignatureProvided,
-    DialogOpened,
+    CorrespondenceOpened,
     DialogDeleted
 }
 

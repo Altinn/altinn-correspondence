@@ -5,23 +5,17 @@
  */
 import http from 'k6/http';
 import exec from 'k6/execution';
-import { describe } from "../common/describe.js";
-import { expect } from "../common/testimports.js";
+import { expect, describe, getPersonalToken, uuidv4 } from "../common/testimports.js";
 import { serviceOwners } from "../common/readTestdata.js";
 import { getCorrespondenceJson } from '../data/correspondence-json.js';
-import { getPersonalToken } from '../common/token.js';
-import { baseUrlCorrespondence } from '../common/config.js';
-import { uuidv7 } from '../common/uuid.js';
+import { baseUrlCorrespondence, buildOptions } from '../common/config.js';
 export { setup as setup } from "../common/readTestdata.js";
 
-export let options = {
-    summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(95)', 'p(99)', 'p(99.5)', 'p(99.9)', 'count'],
-    thresholds: {   
-        'http_req_duration{name:create correspondence}': ['p(99)<5000'],
-        'http_reqs{name:create correspondence}': [],
-        'checks{name:create correspondence}': ['rate>0.95'],
-    }
-};
+const createCorrespondenceLabel = 'create correspondence';
+const labels = [createCorrespondenceLabel];
+
+
+export let options = buildOptions(labels);
 
 const traceCalls = (__ENV.traceCalls ?? 'false') === 'true';
 
@@ -33,18 +27,25 @@ export default function(data) {
   }
 
 function createCorrespondence(serviceOwner, endUser, traceCalls) {
-    var traceparent = uuidv7();
+    var traceparent = uuidv4();
+
+    const tokenOptions = {
+        scopes: serviceOwner.scopes, 
+        pid: serviceOwner.ssn,
+        orgno: serviceOwner.orgno,
+        consumerOrgNo: serviceOwner.orgno
+    };
 
     var paramsWithToken = {
         headers: {
-            Authorization: "Bearer " + getPersonalToken(serviceOwner),
+            Authorization: "Bearer " + getPersonalToken(tokenOptions),
             traceparent: traceparent,
             'Content-Type': 'application/json',
             'Accept': '*/*, application/json',
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive'
         },
-        tags: { name: 'create correspondence'}
+        tags: { name: createCorrespondenceLabel }
     };
     
     if (traceCalls) {
