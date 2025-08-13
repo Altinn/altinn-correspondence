@@ -319,6 +319,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithStatus(CorrespondenceStatus.Published)
                 .WithAltinn2CorrespondenceId(12345)
+                .WithDialogId("dialog-id-123")
                 .Build();
             var correspondenceId = correspondence.Id;
             var recipient = correspondence.Recipient;
@@ -392,6 +393,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithStatus(CorrespondenceStatus.Published)
                 .WithAltinn2CorrespondenceId(12345)
+                .WithDialogId("dialog-id-123")
                 .Build();
             var correspondenceId = correspondence.Id;
             var recipient = correspondence.Recipient;
@@ -463,6 +465,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithCreated(new DateTime(2025, 8, 1, 12, 0, 0))
                 .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 8, 1, 12, 0, 0), partyUuid)
+                .WithDialogId("dialog-id-123")
                 .WithAltinn2CorrespondenceId(12345)
                 .WithAttachment("fjas.txt")
                 .Build();

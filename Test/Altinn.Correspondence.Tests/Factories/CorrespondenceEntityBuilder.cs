@@ -103,6 +103,22 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public CorrespondenceEntityBuilder WithDialogId(string dialogId)
+        {
+            if (_correspondenceEntity.ExternalReferences == null)
+            {
+                _correspondenceEntity.ExternalReferences = new List<ExternalReferenceEntity>();
+            }
+
+            _correspondenceEntity.ExternalReferences.Add(new ExternalReferenceEntity
+            {
+                ReferenceType = ReferenceType.DialogportenDialogId,
+                ReferenceValue = dialogId
+            });
+            
+            return this;
+        }
+
         public CorrespondenceEntityBuilder WithAttachment(string attachmentName)
         {
             _correspondenceEntity.Content.Attachments.Add(new CorrespondenceAttachmentEntity

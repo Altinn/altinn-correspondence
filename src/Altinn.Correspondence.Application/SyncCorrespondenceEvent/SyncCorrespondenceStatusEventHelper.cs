@@ -53,8 +53,8 @@ public class SyncCorrespondenceStatusEventHelper(
             PartyUuid = statusToSync.PartyUuid,            
             SyncedFromAltinn2 = DateTime.UtcNow
         }, cancellationToken);
-        
-        if(isAvailable)
+
+        if (isAvailable)
         {
             backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None)); 
         }
