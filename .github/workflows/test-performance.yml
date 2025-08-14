@@ -34,7 +34,17 @@ on:
                 description: 'Number of parallel test runs'
                 required: true
                 default: 1
-                type: number  
+                type: number 
+            breakpoint:
+                description: 'Gradually raise the load to number of VUs over the duration of the test. If VUs is high, it will run until the system breaks'
+                required: true
+                default: false
+                type: boolean 
+            abortOnFail:
+                description: 'Abort on fail. Only used for breakpoint tests'
+                required: true
+                default: false
+                type: boolean   
             testSuitePath:
                 description: 'Path to test suite to run'
                 required: true
@@ -46,6 +56,8 @@ on:
                 - 'Test/Altinn.Correspondence.LoadTests/correspondence/create-correspondence.js'
                 - 'Test/Altinn.Correspondence.LoadTests/correspondence/get-correspondence.js'
                 - 'Test/Altinn.Correspondence.LoadTests/correspondence/get-correspondence-overview.js'
+                - 'Test/Altinn.Correspondence.LoadTests/correspondence/get-legacy-correspondences.js'
+          
 
 permissions:
   id-token: write
@@ -95,7 +107,9 @@ jobs:
           -n "$k6configName" \
           -v "${{ inputs.vus }}" \
           -d "${{ inputs.duration }}" \
-          -p "${{ inputs.parallelism }}"
+          -p "${{ inputs.parallelism }}" \
+          -a "${{ inputs.abortOnFail }}" \
+          -b "${{ inputs.breakpoint }}"
       env:
         API_ENVIRONMENT: ${{ inputs.environment }}
         API_VERSION: ${{ inputs.apiVersion }}

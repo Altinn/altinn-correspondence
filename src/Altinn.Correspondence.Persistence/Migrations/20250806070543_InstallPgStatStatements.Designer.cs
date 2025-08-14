@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250801114447_PopulateServiceOwnerIdsFromSender")]
-    partial class PopulateServiceOwnerIdsFromSender
+    [Migration("20250806070543_InstallPgStatStatements")]
+    partial class InstallPgStatStatements
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

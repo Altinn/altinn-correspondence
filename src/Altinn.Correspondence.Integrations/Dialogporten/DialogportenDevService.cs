@@ -38,6 +38,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.CompletedTask;
         }
 
+        public Task<bool> TrySoftDeleteDialog(string dialogId)
+        {
+            return Task.FromResult(true);
+        }
+
         public Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType,  string actorName, DateTimeOffset activityTimestamp)
         {
             return Task.CompletedTask;

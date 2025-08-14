@@ -178,6 +178,9 @@ namespace Altinn.Correspondence.API.Auth
                     policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope)
                           .AddAuthenticationSchemes(AuthorizationConstants.AllSchemes));
                 options.AddPolicy(AuthorizationConstants.Legacy, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.LegacyScope)).AddAuthenticationSchemes(AuthorizationConstants.LegacyScheme));
+                options.AddPolicy(AuthorizationConstants.Maintenance, policy =>
+                    policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MaintenanceScope))
+                          .AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
             });
         }
 
