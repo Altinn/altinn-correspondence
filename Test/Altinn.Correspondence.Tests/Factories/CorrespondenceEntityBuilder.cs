@@ -136,5 +136,23 @@ namespace Altinn.Correspondence.Tests.Factories
             });
             return this;
         }
+
+        public CorrespondenceEntityBuilder WithSingleAltinn2Notification(int altinn2NotificationId, string address, NotificationChannel channel, DateTimeOffset created, DateTimeOffset? sent, bool isReminder = false)
+        {
+            _correspondenceEntity.Notifications = new List<CorrespondenceNotificationEntity> {
+                new CorrespondenceNotificationEntity()
+                {
+                    CorrespondenceId = _correspondenceEntity.Id,
+                    Created = created,
+                    NotificationSent = sent,
+                    NotificationAddress = address,
+                    NotificationChannel = channel,
+                    Altinn2NotificationId = altinn2NotificationId,
+                    IsReminder = isReminder,
+                    NotificationTemplate = NotificationTemplate.Altinn2Message
+                }
+            };
+            return this;
+        }
     }
 }
