@@ -153,7 +153,7 @@ public MigrateCorrespondenceBuilder WithNotificationHistoryEvents()
             Altinn2NotificationId = 1,
             NotificationAddress = "testemail@altinn.no",
             NotificationChannel = NotificationChannelExt.Email,
-            NotificationSent = published.AddHours(1),
+            NotificationSent = published.Value.AddHours(1),
             IsReminder = false
         },
         new MigrateCorrespondenceNotificationExt()
@@ -161,7 +161,7 @@ public MigrateCorrespondenceBuilder WithNotificationHistoryEvents()
             Altinn2NotificationId = 2,
             NotificationAddress = "testemail2@altinn.no",
             NotificationChannel = NotificationChannelExt.Email,
-            NotificationSent = published.AddHours(2),
+            NotificationSent = published.Value.AddHours(2),
             IsReminder = false
         },
         new MigrateCorrespondenceNotificationExt()
@@ -169,7 +169,7 @@ public MigrateCorrespondenceBuilder WithNotificationHistoryEvents()
             Altinn2NotificationId = 3,
             NotificationAddress = "testemail3@altinn.no",
             NotificationChannel = NotificationChannelExt.Email,
-            NotificationSent = published.AddHours(3),
+            NotificationSent = published.Value.AddHours(3),
             IsReminder = false
         },
         new MigrateCorrespondenceNotificationExt()
@@ -177,7 +177,7 @@ public MigrateCorrespondenceBuilder WithNotificationHistoryEvents()
             Altinn2NotificationId = 4,
             NotificationAddress = "testemail4@altinn.no",
             NotificationChannel = NotificationChannelExt.Email,
-            NotificationSent = published.AddHours(4),
+            NotificationSent = published.Value.AddHours(4),
             IsReminder = false
         },
         new MigrateCorrespondenceNotificationExt()
@@ -185,7 +185,7 @@ public MigrateCorrespondenceBuilder WithNotificationHistoryEvents()
             Altinn2NotificationId = 5,
             NotificationAddress = "123456789",
             NotificationChannel = NotificationChannelExt.Sms,
-            NotificationSent = published.AddDays(1).AddHours(1),
+            NotificationSent = published.Value.AddDays(1).AddHours(1),
             IsReminder = false
         },
         new MigrateCorrespondenceNotificationExt()
@@ -193,7 +193,7 @@ public MigrateCorrespondenceBuilder WithNotificationHistoryEvents()
             Altinn2NotificationId = 6,
             NotificationAddress = "223456789",
             NotificationChannel = NotificationChannelExt.Sms,
-            NotificationSent = published.AddDays(1).AddHours(2),
+            NotificationSent = published.Value.AddDays(1).AddHours(2),
             IsReminder = false
         },
         new MigrateCorrespondenceNotificationExt()
@@ -201,7 +201,7 @@ public MigrateCorrespondenceBuilder WithNotificationHistoryEvents()
             Altinn2NotificationId = 7,
             NotificationAddress = "323456789",
             NotificationChannel = NotificationChannelExt.Sms,
-            NotificationSent = published.AddDays(1).AddHours(3),
+            NotificationSent = published.Value.AddDays(1).AddHours(3),
             IsReminder = false
         },
         new MigrateCorrespondenceNotificationExt()
@@ -209,7 +209,7 @@ public MigrateCorrespondenceBuilder WithNotificationHistoryEvents()
             Altinn2NotificationId = 754537533,
             NotificationAddress = "423456789",
             NotificationChannel = NotificationChannelExt.Sms,
-            NotificationSent = published.AddDays(1).AddHours(4),
+            NotificationSent = published.Value.AddDays(1).AddHours(4),
             IsReminder = false
         }
     ];

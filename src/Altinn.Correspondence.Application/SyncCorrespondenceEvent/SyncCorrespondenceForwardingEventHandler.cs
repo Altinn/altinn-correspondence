@@ -54,7 +54,7 @@ public class SyncCorrespondenceForwardingEventHandler(
             }
         }
 
-        if (!forwardingEventsToExecute.Any())
+        if (forwardingEventsToExecute.Count == 0)
         {
             logger.LogInformation("No new forwarding events to sync for correspondence {CorrespondenceId}", request.CorrespondenceId);
             return request.CorrespondenceId;

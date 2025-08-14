@@ -17,8 +17,9 @@ public class MigrationTestBase
     public readonly Guid _testUserPartyUuId = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920");
     public readonly string _delegatedUserName = "Delegert test bruker";
 
-    internal const string migrateCorresponenceUrl = "correspondence/api/v1/migration/correspondence";
-    internal const string makeAvailableUrl = "correspondence/api/v1/migration/makemigratedcorrespondenceavailable";
+    internal const string migrateCorrespondenceControllerBaseUrl = "correspondence/api/v1/migration";
+    internal const string migrateCorrespondenceUrl = $"{migrateCorrespondenceControllerBaseUrl}/correspondence";
+    internal const string makeAvailableUrl = $"{migrateCorrespondenceControllerBaseUrl}/makemigratedcorrespondenceavailable";
 
     internal readonly JsonSerializerOptions _responseSerializerOptions;
 

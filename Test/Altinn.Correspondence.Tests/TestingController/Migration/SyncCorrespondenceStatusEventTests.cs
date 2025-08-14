@@ -12,10 +12,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Migration;
 [Collection(nameof(CustomWebApplicationTestsCollection))]
 public class SyncCorrespondenceStatusEventTests : MigrationTestBase
 {
-    internal const string syncCorresponenceStatusEventUrl = "correspondence/api/v1/migration/correspondence/syncStatusEvent";    
+    internal const string syncCorresponenceStatusEventUrl = $"{migrateCorrespondenceControllerBaseUrl}/correspondence/syncStatusEvent";
+
     private readonly Guid _defaultUserPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920");
     private readonly Guid _defaultUserUuid = new Guid("2607D808-29EC-4BD8-B89F-B9D14BDE634C");
-
     private readonly Guid _secondUserPartyUuid = new Guid("AE985685-5D8F-45E0-AE00-240F5F5C60C5");
     private readonly Guid _secondUserUuid = new Guid("AE985685-5D8F-45E0-AE00-240F5F5C60C5");
 
@@ -309,7 +309,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
 
     private async Task<Guid> MigrateCorrespondence(MigrateCorrespondenceExt migrateCorrespondenceExt)
     {
-        var migrateResponse = await _migrationClient.PostAsJsonAsync(migrateCorresponenceUrl, migrateCorrespondenceExt);
+        var migrateResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
         Assert.True(migrateResponse.IsSuccessStatusCode);
         var resultObj = await migrateResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>();        
         return resultObj.CorrespondenceId;

@@ -41,7 +41,7 @@ public class SyncCorrespondenceNotificationEventHandler(
             }
         }
 
-        if (!notificationsToExecute.Any())
+        if (notificationsToExecute.Count == 0)
         {
             logger.LogInformation("No new notification events to sync for correspondence {CorrespondenceId}", request.CorrespondenceId);
             return request.CorrespondenceId; // No new events to sync
