@@ -1,30 +1,10 @@
-using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Application.CancelNotification;
-using Altinn.Correspondence.Application.GetCorrespondenceOverview;
-using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
-using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
-using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
-using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Tests.Factories;
-using Altinn.Platform.Register.Models;
-using Hangfire;
-using Hangfire.Common;
-using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Org.BouncyCastle.Crypto.Utilities;
-using System.Collections.Generic;
-using System.Linq.Expressions;
-using System.Security.Claims;
-using System.Threading;
-using static Dapper.SqlMapper;
-using static OneOf.Types.TrueFalseOrNull;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
@@ -34,7 +14,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<ICorrespondenceNotificationRepository> _correspondenceNotificationRepositoryMock;
         private readonly Mock<ILogger<SyncCorrespondenceNotificationEventHandler>> _loggerMock;
         private readonly SyncCorrespondenceNotificationEventHandler _handler;
-        
 
         public SyncCorrespondenceNotifcationEventHandlerTests()
         {

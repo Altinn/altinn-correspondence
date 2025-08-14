@@ -1,22 +1,11 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Application.GetCorrespondenceDetails;
-using Altinn.Correspondence.Application.InitializeCorrespondences;
-using Altinn.Correspondence.Common.Constants;
-using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Migration.Base;
-using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
-using OneOf.Types;
 using System.Net;
 using System.Net.Http.Json;
-using System.Text;
-using System.Web;
 
 namespace Altinn.Correspondence.Tests.TestingController.Migration;
 
@@ -112,8 +101,36 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
 
         // Get updated details of the migrated correspondence
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);
+        Assert.Equal(1, getCorrespondenceDetails.Notifications.Count);        
+    }
 
-       Assert.Equal(1, getCorrespondenceDetails.Notifications.Count);        
+    [Fact]
+    public async Task SyncNotificationEvent_NoNotificationsSpecified_HttpBadRequest()
+    {
+        // Arrange
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithIsMigrating(false)
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
+            .Build();
+
+        // Setup initial Migrated Correspondence
+        var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
+
+        // Arrange sync call
+        SyncCorrespondenceNotificationEventRequestExt request = new SyncCorrespondenceNotificationEventRequestExt
+        {
+            CorrespondenceId = correspondenceId,
+            SyncedEvents = new List<MigrateCorrespondenceNotificationExt>()
+        };
+
+        // Act
+        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceNotificationEventUrl, request);
+
+        // Assert
+        Assert.False(response.IsSuccessStatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     private async Task<Guid> MigrateCorrespondence(MigrateCorrespondenceExt migrateCorrespondenceExt)

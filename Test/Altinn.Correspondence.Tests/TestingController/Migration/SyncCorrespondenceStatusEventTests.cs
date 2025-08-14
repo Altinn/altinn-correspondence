@@ -1,22 +1,11 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Application.GetCorrespondenceDetails;
-using Altinn.Correspondence.Application.InitializeCorrespondences;
-using Altinn.Correspondence.Common.Constants;
-using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Migration.Base;
-using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
-using OneOf.Types;
 using System.Net;
 using System.Net.Http.Json;
-using System.Text;
-using System.Web;
 
 namespace Altinn.Correspondence.Tests.TestingController.Migration;
 
@@ -49,7 +38,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
 
         // Arrange sync call
-        SyncCorrespondenceStatusEventRequestExt syncCorrespondenceStatusEventRequestExt = new SyncCorrespondenceStatusEventRequestExt
+        SyncCorrespondenceStatusEventRequestExt request = new SyncCorrespondenceStatusEventRequestExt
         {
             CorrespondenceId = correspondenceId,
             SyncedEvents = new List<MigrateCorrespondenceStatusEventExt>
@@ -72,16 +61,16 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         };
 
         // Act
-        var syncCorrespondenceStatusEventResponse = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, syncCorrespondenceStatusEventRequestExt);
+        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
 
         // Assert
-        Assert.True(syncCorrespondenceStatusEventResponse.IsSuccessStatusCode);
+        Assert.True(response.IsSuccessStatusCode);
 
         // Get updated details of the migrated correspondence
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);
         // Assert that the new statuses are saved
-        AssertStatusEventSet(syncCorrespondenceStatusEventRequestExt.SyncedEvents[0], getCorrespondenceDetails);
-        AssertStatusEventSet(syncCorrespondenceStatusEventRequestExt.SyncedEvents[1], getCorrespondenceDetails);
+        AssertStatusEventSet(request.SyncedEvents[0], getCorrespondenceDetails);
+        AssertStatusEventSet(request.SyncedEvents[1], getCorrespondenceDetails);
     }
 
     [Fact]
@@ -99,7 +88,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
 
         // Arrange sync call
-        SyncCorrespondenceStatusEventRequestExt syncCorrespondenceStatusEventRequestExt = new SyncCorrespondenceStatusEventRequestExt
+        SyncCorrespondenceStatusEventRequestExt request = new SyncCorrespondenceStatusEventRequestExt
         {
             CorrespondenceId = correspondenceId,
             SyncedEvents = new List<MigrateCorrespondenceStatusEventExt>
@@ -115,15 +104,15 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         };
 
         // Act
-        var syncCorrespondenceStatusEventResponse = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, syncCorrespondenceStatusEventRequestExt);
+        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
 
         // Assert
-        Assert.True(syncCorrespondenceStatusEventResponse.IsSuccessStatusCode);
+        Assert.True(response.IsSuccessStatusCode);
 
         // Get updated details of the migrated correspondence
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);
         // Assert that the new statuses are not saved
-        AssertStatusEventNotSet(syncCorrespondenceStatusEventRequestExt.SyncedEvents[0], getCorrespondenceDetails);
+        AssertStatusEventNotSet(request.SyncedEvents[0], getCorrespondenceDetails);
     }
 
     [Fact]
@@ -141,7 +130,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
 
         // Arrange sync call
-        SyncCorrespondenceStatusEventRequestExt syncCorrespondenceStatusEventRequestExt = new SyncCorrespondenceStatusEventRequestExt
+        SyncCorrespondenceStatusEventRequestExt request = new SyncCorrespondenceStatusEventRequestExt
         {
             CorrespondenceId = correspondenceId,
             SyncedEvents = new List<MigrateCorrespondenceStatusEventExt>
@@ -157,13 +146,13 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         };
 
         // Act
-        var syncCorrespondenceStatusEventResponse = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, syncCorrespondenceStatusEventRequestExt);
+        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
 
         // Assert
-        Assert.True(syncCorrespondenceStatusEventResponse.IsSuccessStatusCode);
+        Assert.True(response.IsSuccessStatusCode);
         // Assert that the new statuses are saved
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);        
-        AssertStatusEventSet(syncCorrespondenceStatusEventRequestExt.SyncedEvents[0], getCorrespondenceDetails);
+        AssertStatusEventSet(request.SyncedEvents[0], getCorrespondenceDetails);
 
         // How to verify that the Dialog porten dialog is updated? - Done in Handler tests.
     }
@@ -183,7 +172,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
 
         // Arrange sync call
-        SyncCorrespondenceStatusEventRequestExt syncCorrespondenceStatusEventRequestExt = new SyncCorrespondenceStatusEventRequestExt
+        SyncCorrespondenceStatusEventRequestExt request = new SyncCorrespondenceStatusEventRequestExt
         {
             CorrespondenceId = correspondenceId,
             SyncedEvents = new List<MigrateCorrespondenceStatusEventExt>
@@ -199,10 +188,10 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         };
 
         // Act
-        var syncCorrespondenceStatusEventResponse = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, syncCorrespondenceStatusEventRequestExt);
+        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
 
         // Assert
-        Assert.True(syncCorrespondenceStatusEventResponse.IsSuccessStatusCode);
+        Assert.True(response.IsSuccessStatusCode);
         // Assert that the Correspondence is purged by getting NOT FOUND
         var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
         Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceDetailsResponse.StatusCode);
@@ -223,7 +212,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
 
         // Arrange sync call
-        SyncCorrespondenceStatusEventRequestExt syncCorrespondenceStatusEventRequestExt = new SyncCorrespondenceStatusEventRequestExt
+        SyncCorrespondenceStatusEventRequestExt request = new SyncCorrespondenceStatusEventRequestExt
         {
             CorrespondenceId = correspondenceId,
             SyncedEvents = new List<MigrateCorrespondenceStatusEventExt>
@@ -239,10 +228,10 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         };
 
         // Act
-        var syncCorrespondenceStatusEventResponse = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, syncCorrespondenceStatusEventRequestExt);
+        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
 
         // Assert
-        Assert.True(syncCorrespondenceStatusEventResponse.IsSuccessStatusCode);
+        Assert.True(response.IsSuccessStatusCode);
         // Assert that the Correspondence is purged by getting NOT FOUND
         var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
         Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceDetailsResponse.StatusCode);
@@ -264,7 +253,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
 
         // Arrange sync call
-        SyncCorrespondenceStatusEventRequestExt syncCorrespondenceStatusEventRequestExt = new SyncCorrespondenceStatusEventRequestExt
+        SyncCorrespondenceStatusEventRequestExt request = new SyncCorrespondenceStatusEventRequestExt
         {
             CorrespondenceId = correspondenceId,
             SyncedEvents = new List<MigrateCorrespondenceStatusEventExt>
@@ -280,15 +269,43 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         };
 
         // Act
-        var syncCorrespondenceStatusEventResponse = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, syncCorrespondenceStatusEventRequestExt);
+        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
 
         // Assert
-        Assert.True(syncCorrespondenceStatusEventResponse.IsSuccessStatusCode);
+        Assert.True(response.IsSuccessStatusCode);
         // Assert that the Correspondence is purged by getting NOT FOUND
         var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
         Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceDetailsResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task SyncCorrespondenceStatusEvent_NoEventsSpecified__HttpBadRequest()
+    {
+        // Arrange
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithIsMigrating(false)
+            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
+            .Build();
+
+        // Setup initial Migrated Correspondence
+        var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
+
+        // Arrange sync call
+        SyncCorrespondenceStatusEventRequestExt request = new SyncCorrespondenceStatusEventRequestExt
+        {
+            CorrespondenceId = correspondenceId,
+            SyncedEvents = new List<MigrateCorrespondenceStatusEventExt>()
+        };
+
+        // Act
+        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
+
+        // Assert
+        Assert.False(response.IsSuccessStatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 
     private async Task<Guid> MigrateCorrespondence(MigrateCorrespondenceExt migrateCorrespondenceExt)
     {

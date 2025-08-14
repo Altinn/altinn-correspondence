@@ -1,5 +1,3 @@
-using Altinn.Correspondence.Application.CancelNotification;
-using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
@@ -10,19 +8,11 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Tests.Factories;
-using Altinn.Platform.Register.Models;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Org.BouncyCastle.Crypto.Utilities;
-using System.Collections.Generic;
-using System.Linq.Expressions;
-using System.Security.Claims;
-using System.Threading;
-using static Dapper.SqlMapper;
-using static OneOf.Types.TrueFalseOrNull;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {

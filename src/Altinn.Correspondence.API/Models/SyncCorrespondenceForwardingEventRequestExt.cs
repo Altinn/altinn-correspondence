@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models;
@@ -10,5 +11,6 @@ public class SyncCorrespondenceForwardingEventRequestExt
     [JsonPropertyName("correspondenceId")]
     public required Guid CorrespondenceId { get; set; }
     [JsonPropertyName("syncedForwardingEvents")]
+    [MinLength(1, ErrorMessage = "At least one forwarding event is required.")]
     public required List<MigrateCorrespondenceForwardingEventExt> SyncedEvents { get; set; }
 }
