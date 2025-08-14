@@ -91,5 +91,6 @@ public static class DependencyInjection
         services.AddScoped<SyncCorrespondenceStatusEventHandler>();        
         services.AddScoped<SyncCorrespondenceStatusEventHelper>();
         services.AddScoped<SyncCorrespondenceNotificationEventHandler>();
+        services.AddScoped<SyncCorrespondenceForwardingEventHandler>();
     }
 }

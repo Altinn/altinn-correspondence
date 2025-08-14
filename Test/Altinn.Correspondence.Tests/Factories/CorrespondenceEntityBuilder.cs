@@ -154,5 +154,11 @@ namespace Altinn.Correspondence.Tests.Factories
             };
             return this;
         }
+
+        public CorrespondenceEntityBuilder WithForwardingEvents(List<CorrespondenceForwardingEventEntity> correspondenceForwardingEventEntities)
+        {
+            _correspondenceEntity.ForwardingEvents = correspondenceForwardingEventEntities;
+            return this;
+        }
     }
 }

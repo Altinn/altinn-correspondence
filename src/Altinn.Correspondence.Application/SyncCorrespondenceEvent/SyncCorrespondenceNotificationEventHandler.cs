@@ -1,9 +1,5 @@
-using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
-using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
-using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -16,13 +12,7 @@ public class SyncCorrespondenceNotificationEventHandler(
     ILogger<SyncCorrespondenceNotificationEventHandler> logger) : IHandler<SyncCorrespondenceNotificationEventRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceNotificationEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
-    {        
-        if (request.SyncedEvents == null || !request.SyncedEvents.Any())
-        {
-            logger.LogError("No notification Events specified in request to sync for correspondence {CorrespondenceId}", request.CorrespondenceId);
-            return SyncErrors.NoEventsToSync;
-        }
-       
+    {
         var correspondence = await correspondenceRepository.GetCorrespondenceById(
             request.CorrespondenceId,
             includeStatus: false,
@@ -30,19 +20,17 @@ public class SyncCorrespondenceNotificationEventHandler(
             includeForwardingEvents: false, 
             cancellationToken, 
             includeIsMigrating: true);
+        
         if(correspondence == null)
         {
             logger.LogError("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
 
-        // Validate that Notification events are not duplicates
-        var existingNotifications = correspondence.Notifications;
-
         var notificationsToExecute = new List<CorrespondenceNotificationEntity>();
         foreach (var syncedEvent in request.SyncedEvents)
         {
-            if (existingNotifications.Any(n => n.NotificationAddress == syncedEvent.NotificationAddress && n.NotificationChannel == syncedEvent.NotificationChannel && n.NotificationSent == syncedEvent.NotificationSent))
+            if (correspondence.Notifications.Any(n => n.NotificationAddress == syncedEvent.NotificationAddress && n.NotificationChannel == syncedEvent.NotificationChannel && n.NotificationSent == syncedEvent.NotificationSent))
             {
                 logger.LogWarning("Notification event {NotificationId} already exists for correspondence {CorrespondenceId}. Skipping sync.", syncedEvent.Id, request.CorrespondenceId);
                 continue; // Skip already existing events
