@@ -165,7 +165,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);        
         AssertStatusEventSet(syncCorrespondenceStatusEventRequestExt.SyncedEvents[0], getCorrespondenceDetails);
 
-        // How to verify that the correspondence is archived?
+        // How to verify that the Dialog porten dialog is updated? - Done in Handler tests.
     }
 
     [Fact]

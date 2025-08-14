@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -113,6 +114,10 @@ public class SyncCorrespondenceStatusEventHandler(
                         updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, eventToExecute.Status, eventToExecute.StatusChanged); // Set the operationtime to the time the status was changed in Altinn 2
                         updateCorrespondenceStatusHelper.PatchCorrespondenceDialog(request.CorrespondenceId, eventToExecute.Status);
                         updateCorrespondenceStatusHelper.PublishEvent(correspondence, eventToExecute.Status);
+                        if( eventToExecute.Status == CorrespondenceStatus.Archived)
+                        {
+                            syncCorrespondenceStatusHelper.ReportArchivedToDialogporten(request.CorrespondenceId, eventToExecute.PartyUuid,cancellationToken);
+                        }
                     }
                 }
 

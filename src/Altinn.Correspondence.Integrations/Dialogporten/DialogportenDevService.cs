@@ -51,7 +51,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.FromResult(Guid.NewGuid().ToString());
         }
 
-        public Task SetArchivedSystemLabelOnDialog(Guid correspondenceId)
+        public Task SetArchivedSystemLabelOnDialog(Guid correspondenceId, string enduserId)
         {
             return Task.CompletedTask;
         }

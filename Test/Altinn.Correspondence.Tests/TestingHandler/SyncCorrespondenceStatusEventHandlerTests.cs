@@ -3,12 +3,14 @@ using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Platform.Register.Models;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
@@ -33,6 +35,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<IAttachmentStatusRepository> _attachmentStatusRepositoryMock;
         private readonly Mock<IStorageRepository> _storageRepositoryMock;
         private readonly Mock<IDialogportenService> _dialogPortenServiceMock;
+        private readonly Mock<IAltinnRegisterService> _altinnRegisterServiceMock;
         private readonly Mock<ILogger<SyncCorrespondenceStatusEventHandler>> _loggerMock;
         private readonly SyncCorrespondenceStatusEventHandler _handler;
         private readonly UpdateCorrespondenceStatusHelper _updateHelper;
@@ -47,6 +50,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _attachmentRepositoryMock = new Mock<IAttachmentRepository>();
             _attachmentStatusRepositoryMock = new Mock<IAttachmentStatusRepository>();
             _storageRepositoryMock = new Mock<IStorageRepository>();
+            _altinnRegisterServiceMock = new Mock<IAltinnRegisterService>();
             _dialogPortenServiceMock = new Mock<IDialogportenService>();
             _updateHelper = new UpdateCorrespondenceStatusHelper(_backgroundJobClientMock.Object, _correspondenceStatusRepositoryMock.Object);
             _purgeHelper = new PurgeCorrespondenceHelper(
@@ -60,6 +64,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _syncHelper = new SyncCorrespondenceStatusEventHelper(
                     _correspondenceStatusRepositoryMock.Object,
                     _dialogPortenServiceMock.Object,
+                    _altinnRegisterServiceMock.Object,
                     _backgroundJobClientMock.Object,
                     _purgeHelper);
             _loggerMock = new Mock<ILogger<SyncCorrespondenceStatusEventHandler>>();
@@ -349,7 +354,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
+                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);            
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -382,6 +387,78 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Should not trigger any additional Dialogporten changes or background jobs
             _backgroundJobClientMock.VerifyNoOtherCalls();
             _dialogPortenServiceMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task Available_Archived_OK()
+        {
+            // Arrange
+            var partyUuid = Guid.NewGuid();
+            var partyOrgnumber = "123456789";
+            var partyIdentifier = $"{UrnConstants.OrganizationNumberAttribute}:{partyOrgnumber}";
+
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .WithAltinn2CorrespondenceId(12345)
+                .WithDialogId("dialog-id-123")
+                .Build();
+            var correspondenceId = correspondence.Id;
+            var recipient = correspondence.Recipient;
+            var request = new SyncCorrespondenceStatusEventRequest
+            {
+                CorrespondenceId = correspondenceId,
+                SyncedEvents = new List<CorrespondenceStatusEntity>
+                {
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.Archived,
+                        StatusChanged = DateTimeOffset.UtcNow,
+                        PartyUuid = partyUuid
+                    }
+                }
+            };
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .ReturnsAsync(correspondence);
+            _correspondenceStatusRepositoryMock
+                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyByPartyUuid(partyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Core.Models.Entities.Party { PartyUuid = partyUuid, OrgNumber = partyOrgnumber, PartyTypeName = PartyType.Organization });
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert OK Return
+            Assert.True(result.IsT0);
+            Assert.Equal(correspondenceId, result.AsT0);
+
+            // Verify correct calls to Correspondence repository
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify that the statuses were added to Repository with SyncedFromAltinn2 set
+            _correspondenceStatusRepositoryMock.Verify(
+                x => x.AddCorrespondenceStatuses(It.Is<List<CorrespondenceStatusEntity>>(list =>
+                    list.Count == 1 &&
+                    list.Any(e => e.Status == CorrespondenceStatus.Archived && e.PartyUuid == partyUuid && e.SyncedFromAltinn2 != null)
+                ), It.IsAny<CancellationToken>()),
+                Times.Once);
+            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+            
+            // Verify background jobs Dialogporten activities            
+            VerifyDialogportenServiceSetArchivedSystemLabelOnDialogDialogToConfirmedEnqueued(correspondenceId, partyIdentifier);
+
+            // Verify register lookup performed
+            _altinnRegisterServiceMock.Verify(_altinnRegisterServiceMock => _altinnRegisterServiceMock.LookUpPartyByPartyUuid(partyUuid, It.IsAny<CancellationToken>()), Times.Once);
+            _altinnRegisterServiceMock.VerifyNoOtherCalls();
+
+            // Should not trigger any additional Dialogporten changes or background jobs
+            _backgroundJobClientMock.VerifyNoOtherCalls();
+            _dialogPortenServiceMock.VerifyNoOtherCalls();           
         }
 
         [Fact]
@@ -697,6 +774,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             _backgroundJobClientMock.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.PatchCorrespondenceDialogToConfirmed) && (Guid)job.Args[0] == correspondenceId),
+                It.IsAny<EnqueuedState>()));
+        }
+
+        private void VerifyDialogportenServiceSetArchivedSystemLabelOnDialogDialogToConfirmedEnqueued(Guid correspondenceId, string partyIdentifier)
+        {
+            _backgroundJobClientMock.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.SetArchivedSystemLabelOnDialog) && (Guid)job.Args[0] == correspondenceId && (string)job.Args[1] == partyIdentifier),
                 It.IsAny<EnqueuedState>()));
         }
     }

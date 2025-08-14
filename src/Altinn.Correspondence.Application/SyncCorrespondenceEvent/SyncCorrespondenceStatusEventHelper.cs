@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.PurgeCorrespondence;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -10,6 +11,7 @@ namespace Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 public class SyncCorrespondenceStatusEventHelper(    
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IDialogportenService dialogportenService,
+    IAltinnRegisterService altinnRegisterService,
     IBackgroundJobClient backgroundJobClient,
     PurgeCorrespondenceHelper purgeCorrespondenceHelper)
 {
@@ -74,5 +76,33 @@ public class SyncCorrespondenceStatusEventHelper(
         var actorType = status == CorrespondenceStatus.PurgedByAltinn ? DialogportenActorType.Sender : DialogportenActorType.Recipient;
         var actorName = status == CorrespondenceStatus.PurgedByAltinn ? "avsender" : "mottaker";
         return backgroundJobClient.Enqueue<IDialogportenService>(service => service.CreateCorrespondencePurgedActivity(correspondenceId, actorType, actorName, operationTimestamp));
+    }
+
+    public async void ReportArchivedToDialogporten(Guid correspondenceId, Guid enduserPartyUuid, CancellationToken cancellationToken)
+    {
+        var endUserParty = await altinnRegisterService.LookUpPartyByPartyUuid(enduserPartyUuid, cancellationToken);
+        if (endUserParty is null)
+        {
+            throw new ArgumentException($"Party with UUID {enduserPartyUuid} not found in Altinn Register - cannot set archived Systemlabel for correspondence {correspondenceId}.");
+        }
+
+        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.SetArchivedSystemLabelOnDialog(correspondenceId, GetPrefixedIdentifierForParty(endUserParty)));
+    }
+
+
+    private string GetPrefixedIdentifierForParty(Party party)
+    {
+        if(party.PartyTypeName == PartyType.Organization)
+        {
+            return $"{UrnConstants.OrganizationNumberAttribute}:{party.OrgNumber}";
+        }
+        else if (party.PartyTypeName == PartyType.Person)
+        {
+            return $"{UrnConstants.PersonIdAttribute}:{party.SSN}";
+        }
+        else
+        {
+            throw new ArgumentException($"Unsupported party type: {party.PartyTypeName}");
+        }
     }
 }
