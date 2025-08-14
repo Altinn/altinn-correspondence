@@ -12,12 +12,12 @@ namespace Altinn.Correspondence.Tests.TestingController.Migration;
 [Collection(nameof(CustomWebApplicationTestsCollection))]
 public class SyncCorrespondenceStatusEventTests : MigrationTestBase
 {
-    internal const string syncCorresponenceStatusEventUrl = "correspondence/api/v1/migration/correspondence/syncStatusEvent";
-    private Guid _defaultUserPartyUuid = new Guid("11112222333344445555666677778888");
-    private Guid _defaultUserUuid = new Guid("2607D808-29EC-4BD8-B89F-B9D14BDE634C");
+    internal const string syncCorresponenceStatusEventUrl = "correspondence/api/v1/migration/correspondence/syncStatusEvent";    
+    private readonly Guid _defaultUserPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920");
+    private readonly Guid _defaultUserUuid = new Guid("2607D808-29EC-4BD8-B89F-B9D14BDE634C");
 
-    private Guid _secondUserPartyUuid = new Guid("AE985685-5D8F-45E0-AE00-240F5F5C60C5");
-    private Guid _secondUserUuid = new Guid("AE985685-5D8F-45E0-AE00-240F5F5C60C5");
+    private readonly Guid _secondUserPartyUuid = new Guid("AE985685-5D8F-45E0-AE00-240F5F5C60C5");
+    private readonly Guid _secondUserUuid = new Guid("AE985685-5D8F-45E0-AE00-240F5F5C60C5");
 
     public SyncCorrespondenceStatusEventTests(CustomWebApplicationFactory factory) : base(factory)
     {

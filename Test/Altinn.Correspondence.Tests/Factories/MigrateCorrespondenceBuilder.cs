@@ -7,7 +7,7 @@ namespace Altinn.Correspondence.Tests.Factories
     public class MigrateCorrespondenceBuilder
     {
         private MigrateCorrespondenceExt _migratedCorrespondence;
-        private Guid _defaultUserPartyUuid = new Guid("11112222333344445555666677778888");
+        private Guid _defaultUserPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920");
         private Guid _defaultUserUuid = new Guid("2607D808-29EC-4BD8-B89F-B9D14BDE634C");
         
         public MigrateCorrespondenceExt Build()
