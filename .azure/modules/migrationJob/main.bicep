@@ -8,6 +8,7 @@ param secrets { name: string, keyVaultUrl: string, identity: string }[] = []
 param volumes { name: string, storageName: string, storageType: string, mountOptions: string}[] = []
 param volumeMounts { mountPath: string, subPath: string, volumeName: string }[] = []
 param principalId string
+param replicaTimeout int = 5400
 
 resource job 'Microsoft.App/jobs@2023-11-02-preview' = {
   name: name
@@ -26,7 +27,7 @@ resource job 'Microsoft.App/jobs@2023-11-02-preview' = {
         replicaCompletionCount: 1
       }
       replicaRetryLimit: 1
-      replicaTimeout: 120
+      replicaTimeout: replicaTimeout
       triggerType: 'Manual'
     }
     environmentId: containerAppEnvId

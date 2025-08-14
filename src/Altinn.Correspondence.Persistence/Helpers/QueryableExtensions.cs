@@ -9,9 +9,10 @@ namespace Altinn.Correspondence.Persistence.Helpers
         {
             return role switch
             {
-                CorrespondencesRoleType.RecipientAndSender => query.Where(c => c.Sender.Contains(orgNo) || c.Recipient.Contains(orgNo)),
+                CorrespondencesRoleType.RecipientAndSender => query.Where(c => 
+                    c.ServiceOwnerId == orgNo || c.Sender.Contains(orgNo) || c.Recipient.Contains(orgNo)),
                 CorrespondencesRoleType.Recipient => query.Where(c => c.Recipient.Contains(orgNo)),
-                CorrespondencesRoleType.Sender => query.Where(c => c.Sender.Contains(orgNo)),
+                CorrespondencesRoleType.Sender => query.Where(c => c.ServiceOwnerId == orgNo || c.Sender.Contains(orgNo)),
                 _ => query.Where(c => false),
             };
         }
@@ -37,7 +38,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
             // Helper functions for common query patterns
             IQueryable<CorrespondenceEntity> FilterForSender()
             {
-                return query.Where(c => c.Sender.Contains(orgNo) &&
+                return query.Where(c => (c.ServiceOwnerId == orgNo || c.Sender.Contains(orgNo)) &&
                     status.HasValue ?
                     (!blacklistSender.Contains(status)) && status == c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status :
                     (!blacklistSender.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)));
@@ -93,6 +94,22 @@ namespace Altinn.Correspondence.Persistence.Helpers
 
             return query
                 .Where(cs => statusesToFilter.Contains(cs.Statuses.OrderBy(cs => cs.Status).Last().Status));
+        }
+
+        public static IQueryable<CorrespondenceEntity> WhereCurrentStatusIn(
+            this IQueryable<CorrespondenceEntity> query,
+            params CorrespondenceStatus[] statuses)
+        {
+            if (statuses == null || statuses.Length == 0)
+            {
+                return query.Where(_ => false);
+            }
+
+            return query.Where(c => c.Statuses.Any() &&statuses.Contains(
+                c.Statuses
+                    .OrderBy(s => s.StatusChanged)
+                    .ThenBy(s => s.Id)
+                    .Last().Status));
         }
 
         /// <summary>

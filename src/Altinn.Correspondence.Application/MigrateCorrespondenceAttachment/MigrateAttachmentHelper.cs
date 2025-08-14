@@ -44,7 +44,7 @@ namespace Altinn.Correspondence.Application.MigrateCorrespondenceAttachment
             try
             {
                 var provider = await GetStorageProvider(request.Attachment, cancellationToken);
-                var (dataLocationUrl, checksum, size) = await storageRepository.UploadAttachment(request.Attachment, request.UploadStream, request.ContentLength, provider, cancellationToken);
+                var (dataLocationUrl, checksum, size) = await storageRepository.UploadAttachment(request.Attachment, request.UploadStream, provider, cancellationToken);
 
                 return (dataLocationUrl, checksum, size, provider);
             }

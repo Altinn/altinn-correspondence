@@ -16,12 +16,14 @@ public static class AuthorizationConstants
     public const string SenderScope = "altinn:correspondence.write";
     public const string RecipientScope = "altinn:correspondence.read";
     public const string MigrateScope = "altinn:correspondence.migrate";
+    public const string MaintenanceScope = "altinn:correspondence.maintenance";
     public const string LegacyScope = "altinn:portal/enduser";
     public const string NotificationCheckScope = "altinn:system/notifications.condition.check";
     public const string ServiceOwnerScope = "altinn:serviceowner";
     public const string MaskinportenScheme = "Maskinporten";
     public const string ArbeidsflateCors = "ArbeidsflateCors";
     public const string DownloadAttachmentPolicy = "DownloadAttachmentPolicy";
+    public const string Maintenance = "Maintenance";
     public const string AltinnTokenOrDialogportenScheme = DialogportenScheme + "," + JwtBearerDefaults.AuthenticationScheme;
     public const string LegacyScheme = "LegacyScheme";
     public const string AllSchemes = "AllSchemes";

@@ -1,8 +1,6 @@
 import http from "k6/http";
+import { URL } from 'https://jslib.k6.io/url/1.0.0/index.js';
 import encoding from "k6/encoding";
-import { tokenGeneratorEnv } from "./config.js";
-import { baseUrlDialogPortenEndUser } from "./config.js";
-import { expect } from "./testimports.js";
 
 const tokenUsername = __ENV.TOKEN_GENERATOR_USERNAME;
 const tokenPassword = __ENV.TOKEN_GENERATOR_PASSWORD;
@@ -16,16 +14,43 @@ const tokenRequestOptions = {
   headers: {
     Authorization: `Basic ${encodedCredentials}`,
   },
+  tags: {name: 'Token generator'},
 };
 
 let cachedTokens = {};
 let cachedTokensIssuedAt = {};
 
+/**
+ * Function to generate a cache key based on the token type and options.
+ * @param {*} tokenType 
+ * @param {*} tokenOptions 
+ * @returns 
+ */
 function getCacheKey(tokenType, tokenOptions) {
-  return `${tokenType}|${tokenOptions.scopes}|${tokenOptions.orgName}|${tokenOptions.orgNo}|${tokenOptions.ssn}`;
+    var cacheKey = `${tokenType}`;
+    for (const key in tokenOptions) {
+        if (tokenOptions.hasOwnProperty(key)) {
+            cacheKey += `|${tokenOptions[key]}`;
+        }
+    }
+    return cacheKey;
 }
 
-export function fetchToken(url, tokenOptions, type) {
+/**
+ * Fetches a token from the token generator API, caching it to avoid unnecessary requests.
+ * @param {string} url - The URL of the token generator API.
+ * @param {Object} tokenOptions - The options for the token, including user and app details.
+ * Example:
+ * {    
+ *   scope: 'altinn:serviceowner altinn:enduser',
+ *   env: 'yt01',
+ *   pid: '12345678901',
+ *   ssn: '12345678901',
+ * }
+ * @param {string} type - The type of token being fetched (e.g., 'enterprise', 'personal').
+ * @returns {string} - The fetched token.
+ **/
+function fetchToken(url, tokenOptions, type) {
   const currentTime = Math.floor(Date.now() / 1000);  
   const cacheKey = getCacheKey(type, tokenOptions);
 
@@ -50,65 +75,61 @@ export function fetchToken(url, tokenOptions, type) {
   return cachedTokens[cacheKey];
 }
 
-export function getEnterpriseToken(serviceOwner) {  
-    const tokenOptions = {
-        scopes: serviceOwner.scopes, 
-        orgName: serviceOwner.org,
-        orgNo: serviceOwner.orgno
+/**
+ * Adds environment and TTL to the token options if they are not already present.
+ * @param {Object} tokenOptions - The options for the token.
+ * @param {string} env - The environment for which the token is being generated.
+ * @returns {Object} - The updated token options with environment and TTL.
+ **/
+function addEnvAndTtlToTokenOptions(tokenOptions, env) {
+    let options = { ...tokenOptions };
+    if (!('env' in options)) {
+        options.env = env;
     }
-    const url = `https://altinn-testtools-token-generator.azurewebsites.net/api/GetEnterpriseToken?env=${tokenGeneratorEnv}&scopes=${encodeURIComponent(tokenOptions.scopes)}&org=${tokenOptions.orgName}&orgNo=${tokenOptions.orgNo}&ttl=${tokenTtl}`;
-    return fetchToken(url, tokenOptions, `service owner (orgno:${tokenOptions.orgNo} orgName:${tokenOptions.orgName} tokenGeneratorEnv:${tokenGeneratorEnv})`);
+    if (!('ttl' in options)) {
+        options.ttl = tokenTtl;
+    }
+    return options;
 }
 
-export function getPersonalTokenForServiceOwner(serviceOwner) {
-    const tokenOptions = {
-        scopes: serviceOwner.scopes, 
-        ssn: serviceOwner.ssn,
-        orgno: serviceOwner.orgno
+/**
+ * Fetches an enterprise token from the token generator API.
+ *
+ * @param {Object} tokenOptions - The options for the token, including user and app details.
+ * Example:
+ * {
+ *    scope: 'altinn:serviceowner altinn:enduser','
+ *    env: 'yt01',
+ *    pid: '12345678901',
+ *    ssn: '12345678901',
+ *    appOwner: '12345678901'
+ * }
+ * @param {number} [iteration=0] - The iteration number for the token generation process.
+ * @param {string} [env='yt01'] - The environment for which the token is being generated.
+ * @returns {Promise} - A promise that resolves to the fetched token.
+ */
+export function getEnterpriseToken(tokenOptions, iteration=0, env='yt01') {  
+    const url = new URL(`https://altinn-testtools-token-generator.azurewebsites.net/api/GetEnterpriseToken`);
+    let extendedOptions = addEnvAndTtlToTokenOptions(tokenOptions, env);
+    for (const key in extendedOptions) {
+        if (extendedOptions.hasOwnProperty(key)) {
+            url.searchParams.append(key, extendedOptions[key]);
+        }
     }
-    const url = `https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=${tokenGeneratorEnv}&scopes=${encodeURIComponent(tokenOptions.scopes)}&pid=${tokenOptions.ssn}&orgNo=${tokenOptions.orgno}&consumerOrgNo=${tokenOptions.orgno}&ttl=${tokenTtl}`;
-    return fetchToken(url, tokenOptions, `end user (ssn:${tokenOptions.ssn}, tokenGeneratorEnv:${tokenGeneratorEnv})`);
-  }
+    return fetchToken(url.toString(), extendedOptions, `enterprise iteration:${iteration})`);
+}
 
-  export function getPersonalTokenForEndUser(serviceOwner, endUser) {
-    const tokenOptions = {
-        scopes: endUser.scopes, 
-        ssn: endUser.ssn,
-        orgno: serviceOwner.orgno
+export function getPersonalToken(tokenOptions, env='yt01') {
+    const url = new URL(`https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken`);
+    let extendedOptions = addEnvAndTtlToTokenOptions(tokenOptions, env);
+    for (const key in extendedOptions) {
+        if (extendedOptions.hasOwnProperty(key)) {
+            url.searchParams.append(key, extendedOptions[key]);
+        }
     }
-    const url = `https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=${tokenGeneratorEnv}&scopes=${encodeURIComponent(tokenOptions.scopes)}&pid=${tokenOptions.ssn}&orgNo=${tokenOptions.orgno}&consumerOrgNo=${tokenOptions.orgno}&ttl=${tokenTtl}`;
-    return fetchToken(url, tokenOptions, `end user (ssn:${tokenOptions.ssn}, tokenGeneratorEnv:${tokenGeneratorEnv})`);
-  }
+    return fetchToken(url.toString(), extendedOptions, 'personal');
+}
 
-  export function getPersonalToken(endUser) {
-    const tokenOptions = {
-        scopes: endUser.scopes, 
-        ssn: endUser.ssn
-    }
-    const url = `https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken?env=${tokenGeneratorEnv}&scopes=${encodeURIComponent(tokenOptions.scopes)}&pid=${tokenOptions.ssn}&ttl=${tokenTtl}`;
-    return fetchToken(url, tokenOptions, `end user (ssn:${tokenOptions.ssn}, tokenGeneratorEnv:${tokenGeneratorEnv})`);
-  }
-
-  export function getDialogPortenToken(endUser, detailsResponse, traceparent) {
-    let correspondencesDetails = JSON.parse(detailsResponse.body);
-    let dialogPortenId = correspondencesDetails.externalReferences.find(ref => ref.referenceType === 'DialogportenDialogId');
-    const tokenOptions = {
-        scopes: 'digdir:dialogporten', 
-        ssn: endUser.ssn
-    }
-    let paramsWithToken = {
-        headers: {
-            Authorization: "Bearer " + getPersonalToken(tokenOptions),
-            traceparent: traceparent
-        },
-        tags: { name: 'enduser search' } 
-    }
-    const dpUrl = baseUrlDialogPortenEndUser + 'dialogs/' + dialogPortenId.referenceValue;
-    let r = http.get(dpUrl, paramsWithToken);
-    expect(r.status, 'response status').to.equal(200);
-    const dialogDetails = JSON.parse(r.body);
-    return dialogDetails.dialogToken;
-  }
-
+  
   
   

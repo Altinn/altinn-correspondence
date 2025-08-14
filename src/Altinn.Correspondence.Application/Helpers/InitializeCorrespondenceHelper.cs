@@ -21,6 +21,7 @@ namespace Altinn.Correspondence.Application.Helpers
         IHostEnvironment hostEnvironment,
         AttachmentHelper attachmentHelper,
         MobileNumberHelper mobileNumberHelper,
+        ServiceOwnerHelper serviceOwnerHelper,
         ILogger<InitializeCorrespondenceHelper> logger)
     {
         private static readonly Regex emailRegex = new Regex(@"((""[^\\""]+"")|(([a-zA-Z0-9!#$%&'*+\-=?\^_`{|}~])+(\.([a-zA-Z0-9!#$%&'*+\-=?\^_`{|}~])+)*))@((((([a-zA-Z0-9æøåÆØÅ]([a-zA-Z0-9\-æøåÆØÅ]{0,61})[a-zA-Z0-9æøåÆØÅ]\.)|[a-zA-Z0-9æøåÆØÅ]\.){1,9})([a-zA-Z]{2,14}))|((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})))");
@@ -69,6 +70,10 @@ namespace Altinn.Correspondence.Application.Helpers
             if (!TextValidation.ValidatePlainText(content.MessageTitle))
             {
                 return CorrespondenceErrors.MessageTitleIsNotPlainText;
+            }
+            if (content.MessageTitle.Length > 255)
+            {
+                return CorrespondenceErrors.MessageTitleTooLong;
             }
             if (string.IsNullOrWhiteSpace(content.MessageBody))
             {
@@ -220,7 +225,7 @@ namespace Altinn.Correspondence.Application.Helpers
             return text.Contains(tag, StringComparison.CurrentCultureIgnoreCase);
         }
 
-        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, Party? partyDetails, bool isReserved, string serviceOwnerOrgNumber)
+        public async Task<CorrespondenceEntity> MapToCorrespondenceEntityAsync(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, Party? partyDetails, bool isReserved, string serviceOwnerOrgNumber, CancellationToken cancellationToken)
         {
             List<CorrespondenceStatusEntity> statuses =
             [
@@ -254,13 +259,14 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             recipient = recipient.WithoutPrefix().WithUrnPrefix();
 
-            var sender = serviceOwnerOrgNumber.WithoutPrefix().WithUrnPrefix();
+            var (sender, serviceOwnerId) = await serviceOwnerHelper.GetSenderAndServiceOwnerIdAsync(serviceOwnerOrgNumber, cancellationToken);
 
             return new CorrespondenceEntity
             {
                 ResourceId = request.Correspondence.ResourceId,
                 Recipient = recipient,
                 Sender = sender,
+                ServiceOwnerId = serviceOwnerId,
                 SendersReference = request.Correspondence.SendersReference,
                 MessageSender = request.Correspondence.MessageSender,
                 Content = new CorrespondenceContentEntity
@@ -370,7 +376,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 OneOf<UploadAttachmentResponse, Error> uploadResponse;
                 await using (var f = file.OpenReadStream())
                 {
-                    uploadResponse = await attachmentHelper.UploadAttachment(f, file.Length, attachment.Id, partyUuid, forMigration: false, cancellationToken);
+                    uploadResponse = await attachmentHelper.UploadAttachment(f, attachment.Id, partyUuid, forMigration: false, cancellationToken);
                 }
                 var error = uploadResponse.Match(
                     _ => { return null; },
@@ -396,9 +402,10 @@ namespace Altinn.Correspondence.Application.Helpers
             var attachment = correspondenceAttachment.Attachment!;
             attachment.Statuses = status;
             
-            // Set the Sender from the service owner organization number
-            var sender = serviceOwnerOrgNumber.WithoutPrefix().WithUrnPrefix();
+            // Set the Sender and ServiceOwnerId from the service owner organization number
+            var (sender, serviceOwnerId) = await serviceOwnerHelper.GetSenderAndServiceOwnerIdAsync(serviceOwnerOrgNumber, cancellationToken);
             attachment.Sender = sender;
+            attachment.ServiceOwnerId = serviceOwnerId;
             
             return await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
         }

@@ -179,6 +179,9 @@ namespace Altinn.Correspondence.API.Auth
                     policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope)
                           .AddAuthenticationSchemes(AuthorizationConstants.AllSchemes));
                 options.AddPolicy(AuthorizationConstants.Legacy, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.LegacyScope)).AddAuthenticationSchemes(AuthorizationConstants.LegacyScheme));
+                options.AddPolicy(AuthorizationConstants.Maintenance, policy =>
+                    policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MaintenanceScope))
+                          .AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.Developer, policy => policy.RequireAssertion(context => 
                 {
                     // Allow in development environment without authentication
@@ -199,7 +202,7 @@ namespace Altinn.Correspondence.API.Auth
             if (issuerClaim == null) return false;
 
             // Altinn
-            if (issuerClaim.Value.Contains("altinn.no"))
+            if (issuerClaim.Value.Contains("altinn"))
             {
                 var scopeClaim = context.User.Claims.FirstOrDefault(c => c.Type == "scope");
                 if (scopeClaim != null)

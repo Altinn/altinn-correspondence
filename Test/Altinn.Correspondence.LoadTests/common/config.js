@@ -5,6 +5,7 @@ const yt01DialogPortenBaseUrl = "https://platform.yt01.altinn.cloud/dialogporten
 
 const endUserPath = "api/v1/correspondence/";
 const dialogPortenEndUserPath = "api/v1/enduser/";
+const legacyCorrespondencePath = "api/v1/legacy/correspondence"
 
 export const baseUrls = {
     v1: {
@@ -16,8 +17,11 @@ export const baseUrls = {
         dialogPortenEndUser: {
             test: testDialogPortenBaseUrl + dialogPortenEndUserPath,
             yt01: yt01DialogPortenBaseUrl + dialogPortenEndUserPath
+        },
+        legacyCorrespondence: {
+            test: testBaseUrl + legacyCorrespondencePath,
+            yt01: yt01BaseUrl + legacyCorrespondencePath
         }
-
     }
 };
 
@@ -35,4 +39,39 @@ if (!baseUrls[__ENV.API_VERSION]["correspondence"][__ENV.API_ENVIRONMENT]) {
 
 export const baseUrlCorrespondence = baseUrls[__ENV.API_VERSION]["correspondence"][__ENV.API_ENVIRONMENT];
 export const baseUrlDialogPortenEndUser = baseUrls[__ENV.API_VERSION]["dialogPortenEndUser"][__ENV.API_ENVIRONMENT];
+export const baseUrlLegacyCorrespondence = baseUrls[__ENV.API_VERSION]["legacyCorrespondence"][__ENV.API_ENVIRONMENT];
 export const tokenGeneratorEnv = __ENV.API_ENVIRONMENT == "yt01" ? "yt01" : "tt02"; // yt01 is the only environment that has a separate token generator environment
+
+const tokenGenLabel = "Token generator";
+export const breakpoint = __ENV.breakpoint;
+export const stages_duration = (__ENV.stages_duration ?? '1m');
+export const stages_target = (__ENV.stages_target ?? '5');
+export const abort_on_fail = (__ENV.abort_on_fail ?? 'false') === 'true';
+
+export function buildOptions(mylabels) {
+    let options = {
+        summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(95)', 'p(99)', 'count'],
+        thresholds: {
+            checks: ['rate>=1.0'],
+            [`http_req_duration{name:${tokenGenLabel}}`]: [],
+            [`http_req_failed{name:${tokenGenLabel}}`]: ['rate<=0.0']
+        }
+    };
+    if (breakpoint) {
+        for (var label of mylabels) {
+            options.thresholds[[`http_req_duration{name:${label}}`]] = [{ threshold: "max<5000", abortOnFail: abort_on_fail }];
+            options.thresholds[[`http_req_failed{name:${label}}`]] = [{ threshold: 'rate<=0.0', abortOnFail: abort_on_fail }];
+        }
+        //options.executor = 'ramping-arrival-rate';
+        options.stages = [
+            { duration: stages_duration, target: stages_target },
+        ];
+    }
+    else {
+        for (var label of mylabels) {
+            options.thresholds[[`http_req_duration{name:${label}}`]] = [];
+            options.thresholds[[`http_req_failed{name:${label}}`]] = ['rate<=0.0'];
+        }
+    }
+    return options;
+}
