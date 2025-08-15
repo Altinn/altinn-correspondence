@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
@@ -181,6 +182,17 @@ namespace Altinn.Correspondence.API.Auth
                 options.AddPolicy(AuthorizationConstants.Maintenance, policy =>
                     policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MaintenanceScope))
                           .AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
+                options.AddPolicy(AuthorizationConstants.Developer, policy => policy.RequireAssertion(context => 
+                {
+                    // Allow in development environment without authentication
+                    var environment = context.Resource as HttpContext;
+                    if (environment?.RequestServices.GetService<IHostEnvironment>()?.IsDevelopment() == true)
+                    {
+                        return true;
+                    }
+                    // In production, require NotificationCheck scope
+                    return context.User.HasClaim(c => c.Type == "scope" && c.Value.Contains(AuthorizationConstants.NotificationCheckScope));
+                }).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
             });
         }
 
