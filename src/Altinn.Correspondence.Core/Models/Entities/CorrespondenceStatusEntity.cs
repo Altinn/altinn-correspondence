@@ -20,9 +20,12 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public DateTimeOffset StatusChanged { get; set; }
 
         public Guid CorrespondenceId { get; set; }
+        
         [ForeignKey("CorrespondenceId")]
         public CorrespondenceEntity? Correspondence { get; set; }
+        
         public Guid PartyUuid { get; set; }
 
+        public DateTimeOffset? SyncedFromAltinn2 { get; set; }
     }
 }
