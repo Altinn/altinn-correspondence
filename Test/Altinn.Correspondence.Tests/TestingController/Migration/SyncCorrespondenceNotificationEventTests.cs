@@ -59,7 +59,7 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);      
         
         Assert.Equal(2, getCorrespondenceDetails.Notifications.Count);
-        Assert.NotNull(getCorrespondenceDetails.Notifications.Select(n => n.IsReminder == true));
+        Assert.Contains(getCorrespondenceDetails.Notifications, n => n.IsReminder);
     }
 
     [Fact]

@@ -478,7 +478,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
 
         var request = SetDialogSystemLabelsMapper.CreateSetDialogSystemLabelsRequestForArchived(new Guid(dialogId), enduserId);
-        var url = $"dialogs/{dialogId}/endusercontext/systemlabels?enduserId={Uri.EscapeDataString(enduserId)}";
+        var url = $"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/endusercontext/systemlabels?enduserId={Uri.EscapeDataString(enduserId)}";
         var response = await _httpClient.PutAsJsonAsync(url, request, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {

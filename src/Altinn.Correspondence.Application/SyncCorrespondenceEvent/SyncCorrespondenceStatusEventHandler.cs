@@ -116,7 +116,7 @@ public class SyncCorrespondenceStatusEventHandler(
                         updateCorrespondenceStatusHelper.PublishEvent(correspondence, eventToExecute.Status);
                         if( eventToExecute.Status == CorrespondenceStatus.Archived)
                         {
-                            syncCorrespondenceStatusHelper.ReportArchivedToDialogporten(request.CorrespondenceId, eventToExecute.PartyUuid,cancellationToken);
+                            await syncCorrespondenceStatusHelper.ReportArchivedToDialogporten(request.CorrespondenceId, eventToExecute.PartyUuid, cancellationToken);
                         }
                     }
                 }

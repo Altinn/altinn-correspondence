@@ -8,14 +8,14 @@ using Moq;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
-    public class SyncCorrespondenceNotifcationEventHandlerTests
+    public class SyncCorrespondenceNotificationEventHandlerTests
     {
         private readonly Mock<ICorrespondenceRepository> _correspondenceRepositoryMock;
         private readonly Mock<ICorrespondenceNotificationRepository> _correspondenceNotificationRepositoryMock;
         private readonly Mock<ILogger<SyncCorrespondenceNotificationEventHandler>> _loggerMock;
         private readonly SyncCorrespondenceNotificationEventHandler _handler;
 
-        public SyncCorrespondenceNotifcationEventHandlerTests()
+        public SyncCorrespondenceNotificationEventHandlerTests()
         {
             _correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
             _correspondenceNotificationRepositoryMock = new Mock<ICorrespondenceNotificationRepository>();

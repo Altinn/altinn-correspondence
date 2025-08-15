@@ -12,7 +12,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Migration;
 [Collection(nameof(CustomWebApplicationTestsCollection))]
 public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
 {
-    internal const string syncCorresponenceForwardingEventUrl = $"{migrateCorrespondenceControllerBaseUrl}/correspondence/syncForwardingEvent";
+    internal const string syncCorrespondenceForwardingEventUrl = $"{migrateCorrespondenceControllerBaseUrl}/correspondence/syncForwardingEvent";
 
     public SyncCorrespondenceForwardingEventTests(CustomWebApplicationFactory factory) : base(factory)
     {
@@ -74,7 +74,7 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
         };
 
         // Act
-        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceForwardingEventUrl, request);
+        var response = await _migrationClient.PostAsJsonAsync(syncCorrespondenceForwardingEventUrl, request);
 
         // Assert
         Assert.True(response.IsSuccessStatusCode);
@@ -105,7 +105,7 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
         };
 
         // Act
-        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceForwardingEventUrl, request);
+        var response = await _migrationClient.PostAsJsonAsync(syncCorrespondenceForwardingEventUrl, request);
 
         // Assert
         Assert.False(response.IsSuccessStatusCode);

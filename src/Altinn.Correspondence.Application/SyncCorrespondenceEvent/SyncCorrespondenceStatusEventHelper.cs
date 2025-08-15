@@ -38,7 +38,7 @@ public class SyncCorrespondenceStatusEventHelper(
         foreach (var entity in statuses)
         {
             entity.CorrespondenceId = correspondence.Id;
-            entity.SyncedFromAltinn2 = DateTime.UtcNow;
+            entity.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
         }
 
         await correspondenceStatusRepository.AddCorrespondenceStatuses(statuses, cancellationToken);
@@ -53,7 +53,7 @@ public class SyncCorrespondenceStatusEventHelper(
             StatusChanged = statusToSync.StatusChanged,
             StatusText = statusToSync.Status.ToString(),
             PartyUuid = statusToSync.PartyUuid,            
-            SyncedFromAltinn2 = DateTime.UtcNow
+            SyncedFromAltinn2 = DateTimeOffset.UtcNow
         }, cancellationToken);
 
         if (isAvailable)
@@ -78,7 +78,7 @@ public class SyncCorrespondenceStatusEventHelper(
         return backgroundJobClient.Enqueue<IDialogportenService>(service => service.CreateCorrespondencePurgedActivity(correspondenceId, actorType, actorName, operationTimestamp));
     }
 
-    public async void ReportArchivedToDialogporten(Guid correspondenceId, Guid enduserPartyUuid, CancellationToken cancellationToken)
+    public async Task ReportArchivedToDialogporten(Guid correspondenceId, Guid enduserPartyUuid, CancellationToken cancellationToken)
     {
         var endUserParty = await altinnRegisterService.LookUpPartyByPartyUuid(enduserPartyUuid, cancellationToken);
         if (endUserParty is null)

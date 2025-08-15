@@ -45,7 +45,7 @@ public class SyncCorrespondenceForwardingEventHandler(
 
             if (existingEvent != null)
             {                
-                logger.LogWarning("Notification event {NotificationId} already exists for correspondence {CorrespondenceId}. Skipping sync.", syncedEvent.Id, request.CorrespondenceId);
+                logger.LogWarning("Forwarding event already exists for correspondence {CorrespondenceId}. Skipping sync.", request.CorrespondenceId);
                 continue; // Skip already existing events
             }
             else
