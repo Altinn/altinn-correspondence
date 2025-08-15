@@ -35,7 +35,7 @@ internal static class InitializeCorrespondencesMapper
             {
                 Language = request.Correspondence.Content.Language,
                 MessageTitle = request.Correspondence.Content.MessageTitle,
-                MessageSummary = request.Correspondence.Content.MessageSummary,
+                MessageSummary = request.Correspondence.Content.MessageSummary ?? string.Empty,
                 MessageBody = request.Correspondence.Content.MessageBody,
                 Attachments = request.Correspondence.Content.Attachments.Select(
                     attachment => InitializeCorrespondenceAttachmentMapper.MapToEntity(attachment, request.Correspondence.ResourceId, request.Correspondence.Sender)
