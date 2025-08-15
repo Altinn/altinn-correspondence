@@ -2,13 +2,11 @@ using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Altinn.Correspondence.Core.Models.Entities
 {
     [Index(nameof(Altinn2AttachmentId), IsUnique = true)]
     [Index(nameof(DataLocationUrl))]
-    [Index(nameof(ServiceOwnerId))]
     public class AttachmentEntity
     {
         [Key]
@@ -54,17 +52,5 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public StorageProviderEntity? StorageProvider { get; set; }
 
         public string? Altinn2AttachmentId { get; set; }
-
-        /// <summary>
-        /// Foreign key reference to ServiceOwner table. 
-        /// Contains the organization number without prefix.
-        /// </summary>
-        public string? ServiceOwnerId { get; set; }
-
-        /// <summary>
-        /// Navigation property to ServiceOwner entity
-        /// </summary>
-        [ForeignKey(nameof(ServiceOwnerId))]
-        public ServiceOwnerEntity? ServiceOwner { get; set; }
     }
 }

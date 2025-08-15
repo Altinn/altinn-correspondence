@@ -1,5 +1,4 @@
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Core.Models.Entities;
 
@@ -7,7 +6,7 @@ namespace Altinn.Correspondence.Mappers;
 
 internal static class MigrateAttachmentMapper
 {
-    internal static async Task<MigrateAttachmentRequest> MapToRequestAsync(MigrateInitializeAttachmentExt initializeAttachmentExt, HttpRequest httpRequest, ServiceOwnerHelper serviceOwnerHelper, CancellationToken cancellationToken)
+    internal static MigrateAttachmentRequest MapToRequest(MigrateInitializeAttachmentExt initializeAttachmentExt, HttpRequest httpRequest)
     {
         var attachment = new AttachmentEntity
         {
@@ -15,7 +14,6 @@ internal static class MigrateAttachmentMapper
             FileName = initializeAttachmentExt.FileName,
             DisplayName = initializeAttachmentExt.DisplayName,
             Sender = initializeAttachmentExt.Sender,
-            ServiceOwnerId = await serviceOwnerHelper.GetSafeServiceOwnerIdAsync(initializeAttachmentExt.Sender, cancellationToken),
             SendersReference = initializeAttachmentExt.Altinn2SendersReference ?? string.Empty,
             Checksum = initializeAttachmentExt.Checksum,
             IsEncrypted = initializeAttachmentExt.IsEncrypted,
