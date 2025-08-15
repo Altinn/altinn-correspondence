@@ -27,7 +27,7 @@ namespace Altinn.Correspondence.API.Models
         /// Gets or sets a summary text of the correspondence.
         /// </summary>
         [JsonPropertyName("messageSummary")]
-        public required string MessageSummary { get; set; }
+        public string? MessageSummary { get; set; }
 
         /// <summary>
         /// Gets or sets the main body of the correspondence.
