@@ -1,6 +1,5 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.MigrateCorrespondence;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -9,7 +8,7 @@ namespace Altinn.Correspondence.Mappers;
 
 internal static class MigrateCorrespondenceMapper
 {
-    internal static async Task<MigrateCorrespondenceRequest> MapToRequestAsync(MigrateCorrespondenceExt migrateCorrespondenceExt, ServiceOwnerHelper serviceOwnerHelper, CancellationToken cancellationToken)
+    internal static MigrateCorrespondenceRequest MapToRequest(MigrateCorrespondenceExt migrateCorrespondenceExt)
     {
         var correspondence = new CorrespondenceEntity
         {
@@ -48,7 +47,6 @@ internal static class MigrateCorrespondenceMapper
             Recipient = migrateCorrespondenceExt.CorrespondenceData.Recipients.First(),
             ResourceId = migrateCorrespondenceExt.CorrespondenceData.Correspondence.ResourceId,
             Sender = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Sender,
-            ServiceOwnerId = await serviceOwnerHelper.GetSafeServiceOwnerIdAsync(migrateCorrespondenceExt.CorrespondenceData.Correspondence.Sender, cancellationToken),
             MessageSender = migrateCorrespondenceExt.CorrespondenceData.Correspondence.MessageSender,
             RequestedPublishTime = (DateTimeOffset)migrateCorrespondenceExt.CorrespondenceData.Correspondence.RequestedPublishTime,
             AllowSystemDeleteAfter = migrateCorrespondenceExt.CorrespondenceData.Correspondence.AllowSystemDeleteAfter,
