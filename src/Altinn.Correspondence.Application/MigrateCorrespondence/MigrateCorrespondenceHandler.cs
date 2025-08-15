@@ -3,6 +3,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -14,6 +15,7 @@ public class MigrateCorrespondenceHandler(
     ICorrespondenceRepository correspondenceRepository,
     IDialogportenService dialogportenService,
     HangfireScheduleHelper hangfireScheduleHelper,
+    IBackgroundJobClient backgroundJobClient,
     ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRequest, MigrateCorrespondenceResponse>
 {
     public async Task<OneOf<MigrateCorrespondenceResponse, Error>> Process(MigrateCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -107,8 +109,29 @@ public class MigrateCorrespondenceHandler(
                 }
             }
         }
+        else if (request.BatchSize is not null)
+        {
+            var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, cancellationToken);
+            foreach(var correspondence in correspondences)
+            {
+                if (request.AsyncProcessing)
+                {
+                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>("migration", (handler) => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id));
+                } 
+                else
+                {
+                    dialogId = await MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, cancellationToken);
+                    response.Statuses.Add(new(correspondence.Id, null, dialogId, true));
+                }
+            }
+        }
 
         return response;
+    }
+
+    private async Task<string> MakeCorrespondenceAvailableInDialogportenAndApi(Guid correspondenceId)
+    {
+        return await MakeCorrespondenceAvailableInDialogportenAndApi(correspondenceId, CancellationToken.None, null, false);
     }
 
     private async Task<string> MakeCorrespondenceAvailableInDialogportenAndApi(Guid correspondenceId, CancellationToken cancellationToken, CorrespondenceEntity? correspondenceEntity = null, bool createEvents = false)
