@@ -129,7 +129,7 @@ public class MigrateCorrespondenceHandler(
         return response;
     }
 
-    private async Task<string> MakeCorrespondenceAvailableInDialogportenAndApi(Guid correspondenceId)
+    public async Task<string> MakeCorrespondenceAvailableInDialogportenAndApi(Guid correspondenceId)
     {
         return await MakeCorrespondenceAvailableInDialogportenAndApi(correspondenceId, CancellationToken.None, null, false);
     }
@@ -142,9 +142,15 @@ public class MigrateCorrespondenceHandler(
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
         var dialogId = await dialogportenService.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId, correspondence, createEvents);
-        await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
-        correspondence.ExternalReferences.Add(new ExternalReferenceEntity() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = dialogId });
-        await SetIsMigrating(correspondenceId, false, cancellationToken);
+
+        var updateResult = await TransactionWithRetriesPolicy.Execute<string>(async (cancellationToken) =>
+        {
+            await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
+            correspondence.ExternalReferences.Add(new ExternalReferenceEntity() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = dialogId });
+            await SetIsMigrating(correspondenceId, false, cancellationToken);
+            return dialogId;
+        }, logger, cancellationToken);
+
         return dialogId;
     }
 
