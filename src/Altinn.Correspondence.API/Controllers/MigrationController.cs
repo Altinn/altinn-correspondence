@@ -1,6 +1,5 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application;
-using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.MigrateCorrespondence;
 using Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
@@ -39,12 +38,11 @@ namespace Altinn.Correspondence.API.Controllers
         public async Task<ActionResult<CorrespondenceMigrationStatusExt>> MigrateCorrespondence(
             MigrateCorrespondenceExt migrateCorrespondence,
             [FromServices] MigrateCorrespondenceHandler handler,
-            [FromServices] ServiceOwnerHelper serviceOwnerHelper,
             CancellationToken cancellationToken)
         {
             LogContextHelpers.EnrichLogsWithMigrateCorrespondence(migrateCorrespondence);
 
-            var commandRequest = await MigrateCorrespondenceMapper.MapToRequestAsync(migrateCorrespondence, serviceOwnerHelper, cancellationToken);
+            var commandRequest = MigrateCorrespondenceMapper.MapToRequest(migrateCorrespondence);
             var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
@@ -63,20 +61,18 @@ namespace Altinn.Correspondence.API.Controllers
         public async Task<ActionResult<AttachmentOverviewExt>> MigrateAttachmentData(
             [FromQuery]MigrateInitializeAttachmentExt initializeAttachmentExt,
             [FromServices] MigrateAttachmentHandler migrateAttachmentHandler,
-            [FromServices] ServiceOwnerHelper serviceOwnerHelper,
             CancellationToken cancellationToken = default
         )
         {
             Guid attachmentId = Guid.NewGuid();
 
             Request.EnableBuffering();
-            var attachmentRequest = await MigrateAttachmentMapper.MapToRequestAsync(initializeAttachmentExt, Request, serviceOwnerHelper, cancellationToken);
             var attachment = new MigrateAttachmentRequest()
             {
                 SenderPartyUuid = initializeAttachmentExt.SenderPartyUuid,
                 UploadStream = Request.Body,
                 ContentLength = Request.ContentLength ?? Request.Body.Length,
-                Attachment = attachmentRequest.Attachment
+                Attachment = MigrateAttachmentMapper.MapToRequest(initializeAttachmentExt, Request).Attachment
             };
             attachment.Attachment.Id = Guid.NewGuid();
             var uploadAttachmentResult = await migrateAttachmentHandler.Process(attachment, HttpContext.User, cancellationToken);
