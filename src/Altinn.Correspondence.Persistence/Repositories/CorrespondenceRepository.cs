@@ -189,6 +189,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             return _context.Correspondences
                 .Where(c => c.Altinn2CorrespondenceId != null && c.IsMigrating) // Only include correspondences that are not already migrated 
+                .OrderByDescending(c => c.Created)
                 .Take(batchSize)
                 .ToListAsync(cancellationToken);
         }
