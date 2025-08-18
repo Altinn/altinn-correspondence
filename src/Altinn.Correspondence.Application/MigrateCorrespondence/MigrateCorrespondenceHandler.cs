@@ -129,7 +129,7 @@ public class MigrateCorrespondenceHandler(
         return response;
     }
 
-    private async Task<string> MakeCorrespondenceAvailableInDialogportenAndApi(Guid correspondenceId)
+    public async Task<string> MakeCorrespondenceAvailableInDialogportenAndApi(Guid correspondenceId)
     {
         return await MakeCorrespondenceAvailableInDialogportenAndApi(correspondenceId, CancellationToken.None, null, false);
     }
