@@ -98,7 +98,9 @@ internal static class MigrateCorrespondenceMapper
         {
             CreateEvents = maExt.CreateEvents,
             CorrespondenceId = maExt.CorrespondenceId,
-            CorrespondenceIds = maExt.CorrespondenceIds
+            CorrespondenceIds = maExt.CorrespondenceIds,
+            AsyncProcessing = maExt.AsyncProcessing,
+            BatchSize = maExt.BatchSize
         };
     }
 
