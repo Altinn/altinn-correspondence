@@ -62,7 +62,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
-            if (correspondence.Altinn2CorrespondenceId.GetValueOrDefault() > 0)
+            if (correspondence.IsMigrating)
             {
                 logger.LogWarning("Skipping patching correspondence {correspondenceId} to confirmed as it is an Altinn2 correspondence without Dialogporten dialog", correspondenceId);
                 return;
@@ -118,7 +118,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
-            if (correspondence.Altinn2CorrespondenceId.GetValueOrDefault() > 0)
+            if (correspondence.IsMigrating)
             {
                 logger.LogWarning("Skipping creating information activity for {correspondenceId} as it is an Altinn2 correspondence without Dialogporten dialog", correspondenceId);
                 return;
@@ -217,7 +217,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
-            if (correspondence.Altinn2CorrespondenceId.GetValueOrDefault() > 0)
+            if (correspondence.IsMigrating)
             {
                 logger.LogWarning("Skipping creating opened activity for {correspondenceId} as it is an Altinn2 correspondence without Dialogporten dialog", correspondenceId);
                 return;
@@ -278,7 +278,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
-            if (correspondence.Altinn2CorrespondenceId.GetValueOrDefault() > 0)
+            if (correspondence.IsMigrating)
             {
                 logger.LogWarning("Skipping purging correspondence {correspondenceId} as it is an Altinn2 correspondence without Dialogporten dialog", correspondenceId);
                 return;
@@ -339,7 +339,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
-            if (correspondence.Altinn2CorrespondenceId.GetValueOrDefault() > 0)
+            if (correspondence.IsMigrating)
             {
                 logger.LogWarning("Skipping creating dialog purged activity for correspondence {correspondenceId} as it is an Altinn2 correspondence without Dialogporten dialog", correspondenceId);
                 return;
