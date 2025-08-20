@@ -65,8 +65,8 @@ public class SyncCorrespondenceStatusEventHandler(
                 && s.PartyUuid == syncedEvent.PartyUuid)
                 )
             {
-                logger.LogInformation($"Current Status Event for {request.CorrespondenceId} has been deemed duplicate of existing and will be skipped. Status: {syncedEvent.Status}- StatusChanged: {syncedEvent.StatusChanged}- PartyUuid: {syncedEvent.PartyUuid}");
-                continue; // Skip already existing events
+                logger.LogInformation("Current Status Event for {CorrespondenceId} has been deemed duplicate of existing and will be skipped. Status: {Status} - StatusChanged: {StatusChanged} - PartyUuid: {PartyUuid}", request.CorrespondenceId, syncedEvent.Status, syncedEvent.StatusChanged, syncedEvent.PartyUuid);
+                continue;
             }
             else
             {
@@ -79,7 +79,7 @@ public class SyncCorrespondenceStatusEventHandler(
             return request.CorrespondenceId;
         }
 
-        logger.LogInformation("Executing status synctransaction for correspondence for {CorrespondenceId} with {SyncedEventsCount} # of status events", request.CorrespondenceId, request.SyncedEvents.Count);
+        logger.LogInformation("Executing status sync transaction for correspondence for {CorrespondenceId} with {SyncedEventsCount} # of status events", request.CorrespondenceId, eventsFilteredForDuplicates.Count);
 
         // Special case for Purge events, we need to handle them differently
         var purgeEvent = eventsFilteredForDuplicates
@@ -104,7 +104,7 @@ public class SyncCorrespondenceStatusEventHandler(
         // Handle the rest of the status events collectively
         if (eventsFilteredForDuplicates.Count > 0)
         {
-            await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
+            await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
             {
                 await syncCorrespondenceStatusHelper.AddSyncedCorrespondenceStatuses(correspondence, eventsFilteredForDuplicates, cancellationToken);
 
@@ -122,7 +122,7 @@ public class SyncCorrespondenceStatusEventHandler(
                     }
                 }
 
-                return Task.CompletedTask;
+                return request.CorrespondenceId;
             }, logger, cancellationToken);
         }
         

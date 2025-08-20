@@ -38,7 +38,7 @@ public class SyncCorrespondenceNotificationEventHandler(
                 )
             {
                 logger.LogWarning("Notification event {NotificationId} already exists for correspondence {CorrespondenceId}. Skipping sync.", syncedEvent.Id, request.CorrespondenceId);
-                continue; // Skip already existing events
+                continue;
             }
             else
             {

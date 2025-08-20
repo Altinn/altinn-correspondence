@@ -28,7 +28,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Process_NotAvailable_NewReminderNotifcation_AddedOK()
+        public async Task Process_NotAvailable_NewReminderNotification_AddedOK()
         {
             // Arrange            
             var partyUuid = Guid.NewGuid();
@@ -59,7 +59,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 }
             };
 
-
             // Mock correspondence repository
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceById(correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
@@ -80,12 +79,12 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n => 
-                n.Altinn2NotificationId == 2 && n.SyncedFromAltinn2 != null), It.IsAny<CancellationToken>()), Times.Once);
+                n.Altinn2NotificationId == 2 && n.SyncedFromAltinn2 != null && n.CorrespondenceId == correspondenceId), It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
         }
 
         [Fact]
-        public async Task Process_Available_NewReminderNotifcation_AddedOK()
+        public async Task Process_Available_NewReminderNotification_AddedOK()
         {
             // Arrange            
             var partyUuid = Guid.NewGuid();
@@ -138,12 +137,12 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n =>
-                n.Altinn2NotificationId == 2 && n.SyncedFromAltinn2 != null), It.IsAny<CancellationToken>()), Times.Once);
+                n.Altinn2NotificationId == 2 && n.SyncedFromAltinn2 != null && n.CorrespondenceId == correspondenceId), It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
         }
 
         [Fact]
-        public async Task Process_NotAvailable_MultipleNewNotifcations_AddedOK()
+        public async Task Process_NotAvailable_MultipleNewNotifications_AddedOK()
         {
             // Arrange            
             var partyUuid = Guid.NewGuid();
@@ -205,14 +204,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n =>
-                n.Altinn2NotificationId == 2 && n.SyncedFromAltinn2 != null), It.IsAny<CancellationToken>()), Times.Once);
+                n.Altinn2NotificationId == 2 && n.SyncedFromAltinn2 != null && n.CorrespondenceId == correspondenceId), It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n =>
-                n.Altinn2NotificationId == 3 && n.SyncedFromAltinn2 != null), It.IsAny<CancellationToken>()), Times.Once);
+                n.Altinn2NotificationId == 3 && n.SyncedFromAltinn2 != null && n.CorrespondenceId == correspondenceId), It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
         }
 
         [Fact]
-        public async Task Process_NotAvailable_DuplicateNotifcation_NotAdded()
+        public async Task Process_NotAvailable_DuplicateNotification_NotAdded()
         {
             // Arrange            
             var partyUuid = Guid.NewGuid();
@@ -267,7 +266,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Process_NotAvailable_DuplicateNotifcationWithOffset_NotAdded()
+        public async Task Process_NotAvailable_DuplicateNotificationWithOffset_NotAdded()
         {
             // Arrange            
             var partyUuid = Guid.NewGuid();

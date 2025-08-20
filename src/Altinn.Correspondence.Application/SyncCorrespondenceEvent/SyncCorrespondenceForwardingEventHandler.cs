@@ -32,8 +32,7 @@ public class SyncCorrespondenceForwardingEventHandler(
         {
             if ((correspondence.ForwardingEvents ?? Enumerable.Empty<CorrespondenceForwardingEventEntity>())
                 .Any(fe =>
-                    fe.CorrespondenceId == request.CorrespondenceId
-                    && fe.ForwardedOnDate.EqualsToSecond(syncedEvent.ForwardedOnDate)
+                    fe.ForwardedOnDate.EqualsToSecond(syncedEvent.ForwardedOnDate)
                     && fe.ForwardedByPartyUuid == syncedEvent.ForwardedByPartyUuid
                     && fe.ForwardedByUserUuid == syncedEvent.ForwardedByUserUuid
                     && fe.ForwardedToUserId == syncedEvent.ForwardedToUserId
@@ -44,7 +43,7 @@ public class SyncCorrespondenceForwardingEventHandler(
                     ))
             {                
                 logger.LogWarning("Forwarding event already exists for correspondence {CorrespondenceId}. Skipping sync.", request.CorrespondenceId);
-                continue; // Skip already existing events
+                continue;
             }
             else
             {
