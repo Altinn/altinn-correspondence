@@ -1007,7 +1007,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task InitializeCorrespondence_WithCombinedExistingAndNew_Attachments_Over100_ReturnsBadRequest()
+        public async Task InitializeCorrespondence_WithMoreThan100ExistingAndNewAttachmentsCombined_ReturnsBadRequest()
         {
             // Arrange:
             var existing = new List<Guid>();
