@@ -437,6 +437,11 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         {
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
+        if (correspondence.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId))
+        {
+            logger.LogWarning($"Duplicate job for correspondence {correspondenceId}");
+            return correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue ?? string.Empty;
+        }
 
         await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
 
