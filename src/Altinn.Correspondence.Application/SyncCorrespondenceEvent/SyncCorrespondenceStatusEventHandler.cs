@@ -19,7 +19,14 @@ public class SyncCorrespondenceStatusEventHandler(
     {
         logger.LogInformation("Processing status Sync request for correspondence {CorrespondenceId} with {SyncedEventsCount} # of status events", request.CorrespondenceId, request.SyncedEvents.Count);
 
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, false, cancellationToken, true);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(
+            request.CorrespondenceId,
+            includeStatus: true,
+            includeContent: false,
+            includeForwardingEvents: false,
+            cancellationToken,
+            includeIsMigrating: true);
+
         if (correspondence == null)
         {
             logger.LogWarning("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
