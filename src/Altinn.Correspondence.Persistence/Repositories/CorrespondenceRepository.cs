@@ -163,6 +163,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 : _context.Correspondences.Where(c => recipientIds.Contains(c.Recipient)); // Filter multiple recipients
 
             correspondences = correspondences
+                .AsNoTracking()
                 .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
                 .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter                              
                 .Where(c => resourceIds.Count == 0 || resourceIds.Contains(c.ResourceId))       // Filter by resources
