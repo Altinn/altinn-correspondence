@@ -151,6 +151,13 @@ public class InitializeCorrespondencesHandler(
             return CorrespondenceErrors.ExistingAttachmentNotFound;
         }
 
+        var totalRequestedAttachments = (existingAttachmentIds?.Count ?? 0) + (uploadAttachmentMetadata?.Count ?? 0);
+        if (totalRequestedAttachments > 100)
+        {
+            logger.LogWarning("Attachment count exceeded: existing={ExistingCount}, new={NewCount}", existingAttachmentIds?.Count ?? 0, uploadAttachmentMetadata?.Count ?? 0);
+            return CorrespondenceErrors.AttachmentCountExceeded;
+        }
+
         logger.LogDebug("Checking publication status of existing attachments");
         var anyExistingAttachmentsNotPublished = existingAttachments.Any(a => a.GetLatestStatus()?.Status != AttachmentStatus.Published);
         if (anyExistingAttachmentsNotPublished)
