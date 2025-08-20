@@ -13,6 +13,7 @@ using Hangfire.Common;
 using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Collections.Generic;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
@@ -239,6 +240,120 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Should not trigger any Dialogporten changes or background jobs
             _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+            _backgroundJobClientMock.VerifyNoOtherCalls();
+            _dialogPortenServiceMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task NotAvailable_MultipleDuplicatesInRequest_OnlyOneOfEachSaved()
+        {
+            // Arrange            
+            var partyUuid = Guid.NewGuid();
+
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Read, new DateTime(2023, 10, 1, 11, 0, 0, 0), partyUuid)                
+                .WithAltinn2CorrespondenceId(12345)
+                .WithIsMigrating(true) // Not available in Altinn 3 APIs
+                .Build();
+            var correspondenceId = correspondence.Id;
+
+            var request = new SyncCorrespondenceStatusEventRequest
+            {
+                CorrespondenceId = correspondenceId,
+                SyncedEvents = new List<CorrespondenceStatusEntity>
+                {
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.Read,
+                        StatusChanged =  new DateTime(2023, 10, 1, 12, 0, 0, 0),
+                        PartyUuid = partyUuid
+                    },
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.Read,
+                        StatusChanged =  new DateTime(2023, 10, 1, 12, 0, 0, 150),
+                        PartyUuid = partyUuid
+                    },
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.Confirmed,
+                        StatusChanged =  new DateTime(2023, 10, 1, 12, 5, 0, 0),
+                        PartyUuid = partyUuid
+                    },
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.Confirmed,
+                        StatusChanged =  new DateTime(2023, 10, 1, 12, 5, 0, 150),
+                        PartyUuid = partyUuid
+                    },
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.Archived,
+                        StatusChanged =  new DateTime(2023, 10, 1, 12, 6, 0, 150),
+                        PartyUuid = partyUuid
+                    },
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.Archived,
+                        StatusChanged =  new DateTime(2023, 10, 1, 12, 6, 0, 150),
+                        PartyUuid = partyUuid
+                    },
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.PurgedByRecipient,
+                        StatusChanged =  new DateTime(2023, 10, 1, 12, 7, 0),
+                        PartyUuid = partyUuid
+                    }
+                    ,
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.PurgedByRecipient,
+                        StatusChanged =  new DateTime(2023, 10, 1, 12, 7, 0, 500),
+                        PartyUuid = partyUuid
+                    }
+                }
+            };
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .ReturnsAsync(correspondence);
+            _attachmentRepositoryMock
+                .Setup(x => x.GetAttachmentsByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<AttachmentEntity>());
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert OK Return
+            Assert.True(result.IsT0);
+            Assert.Equal(correspondenceId, result.AsT0);
+
+            // Verify correct calls to Correspondence repository
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
+            _correspondenceStatusRepositoryMock.Verify(
+               x => x.AddCorrespondenceStatuses(It.Is<List<CorrespondenceStatusEntity>>(list =>
+                   list.Count == 3 &&
+                   list.Any(e => e.Status == CorrespondenceStatus.Read && e.PartyUuid == partyUuid && e.SyncedFromAltinn2 != null) &&
+                   list.Any(e => e.Status == CorrespondenceStatus.Confirmed && e.PartyUuid == partyUuid && e.SyncedFromAltinn2 != null) &&
+                   list.Any(e => e.Status == CorrespondenceStatus.Archived && e.PartyUuid == partyUuid && e.SyncedFromAltinn2 != null)
+               ), It.IsAny<CancellationToken>()),
+               Times.Once);
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.PurgedByRecipient &&
+                    e.StatusChanged.Equals(new DateTimeOffset(new DateTime(2023, 10, 1, 12, 7, 0))) &&
+                    e.PartyUuid == partyUuid &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+
+            // Should not trigger any Dialogporten changes or background jobs
             _backgroundJobClientMock.VerifyNoOtherCalls();
             _dialogPortenServiceMock.VerifyNoOtherCalls();
         }

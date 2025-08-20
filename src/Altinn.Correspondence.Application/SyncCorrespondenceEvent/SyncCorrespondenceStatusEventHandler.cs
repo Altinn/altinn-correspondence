@@ -47,23 +47,27 @@ public class SyncCorrespondenceStatusEventHandler(
             return request.CorrespondenceId;
         }
 
+        // Remove possible duplicates from the request - This is because Altinn 2 uses two sets of data sources for status events, and we need to ensure that we only sync unique events.
+        var eventsFilteredForRequestDuplicates = FilterDuplicateStatusEvents(eventsFilteredForCorrectStatus);
+
+        // Remove duplicate status events that are already present in the correspondence
         var eventsFilteredForDuplicates = new List<CorrespondenceStatusEntity>();
-        foreach (var statusEventToSync in eventsFilteredForCorrectStatus)
+        foreach (var statusEventToSync in eventsFilteredForRequestDuplicates)
         {
             bool existsAlready = false;
 
-            foreach(var statusEventInAltinn3 in correspondence.Statuses)
+            foreach (var statusEventInAltinn3 in correspondence.Statuses)
             {
                 // IDempotent Key == CorrespondenceId + Status + StatusChanged + PartyUuid
                 if (statusEventToSync.Status == statusEventInAltinn3.Status &&
-                    statusEventToSync.StatusChanged.EqualsToWithinSecond(statusEventInAltinn3.StatusChanged) && // Only compare to nearest second
+                    statusEventToSync.StatusChanged.EqualsToSecond(statusEventInAltinn3.StatusChanged) && // Only compare to nearest second
                     statusEventToSync.PartyUuid == statusEventInAltinn3.PartyUuid)
                 {
-                    existsAlready = true;                    
+                    existsAlready = true;
                 }
             }
 
-            if(existsAlready)
+            if (existsAlready)
             {
                 logger.LogInformation($"Current Status Event for {request.CorrespondenceId} has been deemed duplicate of existing and will be skipped. Status: {statusEventToSync.Status}- StatusChanged: {statusEventToSync.StatusChanged}- PartyUuid: {statusEventToSync.PartyUuid}");
             }
@@ -77,7 +81,7 @@ public class SyncCorrespondenceStatusEventHandler(
             logger.LogWarning($"None of the Status Events for {request.CorrespondenceId} were unique, and no sync will be performed.");
             return request.CorrespondenceId;
         }
-        
+
         logger.LogInformation($"Executing status synctransaction for correspondence for {request.CorrespondenceId} with {request.SyncedEvents.Count} # of status events");
 
         // Special case for Purge events, we need to handle them differently
@@ -129,31 +133,33 @@ public class SyncCorrespondenceStatusEventHandler(
         logger.LogInformation($"Successfully synced request for correspondence {request.CorrespondenceId} with {request.SyncedEvents.Count} # of status events");
         return request.CorrespondenceId;
     }
-}
 
-
-public static class DateTimeOffsetExtensions
-{
-    public static bool EqualsToWithinSecond(this DateTimeOffset dto1, DateTimeOffset dto2)
+    private static List<CorrespondenceStatusEntity> FilterDuplicateStatusEvents(List<CorrespondenceStatusEntity> input)
     {
-        // Normalize to UTC to handle different offsets correctly
-        DateTimeOffset utcDto1 = dto1.ToUniversalTime();
-        DateTimeOffset utcDto2 = dto2.ToUniversalTime();
+        var seen = new HashSet<(CorrespondenceStatus Status, DateTimeOffset TruncatedStatusChanged, Guid PartyUuid)>();
+        var result = new List<CorrespondenceStatusEntity>();
 
-        // Truncate to the second by creating a new DateTimeOffset
-        // with milliseconds, microseconds, and ticks set to zero.
-        DateTimeOffset truncatedDto1 = new DateTimeOffset(
-            utcDto1.Year, utcDto1.Month, utcDto1.Day,
-            utcDto1.Hour, utcDto1.Minute, utcDto1.Second,
-            TimeSpan.Zero // Set offset to zero for UTC
-        );
+        foreach (var item in input)
+        {
+            var key = (
+                item.Status,
+                new DateTimeOffset(
+                    item.StatusChanged.ToUniversalTime().Year,
+                    item.StatusChanged.ToUniversalTime().Month,
+                    item.StatusChanged.ToUniversalTime().Day,
+                    item.StatusChanged.ToUniversalTime().Hour,
+                    item.StatusChanged.ToUniversalTime().Minute,
+                    item.StatusChanged.ToUniversalTime().Second,
+                    TimeSpan.Zero
+                ),
+                item.PartyUuid
+            );
 
-        DateTimeOffset truncatedDto2 = new DateTimeOffset(
-            utcDto2.Year, utcDto2.Month, utcDto2.Day,
-            utcDto2.Hour, utcDto2.Minute, utcDto2.Second,
-            TimeSpan.Zero // Set offset to zero for UTC
-        );
-
-        return truncatedDto1.Equals(truncatedDto2);
+            if (seen.Add(key))
+            {
+                result.Add(item);
+            }
+        }
+        return result;
     }
 }

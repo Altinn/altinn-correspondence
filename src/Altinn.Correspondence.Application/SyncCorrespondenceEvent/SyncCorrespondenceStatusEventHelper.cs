@@ -89,7 +89,6 @@ public class SyncCorrespondenceStatusEventHelper(
         backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.SetArchivedSystemLabelOnDialog(correspondenceId, GetPrefixedIdentifierForParty(endUserParty)));
     }
 
-
     private string GetPrefixedIdentifierForParty(Party party)
     {
         if(party.PartyTypeName == PartyType.Organization)

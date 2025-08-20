@@ -33,7 +33,7 @@ public class SyncCorrespondenceForwardingEventHandler(
             var existingEvent = (correspondence.ForwardingEvents ?? Enumerable.Empty<CorrespondenceForwardingEventEntity>())
                 .FirstOrDefault(fe =>
                     fe.CorrespondenceId == syncedEvent.CorrespondenceId
-                    && fe.ForwardedOnDate.EqualsToWithinSecond(syncedEvent.ForwardedOnDate)
+                    && fe.ForwardedOnDate.EqualsToSecond(syncedEvent.ForwardedOnDate)
                     && fe.ForwardedByPartyUuid == syncedEvent.ForwardedByPartyUuid
                     && fe.ForwardedByUserUuid == syncedEvent.ForwardedByUserUuid                    
                     && fe.ForwardedToUserId == syncedEvent.ForwardedToUserId
