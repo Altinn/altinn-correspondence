@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
+using static Dapper.SqlMapper;
 
 namespace Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 public class SyncCorrespondenceStatusEventHelper(    
@@ -39,6 +40,7 @@ public class SyncCorrespondenceStatusEventHelper(
         {
             entity.CorrespondenceId = correspondence.Id;
             entity.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
+            entity.StatusText = $"Synced event {entity.Status} from Altinn 2";
         }
 
         await correspondenceStatusRepository.AddCorrespondenceStatuses(statuses, cancellationToken);
@@ -51,8 +53,8 @@ public class SyncCorrespondenceStatusEventHelper(
             CorrespondenceId = correspondence.Id,
             Status = statusToSync.Status,
             StatusChanged = statusToSync.StatusChanged,
-            StatusText = statusToSync.Status.ToString(),
-            PartyUuid = statusToSync.PartyUuid,            
+            StatusText = $"Synced event {statusToSync.Status} from Altinn 2",
+            PartyUuid = statusToSync.PartyUuid,
             SyncedFromAltinn2 = DateTimeOffset.UtcNow
         }, cancellationToken);
 
