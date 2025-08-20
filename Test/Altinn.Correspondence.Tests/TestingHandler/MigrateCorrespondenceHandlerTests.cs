@@ -365,6 +365,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 SendersReference = "test-reference",
                 RequestedPublishTime = DateTimeOffset.UtcNow.AddDays(1),
                 Statuses = new List<CorrespondenceStatusEntity>(),
+                ExternalReferences = new List<ExternalReferenceEntity>(),
                 Created = DateTimeOffset.UtcNow
             };
         }
