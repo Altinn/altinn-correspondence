@@ -116,8 +116,15 @@ public class MigrateCorrespondenceHandler(
                 var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.BatchOffset ?? 0, cancellationToken);
                 foreach (var correspondence in correspondences)
                 {
-                    dialogId = await MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, cancellationToken);
-                    response.Statuses.Add(new(correspondence.Id, null, dialogId, true));
+                    try
+                    {
+                        dialogId = await MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, cancellationToken);
+                        response.Statuses.Add(new(correspondence.Id, null, dialogId, true));
+                    }
+                    catch (Exception ex)
+                    {
+                        response.Statuses.Add(new(correspondence.Id, ex.ToString()));
+                    }
                 }
                 return response;
             }
