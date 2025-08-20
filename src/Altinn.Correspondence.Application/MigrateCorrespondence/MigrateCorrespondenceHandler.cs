@@ -151,6 +151,14 @@ public class MigrateCorrespondenceHandler(
                     backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>((handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
                     alreadyAdded += currentBatch;
                 }
+            } 
+            else
+            {
+                var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.BatchOffset ?? 0, cancellationToken);
+                foreach(var correspondence in correspondences)
+                {
+                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id));
+                }
             }
         }
 

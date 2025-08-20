@@ -66,7 +66,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task MakeCorrespondenceAvailable_WithBatchSizeExactlyAtLimit_ShouldNotScheduleRecursiveJobs()
+        public async Task MakeCorrespondenceAvailable_WithBatchSizeExactlyAtLimit_ShouldCreateIndividualBackgroundJobs()
         {
             // Arrange
             var request = new MakeCorrespondenceAvailableRequest
@@ -76,29 +76,15 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 CreateEvents = false
             };
 
-            // Act
-            var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.True(result.IsT0);
-
-            // Verify that no background jobs were scheduled since batch size is exactly at limit
-            _mockBackgroundJobClient.Verify(x => x.Create(
-                It.IsAny<Job>(),
-                It.IsAny<IState>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task MakeCorrespondenceAvailable_WithBatchSizeBelowLimit_ShouldNotScheduleRecursiveJobs()
-        {
-            // Arrange
-            var request = new MakeCorrespondenceAvailableRequest
+            var mockCorrespondences = new List<CorrespondenceEntity>();
+            for (int i = 0; i < 10000; i++)
             {
-                BatchSize = 5000, // Below the limit
-                AsyncProcessing = true,
-                CreateEvents = false
-            };
+                mockCorrespondences.Add(CreateMockCorrespondence(Guid.NewGuid()));
+            }
+
+            _mockCorrespondenceRepository.Setup(x => x.GetCandidatesForMigrationToDialogporten(
+                It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mockCorrespondences);
 
             // Act
             var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
@@ -107,10 +93,17 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.NotNull(result);
             Assert.True(result.IsT0);
 
-            // Verify that no background jobs were scheduled since batch size is below limit
+            // Verify that individual background jobs were created for each correspondence
             _mockBackgroundJobClient.Verify(x => x.Create(
-                It.IsAny<Job>(),
-                It.IsAny<IState>()), Times.Never);
+                It.Is<Job>(job => job.Method.Name == "MakeCorrespondenceAvailableInDialogportenAndApi"),
+                It.IsAny<IState>()), 
+                Times.Exactly(10000));
+
+            // Verify that no recursive batching jobs were created
+            _mockBackgroundJobClient.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == "MakeCorrespondenceAvailable"),
+                It.IsAny<IState>()), 
+                Times.Never);
         }
 
         [Fact]
@@ -321,6 +314,44 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.False(response.Statuses[0].Ok);
             Assert.NotNull(response.Statuses[0].Error);
             Assert.Contains("Test exception", response.Statuses[0].Error);
+        }
+
+        [Fact]
+        public async Task MakeCorrespondenceAvailable_WithBatchSizeBelowLimit_ShouldPassCorrectParametersToBackgroundJobs()
+        {
+            // Arrange
+            var request = new MakeCorrespondenceAvailableRequest
+            {
+                BatchSize = 3,
+                AsyncProcessing = true,
+                CreateEvents = true
+            };
+
+            var correspondenceIds = new List<Guid> { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() };
+            var mockCorrespondences = correspondenceIds.Select(id => CreateMockCorrespondence(id)).ToList();
+
+            _mockCorrespondenceRepository.Setup(x => x.GetCandidatesForMigrationToDialogporten(
+                It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mockCorrespondences);
+
+            // Act
+            var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.True(result.IsT0);
+
+            // Verify that background jobs were created with the correct correspondence IDs
+            foreach (var correspondenceId in correspondenceIds)
+            {
+                _mockBackgroundJobClient.Verify(x => x.Create(
+                    It.Is<Job>(job => 
+                        job.Method.Name == "MakeCorrespondenceAvailableInDialogportenAndApi" &&
+                        job.Args.Count > 0 &&
+                        job.Args[0].Equals(correspondenceId)),
+                    It.IsAny<IState>()), 
+                    Times.Once);
+            }
         }
 
         private static CorrespondenceEntity CreateMockCorrespondence(Guid id)
