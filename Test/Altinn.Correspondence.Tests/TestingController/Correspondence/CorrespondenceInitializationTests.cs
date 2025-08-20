@@ -961,7 +961,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [Fact]
         public async Task InitializeCorrespondence_WithMoreThan100ExistingAttachments_ReturnsBadRequest()
         {
-            // Arrange: create 101 published attachments
+            // Arrange
             var existing = new List<Guid>();
             for (int i = 0; i < 101; i++)
             {
@@ -986,7 +986,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [Fact]
         public async Task InitializeCorrespondence_With100ExistingAttachments_ReturnsOk()
         {
-            // Arrange: create 100 published attachments
+            // Arrange
             var existing = new List<Guid>();
             for (int i = 0; i < 100; i++)
             {
@@ -1009,7 +1009,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [Fact]
         public async Task InitializeCorrespondence_WithMoreThan100ExistingAndNewAttachmentsCombined_ReturnsBadRequest()
         {
-            // Arrange:
+            // Arrange
             var existing = new List<Guid>();
             for (int i = 0; i < 50; i++)
             {
