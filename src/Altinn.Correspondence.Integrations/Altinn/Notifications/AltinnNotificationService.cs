@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Models.Notifications;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Notifications;
 
@@ -42,6 +43,8 @@ public class AltinnNotificationService : IAltinnNotificationService
     {
         _logger.LogInformation("Creating notification in Altinn Notification v2");
         var response = await _httpClient.PostAsJsonAsync("notifications/api/v1/future/orders", notificationRequest, cancellationToken);
+        var jsonRequest = JsonSerializer.Serialize(notificationRequest);
+        var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("Failed to create notification in Altinn Notification v2. Status code: {StatusCode}", response.StatusCode);

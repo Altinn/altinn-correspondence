@@ -122,7 +122,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         options.InstanceName = "redisCache";
     });
 #pragma warning disable EXTEXP0018
-    services.AddHybridCache();
+    services.AddHybridCache(options => options.MaximumPayloadBytes = 1000 * 1000 * 10L);
 #pragma warning restore EXTEXP0018
     services.AddSingleton<IHybridCacheWrapper, HybridCacheWrapper>();
     services.ConfigureAuthentication(config, hostEnvironment);

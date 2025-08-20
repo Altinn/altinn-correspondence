@@ -111,17 +111,53 @@ public class MigrateCorrespondenceHandler(
         }
         else if (request.BatchSize is not null)
         {
-            var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, cancellationToken);
-            foreach(var correspondence in correspondences)
+            if (!request.AsyncProcessing)
             {
-                if (request.AsyncProcessing)
+                var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.BatchOffset ?? 0, cancellationToken);
+                foreach (var correspondence in correspondences)
                 {
-                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>("migration", (handler) => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id));
-                } 
-                else
+                    try
+                    {
+                        dialogId = await MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, cancellationToken);
+                        response.Statuses.Add(new(correspondence.Id, null, dialogId, true));
+                    }
+                    catch (Exception ex)
+                    {
+                        response.Statuses.Add(new(correspondence.Id, ex.ToString()));
+                    }
+                }
+                return response;
+            }
+            var batchLimit = 10000;
+            if (request.BatchSize > batchLimit)
+            {
+                var remainingCount = request.BatchSize;
+                var alreadyAdded = 0;
+                while(remainingCount > 0)
                 {
-                    dialogId = await MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, cancellationToken);
-                    response.Statuses.Add(new(correspondence.Id, null, dialogId, true));
+                    int currentBatch = batchLimit;
+                    remainingCount -= batchLimit;
+                    if (remainingCount < 0)
+                    {
+                        currentBatch = (int)(remainingCount + batchLimit);
+                    }
+                    var migrateRequest = new MakeCorrespondenceAvailableRequest()
+                    {
+                        AsyncProcessing = true,
+                        BatchOffset = alreadyAdded,
+                        BatchSize = currentBatch,
+                        CreateEvents = request.CreateEvents
+                    };
+                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>((handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
+                    alreadyAdded += currentBatch;
+                }
+            } 
+            else
+            {
+                var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.BatchOffset ?? 0, cancellationToken);
+                foreach(var correspondence in correspondences)
+                {
+                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id));
                 }
             }
         }
