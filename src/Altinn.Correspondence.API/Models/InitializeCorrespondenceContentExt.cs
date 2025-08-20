@@ -38,11 +38,7 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Gets or sets a list of attachments.
         /// </summary>
-        /// <remarks>
-        /// Maximum of 100 attachments allowed.
-        /// </remarks>
         [JsonPropertyName("attachments")]
-        [MaxListCount(100, "attachments")]
         public List<InitializeCorrespondenceAttachmentExt> Attachments { get; set; } = new List<InitializeCorrespondenceAttachmentExt>();
     }
 
