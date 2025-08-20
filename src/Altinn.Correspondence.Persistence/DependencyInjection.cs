@@ -17,7 +17,9 @@ public static class DependencyInjection
         services.AddSingleton(BuildAzureNpgsqlDataSource(config, bootstrapLogger));
         services.AddDbContext<ApplicationDbContext>(entityFrameworkConfig =>
         {
-            entityFrameworkConfig.UseNpgsql();
+            entityFrameworkConfig.UseNpgsql()
+                                 .EnableSensitiveDataLogging() 
+                                 .EnableDetailedErrors();
         });
         services.AddScoped<IAttachmentRepository, AttachmentRepository>();
         services.AddScoped<IAttachmentStatusRepository, AttachmentStatusRepository>();
