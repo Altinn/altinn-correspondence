@@ -143,78 +143,78 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
-public MigrateCorrespondenceBuilder WithNotificationHistoryEvents()
-{
-    var published = _migratedCorrespondence.CorrespondenceData.Correspondence.Published;
-    _migratedCorrespondence.NotificationHistory =
-    [
-        new MigrateCorrespondenceNotificationExt()
+        public MigrateCorrespondenceBuilder WithNotificationHistoryEvents()
         {
-            Altinn2NotificationId = 1,
-            NotificationAddress = "testemail@altinn.no",
-            NotificationChannel = NotificationChannelExt.Email,
-            NotificationSent = published.Value.AddHours(1),
-            IsReminder = false
-        },
-        new MigrateCorrespondenceNotificationExt()
-        {
-            Altinn2NotificationId = 2,
-            NotificationAddress = "testemail2@altinn.no",
-            NotificationChannel = NotificationChannelExt.Email,
-            NotificationSent = published.Value.AddHours(2),
-            IsReminder = false
-        },
-        new MigrateCorrespondenceNotificationExt()
-        {
-            Altinn2NotificationId = 3,
-            NotificationAddress = "testemail3@altinn.no",
-            NotificationChannel = NotificationChannelExt.Email,
-            NotificationSent = published.Value.AddHours(3),
-            IsReminder = false
-        },
-        new MigrateCorrespondenceNotificationExt()
-        {
-            Altinn2NotificationId = 4,
-            NotificationAddress = "testemail4@altinn.no",
-            NotificationChannel = NotificationChannelExt.Email,
-            NotificationSent = published.Value.AddHours(4),
-            IsReminder = false
-        },
-        new MigrateCorrespondenceNotificationExt()
-        {
-            Altinn2NotificationId = 5,
-            NotificationAddress = "123456789",
-            NotificationChannel = NotificationChannelExt.Sms,
-            NotificationSent = published.Value.AddDays(1).AddHours(1),
-            IsReminder = false
-        },
-        new MigrateCorrespondenceNotificationExt()
-        {
-            Altinn2NotificationId = 6,
-            NotificationAddress = "223456789",
-            NotificationChannel = NotificationChannelExt.Sms,
-            NotificationSent = published.Value.AddDays(1).AddHours(2),
-            IsReminder = false
-        },
-        new MigrateCorrespondenceNotificationExt()
-        {
-            Altinn2NotificationId = 7,
-            NotificationAddress = "323456789",
-            NotificationChannel = NotificationChannelExt.Sms,
-            NotificationSent = published.Value.AddDays(1).AddHours(3),
-            IsReminder = false
-        },
-        new MigrateCorrespondenceNotificationExt()
-        {
-            Altinn2NotificationId = 754537533,
-            NotificationAddress = "423456789",
-            NotificationChannel = NotificationChannelExt.Sms,
-            NotificationSent = published.Value.AddDays(1).AddHours(4),
-            IsReminder = false
+            var published = _migratedCorrespondence.CorrespondenceData.Correspondence.Published;
+            _migratedCorrespondence.NotificationHistory =
+            [
+                new MigrateCorrespondenceNotificationExt()
+                {
+                    Altinn2NotificationId = 1,
+                    NotificationAddress = "testemail@altinn.no",
+                    NotificationChannel = NotificationChannelExt.Email,
+                    NotificationSent = published.Value.AddHours(1),
+                    IsReminder = false
+                },
+                new MigrateCorrespondenceNotificationExt()
+                {
+                    Altinn2NotificationId = 2,
+                    NotificationAddress = "testemail2@altinn.no",
+                    NotificationChannel = NotificationChannelExt.Email,
+                    NotificationSent = published.Value.AddHours(2),
+                    IsReminder = false
+                },
+                new MigrateCorrespondenceNotificationExt()
+                {
+                    Altinn2NotificationId = 3,
+                    NotificationAddress = "testemail3@altinn.no",
+                    NotificationChannel = NotificationChannelExt.Email,
+                    NotificationSent = published.Value.AddHours(3),
+                    IsReminder = false
+                },
+                new MigrateCorrespondenceNotificationExt()
+                {
+                    Altinn2NotificationId = 4,
+                    NotificationAddress = "testemail4@altinn.no",
+                    NotificationChannel = NotificationChannelExt.Email,
+                    NotificationSent = published.Value.AddHours(4),
+                    IsReminder = false
+                },
+                new MigrateCorrespondenceNotificationExt()
+                {
+                    Altinn2NotificationId = 5,
+                    NotificationAddress = "123456789",
+                    NotificationChannel = NotificationChannelExt.Sms,
+                    NotificationSent = published.Value.AddDays(1).AddHours(1),
+                    IsReminder = false
+                },
+                new MigrateCorrespondenceNotificationExt()
+                {
+                    Altinn2NotificationId = 6,
+                    NotificationAddress = "223456789",
+                    NotificationChannel = NotificationChannelExt.Sms,
+                    NotificationSent = published.Value.AddDays(1).AddHours(2),
+                    IsReminder = false
+                },
+                new MigrateCorrespondenceNotificationExt()
+                {
+                    Altinn2NotificationId = 7,
+                    NotificationAddress = "323456789",
+                    NotificationChannel = NotificationChannelExt.Sms,
+                    NotificationSent = published.Value.AddDays(1).AddHours(3),
+                    IsReminder = false
+                },
+                new MigrateCorrespondenceNotificationExt()
+                {
+                    Altinn2NotificationId = 754537533,
+                    NotificationAddress = "423456789",
+                    NotificationChannel = NotificationChannelExt.Sms,
+                    NotificationSent = published.Value.AddDays(1).AddHours(4),
+                    IsReminder = false
+                }
+            ];
+            return this;
         }
-    ];
-    return this;
-}
 
         public MigrateCorrespondenceBuilder WithNotificationHistoryEvent(
             int altinn2NotificationId,
@@ -226,6 +226,12 @@ public MigrateCorrespondenceBuilder WithNotificationHistoryEvents()
             _migratedCorrespondence.NotificationHistory ??= [];
             _migratedCorrespondence.NotificationHistory.Add(new MigrateCorrespondenceNotificationExt { Altinn2NotificationId = altinn2NotificationId, NotificationAddress = notificationAddress, NotificationChannel = notificationChannelExt, NotificationSent = new DateTimeOffset(notificationSent), IsReminder = isReminder });
 
+            return this;
+        }
+
+        public MigrateCorrespondenceBuilder WithForwardingEventHistory(List<MigrateCorrespondenceForwardingEventExt> forwardingEventsExt)
+        {
+            _migratedCorrespondence.ForwardingHistory = forwardingEventsExt;
             return this;
         }
     }
