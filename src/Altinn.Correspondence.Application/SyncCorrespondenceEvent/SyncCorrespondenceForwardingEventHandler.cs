@@ -30,20 +30,18 @@ public class SyncCorrespondenceForwardingEventHandler(
         var forwardingEventsToExecute = new List<CorrespondenceForwardingEventEntity>();
         foreach (var syncedEvent in request.SyncedEvents)
         {
-            var existingEvent = (correspondence.ForwardingEvents ?? Enumerable.Empty<CorrespondenceForwardingEventEntity>())
-                .FirstOrDefault(fe =>
+            if ((correspondence.ForwardingEvents ?? Enumerable.Empty<CorrespondenceForwardingEventEntity>())
+                .Any(fe =>
                     fe.CorrespondenceId == request.CorrespondenceId
                     && fe.ForwardedOnDate.EqualsToSecond(syncedEvent.ForwardedOnDate)
                     && fe.ForwardedByPartyUuid == syncedEvent.ForwardedByPartyUuid
-                    && fe.ForwardedByUserUuid == syncedEvent.ForwardedByUserUuid                    
+                    && fe.ForwardedByUserUuid == syncedEvent.ForwardedByUserUuid
                     && fe.ForwardedToUserId == syncedEvent.ForwardedToUserId
                     && fe.ForwardedToUserUuid == syncedEvent.ForwardedToUserUuid
                     && fe.ForwardedToEmailAddress == syncedEvent.ForwardedToEmailAddress
                     && fe.ForwardingText == syncedEvent.ForwardingText
                     && fe.MailboxSupplier == syncedEvent.MailboxSupplier
-                    );
-
-            if (existingEvent != null)
+                    ))
             {                
                 logger.LogWarning("Forwarding event already exists for correspondence {CorrespondenceId}. Skipping sync.", request.CorrespondenceId);
                 continue; // Skip already existing events

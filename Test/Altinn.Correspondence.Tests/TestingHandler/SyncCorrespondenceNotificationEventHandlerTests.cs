@@ -267,6 +267,61 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
+        public async Task Process_NotAvailable_DuplicateNotifcationWithOffset_NotAdded()
+        {
+            // Arrange            
+            var partyUuid = Guid.NewGuid();
+
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .WithAltinn2CorrespondenceId(12345)
+                .WithSingleAltinn2Notification(1, "testemail@altinn.no", NotificationChannel.Email, new DateTime(2024, 1, 7), new DateTime(2024, 1, 7, 12, 0, 0), false)
+                .WithIsMigrating(true) // Not available in Altinn 3 APIs
+                .Build();
+            var correspondenceId = correspondence.Id;
+
+            var request = new SyncCorrespondenceNotificationEventRequest
+            {
+                CorrespondenceId = correspondenceId,
+                SyncedEvents = new List<CorrespondenceNotificationEntity>
+                {
+                    new CorrespondenceNotificationEntity
+                    {
+                        Altinn2NotificationId = 1,
+                        NotificationTemplate = NotificationTemplate.Altinn2Message,
+                        NotificationAddress = "testemail@altinn.no",
+                        NotificationChannel = NotificationChannel.Email,
+                        NotificationSent = new DateTimeOffset(new DateTime(2024, 1, 7, 12, 0, 0, 250)),
+                        Created = new DateTimeOffset(new DateTime(2024, 1, 7)),
+                        IsReminder = false
+                    }
+                }
+            };
+
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
+                .ReturnsAsync(correspondence);
+            _correspondenceNotificationRepositoryMock
+                .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(correspondenceId);
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert OK Return
+            Assert.True(result.IsT0);
+            Assert.Equal(correspondenceId, result.AsT0);
+
+            // Verify correct calls to Correspondence repository
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, false, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+            // Verify that no new notification was added
+            _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
         public async Task Process_CorrespondenceNotFound_ReturnError()
         {
             // Arrange

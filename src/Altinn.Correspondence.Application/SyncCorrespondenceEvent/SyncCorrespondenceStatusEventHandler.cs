@@ -17,7 +17,7 @@ public class SyncCorrespondenceStatusEventHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceStatusEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        logger.LogInformation($"Processing status Sync request for correspondence {request.CorrespondenceId} with {request.SyncedEvents.Count} # of status events");
+        logger.LogInformation("Processing status Sync request for correspondence {CorrespondenceId} with {SyncedEventsCount} # of status events", request.CorrespondenceId, request.SyncedEvents.Count);
 
         var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, false, false, cancellationToken, true);
         if (correspondence == null)
@@ -28,7 +28,7 @@ public class SyncCorrespondenceStatusEventHandler(
 
         var eventsFilteredForCorrectStatus = new List<CorrespondenceStatusEntity>();
         {
-            foreach(var statusEventToSync in request.SyncedEvents)
+            foreach (var statusEventToSync in request.SyncedEvents)
             {
                 // Validate if the status event is valid for this handler / sync operation (unlikely, but possible)
                 if (syncCorrespondenceStatusHelper.ValidateStatusUpdate(statusEventToSync))
@@ -37,13 +37,18 @@ public class SyncCorrespondenceStatusEventHandler(
                 }
                 else
                 {
-                    logger.LogInformation($"Status Event for {request.CorrespondenceId} has been deemed invalid and will be ignored. Status: {statusEventToSync.Status}- StatusChanged: {statusEventToSync.StatusChanged}- PartyUuid: {statusEventToSync.PartyUuid}");
+                    logger.LogInformation(
+                        "Status Event for {CorrespondenceId} has been deemed invalid and will be ignored. Status: {Status} - StatusChanged: {StatusChanged} - PartyUuid: {PartyUuid}",
+                        request.CorrespondenceId,
+                        statusEventToSync.Status,
+                        statusEventToSync.StatusChanged,
+                        statusEventToSync.PartyUuid);
                 }
             }
         }
         if (eventsFilteredForCorrectStatus.Count == 0)
         {
-            logger.LogWarning($"None of the Status Events for {request.CorrespondenceId} has been deemed valid and no sync will be performed.");
+            logger.LogWarning("None of the Status Events for {CorrespondenceId} has been deemed valid and no sync will be performed.", request.CorrespondenceId);
             return request.CorrespondenceId;
         }
 
@@ -52,37 +57,29 @@ public class SyncCorrespondenceStatusEventHandler(
 
         // Remove duplicate status events that are already present in the correspondence
         var eventsFilteredForDuplicates = new List<CorrespondenceStatusEntity>();
-        foreach (var statusEventToSync in eventsFilteredForRequestDuplicates)
+        foreach (var syncedEvent in eventsFilteredForRequestDuplicates)
         {
-            bool existsAlready = false;
-
-            foreach (var statusEventInAltinn3 in correspondence.Statuses)
+            if (correspondence.Statuses.Any(
+                s => s.Status == syncedEvent.Status
+                && s.StatusChanged.EqualsToSecond(syncedEvent.StatusChanged)
+                && s.PartyUuid == syncedEvent.PartyUuid)
+                )
             {
-                // IDempotent Key == CorrespondenceId + Status + StatusChanged + PartyUuid
-                if (statusEventToSync.Status == statusEventInAltinn3.Status &&
-                    statusEventToSync.StatusChanged.EqualsToSecond(statusEventInAltinn3.StatusChanged) && // Only compare to nearest second
-                    statusEventToSync.PartyUuid == statusEventInAltinn3.PartyUuid)
-                {
-                    existsAlready = true;
-                }
-            }
-
-            if (existsAlready)
-            {
-                logger.LogInformation($"Current Status Event for {request.CorrespondenceId} has been deemed duplicate of existing and will be skipped. Status: {statusEventToSync.Status}- StatusChanged: {statusEventToSync.StatusChanged}- PartyUuid: {statusEventToSync.PartyUuid}");
+                logger.LogInformation($"Current Status Event for {request.CorrespondenceId} has been deemed duplicate of existing and will be skipped. Status: {syncedEvent.Status}- StatusChanged: {syncedEvent.StatusChanged}- PartyUuid: {syncedEvent.PartyUuid}");
+                continue; // Skip already existing events
             }
             else
             {
-                eventsFilteredForDuplicates.Add(statusEventToSync);
+                eventsFilteredForDuplicates.Add(syncedEvent);
             }
         }
         if (eventsFilteredForDuplicates.Count == 0)
         {
-            logger.LogWarning($"None of the Status Events for {request.CorrespondenceId} were unique, and no sync will be performed.");
+            logger.LogWarning("None of the Status Events for {CorrespondenceId} were unique, and no sync will be performed.", request.CorrespondenceId);
             return request.CorrespondenceId;
         }
 
-        logger.LogInformation($"Executing status synctransaction for correspondence for {request.CorrespondenceId} with {request.SyncedEvents.Count} # of status events");
+        logger.LogInformation("Executing status synctransaction for correspondence for {CorrespondenceId} with {SyncedEventsCount} # of status events", request.CorrespondenceId, request.SyncedEvents.Count);
 
         // Special case for Purge events, we need to handle them differently
         var purgeEvent = eventsFilteredForDuplicates
@@ -94,11 +91,11 @@ public class SyncCorrespondenceStatusEventHandler(
             var alreadyPurged = correspondence.GetPurgedStatus();
             if (alreadyPurged is not null)
             {
-                logger.LogInformation($"Current Status Event for {request.CorrespondenceId} is a Purge Event, but Correspondence has already been purged, so skipping action.");
+                logger.LogInformation("Current Status Event for {CorrespondenceId} is a Purge Event, but Correspondence has already been purged, so skipping action.", request.CorrespondenceId);
             }
             else
             {
-                logger.LogInformation($"Purge Correspondence based on sync Event from Altinn 2: {request.CorrespondenceId}");
+                logger.LogInformation("Purge Correspondence based on sync Event from Altinn 2: {CorrespondenceId}", request.CorrespondenceId);
                 await syncCorrespondenceStatusHelper.PurgeCorrespondence(correspondence, purgeEvent, correspondence.IsMigrating == false, cancellationToken);
             }
             eventsFilteredForDuplicates.Remove(purgeEvent);
@@ -118,7 +115,7 @@ public class SyncCorrespondenceStatusEventHandler(
                         updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, eventToExecute.Status, eventToExecute.StatusChanged); // Set the operationtime to the time the status was changed in Altinn 2
                         updateCorrespondenceStatusHelper.PatchCorrespondenceDialog(request.CorrespondenceId, eventToExecute.Status);
                         updateCorrespondenceStatusHelper.PublishEvent(correspondence, eventToExecute.Status);
-                        if( eventToExecute.Status == CorrespondenceStatus.Archived)
+                        if (eventToExecute.Status == CorrespondenceStatus.Archived)
                         {
                             await syncCorrespondenceStatusHelper.ReportArchivedToDialogporten(request.CorrespondenceId, eventToExecute.PartyUuid, cancellationToken);
                         }

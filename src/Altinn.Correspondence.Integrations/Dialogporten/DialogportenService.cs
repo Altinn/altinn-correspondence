@@ -476,8 +476,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             logger.LogError("Missing enduserId for correspondence {correspondenceId} when setting archived system label", correspondenceId);
             throw new ArgumentException("enduserId cannot be null or whitespace", nameof(enduserId));
         }
-        
-        var cancellationTokenSource = new CancellationTokenSource();
+
+        using var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         if (correspondence is null)

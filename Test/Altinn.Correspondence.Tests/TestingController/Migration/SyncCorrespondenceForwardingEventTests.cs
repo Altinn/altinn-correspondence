@@ -42,7 +42,7 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
             {
                 new MigrateCorrespondenceForwardingEventExt
                 {
-                   // Example of Copy sendt to own email address
+                   // Example of Copy sent to own email address
                    ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11 ,0 ,0)),
                    ForwardedByPartyUuid = delegatedUserPartyUuid,
                    ForwardedByUserId = 123,
@@ -52,7 +52,7 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
                 },
                 new MigrateCorrespondenceForwardingEventExt
                 {
-                   // Example of Copy sendt to own digital mailbox
+                   // Example of Copy sent to own digital mailbox
                    ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11 ,5 ,0)),
                    ForwardedByPartyUuid = delegatedUserPartyUuid,
                    ForwardedByUserId = 123,
@@ -81,13 +81,13 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
         Assert.True(response.IsSuccessStatusCode);
 
         // Get updated details of the migrated correspondence and check that forwarding events are saved
-        List<LegacyCorrespondenceHistoryExt>? legacyHistoryRespondenseContent = await GetLegacyHistory(correspondenceId, response);        
-        var forwardingEvents = legacyHistoryRespondenseContent.Where(h => h.ForwardingEvent != null).ToList();
+        List<LegacyCorrespondenceHistoryExt>? legacyHistoryResponseContent = await GetLegacyHistory(correspondenceId, response);
+        var forwardingEvents = legacyHistoryResponseContent.Where(h => h.ForwardingEvent != null).ToList();
         Assert.Equal(3, forwardingEvents.Count);
     }
 
     [Fact]
-    public async Task SyncForwardingEvent_NewForwardingEvents_Dupliates_NoNewSaved()
+    public async Task SyncForwardingEvent_NewForwardingEvents_Duplicates_NoNewSaved()
     {
         // Arrange
         Guid delegatedUserPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920");
@@ -100,7 +100,7 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
                 {
                     new MigrateCorrespondenceForwardingEventExt
                     {
-                       // Example of Copy sendt to own email address
+                       // Example of Copy sent to own email address
                        ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11 ,0 ,0)),
                        ForwardedByPartyUuid = delegatedUserPartyUuid,
                        ForwardedByUserId = 123,
@@ -110,7 +110,7 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
                     },
                     new MigrateCorrespondenceForwardingEventExt
                     {
-                       // Example of Copy sendt to own digital mailbox
+                       // Example of Copy sent to own digital mailbox
                        ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11 ,5 ,0)),
                        ForwardedByPartyUuid = delegatedUserPartyUuid,
                        ForwardedByUserId = 123,
@@ -143,7 +143,7 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
             {
                 new MigrateCorrespondenceForwardingEventExt
                 {
-                   // Example of Copy sendt to own email address
+                   // Example of Copy sent to own email address
                    ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11 ,0 ,0)),
                    ForwardedByPartyUuid = delegatedUserPartyUuid,
                    ForwardedByUserId = 123,
@@ -153,7 +153,7 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
                 },
                 new MigrateCorrespondenceForwardingEventExt
                 {
-                   // Example of Copy sendt to own digital mailbox
+                   // Example of Copy sent to own digital mailbox
                    ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11 ,5 ,0)),
                    ForwardedByPartyUuid = delegatedUserPartyUuid,
                    ForwardedByUserId = 123,
@@ -182,8 +182,8 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
         Assert.True(response.IsSuccessStatusCode);
 
         // Get updated details of the migrated correspondence and check that forwarding events are saved
-        List<LegacyCorrespondenceHistoryExt>? legacyHistoryRespondenseContent = await GetLegacyHistory(correspondenceId, response);
-        var forwardingEvents = legacyHistoryRespondenseContent.Where(h => h.ForwardingEvent != null).ToList();
+        List<LegacyCorrespondenceHistoryExt>? legacyHistoryResponseContent = await GetLegacyHistory(correspondenceId, response);
+        var forwardingEvents = legacyHistoryResponseContent.Where(h => h.ForwardingEvent != null).ToList();
         Assert.Equal(3, forwardingEvents.Count);
     }
 
@@ -199,7 +199,6 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
 
         // Setup initial Migrated Correspondence
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
-        Guid delegatedUserPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920");
 
         // Arrange sync call
         SyncCorrespondenceForwardingEventRequestExt request = new SyncCorrespondenceForwardingEventRequestExt
@@ -227,7 +226,7 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
     private async Task<List<LegacyCorrespondenceHistoryExt>?> GetLegacyHistory(Guid correspondenceId, HttpResponseMessage response)
     {
         var legacyHistoryResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondenceId}/history");
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, legacyHistoryResponse.StatusCode);
         var legacyHistoryRespondenseContent = await legacyHistoryResponse.Content.ReadFromJsonAsync<List<LegacyCorrespondenceHistoryExt>>(_responseSerializerOptions);
         Assert.NotNull(legacyHistoryRespondenseContent);
         return legacyHistoryRespondenseContent;

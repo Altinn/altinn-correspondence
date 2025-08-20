@@ -47,7 +47,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 {
                     new CorrespondenceForwardingEventEntity
                     {
-                        // Example of Copy sendt to own email address
+                        // Example of Copy sent to own email address
                         ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 0, 0)),
                         ForwardedByPartyUuid = partyUuid,
                         ForwardedByUserId = 123,
@@ -57,7 +57,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     },
                     new CorrespondenceForwardingEventEntity
                     {
-                        // Example of Copy sendt to own digital mailbox
+                        // Example of Copy sent to own digital mailbox
                         ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 5, 0)),
                         ForwardedByPartyUuid = partyUuid,
                         ForwardedByUserId = 123,
@@ -120,7 +120,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
                 .WithForwardingEvents(new List<CorrespondenceForwardingEventEntity>() { new CorrespondenceForwardingEventEntity
                     {
-                        // Example of Copy sendt to own email address
+                        // Example of Copy sent to own email address
                         ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 0, 0)),
                         ForwardedByPartyUuid = partyUuid,
                         ForwardedByUserId = 123,
@@ -130,7 +130,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     },
                     new CorrespondenceForwardingEventEntity
                     {
-                        // Example of Copy sendt to own digital mailbox
+                        // Example of Copy sent to own digital mailbox
                         ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 5, 0)),
                         ForwardedByPartyUuid = partyUuid,
                         ForwardedByUserId = 123,
@@ -160,7 +160,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 {
                     new CorrespondenceForwardingEventEntity
                     {
-                        // Example of Copy sendt to own email address
+                        // Example of Copy sent to own email address
                         ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 0, 0)),
                         ForwardedByPartyUuid = partyUuid,
                         ForwardedByUserId = 123,
@@ -170,7 +170,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     },
                     new CorrespondenceForwardingEventEntity
                     {
-                        // Example of Copy sendt to own digital mailbox
+                        // Example of Copy sent to own digital mailbox
                         ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 5, 0)),
                         ForwardedByPartyUuid = partyUuid,
                         ForwardedByUserId = 123,
@@ -223,7 +223,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .WithForwardingEvents(new List<CorrespondenceForwardingEventEntity>() {
                     new CorrespondenceForwardingEventEntity
                     {
-                        // Example of Copy sendt to own email address                        
+                        // Example of Copy sent to own email address                        
                         ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 0, 0)),
                         ForwardedByPartyUuid = partyUuid,
                         ForwardedByUserId = 123,
@@ -233,7 +233,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     },
                     new CorrespondenceForwardingEventEntity
                     {
-                        // Example of Copy sendt to own email address wihtout text
+                        // Example of Copy sent to own email address wihtout text
                         ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 7, 11, 0, 0)),
                         ForwardedByPartyUuid = partyUuid,
                         ForwardedByUserId = 123,
@@ -263,7 +263,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 {
                     new CorrespondenceForwardingEventEntity
                     {
-                        // Example of Copy sendt to own email address
+                        // Example of Copy sent to own email address
                         ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 0, 0)),
                         ForwardedByPartyUuid = partyUuid,
                         ForwardedByUserId = 123,
@@ -273,7 +273,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     },
                     new CorrespondenceForwardingEventEntity
                     {
-                        // Example of Copy sendt to own email address wihtout text
+                        // Example of Copy sent to own email address wihtout text
                         ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 7, 11, 0, 0)),
                         ForwardedByPartyUuid = partyUuid,
                         ForwardedByUserId = 123,

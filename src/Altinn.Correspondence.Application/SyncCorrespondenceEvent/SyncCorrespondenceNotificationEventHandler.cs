@@ -30,7 +30,12 @@ public class SyncCorrespondenceNotificationEventHandler(
         var notificationsToExecute = new List<CorrespondenceNotificationEntity>();
         foreach (var syncedEvent in request.SyncedEvents)
         {
-            if (correspondence.Notifications.Any(n => n.NotificationAddress == syncedEvent.NotificationAddress && n.NotificationChannel == syncedEvent.NotificationChannel && n.NotificationSent == syncedEvent.NotificationSent))
+            if (correspondence.Notifications.Any(
+                n => n.NotificationAddress == syncedEvent.NotificationAddress
+                && n.NotificationChannel == syncedEvent.NotificationChannel
+                && n.NotificationSent.Value.EqualsToSecond(syncedEvent.NotificationSent.Value) // Will always be non-null for migrated and synced notifications
+                && n.Altinn2NotificationId == syncedEvent.Altinn2NotificationId)
+                )
             {
                 logger.LogWarning("Notification event {NotificationId} already exists for correspondence {CorrespondenceId}. Skipping sync.", syncedEvent.Id, request.CorrespondenceId);
                 continue; // Skip already existing events
