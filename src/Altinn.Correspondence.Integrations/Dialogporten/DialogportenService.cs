@@ -9,7 +9,9 @@ using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Json;
+using System.Threading;
 using UUIDNext;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
@@ -458,5 +460,49 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
         return dialogResponse;
     }
-    #endregion
+
+    /// <summary>
+    /// Set system label on Dialogporten dialog to archived to handle sync of archive event from Altinn 2
+    /// </summary>
+    /// <param name="correspondenceId">id of the archived correspondence</param>
+    /// <param name="enduserId">id of the user that triggered the archiving</param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="Exception"></exception>
+    public async Task SetArchivedSystemLabelOnDialog(Guid correspondenceId, string enduserId)
+    {
+        if (string.IsNullOrWhiteSpace(enduserId))
+        {
+            logger.LogError("Missing enduserId for correspondence {correspondenceId} when setting archived system label", correspondenceId);
+            throw new ArgumentException("enduserId cannot be null or whitespace", nameof(enduserId));
+        }
+
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        if (correspondence is null)
+        {
+            logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+        var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        if (dialogId is null)
+        {
+            if (correspondence.IsMigrating)
+            {
+                logger.LogWarning("Skipping setting archived system label for correspondence {correspondenceId} as it is an Altinn2 correspondence not yet available.", correspondenceId);
+                return;
+            }
+            throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
+        }
+
+        var request = SetDialogSystemLabelsMapper.CreateSetDialogSystemLabelsRequestForArchived(new Guid(dialogId), enduserId);
+        var url = $"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/endusercontext/systemlabels?enduserId={Uri.EscapeDataString(enduserId)}";
+        var response = await _httpClient.PutAsJsonAsync(url, request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        }
+    }
+        #endregion
 }

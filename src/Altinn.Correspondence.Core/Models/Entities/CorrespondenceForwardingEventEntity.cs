@@ -37,5 +37,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         [ForeignKey("CorrespondenceId")]
         public CorrespondenceEntity? Correspondence { get; set; }
+
+        public DateTimeOffset? SyncedFromAltinn2 { get; set; }
     }
 }
