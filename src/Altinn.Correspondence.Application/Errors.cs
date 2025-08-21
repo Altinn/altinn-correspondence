@@ -95,3 +95,8 @@ public static class AuthorizationErrors
     public static Error ResourceNotWhitelisted = new Error(4008, "Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no.", HttpStatusCode.Forbidden);
     public static Error IncorrectResourceType = new Error(4009, "Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService.", HttpStatusCode.BadRequest);
 }
+
+public static class SyncErrors
+{   
+    public static Error NoEventsToSync = new Error(5001, "No Events were specified in request", HttpStatusCode.BadRequest);
+}
