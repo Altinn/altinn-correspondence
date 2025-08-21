@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using UUIDNext;
+using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
@@ -16,7 +17,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
     internal static class CreateDialogRequestMapper
     {
-        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false)
+        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null)
         {
             var dialogId = Guid.CreateVersion7().ToString(); // Dialogporten requires time-stamped GUIDs
             bool isArchived = correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Archived);
@@ -42,7 +43,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     Status = GetDialogStatusForCorrespondence(correspondence),
                     ExternalReference = correspondence.SendersReference,
                     Content = CreateCorrespondenceContent(correspondence, baseUrl),
-                    SearchTags = GetSearchTagsForCorrespondence(correspondence),
+                    SearchTags = GetSearchTagsForCorrespondence(correspondence, logger),
                     ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
                     GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
                     Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
@@ -110,34 +111,35 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             }
         };
 
-        private static List<SearchTag> GetSearchTagsForCorrespondence(CorrespondenceEntity correspondence)
+        private static List<SearchTag> GetSearchTagsForCorrespondence(CorrespondenceEntity correspondence, ILogger? logger)
         {
             var list = new List<SearchTag>();
-            list = AddSearchTagIfValid(list, correspondence.SendersReference);
-            list = AddSearchTagIfValid(list, correspondence.Sender);
-            list = AddSearchTagIfValid(list, correspondence.ResourceId);
-            list = AddSearchTagIfValid(list, correspondence.MessageSender);
+            list = AddSearchTagIfValid(list, correspondence.SendersReference, correspondence, logger);
+            list = AddSearchTagIfValid(list, correspondence.Sender, correspondence, logger);
+            list = AddSearchTagIfValid(list, correspondence.ResourceId, correspondence, logger);
+            list = AddSearchTagIfValid(list, correspondence.MessageSender, correspondence, logger);
             foreach (var reference in correspondence.ExternalReferences)
             {
-                list = AddSearchTagIfValid(list, reference.ReferenceType.ToString());
-                list = AddSearchTagIfValid(list, reference.ReferenceValue.ToString());
+                list = AddSearchTagIfValid(list, reference.ReferenceType.ToString(), correspondence, logger);
+                list = AddSearchTagIfValid(list, reference.ReferenceValue.ToString(), correspondence, logger);
             }
             list = list.DistinctBy(tag => tag.Value).ToList(); // Remove duplicates
             return list;
         }
 
-        private static List<SearchTag> AddSearchTagIfValid(List<SearchTag> list, string? searchTag)
+        private static List<SearchTag> AddSearchTagIfValid(List<SearchTag> list, string? searchTag, CorrespondenceEntity correspondence, ILogger? logger)
         {
             if (string.IsNullOrWhiteSpace(searchTag) || searchTag.Trim().Length < 3)
             {
                 return list;
             }
-            list.Add(
-                new SearchTag()
-                {
-                    Value = searchTag.Trim()
-                }
-            );
+            var trimmed = searchTag.Trim();
+            if (trimmed.Length > 63)
+            {
+                logger?.LogWarning("Truncating Dialogporten search tag for correspondence {CorrespondenceId} from {OriginalLength} to 63 characters", correspondence.Id, trimmed.Length);
+                trimmed = trimmed.Substring(0, 63);
+            }
+            list.Add(new SearchTag() { Value = trimmed });
             return list;
         }
 

@@ -32,7 +32,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         // Create idempotency key for open dialog activity
         await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
 
-        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl);
+        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, false, logger);
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -443,7 +443,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
         await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
 
-        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, true);
+        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, true, logger);
         string updateType = enableEvents ? "" : "?IsSilentUpdate=true";
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs{updateType}", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
