@@ -14,6 +14,7 @@ on:
                 type: choice
                 options:
                 - test
+                - staging
                 - yt01
             tag:
                 description: 'tag the performance test'
