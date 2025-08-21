@@ -28,7 +28,7 @@ function readCsv(filename) {
 if (!__ENV.API_ENVIRONMENT) {
   throw new Error('API_ENVIRONMENT must be set');
 }
-const filenameOrgs = `../data/orgs-${__ENV.API_ENVIRONMENT}.csv`;
+const filenameOrgs = `../data/orgs-${__ENV.API_ENVIRONMENT}-with-data.csv`;
 
 /**
  * SharedArray variable that stores the service owners data.
