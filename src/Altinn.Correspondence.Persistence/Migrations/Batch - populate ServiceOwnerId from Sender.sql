@@ -1,17 +1,39 @@
 -- Add ServiceOwnerId and ServiceOwnerMigrationStatus columns to Correspondences table
-ALTER TABLE "correspondence"."Correspondences" 
-ADD COLUMN "ServiceOwnerId" TEXT NULL;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_schema = 'correspondence' 
+                   AND table_name = 'Correspondences' 
+                   AND column_name = 'ServiceOwnerId') THEN
+        ALTER TABLE "correspondence"."Correspondences" 
+        ADD COLUMN "ServiceOwnerId" TEXT NULL;
+        RAISE NOTICE 'Added ServiceOwnerId column to Correspondences table';
+    ELSE
+        RAISE NOTICE 'ServiceOwnerId column already exists in Correspondences table';
+    END IF;
+END $$;
 
 -- Add ServiceOwnerId and ServiceOwnerMigrationStatus columns to Attachments table
-ALTER TABLE "correspondence"."Attachments" 
-ADD COLUMN "ServiceOwnerId" TEXT NULL;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_schema = 'correspondence' 
+                   AND table_name = 'Attachments' 
+                   AND column_name = 'ServiceOwnerId') THEN
+        ALTER TABLE "correspondence"."Attachments" 
+        ADD COLUMN "ServiceOwnerId" TEXT NULL;
+        RAISE NOTICE 'Added ServiceOwnerId column to Attachments table';
+    ELSE
+        RAISE NOTICE 'ServiceOwnerId column already exists in Attachments table';
+    END IF;
+END $$;
 
 -- Create index on Correspondences.ServiceOwnerId
-CREATE INDEX "IX_Correspondences_ServiceOwnerId" 
+CREATE INDEX IF NOT EXISTS "IX_Correspondences_ServiceOwnerId" 
 ON "correspondence"."Correspondences" ("ServiceOwnerId");
 
 -- Create index on Attachments.ServiceOwnerId
-CREATE INDEX "IX_Attachments_ServiceOwnerId" 
+CREATE INDEX IF NOT EXISTS "IX_Attachments_ServiceOwnerId" 
 ON "correspondence"."Attachments" ("ServiceOwnerId");
 
 
@@ -25,11 +47,35 @@ ON "correspondence"."Attachments" ("ServiceOwnerId");
 -- 2 = NO_SERVICE_OWNER_FOUND (optional status - processed but no matching ServiceOwner)
 -- When the batch is finished, only 1 is set and the rest remain 0. We can explicitly set 2 for those that are not updated by the update query.
 
-ALTER TABLE correspondence."Correspondences" 
-ADD COLUMN "ServiceOwnerMigrationStatus" INT DEFAULT 0;
+-- Add ServiceOwnerMigrationStatus column to Correspondences table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_schema = 'correspondence' 
+                   AND table_name = 'Correspondences' 
+                   AND column_name = 'ServiceOwnerMigrationStatus') THEN
+        ALTER TABLE correspondence."Correspondences" 
+        ADD COLUMN "ServiceOwnerMigrationStatus" INT DEFAULT 0;
+        RAISE NOTICE 'Added ServiceOwnerMigrationStatus column to Correspondences table';
+    ELSE
+        RAISE NOTICE 'ServiceOwnerMigrationStatus column already exists in Correspondences table';
+    END IF;
+END $$;
 
-ALTER TABLE "correspondence"."Attachments" 
-ADD COLUMN "ServiceOwnerMigrationStatus" INT DEFAULT 0;
+-- Add ServiceOwnerMigrationStatus column to Attachments table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_schema = 'correspondence' 
+                   AND table_name = 'Attachments' 
+                   AND column_name = 'ServiceOwnerMigrationStatus') THEN
+        ALTER TABLE "correspondence"."Attachments" 
+        ADD COLUMN "ServiceOwnerMigrationStatus" INT DEFAULT 0;
+        RAISE NOTICE 'Added ServiceOwnerMigrationStatus column to Attachments table';
+    ELSE
+        RAISE NOTICE 'ServiceOwnerMigrationStatus column already exists in Attachments table';
+    END IF;
+END $$;
 
 -- Create index to strengthen the query in the update function
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "IX_Correspondences_Sender_OrgNo"
