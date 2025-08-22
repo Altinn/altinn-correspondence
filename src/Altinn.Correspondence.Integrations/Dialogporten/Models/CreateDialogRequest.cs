@@ -124,16 +124,16 @@ public class Content
     public ContentValue Title { get; set; }
 
     [JsonPropertyName("summary")]
-    public ContentValue Summary { get; set; }
+    public ContentValue? Summary { get; set; }
 
     [JsonPropertyName("senderName")]
-    public ContentValue SenderName { get; set; }
+    public ContentValue? SenderName { get; set; }
 
     [JsonPropertyName("additionalInfo")]
-    public ContentValue AdditionalInfo { get; set; }
+    public ContentValue? AdditionalInfo { get; set; }
 
     [JsonPropertyName("extendedStatus")]
-    public ExtendedStatus ExtendedStatus { get; set; }
+    public ExtendedStatus? ExtendedStatus { get; set; }
 
     // Used for embedded iframes
     [JsonPropertyName("mainContentReference")]
