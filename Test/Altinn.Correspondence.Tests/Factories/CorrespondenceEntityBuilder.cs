@@ -38,6 +38,18 @@ namespace Altinn.Correspondence.Tests.Factories
             return _correspondenceEntity;
         }
 
+        public CorrespondenceEntityBuilder WithId(Guid id)
+        {
+            _correspondenceEntity.Id = id;
+            return this;
+        }
+
+        public CorrespondenceEntityBuilder WithSendersReference(string sendersReference)
+        {
+            _correspondenceEntity.SendersReference = sendersReference;
+            return this;
+        }
+
         public CorrespondenceEntityBuilder WithCreated(DateTime created)
         {
             _correspondenceEntity.Created = new DateTimeOffset(created);
