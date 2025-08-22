@@ -187,7 +187,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response1.StatusCode);
-            Assert.Equal(HttpStatusCode.BadRequest, response2.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
             Assert.Equal(HttpStatusCode.BadRequest, response3.StatusCode);
         }
 
@@ -956,6 +956,89 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     stream.Dispose();
                 }
             }
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithMoreThan100ExistingAttachments_ReturnsBadRequest()
+        {
+            // Arrange
+            var existing = new List<Guid>();
+            for (int i = 0; i < 101; i++)
+            {
+                var id = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+                existing.Add(id);
+            }
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments(existing)
+                .Build();
+
+            // Act
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.Contains(CorrespondenceErrors.AttachmentCountExceeded.Message, body);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_With100ExistingAttachments_ReturnsOk()
+        {
+            // Arrange
+            var existing = new List<Guid>();
+            for (int i = 0; i < 100; i++)
+            {
+                var id = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+                existing.Add(id);
+            }
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments(existing)
+                .Build();
+
+            // Act
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithMoreThan100ExistingAndNewAttachmentsCombined_ReturnsBadRequest()
+        {
+            // Arrange
+            var existing = new List<Guid>();
+            for (int i = 0; i < 50; i++)
+            {
+                var id = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+                existing.Add(id);
+            }
+
+            var newAttachments = new List<InitializeCorrespondenceAttachmentExt>();
+            for (int i = 0; i < 51; i++)
+            {
+                var attachment = AttachmentHelper.GetAttachmentMetaData($"file-combined-{i}.txt");
+                attachment.DataLocationType = InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment;
+                attachment.ExpirationTime = DateTimeOffset.UtcNow.AddDays(1);
+                newAttachments.Add(attachment);
+            }
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments(existing)
+                .WithAttachments(newAttachments)
+                .Build();
+
+            // Act
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.Contains(CorrespondenceErrors.AttachmentCountExceeded.Message, body);
         }
 
         [Fact]

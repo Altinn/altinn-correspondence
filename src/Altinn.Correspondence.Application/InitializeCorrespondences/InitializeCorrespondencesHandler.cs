@@ -151,6 +151,13 @@ public class InitializeCorrespondencesHandler(
             return CorrespondenceErrors.ExistingAttachmentNotFound;
         }
 
+        var totalRequestedAttachments = (existingAttachmentIds?.Count ?? 0) + (uploadAttachmentMetadata?.Count ?? 0);
+        if (totalRequestedAttachments > 100)
+        {
+            logger.LogWarning("Attachment count exceeded: existing={ExistingCount}, new={NewCount}", existingAttachmentIds?.Count ?? 0, uploadAttachmentMetadata?.Count ?? 0);
+            return CorrespondenceErrors.AttachmentCountExceeded;
+        }
+
         logger.LogDebug("Checking publication status of existing attachments");
         var anyExistingAttachmentsNotPublished = existingAttachments.Any(a => a.GetLatestStatus()?.Status != AttachmentStatus.Published);
         if (anyExistingAttachmentsNotPublished)
@@ -353,7 +360,7 @@ public class InitializeCorrespondencesHandler(
         {
             var isReserved = validatedData.ReservedRecipients.Contains(recipient.WithoutPrefix());
             var recipientParty = validatedData.RecipientDetails.FirstOrDefault(r => r.SSN == recipient.WithoutPrefix() || r.OrgNumber == recipient.WithoutPrefix());
-            var correspondence = await initializeCorrespondenceHelper.MapToCorrespondenceEntityAsync(request, recipient, validatedData.AttachmentsToBeUploaded, validatedData.PartyUuid, recipientParty, isReserved, serviceOwnerOrgNumber, cancellationToken);
+            var correspondence = initializeCorrespondenceHelper.MapToCorrespondenceEntity(request, recipient, validatedData.AttachmentsToBeUploaded, validatedData.PartyUuid, recipientParty, isReserved, serviceOwnerOrgNumber);
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);

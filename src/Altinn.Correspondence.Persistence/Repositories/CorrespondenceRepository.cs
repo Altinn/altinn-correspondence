@@ -57,7 +57,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool includeContent,
             bool includeForwardingEvents,
             CancellationToken cancellationToken,
-            bool includeIsMigrating=false)
+            bool includeIsMigrating = false)
         {
             logger.LogDebug("Retrieving correspondence {CorrespondenceId} including: status={IncludeStatus} content={IncludeContent}", guid, includeStatus, includeContent);
             var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
@@ -75,7 +75,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a.Statuses);
             }
-            if(includeForwardingEvents)
+            if (includeForwardingEvents)
             {
                 correspondences = correspondences.Include(c => c.ForwardingEvents);
             }
@@ -183,6 +183,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Select(content => content.Attachments
                     .All(correspondenceAttachment => correspondenceAttachment.Attachment!.Statuses.Any(status => status.Status == AttachmentStatus.Published)))
                 .SingleOrDefaultAsync(cancellationToken);
+        }
+
+        public Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, int offset, CancellationToken cancellationToken = default)
+        {
+            return _context.Correspondences
+                .Where(c => c.Altinn2CorrespondenceId != null && c.IsMigrating) // Only include correspondences that are not already migrated 
+                .OrderByDescending(c => c.Created)
+                .ThenBy(c => c.Id)
+                .Skip(offset)
+                .Take(batchSize)
+                .ToListAsync(cancellationToken);
         }
 
         public async Task<List<CorrespondenceEntity>> GetPurgedCorrespondencesWithDialogsAfter(

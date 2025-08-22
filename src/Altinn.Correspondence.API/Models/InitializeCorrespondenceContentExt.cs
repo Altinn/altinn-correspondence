@@ -27,7 +27,7 @@ namespace Altinn.Correspondence.API.Models
         /// Gets or sets a summary text of the correspondence.
         /// </summary>
         [JsonPropertyName("messageSummary")]
-        public required string MessageSummary { get; set; }
+        public string? MessageSummary { get; set; }
 
         /// <summary>
         /// Gets or sets the main body of the correspondence.
@@ -38,11 +38,7 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// Gets or sets a list of attachments.
         /// </summary>
-        /// <remarks>
-        /// Maximum of 100 attachments allowed.
-        /// </remarks>
         [JsonPropertyName("attachments")]
-        [MaxListCount(100, "attachments")]
         public List<InitializeCorrespondenceAttachmentExt> Attachments { get; set; } = new List<InitializeCorrespondenceAttachmentExt>();
     }
 

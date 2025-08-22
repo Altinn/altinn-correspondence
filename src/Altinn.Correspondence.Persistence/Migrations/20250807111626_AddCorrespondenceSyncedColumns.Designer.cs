@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250801111910_AddServiceOwnerIdsCorrespondenceAndAttachment")]
-    partial class AddServiceOwnerIdsCorrespondenceAndAttachment
+    [Migration("20250807111626_AddCorrespondenceSyncedColumns")]
+    partial class AddCorrespondenceSyncedColumns
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -77,9 +77,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasMaxLength(4096)
                         .HasColumnType("character varying(4096)");
 
-                    b.Property<string>("ServiceOwnerId")
-                        .HasColumnType("text");
-
                     b.Property<long?>("StorageProviderId")
                         .HasColumnType("bigint");
 
@@ -89,8 +86,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("DataLocationUrl");
-
-                    b.HasIndex("ServiceOwnerId");
 
                     b.HasIndex("StorageProviderId");
 
@@ -255,9 +250,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasMaxLength(4096)
                         .HasColumnType("character varying(4096)");
 
-                    b.Property<string>("ServiceOwnerId")
-                        .HasColumnType("text");
-
                     b.HasKey("Id");
 
                     b.HasIndex("Altinn2CorrespondenceId")
@@ -274,8 +266,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasIndex("ResourceId");
 
                     b.HasIndex("Sender");
-
-                    b.HasIndex("ServiceOwnerId");
 
                     b.HasIndex("Recipient", "RequestedPublishTime", "Id")
                         .IsDescending(false, true, false);
@@ -320,6 +310,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.Property<string>("MailboxSupplier")
                         .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("SyncedFromAltinn2")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -369,6 +362,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.Property<Guid?>("ShipmentId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("SyncedFromAltinn2")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -421,6 +417,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<string>("StatusText")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("SyncedFromAltinn2")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -592,15 +591,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.AttachmentEntity", b =>
                 {
-                    b.HasOne("Altinn.Correspondence.Core.Models.Entities.ServiceOwnerEntity", "ServiceOwner")
-                        .WithMany()
-                        .HasForeignKey("ServiceOwnerId");
-
                     b.HasOne("Altinn.Correspondence.Core.Models.Entities.StorageProviderEntity", "StorageProvider")
                         .WithMany()
                         .HasForeignKey("StorageProviderId");
-
-                    b.Navigation("ServiceOwner");
 
                     b.Navigation("StorageProvider");
                 });
@@ -644,15 +637,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Correspondence");
-                });
-
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.CorrespondenceEntity", b =>
-                {
-                    b.HasOne("Altinn.Correspondence.Core.Models.Entities.ServiceOwnerEntity", "ServiceOwner")
-                        .WithMany()
-                        .HasForeignKey("ServiceOwnerId");
-
-                    b.Navigation("ServiceOwner");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.CorrespondenceForwardingEventEntity", b =>

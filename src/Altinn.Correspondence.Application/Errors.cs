@@ -27,7 +27,6 @@ public static class CorrespondenceErrors
     public static Error MissingContent = new Error(1019, "The Content field must be provided for the correspondence", HttpStatusCode.BadRequest);
     public static Error MessageTitleEmpty = new Error(1020, "Message title cannot be empty", HttpStatusCode.BadRequest);
     public static Error MessageBodyEmpty = new Error(1021, "Message body cannot be empty", HttpStatusCode.BadRequest);
-    public static Error MessageSummaryEmpty = new Error(1022, "Message summary cannot be empty", HttpStatusCode.BadRequest);
     public static Error InvalidLanguage = new Error(1023, "Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)", HttpStatusCode.BadRequest);
     public static Error ReadBeforeFetched = new Error(1024, "Correspondence must be fetched before it can be read", HttpStatusCode.BadRequest);
     public static Error ConfirmBeforeFetched = new Error(1025, "Correspondence must be fetched before it can be confirmed", HttpStatusCode.BadRequest);
@@ -43,6 +42,7 @@ public static class CorrespondenceErrors
     public static Error InvalidReplyOptions = new Error(1035, "Reply options must be well-formed URIs and HTTPS with a max length of 255 characters", HttpStatusCode.BadRequest);
     public static Error ServiceOwnerOrgNumberNotFound = new Error(1036, "Service owner/sender's organization number (9 digits) not found for resource", HttpStatusCode.InternalServerError);
     public static Error MessageTitleTooLong = new Error(1037, "Message title cannot exceed 255 characters", HttpStatusCode.BadRequest);
+    public static Error AttachmentCountExceeded = new Error(1038, "A correspondence cannot contain more than 100 attachments in total", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
@@ -94,4 +94,9 @@ public static class AuthorizationErrors
     public static Error CouldNotFindOrgNo = new Error(4007, "Could not identify orgnumber from user", HttpStatusCode.Unauthorized);
     public static Error ResourceNotWhitelisted = new Error(4008, "Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no.", HttpStatusCode.Forbidden);
     public static Error IncorrectResourceType = new Error(4009, "Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService.", HttpStatusCode.BadRequest);
+}
+
+public static class SyncErrors
+{   
+    public static Error NoEventsToSync = new Error(5001, "No Events were specified in request", HttpStatusCode.BadRequest);
 }

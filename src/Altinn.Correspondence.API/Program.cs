@@ -108,7 +108,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         options.AddPolicy(name: AuthorizationConstants.ArbeidsflateCors,
                           policy =>
                           {
-                              policy.WithOrigins("https://af.tt.altinn.no").SetIsOriginAllowedToAllowWildcardSubdomains();
+                              policy.WithOrigins("https://af.tt.altinn.no", "https://af.altinn.no").SetIsOriginAllowedToAllowWildcardSubdomains();
                               policy.WithMethods("GET", "POST", "DELETE", "OPTIONS");
                               policy.WithHeaders("Authorization", "request-id", "request-context", "traceparent");
                               policy.AllowCredentials();
@@ -122,7 +122,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         options.InstanceName = "redisCache";
     });
 #pragma warning disable EXTEXP0018
-    services.AddHybridCache();
+    services.AddHybridCache(options => options.MaximumPayloadBytes = 1000 * 1000 * 10L);
 #pragma warning restore EXTEXP0018
     services.AddSingleton<IHybridCacheWrapper, HybridCacheWrapper>();
     services.ConfigureAuthentication(config, hostEnvironment);
@@ -142,7 +142,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.AddHttpClient();
     services.AddProblemDetails();
 
-    services.ConfigureHangfire();
+    services.ConfigureHangfire(config);
 
     services.Configure<KestrelServerOptions>(options =>
     {

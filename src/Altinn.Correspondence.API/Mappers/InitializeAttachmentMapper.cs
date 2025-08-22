@@ -16,7 +16,6 @@ internal static class InitializeAttachmentMapper
             FileName = initializeAttachmentExt.FileName,
             DisplayName = initializeAttachmentExt.DisplayName,
             Sender = UrnConstants.PlaceholderSender, // Placeholder - will be set by handler from ResourceRegistryService
-            ServiceOwnerId = null, // Will be populated by the handler after determining service owner from ResourceRegistry
             SendersReference = initializeAttachmentExt.SendersReference,
             Checksum = initializeAttachmentExt.Checksum,
             IsEncrypted = initializeAttachmentExt.IsEncrypted,
