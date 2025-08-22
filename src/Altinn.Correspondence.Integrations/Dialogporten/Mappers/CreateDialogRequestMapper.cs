@@ -85,7 +85,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     }
                 }
             },
-            SenderName = String.IsNullOrWhiteSpace(correspondence.MessageSender) ? null :
+            SenderName = string.IsNullOrWhiteSpace(correspondence.MessageSender) ? null :
              new ContentValue()
              {
                  MediaType = "text/plain",
