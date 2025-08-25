@@ -125,7 +125,7 @@ public class CleanupOrphanedDialogsHandler(
 
         if (dialogId == null)
         {
-            if (correspondence.Altinn2CorrespondenceId.GetValueOrDefault() > 0)
+            if (correspondence.IsMigrating)
             {
                 logger.LogWarning("Skipping purging correspondence {correspondenceId} as it is an Altinn2 correspondence without Dialogporten dialog",
                     correspondence.Id);

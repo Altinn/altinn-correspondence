@@ -3,6 +3,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -14,6 +15,7 @@ public class MigrateCorrespondenceHandler(
     ICorrespondenceRepository correspondenceRepository,
     IDialogportenService dialogportenService,
     HangfireScheduleHelper hangfireScheduleHelper,
+    IBackgroundJobClient backgroundJobClient,
     ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRequest, MigrateCorrespondenceResponse>
 {
     public async Task<OneOf<MigrateCorrespondenceResponse, Error>> Process(MigrateCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -107,8 +109,65 @@ public class MigrateCorrespondenceHandler(
                 }
             }
         }
+        else if (request.BatchSize is not null)
+        {
+            if (!request.AsyncProcessing)
+            {
+                var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.BatchOffset ?? 0, cancellationToken);
+                foreach (var correspondence in correspondences)
+                {
+                    try
+                    {
+                        dialogId = await MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, cancellationToken);
+                        response.Statuses.Add(new(correspondence.Id, null, dialogId, true));
+                    }
+                    catch (Exception ex)
+                    {
+                        response.Statuses.Add(new(correspondence.Id, ex.ToString()));
+                    }
+                }
+                return response;
+            }
+            var batchLimit = 10000;
+            if (request.BatchSize > batchLimit)
+            {
+                var remainingCount = request.BatchSize;
+                var alreadyAdded = 0;
+                while(remainingCount > 0)
+                {
+                    int currentBatch = batchLimit;
+                    remainingCount -= batchLimit;
+                    if (remainingCount < 0)
+                    {
+                        currentBatch = (int)(remainingCount + batchLimit);
+                    }
+                    var migrateRequest = new MakeCorrespondenceAvailableRequest()
+                    {
+                        AsyncProcessing = true,
+                        BatchOffset = alreadyAdded,
+                        BatchSize = currentBatch,
+                        CreateEvents = request.CreateEvents
+                    };
+                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>((handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
+                    alreadyAdded += currentBatch;
+                }
+            } 
+            else
+            {
+                var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.BatchOffset ?? 0, cancellationToken);
+                foreach(var correspondence in correspondences)
+                {
+                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id));
+                }
+            }
+        }
 
         return response;
+    }
+
+    public async Task<string> MakeCorrespondenceAvailableInDialogportenAndApi(Guid correspondenceId)
+    {
+        return await MakeCorrespondenceAvailableInDialogportenAndApi(correspondenceId, CancellationToken.None, null, false);
     }
 
     private async Task<string> MakeCorrespondenceAvailableInDialogportenAndApi(Guid correspondenceId, CancellationToken cancellationToken, CorrespondenceEntity? correspondenceEntity = null, bool createEvents = false)
@@ -119,9 +178,15 @@ public class MigrateCorrespondenceHandler(
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
         var dialogId = await dialogportenService.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId, correspondence, createEvents);
-        await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
-        correspondence.ExternalReferences.Add(new ExternalReferenceEntity() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = dialogId });
-        await SetIsMigrating(correspondenceId, false, cancellationToken);
+
+        var updateResult = await TransactionWithRetriesPolicy.Execute<string>(async (cancellationToken) =>
+        {
+            await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
+            correspondence.ExternalReferences.Add(new ExternalReferenceEntity() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = dialogId });
+            await SetIsMigrating(correspondenceId, false, cancellationToken);
+            return dialogId;
+        }, logger, cancellationToken);
+
         return dialogId;
     }
 
