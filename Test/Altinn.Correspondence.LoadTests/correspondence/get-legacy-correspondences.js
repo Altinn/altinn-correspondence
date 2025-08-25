@@ -60,7 +60,7 @@ function getLegacyCorrespondences(endUser, traceCalls) {
         }
         let r = http.post(url.toString(), JSON.stringify(payload), paramsWithToken);
         expect(r.status, 'response status').to.equal(200);
-        console.log(endUser.UserPartyId, r.json().items.length, r.timings.duration);
+        //console.log(endUser.UserPartyId, r.json().items.length, r.timings.duration);
 
     });
     
