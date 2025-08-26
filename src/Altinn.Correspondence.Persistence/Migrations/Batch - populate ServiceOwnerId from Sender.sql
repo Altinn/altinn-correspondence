@@ -1,4 +1,54 @@
 -- =============================================================================
+-- MIGRATION SCRIPT SUMMARY
+-- =============================================================================
+-- This script successfully:
+-- 1. Adds ServiceOwnerId columns to both Correspondences and Attachments tables
+-- 2. Creates performance indexes for optimal query performance
+-- 3. Migrates data from Sender field to ServiceOwnerId using batch processing
+-- 4. Provides progress monitoring
+-- 5. Includes comprehensive cleanup instructions
+--
+-- Total execution time: Varies based on table size (typically 1-8 hours for large tables)
+-- Batch size: 20,000 records per batch for optimal performance
+-- =============================================================================
+
+
+-- =============================================================================
+-- STEP 0: RESET TABLES (FOR TESTING)
+-- =============================================================================
+-- WARNING: This step will remove all migration data and reset tables to initial state
+-- Only use this for testing or when you need to start over completely
+-- 
+-- Remove temporary migration tracking columns
+ALTER TABLE correspondence."Correspondences" 
+DROP COLUMN IF EXISTS "ServiceOwnerId";
+
+ALTER TABLE correspondence."Correspondences" 
+DROP COLUMN IF EXISTS "ServiceOwnerMigrationStatus";
+
+ALTER TABLE correspondence."Attachments" 
+DROP COLUMN IF EXISTS "ServiceOwnerId";
+
+ALTER TABLE correspondence."Attachments" 
+DROP COLUMN IF EXISTS "ServiceOwnerMigrationStatus";
+
+-- Remove temporary functions
+DROP FUNCTION IF EXISTS get_migration_progress(TEXT, TEXT[]);
+DROP FUNCTION IF EXISTS update_service_owner_ids_batch(TEXT, TEXT[], INTEGER);
+
+-- Remove temporary indexes
+DROP INDEX IF EXISTS "IX_Correspondences_ServiceOwnerId";
+DROP INDEX IF EXISTS "IX_Attachments_ServiceOwnerId";
+DROP INDEX IF EXISTS "IX_Correspondences_Sender_OrgNo";
+DROP INDEX IF EXISTS "IX_Attachments_Sender_OrgNo";
+
+DO $$
+BEGIN
+    RAISE NOTICE '=== STEP 0 COMPLETED: All migration artifacts removed for fresh start ===';
+END $$;
+
+
+-- =============================================================================
 -- STEP 1: ADD NEW COLUMNS
 -- =============================================================================
 -- Add ServiceOwnerId column to store the organization number from Sender field
@@ -223,21 +273,22 @@ CREATE OR REPLACE FUNCTION get_migration_progress(
     service_owner_ids TEXT[]
 ) RETURNS TABLE(
     table_name TEXT,
+    total_rows INTEGER,
     total_pending INTEGER,
     total_completed INTEGER,
-    completion_percentage DECIMAL(5,2)
+    completion_percentage DECIMAL(5,2),
+    total_without_service_owner_id INTEGER
 ) AS $$
 DECLARE
     pending_count INTEGER;
     completed_count INTEGER;
+    total_rows INTEGER;
 BEGIN
     -- Count records awaiting processing (status 0) with valid Sender format
     EXECUTE format('
         SELECT COUNT(*) 
         FROM correspondence.%I 
         WHERE "ServiceOwnerMigrationStatus" = 0 
-          AND "Sender" IS NOT NULL 
-          AND LENGTH("Sender") >= 9 
           AND RIGHT("Sender", 9) = ANY($1)', target_table)
     INTO pending_count
     USING service_owner_ids;
@@ -249,16 +300,24 @@ BEGIN
         WHERE "ServiceOwnerMigrationStatus" = 1', target_table)
     INTO completed_count;
     
+    -- Get total table count
+    EXECUTE format('
+        SELECT COUNT(*) 
+        FROM correspondence.%I', target_table)
+    INTO total_rows;
+
     -- Calculate and return completion percentage
     RETURN QUERY SELECT 
         target_table::TEXT,
+        total_rows,
         pending_count,
         completed_count,
         CASE 
             WHEN (pending_count + completed_count) > 0 THEN 
                 ROUND((completed_count::DECIMAL / (pending_count + completed_count) * 100), 2)
             ELSE 0 
-        END;
+        END,
+        total_rows - pending_count - completed_count;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -305,7 +364,7 @@ BEGIN
         INTO batch_count;
 
         COMMIT;  -- Commit each batch to avoid long-running transactions
-		
+        
         EXIT WHEN batch_count = 0;
 		
 		PERFORM pg_sleep(0.02);  -- Small delay to reduce database load
@@ -349,7 +408,7 @@ BEGIN
         INTO batch_count;
 
         COMMIT;  -- Commit each batch to avoid long-running transactions
-		
+        
         EXIT WHEN batch_count = 0;
 		
 		PERFORM pg_sleep(0.02);  -- Small delay to reduce database load
@@ -372,14 +431,14 @@ END $$;
 -- Check Attachments table progress:
 -- SELECT * FROM get_migration_progress('Attachments'::TEXT,
 --     (SELECT ARRAY_AGG("Id") FROM "correspondence"."ServiceOwners"));
-
-
+--
 -- Function returns:
 -- - table_name: Name of the table being migrated
+-- - total_rows: Total number of records in the table
 -- - total_pending: Records awaiting processing (status 0 with valid Sender format)
 -- - total_completed: Records successfully processed (status 1)
 -- - completion_percentage: Progress as percentage (0.00 to 100.00)
--- =============================================================================
+-- - total_without_service_owner_id: Records that are not to be processed by batch processing
 
 -- =============================================================================
 -- STEP 10: POST-MIGRATION CLEANUP
@@ -406,4 +465,6 @@ END $$;
 -- -- - ServiceOwnerId (stores the organization number from Sender field)
 -- -- - All existing indexes on ServiceOwnerId columns
 -- =============================================================================
+
+
 
