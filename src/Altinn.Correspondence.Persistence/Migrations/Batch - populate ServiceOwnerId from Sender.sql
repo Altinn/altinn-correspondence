@@ -1,4 +1,7 @@
--- Add ServiceOwnerId and ServiceOwnerMigrationStatus columns to Correspondences table
+-- =============================================================================
+-- STEP 1: ADD NEW COLUMNS
+-- =============================================================================
+-- Add ServiceOwnerId column to store the organization number from Sender field
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
@@ -11,9 +14,10 @@ BEGIN
     ELSE
         RAISE NOTICE 'ServiceOwnerId column already exists in Correspondences table';
     END IF;
+    
 END $$;
 
--- Add ServiceOwnerId and ServiceOwnerMigrationStatus columns to Attachments table
+-- Add ServiceOwnerId column to Attachments table
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
@@ -26,26 +30,49 @@ BEGIN
     ELSE
         RAISE NOTICE 'ServiceOwnerId column already exists in Attachments table';
     END IF;
+    RAISE NOTICE '=== STEP 1 COMPLETED: ServiceOwnerId columns added/verified ===';
 END $$;
 
--- Create index on Correspondences.ServiceOwnerId
-CREATE INDEX IF NOT EXISTS "IX_Correspondences_ServiceOwnerId" 
+-- =============================================================================
+-- STEP 2: CREATE PERFORMANCE INDEXES
+-- =============================================================================
+-- Create indexes on ServiceOwnerId columns for better query performance
+DO $$
+BEGIN
+    RAISE NOTICE '=== STEP 2 STARTING: Creating performance indexes ===';
+    RAISE NOTICE 'Creating index on Correspondences.ServiceOwnerId...';
+END $$;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IX_Correspondences_ServiceOwnerId" 
 ON "correspondence"."Correspondences" ("ServiceOwnerId");
 
--- Create index on Attachments.ServiceOwnerId
-CREATE INDEX IF NOT EXISTS "IX_Attachments_ServiceOwnerId" 
+DO $$
+BEGIN
+    RAISE NOTICE 'Index on Correspondences.ServiceOwnerId created/verified successfully';
+    RAISE NOTICE 'Creating index on Attachments.ServiceOwnerId...';
+    RAISE NOTICE 'WARNING: CONCURRENTLY indexes may take several hours on large tables';
+END $$;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IX_Attachments_ServiceOwnerId" 
 ON "correspondence"."Attachments" ("ServiceOwnerId");
 
+DO $$
+BEGIN
+    RAISE NOTICE 'Index on Attachments.ServiceOwnerId created/verified successfully';
+    RAISE NOTICE '=== STEP 2 COMPLETED: Performance indexes created ===';
+END $$;
 
----- Prepare for batch update ----
-
--- Add ServiceOwnerMigrationStatus column to Correspondences and Attachments tables
-
--- ServiceOwnerMigrationStatus values:
+-- =============================================================================
+-- STEP 3: ADD MIGRATION TRACKING COLUMNS
+-- =============================================================================
+-- Add ServiceOwnerMigrationStatus column to track migration progress
+-- 
+-- Migration Status Values:
 -- 0 = PENDING (not yet processed)
 -- 1 = COMPLETED (successfully processed with ServiceOwner)
--- 2 = NO_SERVICE_OWNER_FOUND (optional status - processed but no matching ServiceOwner)
--- When the batch is finished, only 1 is set and the rest remain 0. We can explicitly set 2 for those that are not updated by the update query.
+-- 2 = NO_SERVICE_OWNER_FOUND (processed but no matching ServiceOwner found)
+-- 
+-- Note: These columns are temporary and will be removed after migration completion
 
 -- Add ServiceOwnerMigrationStatus column to Correspondences table
 DO $$
@@ -75,18 +102,48 @@ BEGIN
     ELSE
         RAISE NOTICE 'ServiceOwnerMigrationStatus column already exists in Attachments table';
     END IF;
+    RAISE NOTICE '=== STEP 3 COMPLETED: Migration tracking columns added/verified ===';
 END $$;
 
--- Create index to strengthen the query in the update function
+-- =============================================================================
+-- STEP 4: CREATE MIGRATION PERFORMANCE INDEXES
+-- =============================================================================
+-- Create partial indexes to optimize the batch update queries
+-- These indexes only include records that haven't been processed yet (status = 0)
+-- NOTE: CONCURRENTLY indexes can take significant time on large tables
+DO $$
+BEGIN
+    RAISE NOTICE '=== STEP 4 STARTING: Creating migration performance indexes ===';
+    RAISE NOTICE 'WARNING: CONCURRENTLY indexes may take several minutes on large tables';
+    RAISE NOTICE 'Creating CONCURRENTLY index on Correspondences.Sender (RIGHT 9 chars)...';
+END $$;
+
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "IX_Correspondences_Sender_OrgNo"
 ON "correspondence"."Correspondences" (RIGHT("Sender", 9))
-WHERE "ServiceOwnerMigrationStatus" = 0
+WHERE "ServiceOwnerMigrationStatus" = 0;
+
+DO $$
+BEGIN
+    RAISE NOTICE 'CONCURRENTLY index on Correspondences.Sender created/verified successfully';
+    RAISE NOTICE 'Creating CONCURRENTLY index on Attachments.Sender (RIGHT 9 chars)...';
+END $$;
 
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "IX_Attachments_Sender_OrgNo"
 ON "correspondence"."Attachments" (RIGHT("Sender", 9))
-WHERE "ServiceOwnerMigrationStatus" = 0
+WHERE "ServiceOwnerMigrationStatus" = 0;
+
+DO $$
+BEGIN
+    RAISE NOTICE 'CONCURRENTLY index on Attachments.Sender created/verified successfully';
+    RAISE NOTICE '=== STEP 4 COMPLETED: Migration performance indexes created ===';
+END $$;
 
 
+-- =============================================================================
+-- STEP 5: CREATE BATCH UPDATE FUNCTION
+-- =============================================================================
+-- This function processes records in batches to avoid long-running transactions
+-- and memory issues with large datasets
 CREATE OR REPLACE FUNCTION update_service_owner_ids_batch(
     target_table TEXT,
     service_owner_ids TEXT[],
@@ -97,15 +154,15 @@ DECLARE
     start_time TIMESTAMP := clock_timestamp();
 BEGIN
     -----------------------------------------------------------------------
-    -- Start batch
+    -- Initialize batch processing
     -----------------------------------------------------------------------
     RAISE NOTICE 'Batch size: %', batch_size;
     RAISE NOTICE 'Timestamp: %', start_time;
 
     -----------------------------------------------------------------------
-    -- Perform update
+    -- Process records in batches
     -----------------------------------------------------------------------
-
+    -- Extract organization number from Sender field and update matching records
     EXECUTE format('
         WITH batch_to_process AS (
     SELECT sub."Id",
@@ -122,7 +179,7 @@ BEGIN
 UPDATE correspondence.%I c
 SET 
     "ServiceOwnerId" = b.extracted_org_no,
-    "ServiceOwnerMigrationStatus" = 1  -- COMPLETED (since all records in batch have valid org numbers)
+    "ServiceOwnerMigrationStatus" = 1  -- Mark as COMPLETED
 FROM batch_to_process b
 WHERE c."Id" = b."Id"', target_table, target_table)
     USING service_owner_ids, batch_size;
@@ -151,15 +208,83 @@ WHERE c."Id" = b."Id"', target_table, target_table)
 END;
 $$ LANGUAGE plpgsql;
 
+DO $$
+BEGIN
+    RAISE NOTICE '=== STEP 5 COMPLETED: Batch update function created ===';
+END $$;
 
--- Process Correspondences table
+-- =============================================================================
+-- STEP 6: CREATE PROGRESS MONITORING FUNCTION
+-- =============================================================================
+-- This function provides real-time progress tracking during migration
+-- Returns counts and completion percentage for monitoring purposes
+CREATE OR REPLACE FUNCTION get_migration_progress(
+    target_table TEXT,
+    service_owner_ids TEXT[]
+) RETURNS TABLE(
+    table_name TEXT,
+    total_pending INTEGER,
+    total_completed INTEGER,
+    completion_percentage DECIMAL(5,2)
+) AS $$
+DECLARE
+    pending_count INTEGER;
+    completed_count INTEGER;
+BEGIN
+    -- Count records awaiting processing (status 0) with valid Sender format
+    EXECUTE format('
+        SELECT COUNT(*) 
+        FROM correspondence.%I 
+        WHERE "ServiceOwnerMigrationStatus" = 0 
+          AND "Sender" IS NOT NULL 
+          AND LENGTH("Sender") >= 9 
+          AND RIGHT("Sender", 9) = ANY($1)', target_table)
+    INTO pending_count
+    USING service_owner_ids;
+    
+    -- Count records that have been successfully processed (status 1)
+    EXECUTE format('
+        SELECT COUNT(*) 
+        FROM correspondence.%I 
+        WHERE "ServiceOwnerMigrationStatus" = 1', target_table)
+    INTO completed_count;
+    
+    -- Calculate and return completion percentage
+    RETURN QUERY SELECT 
+        target_table::TEXT,
+        pending_count,
+        completed_count,
+        CASE 
+            WHEN (pending_count + completed_count) > 0 THEN 
+                ROUND((completed_count::DECIMAL / (pending_count + completed_count) * 100), 2)
+            ELSE 0 
+        END;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Verify function was created successfully
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'get_migration_progress') THEN
+        RAISE NOTICE '=== STEP 6 COMPLETED: Progress monitoring function created successfully ===';
+        RAISE NOTICE 'Function signature: get_migration_progress(TEXT, TEXT[])';
+    ELSE
+        RAISE NOTICE 'ERROR: Function get_migration_progress was not created!';
+    END IF;
+END $$;
+
+-- =============================================================================
+-- STEP 7: EXECUTE MIGRATION FOR CORRESPONDENCES TABLE
+-- =============================================================================
+-- Process all Correspondence records in batches of 20,000
+-- Each batch is committed individually to avoid long-running transactions
 DO $$
 DECLARE
     batch_count INTEGER;
     batch_number INTEGER := 0;
     service_owner_ids TEXT[];
 BEGIN
-    -- Get all ServiceOwner IDs once before starting the loop
+    -- Retrieve all ServiceOwner IDs once to avoid repeated database calls
     SELECT ARRAY_AGG("Id") INTO service_owner_ids
     FROM "correspondence"."ServiceOwners";
     
@@ -179,25 +304,32 @@ BEGIN
         SELECT update_service_owner_ids_batch('Correspondences', service_owner_ids, 20000)
         INTO batch_count;
 
-        COMMIT;  -- ✅ commit each batch
+        COMMIT;  -- Commit each batch to avoid long-running transactions
 		
         EXIT WHEN batch_count = 0;
 		
-		PERFORM pg_sleep(0.02);
+		PERFORM pg_sleep(0.02);  -- Small delay to reduce database load
     END LOOP;
 
     RAISE NOTICE '=== CORRESPONDENCES MIGRATION COMPLETED ===';
     RAISE NOTICE 'Total batches processed: %', batch_number - 1;
+    RAISE NOTICE '=== STEP 7 COMPLETED: Correspondences table migration finished ===';
 END $$;
 
--- Process Attachments table
+
+
+-- =============================================================================
+-- STEP 8: EXECUTE MIGRATION FOR ATTACHMENTS TABLE
+-- =============================================================================
+-- Process all Attachment records in batches of 20,000
+-- This runs after Correspondences migration is complete
 DO $$
 DECLARE
     batch_count INTEGER;
     batch_number INTEGER := 0;
     service_owner_ids TEXT[];
 BEGIN
-    -- Get all ServiceOwner IDs once before starting the loop
+    -- Retrieve all ServiceOwner IDs once to avoid repeated database calls
     SELECT ARRAY_AGG("Id") INTO service_owner_ids
     FROM "correspondence"."ServiceOwners";
     
@@ -216,15 +348,62 @@ BEGIN
         SELECT update_service_owner_ids_batch('Attachments', service_owner_ids, 20000)
         INTO batch_count;
 
-        COMMIT;  -- ✅ commit each batch
+        COMMIT;  -- Commit each batch to avoid long-running transactions
 		
         EXIT WHEN batch_count = 0;
 		
-		PERFORM pg_sleep(0.02);
+		PERFORM pg_sleep(0.02);  -- Small delay to reduce database load
     END LOOP;
 
     RAISE NOTICE '=== ATTACHMENTS MIGRATION COMPLETED ===';
     RAISE NOTICE 'Total batches processed: %', batch_number - 1;
+    RAISE NOTICE '=== STEP 8 COMPLETED: Attachments table migration finished ===';
 END $$;
 
-RAISE NOTICE '=== ALL MIGRATIONS COMPLETED ===';
+-- =============================================================================
+-- STEP 9: PROGRESS MONITORING
+-- =============================================================================
+-- Use these queries to monitor migration progress during execution
+--
+-- Check Correspondences table progress:
+-- SELECT * FROM get_migration_progress('Correspondences'::TEXT, 
+--     (SELECT ARRAY_AGG("Id") FROM "correspondence"."ServiceOwners"));
+--
+-- Check Attachments table progress:
+-- SELECT * FROM get_migration_progress('Attachments'::TEXT,
+--     (SELECT ARRAY_AGG("Id") FROM "correspondence"."ServiceOwners"));
+
+
+-- Function returns:
+-- - table_name: Name of the table being migrated
+-- - total_pending: Records awaiting processing (status 0 with valid Sender format)
+-- - total_completed: Records successfully processed (status 1)
+-- - completion_percentage: Progress as percentage (0.00 to 100.00)
+-- =============================================================================
+
+-- =============================================================================
+-- STEP 10: POST-MIGRATION CLEANUP
+-- =============================================================================
+-- IMPORTANT: Only run these cleanup commands AFTER migration is complete
+-- and you have verified all data is correct
+--
+-- Cleanup commands (uncomment and run as needed):
+--
+-- -- Remove temporary functions (no longer needed after migration)
+-- DROP FUNCTION IF EXISTS get_migration_progress(TEXT, TEXT[]);
+-- DROP FUNCTION IF EXISTS update_service_owner_ids_batch(TEXT, TEXT[], INTEGER);
+--
+-- -- Remove temporary migration tracking columns
+-- -- WARNING: Only remove if ALL records have been successfully migrated
+-- ALTER TABLE "correspondence"."Correspondences" DROP COLUMN IF EXISTS "ServiceOwnerMigrationStatus";
+-- ALTER TABLE "correspondence"."Attachments" DROP COLUMN IF EXISTS "ServiceOwnerMigrationStatus";
+--
+-- -- Optional: Remove performance indexes (keep if you want better query performance)
+-- -- DROP INDEX IF EXISTS "IX_Correspondences_Sender_OrgNo";
+-- -- DROP INDEX IF EXISTS "IX_Attachments_Sender_OrgNo";
+--
+-- -- IMPORTANT: Keep these permanent columns as they are part of the final data model
+-- -- - ServiceOwnerId (stores the organization number from Sender field)
+-- -- - All existing indexes on ServiceOwnerId columns
+-- =============================================================================
+
