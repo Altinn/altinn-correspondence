@@ -120,6 +120,7 @@ public class GetCorrespondenceOverviewHandler(
                 Recipient = correspondence.Recipient,
                 ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
                 Notifications = notificationsOverview,
+                PropertyList = correspondence.PropertyList,
                 ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
                 RequestedPublishTime = correspondence.RequestedPublishTime,
                 IgnoreReservation = correspondence.IgnoreReservation ?? false,

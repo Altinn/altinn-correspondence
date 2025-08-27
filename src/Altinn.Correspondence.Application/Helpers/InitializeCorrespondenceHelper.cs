@@ -279,11 +279,19 @@ namespace Altinn.Correspondence.Application.Helpers
                 AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,
                 DueDateTime = request.Correspondence.DueDateTime,
                 PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
-                ReplyOptions = request.Correspondence.ReplyOptions,
+                ReplyOptions = request.Correspondence.ReplyOptions.Select(requestReplyOption => new CorrespondenceReplyOptionEntity()
+                {
+                    LinkText = requestReplyOption.LinkText,
+                    LinkURL = requestReplyOption.LinkURL
+                }).ToList(),
                 IgnoreReservation = request.Correspondence.IgnoreReservation,
                 Statuses = statuses,
                 Created = DateTime.UtcNow,
-                ExternalReferences = request.Correspondence.ExternalReferences,
+                ExternalReferences = request.Correspondence.ExternalReferences.Select(requestExternalReference => new ExternalReferenceEntity()
+                {
+                    ReferenceType = requestExternalReference.ReferenceType,
+                    ReferenceValue = requestExternalReference.ReferenceValue
+                }).ToList(),
                 Published = currentStatus == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
                 IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
                 IsConfidential = request.Correspondence.IsConfidential,
