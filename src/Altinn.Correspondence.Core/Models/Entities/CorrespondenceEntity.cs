@@ -13,7 +13,8 @@ namespace Altinn.Correspondence.Core.Models.Entities
     [Index(nameof(IsMigrating))]
     [Index(nameof(Altinn2CorrespondenceId), IsUnique = true)]
     [Index(nameof(PartyId))]
-    [Index(nameof(Recipient), nameof(RequestedPublishTime), nameof(Id), IsDescending = new [] {false, true, false})]
+    [Index(nameof(ServiceOwnerId))]
+    [Index(nameof(Recipient), nameof(RequestedPublishTime), nameof(Id), IsDescending = new[] { false, true, false })]
 
     public class CorrespondenceEntity
     {
@@ -79,6 +80,13 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public bool IsMigrating { get; set; }
 
         public bool IsConfidential { get; set; }
+        
         public int PartyId { get; set; } = 0;
+
+        /// <summary>
+        /// Foreign key reference to ServiceOwner table. 
+        /// Contains the organization number without prefix.
+        /// </summary>
+        public string? ServiceOwnerId { get; set; }
     }
 }

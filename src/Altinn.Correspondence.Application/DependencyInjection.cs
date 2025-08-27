@@ -66,6 +66,7 @@ public static class DependencyInjection
         services.AddScoped<AttachmentHelper>();
         services.AddScoped<UserClaimsHelper>();
         services.AddScoped<InitializeCorrespondenceHelper>();
+        services.AddScoped<ServiceOwnerHelper>();
         services.AddScoped<UpdateCorrespondenceStatusHelper>();
         services.AddScoped<PurgeCorrespondenceHelper>();
         services.AddScoped<MobileNumberHelper>();
