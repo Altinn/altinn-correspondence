@@ -80,7 +80,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public bool IsMigrating { get; set; }
 
         public bool IsConfidential { get; set; }
-        
+
         public int PartyId { get; set; } = 0;
 
         /// <summary>
@@ -88,5 +88,14 @@ namespace Altinn.Correspondence.Core.Models.Entities
         /// Contains the organization number without prefix.
         /// </summary>
         public string? ServiceOwnerId { get; set; }
+
+        /// <summary>
+        /// Status of the service owner migration.
+        /// 0: Not started / pending
+        /// 1: Completed (migration completed successfully with service owner)
+        /// 2: Completed (migration completed successfully without service owner)
+        /// This field is temporary and will be removed when the migration is complete.
+        /// </summary>
+        public int ServiceOwnerMigrationStatus { get; set; } = 0;
     }
 }

@@ -74,10 +74,11 @@ public class InitializeAttachmentHandler(
             return attachmentNameError;
         }
         
-        // Set the Sender and ServiceOwnerId from the service owner organization number
-        var (sender, serviceOwnerId) = await serviceOwnerHelper.GetSenderAndServiceOwnerIdAsync(serviceOwnerOrgNumber, cancellationToken);
+        // Set the Sender, ServiceOwnerId, and ServiceOwnerMigrationStatus from the service owner organization number
+        var (sender, serviceOwnerId, serviceOwnerMigrationStatus) = await serviceOwnerHelper.GetSenderServiceOwnerIdAndMigrationStatusAsync(serviceOwnerOrgNumber, cancellationToken);
         attachment.Sender = sender;
         attachment.ServiceOwnerId = serviceOwnerId;
+        attachment.ServiceOwnerMigrationStatus = serviceOwnerMigrationStatus;
         
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {

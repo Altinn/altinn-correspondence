@@ -50,4 +50,22 @@ public class ServiceOwnerHelper(
         var serviceOwnerId = await GetSafeServiceOwnerIdAsync(serviceOwnerOrgNumber, cancellationToken);
         return (sender, serviceOwnerId);
     }
+
+    /// <summary>
+    /// Gets the sender URN format, safe ServiceOwnerId, and migration status for the given organization number.
+    /// </summary>
+    /// <param name="serviceOwnerOrgNumber">The organization number</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A tuple containing the sender URN, the safe ServiceOwnerId (or null), and migration status (1 if exists, 2 if not)</returns>
+    public async Task<(string sender, string? serviceOwnerId, int migrationStatus)> GetSenderServiceOwnerIdAndMigrationStatusAsync(string serviceOwnerOrgNumber, CancellationToken cancellationToken)
+    {
+        var sender = serviceOwnerOrgNumber.WithoutPrefix().WithUrnPrefix();
+        var serviceOwnerId = await GetSafeServiceOwnerIdAsync(serviceOwnerOrgNumber, cancellationToken);
+        
+        // Set migration status: 1 if ServiceOwner exists, 2 if it doesn't
+        // TODO: Remove this when the migration is complete
+        var migrationStatus = serviceOwnerId != null ? 1 : 2;
+        
+        return (sender, serviceOwnerId, migrationStatus);
+    }
 }

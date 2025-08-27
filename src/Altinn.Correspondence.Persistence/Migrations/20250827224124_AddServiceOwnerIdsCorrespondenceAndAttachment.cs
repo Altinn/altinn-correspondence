@@ -17,12 +17,28 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 type: "text",
                 nullable: true);
 
+            migrationBuilder.AddColumn<int>(
+                name: "ServiceOwnerMigrationStatus",
+                schema: "correspondence",
+                table: "Correspondences",
+                type: "integer",
+                nullable: false,
+                defaultValue: 0);
+
             migrationBuilder.AddColumn<string>(
                 name: "ServiceOwnerId",
                 schema: "correspondence",
                 table: "Attachments",
                 type: "text",
                 nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "ServiceOwnerMigrationStatus",
+                schema: "correspondence",
+                table: "Attachments",
+                type: "integer",
+                nullable: false,
+                defaultValue: 0);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Correspondences_ServiceOwnerId",
@@ -56,7 +72,17 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 table: "Correspondences");
 
             migrationBuilder.DropColumn(
+                name: "ServiceOwnerMigrationStatus",
+                schema: "correspondence",
+                table: "Correspondences");
+
+            migrationBuilder.DropColumn(
                 name: "ServiceOwnerId",
+                schema: "correspondence",
+                table: "Attachments");
+
+            migrationBuilder.DropColumn(
+                name: "ServiceOwnerMigrationStatus",
                 schema: "correspondence",
                 table: "Attachments");
         }

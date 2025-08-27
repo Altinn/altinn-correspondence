@@ -77,6 +77,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<string>("ServiceOwnerId")
                         .HasColumnType("text");
 
+                    b.Property<int>("ServiceOwnerMigrationStatus")
+                        .HasColumnType("integer");
+
                     b.Property<long?>("StorageProviderId")
                         .HasColumnType("bigint");
 
@@ -254,6 +257,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.Property<string>("ServiceOwnerId")
                         .HasColumnType("text");
+
+                    b.Property<int>("ServiceOwnerMigrationStatus")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

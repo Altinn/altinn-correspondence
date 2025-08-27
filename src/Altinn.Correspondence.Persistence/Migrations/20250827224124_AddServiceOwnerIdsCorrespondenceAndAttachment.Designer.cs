@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250827212600_AddServiceOwnerIdsCorrespondenceAndAttachment")]
+    [Migration("20250827224124_AddServiceOwnerIdsCorrespondenceAndAttachment")]
     partial class AddServiceOwnerIdsCorrespondenceAndAttachment
     {
         /// <inheritdoc />
@@ -79,6 +79,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.Property<string>("ServiceOwnerId")
                         .HasColumnType("text");
+
+                    b.Property<int>("ServiceOwnerMigrationStatus")
+                        .HasColumnType("integer");
 
                     b.Property<long?>("StorageProviderId")
                         .HasColumnType("bigint");
@@ -257,6 +260,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.Property<string>("ServiceOwnerId")
                         .HasColumnType("text");
+
+                    b.Property<int>("ServiceOwnerMigrationStatus")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
