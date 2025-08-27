@@ -283,7 +283,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 {
                     LinkText = requestReplyOption.LinkText,
                     LinkURL = requestReplyOption.LinkURL
-                }).ToList(),
+                }).ToList() ?? new List<CorrespondenceReplyOptionEntity>(),
                 IgnoreReservation = request.Correspondence.IgnoreReservation,
                 Statuses = statuses,
                 Created = DateTime.UtcNow,
@@ -291,7 +291,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 {
                     ReferenceType = requestExternalReference.ReferenceType,
                     ReferenceValue = requestExternalReference.ReferenceValue
-                }).ToList(),
+                }).ToList() ?? new List<ExternalReferenceEntity>(),
                 Published = currentStatus == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
                 IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
                 IsConfidential = request.Correspondence.IsConfidential,
