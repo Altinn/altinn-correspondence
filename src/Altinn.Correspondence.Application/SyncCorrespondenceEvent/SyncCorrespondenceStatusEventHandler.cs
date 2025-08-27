@@ -1,8 +1,10 @@
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -11,8 +13,8 @@ namespace Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 
 public class SyncCorrespondenceStatusEventHandler(
     ICorrespondenceRepository correspondenceRepository,
-    UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
     SyncCorrespondenceStatusEventHelper syncCorrespondenceStatusHelper,
+    IBackgroundJobClient backgroundJobClient,
     ILogger<SyncCorrespondenceStatusEventHandler> logger) : IHandler<SyncCorrespondenceStatusEventRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceStatusEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -119,10 +121,17 @@ public class SyncCorrespondenceStatusEventHandler(
                 {
                     foreach (var eventToExecute in eventsFilteredForDuplicates)
                     {
-                        updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, eventToExecute.Status, eventToExecute.StatusChanged); // Set the operationtime to the time the status was changed in Altinn 2
-                        updateCorrespondenceStatusHelper.PatchCorrespondenceDialog(request.CorrespondenceId, eventToExecute.Status);
-                        updateCorrespondenceStatusHelper.PublishEvent(correspondence, eventToExecute.Status);
-                        if (eventToExecute.Status == CorrespondenceStatus.Archived)
+                        if (eventToExecute.Status == CorrespondenceStatus.Confirmed)
+                        {
+                            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateConfirmedActivity(request.CorrespondenceId, DialogportenActorType.Recipient, eventToExecute.StatusChanged)); // Set the operationtime to the time the status was changed in Altinn 2;
+                            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(request.CorrespondenceId));
+                            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                        }
+                        else if (eventToExecute.Status == CorrespondenceStatus.Read)
+                        {
+                            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                        }
+                        else if (eventToExecute.Status == CorrespondenceStatus.Archived)
                         {
                             await syncCorrespondenceStatusHelper.ReportArchivedToDialogporten(request.CorrespondenceId, eventToExecute.PartyUuid, cancellationToken);
                         }
