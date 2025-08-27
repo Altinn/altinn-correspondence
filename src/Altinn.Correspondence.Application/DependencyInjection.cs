@@ -25,6 +25,7 @@ using Altinn.Notifications.Core.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Altinn.Correspondence.Application.CleanupOrphanedDialogs;
 using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
+using Altinn.Correspondence.Application.GenerateStatisticsReport;
 
 namespace Altinn.Correspondence.Application;
 
@@ -61,6 +62,9 @@ public static class DependencyInjection
 
         // Maintenance
         services.AddScoped<CleanupOrphanedDialogsHandler>();
+
+        // Statistics & Reporting
+        services.AddScoped<GenerateStatisticsReportHandler>();
 
         // Helpers
         services.AddScoped<AttachmentHelper>();

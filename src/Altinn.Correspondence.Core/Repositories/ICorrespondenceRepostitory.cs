@@ -61,5 +61,7 @@ namespace Altinn.Correspondence.Core.Repositories
             Guid? lastId,
             bool filterMigrated,
             CancellationToken cancellationToken);
+        
+        Task<List<CorrespondenceEntity>> GetAllCorrespondencesForStatistics(CancellationToken cancellationToken);
     }
 }

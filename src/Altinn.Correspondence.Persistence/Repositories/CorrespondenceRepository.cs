@@ -227,5 +227,23 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
             return await query.ToListAsync(cancellationToken);
         }
+
+        public async Task<List<CorrespondenceEntity>> GetAllCorrespondencesForStatistics(CancellationToken cancellationToken)
+        {
+            // Get only the basic correspondence data needed for statistics
+            return await _context.Correspondences
+                .Select(c => new CorrespondenceEntity
+                {
+                    Id = c.Id,
+                    Sender = c.Sender,
+                    ResourceId = c.ResourceId,
+                    Created = c.Created,
+                    Recipient = c.Recipient,
+                    SendersReference = c.SendersReference,
+                    RequestedPublishTime = c.RequestedPublishTime,
+                    Statuses = new List<CorrespondenceStatusEntity>() // Initialize required property
+                })
+                .ToListAsync(cancellationToken);
+        }
     }
 }
