@@ -24,6 +24,7 @@ using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Notifications.Core.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Altinn.Correspondence.Application.CleanupOrphanedDialogs;
+using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 
 namespace Altinn.Correspondence.Application;
 
@@ -84,5 +85,11 @@ public static class DependencyInjection
         services.AddScoped<MigrateAttachmentHandler>();
         services.AddScoped<MigrateCorrespondenceHandler>();
         services.AddScoped<MigrateToStorageProviderHandler>();
+
+        // EventSync
+        services.AddScoped<SyncCorrespondenceStatusEventHandler>();        
+        services.AddScoped<SyncCorrespondenceStatusEventHelper>();
+        services.AddScoped<SyncCorrespondenceNotificationEventHandler>();
+        services.AddScoped<SyncCorrespondenceForwardingEventHandler>();
     }
 }

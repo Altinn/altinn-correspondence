@@ -10,4 +10,5 @@ public class MakeCorrespondenceAvailableRequest
     public List<Guid>? CorrespondenceIds { get; set; }
     public bool AsyncProcessing { get; set; }
     public int? BatchSize { get; set; }
+    public int? BatchOffset { get; set; }
 }

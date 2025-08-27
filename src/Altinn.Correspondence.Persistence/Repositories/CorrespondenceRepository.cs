@@ -185,11 +185,13 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .SingleOrDefaultAsync(cancellationToken);
         }
 
-        public Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, CancellationToken cancellationToken = default)
+        public Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, int offset, CancellationToken cancellationToken = default)
         {
             return _context.Correspondences
                 .Where(c => c.Altinn2CorrespondenceId != null && c.IsMigrating) // Only include correspondences that are not already migrated 
                 .OrderByDescending(c => c.Created)
+                .ThenBy(c => c.Id)
+                .Skip(offset)
                 .Take(batchSize)
                 .ToListAsync(cancellationToken);
         }

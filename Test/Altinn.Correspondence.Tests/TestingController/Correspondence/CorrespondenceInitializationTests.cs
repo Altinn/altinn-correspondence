@@ -959,6 +959,89 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
+        public async Task InitializeCorrespondence_WithMoreThan100ExistingAttachments_ReturnsBadRequest()
+        {
+            // Arrange
+            var existing = new List<Guid>();
+            for (int i = 0; i < 101; i++)
+            {
+                var id = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+                existing.Add(id);
+            }
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments(existing)
+                .Build();
+
+            // Act
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.Contains(CorrespondenceErrors.AttachmentCountExceeded.Message, body);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_With100ExistingAttachments_ReturnsOk()
+        {
+            // Arrange
+            var existing = new List<Guid>();
+            for (int i = 0; i < 100; i++)
+            {
+                var id = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+                existing.Add(id);
+            }
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments(existing)
+                .Build();
+
+            // Act
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithMoreThan100ExistingAndNewAttachmentsCombined_ReturnsBadRequest()
+        {
+            // Arrange
+            var existing = new List<Guid>();
+            for (int i = 0; i < 50; i++)
+            {
+                var id = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+                existing.Add(id);
+            }
+
+            var newAttachments = new List<InitializeCorrespondenceAttachmentExt>();
+            for (int i = 0; i < 51; i++)
+            {
+                var attachment = AttachmentHelper.GetAttachmentMetaData($"file-combined-{i}.txt");
+                attachment.DataLocationType = InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment;
+                attachment.ExpirationTime = DateTimeOffset.UtcNow.AddDays(1);
+                newAttachments.Add(attachment);
+            }
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments(existing)
+                .WithAttachments(newAttachments)
+                .Build();
+
+            // Act
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.Contains(CorrespondenceErrors.AttachmentCountExceeded.Message, body);
+        }
+
+        [Fact]
         public async Task InitializeCorrespondence_MultipleAttachments_Succeeds()
         {
             // Arrange
@@ -1250,6 +1333,94 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
             Assert.NotNull(response);
             Assert.NotEmpty(response.Correspondences);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithMultipleRecipients_ReplyOptionsPresentForAll()
+        {
+            // Arrange
+            var recipients = new List<string>
+            {
+                $"{UrnConstants.OrganizationNumberAttribute}:986252932",
+                $"{UrnConstants.OrganizationNumberAttribute}:991234649"
+            };
+
+            var replyOptions = new List<CorrespondenceReplyOptionExt>
+            {
+                new CorrespondenceReplyOptionExt
+                {
+                    LinkURL = "https://www.altinn.no",
+                    LinkText = "Altinn"
+                }
+            };
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients(recipients)
+                .WithReplyOptions(replyOptions)
+                .Build();
+
+            // Act
+            var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeResponse.StatusCode);
+            var initContent = await initializeResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(initContent);
+            Assert.True(initContent.Correspondences.Count >= recipients.Count);
+
+            foreach (var created in initContent.Correspondences)
+            {
+                var overviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{created.CorrespondenceId}");
+                overviewResponse.EnsureSuccessStatusCode();
+                var overview = await overviewResponse.Content.ReadFromJsonAsync<GetCorrespondenceOverviewResponse>(_responseSerializerOptions);
+                Assert.NotNull(overview);
+                Assert.NotEmpty(overview.ReplyOptions);
+                Assert.Contains(overview.ReplyOptions, ro => ro.LinkURL == replyOptions.First().LinkURL && ro.LinkText == replyOptions.First().LinkText);
+            }
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithMultipleRecipients_PropertyListPresentForAll()
+        {
+            // Arrange
+            var recipients = new List<string>
+            {
+                $"{UrnConstants.OrganizationNumberAttribute}:986252932",
+                $"{UrnConstants.OrganizationNumberAttribute}:991234649"
+            };
+
+            var propertyList = new Dictionary<string, string>
+            {
+                {"CaseId", "ABC-123"},
+                {"Department", "IT"}
+            };
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients(recipients)
+                .Build();
+
+            payload.Correspondence.PropertyList = propertyList;
+
+            // Act
+            var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeResponse.StatusCode);
+            var initContent = await initializeResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(initContent);
+            Assert.True(initContent.Correspondences.Count >= recipients.Count);
+
+            foreach (var created in initContent.Correspondences)
+            {
+                var overviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{created.CorrespondenceId}");
+                overviewResponse.EnsureSuccessStatusCode();
+                var overview = await overviewResponse.Content.ReadFromJsonAsync<GetCorrespondenceOverviewResponse>(_responseSerializerOptions);
+                Assert.NotNull(overview);
+                Assert.NotNull(overview.PropertyList);
+                Assert.True(propertyList.All(kv => overview.PropertyList.ContainsKey(kv.Key) && overview.PropertyList[kv.Key] == kv.Value));
+            }
         }
     }
 }
