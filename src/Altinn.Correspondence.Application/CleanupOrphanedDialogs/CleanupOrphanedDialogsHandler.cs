@@ -14,14 +14,13 @@ public class CleanupOrphanedDialogsHandler(
     ICorrespondenceRepository correspondenceRepository,
     IDialogportenService dialogportenService,
     IBackgroundJobClient backgroundJobClient,
-    ILogger<CleanupOrphanedDialogsHandler> logger) : IHandler<CleanupOrphanedDialogsResponse>
+    ILogger<CleanupOrphanedDialogsHandler> logger) : IHandler<CleanupOrphanedDialogsRequest, CleanupOrphanedDialogsResponse>
 {
-    public Task<OneOf<CleanupOrphanedDialogsResponse, Error>> Process(ClaimsPrincipal? user, CancellationToken cancellationToken)
+    public Task<OneOf<CleanupOrphanedDialogsResponse, Error>> Process(CleanupOrphanedDialogsRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Starting cleanup of orphaned dialogs");
+        logger.LogInformation("Starting cleanup of orphaned dialogs with window size {windowSize}", request.WindowSize);
 
-        const int batchSize = 200;
-        var jobId = backgroundJobClient.Enqueue(() => ExecuteCleanupInBackground(batchSize, CancellationToken.None));
+        var jobId = backgroundJobClient.Enqueue(() => ExecuteCleanupInBackground(request.WindowSize, CancellationToken.None));
 
         logger.LogInformation("Cleanup job {jobId} has been enqueued", jobId);
 
@@ -34,7 +33,7 @@ public class CleanupOrphanedDialogsHandler(
 
     [AutomaticRetry(Attempts = 0)]
     [DisableConcurrentExecution(timeoutInSeconds: 1800)]
-    public async Task ExecuteCleanupInBackground(int batchSize, CancellationToken cancellationToken)
+    public async Task ExecuteCleanupInBackground(int windowSize, CancellationToken cancellationToken)
     {
         logger.LogInformation("Executing cleanup of orphaned dialogs in background job");
         
@@ -54,30 +53,40 @@ public class CleanupOrphanedDialogsHandler(
             {
                 logger.LogInformation("Processing batch starting after cursor {lastCreated} / {lastId}", lastCreated, lastId);
                 
-                var correspondencesWithDialogs = await correspondenceRepository.GetPurgedCorrespondencesWithDialogsAfter(
-                    batchSize + 1,
+                var correspondencesWindow = await correspondenceRepository.GetCorrespondencesWindowAfter(
+                    windowSize + 1,
                     lastCreated,
                     lastId,
                     true,
                     cancellationToken);
                     
-                isMoreCorrespondences = correspondencesWithDialogs.Count > batchSize;
+                isMoreCorrespondences = correspondencesWindow.Count > windowSize;
                 if (isMoreCorrespondences)
                 {
-                    correspondencesWithDialogs = correspondencesWithDialogs.Take(batchSize).ToList();
+                    correspondencesWindow = correspondencesWindow.Take(windowSize).ToList();
                 }
 
-                if (correspondencesWithDialogs.Count > 0)
+                if (correspondencesWindow.Count > 0)
                 {
-                    var last = correspondencesWithDialogs[^1];
+                    var last = correspondencesWindow[^1];
                     lastCreated = last.Created;
                     lastId = last.Id;
                 }
                 
-                logger.LogInformation("Found {count} correspondences with dialogs in this batch (IsMore: {isMore})", 
-                    correspondencesWithDialogs.Count, isMoreCorrespondences);
+                var windowIds = correspondencesWindow.Select(c => c.Id).ToList();
+                var purgedCorrespondences = await correspondenceRepository.GetCorrespondencesByIdsWithExternalReferenceAndCurrentStatus(
+                    windowIds,
+                    ReferenceType.DialogportenDialogId,
+                    new List<CorrespondenceStatus> { CorrespondenceStatus.PurgedByAltinn, CorrespondenceStatus.PurgedByRecipient },
+                    cancellationToken);
 
-                foreach (var correspondence in correspondencesWithDialogs)
+                logger.LogInformation(
+                    "Scanned {scanned} correspondences, {candidates} purged correspondences to delete dialogs for (IsMore: {isMore})",
+                    correspondencesWindow.Count,
+                    purgedCorrespondences.Count,
+                    isMoreCorrespondences);
+
+                foreach (var correspondence in purgedCorrespondences)
                 {
                     try
                     {
@@ -94,10 +103,9 @@ public class CleanupOrphanedDialogsHandler(
                     }
                 }
 
-                totalProcessed += correspondencesWithDialogs.Count;
+                totalProcessed += purgedCorrespondences.Count;
 
-                // If no correspondences were found in this batch, all purged correspondences have been processed
-                if (correspondencesWithDialogs.Count == 0)
+                if (correspondencesWindow.Count == 0)
                 {
                     isMoreCorrespondences = false;
                 }
@@ -147,4 +155,4 @@ public class CleanupOrphanedDialogsHandler(
         logger.LogInformation("Dialog {dialogId} already deleted in Dialogporten for correspondence {correspondenceId}", dialogId, correspondence.Id);
         return (false, true);
     }
-} 
+}
