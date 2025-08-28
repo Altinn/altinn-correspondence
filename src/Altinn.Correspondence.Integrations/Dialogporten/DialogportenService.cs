@@ -9,9 +9,7 @@ using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Json;
-using System.Threading;
 using UUIDNext;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
@@ -501,7 +499,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var response = await _httpClient.PutAsJsonAsync(url, request, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()} when setting archived system label for dialogid {dialogId} for correpondence {correspondenceId}");
         }
     }
         #endregion

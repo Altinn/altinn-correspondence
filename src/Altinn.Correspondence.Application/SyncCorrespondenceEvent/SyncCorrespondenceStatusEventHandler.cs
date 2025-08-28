@@ -126,6 +126,10 @@ public class SyncCorrespondenceStatusEventHandler(
                         {
                             await syncCorrespondenceStatusHelper.ReportArchivedToDialogporten(request.CorrespondenceId, eventToExecute.PartyUuid, cancellationToken);
                         }
+                        else if (eventToExecute.Status == CorrespondenceStatus.Read)
+                        {
+                            syncCorrespondenceStatusHelper.ReportReadToDialogporten(request.CorrespondenceId, eventToExecute.StatusChanged);
+                        }
                     }
                 }
 
