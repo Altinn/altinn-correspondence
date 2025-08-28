@@ -188,26 +188,23 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         }
 
         [Fact]
-        public async Task GetCorrespondencesByIdsWithReferenceAndCurrentStatus_UsesLatestByStatusChangedThenId()
+        public async Task GetCorrespondencesByIdsWithReferenceAndCurrentStatus_UsesLatestByStatusChangedThenStatusId()
         {
             await using var context = _fixture.CreateDbContext();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
-
+            var idA = new Guid("00000000-0000-0000-0000-000000000001");
+            var idB = new Guid("00000000-0000-0000-0000-000000000002");
+            var idC = new Guid("00000000-0000-0000-0000-000000000003");
             var t = new DateTime(2003, 2, 2, 0, 0, 0);
 
             var entity = new CorrespondenceEntityBuilder()
                 .WithCreated(t)
                 .WithRequestedPublishTime(t)
                 .WithExternalReference(ReferenceType.DialogportenDialogId, "dD")
+                .WithStatus(CorrespondenceStatus.Archived, t.AddMinutes(1), idA)
+                .WithStatus(CorrespondenceStatus.PurgedByRecipient, t.AddMinutes(1), idB)
+                .WithStatus(CorrespondenceStatus.Initialized, t, idC)
                 .Build();
-
-            var s1 = new CorrespondenceStatusEntity { Status = CorrespondenceStatus.Archived, StatusChanged = t.AddMinutes(1) };
-            var s2 = new CorrespondenceStatusEntity { Status = CorrespondenceStatus.PurgedByRecipient, StatusChanged = t.AddMinutes(1) };
-            if (s2.Id.CompareTo(s1.Id) < 0)
-            {
-                s2 = new CorrespondenceStatusEntity { Status = CorrespondenceStatus.PurgedByRecipient, StatusChanged = t.AddMinutes(1) };
-            }
-            entity.Statuses.AddRange([s1, s2]);
 
             context.Correspondences.Add(entity);
             await context.SaveChangesAsync();
