@@ -212,24 +212,24 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 [
                     new MigrateCorrespondenceStatusEventExt()
                     {
-                        Status = CorrespondenceStatusExt.Initialized,
+                        Status = MigrateCorrespondenceStatusExt.Initialized,
                         StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
                         EventUserPartyUuid = Guid.NewGuid()
                     }, new MigrateCorrespondenceStatusEventExt()
                     {
-                        Status = CorrespondenceStatusExt.Published,
+                        Status = MigrateCorrespondenceStatusExt.Published,
                         StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
                         EventUserPartyUuid = Guid.NewGuid()
                     },
                     new MigrateCorrespondenceStatusEventExt()
                     {
-                        Status = CorrespondenceStatusExt.Read,
+                        Status = MigrateCorrespondenceStatusExt.Read,
                         StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6)),
                         EventUserPartyUuid = Guid.NewGuid()
                     },
                     new MigrateCorrespondenceStatusEventExt()
                     {
-                        Status = CorrespondenceStatusExt.Archived,
+                        Status = MigrateCorrespondenceStatusExt.Archived,
                         StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 7)),
                         EventUserPartyUuid = Guid.NewGuid()
                     }

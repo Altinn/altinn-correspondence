@@ -41,6 +41,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<CorrespondenceForwardingEventEntity> CorrespondenceForwardingEvents { get; set; }
     public DbSet<CorrespondenceNotificationEntity> CorrespondenceNotifications { get; set; }
     public DbSet<CorrespondenceReplyOptionEntity> CorrespondenceReplyOptions { get; set; }
+    public DbSet<CorrespondenceDeleteEventEntity> CorrespondenceDeleteEvents { get; set; }
     public DbSet<ExternalReferenceEntity> ExternalReferences { get; set; }
     public DbSet<NotificationTemplateEntity> NotificationTemplates { get; set; }
     public DbSet<LegacyPartyEntity> LegacyParties { get; set; }

@@ -60,5 +60,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         {
             return Task.CompletedTask;
         }
+
+        public Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string enduserId, List<string> systemLabelsToAdd, List<string> systemLabelsToRemove)
+        {
+            return Task.CompletedTask;
+        }
     }
 }

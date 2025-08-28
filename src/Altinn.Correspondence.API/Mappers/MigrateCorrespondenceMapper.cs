@@ -5,6 +5,7 @@ using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Microsoft.AspNetCore.Http.HttpResults;
+using System.Collections.Generic;
 
 namespace Altinn.Correspondence.Mappers;
 
@@ -15,7 +16,7 @@ internal static class MigrateCorrespondenceMapper
         var correspondence = new CorrespondenceEntity
         {
             Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId,
-            Statuses = [.. migrateCorrespondenceExt.EventHistory.Select(MapCorrespondenceStatusEventToInternal)],
+            Statuses = MapMigrateCorrespondenceStatusesExtToInternal(migrateCorrespondenceExt.EventHistory),
             Notifications = [.. migrateCorrespondenceExt.NotificationHistory.Select(MapNotificationToInternal)],
             ForwardingEvents = [.. migrateCorrespondenceExt.ForwardingHistory.Select(MapForwardingEventToInternal)],
             SendersReference = migrateCorrespondenceExt.CorrespondenceData.Correspondence.SendersReference,
@@ -54,6 +55,15 @@ internal static class MigrateCorrespondenceMapper
         };
     }
 
+    private static List<CorrespondenceStatusEntity> MapMigrateCorrespondenceStatusesExtToInternal(List<MigrateCorrespondenceStatusEventExt> eventHistory)
+    {
+        // Filter out soft delete and restore events, these are represented as deletion events in the internal model, and should not be added as status events
+        return eventHistory
+            .Where(e => e.Status is not (MigrateCorrespondenceStatusExt.SoftDeletedByRecipient or MigrateCorrespondenceStatusExt.RestoredByRecipient))
+            .Select(MapCorrespondenceStatusEventToInternal)
+            .ToList();
+    }
+
     internal static CorrespondenceMigrationStatusExt MapCorrespondenceMigrationStatusToExternal(MigrateCorrespondenceResponse migrateCorrespondenceResponse)
     {
         return new CorrespondenceMigrationStatusExt()
@@ -87,11 +97,52 @@ internal static class MigrateCorrespondenceMapper
 
     internal static SyncCorrespondenceStatusEventRequest MapSyncStatusEventToInternal(SyncCorrespondenceStatusEventRequestExt requestExt)
     {
-        return new SyncCorrespondenceStatusEventRequest()
+        SyncCorrespondenceStatusEventRequest requestInt = new SyncCorrespondenceStatusEventRequest
         {
             CorrespondenceId = requestExt.CorrespondenceId,
-            SyncedEvents = [.. requestExt.SyncedEvents.Select(MapCorrespondenceStatusEventToInternal)]
         };
+
+        foreach(var syncedEvent in requestExt.SyncedEvents)
+        {
+            if(syncedEvent.Status == MigrateCorrespondenceStatusExt.SoftDeletedByRecipient 
+                || syncedEvent.Status == MigrateCorrespondenceStatusExt.RestoredByRecipient
+                || syncedEvent.Status == MigrateCorrespondenceStatusExt.PurgedByRecipient
+                || syncedEvent.Status == MigrateCorrespondenceStatusExt.PurgedByAltinn)
+            {
+                if(requestInt.SyncedDeleteEvents == null)
+                {
+                    requestInt.SyncedDeleteEvents = new List<CorrespondenceDeleteEventEntity>();
+                }
+                requestInt.SyncedDeleteEvents.Add(MapCorrespondenceStatusEventToDeleteEvent(syncedEvent));
+            }
+            else
+            {
+                if (requestInt.SyncedEvents == null)
+                {
+                    requestInt.SyncedEvents = new List<CorrespondenceStatusEntity>();
+                }
+                requestInt.SyncedEvents.Add(MapCorrespondenceStatusEventToInternal(syncedEvent));
+            }
+        }
+
+        return requestInt;
+    }
+
+    private static CorrespondenceDeleteEventType MapMigrateCorrespondenceStatusExtToDeleteEventType(MigrateCorrespondenceStatusExt status)
+    {
+        switch (status)
+        {
+            case MigrateCorrespondenceStatusExt.SoftDeletedByRecipient:
+                return CorrespondenceDeleteEventType.SoftDeletedByRecipient;
+            case MigrateCorrespondenceStatusExt.RestoredByRecipient:
+                return CorrespondenceDeleteEventType.RestoredByRecipient;
+            case MigrateCorrespondenceStatusExt.PurgedByRecipient:
+                return CorrespondenceDeleteEventType.HardDeletedByRecipient;
+            case MigrateCorrespondenceStatusExt.PurgedByAltinn:
+                return CorrespondenceDeleteEventType.HardDeletedByServiceOwner;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(status), $"Not expected status value: {status}");
+        }
     }
 
     internal static SyncCorrespondenceForwardingEventRequest MapSyncForwardingEventToInternal(SyncCorrespondenceForwardingEventRequestExt requestExt)
@@ -119,6 +170,16 @@ internal static class MigrateCorrespondenceMapper
             Status = (CorrespondenceStatus)statusEventExt.Status,
             StatusChanged = statusEventExt.StatusChanged,
             StatusText = statusEventExt.StatusText ?? statusEventExt.Status.ToString(),
+            PartyUuid = statusEventExt.EventUserPartyUuid
+        };
+    }
+
+    private static CorrespondenceDeleteEventEntity MapCorrespondenceStatusEventToDeleteEvent(MigrateCorrespondenceStatusEventExt statusEventExt)
+    {
+        return new CorrespondenceDeleteEventEntity
+        {
+            EventType = MapMigrateCorrespondenceStatusExtToDeleteEventType(statusEventExt.Status),
+            EventOccurred = statusEventExt.StatusChanged,
             PartyUuid = statusEventExt.EventUserPartyUuid
         };
     }

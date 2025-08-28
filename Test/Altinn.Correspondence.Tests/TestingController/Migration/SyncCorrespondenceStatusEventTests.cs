@@ -30,7 +30,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
             .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no",NotificationChannelExt.Email, new DateTime(2024,1,7),false)
             .Build();
         
@@ -45,14 +45,14 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             {
                 new MigrateCorrespondenceStatusEventExt
                 {
-                    Status = CorrespondenceStatusExt.Read,
+                    Status = MigrateCorrespondenceStatusExt.Read,
                     StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6)),
                     EventUserPartyUuid = _secondUserPartyUuid,
                     EventUserUuid = _secondUserUuid
                 },
                 new MigrateCorrespondenceStatusEventExt
                 {
-                    Status = CorrespondenceStatusExt.Confirmed,
+                    Status = MigrateCorrespondenceStatusExt.Confirmed,
                     StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 7)),
                     EventUserPartyUuid = _secondUserPartyUuid,
                     EventUserUuid = _secondUserUuid
@@ -80,7 +80,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
             .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6, 0, 0, 0))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6, 0, 0, 0))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
             .Build();
 
@@ -95,7 +95,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             {
                 new MigrateCorrespondenceStatusEventExt
                 {
-                    Status = CorrespondenceStatusExt.Read,
+                    Status = MigrateCorrespondenceStatusExt.Read,
                     StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6, 0, 0, 0, 250)), // within 1 second of the original event
                     EventUserPartyUuid = _defaultUserPartyUuid,
                     EventUserUuid = _defaultUserUuid
@@ -122,7 +122,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
             .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
             .Build();
 
@@ -137,7 +137,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             {
                 new MigrateCorrespondenceStatusEventExt
                 {
-                    Status = CorrespondenceStatusExt.Archived,
+                    Status = MigrateCorrespondenceStatusExt.Archived,
                     StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 8)),
                     EventUserPartyUuid = _defaultUserPartyUuid,
                     EventUserUuid = _defaultUserUuid
@@ -164,7 +164,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
             .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
             .Build();
 
@@ -179,7 +179,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             {
                 new MigrateCorrespondenceStatusEventExt
                 {
-                    Status = CorrespondenceStatusExt.PurgedByRecipient,
+                    Status = MigrateCorrespondenceStatusExt.PurgedByRecipient,
                     StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 8)),
                     EventUserPartyUuid = _defaultUserPartyUuid,
                     EventUserUuid = _defaultUserUuid
@@ -204,7 +204,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
             .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
             .Build();
 
@@ -219,7 +219,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             {
                 new MigrateCorrespondenceStatusEventExt
                 {
-                    Status = CorrespondenceStatusExt.PurgedByAltinn,
+                    Status = MigrateCorrespondenceStatusExt.PurgedByAltinn,
                     StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 8)),
                     EventUserPartyUuid = _defaultUserPartyUuid,
                     EventUserUuid = _defaultUserUuid
@@ -244,8 +244,8 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
             .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
-            .WithStatusEvent(CorrespondenceStatusExt.PurgedByRecipient, new DateTime(2024, 1, 8))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.PurgedByRecipient, new DateTime(2024, 1, 8))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
             .Build();
 
@@ -260,7 +260,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             {
                 new MigrateCorrespondenceStatusEventExt
                 {
-                    Status = CorrespondenceStatusExt.PurgedByAltinn,
+                    Status = MigrateCorrespondenceStatusExt.PurgedByAltinn,
                     StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 8)),
                     EventUserPartyUuid = _defaultUserPartyUuid,
                     EventUserUuid = _defaultUserUuid
@@ -285,7 +285,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
             .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
             .Build();
 
@@ -324,16 +324,14 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
 
     private void AssertStatusEventSet(MigrateCorrespondenceStatusEventExt expected, CorrespondenceDetailsExt detailsExt)
     {
-        var statusEvent = detailsExt.StatusHistory.FirstOrDefault(x => x.Status == expected.Status &&
+        var statusEvent = detailsExt.StatusHistory.FirstOrDefault(x => x.Status == (CorrespondenceStatusExt)expected.Status &&
                                                                       x.StatusChanged.Equals(expected.StatusChanged));
-        Assert.NotNull(statusEvent);
-        Assert.Equal(expected.Status, statusEvent.Status);
-        Assert.Equal(expected.StatusChanged, statusEvent.StatusChanged);        
+        Assert.NotNull(statusEvent);      
     }
 
     private void AssertStatusEventNotSet(MigrateCorrespondenceStatusEventExt expected, CorrespondenceDetailsExt detailsExt)
     {
-        var statusEvent = detailsExt.StatusHistory.FirstOrDefault(x => x.Status == expected.Status &&
+        var statusEvent = detailsExt.StatusHistory.FirstOrDefault(x => x.Status == (CorrespondenceStatusExt)expected.Status &&
                                                                       x.StatusChanged.Equals(expected.StatusChanged));
         Assert.Null(statusEvent);
     }

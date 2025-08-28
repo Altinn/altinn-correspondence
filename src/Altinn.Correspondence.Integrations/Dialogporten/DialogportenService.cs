@@ -504,5 +504,10 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         }
     }
-        #endregion
+
+    public Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string enduserId, List<string> systemLabelsToAdd, List<string> systemLabelsToRemove)
+    {
+        throw new NotImplementedException();
+    }
+    #endregion
 }

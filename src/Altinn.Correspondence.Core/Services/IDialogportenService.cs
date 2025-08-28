@@ -15,4 +15,5 @@ public interface IDialogportenService
     Task<bool> TrySoftDeleteDialog(string dialogId);
     Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType, string actorName, DateTimeOffset activityTimestamp);
     Task SetArchivedSystemLabelOnDialog(Guid correspondenceId, string enduserId);
+    Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string enduserId, List<string>? systemLabelsToAdd, List<string>? systemLabelsToRemove);
 }
