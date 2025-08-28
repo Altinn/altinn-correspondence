@@ -6,7 +6,6 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
-using static Dapper.SqlMapper;
 
 namespace Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 public class SyncCorrespondenceStatusEventHelper(    
@@ -89,6 +88,11 @@ public class SyncCorrespondenceStatusEventHelper(
         }
 
         backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.SetArchivedSystemLabelOnDialog(correspondenceId, GetPrefixedIdentifierForParty(endUserParty)));
+    }
+
+    public void ReportReadToDialogporten(Guid correspondenceId, DateTimeOffset operationTimestamp)
+    {
+        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondenceId, DialogportenActorType.Recipient, operationTimestamp));
     }
 
     private string GetPrefixedIdentifierForParty(Party party)

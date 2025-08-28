@@ -21,7 +21,8 @@ public class InitializeAttachmentHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     ILogger<InitializeAttachmentHandler> logger,
     IBackgroundJobClient backgroundJobClient,
-    AttachmentHelper attachmentHelper) : IHandler<InitializeAttachmentRequest, Guid>
+    AttachmentHelper attachmentHelper,
+    ServiceOwnerHelper serviceOwnerHelper) : IHandler<InitializeAttachmentRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -73,9 +74,11 @@ public class InitializeAttachmentHandler(
             return attachmentNameError;
         }
         
-        // Set the Sender from the service owner organization number
-        var sender = serviceOwnerOrgNumber.WithoutPrefix().WithUrnPrefix();
+        // Set the Sender, ServiceOwnerId, and ServiceOwnerMigrationStatus from the service owner organization number
+        var (sender, serviceOwnerId, serviceOwnerMigrationStatus) = await serviceOwnerHelper.GetSenderServiceOwnerIdAndMigrationStatusAsync(serviceOwnerOrgNumber, cancellationToken);
         attachment.Sender = sender;
+        attachment.ServiceOwnerId = serviceOwnerId;
+        attachment.ServiceOwnerMigrationStatus = serviceOwnerMigrationStatus;
         
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
