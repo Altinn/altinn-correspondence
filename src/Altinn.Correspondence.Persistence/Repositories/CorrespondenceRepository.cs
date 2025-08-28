@@ -225,36 +225,36 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return await query.ToListAsync(cancellationToken);
         }
 
-public async Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndCurrentStatus(
-    List<Guid> correspondenceIds,
-    ReferenceType referenceType,
-    List<CorrespondenceStatus> currentStatuses,
-    CancellationToken cancellationToken)
-{
-    if (correspondenceIds == null || correspondenceIds.Count == 0)
-    {
-        return new List<CorrespondenceEntity>();
-    }
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndCurrentStatus(
+            List<Guid> correspondenceIds,
+            ReferenceType referenceType,
+            List<CorrespondenceStatus> currentStatuses,
+            CancellationToken cancellationToken)
+        {
+            if (correspondenceIds == null || correspondenceIds.Count == 0)
+            {
+                return new List<CorrespondenceEntity>();
+            }
 
-    if (currentStatuses == null || currentStatuses.Count == 0)
-    {
-        return new List<CorrespondenceEntity>();
-    }
+            if (currentStatuses == null || currentStatuses.Count == 0)
+            {
+                return new List<CorrespondenceEntity>();
+            }
 
-    return await _context.Correspondences
-        .AsNoTracking()
-        .AsSplitQuery()
-        .Where(c => correspondenceIds.Contains(c.Id))
-        .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == referenceType))
-        .Where(c => currentStatuses.Contains(
-            c.Statuses
-                .OrderByDescending(s => s.StatusChanged)
-                .ThenByDescending(s => s.Id)
-                .Select(s => s.Status)
-                .FirstOrDefault()))
-        .Include(c => c.ExternalReferences)
-        .Include(c => c.Statuses)
-        .ToListAsync(cancellationToken);
-}
+            return await _context.Correspondences
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Where(c => correspondenceIds.Contains(c.Id))
+                .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == referenceType))
+                .Where(c => currentStatuses.Contains(
+                    c.Statuses
+                        .OrderByDescending(s => s.StatusChanged)
+                        .ThenByDescending(s => s.Id)
+                        .Select(s => s.Status)
+                        .FirstOrDefault()))
+                .Include(c => c.ExternalReferences)
+                .Include(c => c.Statuses)
+                .ToListAsync(cancellationToken);
+        }
     }
 }
