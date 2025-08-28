@@ -164,6 +164,11 @@ public class SyncCorrespondenceStatusEventHelper(
         backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.SetArchivedSystemLabelOnDialog(correspondenceId, GetPrefixedIdentifierForParty(endUserParty)));
     }
 
+    public void ReportReadToDialogporten(Guid correspondenceId, DateTimeOffset operationTimestamp)
+    {
+        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondenceId, DialogportenActorType.Recipient, operationTimestamp));
+    }
+
     private string GetPrefixedIdentifierForParty(Party party)
     {
         if(party.PartyTypeName == PartyType.Organization)
