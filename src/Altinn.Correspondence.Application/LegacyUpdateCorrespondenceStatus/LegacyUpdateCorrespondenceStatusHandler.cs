@@ -69,7 +69,7 @@ public class LegacyUpdateCorrespondenceStatusHandler(
             {
                 CorrespondenceId = correspondence.Id,
                 Status = request.Status,
-                StatusChanged = DateTimeOffset.UtcNow,
+                StatusChanged = operationTimestamp,
                 StatusText = request.Status.ToString(),
                 PartyUuid = partyUuid
             }, cancellationToken);
