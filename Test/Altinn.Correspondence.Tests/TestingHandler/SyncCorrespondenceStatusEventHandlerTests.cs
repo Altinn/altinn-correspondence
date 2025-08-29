@@ -862,7 +862,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private void VerifyDialogportenServiceCreateInformationActivityEnqueued(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType dpTextType, string recipient)
         {
             _backgroundJobClientMock.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateInformationActivity) && (Guid)job.Args[0] == correspondenceId && (DialogportenActorType)job.Args[1] == actorType && (DialogportenTextType)job.Args[2] == dpTextType),
+                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateConfirmedActivity) && (Guid)job.Args[0] == correspondenceId && (DialogportenActorType)job.Args[1] == actorType),
                 It.IsAny<EnqueuedState>()));
         }
 
