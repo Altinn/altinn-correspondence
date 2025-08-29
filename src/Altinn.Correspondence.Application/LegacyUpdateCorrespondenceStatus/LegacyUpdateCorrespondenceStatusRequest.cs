@@ -1,8 +1,8 @@
 using Altinn.Correspondence.Core.Models.Enums;
 
-namespace Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
+namespace Altinn.Correspondence.Application.LegacyUpdateCorrespondenceStatus;
 
-public class UpdateCorrespondenceStatusRequest
+public class LegacyUpdateCorrespondenceStatusRequest
 {
     public required Guid CorrespondenceId { get; set; }
     public required CorrespondenceStatus Status { get; set; }

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Altinn.Correspondence.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250827224124_AddServiceOwnerIdsCorrespondenceAndAttachment")]
+    partial class AddServiceOwnerIdsCorrespondenceAndAttachment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -184,36 +187,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("CorrespondenceContents", "correspondence");
-                });
-
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.CorrespondenceDeleteEventEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CorrespondenceId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("EventOccurred")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("EventType")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("PartyUuid")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("SyncedFromAltinn2")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CorrespondenceId");
-
-                    b.HasIndex("EventType");
-
-                    b.ToTable("CorrespondenceDeleteEvents", "correspondence");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.CorrespondenceEntity", b =>
@@ -676,17 +649,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasOne("Altinn.Correspondence.Core.Models.Entities.CorrespondenceEntity", "Correspondence")
                         .WithOne("Content")
                         .HasForeignKey("Altinn.Correspondence.Core.Models.Entities.CorrespondenceContentEntity", "CorrespondenceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Correspondence");
-                });
-
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.CorrespondenceDeleteEventEntity", b =>
-                {
-                    b.HasOne("Altinn.Correspondence.Core.Models.Entities.CorrespondenceEntity", "Correspondence")
-                        .WithMany()
-                        .HasForeignKey("CorrespondenceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

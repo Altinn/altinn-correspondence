@@ -1,6 +1,5 @@
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
-using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -30,8 +29,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<IAltinnRegisterService> _altinnRegisterServiceMock;
         private readonly Mock<ILogger<SyncCorrespondenceStatusEventHandler>> _loggerMock;
         private readonly SyncCorrespondenceStatusEventHandler _handler;
-        private readonly UpdateCorrespondenceStatusHelper _updateHelper;
-        private readonly SyncCorrespondenceStatusEventHelper _syncHelper;
         private readonly PurgeCorrespondenceHelper _purgeHelper;
 
         public SyncCorrespondenceStatusEventHandlerTests()
@@ -45,7 +42,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _storageRepositoryMock = new Mock<IStorageRepository>();
             _altinnRegisterServiceMock = new Mock<IAltinnRegisterService>();
             _dialogPortenServiceMock = new Mock<IDialogportenService>();
-            _updateHelper = new UpdateCorrespondenceStatusHelper(_backgroundJobClientMock.Object, _correspondenceStatusRepositoryMock.Object);
+            _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
             _purgeHelper = new PurgeCorrespondenceHelper(
                 _attachmentRepositoryMock.Object,
                 _storageRepositoryMock.Object,
@@ -54,20 +51,15 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _correspondenceStatusRepositoryMock.Object,
                 _dialogPortenServiceMock.Object,
                 _backgroundJobClientMock.Object);
-            _syncHelper = new SyncCorrespondenceStatusEventHelper(
-                    _correspondenceStatusRepositoryMock.Object,
-                    _correspondenceDeleteEventRepositoryMock.Object,
-                    _dialogPortenServiceMock.Object,
-                    _altinnRegisterServiceMock.Object,
-                    _backgroundJobClientMock.Object,
-                    _purgeHelper);
             _loggerMock = new Mock<ILogger<SyncCorrespondenceStatusEventHandler>>();
 
             _handler = new SyncCorrespondenceStatusEventHandler(
                 _correspondenceRepositoryMock.Object,
+                _correspondenceStatusRepositoryMock.Object,
                 _correspondenceDeleteEventRepositoryMock.Object,
-                _updateHelper,                
-                _syncHelper,
+                _altinnRegisterServiceMock.Object,
+                _purgeHelper,
+                _backgroundJobClientMock.Object,
                 _loggerMock.Object);
         }
 
@@ -504,7 +496,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             VerifyDialogportenServiceCreateInformationActivityEnqueued(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondenceConfirmed, recipient);
             VerifyDialogportenServicePatchCorrespondenceDialogToConfirmedEnqueued(correspondenceId);
             VerifyDialogportenServiceCreateOpenedActivityEnqueued(correspondenceId);
-
+          
             // Should not trigger any additional Dialogporten changes or background jobs
             _backgroundJobClientMock.VerifyNoOtherCalls();
             _dialogPortenServiceMock.VerifyNoOtherCalls();
@@ -1459,7 +1451,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private void VerifyDialogportenServiceCreateInformationActivityEnqueued(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType dpTextType, string recipient)
         {
             _backgroundJobClientMock.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateInformationActivity) && (Guid)job.Args[0] == correspondenceId && (DialogportenActorType)job.Args[1] == actorType && (DialogportenTextType)job.Args[2] == dpTextType),
+                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateConfirmedActivity) && (Guid)job.Args[0] == correspondenceId && (DialogportenActorType)job.Args[1] == actorType),
+                It.IsAny<EnqueuedState>()));
+        }
+
+        private void VerifyDialogportenServiceCreateConfirmedActivityEnqueued(Guid correspondenceId, DialogportenActorType actorType, string recipient)
+        {
+            _backgroundJobClientMock.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateConfirmedActivity) && (Guid)job.Args[0] == correspondenceId && (DialogportenActorType)job.Args[1] == actorType),
                 It.IsAny<EnqueuedState>()));
         }
 

@@ -28,6 +28,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.CompletedTask;
         }
 
+        public Task CreateConfirmedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp)
+        {
+            return Task.CompletedTask;
+        }
+
         public Task PurgeCorrespondenceDialog(Guid correspondenceId)
         {
             return Task.CompletedTask;
