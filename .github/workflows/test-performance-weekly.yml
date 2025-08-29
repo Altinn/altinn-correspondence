@@ -12,7 +12,7 @@ permissions:
 run-name: "Weekly Performance ${{ github.ref_name }} #${{ github.run_number }} ${{ github.sha }}"
 
 jobs:
-  create-and-upload-20-15m-1:
+  create-and-upload_20-15m-1:
     uses: ./.github/workflows/test-performance.yml
     secrets: inherit
     with:
@@ -26,8 +26,8 @@ jobs:
       abortOnFail: false
       testSuitePath: 'Test/Altinn.Correspondence.LoadTests/correspondence/create-and-upload-correspondence.js'
 
-  get-correspondence-20-15m-1:
-    needs: "create-and-upload-20-15m-1"
+  get-correspondence_20-15m-1:
+    needs: "create-and-upload_20-15m-1"
     uses: ./.github/workflows/test-performance.yml
     secrets: inherit
     with:
