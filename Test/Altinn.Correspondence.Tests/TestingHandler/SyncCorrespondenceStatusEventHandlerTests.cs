@@ -13,6 +13,7 @@ using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
@@ -654,12 +655,12 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceDeleteEventRepositoryMock.Verify(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceDeleteEventRepositoryMock.VerifyNoOtherCalls();
-
+            
             // Verify background job for Altinn Events
             VerifyAltinnEventEnqueued(correspondenceId, AltinnEventType.CorrespondencePurged, sender);
             // Verify background jobs Dialogporten activities
             VerifyDialogportenServiceCreatePurgedActivityEnqueued(correspondenceId,DialogportenActorType.Recipient, "mottaker", new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)));
-            // TODO: fix soft delete dialog VerifyDialogportenServiceSoftDeleteDialogEnqueued(It.IsAny<string>());
+            VerifyDialogportenServiceSoftDeleteDialogEnqueued("dialog-id-123");
             // Should not trigger any additional Dialogporten changes or background jobs
             _backgroundJobClientMock.VerifyNoOtherCalls();
             _dialogPortenServiceMock.VerifyNoOtherCalls();
@@ -1524,8 +1525,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private void VerifyDialogportenServiceSoftDeleteDialogEnqueued(string dialogId)
         {
             _backgroundJobClientMock.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.SoftDeleteDialog) && job.Args[0] == dialogId),
-                It.IsAny<EnqueuedState>()));
+                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.SoftDeleteDialog) && (string)job.Args[0] == dialogId),
+                It.IsAny<EnqueuedState>()), Times.Once);
         }
     }
 } 

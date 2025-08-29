@@ -28,6 +28,9 @@ public class SyncCorrespondenceStatusEventHandler(
     {
         int numSyncedEvents = request.SyncedEvents?.Count ?? 0;
         int numSyncedDeletes = request.SyncedDeleteEvents?.Count ?? 0;
+        
+        var statusEventsToExecute = new List<CorrespondenceStatusEntity>();
+        var deletionEventsToExecute = new List<CorrespondenceDeleteEventEntity>();
 
         logger.LogInformation("Processing status Sync request for correspondence {CorrespondenceId} with {numSyncedEvents} # status events and {numSyncedDeletes} # delete events", request.CorrespondenceId, numSyncedEvents, numSyncedDeletes);
 
@@ -70,14 +73,12 @@ public class SyncCorrespondenceStatusEventHandler(
             if (eventsFilteredForCorrectStatus.Count == 0)
             {
                 logger.LogWarning("None of the Status Events for {CorrespondenceId} has been deemed valid and no sync will be performed.", request.CorrespondenceId);
-                return request.CorrespondenceId;
             }
 
             // Remove possible duplicates from the request - This is because Altinn 2 uses two sets of data sources for status events, and we need to ensure that we only sync unique events.
             var eventsFilteredForRequestDuplicates = FilterDuplicateStatusEvents(eventsFilteredForCorrectStatus);
 
             // Remove duplicate status events that are already present in the correspondence
-            var eventsFilteredForDuplicates = new List<CorrespondenceStatusEntity>();
             foreach (var syncedEvent in eventsFilteredForRequestDuplicates)
             {
                 if (correspondence.Statuses.Any(
@@ -91,70 +92,20 @@ public class SyncCorrespondenceStatusEventHandler(
                 }
                 else
                 {
-                    eventsFilteredForDuplicates.Add(syncedEvent);
+                    statusEventsToExecute.Add(syncedEvent);
                 }
             }
-            if (eventsFilteredForDuplicates.Count == 0)
+            if (statusEventsToExecute.Count == 0)
             {
                 logger.LogWarning("None of the Status Events for {CorrespondenceId} were unique, and no sync will be performed.", request.CorrespondenceId);
-                return request.CorrespondenceId;
-            }
-
-            logger.LogInformation("Executing status sync transaction for correspondence for {CorrespondenceId} with {SyncedEventsCount} # of status events", request.CorrespondenceId, eventsFilteredForDuplicates.Count);
-            if (eventsFilteredForDuplicates.Count > 0)
-            {
-                await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
-                {
-                    foreach (var entity in eventsFilteredForDuplicates)
-                    {
-                        entity.CorrespondenceId = correspondence.Id;
-                        entity.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
-                        entity.StatusText = $"Synced event {entity.Status} from Altinn 2";
-                    }
-
-                    await correspondenceStatusRepository.AddCorrespondenceStatuses(eventsFilteredForDuplicates, cancellationToken);
-
-                    if (correspondence.IsMigrating == false)
-                {
-                    foreach (var eventToExecute in eventsFilteredForDuplicates)
-                    {
-                        if (eventToExecute.Status == CorrespondenceStatus.Confirmed)
-                        {
-                            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateConfirmedActivity(request.CorrespondenceId, DialogportenActorType.Recipient, eventToExecute.StatusChanged)); // Set the operationtime to the time the status was changed in Altinn 2;
-                            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(request.CorrespondenceId));
-                            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-                        }
-                        else if (eventToExecute.Status == CorrespondenceStatus.Read)
-                        {
-                            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));                            
-                            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, eventToExecute.StatusChanged));
-                        }
-                        else if (eventToExecute.Status == CorrespondenceStatus.Archived)
-                        {
-                                var endUserParty = await altinnRegisterService.LookUpPartyByPartyUuid(eventToExecute.PartyUuid, cancellationToken);
-                                if (endUserParty is null)
-                                {
-                                    throw new ArgumentException($"Party with UUID {eventToExecute.PartyUuid} not found in Altinn Register - cannot set archived Systemlabel for correspondence {request.CorrespondenceId}.");
-                                }
-
-                                backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(request.CorrespondenceId, GetPrefixedIdentifierForParty(endUserParty), new List<string> { "Archive" }, null)); ;
-                        }
-                    }
-                }
-
-                    return request.CorrespondenceId;
-                }, logger, cancellationToken);
             }
         }
 
-        // Handle deletion events individually
         if (numSyncedDeletes > 0)
         {
             var deletionEventsFilteredForRequestDuplicates = FilterDuplicateDeleteEvents(request.SyncedDeleteEvents);
 
-            var deletionEventsInDatabase = await correspondenceDeleteEventRepository.GetDeleteEventsForCorrespondenceId(request.CorrespondenceId, cancellationToken);
-
-            var deletionEventsFilteredForDuplicates = new List<CorrespondenceDeleteEventEntity>();
+            var deletionEventsInDatabase = await correspondenceDeleteEventRepository.GetDeleteEventsForCorrespondenceId(request.CorrespondenceId, cancellationToken);            
             foreach (var deletionEventToSync in deletionEventsFilteredForRequestDuplicates)
             {
                 if (deletionEventsInDatabase.Any(
@@ -168,33 +119,85 @@ public class SyncCorrespondenceStatusEventHandler(
                 }
                 else
                 {
-                    deletionEventsFilteredForDuplicates.Add(deletionEventToSync);
+                    deletionEventsToExecute.Add(deletionEventToSync);
                 }
             }
 
             // Sort by EventOccurred ascending
-            var sortedDeletionEvents = deletionEventsFilteredForDuplicates
-                .OrderBy(e => e.EventOccurred)
-                .ToList();
+            deletionEventsToExecute = deletionEventsToExecute.OrderBy(e => e.EventOccurred).ToList();
+        }
 
-            foreach (var deletionEvent in sortedDeletionEvents)
+        await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
+        {
+            logger.LogInformation("Executing status sync transaction for correspondence for {CorrespondenceId} with {SyncedEventsCount} # of status events", request.CorrespondenceId, statusEventsToExecute.Count);
+            if (statusEventsToExecute.Count > 0)
             {
-                switch(deletionEvent.EventType)
+                // Log the status events to the database
+                foreach (var entity in statusEventsToExecute)
                 {
-                    case CorrespondenceDeleteEventType.HardDeletedByServiceOwner:
-                    case CorrespondenceDeleteEventType.HardDeletedByRecipient:
-                        await PurgeCorrespondence(correspondence, deletionEvent, cancellationToken);
-                        break;
-                    case CorrespondenceDeleteEventType.SoftDeletedByRecipient:
-                    case CorrespondenceDeleteEventType.RestoredByRecipient:
-                        await SoftDeleteOrRestoreCorrespondence(correspondence, deletionEvent, cancellationToken);
-                        break;
-                    default:
-                        logger.LogWarning("Unknown Deletion Event Type {EventType} for Correspondence {CorrespondenceId}. The event will be ignored.", deletionEvent.EventType, request.CorrespondenceId);
-                        break;
+                    entity.CorrespondenceId = correspondence.Id;
+                    entity.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
+                    entity.StatusText = $"Synced event {entity.Status} from Altinn 2";
+                }
+                await correspondenceStatusRepository.AddCorrespondenceStatuses(statusEventsToExecute, cancellationToken);
+
+                // Events and updates to Dialogporten and EventBus are only relevant for migrated correspondences that have been fully migrated (IsMigrating = false)
+                if (correspondence.IsMigrating == false)
+                {
+                    foreach (var eventToExecute in statusEventsToExecute)
+                    {
+                        switch (eventToExecute.Status)
+                        {
+                            case CorrespondenceStatus.Confirmed:
+                                {
+                                    backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateConfirmedActivity(request.CorrespondenceId, DialogportenActorType.Recipient, eventToExecute.StatusChanged)); // Set the operationtime to the time the status was changed in Altinn 2;
+                                    backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(request.CorrespondenceId));
+                                    backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                                    break;
+                                }
+
+                            case CorrespondenceStatus.Read:
+                                {   
+                                    backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, eventToExecute.StatusChanged));
+                                    backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                                    break;
+                                }
+
+                            case CorrespondenceStatus.Archived:
+                                {
+                                    var endUserParty = await altinnRegisterService.LookUpPartyByPartyUuid(eventToExecute.PartyUuid, cancellationToken) ?? throw new ArgumentException($"Party with UUID {eventToExecute.PartyUuid} not found in Altinn Register - cannot set archived Systemlabel for correspondence {request.CorrespondenceId}.");
+                                    backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(request.CorrespondenceId, GetPrefixedIdentifierForParty(endUserParty), new List<string> { "Archive" }, null)); ;
+                                    break;
+                                }
+                        }
+                    }
                 }
             }
-        }
+
+            // Handle deletion events
+            if (deletionEventsToExecute.Count > 0)
+            {
+                foreach (var deletionEvent in deletionEventsToExecute)
+                {
+                    switch (deletionEvent.EventType)
+                    {
+                        case CorrespondenceDeleteEventType.HardDeletedByServiceOwner:
+                        case CorrespondenceDeleteEventType.HardDeletedByRecipient:
+                            await PurgeCorrespondence(correspondence, deletionEvent, cancellationToken);
+                            break;
+                        case CorrespondenceDeleteEventType.SoftDeletedByRecipient:
+                        case CorrespondenceDeleteEventType.RestoredByRecipient:
+                            await SoftDeleteOrRestoreCorrespondence(correspondence, deletionEvent, cancellationToken);
+                            break;
+                        default:
+                            logger.LogWarning("Unknown Deletion Event Type {EventType} for Correspondence {CorrespondenceId}. The event will be ignored.", deletionEvent.EventType, request.CorrespondenceId);
+                            break;
+                    }
+                }
+            }
+            
+            return request.CorrespondenceId;
+        }, logger, cancellationToken);
 
         logger.LogInformation("Successfully synced request for correspondence {CorrespondenceId} with {numSyncedEvents} # status events and {numSyncedDeletes} # delete events", request.CorrespondenceId, numSyncedEvents, numSyncedDeletes);
         return request.CorrespondenceId;
@@ -301,9 +304,7 @@ public class SyncCorrespondenceStatusEventHandler(
             SyncedFromAltinn2 = syncedTimestamp
         }, cancellationToken);
 
-        deleteEventToSync.CorrespondenceId = correspondence.Id;
-        deleteEventToSync.SyncedFromAltinn2 = syncedTimestamp;
-        await correspondenceDeleteEventRepository.AddDeleteEvent(deleteEventToSync, cancellationToken);
+        StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, cancellationToken).Wait(cancellationToken);
 
         if (correspondence.IsMigrating == false)
         {
@@ -316,10 +317,14 @@ public class SyncCorrespondenceStatusEventHandler(
         {
             var actorType = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner ? DialogportenActorType.Sender : DialogportenActorType.Recipient;
             var actorName = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner ? "avsender" : "mottaker";
-            backgroundJobClient.Enqueue<IDialogportenService>(service => service.CreateCorrespondencePurgedActivity(correspondence.Id, actorType, actorName, deleteEventToSync.EventOccurred));
+            var purgedActivityJob = backgroundJobClient.Enqueue<IDialogportenService>(service => service.CreateCorrespondencePurgedActivity(correspondence.Id, actorType, actorName, deleteEventToSync.EventOccurred));
 
-            // TODO: fix soft delete dialog
-            // backgroundJobClient.ContinueJobWith<IDialogportenService>(reportToDialogportenJob, service => service.SoftDeleteDialog(dialogId));
+            var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+            if (dialogId is null)
+            {   
+                throw new ArgumentException($"No dialog found on correspondence with id {correspondence.Id}");
+            }
+            backgroundJobClient.ContinueJobWith<IDialogportenService>(purgedActivityJob, service => service.SoftDeleteDialog(dialogId));
         }
 
         return correspondence.Id;
@@ -333,14 +338,19 @@ public class SyncCorrespondenceStatusEventHandler(
             throw new ArgumentException($"Cannot perform SoftDeleteOrRestoreCorrespondence for {deleteEventToSync.EventType}");
         }
 
-        deleteEventToSync.CorrespondenceId = correspondence.Id;
-        deleteEventToSync.SyncedFromAltinn2 = syncedTimestamp;
-        await correspondenceDeleteEventRepository.AddDeleteEvent(deleteEventToSync, cancellationToken);
+        await StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, cancellationToken);
 
         if (correspondence.IsMigrating == false)
         {
             await SetSoftDeleteOrRestoreOnDialog(correspondence.Id, deleteEventToSync.PartyUuid, deleteEventToSync.EventType, cancellationToken);
         }
+    }
+
+    private async Task StoreDeleteEventForCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, DateTimeOffset syncedTimestamp, CancellationToken cancellationToken)
+    {
+        deleteEventToSync.CorrespondenceId = correspondence.Id;
+        deleteEventToSync.SyncedFromAltinn2 = syncedTimestamp;
+        await correspondenceDeleteEventRepository.AddDeleteEvent(deleteEventToSync, cancellationToken);
     }
 
     private async Task SetSoftDeleteOrRestoreOnDialog(Guid correspondenceId, Guid partyUuid, CorrespondenceDeleteEventType eventType, CancellationToken cancellationToken)
