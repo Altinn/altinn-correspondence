@@ -59,9 +59,12 @@ internal static class MigrateCorrespondenceMapper
 
     private static List<CorrespondenceStatusEntity> MapMigrateCorrespondenceStatusesExtToInternal(List<MigrateCorrespondenceStatusEventExt> eventHistory)
     {
-        // Filter out soft delete and restore events, these are represented as deletion events in the internal model, and should not be added as status events
+        // Filter out delete events as these are represented as deletion events in the internal model, and should not be added as status events
         return eventHistory
-            .Where(e => e.Status is not (MigrateCorrespondenceStatusExt.SoftDeletedByRecipient or MigrateCorrespondenceStatusExt.RestoredByRecipient))
+            .Where(e => e.Status is not (MigrateCorrespondenceStatusExt.SoftDeletedByRecipient 
+            or MigrateCorrespondenceStatusExt.RestoredByRecipient 
+            or MigrateCorrespondenceStatusExt.PurgedByRecipient 
+            or MigrateCorrespondenceStatusExt.PurgedByAltinn))
             .Select(MapCorrespondenceStatusEventToInternal)
             .ToList();
     }
@@ -104,7 +107,12 @@ internal static class MigrateCorrespondenceMapper
             CorrespondenceId = requestExt.CorrespondenceId,
         };
 
-        foreach(var syncedEvent in requestExt.SyncedEvents)
+        if (requestExt.SyncedEvents == null || requestExt.SyncedEvents.Count == 0)
+        {
+            return requestInt;
+        }
+
+        foreach (var syncedEvent in requestExt.SyncedEvents)
         {
             if(syncedEvent.Status == MigrateCorrespondenceStatusExt.SoftDeletedByRecipient 
                 || syncedEvent.Status == MigrateCorrespondenceStatusExt.RestoredByRecipient

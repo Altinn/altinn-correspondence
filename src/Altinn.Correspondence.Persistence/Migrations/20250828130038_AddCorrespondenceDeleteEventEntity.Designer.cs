@@ -14,7 +14,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20250828130038_AddCorespondenceDeleteEventEntity")]
-    partial class AddCorespondenceDeleteEventEntity
+    partial class AddCorrespondenceDeleteEventEntity
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

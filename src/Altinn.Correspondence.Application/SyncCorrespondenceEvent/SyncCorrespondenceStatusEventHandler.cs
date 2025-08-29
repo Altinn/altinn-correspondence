@@ -127,7 +127,7 @@ public class SyncCorrespondenceStatusEventHandler(
             deletionEventsToExecute = deletionEventsToExecute.OrderBy(e => e.EventOccurred).ToList();
         }
 
-        await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
+        var txResult = await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             logger.LogInformation("Executing status sync transaction for correspondence for {CorrespondenceId} with {SyncedEventsCount} # of status events", request.CorrespondenceId, statusEventsToExecute.Count);
             if (statusEventsToExecute.Count > 0)
@@ -202,8 +202,10 @@ public class SyncCorrespondenceStatusEventHandler(
             return request.CorrespondenceId;
         }, logger, cancellationToken);
 
-        logger.LogInformation("Successfully synced request for correspondence {CorrespondenceId} with {numSyncedEvents} # status events and {numSyncedDeletes} # delete events", request.CorrespondenceId, numSyncedEvents, numSyncedDeletes);
-        return request.CorrespondenceId;
+        txResult.Switch(
+        _ => logger.LogInformation("Successfully synced request for correspondence {CorrespondenceId} with {numSyncedEvents} # status events and {numSyncedDeletes} # delete events", request.CorrespondenceId, numSyncedEvents, numSyncedDeletes),
+            err => logger.LogWarning("Failed to sync request for correspondence {CorrespondenceId}: {Error}", request.CorrespondenceId, err));
+        return txResult;
     }
 
     private static List<CorrespondenceStatusEntity> FilterDuplicateStatusEvents(List<CorrespondenceStatusEntity> input)
@@ -317,7 +319,7 @@ public class SyncCorrespondenceStatusEventHandler(
             SyncedFromAltinn2 = syncedTimestamp
         }, cancellationToken);
 
-        StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, cancellationToken).Wait(cancellationToken);
+        await StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, cancellationToken);
 
         if (correspondence.IsMigrating == false)
         {

@@ -76,7 +76,7 @@ namespace Altinn.Correspondence.API.Models.Enums
 
         /// <summary>
         /// Correspondence has been restored by recipient in Altinn 2
-        /// </summary
+        /// </summary>
         RestoredByRecipient = 14
     }
 }

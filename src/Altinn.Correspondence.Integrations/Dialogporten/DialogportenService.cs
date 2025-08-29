@@ -537,6 +537,17 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         {
             throw new ArgumentException("Either systemLabelsToAdd or systemLabelsToRemove must be provided");
         }
+        if (systemLabelsToAdd != null && systemLabelsToRemove != null)
+        {
+            var overlap = systemLabelsToAdd
+                .Intersect(systemLabelsToRemove, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (overlap.Count > 0)
+            {
+                throw new ArgumentException(
+                    $"Label(s) present in both add and remove: {string.Join(", ", overlap)}");
+            }
+        }
 
         using var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
@@ -556,8 +567,18 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             }
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
+        if (!Guid.TryParse(dialogId, out var dialogGuid))
+        {
+            logger.LogError("DialogId {dialogId} is not a valid GUID for correspondence {correspondenceId}", dialogId, correspondenceId);
+            throw new ArgumentException( $"DialogId {dialogId} is not a valid GUID for correspondence {correspondenceId}");
+        }
+        var request = SetDialogSystemLabelsMapper
+            .CreateSetDialogSystemLabelRequest(
+                dialogGuid,
+                enduserId,
+                systemLabelsToAdd,
+                systemLabelsToRemove);
 
-        var request = SetDialogSystemLabelsMapper.CreateSetDialogSystemLabelRequest(new Guid(dialogId), enduserId, systemLabelsToAdd, systemLabelsToRemove);
         var url = $"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/endusercontext/systemlabels?enduserId={Uri.EscapeDataString(enduserId)}";
         var response = await _httpClient.PutAsJsonAsync(url, request, cancellationToken);
         if (!response.IsSuccessStatusCode)

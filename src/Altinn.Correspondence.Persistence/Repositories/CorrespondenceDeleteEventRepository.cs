@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Persistence.Repositories;
 
-public class CorrespondenceDeleteEventRepository(ApplicationDbContext context, ILogger<ICorrespondenceStatusRepository> logger) : ICorrespondenceDeleteEventRepository
+public class CorrespondenceDeleteEventRepository(ApplicationDbContext context, ILogger<CorrespondenceDeleteEventRepository> logger) : ICorrespondenceDeleteEventRepository
 {
     private readonly ApplicationDbContext _context = context;
 

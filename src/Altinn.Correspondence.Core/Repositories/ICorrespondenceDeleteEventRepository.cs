@@ -4,7 +4,7 @@ namespace Altinn.Correspondence.Core.Repositories
 {
     public interface ICorrespondenceDeleteEventRepository
     {
-        Task<CorrespondenceDeleteEventEntity> AddDeleteEvent(CorrespondenceDeleteEventEntity correspondenceForwardingEventEntity, CancellationToken cancellationToken);
+        Task<CorrespondenceDeleteEventEntity> AddDeleteEvent(CorrespondenceDeleteEventEntity correspondenceDeleteEventEntity, CancellationToken cancellationToken);
 
         Task<List<CorrespondenceDeleteEventEntity>> GetDeleteEventsForCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken);
     }

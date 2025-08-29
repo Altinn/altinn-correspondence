@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.Integrations.Dialogporten.Models;
+using Azure.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,6 +39,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
             if(systemLabelsToAdd != null)
             {
+                request.AddLabels = new List<Models.SystemLabel>();
                 foreach (var systemLabel in systemLabelsToAdd)
                 {
                     if (Enum.TryParse<Models.SystemLabel>(systemLabel, out var parsedLabel))
@@ -52,6 +54,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             }            
             if(systemLabelsToRemove != null)
             {
+                request.RemoveLabels = new List<Models.SystemLabel>();
                 foreach (var systemLabel in systemLabelsToRemove)
                 {
                     if (Enum.TryParse<Models.SystemLabel>(systemLabel, out var parsedLabel))

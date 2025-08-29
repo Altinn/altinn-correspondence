@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class AddCorespondenceDeleteEventEntity : Migration
+    public partial class AddCorrespondenceDeleteEventEntity : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
