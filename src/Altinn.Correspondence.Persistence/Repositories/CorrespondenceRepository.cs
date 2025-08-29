@@ -196,7 +196,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<CorrespondenceEntity>> GetPurgedCorrespondencesWithDialogsAfter(
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesWindowAfter(
             int limit,
             DateTimeOffset? lastCreated,
             Guid? lastId,
@@ -204,11 +204,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
             CancellationToken cancellationToken)
         {
             var query = _context.Correspondences
-                .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId))
-                .WhereCurrentStatusIn(CorrespondenceStatus.PurgedByAltinn, CorrespondenceStatus.PurgedByRecipient)
+                .AsNoTracking()
                 .FilterMigrated(filterMigrated)
-                .Include(c => c.Statuses)
-                .Include(c => c.ExternalReferences)
                 .AsQueryable();
 
             if (lastCreated.HasValue)
@@ -226,6 +223,38 @@ namespace Altinn.Correspondence.Persistence.Repositories
             query = query.OrderBy(c => c.Created).ThenBy(c => c.Id).Take(limit);
 
             return await query.ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndCurrentStatus(
+            List<Guid> correspondenceIds,
+            ReferenceType referenceType,
+            List<CorrespondenceStatus> currentStatuses,
+            CancellationToken cancellationToken)
+        {
+            if (correspondenceIds == null || correspondenceIds.Count == 0)
+            {
+                return new List<CorrespondenceEntity>();
+            }
+
+            if (currentStatuses == null || currentStatuses.Count == 0)
+            {
+                return new List<CorrespondenceEntity>();
+            }
+
+            return await _context.Correspondences
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Where(c => correspondenceIds.Contains(c.Id))
+                .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == referenceType))
+                .Where(c => currentStatuses.Contains(
+                    c.Statuses
+                        .OrderByDescending(s => s.StatusChanged)
+                        .ThenByDescending(s => s.Id)
+                        .Select(s => s.Status)
+                        .FirstOrDefault()))
+                .Include(c => c.ExternalReferences)
+                .Include(c => c.Statuses)
+                .ToListAsync(cancellationToken);
         }
     }
 }
