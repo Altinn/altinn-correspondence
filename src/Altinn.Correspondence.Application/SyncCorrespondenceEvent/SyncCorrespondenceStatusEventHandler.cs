@@ -130,14 +130,11 @@ public class SyncCorrespondenceStatusEventHandler(
                         else if (eventToExecute.Status == CorrespondenceStatus.Read)
                         {
                             backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                            syncCorrespondenceStatusHelper.ReportReadToDialogporten(request.CorrespondenceId, eventToExecute.StatusChanged);
                         }
                         else if (eventToExecute.Status == CorrespondenceStatus.Archived)
                         {
                             await syncCorrespondenceStatusHelper.ReportArchivedToDialogporten(request.CorrespondenceId, eventToExecute.PartyUuid, cancellationToken);
-                        }
-                        else if (eventToExecute.Status == CorrespondenceStatus.Read)
-                        {
-                            syncCorrespondenceStatusHelper.ReportReadToDialogporten(request.CorrespondenceId, eventToExecute.StatusChanged);
                         }
                     }
                 }

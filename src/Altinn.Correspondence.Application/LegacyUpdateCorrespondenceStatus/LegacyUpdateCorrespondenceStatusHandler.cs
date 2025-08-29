@@ -82,6 +82,7 @@ public class LegacyUpdateCorrespondenceStatusHandler(
             else if (request.Status == CorrespondenceStatus.Read)
             {
                 backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp));
             }
             return request.CorrespondenceId;
         }, logger, cancellationToken);
