@@ -183,7 +183,10 @@ public class SyncCorrespondenceStatusEventHandler(
                     {
                         case CorrespondenceDeleteEventType.HardDeletedByServiceOwner:
                         case CorrespondenceDeleteEventType.HardDeletedByRecipient:
-                            await PurgeCorrespondence(correspondence, deletionEvent, cancellationToken);
+                            if (ValidatePerformPurge(correspondence))
+                            {
+                                await PurgeCorrespondence(correspondence, deletionEvent, cancellationToken);
+                            }
                             break;
                         case CorrespondenceDeleteEventType.SoftDeletedByRecipient:
                         case CorrespondenceDeleteEventType.RestoredByRecipient:
@@ -275,6 +278,16 @@ public class SyncCorrespondenceStatusEventHandler(
             return false;
         }
 
+        return true;
+    }
+
+    private bool ValidatePerformPurge(CorrespondenceEntity correspondence)
+    {
+        if( correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByAltinn) || correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByRecipient))
+        {
+            logger.LogWarning("Correspondence {CorrespondenceId} has already been purged - cannot purge again", correspondence.Id);
+            return false;
+        }
         return true;
     }
 
