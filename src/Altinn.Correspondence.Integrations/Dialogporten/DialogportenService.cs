@@ -503,7 +503,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs{updateType}", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            logger.LogError($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}");
         }
 
         var dialogResponse = await response.Content.ReadFromJsonAsync<string>(cancellationToken);
