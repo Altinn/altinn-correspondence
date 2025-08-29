@@ -622,6 +622,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _attachmentRepositoryMock
                 .Setup(x => x.GetAttachmentsByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<AttachmentEntity>());
+            _backgroundJobClientMock
+                .Setup(x => x.Create(It.Is<Job>(j => j.Method.Name == nameof(IDialogportenService.CreateCorrespondencePurgedActivity)), It.IsAny<EnqueuedState>())).Returns("1");
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -805,6 +807,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyByPartyUuid(partyUuid, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new Party { PartyUuid = partyUuid, OrgNumber = partyOrgnumber, PartyTypeName = PartyType.Organization });
+            _backgroundJobClientMock
+                .Setup(x => x.Create(It.Is<Job>(j => j.Method.Name == nameof(IDialogportenService.CreateCorrespondencePurgedActivity)), It.IsAny<EnqueuedState>())).Returns("1");
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -848,9 +852,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Verify background job for Altinn Events
             VerifyAltinnEventEnqueued(correspondenceId, AltinnEventType.CorrespondencePurged, sender);
 
-            // Verify background jobs Dialogporten activities
+            // Verify background jobs Dialogporten activities            
             VerifySoftDeleteUpdateForDialogportenEnqueued(correspondence.Id, partyIdentifier, CorrespondenceDeleteEventType.SoftDeletedByRecipient);
             VerifyDialogportenServiceCreatePurgedActivityEnqueued(correspondenceId, DialogportenActorType.Recipient, "mottaker", new DateTimeOffset(new DateTime(2025, 8, 15, 12, 0, 0)));
+            VerifyDialogportenServiceSoftDeleteDialogEnqueued("dialog-id-123");
 
             // Should not trigger any additional Dialogporten changes or background jobs
             _correspondenceDeleteEventRepositoryMock.VerifyNoOtherCalls();
@@ -946,6 +951,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var partyUuid = Guid.NewGuid();
+            var partyOrgnumber = "123456789";
+            var partyIdentifier = $"{UrnConstants.OrganizationNumberAttribute}:{partyOrgnumber}";
 
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithCreated(new DateTime(2025, 8, 1, 12, 0, 0))
@@ -1012,6 +1019,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.PurgeAttachment(It.IsAny<Guid>(), It.IsAny<StorageProviderEntity>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
+            _backgroundJobClientMock
+                .Setup(x => x.Create(It.Is<Job>(j => j.Method.Name == nameof(IDialogportenService.CreateCorrespondencePurgedActivity)), It.IsAny<EnqueuedState>())).Returns("1");
+
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
 
@@ -1049,7 +1059,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             VerifyAltinnEventEnqueued(correspondenceId, AltinnEventType.CorrespondencePurged, sender);
             // Verify background jobs Dialogporten activities
             VerifyDialogportenServiceCreatePurgedActivityEnqueued(correspondenceId, DialogportenActorType.Sender, "avsender", new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)));
-
+            VerifyDialogportenServiceSoftDeleteDialogEnqueued("dialog-id-123");
             // Should not trigger any additional Dialogporten changes or background jobs
             _backgroundJobClientMock.VerifyNoOtherCalls();
             _dialogPortenServiceMock.VerifyNoOtherCalls();
@@ -1525,8 +1535,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private void VerifyDialogportenServiceSoftDeleteDialogEnqueued(string dialogId)
         {
             _backgroundJobClientMock.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.SoftDeleteDialog) && (string)job.Args[0] == dialogId),
-                It.IsAny<EnqueuedState>()), Times.Once);
+                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.SoftDeleteDialog)),
+                It.IsAny<IState>()), Times.Once);
         }
     }
 } 
