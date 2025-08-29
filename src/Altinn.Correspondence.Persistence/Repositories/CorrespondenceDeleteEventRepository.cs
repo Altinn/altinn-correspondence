@@ -9,11 +9,11 @@ public class CorrespondenceDeleteEventRepository(ApplicationDbContext context, I
 {
     private readonly ApplicationDbContext _context = context;
 
-    public async Task<List<CorrespondenceDeleteEventEntity>> AddDeleteEvents(List<CorrespondenceDeleteEventEntity> correspondenceDeleteEventEntities, CancellationToken cancellationToken)
+    public async Task<CorrespondenceDeleteEventEntity> AddDeleteEvent(CorrespondenceDeleteEventEntity correspondenceDeleteEventEntity, CancellationToken cancellationToken)
     {
-        await _context.AddRangeAsync(correspondenceDeleteEventEntities, cancellationToken);
+        await _context.AddAsync(correspondenceDeleteEventEntity, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
-        return correspondenceDeleteEventEntities;
+        return correspondenceDeleteEventEntity;
     }
 
     public async Task<List<CorrespondenceDeleteEventEntity>> GetDeleteEventsForCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken)

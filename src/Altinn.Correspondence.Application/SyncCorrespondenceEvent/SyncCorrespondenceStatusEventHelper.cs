@@ -24,7 +24,7 @@ public class SyncCorrespondenceStatusEventHelper(
     /// <returns></returns>
     public bool ValidateStatusUpdate(CorrespondenceStatusEntity statusEntity)
     {
-        var validStatuses = new[] { CorrespondenceStatus.Read, CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived, CorrespondenceStatus.PurgedByAltinn, CorrespondenceStatus.PurgedByRecipient };
+        var validStatuses = new[] { CorrespondenceStatus.Read, CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived };
 
         if (!validStatuses.Contains(statusEntity.Status))
         {
@@ -74,69 +74,68 @@ public class SyncCorrespondenceStatusEventHelper(
 
         deleteEventToSync.CorrespondenceId = correspondence.Id;
         deleteEventToSync.SyncedFromAltinn2 = syncedTimestamp;        
-        await correspondenceDeleteEventRepository.AddDeleteEvents(new List<CorrespondenceDeleteEventEntity> { deleteEventToSync }, cancellationToken);
+        await correspondenceDeleteEventRepository.AddDeleteEvent(deleteEventToSync, cancellationToken);
 
-        string? dialogId = correspondence.ExternalReferences
-            .FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId)
-            ?.ReferenceValue;
-
-        bool isAvailable = correspondence.IsMigrating == false;
-        bool isAvailableAndInDialogporten = isAvailable && !String.IsNullOrEmpty(dialogId);
-
-        if (isAvailable)
+        if (correspondence.IsMigrating == false)
         {
             backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None)); 
         }
         
         await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondence.Id, deleteEventToSync.PartyUuid, cancellationToken);
 
-        if (isAvailableAndInDialogporten)
+        if (correspondence.IsMigrating == false)
         {
             var reportToDialogportenJob = ReportPurgedActivityToDialogporten(deleteEventToSync.EventType, correspondence.Id, deleteEventToSync.EventOccurred);
 
-            // TODO: fix soft delete dialog 
-            //if (!string.IsNullOrEmpty(dialogId))
-            //{
-            //    backgroundJobClient.ContinueJobWith<IDialogportenService>(reportToDialogportenJob, service => service.SoftDeleteDialog(dialogId));                
-            //}
+            // TODO: fix soft delete dialog
+            // backgroundJobClient.ContinueJobWith<IDialogportenService>(reportToDialogportenJob, service => service.SoftDeleteDialog(dialogId));
         }
 
         return correspondence.Id;
     }
 
-    public async Task SetSoftDeleteOrRestoreOnDialog(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity statusToSync, CancellationToken cancellationToken)
-    {
-        string? dialogId = correspondence.ExternalReferences
-           .FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId)
-           ?.ReferenceValue;
-
-        if(String.IsNullOrEmpty(dialogId))
+    public async Task SoftDeleteOrRestoreCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, CancellationToken cancellationToken)
+    {   
+        DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;
+        if(CorrespondenceDeleteEventType.SoftDeletedByRecipient != deleteEventToSync.EventType && CorrespondenceDeleteEventType.RestoredByRecipient != deleteEventToSync.EventType)
         {
-            throw new ArgumentException($"Cannot perform ChangeSoftDeleteLabelInDialogPorten for correspondence {correspondence.Id} without DialogportenDialogId");
+            throw new ArgumentException($"Cannot perform SoftDeleteOrRestoreCorrespondence for {deleteEventToSync.EventType}");
         }
 
-        var endUserParty = await altinnRegisterService.LookUpPartyByPartyUuid(statusToSync.PartyUuid, cancellationToken);
+        deleteEventToSync.CorrespondenceId = correspondence.Id;
+        deleteEventToSync.SyncedFromAltinn2 = syncedTimestamp;
+        await correspondenceDeleteEventRepository.AddDeleteEvent(deleteEventToSync, cancellationToken);
+
+        if (correspondence.IsMigrating == false)
+        {
+            await SetSoftDeleteOrRestoreOnDialog(correspondence.Id, deleteEventToSync.PartyUuid, deleteEventToSync.EventType, cancellationToken);
+        }
+    }
+
+    public async Task SetSoftDeleteOrRestoreOnDialog(Guid correspondenceId, Guid partyUuid, CorrespondenceDeleteEventType eventType, CancellationToken cancellationToken)
+    {   
+        var endUserParty = await altinnRegisterService.LookUpPartyByPartyUuid(partyUuid, cancellationToken);
         if (endUserParty is null)
         {
-            throw new ArgumentException($"Party with UUID {statusToSync.PartyUuid} not found in Altinn Register - cannot Report Systemlabel for correspondence {correspondence.Id}.");
+            throw new ArgumentException($"Party with UUID {partyUuid} not found in Altinn Register - cannot Report Systemlabel for correspondence {correspondenceId}.");
         }
 
-        switch (statusToSync.EventType)
+        switch (eventType)
         {
             case CorrespondenceDeleteEventType.SoftDeletedByRecipient:
                 {
-                    backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondence.Id, GetPrefixedIdentifierForParty(endUserParty), new List<string> { "Bin" }, null));
+                    backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondenceId, GetPrefixedIdentifierForParty(endUserParty), new List<string> { "Bin" }, null));
                     break;
                 }
 
             case CorrespondenceDeleteEventType.RestoredByRecipient:
                 {
-                    backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondence.Id, GetPrefixedIdentifierForParty(endUserParty), null, new List<string> { "Bin" }));
+                    backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondenceId, GetPrefixedIdentifierForParty(endUserParty), null, new List<string> { "Bin" }));
                     break;
                 }
 
             default:
-                throw new ArgumentException($"Cannot perform ChangeSoftDeleteLabelInDialogPorten for correspondence {correspondence.Id} with event type {statusToSync.EventType}");
+                throw new ArgumentException($"Cannot perform ChangeSoftDeleteLabelInDialogPorten for correspondence {correspondenceId} with event type {eventType}");
         }
 
     }
@@ -161,7 +160,7 @@ public class SyncCorrespondenceStatusEventHelper(
             throw new ArgumentException($"Party with UUID {enduserPartyUuid} not found in Altinn Register - cannot set archived Systemlabel for correspondence {correspondenceId}.");
         }
 
-        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.SetArchivedSystemLabelOnDialog(correspondenceId, GetPrefixedIdentifierForParty(endUserParty)));
+        backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondenceId, GetPrefixedIdentifierForParty(endUserParty), new List<string> { "Archive" }, null));
     }
 
     public void ReportReadToDialogporten(Guid correspondenceId, DateTimeOffset operationTimestamp)

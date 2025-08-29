@@ -162,7 +162,7 @@ public class SyncCorrespondenceStatusEventHandler(
                         break;
                     case CorrespondenceDeleteEventType.SoftDeletedByRecipient:
                     case CorrespondenceDeleteEventType.RestoredByRecipient:
-                        await syncCorrespondenceStatusHelper.SetSoftDeleteOrRestoreOnDialog(correspondence, deletionEvent, cancellationToken);
+                        await syncCorrespondenceStatusHelper.SoftDeleteOrRestoreCorrespondence(correspondence, deletionEvent, cancellationToken);
                         break;
                     default:
                         logger.LogWarning("Unknown Deletion Event Type {EventType} for Correspondence {CorrespondenceId}. The event will be ignored.", deletionEvent.EventType, request.CorrespondenceId);
