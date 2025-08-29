@@ -1,0 +1,43 @@
+name: Test Performance (Weekly)
+
+on:
+  schedule:
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+run-name: "Weekly Performance ${{ github.ref_name }} #${{ github.run_number }} ${{ github.sha }}"
+
+jobs:
+  create-and-upload 20/15m/1:
+    uses: ./.github/workflows/test-performance.yml
+    secrets: inherit
+    with:
+      apiVersion: v1
+      environment: yt01
+      tag: 'Weekly performance run - create-and-upload'
+      vus: 20
+      duration: 15m
+      parallelism: 1
+      breakpoint: false
+      abortOnFail: false
+      testSuitePath: 'Test/Altinn.Correspondence.LoadTests/correspondence/create-and-upload-correspondence.js'
+
+  get-correspondence 20/15m/1:
+    needs: "create-and-upload 20/15m/1"
+    uses: ./.github/workflows/test-performance.yml
+    secrets: inherit
+    with:
+      apiVersion: v1
+      environment: yt01
+      tag: 'Weekly performance run - get-correspondence'
+      vus: 20
+      duration: 15m
+      parallelism: 1
+      breakpoint: false
+      abortOnFail: false
+      testSuitePath: 'Test/Altinn.Correspondence.LoadTests/correspondence/get-correspondence.js'
+
