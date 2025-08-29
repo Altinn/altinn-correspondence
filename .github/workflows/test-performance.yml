@@ -57,7 +57,54 @@ on:
                 - 'Test/Altinn.Correspondence.LoadTests/correspondence/get-correspondence.js'
                 - 'Test/Altinn.Correspondence.LoadTests/correspondence/get-correspondence-overview.js'
                 - 'Test/Altinn.Correspondence.LoadTests/correspondence/get-legacy-correspondences.js'
-          
+         
+    workflow_call:
+        inputs:
+            apiVersion:
+                description: 'API Version'
+                required: true
+                type: string
+                default: 'v1'
+            environment:
+                description: 'Environment'
+                required: true
+                type: string
+                default: 'yt01'
+            tag:
+                description: 'tag the performance test'
+                required: true
+                type: string
+                default: 'Performance test'
+            vus:
+                description: 'Number of VUS'
+                required: true
+                type: number
+                default: 1
+            duration:
+                description: 'Duration of test, ie 30s, 1m, 10m'
+                required: true
+                type: string
+                default: 1m
+            parallelism:
+                description: 'Number of parallel test runs'
+                required: true
+                type: number 
+                default: 1
+            breakpoint:
+                description: 'Gradually raise the load to number of VUs over the duration of the test. If VUs is high, it will run until the system breaks'
+                required: true
+                type: boolean 
+                default: false
+            abortOnFail:
+                description: 'Abort on fail. Only used for breakpoint tests'
+                required: true
+                type: boolean   
+                default: false
+            testSuitePath:
+                description: 'Path to test suite to run'
+                required: true
+                type: string
+                default: 'Test/Altinn.Correspondence.LoadTests/correspondence/create-and-upload-correspondence.js'
 
 permissions:
   id-token: write
