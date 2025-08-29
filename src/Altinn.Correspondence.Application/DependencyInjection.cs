@@ -19,12 +19,14 @@ using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Application.PurgeAttachment;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
-using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
 using Altinn.Correspondence.Application.UploadAttachment;
+using Altinn.Correspondence.Application.ConfirmCorrespondence;
+using Altinn.Correspondence.Application.MarkCorrespondenceAsRead;
 using Altinn.Notifications.Core.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Altinn.Correspondence.Application.CleanupOrphanedDialogs;
 using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
+using Altinn.Correspondence.Application.LegacyUpdateCorrespondenceStatus;
 
 namespace Altinn.Correspondence.Application;
 
@@ -46,7 +48,8 @@ public static class DependencyInjection
         services.AddScoped<GetCorrespondencesHandler>();
         services.AddScoped<GetCorrespondenceDetailsHandler>();
         services.AddScoped<GetCorrespondenceOverviewHandler>();
-        services.AddScoped<UpdateCorrespondenceStatusHandler>();
+        services.AddScoped<ConfirmCorrespondenceHandler>();
+        services.AddScoped<MarkCorrespondenceAsReadHandler>();
         services.AddScoped<DownloadCorrespondenceAttachmentHandler>();
         services.AddScoped<PurgeCorrespondenceHandler>();
 
@@ -67,7 +70,6 @@ public static class DependencyInjection
         services.AddScoped<UserClaimsHelper>();
         services.AddScoped<InitializeCorrespondenceHelper>();
         services.AddScoped<ServiceOwnerHelper>();
-        services.AddScoped<UpdateCorrespondenceStatusHelper>();
         services.AddScoped<PurgeCorrespondenceHelper>();
         services.AddScoped<MobileNumberHelper>();
         services.AddScoped<HangfireScheduleHelper>();

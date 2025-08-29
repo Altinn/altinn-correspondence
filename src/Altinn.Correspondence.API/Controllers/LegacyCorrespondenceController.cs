@@ -6,7 +6,7 @@ using Altinn.Correspondence.Application.GetCorrespondenceHistory;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
-using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
+using Altinn.Correspondence.Application.LegacyUpdateCorrespondenceStatus;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
@@ -135,7 +135,7 @@ namespace Altinn.Correspondence.API.Controllers
         {
             _logger.LogInformation("Marking Correspondence as read for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
+            var commandResult = await handler.Process(new LegacyUpdateCorrespondenceStatusRequest
             {
                 CorrespondenceId = correspondenceId,
                 Status = CorrespondenceStatus.Read
@@ -163,7 +163,7 @@ namespace Altinn.Correspondence.API.Controllers
         {
             _logger.LogInformation("Marking Correspondence as confirmed for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
+            var commandResult = await handler.Process(new LegacyUpdateCorrespondenceStatusRequest
             {
                 CorrespondenceId = correspondenceId,
                 Status = CorrespondenceStatus.Confirmed
@@ -191,7 +191,7 @@ namespace Altinn.Correspondence.API.Controllers
         {
             _logger.LogInformation("Archiving Correspondence with id: {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
+            var commandResult = await handler.Process(new LegacyUpdateCorrespondenceStatusRequest
             {
                 CorrespondenceId = correspondenceId,
                 Status = CorrespondenceStatus.Archived
