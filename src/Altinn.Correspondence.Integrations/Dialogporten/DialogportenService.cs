@@ -515,19 +515,38 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     }
 
     /// <summary>
-    /// Set system label on Dialogporten dialog to archived to handle sync of archive event from Altinn 2
+    /// Method to add or remove system labels on a dialog in Dialogporten.
+    /// Used for setting the "Archived" system label when a correspondence is archived in Altinn 2, or adding/removing "Bin" labels when a correspondence is soft deleted/restored in Altinn 2.
     /// </summary>
-    /// <param name="correspondenceId">id of the archived correspondence</param>
-    /// <param name="enduserId">id of the user that triggered the archiving</param>
+    /// <param name="correspondenceId">id of the correspondence</param>
+    /// <param name="enduserId">id of the user that performed the aciton</param>
+    /// <param name="systemLabelsToAdd">list of labels to add</param>
+    /// <param name="systemLabelsToRemove">list of labels to remove</param>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="Exception"></exception>
-    public async Task SetArchivedSystemLabelOnDialog(Guid correspondenceId, string enduserId)
+    public async Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string enduserId, List<string>? systemLabelsToAdd, List<string>? systemLabelsToRemove)
     {
         if (string.IsNullOrWhiteSpace(enduserId))
         {
-            logger.LogError("Missing enduserId for correspondence {correspondenceId} when setting archived system label", correspondenceId);
+            logger.LogError("Missing enduserId for correspondence {correspondenceId} when updating system labels", correspondenceId);
             throw new ArgumentException("enduserId cannot be null or whitespace", nameof(enduserId));
+        }
+
+        if((systemLabelsToAdd == null || systemLabelsToAdd.Count == 0) && (systemLabelsToRemove == null || systemLabelsToRemove.Count == 0))
+        {
+            throw new ArgumentException("Either systemLabelsToAdd or systemLabelsToRemove must be provided");
+        }
+        if (systemLabelsToAdd != null && systemLabelsToRemove != null)
+        {
+            var overlap = systemLabelsToAdd
+                .Intersect(systemLabelsToRemove, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (overlap.Count > 0)
+            {
+                throw new ArgumentException(
+                    $"Label(s) present in both add and remove: {string.Join(", ", overlap)}");
+            }
         }
 
         using var cancellationTokenSource = new CancellationTokenSource();
@@ -548,14 +567,24 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             }
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
+        if (!Guid.TryParse(dialogId, out var dialogGuid))
+        {
+            logger.LogError("DialogId {dialogId} is not a valid GUID for correspondence {correspondenceId}", dialogId, correspondenceId);
+            throw new ArgumentException( $"DialogId {dialogId} is not a valid GUID for correspondence {correspondenceId}");
+        }
+        var request = SetDialogSystemLabelsMapper
+            .CreateSetDialogSystemLabelRequest(
+                dialogGuid,
+                enduserId,
+                systemLabelsToAdd,
+                systemLabelsToRemove);
 
-        var request = SetDialogSystemLabelsMapper.CreateSetDialogSystemLabelsRequestForArchived(new Guid(dialogId), enduserId);
         var url = $"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/endusercontext/systemlabels?enduserId={Uri.EscapeDataString(enduserId)}";
         var response = await _httpClient.PutAsJsonAsync(url, request, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()} when setting archived system label for dialogid {dialogId} for correpondence {correspondenceId}");
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()} when setting system labels for dialogid {dialogId} for correpondence {correspondenceId}");
         }
     }
-        #endregion
+    #endregion
 }

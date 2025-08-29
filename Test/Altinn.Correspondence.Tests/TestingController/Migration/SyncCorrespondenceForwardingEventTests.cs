@@ -27,7 +27,7 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
             .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .Build();
 
         // Setup initial Migrated Correspondence
@@ -95,7 +95,7 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
             .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithForwardingEventHistory(new List<MigrateCorrespondenceForwardingEventExt>
                 {
                     new MigrateCorrespondenceForwardingEventExt
@@ -194,7 +194,7 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
             .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))            
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))            
             .Build();
 
         // Setup initial Migrated Correspondence

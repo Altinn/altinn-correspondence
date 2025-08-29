@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.Integrations.Dialogporten.Models;
+using Azure.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,6 +26,49 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             };
         }
 
-    }
-        
+        internal static SetDialogSystemLabelRequest CreateSetDialogSystemLabelRequest(
+            Guid dialogId,
+            string enduserId,
+            List<string>? systemLabelsToAdd, List<string>? systemLabelsToRemove)
+        {
+            SetDialogSystemLabelRequest request = new SetDialogSystemLabelRequest
+            {
+                DialogId = dialogId,
+                EnduserId = enduserId,
+            };
+
+            if(systemLabelsToAdd != null)
+            {
+                request.AddLabels = new List<Models.SystemLabel>();
+                foreach (var systemLabel in systemLabelsToAdd)
+                {
+                    if (Enum.TryParse<Models.SystemLabel>(systemLabel, out var parsedLabel))
+                    {
+                        request.AddLabels = request.AddLabels.Append(parsedLabel).ToList();
+                    }
+                    else
+                    {
+                        throw new ArgumentException($"Invalid system label: {systemLabel}");
+                    }
+                }
+            }            
+            if(systemLabelsToRemove != null)
+            {
+                request.RemoveLabels = new List<Models.SystemLabel>();
+                foreach (var systemLabel in systemLabelsToRemove)
+                {
+                    if (Enum.TryParse<Models.SystemLabel>(systemLabel, out var parsedLabel))
+                    {
+                        request.RemoveLabels = request.RemoveLabels.Append(parsedLabel).ToList();
+                    }
+                    else
+                    {
+                        throw new ArgumentException($"Invalid system label: {systemLabel}");
+                    }
+                }
+            }
+
+            return request;
+        }
+    }   
 }

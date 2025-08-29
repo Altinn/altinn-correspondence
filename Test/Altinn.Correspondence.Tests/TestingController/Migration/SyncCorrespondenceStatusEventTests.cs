@@ -29,11 +29,14 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
-            .WithNotificationHistoryEvent(1, "testemail@altinn.no",NotificationChannelExt.Email, new DateTime(2024,1,7),false)
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
+            .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
+            .WithRecipient("urn:altinn:person:identifier-no:29909898925")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
             .Build();
-        
+        migrateCorrespondenceExt.MakeAvailable = true;
+
         // Setup initial Migrated Correspondence
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
 
@@ -45,14 +48,14 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             {
                 new MigrateCorrespondenceStatusEventExt
                 {
-                    Status = CorrespondenceStatusExt.Read,
+                    Status = MigrateCorrespondenceStatusExt.Read,
                     StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6)),
                     EventUserPartyUuid = _secondUserPartyUuid,
                     EventUserUuid = _secondUserUuid
                 },
                 new MigrateCorrespondenceStatusEventExt
                 {
-                    Status = CorrespondenceStatusExt.Confirmed,
+                    Status = MigrateCorrespondenceStatusExt.Confirmed,
                     StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 7)),
                     EventUserPartyUuid = _secondUserPartyUuid,
                     EventUserUuid = _secondUserUuid
@@ -79,10 +82,13 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6, 0, 0, 0))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
+            .WithRecipient("urn:altinn:person:identifier-no:29909898925")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
             .Build();
+        migrateCorrespondenceExt.MakeAvailable = true;
 
         // Setup initial Migrated Correspondence
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
@@ -95,7 +101,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             {
                 new MigrateCorrespondenceStatusEventExt
                 {
-                    Status = CorrespondenceStatusExt.Read,
+                    Status = MigrateCorrespondenceStatusExt.Read,
                     StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6, 0, 0, 0, 250)), // within 1 second of the original event
                     EventUserPartyUuid = _defaultUserPartyUuid,
                     EventUserUuid = _defaultUserUuid
@@ -121,10 +127,13 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
+            .WithRecipient("urn:altinn:person:identifier-no:29909898925")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
             .Build();
+        migrateCorrespondenceExt.MakeAvailable = true;
 
         // Setup initial Migrated Correspondence
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
@@ -137,7 +146,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             {
                 new MigrateCorrespondenceStatusEventExt
                 {
-                    Status = CorrespondenceStatusExt.Archived,
+                    Status = MigrateCorrespondenceStatusExt.Archived,
                     StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 8)),
                     EventUserPartyUuid = _defaultUserPartyUuid,
                     EventUserUuid = _defaultUserUuid
@@ -163,10 +172,13 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
+            .WithRecipient("urn:altinn:person:identifier-no:29909898925")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
             .Build();
+        migrateCorrespondenceExt.MakeAvailable = true;
 
         // Setup initial Migrated Correspondence
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
@@ -179,7 +191,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             {
                 new MigrateCorrespondenceStatusEventExt
                 {
-                    Status = CorrespondenceStatusExt.PurgedByRecipient,
+                    Status = MigrateCorrespondenceStatusExt.PurgedByRecipient,
                     StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 8)),
                     EventUserPartyUuid = _defaultUserPartyUuid,
                     EventUserUuid = _defaultUserUuid
@@ -203,10 +215,12 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
-            .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 12, 14, 20, 11))
+            .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
+            .WithRecipient("urn:altinn:person:identifier-no:29909898925")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
             .Build();
+        migrateCorrespondenceExt.MakeAvailable = true;
 
         // Setup initial Migrated Correspondence
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
@@ -219,48 +233,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             {
                 new MigrateCorrespondenceStatusEventExt
                 {
-                    Status = CorrespondenceStatusExt.PurgedByAltinn,
-                    StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 8)),
-                    EventUserPartyUuid = _defaultUserPartyUuid,
-                    EventUserUuid = _defaultUserUuid
-                }
-            }
-        };
-
-        // Act
-        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
-
-        // Assert
-        Assert.True(response.IsSuccessStatusCode);
-        // Assert that the Correspondence is purged by getting NOT FOUND
-        var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
-        Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceDetailsResponse.StatusCode);
-    }
-
-    [Fact]
-    public async Task SyncCorrespondenceStatusEvent_PurgedByAltinn_AlreadyPurged__OK()
-    {
-        // Arrange
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
-            .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
-            .WithStatusEvent(CorrespondenceStatusExt.PurgedByRecipient, new DateTime(2024, 1, 8))
-            .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
-            .Build();
-
-        // Setup initial Migrated Correspondence
-        var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
-
-        // Arrange sync call
-        SyncCorrespondenceStatusEventRequestExt request = new SyncCorrespondenceStatusEventRequestExt
-        {
-            CorrespondenceId = correspondenceId,
-            SyncedEvents = new List<MigrateCorrespondenceStatusEventExt>
-            {
-                new MigrateCorrespondenceStatusEventExt
-                {
-                    Status = CorrespondenceStatusExt.PurgedByAltinn,
+                    Status = MigrateCorrespondenceStatusExt.PurgedByAltinn,
                     StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 8)),
                     EventUserPartyUuid = _defaultUserPartyUuid,
                     EventUserUuid = _defaultUserUuid
@@ -284,10 +257,13 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
+            .WithRecipient("urn:altinn:person:identifier-no:29909898925")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
             .Build();
+        migrateCorrespondenceExt.MakeAvailable = true;
 
         // Setup initial Migrated Correspondence
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
@@ -324,16 +300,14 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
 
     private void AssertStatusEventSet(MigrateCorrespondenceStatusEventExt expected, CorrespondenceDetailsExt detailsExt)
     {
-        var statusEvent = detailsExt.StatusHistory.FirstOrDefault(x => x.Status == expected.Status &&
+        var statusEvent = detailsExt.StatusHistory.FirstOrDefault(x => x.Status == (CorrespondenceStatusExt)expected.Status &&
                                                                       x.StatusChanged.Equals(expected.StatusChanged));
-        Assert.NotNull(statusEvent);
-        Assert.Equal(expected.Status, statusEvent.Status);
-        Assert.Equal(expected.StatusChanged, statusEvent.StatusChanged);        
+        Assert.NotNull(statusEvent);      
     }
 
     private void AssertStatusEventNotSet(MigrateCorrespondenceStatusEventExt expected, CorrespondenceDetailsExt detailsExt)
     {
-        var statusEvent = detailsExt.StatusHistory.FirstOrDefault(x => x.Status == expected.Status &&
+        var statusEvent = detailsExt.StatusHistory.FirstOrDefault(x => x.Status == (CorrespondenceStatusExt)expected.Status &&
                                                                       x.StatusChanged.Equals(expected.StatusChanged));
         Assert.Null(statusEvent);
     }

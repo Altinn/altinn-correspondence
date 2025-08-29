@@ -39,7 +39,7 @@ namespace Altinn.Correspondence.Tests.Factories
             [
                 new MigrateCorrespondenceStatusEventExt()
                     {
-                        Status = CorrespondenceStatusExt.Initialized,
+                        Status = MigrateCorrespondenceStatusExt.Initialized,
                         StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
                         EventUserPartyUuid = _defaultUserPartyUuid,
                         EventUserUuid = _defaultUserUuid
@@ -47,7 +47,7 @@ namespace Altinn.Correspondence.Tests.Factories
                     },
                     new MigrateCorrespondenceStatusEventExt()
                     {
-                        Status = CorrespondenceStatusExt.Published,
+                        Status = MigrateCorrespondenceStatusExt.Published,
                         StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6)),
                         EventUserPartyUuid = _defaultUserPartyUuid,
                         EventUserUuid = _defaultUserUuid
@@ -115,7 +115,7 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
-        public MigrateCorrespondenceBuilder WithStatusEvent(CorrespondenceStatusExt status, DateTime occurred, Guid? userPartyUuid = null, Guid? userUuid = null)
+        public MigrateCorrespondenceBuilder WithStatusEvent(MigrateCorrespondenceStatusExt status, DateTime occurred, Guid? userPartyUuid = null, Guid? userUuid = null)
         {
             if (userPartyUuid == null)
             {
