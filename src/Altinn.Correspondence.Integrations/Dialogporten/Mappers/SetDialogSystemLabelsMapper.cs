@@ -39,10 +39,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
             if(systemLabelsToAdd != null)
             {
-                request.AddLabels = new List<Models.SystemLabel>();
+                request.AddLabels = new List<Models.SystemLabel>(systemLabelsToAdd.Count);
                 foreach (var systemLabel in systemLabelsToAdd)
                 {
-                    if (Enum.TryParse<Models.SystemLabel>(systemLabel, out var parsedLabel))
+                    if (Enum.TryParse<Models.SystemLabel>(systemLabel, ignoreCase: true, out var parsedLabel))
                     {
                         request.AddLabels = request.AddLabels.Append(parsedLabel).ToList();
                     }
@@ -54,10 +54,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             }            
             if(systemLabelsToRemove != null)
             {
-                request.RemoveLabels = new List<Models.SystemLabel>();
+                request.RemoveLabels = new List<Models.SystemLabel>(systemLabelsToRemove.Count);
                 foreach (var systemLabel in systemLabelsToRemove)
                 {
-                    if (Enum.TryParse<Models.SystemLabel>(systemLabel, out var parsedLabel))
+                    if (Enum.TryParse<Models.SystemLabel>(systemLabel, ignoreCase: true, out var parsedLabel))
                     {
                         request.RemoveLabels = request.RemoveLabels.Append(parsedLabel).ToList();
                     }

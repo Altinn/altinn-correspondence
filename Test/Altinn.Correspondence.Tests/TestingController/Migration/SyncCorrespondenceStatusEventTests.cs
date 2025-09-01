@@ -300,15 +300,28 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
 
     private void AssertStatusEventSet(MigrateCorrespondenceStatusEventExt expected, CorrespondenceDetailsExt detailsExt)
     {
-        var statusEvent = detailsExt.StatusHistory.FirstOrDefault(x => x.Status == (CorrespondenceStatusExt)expected.Status &&
+        var statusEvent = detailsExt.StatusHistory.FirstOrDefault(x => x.Status == MapStatusFromMigrate(expected.Status) &&
                                                                       x.StatusChanged.Equals(expected.StatusChanged));
         Assert.NotNull(statusEvent);      
     }
 
     private void AssertStatusEventNotSet(MigrateCorrespondenceStatusEventExt expected, CorrespondenceDetailsExt detailsExt)
     {
-        var statusEvent = detailsExt.StatusHistory.FirstOrDefault(x => x.Status == (CorrespondenceStatusExt)expected.Status &&
+        var statusEvent = detailsExt.StatusHistory.FirstOrDefault(x => x.Status == MapStatusFromMigrate(expected.Status) &&
                                                                       x.StatusChanged.Equals(expected.StatusChanged));
         Assert.Null(statusEvent);
+    }
+
+    private CorrespondenceStatusExt MapStatusFromMigrate(MigrateCorrespondenceStatusExt status)
+    {
+        return status switch
+        {   
+            MigrateCorrespondenceStatusExt.Read => CorrespondenceStatusExt.Read,
+            MigrateCorrespondenceStatusExt.Confirmed => CorrespondenceStatusExt.Confirmed,
+            MigrateCorrespondenceStatusExt.Archived => CorrespondenceStatusExt.Archived,
+            MigrateCorrespondenceStatusExt.PurgedByRecipient => CorrespondenceStatusExt.PurgedByRecipient,
+            MigrateCorrespondenceStatusExt.PurgedByAltinn => CorrespondenceStatusExt.PurgedByAltinn,
+            _ => throw new ArgumentOutOfRangeException(nameof(status), $"Not expected status value: {status}"),
+        };
     }
 }

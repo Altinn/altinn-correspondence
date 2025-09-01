@@ -518,8 +518,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     /// Method to add or remove system labels on a dialog in Dialogporten.
     /// Used for setting the "Archived" system label when a correspondence is archived in Altinn 2, or adding/removing "Bin" labels when a correspondence is soft deleted/restored in Altinn 2.
     /// </summary>
-    /// <param name="correspondenceId">id of the correspondence</param>
-    /// <param name="enduserId">id of the user that performed the aciton</param>
+    /// <param name="correspondenceId">ID of the correspondence</param>
+    /// <param name="enduserId">ID of the user who performed the aciton</param>
     /// <param name="systemLabelsToAdd">list of labels to add</param>
     /// <param name="systemLabelsToRemove">list of labels to remove</param>
     /// <returns></returns>

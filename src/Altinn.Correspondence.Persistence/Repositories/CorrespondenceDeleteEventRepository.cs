@@ -18,7 +18,7 @@ public class CorrespondenceDeleteEventRepository(ApplicationDbContext context, I
 
     public async Task<List<CorrespondenceDeleteEventEntity>> GetDeleteEventsForCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken)
     {
-        var deleteEvents = _context.CorrespondenceDeleteEvents
+        var deleteEvents = _context.CorrespondenceDeleteEvents.AsNoTracking() // Is used in cleanup operations, no need to track
                 .Where(c => c.CorrespondenceId == correspondenceId)
                 .AsQueryable();
         
