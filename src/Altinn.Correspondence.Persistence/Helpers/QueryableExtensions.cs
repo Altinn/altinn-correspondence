@@ -85,15 +85,26 @@ namespace Altinn.Correspondence.Persistence.Helpers
                     statusesToFilter.Add(CorrespondenceStatus.Archived);
                 }
 
-                if (includePurged) // Include correspondences with active status
+                if (includePurged) // Include correspondences with purged status
                 {
                     statusesToFilter.Add(CorrespondenceStatus.PurgedByAltinn);
                     statusesToFilter.Add(CorrespondenceStatus.PurgedByRecipient);
                 }
             }
 
-            return query
-                .Where(cs => statusesToFilter.Contains(cs.Statuses.OrderBy(cs => cs.Status).Last().Status));
+            var queryFiltered = query.Where(cs =>
+                statusesToFilter.Contains(cs.Statuses.OrderBy(s => s.Status).Last().Status));
+
+            // Exclude any item that has ever had a purged status if not included
+            if (!includePurged)
+            {
+                queryFiltered = queryFiltered.Where(cs =>
+                    !cs.Statuses.Any(s =>
+                        s.Status == CorrespondenceStatus.PurgedByAltinn ||
+                        s.Status == CorrespondenceStatus.PurgedByRecipient));
+            }
+
+            return queryFiltered;
         }
 
         public static IQueryable<CorrespondenceEntity> WhereCurrentStatusIn(
