@@ -1,8 +1,10 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.MigrateCorrespondence;
 using Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
+using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
@@ -38,15 +40,16 @@ namespace Altinn.Correspondence.API.Controllers
         public async Task<ActionResult<CorrespondenceMigrationStatusExt>> MigrateCorrespondence(
             MigrateCorrespondenceExt migrateCorrespondence,
             [FromServices] MigrateCorrespondenceHandler handler,
+            [FromServices] ServiceOwnerHelper serviceOwnerHelper,
             CancellationToken cancellationToken)
         {
             LogContextHelpers.EnrichLogsWithMigrateCorrespondence(migrateCorrespondence);
 
-            var commandRequest = MigrateCorrespondenceMapper.MapToRequest(migrateCorrespondence);
+            var commandRequest = await MigrateCorrespondenceMapper.MapToRequestAsync(migrateCorrespondence, serviceOwnerHelper, cancellationToken);
             var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
-                data => Ok(MigrateCorrespondenceMapper.MapToExternal(data)),
+                data => Ok(MigrateCorrespondenceMapper.MapCorrespondenceMigrationStatusToExternal(data)),
                 Problem
             );
         }
@@ -61,18 +64,20 @@ namespace Altinn.Correspondence.API.Controllers
         public async Task<ActionResult<AttachmentOverviewExt>> MigrateAttachmentData(
             [FromQuery]MigrateInitializeAttachmentExt initializeAttachmentExt,
             [FromServices] MigrateAttachmentHandler migrateAttachmentHandler,
+            [FromServices] ServiceOwnerHelper serviceOwnerHelper,
             CancellationToken cancellationToken = default
         )
         {
             Guid attachmentId = Guid.NewGuid();
 
             Request.EnableBuffering();
+            var attachmentRequest = await MigrateAttachmentMapper.MapToRequestAsync(initializeAttachmentExt, Request, serviceOwnerHelper, cancellationToken);
             var attachment = new MigrateAttachmentRequest()
             {
                 SenderPartyUuid = initializeAttachmentExt.SenderPartyUuid,
                 UploadStream = Request.Body,
                 ContentLength = Request.ContentLength ?? Request.Body.Length,
-                Attachment = MigrateAttachmentMapper.MapToRequest(initializeAttachmentExt, Request).Attachment
+                Attachment = attachmentRequest.Attachment
             };
             attachment.Attachment.Id = Guid.NewGuid();
             var uploadAttachmentResult = await migrateAttachmentHandler.Process(attachment, HttpContext.User, cancellationToken);
@@ -102,7 +107,86 @@ namespace Altinn.Correspondence.API.Controllers
             var result = await migrateCorrespondenceHandler.MakeCorrespondenceAvailable(internalRequest, cancellationToken);
 
             return result.Match(
-                result => Ok(MigrateCorrespondenceMapper.MakeAvailableResponseToExternal(result)),
+                result => Ok(MigrateCorrespondenceMapper.MapMakeAvailableResponseToExternal(result)),
+                Problem
+            );
+        }
+
+        /// <summary>
+        ///  Synchronizes an event that occurred in Altinn 2 on a migrated correspondence
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("correspondence/syncStatusEvent")]
+        [Authorize(Policy = AuthorizationConstants.Migrate)]
+        public async Task<ActionResult> SyncStatusEvent(
+            SyncCorrespondenceStatusEventRequestExt request,
+            [FromServices] SyncCorrespondenceStatusEventHandler handler,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation($"Sync from Altinn 2 - {request.SyncedEvents.Count} # of StatusEvents for correspondence {request.CorrespondenceId}");
+
+            var commandRequest = MigrateCorrespondenceMapper.MapSyncStatusEventToInternal(request);
+            var commandResult = await handler.Process(commandRequest, null, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
+                Problem
+            );
+        }
+
+        /// <summary>
+        /// Synchronizes a forwarding event that occurred in Altinn 2 on a migrated correspondence
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("correspondence/syncForwardingEvent")]
+        [Authorize(Policy = AuthorizationConstants.Migrate)]
+        public async Task<ActionResult> SyncForwardingEvent(
+            SyncCorrespondenceForwardingEventRequestExt request,
+            [FromServices] SyncCorrespondenceForwardingEventHandler handler,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation($"Sync from Altinn 2 - {request.SyncedEvents.Count} # of ForwardingEvents for correspondence {request.CorrespondenceId}");
+                        
+            var commandRequest = MigrateCorrespondenceMapper.MapSyncForwardingEventToInternal(request);
+            var commandResult = await handler.Process(commandRequest, null, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
+                Problem
+            );
+        }
+
+        /// <summary>
+        /// Synchronizes a notification event that occurred in Altinn 2 on a migrated correspondence
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("correspondence/syncNotificationEvent")]
+        [Authorize(Policy = AuthorizationConstants.Migrate)]
+        public async Task<ActionResult> SyncNotificationEvent(
+            SyncCorrespondenceNotificationEventRequestExt request,
+            [FromServices] SyncCorrespondenceNotificationEventHandler handler,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation($"Sync from Altinn 2 - {request.SyncedEvents.Count} # of NotificationEvents for correspondence {request.CorrespondenceId}");
+            
+            var commandRequest = MigrateCorrespondenceMapper.MapSyncCorrespondenceNotificationEventToInternal(request);
+            var commandResult = await handler.Process(commandRequest, null, cancellationToken);
+
+
+            return commandResult.Match(
+                data => Ok(data),
                 Problem
             );
         }

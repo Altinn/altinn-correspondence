@@ -70,7 +70,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             {
                 options.SchedulePollingInterval = TimeSpan.FromSeconds(1);
                 options.WorkerCount = 1;
-                options.Queues = new[] { "default" };
+                options.Queues = new[] { "default", "migration" };
                 options.ServerTimeout = TimeSpan.FromSeconds(2);
                 options.ShutdownTimeout = TimeSpan.FromSeconds(1);
                 options.StopTimeout = TimeSpan.FromSeconds(1);

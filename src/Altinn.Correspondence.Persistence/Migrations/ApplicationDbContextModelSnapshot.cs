@@ -19,7 +19,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("correspondence")
-                .HasAnnotation("ProductVersion", "9.0.6")
+                .HasAnnotation("ProductVersion", "9.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "hstore");
@@ -74,6 +74,12 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasMaxLength(4096)
                         .HasColumnType("character varying(4096)");
 
+                    b.Property<string>("ServiceOwnerId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ServiceOwnerMigrationStatus")
+                        .HasColumnType("integer");
+
                     b.Property<long?>("StorageProviderId")
                         .HasColumnType("bigint");
 
@@ -83,6 +89,8 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("DataLocationUrl");
+
+                    b.HasIndex("ServiceOwnerId");
 
                     b.HasIndex("StorageProviderId");
 
@@ -247,6 +255,12 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasMaxLength(4096)
                         .HasColumnType("character varying(4096)");
 
+                    b.Property<string>("ServiceOwnerId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ServiceOwnerMigrationStatus")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Altinn2CorrespondenceId")
@@ -263,6 +277,8 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasIndex("ResourceId");
 
                     b.HasIndex("Sender");
+
+                    b.HasIndex("ServiceOwnerId");
 
                     b.HasIndex("Recipient", "RequestedPublishTime", "Id")
                         .IsDescending(false, true, false);
@@ -307,6 +323,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.Property<string>("MailboxSupplier")
                         .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("SyncedFromAltinn2")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -356,6 +375,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.Property<Guid?>("ShipmentId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("SyncedFromAltinn2")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -408,6 +430,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<string>("StatusText")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("SyncedFromAltinn2")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 

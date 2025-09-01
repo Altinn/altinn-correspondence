@@ -28,6 +28,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.CompletedTask;
         }
 
+        public Task CreateConfirmedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp)
+        {
+            return Task.CompletedTask;
+        }
+
         public Task PurgeCorrespondenceDialog(Guid correspondenceId)
         {
             return Task.CompletedTask;
@@ -36,6 +41,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         public Task SoftDeleteDialog(string dialogId)
         {
             return Task.CompletedTask;
+        }
+
+        public Task<bool> TrySoftDeleteDialog(string dialogId)
+        {
+            return Task.FromResult(true);
         }
 
         public Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType,  string actorName, DateTimeOffset activityTimestamp)
@@ -49,6 +59,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             // string result = JsonConvert.SerializeObject(createDialogRequest);
             // File.WriteAllText($@"c:\temp\{Guid.NewGuid()}.json", result);
             return Task.FromResult(Guid.NewGuid().ToString());
+        }
+
+        public Task SetArchivedSystemLabelOnDialog(Guid correspondenceId, string enduserId)
+        {
+            return Task.CompletedTask;
         }
     }
 }

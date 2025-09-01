@@ -14,7 +14,6 @@ on:
                 type: choice
                 options:
                 - test
-                - staging
                 - yt01
             tag:
                 description: 'tag the performance test'
@@ -35,7 +34,17 @@ on:
                 description: 'Number of parallel test runs'
                 required: true
                 default: 1
-                type: number  
+                type: number 
+            breakpoint:
+                description: 'Gradually raise the load to number of VUs over the duration of the test. If VUs is high, it will run until the system breaks'
+                required: true
+                default: false
+                type: boolean 
+            abortOnFail:
+                description: 'Abort on fail. Only used for breakpoint tests'
+                required: true
+                default: false
+                type: boolean   
             testSuitePath:
                 description: 'Path to test suite to run'
                 required: true
@@ -47,6 +56,55 @@ on:
                 - 'Test/Altinn.Correspondence.LoadTests/correspondence/create-correspondence.js'
                 - 'Test/Altinn.Correspondence.LoadTests/correspondence/get-correspondence.js'
                 - 'Test/Altinn.Correspondence.LoadTests/correspondence/get-correspondence-overview.js'
+                - 'Test/Altinn.Correspondence.LoadTests/correspondence/get-legacy-correspondences.js'
+         
+    workflow_call:
+        inputs:
+            apiVersion:
+                description: 'API Version'
+                required: false
+                type: string
+                default: 'v1'
+            environment:
+                description: 'Environment'
+                required: false
+                type: string
+                default: 'yt01'
+            tag:
+                description: 'tag the performance test'
+                required: false
+                type: string
+                default: 'Performance test'
+            vus:
+                description: 'Number of VUS'
+                required: false
+                type: number
+                default: 1
+            duration:
+                description: 'Duration of test, ie 30s, 1m, 10m'
+                required: false
+                type: string
+                default: 1m
+            parallelism:
+                description: 'Number of parallel test runs'
+                required: false
+                type: number 
+                default: 1
+            breakpoint:
+                description: 'Gradually raise the load to number of VUs over the duration of the test. If VUs is high, it will run until the system breaks'
+                required: false
+                type: boolean 
+                default: false
+            abortOnFail:
+                description: 'Abort on fail. Only used for breakpoint tests'
+                required: false
+                type: boolean   
+                default: false
+            testSuitePath:
+                description: 'Path to test suite to run'
+                required: false
+                type: string
+                default: 'Test/Altinn.Correspondence.LoadTests/correspondence/create-and-upload-correspondence.js'
 
 permissions:
   id-token: write
@@ -58,9 +116,9 @@ jobs:
     environment: ${{ inputs.environment }}
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - name: OIDC Login to Azure Public Cloud
-      uses: azure/login@v2
+      uses: azure/login@eec3c95657c1536435858eda1f3ff5437fee8474 # v2.3.0
       with:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -84,7 +142,7 @@ jobs:
           exit 1
         fi
     - name: Setup k6
-      uses: grafana/setup-k6-action@v1
+      uses: grafana/setup-k6-action@ffe7d7290dfa715e48c2ccc924d068444c94bde2 # v1.1.0
     - name: Run K6 tests (${{ inputs.testSuitePath }})
       run: |
         echo "Running k6 test suite ${{ inputs.testSuitePath }} with ${{ inputs.vus }} VUs for ${{ inputs.duration }} on ${{ inputs.parallelism }} parallelism"
@@ -96,7 +154,9 @@ jobs:
           -n "$k6configName" \
           -v "${{ inputs.vus }}" \
           -d "${{ inputs.duration }}" \
-          -p "${{ inputs.parallelism }}"
+          -p "${{ inputs.parallelism }}" \
+          -a "${{ inputs.abortOnFail }}" \
+          -b "${{ inputs.breakpoint }}"
       env:
         API_ENVIRONMENT: ${{ inputs.environment }}
         API_VERSION: ${{ inputs.apiVersion }}

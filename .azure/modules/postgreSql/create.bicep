@@ -6,6 +6,8 @@ param environmentKeyVaultName string
 param tenantId string
 
 param prodLikeEnvironment bool
+param logAnalyticsWorkspaceId string = ''
+
 
 var databaseName = 'correspondence'
 var poolSize = prodLikeEnvironment ? 100 : 25
@@ -52,7 +54,7 @@ resource extensionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/conf
   parent: postgres
   dependsOn: [database]
   properties: {
-    value: 'UUID-OSSP,HSTORE'
+    value: 'UUID-OSSP,HSTORE,PG_CRON,PG_STAT_STATEMENTS'
     source: 'user-override'
   }
 }
@@ -147,10 +149,82 @@ resource sessionReplicationRole 'Microsoft.DBforPostgreSQL/flexibleServers/confi
   }
 }
 
+resource cronDatabaseName 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'cron.database_name'
+  parent: postgres
+  dependsOn: [database, sessionReplicationRole]
+  properties: {
+    value: 'correspondence'
+    source: 'user-override'
+  }
+}
+
+// Query Store and pg_stat_statements configurations
+resource sharedPreloadLibraries 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'shared_preload_libraries'
+  parent: postgres
+  dependsOn: [database, cronDatabaseName]
+  properties: {
+    value: 'pg_stat_statements,pg_cron'
+    source: 'user-override'
+  }
+}
+resource pgStatStatementsTrack 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'pg_stat_statements.track'
+  parent: postgres
+  dependsOn: [database, sharedPreloadLibraries]
+  properties: {
+    value: 'all'
+    source: 'user-override'
+  }
+}
+
+resource pgStatStatementsMax 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'pg_stat_statements.max'
+  parent: postgres
+  dependsOn: [database, pgStatStatementsTrack]
+  properties: {
+    value: '10000'
+    source: 'user-override'
+  }
+}
+
+resource trackIoTiming 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'track_io_timing'
+  parent: postgres
+  dependsOn: [database, pgStatStatementsMax]
+  properties: {
+    value: 'on'
+    source: 'user-override'
+  }
+}
+
+resource pgQsQueryCaptureMode 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'pg_qs.query_capture_mode'
+  parent: postgres
+  dependsOn: [database, trackIoTiming]
+  properties: {
+    value: 'all'
+    source: 'user-override'
+  }
+}
+
+resource pgmsWaitSamplingQueryCaptureMode 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'pgms_wait_sampling.query_capture_mode'
+  parent: postgres
+  dependsOn: [database, pgQsQueryCaptureMode]
+  properties: {
+    value: 'all'
+    source: 'user-override'
+  }
+}
+
+
+
 resource allowAzureAccess 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
   name: 'azure-access'
   parent: postgres
-  dependsOn: [database, maxPreparedTransactions] // Needs to depend on database to avoid updating at the same time
+  dependsOn: [database, pgmsWaitSamplingQueryCaptureMode] // Needs to depend on database to avoid updating at the same time
   properties: {
     startIpAddress: '0.0.0.0'
     endIpAddress: '0.0.0.0'
@@ -165,12 +239,28 @@ module adoConnectionString '../keyvault/upsertSecret.bicep' = {
     secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${namePrefix}-app-identity;Ssl Mode=Require;Trust Server Certificate=True;Maximum Pool Size=${poolSize};options=-c role=azure_pg_admin;'
   }
 }
-    
-module saveMigrationConnectionString '../keyvault/upsertSecret.bicep' = {
-  name: 'migrationConnectionString'
-  params: {
-    destKeyVaultName: environmentKeyVaultName
-    secretName: 'correspondence-migration-connection-string'
-    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${namePrefix}-migration-identity;Ssl Mode=Require;Trust Server Certificate=True;Maximum Pool Size=1;options=-c role=azure_pg_admin;'
+
+// Diagnostic settings for Query Store and monitoring
+resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (logAnalyticsWorkspaceId != '') {
+  name: 'QueryStoreDiagnostics'
+  scope: postgres
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      {
+        category: 'PostgreSQLFlexQueryStoreRuntime'
+        enabled: true
+      }
+      {
+        category: 'PostgreSQLFlexQueryStoreWaitStats'
+        enabled: true
+      }
+      {
+        category: 'PostgreSQLFlexSessions'
+        enabled: true
+      }
+    ]
   }
 }
+
+

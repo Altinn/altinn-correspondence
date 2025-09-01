@@ -1,23 +1,23 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.API.ValidationAttributes;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.CheckNotification;
-using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Application.ConfirmCorrespondence;
 using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
+using Altinn.Correspondence.Application.MarkCorrespondenceAsRead;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
-using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using Altinn.Correspondence.API.ValidationAttributes;
 
 namespace Altinn.Correspondence.API.Controllers
 {
@@ -60,10 +60,10 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1019: The Content field must be provided for the correspondence</li>
         /// <li>1020: Message title cannot be empty</li>
         /// <li>1021: Message body cannot be empty</li>
-        /// <li>1022: Message summary cannot be empty</li>
         /// <li>1023: Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)</li>
         /// <li>1033: The idempotency key must be a valid non-empty GUID</li>
         /// <li>1035: Reply options must be well-formed URIs and HTTPS with a max length of 255 characters</li>
+        /// <li>1038: A correspondence cannot contain more than 100 attachments in total</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// <li>3002: Email body and subject must be provided when sending email notifications</li>
         /// <li>3003: Reminder email body and subject must be provided when sending reminder email notifications</li>
@@ -151,12 +151,12 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1019: The Content field must be provided for the correspondence</li>
         /// <li>1020: Message title cannot be empty</li>
         /// <li>1021: Message body cannot be empty</li>
-        /// <li>1022: Message summary cannot be empty</li>
         /// <li>1023: Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)</li>
         /// <li>1033: The idempotency key must be a valid non-empty GUID</li>
         /// <li>1035: Reply options must be well-formed URIs and HTTPS with a max length of 255 characters</li>
+        /// <li>1038: A correspondence cannot contain more than 100 attachments in total</li>
         /// <li>2001: The requested attachment was not found</li>
-        /// <li>2004: File must have content and has a max file size of 250 MB</li>
+        /// <li>2004: File must have content and has a max file size of 2GB</li>
         /// <li>2008: Checksum mismatch</li>
         /// <li>2009: Could not get data location url</li>
         /// <li>2010: Filename is missing</li>
@@ -218,8 +218,6 @@ namespace Altinn.Correspondence.API.Controllers
         {
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
             _logger.LogInformation("Insert correspondences with attachment data");
-
-            Request.EnableBuffering();
             
             var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request, attachments);
             var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
@@ -420,15 +418,14 @@ namespace Altinn.Correspondence.API.Controllers
 
         public async Task<ActionResult> MarkAsRead(
             Guid correspondenceId,
-            [FromServices] UpdateCorrespondenceStatusHandler handler,
+            [FromServices] MarkCorrespondenceAsReadHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Marking Correspondence as read for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
+            var commandResult = await handler.Process(new MarkCorrespondenceAsReadRequest
             {
-                CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Read
+                CorrespondenceId = correspondenceId
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
@@ -459,15 +456,14 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("{correspondenceId}/confirm")]
         public async Task<ActionResult> Confirm(
             Guid correspondenceId,
-            [FromServices] UpdateCorrespondenceStatusHandler handler,
+            [FromServices] ConfirmCorrespondenceHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Marking Correspondence as confirmed for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
+            var commandResult = await handler.Process(new ConfirmCorrespondenceRequest
             {
-                CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Confirmed
+                CorrespondenceId = correspondenceId
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(

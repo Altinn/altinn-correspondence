@@ -21,6 +21,7 @@ namespace Altinn.Correspondence.Application.Helpers
         IHostEnvironment hostEnvironment,
         AttachmentHelper attachmentHelper,
         MobileNumberHelper mobileNumberHelper,
+        ServiceOwnerHelper serviceOwnerHelper,
         ILogger<InitializeCorrespondenceHelper> logger)
     {
         private static readonly Regex emailRegex = new Regex(@"((""[^\\""]+"")|(([a-zA-Z0-9!#$%&'*+\-=?\^_`{|}~])+(\.([a-zA-Z0-9!#$%&'*+\-=?\^_`{|}~])+)*))@((((([a-zA-Z0-9æøåÆØÅ]([a-zA-Z0-9\-æøåÆØÅ]{0,61})[a-zA-Z0-9æøåÆØÅ]\.)|[a-zA-Z0-9æøåÆØÅ]\.){1,9})([a-zA-Z]{2,14}))|((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})))");
@@ -70,6 +71,10 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return CorrespondenceErrors.MessageTitleIsNotPlainText;
             }
+            if (content.MessageTitle.Length > 255)
+            {
+                return CorrespondenceErrors.MessageTitleTooLong;
+            }
             if (string.IsNullOrWhiteSpace(content.MessageBody))
             {
                 return CorrespondenceErrors.MessageBodyEmpty;
@@ -78,11 +83,7 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return CorrespondenceErrors.MessageBodyIsNotMarkdown;
             }
-            if (string.IsNullOrWhiteSpace(content.MessageSummary))
-            {
-                return CorrespondenceErrors.MessageSummaryEmpty;
-            }
-            if (!TextValidation.ValidateMarkdown(content.MessageSummary))
+            if (!string.IsNullOrWhiteSpace(content.MessageSummary) && !TextValidation.ValidateMarkdown(content.MessageSummary))
             {
                 return CorrespondenceErrors.MessageSummaryIsNotMarkdown;
             }
@@ -220,7 +221,7 @@ namespace Altinn.Correspondence.Application.Helpers
             return text.Contains(tag, StringComparison.CurrentCultureIgnoreCase);
         }
 
-        public CorrespondenceEntity MapToCorrespondenceEntity(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, Party? partyDetails, bool isReserved, string serviceOwnerOrgNumber)
+        public async Task<CorrespondenceEntity> MapToCorrespondenceEntityAsync(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, Party? partyDetails, bool isReserved, string serviceOwnerOrgNumber, CancellationToken cancellationToken)
         {
             List<CorrespondenceStatusEntity> statuses =
             [
@@ -254,13 +255,15 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             recipient = recipient.WithoutPrefix().WithUrnPrefix();
 
-            var sender = serviceOwnerOrgNumber.WithoutPrefix().WithUrnPrefix();
+            var (sender, serviceOwnerId, serviceOwnerMigrationStatus) = await serviceOwnerHelper.GetSenderServiceOwnerIdAndMigrationStatusAsync(serviceOwnerOrgNumber, cancellationToken);
 
             return new CorrespondenceEntity
             {
                 ResourceId = request.Correspondence.ResourceId,
                 Recipient = recipient,
                 Sender = sender,
+                ServiceOwnerId = serviceOwnerId,
+                ServiceOwnerMigrationStatus = serviceOwnerMigrationStatus,
                 SendersReference = request.Correspondence.SendersReference,
                 MessageSender = request.Correspondence.MessageSender,
                 Content = new CorrespondenceContentEntity
@@ -279,11 +282,19 @@ namespace Altinn.Correspondence.Application.Helpers
                 AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,
                 DueDateTime = request.Correspondence.DueDateTime,
                 PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
-                ReplyOptions = request.Correspondence.ReplyOptions,
+                ReplyOptions = request.Correspondence.ReplyOptions.Select(requestReplyOption => new CorrespondenceReplyOptionEntity()
+                {
+                    LinkText = requestReplyOption.LinkText,
+                    LinkURL = requestReplyOption.LinkURL
+                }).ToList() ?? new List<CorrespondenceReplyOptionEntity>(),
                 IgnoreReservation = request.Correspondence.IgnoreReservation,
                 Statuses = statuses,
                 Created = DateTime.UtcNow,
-                ExternalReferences = request.Correspondence.ExternalReferences,
+                ExternalReferences = request.Correspondence.ExternalReferences.Select(requestExternalReference => new ExternalReferenceEntity()
+                {
+                    ReferenceType = requestExternalReference.ReferenceType,
+                    ReferenceValue = requestExternalReference.ReferenceValue
+                }).ToList() ?? new List<ExternalReferenceEntity>(),
                 Published = currentStatus == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
                 IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
                 IsConfidential = request.Correspondence.IsConfidential,
@@ -396,9 +407,11 @@ namespace Altinn.Correspondence.Application.Helpers
             var attachment = correspondenceAttachment.Attachment!;
             attachment.Statuses = status;
             
-            // Set the Sender from the service owner organization number
-            var sender = serviceOwnerOrgNumber.WithoutPrefix().WithUrnPrefix();
+            // Set the Sender, ServiceOwnerId, and ServiceOwnerMigrationStatus from the service owner organization number
+            var (sender, serviceOwnerId, serviceOwnerMigrationStatus) = await serviceOwnerHelper.GetSenderServiceOwnerIdAndMigrationStatusAsync(serviceOwnerOrgNumber, cancellationToken);
             attachment.Sender = sender;
+            attachment.ServiceOwnerId = serviceOwnerId;
+            attachment.ServiceOwnerMigrationStatus = serviceOwnerMigrationStatus;
             
             return await attachmentRepository.InitializeAttachment(attachment, cancellationToken);
         }
