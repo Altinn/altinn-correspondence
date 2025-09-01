@@ -230,7 +230,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<List<CorrespondenceEntity>> GetAllCorrespondencesForStatistics(CancellationToken cancellationToken)
         {
-            // Get only the basic correspondence data needed for statistics
+            // Get all correspondence data needed for detailed statistics including ServiceOwnerId
             return await _context.Correspondences
                 .Select(c => new CorrespondenceEntity
                 {
@@ -241,6 +241,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     Recipient = c.Recipient,
                     SendersReference = c.SendersReference,
                     RequestedPublishTime = c.RequestedPublishTime,
+                    ServiceOwnerId = c.ServiceOwnerId,
+                    ServiceOwnerMigrationStatus = c.ServiceOwnerMigrationStatus,
                     Statuses = new List<CorrespondenceStatusEntity>() // Initialize required property
                 })
                 .ToListAsync(cancellationToken);

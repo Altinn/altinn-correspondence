@@ -22,39 +22,66 @@ public class GenerateStatisticsReportHandler(
 
         try
         {
-            // Get all correspondences and extract service owner IDs from Sender field
+            // Get all correspondences with ServiceOwnerId data
             var correspondences = await correspondenceRepository.GetAllCorrespondencesForStatistics(cancellationToken);
             
             logger.LogInformation("Found {count} correspondences for statistics", correspondences.Count);
 
-            // Group by service owner ID (extract from Sender field)
-            var serviceOwnerStats = new List<ServiceOwnerStatistics>();
-            var groupedCorrespondences = correspondences
-                .GroupBy(c => ExtractServiceOwnerIdFromSender(c.Sender))
-                .Where(g => !string.IsNullOrEmpty(g.Key));
+            // Create detailed report data for all correspondences
+            var reportData = new List<CorrespondenceReportData>();
+            var serviceOwnerIds = correspondences
+                .Select(c => c.ServiceOwnerId)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct()
+                .ToList();
 
-            foreach (var group in groupedCorrespondences)
+            // Get all service owner names in one go for efficiency
+            var serviceOwnerNames = new Dictionary<string, string>();
+            foreach (var serviceOwnerId in serviceOwnerIds)
             {
-                var serviceOwnerId = group.Key!;
-                var count = group.Count();
-                
-                // Try to get service owner name from database
-                var serviceOwner = await serviceOwnerRepository.GetServiceOwnerByOrgNo(serviceOwnerId, cancellationToken);
-                
-                serviceOwnerStats.Add(new ServiceOwnerStatistics
+                try
                 {
-                    ServiceOwnerId = serviceOwnerId,
-                    ServiceOwnerName = serviceOwner?.Name,
-                    CorrespondenceCount = count,
+                    var serviceOwner = await serviceOwnerRepository.GetServiceOwnerByOrgNo(serviceOwnerId!, cancellationToken);
+                    if (serviceOwner != null)
+                    {
+                        serviceOwnerNames[serviceOwnerId!] = serviceOwner.Name;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to get service owner name for ID: {serviceOwnerId}", serviceOwnerId);
+                }
+            }
+
+            // Convert all correspondences to report data
+            foreach (var correspondence in correspondences)
+            {
+                var serviceOwnerName = correspondence.ServiceOwnerId != null && serviceOwnerNames.ContainsKey(correspondence.ServiceOwnerId)
+                    ? serviceOwnerNames[correspondence.ServiceOwnerId]
+                    : null;
+
+                reportData.Add(new CorrespondenceReportData
+                {
+                    CorrespondenceId = correspondence.Id.ToString(),
+                    ServiceOwnerId = correspondence.ServiceOwnerId,
+                    ServiceOwnerName = serviceOwnerName,
+                    ResourceId = correspondence.ResourceId,
+                    Sender = correspondence.Sender,
+                    Recipient = correspondence.Recipient,
+                    SendersReference = correspondence.SendersReference,
+                    Created = correspondence.Created,
+                    RequestedPublishTime = correspondence.RequestedPublishTime,
                     ReportDate = DateTimeOffset.UtcNow,
-                    Environment = hostEnvironment.EnvironmentName
+                    Environment = hostEnvironment.EnvironmentName,
+                    ServiceOwnerMigrationStatus = correspondence.ServiceOwnerMigrationStatus
                 });
             }
 
-            logger.LogInformation("Generated statistics for {serviceOwnerCount} service owners", serviceOwnerStats.Count);
+            logger.LogInformation("Generated detailed report with {correspondenceCount} correspondences for {serviceOwnerCount} service owners", 
+                reportData.Count, serviceOwnerIds.Count);
 
-            // Generate parquet file
-            var filePath = await GenerateParquetFile(serviceOwnerStats, cancellationToken);
+            // Generate parquet file with detailed data
+            var filePath = await GenerateParquetFile(reportData, cancellationToken);
             
             // Get file info
             var fileInfo = new FileInfo(filePath);
@@ -62,8 +89,8 @@ public class GenerateStatisticsReportHandler(
             var response = new GenerateStatisticsReportResponse
             {
                 FilePath = filePath,
-                ServiceOwnerCount = serviceOwnerStats.Count,
-                TotalCorrespondenceCount = serviceOwnerStats.Sum(s => s.CorrespondenceCount),
+                ServiceOwnerCount = serviceOwnerIds.Count,
+                TotalCorrespondenceCount = reportData.Count,
                 GeneratedAt = DateTimeOffset.UtcNow,
                 Environment = hostEnvironment.EnvironmentName,
                 FileSizeBytes = fileInfo.Length
@@ -84,35 +111,41 @@ public class GenerateStatisticsReportHandler(
         }
     }
 
-    private static string? ExtractServiceOwnerIdFromSender(string sender)
-    {
-        // Sender format: "0192:123456789" or "urn:altinn:organizationnumber:123456789"
-        // We want to extract the organization number (the part after the last colon)
-        if (string.IsNullOrEmpty(sender))
-            return null;
 
-        var lastColonIndex = sender.LastIndexOf(':');
-        if (lastColonIndex >= 0 && lastColonIndex < sender.Length - 1)
-        {
-            return sender.Substring(lastColonIndex + 1);
-        }
 
-        return null;
-    }
-
-    private async Task<string> GenerateParquetFile(List<ServiceOwnerStatistics> statistics, CancellationToken cancellationToken)
+    private async Task<string> GenerateParquetFile(List<CorrespondenceReportData> reportData, CancellationToken cancellationToken)
     {
         // Create reports directory if it doesn't exist
         var reportsDir = Path.Combine(Directory.GetCurrentDirectory(), "reports");
         Directory.CreateDirectory(reportsDir);
 
-        // Generate filename with timestamp
-        var fileName = $"service_owner_statistics_{DateTimeOffset.UtcNow:yyyyMMdd_HHmmss}_{hostEnvironment.EnvironmentName}.parquet";
+        // Generate filename with timestamp - using detailed naming for the new format
+        var fileName = $"correspondence_detailed_report_{DateTimeOffset.UtcNow:yyyyMMdd_HHmmss}_{hostEnvironment.EnvironmentName}.parquet";
         var filePath = Path.Combine(reportsDir, fileName);
 
-        // Write parquet file
-        await ParquetSerializer.SerializeAsync(statistics, filePath, cancellationToken: cancellationToken);
+        logger.LogInformation("Generating parquet file with {count} records to {filePath}", reportData.Count, filePath);
 
+        // Convert to parquet-friendly model
+        var parquetData = reportData.Select(r => new ParquetCorrespondenceData
+        {
+            CorrespondenceId = r.CorrespondenceId,
+            ServiceOwnerId = r.ServiceOwnerId ?? string.Empty,
+            ServiceOwnerName = r.ServiceOwnerName ?? string.Empty,
+            ResourceId = r.ResourceId,
+            Sender = r.Sender,
+            Recipient = r.Recipient,
+            SendersReference = r.SendersReference ?? string.Empty,
+            Created = r.Created.ToString("O"), // ISO 8601 format
+            RequestedPublishTime = r.RequestedPublishTime.ToString("O"),
+            ReportDate = r.ReportDate.ToString("O"),
+            Environment = r.Environment,
+            ServiceOwnerMigrationStatus = r.ServiceOwnerMigrationStatus
+        }).ToList();
+
+        // Write parquet file with the simple model that works well with ParquetSerializer
+        await ParquetSerializer.SerializeAsync(parquetData, filePath, cancellationToken: cancellationToken);
+
+        logger.LogInformation("Successfully generated parquet file: {filePath}", filePath);
         return filePath;
     }
 }
