@@ -9,7 +9,10 @@ public class TextValidation
 {
     public static string ConvertToHtml(string markdown)
     {
-        var pipleline = new MarkdownPipelineBuilder().UseAdvancedExtensions().UseYamlFrontMatter().Build();
+        var pipleline = new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions()
+            .UseYamlFrontMatter()
+            .Build();
         var html = Markdown.ToHtml(markdown, pipleline).Replace("\n", "");
         return html;
     }
