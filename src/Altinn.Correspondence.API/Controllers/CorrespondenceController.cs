@@ -8,6 +8,7 @@ using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.MarkCorrespondenceAsRead;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
@@ -335,8 +336,7 @@ namespace Altinn.Correspondence.API.Controllers
             return commandResult.Match(
                 data =>
                 {
-                    var messageBody = data.Content.MessageBody;
-                    return Ok(messageBody);
+                    return Ok(MessageBodyHelpers.ConvertMixedToMarkdown(data.Content!.MessageBody));
                 },
                 Problem
             );
