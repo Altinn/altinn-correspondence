@@ -283,6 +283,60 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task SyncCorrespondenceStatusEvent_PurgedByRecipient_MakeAvailableFails()
+    {
+        // Arrange
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
+            .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
+            .WithRecipient("urn:altinn:person:identifier-no:29909898925")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
+            .Build();
+        migrateCorrespondenceExt.MakeAvailable = false;
+
+        // Setup initial Migrated Correspondence
+        var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
+
+        // Arrange sync call
+        SyncCorrespondenceStatusEventRequestExt request = new SyncCorrespondenceStatusEventRequestExt
+        {
+            CorrespondenceId = correspondenceId,
+            SyncedEvents = new List<MigrateCorrespondenceStatusEventExt>
+            {
+                new MigrateCorrespondenceStatusEventExt
+                {
+                    Status = MigrateCorrespondenceStatusExt.PurgedByRecipient,
+                    StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 8)),
+                    EventUserPartyUuid = _defaultUserPartyUuid,
+                    EventUserUuid = _defaultUserUuid
+                }
+            }
+        };
+
+        // Act
+        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
+
+        // Assert
+        Assert.True(response.IsSuccessStatusCode);
+        // Assert that the Correspondence is purged by getting NOT FOUND
+        var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+        Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceDetailsResponse.StatusCode);
+
+        // Verify that making the correspondence available again fails as it is purged
+        MakeCorrespondenceAvailableRequestExt makeAvailableRequest = new MakeCorrespondenceAvailableRequestExt()
+        {
+            CreateEvents = true,
+            CorrespondenceId = correspondenceId
+        };
+        var makeAvailableResponse = await _migrationClient.PostAsJsonAsync(makeAvailableUrl, makeAvailableRequest);
+        Assert.True(makeAvailableResponse.IsSuccessStatusCode);
+        MakeCorrespondenceAvailableResponseExt respExt = await makeAvailableResponse.Content.ReadFromJsonAsync<MakeCorrespondenceAvailableResponseExt>();
+        Assert.NotNull(respExt.Statuses[0].Error);
+    }
+
     private async Task<Guid> MigrateCorrespondence(MigrateCorrespondenceExt migrateCorrespondenceExt)
     {
         var migrateResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);

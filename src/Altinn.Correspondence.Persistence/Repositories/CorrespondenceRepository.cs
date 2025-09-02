@@ -191,6 +191,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => c.Altinn2CorrespondenceId != null && c.IsMigrating) // Only include correspondences that are not already migrated 
                 .OrderByDescending(c => c.Created)
                 .ThenBy(c => c.Id)
+                .ExcludePurged() // Exclude purged correspondences
                 .Skip(offset)
                 .Take(batchSize)
                 .ToListAsync(cancellationToken);

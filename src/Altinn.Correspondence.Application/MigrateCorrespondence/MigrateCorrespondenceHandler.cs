@@ -3,6 +3,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Azure.Core;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,7 @@ namespace Altinn.Correspondence.Application.MigrateCorrespondence;
 
 public class MigrateCorrespondenceHandler(
     ICorrespondenceRepository correspondenceRepository,
+    ICorrespondenceDeleteEventRepository correspondenceDeleteEventRepository,
     IDialogportenService dialogportenService,
     HangfireScheduleHelper hangfireScheduleHelper,
     IBackgroundJobClient backgroundJobClient,
@@ -177,7 +179,20 @@ public class MigrateCorrespondenceHandler(
         {
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
+
+        if(correspondence.HasBeenPurged())
+        {
+            throw new InvalidOperationException($"Correspondence with id {correspondenceId} is purged and cannot be made available in Dialogporten or API");
+        }
+
         var dialogId = await dialogportenService.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId, correspondence, createEvents);
+
+        // If the correspondence is soft deleted in Correspondence, we need to update the system labels in Dialogporten as a separate step, since the dialog only accepts one system label on creation, and this is already used for "archved" if applicable.
+        bool isSoftDeleted = await IsCorrespondenceSoftDeleted(correspondence, cancellationToken);
+        if (isSoftDeleted)
+        {
+            await dialogportenService.UpdateSystemLabelsOnDialog(correspondenceId, correspondence.Recipient, new List<string> { "Bin" }, null);
+        }
 
         var updateResult = await TransactionWithRetriesPolicy.Execute<string>(async (cancellationToken) =>
         {
@@ -217,5 +232,39 @@ public class MigrateCorrespondenceHandler(
     {
         List<string> supportedLanguages = ["nb", "nn", "en"];
         return supportedLanguages.Contains(language.ToLower());
+    }
+
+    private async Task<bool> IsCorrespondenceSoftDeleted(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
+    {
+        var deletionEventsInDatabase = await correspondenceDeleteEventRepository.GetDeleteEventsForCorrespondenceId(correspondence.Id, cancellationToken);
+        if (deletionEventsInDatabase == null || !deletionEventsInDatabase.Any())
+        {
+            return false;
+        }
+
+        var softDeletedEvent = deletionEventsInDatabase
+            .Where(e => e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient)
+            .OrderByDescending(e => e.EventOccurred)
+            .FirstOrDefault();
+
+        var restoredEvent = deletionEventsInDatabase
+            .Where(e => e.EventType == CorrespondenceDeleteEventType.RestoredByRecipient)
+            .OrderByDescending(e => e.EventOccurred)
+            .FirstOrDefault();
+
+        // If no soft delete event exists, it's not soft deleted
+        if (softDeletedEvent == null)
+        {
+            return false;
+        }
+
+        // If no restore event exists, it is still soft deleted
+        if (restoredEvent == null)
+        {
+            return true;
+        }
+
+        // Return true if soft delete occurred after the most recent restore
+        return softDeletedEvent.EventOccurred > restoredEvent.EventOccurred;
     }
 }

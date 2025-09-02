@@ -107,6 +107,14 @@ namespace Altinn.Correspondence.Persistence.Helpers
             return queryFiltered;
         }
 
+        public static IQueryable<CorrespondenceEntity> ExcludePurged(this IQueryable<CorrespondenceEntity> query)
+        {
+            return query.Where(cs =>
+                    !cs.Statuses.Any(s =>
+                        s.Status == CorrespondenceStatus.PurgedByAltinn ||
+                        s.Status == CorrespondenceStatus.PurgedByRecipient));
+        }
+
         public static IQueryable<CorrespondenceEntity> WhereCurrentStatusIn(
             this IQueryable<CorrespondenceEntity> query,
             params CorrespondenceStatus[] statuses)
