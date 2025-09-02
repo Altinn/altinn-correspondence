@@ -1,3 +1,5 @@
+using Altinn.Correspondence.Core.Models.Enums;
+
 namespace Altinn.Correspondence.Application.GenerateStatisticsReport;
 
 /// <summary>
@@ -45,6 +47,11 @@ public class DailySummaryData
     /// Resource ID
     /// </summary>
     public string ResourceId { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Recipient type (Organization or Person)
+    /// </summary>
+    public RecipientType RecipientType { get; set; }
     
     /// <summary>
     /// Number of messages/correspondences for this service owner on this date

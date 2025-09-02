@@ -47,6 +47,11 @@ public class ParquetDailySummaryData
     public string ResourceId { get; set; } = string.Empty;
     
     /// <summary>
+    /// Recipient type (Organization or Person)
+    /// </summary>
+    public string RecipientType { get; set; } = string.Empty;
+    
+    /// <summary>
     /// Number of messages/correspondences for this service owner on this date
     /// </summary>
     public int MessageCount { get; set; }

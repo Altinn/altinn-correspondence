@@ -139,16 +139,17 @@ The daily summary parquet files contain aggregated data with the following field
 | `ServiceOwnerName` | string | Service Owner Name (for readability) |
 | `MessageSender` | string | Message sender |
 | `ResourceId` | string | Resource ID |
+| `RecipientType` | string | Recipient type (Organization, Person, or Unknown) |
 | `MessageCount` | int | Number of messages/correspondences for this service owner on this date |
 | `DatabaseStorageBytes` | long | Total database storage used (metadata) in bytes |
 | `AttachmentStorageBytes` | long | Total attachment storage used in bytes |
 
 **Example Daily Summary Data:**
 ```parquet
-Date       | Year | Month | Day | ServiceOwnerId | ServiceOwnerName | MessageSender | ResourceId | MessageCount | DatabaseStorageBytes | AttachmentStorageBytes
-2025-01-15 | 2025 | 1     | 15  | 987654321     | Test Org         | sender1      | resource1  | 45          | 46080               | 0
-2025-01-15 | 2025 | 1     | 15  | 123456789     | Another Org      | sender2      | resource2  | 23          | 23552               | 0
-2025-01-16 | 2025 | 1     | 16  | 987654321     | Test Org         | sender1      | resource1  | 52          | 53248               | 0
+Date       | Year | Month | Day | ServiceOwnerId | ServiceOwnerName | MessageSender | ResourceId | RecipientType | MessageCount | DatabaseStorageBytes | AttachmentStorageBytes
+2025-01-15 | 2025 | 1     | 15  | 987654321     | Test Org         | sender1      | resource1  | Organization  | 45          | 46080               | 0
+2025-01-15 | 2025 | 1     | 15  | 123456789     | Another Org      | sender2      | resource2  | Person        | 23          | 23552               | 0
+2025-01-16 | 2025 | 1     | 16  | 987654321     | Test Org         | sender1      | resource1  | Unknown       | 8           | 8192                | 0
 ```
 
 ### Detailed Correspondence Report Structure

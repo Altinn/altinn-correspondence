@@ -1,5 +1,7 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -70,7 +72,8 @@ public class GenerateDailySummaryReportHandler(
                 c.Created.Date, // Parse DateTimeOffset to Date for grouping
                 ServiceOwnerId = c.ServiceOwnerId ?? "unknown",
                 MessageSender = string.IsNullOrEmpty(c.MessageSender) ? "unknown" : c.MessageSender,
-                ResourceId = string.IsNullOrEmpty(c.ResourceId) ? "unknown" : c.ResourceId
+                ResourceId = string.IsNullOrEmpty(c.ResourceId) ? "unknown" : c.ResourceId,
+                RecipientType = GetRecipientType(c.Recipient)
             })
             .Select(g => new DailySummaryData
             {
@@ -82,6 +85,7 @@ public class GenerateDailySummaryReportHandler(
                 ServiceOwnerName = GetServiceOwnerName(g.Key.ServiceOwnerId),
                 MessageSender = g.Key.MessageSender,
                 ResourceId = g.Key.ResourceId,
+                RecipientType = g.Key.RecipientType,
                 MessageCount = g.Count(),
                 DatabaseStorageBytes = CalculateDatabaseStorage(g.ToList()),
                 AttachmentStorageBytes = CalculateAttachmentStorage(g.ToList())
@@ -90,9 +94,35 @@ public class GenerateDailySummaryReportHandler(
             .ThenBy(d => d.ServiceOwnerId)
             .ThenBy(d => d.MessageSender)
             .ThenBy(d => d.ResourceId)
+            .ThenBy(d => d.RecipientType)
             .ToList();
 
         return groupedData;
+    }
+
+    private RecipientType GetRecipientType(string recipient)
+    {
+        if (string.IsNullOrEmpty(recipient))
+        {
+            return RecipientType.Unknown;
+        }
+
+        string recipientWithoutPrefix = recipient.WithoutPrefix();
+        bool isOrganization = recipientWithoutPrefix.IsOrganizationNumber();
+        bool isPerson = recipientWithoutPrefix.IsSocialSecurityNumber();
+
+        if (isOrganization)
+        {
+            return RecipientType.Organization;
+        }
+        else if (isPerson)
+        {
+            return RecipientType.Person;
+        }
+        else
+        {
+            return RecipientType.Unknown; // For invalid or unrecognized formats
+        }
     }
 
     private string GetServiceOwnerName(string? serviceOwnerId)
@@ -153,6 +183,7 @@ public class GenerateDailySummaryReportHandler(
             ServiceOwnerName = d.ServiceOwnerName,
             MessageSender = d.MessageSender,
             ResourceId = d.ResourceId,
+            RecipientType = d.RecipientType.ToString(),
             MessageCount = d.MessageCount,
             DatabaseStorageBytes = d.DatabaseStorageBytes,
             AttachmentStorageBytes = d.AttachmentStorageBytes
