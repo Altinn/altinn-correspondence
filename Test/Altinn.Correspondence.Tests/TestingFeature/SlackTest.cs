@@ -25,14 +25,16 @@ namespace Altinn.Correspondence.Tests.TestingFeature
         #region Positive Tests
 
         [Fact]
-        public async Task SendSimpleMessage_WithSenderScope_Succeeds()
+        public async Task SendSimpleMessage_WithMaintenanceScope_Succeeds()
         {
             // Arrange
-            var senderClient = _factory.CreateSenderClient();
+            var maintenanceClient = _factory.CreateClientWithAddedClaims(
+                ("scope", AuthorizationConstants.MaintenanceScope)
+            );
             var testMessage = "Test melding fra test";
 
             // Act
-            var response = await senderClient.PostAsJsonAsync("api/slacktest/send-simple-message", testMessage);
+            var response = await maintenanceClient.PostAsJsonAsync("api/slacktest/send-simple-message", testMessage);
 
             // Assert
             // Note: In test environment, ISlackClient is mocked and returns false by default
@@ -144,7 +146,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
         {
             // Arrange
             var wrongIssuerClient = _factory.CreateClientWithAddedClaims(
-                ("scope", AuthorizationConstants.SenderScope),
+                ("scope", AuthorizationConstants.MaintenanceScope),
                 ("iss", "https://wrong-issuer.com/")
             );
             var testMessage = "Test melding med feil issuer";
@@ -153,10 +155,8 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             var response = await wrongIssuerClient.PostAsJsonAsync("api/slacktest/send-simple-message", testMessage);
 
             // Assert
-            // SenderScope is not sufficient for Maintenance policy which requires MaintenanceScope
-            // This results in BadRequest due to ScopeAccessRequirement validation failure
-            Assert.True(response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.BadRequest, 
-                $"Expected Forbidden or BadRequest but got {response.StatusCode}");
+            // Now the test properly validates that wrong issuer fails, not missing scope
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
         #endregion
