@@ -103,11 +103,7 @@ public class GenerateStatisticsReportHandler(
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to generate statistics report");
-            return new Error(
-                ErrorCode: 500,
-                Message: "Failed to generate statistics report",
-                StatusCode: System.Net.HttpStatusCode.InternalServerError
-            );
+            return StatisticsErrors.ReportGenerationFailed;
         }
     }
 

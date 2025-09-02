@@ -34,7 +34,29 @@ POST /correspondence/api/v1/statistics/generate-report
 }
 ```
 
-### 2. Generate Statistics Summary
+### 2. Generate Daily Summary Report
+
+Generate a daily summary report with aggregated data per service owner per day. Each row represents one day's usage for one service owner:
+
+```bash
+POST /correspondence/api/v1/statistics/generate-daily-summary
+# No authentication required
+# No request body or parameters needed
+```
+
+**Response:**
+```json
+{
+  "filePath": "C:\\path\\to\\reports\\daily_summary_report_20250127_143022_Development.parquet",
+  "serviceOwnerCount": 5,
+  "totalCorrespondenceCount": 150,
+  "generatedAt": "2025-01-27T14:30:22.123Z",
+  "environment": "Development",
+  "fileSizeBytes": 4096
+}
+```
+
+### 3. Generate Statistics Summary
 
 Generate a summary with correspondence counts per service owner. This endpoint automatically generates a new detailed report and then creates an in-memory summary from it:
 
@@ -68,7 +90,7 @@ POST /correspondence/api/v1/statistics/generate-summary
 }
 ```
 
-### 3. List Available Reports
+### 4. List Available Reports
 
 Get a list of all generated report files:
 
@@ -90,7 +112,7 @@ GET /correspondence/api/v1/statistics/reports
 ]
 ```
 
-### 4. Download a Report File
+### 5. Download a Report File
 
 Download a specific report file:
 
@@ -103,7 +125,35 @@ This will return the parquet file as a binary download.
 
 ## Data Structure
 
-The generated parquet files contain detailed information for each correspondence with the following fields:
+### Daily Summary Report Structure
+
+The daily summary parquet files contain aggregated data with the following fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `Date` | string | Date in YYYY-MM-DD format |
+| `Year` | int | Year (YYYY) |
+| `Month` | int | Month (MM) |
+| `Day` | int | Day (DD) |
+| `ServiceOwnerId` | string | Service Owner ID (organization number) |
+| `ServiceOwnerName` | string | Service Owner Name (for readability) |
+| `MessageSender` | string | Message sender |
+| `ResourceId` | string | Resource ID |
+| `MessageCount` | int | Number of messages/correspondences for this service owner on this date |
+| `DatabaseStorageBytes` | long | Total database storage used (metadata) in bytes |
+| `AttachmentStorageBytes` | long | Total attachment storage used in bytes |
+
+**Example Daily Summary Data:**
+```parquet
+Date       | Year | Month | Day | ServiceOwnerId | ServiceOwnerName | MessageSender | ResourceId | MessageCount | DatabaseStorageBytes | AttachmentStorageBytes
+2025-01-15 | 2025 | 1     | 15  | 987654321     | Test Org         | sender1      | resource1  | 45          | 46080               | 0
+2025-01-15 | 2025 | 1     | 15  | 123456789     | Another Org      | sender2      | resource2  | 23          | 23552               | 0
+2025-01-16 | 2025 | 1     | 16  | 987654321     | Test Org         | sender1      | resource1  | 52          | 53248               | 0
+```
+
+### Detailed Correspondence Report Structure
+
+The detailed correspondence parquet files contain information for each individual correspondence with the following fields:
 
 | Field | Type | Description |
 |-------|------|-------------|

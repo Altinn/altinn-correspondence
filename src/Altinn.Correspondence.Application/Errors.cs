@@ -100,3 +100,9 @@ public static class SyncErrors
 {   
     public static Error NoEventsToSync = new Error(5001, "No Events were specified in request", HttpStatusCode.BadRequest);
 }
+
+public static class StatisticsErrors
+{
+    public static Error NoCorrespondencesFound = new Error(6001, "No correspondences found for report generation", HttpStatusCode.NotFound);
+    public static Error ReportGenerationFailed = new Error(6002, "Failed to generate statistics report", HttpStatusCode.InternalServerError);
+}

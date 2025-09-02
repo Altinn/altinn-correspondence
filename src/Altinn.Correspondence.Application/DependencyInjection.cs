@@ -65,6 +65,7 @@ public static class DependencyInjection
 
         // Statistics & Reporting
         services.AddScoped<GenerateStatisticsReportHandler>();
+        services.AddScoped<GenerateDailySummaryReportHandler>();
 
         // Helpers
         services.AddScoped<AttachmentHelper>();

@@ -123,6 +123,43 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     }
 
     /// <summary>
+    /// Generate a daily summary report with aggregated data per service owner per day
+    /// </summary>
+    /// <remarks>
+    /// This generates a parquet file with daily aggregated summary data.
+    /// Each row represents one day's usage for one service owner.
+    /// No request parameters are needed.
+    /// </remarks>
+    /// <response code="200">Returns the summary report generation response</response>
+    /// <response code="500">Internal server error</response>
+    [HttpPost]
+    [Route("generate-daily-summary")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(GenerateStatisticsReportResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult> GenerateDailySummary(
+        [FromServices] GenerateDailySummaryReportHandler handler,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Request to generate daily summary report received");
+
+        try
+        {
+            var result = await handler.Process(HttpContext.User, cancellationToken);
+            
+            return result.Match(
+                Ok,
+                Problem
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to generate daily summary report");
+            return StatusCode(500, "Failed to generate daily summary report");
+        }
+    }
+
+    /// <summary>
     /// Generate a summary report with correspondence counts per service owner
     /// </summary>
     /// <remarks>
