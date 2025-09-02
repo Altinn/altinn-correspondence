@@ -243,6 +243,38 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     RequestedPublishTime = c.RequestedPublishTime,
                     ServiceOwnerId = c.ServiceOwnerId,
                     ServiceOwnerMigrationStatus = c.ServiceOwnerMigrationStatus,
+                    Altinn2CorrespondenceId = c.Altinn2CorrespondenceId,
+                    MessageSender = c.MessageSender,
+                    Statuses = new List<CorrespondenceStatusEntity>() // Initialize required property
+                })
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForStatistics(bool includeAltinn2, CancellationToken cancellationToken)
+        {
+            var query = _context.Correspondences.AsQueryable();
+
+            // Filter by Altinn version if needed
+            if (!includeAltinn2)
+            {
+                query = query.Where(c => c.Altinn2CorrespondenceId == null);
+            }
+
+            // Get all correspondence data needed for detailed statistics including ServiceOwnerId and AltinnVersion info
+            return await query
+                .Select(c => new CorrespondenceEntity
+                {
+                    Id = c.Id,
+                    Sender = c.Sender,
+                    ResourceId = c.ResourceId,
+                    Created = c.Created,
+                    Recipient = c.Recipient,
+                    SendersReference = c.SendersReference,
+                    RequestedPublishTime = c.RequestedPublishTime,
+                    ServiceOwnerId = c.ServiceOwnerId,
+                    ServiceOwnerMigrationStatus = c.ServiceOwnerMigrationStatus,
+                    Altinn2CorrespondenceId = c.Altinn2CorrespondenceId,
+                    MessageSender = c.MessageSender,
                     Statuses = new List<CorrespondenceStatusEntity>() // Initialize required property
                 })
                 .ToListAsync(cancellationToken);

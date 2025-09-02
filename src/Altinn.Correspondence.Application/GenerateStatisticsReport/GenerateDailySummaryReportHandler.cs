@@ -20,14 +20,15 @@ public class GenerateDailySummaryReportHandler(
 {
     public async Task<OneOf<GenerateStatisticsReportResponse, Error>> Process(
         ClaimsPrincipal user,
+        GenerateDailySummaryReportRequest request,
         CancellationToken cancellationToken)
     {
         try
         {
-            logger.LogInformation("Starting daily summary report generation");
+            logger.LogInformation("Starting daily summary report generation with Altinn2Included={altinn2Included}", request.Altinn2Included);
 
-            // Get all correspondences for statistics
-            var correspondences = await correspondenceRepository.GetAllCorrespondencesForStatistics(cancellationToken);
+            // Get correspondences for statistics with filtering
+            var correspondences = await correspondenceRepository.GetCorrespondencesForStatistics(request.Altinn2Included, cancellationToken);
             logger.LogInformation("Retrieved {count} correspondences for daily summary report", correspondences.Count);
 
             if (correspondences.Count == 0)
@@ -73,7 +74,8 @@ public class GenerateDailySummaryReportHandler(
                 ServiceOwnerId = c.ServiceOwnerId ?? "unknown",
                 MessageSender = string.IsNullOrEmpty(c.MessageSender) ? "unknown" : c.MessageSender,
                 ResourceId = string.IsNullOrEmpty(c.ResourceId) ? "unknown" : c.ResourceId,
-                RecipientType = GetRecipientType(c.Recipient)
+                RecipientType = GetRecipientType(c.Recipient),
+                AltinnVersion = GetAltinnVersion(c.Altinn2CorrespondenceId)
             })
             .Select(g => new DailySummaryData
             {
@@ -86,6 +88,7 @@ public class GenerateDailySummaryReportHandler(
                 MessageSender = g.Key.MessageSender,
                 ResourceId = g.Key.ResourceId,
                 RecipientType = g.Key.RecipientType,
+                AltinnVersion = g.Key.AltinnVersion,
                 MessageCount = g.Count(),
                 DatabaseStorageBytes = CalculateDatabaseStorage(g.ToList()),
                 AttachmentStorageBytes = CalculateAttachmentStorage(g.ToList())
@@ -95,6 +98,7 @@ public class GenerateDailySummaryReportHandler(
             .ThenBy(d => d.MessageSender)
             .ThenBy(d => d.ResourceId)
             .ThenBy(d => d.RecipientType)
+            .ThenBy(d => d.AltinnVersion)
             .ToList();
 
         return groupedData;
@@ -123,6 +127,11 @@ public class GenerateDailySummaryReportHandler(
         {
             return RecipientType.Unknown; // For invalid or unrecognized formats
         }
+    }
+
+    private AltinnVersion GetAltinnVersion(int? altinn2CorrespondenceId)
+    {
+        return altinn2CorrespondenceId.HasValue ? AltinnVersion.Altinn2 : AltinnVersion.Altinn3;
     }
 
     private string GetServiceOwnerName(string? serviceOwnerId)
@@ -184,6 +193,7 @@ public class GenerateDailySummaryReportHandler(
             MessageSender = d.MessageSender,
             ResourceId = d.ResourceId,
             RecipientType = d.RecipientType.ToString(),
+            AltinnVersion = d.AltinnVersion.ToString(),
             MessageCount = d.MessageCount,
             DatabaseStorageBytes = d.DatabaseStorageBytes,
             AttachmentStorageBytes = d.AttachmentStorageBytes

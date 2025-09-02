@@ -52,6 +52,11 @@ public class ParquetDailySummaryData
     public string RecipientType { get; set; } = string.Empty;
     
     /// <summary>
+    /// Altinn version (Altinn2, Altinn3)
+    /// </summary>
+    public string AltinnVersion { get; set; } = string.Empty;
+    
+    /// <summary>
     /// Number of messages/correspondences for this service owner on this date
     /// </summary>
     public int MessageCount { get; set; }

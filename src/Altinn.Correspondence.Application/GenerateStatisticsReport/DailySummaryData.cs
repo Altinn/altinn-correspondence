@@ -54,6 +54,11 @@ public class DailySummaryData
     public RecipientType RecipientType { get; set; }
     
     /// <summary>
+    /// Altinn version (Altinn2 or Altinn3)
+    /// </summary>
+    public AltinnVersion AltinnVersion { get; set; }
+    
+    /// <summary>
     /// Number of messages/correspondences for this service owner on this date
     /// </summary>
     public int MessageCount { get; set; }

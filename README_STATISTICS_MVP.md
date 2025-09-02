@@ -36,12 +36,22 @@ POST /correspondence/api/v1/statistics/generate-report
 
 ### 2. Generate Daily Summary Report
 
-Generate a daily summary report with aggregated data per service owner per day. Each row represents one day's usage for one service owner:
+Generate a daily summary report with aggregated data per service owner per day. Each row represents one day's usage for one service owner.
+
+**Request Body (optional):**
+```json
+{
+  "altinn2Included": true
+}
+```
+
+**Parameters:**
+- `altinn2Included` (boolean, optional): Whether to include Altinn2 correspondences in the report. Default is `true`. Set to `false` to generate reports with only Altinn3 correspondences.
 
 ```bash
 POST /correspondence/api/v1/statistics/generate-daily-summary
 # No authentication required
-# No request body or parameters needed
+# Optional request body to filter Altinn versions
 ```
 
 **Response:**
@@ -140,16 +150,17 @@ The daily summary parquet files contain aggregated data with the following field
 | `MessageSender` | string | Message sender |
 | `ResourceId` | string | Resource ID |
 | `RecipientType` | string | Recipient type (Organization, Person, or Unknown) |
+| `AltinnVersion` | string | Altinn version (Altinn2 or Altinn3) |
 | `MessageCount` | int | Number of messages/correspondences for this service owner on this date |
 | `DatabaseStorageBytes` | long | Total database storage used (metadata) in bytes |
 | `AttachmentStorageBytes` | long | Total attachment storage used in bytes |
 
 **Example Daily Summary Data:**
 ```parquet
-Date       | Year | Month | Day | ServiceOwnerId | ServiceOwnerName | MessageSender | ResourceId | RecipientType | MessageCount | DatabaseStorageBytes | AttachmentStorageBytes
-2025-01-15 | 2025 | 1     | 15  | 987654321     | Test Org         | sender1      | resource1  | Organization  | 45          | 46080               | 0
-2025-01-15 | 2025 | 1     | 15  | 123456789     | Another Org      | sender2      | resource2  | Person        | 23          | 23552               | 0
-2025-01-16 | 2025 | 1     | 16  | 987654321     | Test Org         | sender1      | resource1  | Unknown       | 8           | 8192                | 0
+Date       | Year | Month | Day | ServiceOwnerId | ServiceOwnerName | MessageSender | ResourceId | RecipientType | AltinnVersion | MessageCount | DatabaseStorageBytes | AttachmentStorageBytes
+2025-01-15 | 2025 | 1     | 15  | 987654321     | Test Org         | sender1      | resource1  | Organization  | Altinn3       | 45          | 46080               | 0
+2025-01-15 | 2025 | 1     | 15  | 123456789     | Another Org      | sender2      | resource2  | Person        | Altinn2       | 23          | 23552               | 0
+2025-01-16 | 2025 | 1     | 16  | 987654321     | Test Org         | sender1      | resource1  | Unknown       | Altinn3       | 8           | 8192                | 0
 ```
 
 ### Detailed Correspondence Report Structure

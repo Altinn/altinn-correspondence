@@ -128,8 +128,11 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     /// <remarks>
     /// This generates a parquet file with daily aggregated summary data.
     /// Each row represents one day's usage for one service owner.
-    /// No request parameters are needed.
+    /// You can optionally exclude Altinn2 correspondences by setting Altinn2Included to false.
     /// </remarks>
+    /// <param name="request">Request parameters including whether to include Altinn2 correspondences</param>
+    /// <param name="handler">The handler service</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <response code="200">Returns the summary report generation response</response>
     /// <response code="500">Internal server error</response>
     [HttpPost]
@@ -138,6 +141,7 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     [ProducesResponseType(typeof(GenerateStatisticsReportResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult> GenerateDailySummary(
+        [FromBody] GenerateDailySummaryReportRequest request,
         [FromServices] GenerateDailySummaryReportHandler handler,
         CancellationToken cancellationToken)
     {
@@ -145,7 +149,10 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
 
         try
         {
-            var result = await handler.Process(HttpContext.User, cancellationToken);
+            // Use default request if none provided
+            request ??= new GenerateDailySummaryReportRequest();
+            
+            var result = await handler.Process(HttpContext.User, request, cancellationToken);
             
             return result.Match(
                 Ok,
