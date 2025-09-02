@@ -4,6 +4,9 @@ using Altinn.Correspondence.Tests.Fixtures;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Moq;
+using Slack.Webhooks;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Correspondence.Tests.TestingFeature
 {
@@ -46,6 +49,70 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             Assert.NotNull(result);
             Assert.False(result!.GetProperty("success").GetBoolean());
             Assert.Contains("Failed to send simple test message", result.GetProperty("message").GetString());
+        }
+
+        [Fact]
+        public async Task SendSimpleMessage_WithValidSlackClient_Succeeds()
+        {
+            // Arrange
+            var mockSlackClient = new Mock<ISlackClient>();
+            mockSlackClient.Setup(x => x.PostAsync(It.IsAny<SlackMessage>()))
+                          .ReturnsAsync(true); // Mock successful Slack send
+
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                services.AddSingleton(mockSlackClient.Object);
+            });
+
+            var maintenanceClient = testFactory.CreateClientWithAddedClaims(
+                ("scope", AuthorizationConstants.MaintenanceScope)
+            );
+            var testMessage = "Test melding som skal lykkes";
+
+            // Act
+            var response = await maintenanceClient.PostAsJsonAsync("api/slacktest/send-simple-message", testMessage);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            
+            var result = await response.Content.ReadFromJsonAsync<dynamic>(_responseSerializerOptions);
+            Assert.NotNull(result);
+            Assert.True(result!.GetProperty("success").GetBoolean());
+            Assert.Contains("Simple test message sent successfully", result.GetProperty("message").GetString());
+            
+            // Verify SlackClient was called with correct message
+            mockSlackClient.Verify(x => x.PostAsync(It.Is<SlackMessage>(m => 
+                m.Text.Contains("Test Message: Test melding som skal lykkes"))), Times.Once);
+        }
+
+        [Fact]
+        public async Task SendSimpleMessage_SlackClientThrowsException_Returns500()
+        {
+            // Arrange
+            var mockSlackClient = new Mock<ISlackClient>();
+            mockSlackClient.Setup(x => x.PostAsync(It.IsAny<SlackMessage>()))
+                          .ThrowsAsync(new Exception("Slack API error"));
+
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                services.AddSingleton(mockSlackClient.Object);
+            });
+
+            var maintenanceClient = testFactory.CreateClientWithAddedClaims(
+                ("scope", AuthorizationConstants.MaintenanceScope)
+            );
+            var testMessage = "Test melding som skal feile";
+
+            // Act
+            var response = await maintenanceClient.PostAsJsonAsync("api/slacktest/send-simple-message", testMessage);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+            
+            var result = await response.Content.ReadFromJsonAsync<dynamic>(_responseSerializerOptions);
+            Assert.NotNull(result);
+            Assert.False(result!.GetProperty("success").GetBoolean());
+            Assert.Contains("Internal server error", result.GetProperty("message").GetString());
         }
 
         #endregion
