@@ -134,7 +134,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
 
             var correspondenceList2 = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             var response2 = await correspondenceList2.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
-            Assert.DoesNotContain(response2?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId); // Should not longer be in list after purge
+            Assert.DoesNotContain(response2?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId); // Should not longer be in archive list after purge
+
+            var listPayload2 = GetBasicLegacyGetCorrespondenceRequestExt();
+            listPayload.IncludeActive = false;
+            listPayload.IncludeArchived = false;
+            listPayload.IncludeDeleted = true;
+            var correspondenceList3 = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload2);
+            var response3 = await correspondenceList3.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
+            Assert.Contains(response3?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId); // Should be in deleted list after purge
         }
 
         [Fact]
