@@ -187,12 +187,6 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
 
-        if (correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Read))
-        {
-            logger.LogInformation("Correspondence with id {correspondenceId} already has a Read status, skipping activity creation on Dialogporten", correspondenceId);
-            return;
-        }
-
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
