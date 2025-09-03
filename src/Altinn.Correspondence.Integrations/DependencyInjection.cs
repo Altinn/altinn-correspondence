@@ -55,7 +55,7 @@ public static class DependencyInjection
             {
                 PlatformGatewayUrl = "https://internal.platform.yt01.altinn.cloud"
             };
-            services.RegisterAltinnHttpClient<IAltinnAuthorizationService, AltinnAuthorizationService>(maskinportenSettings, authorizationOptions);
+            services.RegisterAltinnHttpClient<IAltinnAuthorizationService, AltinnAuthorizationService>(maskinportenSettings, authorizationOptions, true);
             services.RegisterAltinnHttpClient<IResourceRegistryService, ResourceRegistryService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnRegisterService, AltinnRegisterService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnAccessManagementService, AltinnAccessManagementService>(maskinportenSettings, altinnOptions);
@@ -88,12 +88,27 @@ public static class DependencyInjection
         services.AddSingleton<IDistributedLockHelper, DistributedLockHelper>();
     }
 
-    public static void RegisterAltinnHttpClient<TClient, TImplementation>(this IServiceCollection services, MaskinportenSettings maskinportenSettings, AltinnOptions altinnOptions)
+    public static void RegisterAltinnHttpClient<TClient, TImplementation>(
+        this IServiceCollection services,
+        MaskinportenSettings maskinportenSettings,
+        AltinnOptions altinnOptions,
+        bool bypassCertificateValidation = false)
         where TClient : class
         where TImplementation : class, TClient
     {
         services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(TClient).FullName, maskinportenSettings);
-        services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
+
+        var httpClientBuilder = services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl));
+
+        if (bypassCertificateValidation)
+        {
+            httpClientBuilder.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+            });
+        }
+
+        httpClientBuilder
             .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>()
             .AddStandardRetryPolicy();
     }
