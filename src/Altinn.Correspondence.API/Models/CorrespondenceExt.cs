@@ -24,7 +24,7 @@ public class CorrespondenceExt
     [Required]
     public required string SendersReference { get; set; }
 
-    [StringLength(256, MinimumLength = 0)]
+    [StringLength(255, MinimumLength = 0)]
     public string? MessageSender { get; set; }
 
     public CorrespondenceContentEntity? Content { get; set; }
