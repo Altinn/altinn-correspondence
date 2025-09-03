@@ -54,6 +54,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         }
 
         AuthorizedPartiesRequest request = new(partyToRequestFor);
+        _logger.LogInformation("PartyId {partyId} has partyType {partyType}", partyToRequestFor.PartyId, request.Type);
         JsonSerializerOptions serializerOptions = new()
         {
             PropertyNameCaseInsensitive = true,
