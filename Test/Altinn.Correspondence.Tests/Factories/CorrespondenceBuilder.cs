@@ -226,6 +226,12 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public CorrespondenceBuilder WithMessageSender(string messageSender)
+        {
+            _correspondence.Correspondence.MessageSender = messageSender;
+            return this;
+        }
+
         public static CorrespondenceEntity CorrespondenceEntityWithNotifications()
         {
             return new CorrespondenceEntity()
