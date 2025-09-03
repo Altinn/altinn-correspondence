@@ -58,7 +58,7 @@ public static class DependencyInjection
             services.RegisterAltinnHttpClient<IAltinnAuthorizationService, AltinnAuthorizationService>(maskinportenSettings, authorizationOptions);
             services.RegisterAltinnHttpClient<IResourceRegistryService, ResourceRegistryService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnRegisterService, AltinnRegisterService>(maskinportenSettings, altinnOptions);
-            services.RegisterAltinnHttpClient<IAltinnAccessManagementService, AltinnAccessManagementService>(maskinportenSettings, authorizationOptions);
+            services.RegisterAltinnHttpClient<IAltinnAccessManagementService, AltinnAccessManagementService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IEventBus, AltinnEventBus>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnNotificationService, AltinnNotificationService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IDialogportenService, DialogportenService>(maskinportenSettings, altinnOptions);
