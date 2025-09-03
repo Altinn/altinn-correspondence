@@ -83,9 +83,9 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return CorrespondenceErrors.MessageBodyIsNotMarkdown;
             }
-            if (!string.IsNullOrWhiteSpace(content.MessageSummary) && !TextValidation.ValidateMarkdown(content.MessageSummary))
+            if (!TextValidation.ValidatePlainText(content.MessageSummary))
             {
-                return CorrespondenceErrors.MessageSummaryIsNotMarkdown;
+                return CorrespondenceErrors.MessageSummaryIsNotPlainText;
             }
             if (!IsLanguageValid(content.Language))
             {
