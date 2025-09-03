@@ -46,7 +46,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <response code="400"><ul>
         /// <li>1002: Message title must be plain text</li>
         /// <li>1003: Message body must be markdown</li>
-        /// <li>1004: Message summary must be markdown</li>
+        /// <li>1004: Message summary must be plain text</li>
         /// <li>1006: Recipients must be unique</li>
         /// <li>1007: Existing attachment not found</li>
         /// <li>1008: DueDateTime cannot be prior to today</li>
@@ -136,7 +136,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <response code="400"><ul>
         /// <li>1002: Message title must be plain text</li>
         /// <li>1003: Message body must be markdown</li>
-        /// <li>1004: Message summary must be markdown</li>
+        /// <li>1004: Message summary must be plain text</li>
         /// <li>1005: Mismatch between uploaded files and attachment metadata</li>
         /// <li>1006: Recipients must be unique</li>
         /// <li>1007: Existing attachment not found</li>
