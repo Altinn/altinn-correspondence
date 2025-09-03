@@ -555,7 +555,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build();
 
             // Act
-            
+
             var initializeCorrespondenceResponse = await testFactory.CreateSenderClient().PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
             // Assert
@@ -1047,7 +1047,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Arrange
             var attachments = new List<InitializeCorrespondenceAttachmentExt>();
             var attachmentFiles = new[] { "document1.pdf", "image2.jpg", "data3.xlsx" };
-            
+
             foreach (var fileName in attachmentFiles)
             {
                 var attachment = AttachmentHelper.GetAttachmentMetaData(fileName);
@@ -1129,31 +1129,31 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             using var memoryStream1 = new MemoryStream();
             using var memoryStream2 = new MemoryStream();
             using var memoryStream3 = new MemoryStream();
-            
+
             memoryStream1.Write("safe content"u8);
             memoryStream2.Write("malware content"u8);
             memoryStream3.Write("safe content 2"u8);
-            
+
             var filename1 = $"safe1-{Guid.NewGuid()}.txt";
             var filename2 = $"malware-{Guid.NewGuid()}.txt";
             var filename3 = $"safe2-{Guid.NewGuid()}.txt";
-            
+
             var file1 = new FormFile(memoryStream1, 0, memoryStream1.Length, "file", filename1);
             var file2 = new FormFile(memoryStream2, 0, memoryStream2.Length, "file", filename2);
             var file3 = new FormFile(memoryStream3, 0, memoryStream3.Length, "file", filename3);
-            
+
             var attachmentData1 = AttachmentHelper.GetAttachmentMetaData(filename1);
             var attachmentData2 = AttachmentHelper.GetAttachmentMetaData(filename2);
             var attachmentData3 = AttachmentHelper.GetAttachmentMetaData(filename3);
-            
+
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithAttachments([attachmentData1, attachmentData2, attachmentData3])
                 .Build();
-            
+
             var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
             formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
-            
+
             using var fileStream1 = file1.OpenReadStream();
             using var fileStream2 = file2.OpenReadStream();
             using var fileStream3 = file3.OpenReadStream();
@@ -1169,7 +1169,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             using var scope = testFactory.Services.CreateScope();
             using var applicationDbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            
+
             // Wait for attachments to be created in database
             int retryAttempts = 30;
             while (!applicationDbContext.Attachments.Any(attachment => attachment.FileName == filename1) ||
@@ -1183,15 +1183,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 retryAttempts--;
                 await Task.Delay(100);
             }
-            
+
             var attachment1 = applicationDbContext.Attachments.FirstOrDefault(attachment => attachment.FileName == filename1);
             var attachment2 = applicationDbContext.Attachments.FirstOrDefault(attachment => attachment.FileName == filename2);
             var attachment3 = applicationDbContext.Attachments.FirstOrDefault(attachment => attachment.FileName == filename3);
-            
+
             Assert.NotNull(attachment1); // Safe attachment 1 not found in database
             Assert.NotNull(attachment2); // Malware attachment not found in database
             Assert.NotNull(attachment3); // Safe attachment 2 not found in database
-            
+
             // Simulate malware scan results - one safe, one malware, one safe
             var jsonBody1 = MalwareScanResultControllerTests.GetMalwareScanResultJson("Data/MalwareScanResult_NoThreatFound.json", attachment1.Id.ToString());
             var jsonBody2 = MalwareScanResultControllerTests.GetMalwareScanResultJson("Data/MalwareScanResult_Malicious.json", attachment2.Id.ToString());
@@ -1422,5 +1422,78 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 Assert.True(propertyList.All(kv => overview.PropertyList.ContainsKey(kv.Key) && overview.PropertyList[kv.Key] == kv.Value));
             }
         }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithSummaryTooLong_ReturnsBadRequest()
+        {
+            // Arrange - Create a summary that exceeds 255 characters
+            var longSummary = new string('A', 256); // 256 characters to exceed the limit
+            var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithMessageSummary(longSummary)
+            .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithSummaryAt255Characters_Succeeds()
+        {
+            // Arrange - Create a summary exactly at the 255 character limit
+            var maxLengthSummary = new string('A', 255); // Exactly 255 characters
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageSummary(maxLengthSummary)
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithSenderAt255Characters_Succeeds()
+        {
+            // Arrange - Create a sender exactly at the 255 character limit
+            var maxLengthSender = new string('A', 255); // Exactly 255 characters
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageSender(maxLengthSender)
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithSenderTooLong_ReturnsBadRequest()
+        {
+            // Arrange - Create a sender that exceeds the 255 character limit
+            var longSender = new string('A', 256); // 256 characters to exceed the limit
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageSender(longSender)
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+        }
+
+
     }
 }
+
+
