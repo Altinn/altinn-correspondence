@@ -53,7 +53,7 @@ public static class DependencyInjection
             config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
             var authorizationOptions = new AltinnOptions()
             {
-                PlatformGatewayUrl = "http://altinn-authorization.default.svc.cluster.local"
+                PlatformGatewayUrl = "https://internal.platform.yt01.altinn.cloud"
             };
             services.RegisterAltinnHttpClient<IAltinnAuthorizationService, AltinnAuthorizationService>(maskinportenSettings, authorizationOptions);
             services.RegisterAltinnHttpClient<IResourceRegistryService, ResourceRegistryService>(maskinportenSettings, altinnOptions);
