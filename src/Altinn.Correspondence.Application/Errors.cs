@@ -43,6 +43,7 @@ public static class CorrespondenceErrors
     public static Error ServiceOwnerOrgNumberNotFound = new Error(1036, "Service owner/sender's organization number (9 digits) not found for resource", HttpStatusCode.InternalServerError);
     public static Error MessageTitleTooLong = new Error(1037, "Message title cannot exceed 255 characters", HttpStatusCode.BadRequest);
     public static Error AttachmentCountExceeded = new Error(1038, "A correspondence cannot contain more than 100 attachments in total", HttpStatusCode.BadRequest);
+    public static Error MessageSummaryIsNotPlainText = new Error(1039, "Message summary must be plain text", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
