@@ -1,9 +1,11 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Migration.Base;
+using Npgsql.Internal;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -210,6 +212,231 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
     }
 
     [Fact]
+    public async Task SyncCorrespondenceStatusEvent_SoftDeleteByRecipient_AvailableInlegacy()
+    {
+        // Arrange
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, DateTime.Now)
+            .WithCreatedAt(DateTime.Now)
+            .WithRecipient("urn:altinn:organization:identifier-no:991825827")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
+            .Build();
+        migrateCorrespondenceExt.MakeAvailable = true;
+
+        // Setup initial Migrated Correspondence
+        var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
+
+        // Arrange sync call
+        SyncCorrespondenceStatusEventRequestExt request = new SyncCorrespondenceStatusEventRequestExt
+        {
+            CorrespondenceId = correspondenceId,
+            SyncedEvents = new List<MigrateCorrespondenceStatusEventExt>
+            {
+                new MigrateCorrespondenceStatusEventExt
+                {
+                    Status = MigrateCorrespondenceStatusExt.SoftDeletedByRecipient,
+                    StatusChanged = new DateTimeOffset(DateTime.Now),
+                    EventUserPartyUuid = _defaultUserPartyUuid,
+                    EventUserUuid = _defaultUserUuid
+                }
+            }
+        };
+
+        // Act
+        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
+
+        // Assert
+        Assert.True(response.IsSuccessStatusCode);
+        // Assert that the Correspondence is still available and not purged
+        var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+        Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse.StatusCode);
+        
+        // Asssert it is available as soft deleted in legacy
+        var listPayload = GetBasicLegacyGetCorrespondenceRequestExt(false, false, true);
+        var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
+        var correspondenceListResponse = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);
+        Assert.Contains(correspondenceListResponse?.Items, c => c.CorrespondenceId == correspondenceId);
+    }
+
+    [Fact]
+    public async Task SyncCorrespondenceStatusEvent_SoftDeleteByRecipient_RestoredByRecipient_AvailableInlegacy()
+    {
+        // Arrange
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, DateTime.Now)
+            .WithCreatedAt(DateTime.Now)
+            .WithRecipient("urn:altinn:organization:identifier-no:991825827")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
+            .Build();
+        migrateCorrespondenceExt.MakeAvailable = true;
+
+        // Setup initial Migrated Correspondence
+        var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
+
+        // Arrange sync call
+        SyncCorrespondenceStatusEventRequestExt request1 = new SyncCorrespondenceStatusEventRequestExt
+        {
+            CorrespondenceId = correspondenceId,
+            SyncedEvents = new List<MigrateCorrespondenceStatusEventExt>
+            {
+                new MigrateCorrespondenceStatusEventExt
+                {
+                    Status = MigrateCorrespondenceStatusExt.SoftDeletedByRecipient,
+                    StatusChanged = new DateTimeOffset(DateTime.Now),
+                    EventUserPartyUuid = _defaultUserPartyUuid,
+                    EventUserUuid = _defaultUserUuid
+                }
+            }
+        };
+
+        // Act
+        var response1 = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request1);
+        Assert.True(response1.IsSuccessStatusCode);
+
+        // Assert that the Correspondence is still available and not purged
+        var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+        Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse.StatusCode);
+
+        // Asssert it is available as soft deleted in legacy
+        var listPayload = GetBasicLegacyGetCorrespondenceRequestExt(false, false, true);
+        var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
+        var correspondenceListResponse = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);
+        Assert.Contains(correspondenceListResponse?.Items, c => c.CorrespondenceId == correspondenceId);
+
+        // Change to SoftDeletedByRecipient
+        SyncCorrespondenceStatusEventRequestExt request2 = new SyncCorrespondenceStatusEventRequestExt
+        {
+            CorrespondenceId = correspondenceId,
+            SyncedEvents = new List<MigrateCorrespondenceStatusEventExt>
+            {
+                new MigrateCorrespondenceStatusEventExt
+                {
+                    Status = MigrateCorrespondenceStatusExt.RestoredByRecipient,
+                    StatusChanged = new DateTimeOffset(DateTime.Now),
+                    EventUserPartyUuid = _defaultUserPartyUuid,
+                    EventUserUuid = _defaultUserUuid
+                }
+            }
+        };
+
+        // Act 2
+        var response2 = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request2);
+        Assert.True(response2.IsSuccessStatusCode);
+
+        // Asssert it is no longer available as soft deleted in legacy
+        var correspondenceList2 = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
+        var correspondenceListResponse2 = await correspondenceList2.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);
+        Assert.DoesNotContain(correspondenceListResponse2?.Items, c => c.CorrespondenceId == correspondenceId);
+    }
+
+    [Fact]
+    public async Task SyncCorrespondenceStatusEvent_RestoredByRecipient_AvailableInlegacy()
+    {
+        // Arrange
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, DateTime.Now)
+            .WithCreatedAt(DateTime.Now)
+            .WithRecipient("urn:altinn:organization:identifier-no:991825827")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
+            .Build();
+        migrateCorrespondenceExt.MakeAvailable = true;
+
+        // Setup initial Migrated Correspondence
+        var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
+
+        // Arrange sync call
+        SyncCorrespondenceStatusEventRequestExt request1 = new SyncCorrespondenceStatusEventRequestExt
+        {
+            CorrespondenceId = correspondenceId,
+            SyncedEvents = new List<MigrateCorrespondenceStatusEventExt>
+            {
+                new MigrateCorrespondenceStatusEventExt
+                {
+                    Status = MigrateCorrespondenceStatusExt.RestoredByRecipient,
+                    StatusChanged = new DateTimeOffset(DateTime.Now),
+                    EventUserPartyUuid = _defaultUserPartyUuid,
+                    EventUserUuid = _defaultUserUuid
+                }
+            }
+        };
+
+        // Act
+        var response1 = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request1);
+        Assert.True(response1.IsSuccessStatusCode);
+
+        // Asssert it is not available as soft deleted in legacy
+        var listPayload = GetBasicLegacyGetCorrespondenceRequestExt(false, false, true);
+        var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
+        var correspondenceListResponse = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);
+        Assert.DoesNotContain(correspondenceListResponse?.Items, c => c.CorrespondenceId == correspondenceId);
+
+        // Asssert it is available as active in legacy
+        var listPayload2 = GetBasicLegacyGetCorrespondenceRequestExt(true, false, false);
+        var correspondenceList2 = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload2);
+        var correspondenceListResponse2 = await correspondenceList2.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);
+        Assert.Contains(correspondenceListResponse2?.Items, c => c.CorrespondenceId == correspondenceId);
+    }
+
+    [Fact]
+    public async Task SyncCorrespondenceStatusEvent_PurgedRecipient_NotAvailableInlegacy()
+    {
+        // Arrange
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, DateTime.Now)
+            .WithCreatedAt(DateTime.Now)
+            .WithRecipient("urn:altinn:organization:identifier-no:991825827")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
+            .Build();
+        migrateCorrespondenceExt.MakeAvailable = true;
+
+        // Setup initial Migrated Correspondence
+        var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
+
+        // Arrange sync call
+        SyncCorrespondenceStatusEventRequestExt request = new SyncCorrespondenceStatusEventRequestExt
+        {
+            CorrespondenceId = correspondenceId,
+            SyncedEvents = new List<MigrateCorrespondenceStatusEventExt>
+            {
+                new MigrateCorrespondenceStatusEventExt
+                {
+                    Status = MigrateCorrespondenceStatusExt.PurgedByRecipient,
+                    StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 8)),
+                    EventUserPartyUuid = _defaultUserPartyUuid,
+                    EventUserUuid = _defaultUserUuid
+                }
+            }
+        };
+
+        // Act
+        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
+
+        // Assert
+        Assert.True(response.IsSuccessStatusCode);
+        // Assert that the Correspondence is not available and purged
+        var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+        Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceDetailsResponse.StatusCode);
+
+        var listPayload = new LegacyGetCorrespondencesRequestExt
+        {
+            InstanceOwnerPartyIdList = new int[] { },
+            IncludeActive = false,
+            IncludeArchived = false,
+            IncludeDeleted = true,
+            FilterMigrated = false,
+            From = DateTimeOffset.UtcNow.AddDays(-5),
+            To = DateTimeOffset.UtcNow.AddDays(5)
+        };
+        var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
+        var correspondenceListResponse = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);
+        Assert.DoesNotContain(correspondenceListResponse?.Items, c => c.CorrespondenceId == correspondenceId);
+    }
+
+    [Fact]
     public async Task SyncCorrespondenceStatusEvent_PurgedByAltinn__CorrespondencePurged()
     {
         // Arrange
@@ -376,6 +603,20 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             MigrateCorrespondenceStatusExt.PurgedByRecipient => CorrespondenceStatusExt.PurgedByRecipient,
             MigrateCorrespondenceStatusExt.PurgedByAltinn => CorrespondenceStatusExt.PurgedByAltinn,
             _ => throw new ArgumentOutOfRangeException(nameof(status), $"Not expected status value: {status}"),
+        };
+    }
+
+    private LegacyGetCorrespondencesRequestExt GetBasicLegacyGetCorrespondenceRequestExt(bool includeActive, bool includeArchived, bool includeDeleted)
+    {
+        return new LegacyGetCorrespondencesRequestExt
+        {
+            InstanceOwnerPartyIdList = new int[] { },
+            IncludeActive = includeActive,
+            IncludeArchived = includeArchived,
+            IncludeDeleted = includeDeleted,
+            FilterMigrated = false,
+            From = DateTimeOffset.UtcNow.AddDays(-5),
+            To = DateTimeOffset.UtcNow.AddDays(5)
         };
     }
 }

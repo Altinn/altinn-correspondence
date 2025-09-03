@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -8,6 +9,7 @@ using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
+using System.Linq;
 
 namespace Altinn.Correspondence.Application.GetCorrespondences;
 
@@ -15,6 +17,7 @@ public class LegacyGetCorrespondencesHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnAccessManagementService altinnAccessManagementService,
     ICorrespondenceRepository correspondenceRepository,
+    ICorrespondenceDeleteEventRepository correspondenceDeleteEventRepository,
     UserClaimsHelper userClaimsHelper,
     IAltinnRegisterService altinnRegisterService,
     IResourceRegistryService resourceRegistryService,
@@ -77,15 +80,86 @@ public class LegacyGetCorrespondencesHandler(
         }
         List<string> resourcesToSearch = new List<string>();
 
-        // Get all correspondences owned by Recipients
-        var correspondences = await correspondenceRepository.GetCorrespondencesForParties(limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken, request.FilterMigrated);
+        // Get all correspondences owned by Recipients with limited filtering
+        var correspondencesFromDb = await correspondenceRepository.GetCorrespondencesForParties(limit, from, to, request.Status, recipients, resourcesToSearch, request.SearchString, cancellationToken, request.FilterMigrated);
+        if (correspondencesFromDb.Count == 0)
+        {
+            return new LegacyGetCorrespondencesResponse
+            {
+                Items = new List<LegacyCorrespondenceItem>(),
+            };
+        }
 
-        var resourceIds = correspondences.Select(c => c.ResourceId).Distinct().ToList();
+        // Use a hashmap (dictionary) keyed by CorrespondenceId to ensure no duplicates
+        var correspondencesById = new Dictionary<Guid, CorrespondenceEntity>(correspondencesFromDb.Count);
+
+        // If IncludeDeleted is true, we need to include soft deleted correspondences
+        if (request.IncludeDeleted)
+        {
+            var softDeleteStates = await correspondenceDeleteEventRepository.GetSoftDeleteStates(
+                correspondencesFromDb
+                .Select(c => c.Id)
+                .Distinct()
+                .ToList(), cancellationToken);
+
+            foreach (var state in softDeleteStates)
+            {
+                if (state.Value)
+                {
+                    var correspondence = correspondencesFromDb.SingleOrDefault(c => c.Id == state.Key);
+                    if (correspondence != null)
+                    {
+                        correspondencesById[correspondence.Id] = correspondence;
+                    }
+                }
+            }
+        }
+
+        // Filter on status
+        var statusesToFilter = new List<CorrespondenceStatus?>();
+        if (request.Status != null) // Specific status overrides other status choices
+        {
+            statusesToFilter.Add(request.Status);
+        }
+        else
+        {
+            if (request.IncludeActive)
+            {
+                statusesToFilter.Add(CorrespondenceStatus.Published);
+                statusesToFilter.Add(CorrespondenceStatus.Fetched);
+                statusesToFilter.Add(CorrespondenceStatus.Read);
+                statusesToFilter.Add(CorrespondenceStatus.Confirmed);
+                statusesToFilter.Add(CorrespondenceStatus.Replied);
+            }
+            if (request.IncludeArchived)
+            {
+                statusesToFilter.Add(CorrespondenceStatus.Archived);
+            }
+        }
+
+        foreach (var cs in correspondencesFromDb)
+        {
+            var lastStatus = cs.Statuses.OrderBy(s => s.Status).Last().Status;
+            if (statusesToFilter.Contains(lastStatus))
+            {
+                correspondencesById[cs.Id] = cs;
+            }
+        }
+
+        if (correspondencesById.Count == 0)
+        {
+            return new LegacyGetCorrespondencesResponse
+            {
+                Items = [],
+            };
+        }
+
+        var resourceIds = correspondencesById.Values.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
         List<LegacyCorrespondenceItem> correspondenceItems = new List<LegacyCorrespondenceItem>();
 
         var Senders = new List<PartyInfo>();
-        foreach (var orgNr in correspondences.Select(c => c.Sender).Distinct().ToList())
+        foreach (var orgNr in correspondencesById.Values.Select(c => c.Sender).Distinct().ToList())
         {
             try
             {
@@ -99,7 +173,7 @@ public class LegacyGetCorrespondencesHandler(
         }
 
         var resourceOwners = new Dictionary<string, string>();
-        foreach (var resource in correspondences.Select(c => c.ResourceId).Distinct().ToList())
+        foreach (var resource in correspondencesById.Values.Select(c => c.ResourceId).Distinct().ToList())
         {
             var resourceOwner = await resourceRegistryService.GetServiceOwnerNameOfResource(resource, cancellationToken);
             if (resourceOwner == null)
@@ -114,7 +188,7 @@ public class LegacyGetCorrespondencesHandler(
         }
 
         var recipientDetails = new List<PartyInfo>();
-        foreach (var orgNr in correspondences.Select(c => c.Recipient).Distinct().ToList())
+        foreach (var orgNr in correspondencesById.Values.Select(c => c.Recipient).Distinct().ToList())
         {
             try
             {
@@ -128,8 +202,8 @@ public class LegacyGetCorrespondencesHandler(
             }
         }
 
-        Dictionary<string, int?> authlevels = new(correspondences.Count);
-        foreach (var correspondence in correspondences)
+        Dictionary<string, int?> authlevels = new(correspondencesById.Count);
+        foreach (var correspondence in correspondencesById.Values)
         {
             string authLevelKey = $"{correspondence.Recipient}::{correspondence.ResourceId}";
             if (!authlevels.TryGetValue(authLevelKey, out int? authLevel))
@@ -163,7 +237,7 @@ public class LegacyGetCorrespondencesHandler(
                     ConfirmationDate = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Confirmed)?.StatusChanged,
                     MessageSender = String.IsNullOrWhiteSpace(correspondence.MessageSender) ? sender!.Name : correspondence.MessageSender,
                 }
-                );
+            );
         }
         var response = new LegacyGetCorrespondencesResponse
         {

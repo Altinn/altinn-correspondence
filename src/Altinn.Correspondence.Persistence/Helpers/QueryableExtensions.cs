@@ -60,53 +60,6 @@ namespace Altinn.Correspondence.Persistence.Helpers
             };
         }
 
-        public static IQueryable<CorrespondenceEntity> IncludeByStatuses(this IQueryable<CorrespondenceEntity> query, bool includeActive, bool includeArchived, bool includePurged, CorrespondenceStatus? specificStatus)
-        {
-            var statusesToFilter = new List<CorrespondenceStatus?>();
-
-            if (specificStatus != null) // Specific status overrides other choices
-            {
-                statusesToFilter.Add(specificStatus);
-            }
-            else
-            {
-                if (includeActive) // Include correspondences with active status
-                {
-                    statusesToFilter.Add(CorrespondenceStatus.Published);
-                    statusesToFilter.Add(CorrespondenceStatus.Fetched);
-                    statusesToFilter.Add(CorrespondenceStatus.Read);
-                    statusesToFilter.Add(CorrespondenceStatus.Confirmed);
-                    statusesToFilter.Add(CorrespondenceStatus.Replied);
-                    //statusesToFilter.Add(CorrespondenceStatus.AttachmentsDownloaded);
-                }
-
-                if (includeArchived) // Include correspondences with active status
-                {
-                    statusesToFilter.Add(CorrespondenceStatus.Archived);
-                }
-
-                if (includePurged) // Include correspondences with purged status
-                {
-                    statusesToFilter.Add(CorrespondenceStatus.PurgedByAltinn);
-                    statusesToFilter.Add(CorrespondenceStatus.PurgedByRecipient);
-                }
-            }
-
-            var queryFiltered = query.Where(cs =>
-                statusesToFilter.Contains(cs.Statuses.OrderBy(s => s.Status).Last().Status));
-
-            // Exclude any item that has ever had a purged status if not included
-            if (!includePurged)
-            {
-                queryFiltered = queryFiltered.Where(cs =>
-                    !cs.Statuses.Any(s =>
-                        s.Status == CorrespondenceStatus.PurgedByAltinn ||
-                        s.Status == CorrespondenceStatus.PurgedByRecipient));
-            }
-
-            return queryFiltered;
-        }
-
         public static IQueryable<CorrespondenceEntity> ExcludePurged(this IQueryable<CorrespondenceEntity> query)
         {
             return query.Where(cs =>
