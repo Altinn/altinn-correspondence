@@ -47,6 +47,11 @@ public class ParquetDailySummaryData
     public string ResourceId { get; set; } = string.Empty;
     
     /// <summary>
+    /// Resource title in Norwegian (from Resource Registry)
+    /// </summary>
+    public string ResourceTitle { get; set; } = string.Empty;
+    
+    /// <summary>
     /// Recipient type (Organization or Person)
     /// </summary>
     public string RecipientType { get; set; } = string.Empty;

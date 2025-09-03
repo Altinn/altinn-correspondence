@@ -49,6 +49,11 @@ public class DailySummaryData
     public string ResourceId { get; set; } = string.Empty;
     
     /// <summary>
+    /// Resource title in Norwegian (from Resource Registry)
+    /// </summary>
+    public string ResourceTitle { get; set; } = string.Empty;
+    
+    /// <summary>
     /// Recipient type (Organization or Person)
     /// </summary>
     public RecipientType RecipientType { get; set; }

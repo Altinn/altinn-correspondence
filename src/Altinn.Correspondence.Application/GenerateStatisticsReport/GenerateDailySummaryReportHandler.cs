@@ -3,6 +3,7 @@ using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,7 @@ namespace Altinn.Correspondence.Application.GenerateStatisticsReport;
 public class GenerateDailySummaryReportHandler(
     ICorrespondenceRepository correspondenceRepository,
     IServiceOwnerRepository serviceOwnerRepository,
+    IResourceRegistryService resourceRegistryService,
     ILogger<GenerateDailySummaryReportHandler> logger,
     IHostEnvironment hostEnvironment)
 {
@@ -87,6 +89,7 @@ public class GenerateDailySummaryReportHandler(
                 ServiceOwnerName = GetServiceOwnerName(g.Key.ServiceOwnerId),
                 MessageSender = g.Key.MessageSender,
                 ResourceId = g.Key.ResourceId,
+                ResourceTitle = GetResourceTitle(g.Key.ResourceId),
                 RecipientType = g.Key.RecipientType,
                 AltinnVersion = g.Key.AltinnVersion,
                 MessageCount = g.Count(),
@@ -154,6 +157,25 @@ public class GenerateDailySummaryReportHandler(
         }
     }
 
+    private string GetResourceTitle(string? resourceId)
+    {
+        if (string.IsNullOrEmpty(resourceId) || resourceId == "unknown")
+        {
+            return "Unknown";
+        }
+
+        try
+        {
+            var resourceTitle = resourceRegistryService.GetServiceOwnerNameOfResource(resourceId, CancellationToken.None).GetAwaiter().GetResult();
+            return resourceTitle ?? $"Unknown ({resourceId})";
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to get resource title for ID: {resourceId}", resourceId);
+            return $"Error ({resourceId})";
+        }
+    }
+
     private long CalculateDatabaseStorage(List<CorrespondenceEntity> correspondences)
     {
         // Estimate database storage based on correspondence metadata
@@ -192,6 +214,7 @@ public class GenerateDailySummaryReportHandler(
             ServiceOwnerName = d.ServiceOwnerName,
             MessageSender = d.MessageSender,
             ResourceId = d.ResourceId,
+            ResourceTitle = d.ResourceTitle,
             RecipientType = d.RecipientType.ToString(),
             AltinnVersion = d.AltinnVersion.ToString(),
             MessageCount = d.MessageCount,
