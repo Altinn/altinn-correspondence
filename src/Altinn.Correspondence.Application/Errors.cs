@@ -9,7 +9,7 @@ public static class CorrespondenceErrors
     public static Error CorrespondenceNotFound = new Error(1001, "The requested correspondence was not found", HttpStatusCode.NotFound);
     public static Error MessageTitleIsNotPlainText = new Error(1002, "Message title must be plain text", HttpStatusCode.BadRequest);
     public static Error MessageBodyIsNotMarkdown = new Error(1003, "Message body must be markdown", HttpStatusCode.BadRequest);
-    public static Error MessageSummaryIsNotMarkdown = new Error(1004, "Message summary must be markdown", HttpStatusCode.BadRequest);
+    public static Error MessageSummaryIsNotPlainText = new Error(1004, "Message summary must be plain text", HttpStatusCode.BadRequest);
     public static Error UploadedFilesDoesNotMatchAttachments = new Error(1005, "Mismatch between uploaded files and attachment metadata", HttpStatusCode.BadRequest);
     public static Error DuplicateRecipients = new Error(1006, "Recipients must be unique", HttpStatusCode.BadRequest);
     public static Error ExistingAttachmentNotFound = new Error(1007, "Existing attachment not found", HttpStatusCode.BadRequest);
@@ -43,7 +43,6 @@ public static class CorrespondenceErrors
     public static Error ServiceOwnerOrgNumberNotFound = new Error(1036, "Service owner/sender's organization number (9 digits) not found for resource", HttpStatusCode.InternalServerError);
     public static Error MessageTitleTooLong = new Error(1037, "Message title cannot exceed 255 characters", HttpStatusCode.BadRequest);
     public static Error AttachmentCountExceeded = new Error(1038, "A correspondence cannot contain more than 100 attachments in total", HttpStatusCode.BadRequest);
-    public static Error MessageSummaryIsNotPlainText = new Error(1039, "Message summary must be plain text", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
