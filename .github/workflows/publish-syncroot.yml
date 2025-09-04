@@ -18,7 +18,7 @@ permissions:
   id-token: write
 
 jobs:
-  latest:
+  build:
     name: Build latest from main
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
