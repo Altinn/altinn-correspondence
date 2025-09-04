@@ -22,6 +22,7 @@ jobs:
     name: Build latest from main
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    environment: test
     steps:
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
@@ -36,12 +37,13 @@ jobs:
           tag: at22
           workdir: ./flux/syncroot
           azure_subscription_id: ${{ secrets.AZURE_ALTINNACR_SUBSCRIPTION_ID }}
-          azure_app_id: ${{ secrets.AZURE_ALTINNACR_APP_ID }}
+          azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
   release:
     name: Build release from tag
     if: startsWith(github.ref, 'refs/tags/syncroot-')
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
@@ -58,7 +60,7 @@ jobs:
           tag: ${{ steps.get_tags.outputs.tag }}
           workdir: ./flux/syncroot
           azure_subscription_id: ${{ secrets.AZURE_ALTINNACR_SUBSCRIPTION_ID }}
-          azure_app_id: ${{ secrets.AZURE_ALTINNACR_APP_ID }}
+          azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
       - name: Re-tag existing image with at23
         uses: Altinn/altinn-platform/actions/flux/retag-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
@@ -68,7 +70,7 @@ jobs:
           tag: "at23"
           workdir: ./flux/syncroot
           azure_subscription_id: ${{ secrets.AZURE_ALTINNACR_SUBSCRIPTION_ID }}
-          azure_app_id: ${{ secrets.AZURE_ALTINNACR_APP_ID }}
+          azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
       - name: Re-tag existing image with at24
         uses: Altinn/altinn-platform/actions/flux/retag-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
@@ -78,7 +80,7 @@ jobs:
           tag: "at24"
           workdir: ./flux/syncroot
           azure_subscription_id: ${{ secrets.AZURE_ALTINNACR_SUBSCRIPTION_ID }}
-          azure_app_id: ${{ secrets.AZURE_ALTINNACR_APP_ID }}
+          azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
       - name: Re-tag existing image with tt02
         uses: Altinn/altinn-platform/actions/flux/retag-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
@@ -88,7 +90,7 @@ jobs:
           tag: "tt02"
           workdir: ./flux/syncroot
           azure_subscription_id: ${{ secrets.AZURE_ALTINNACR_SUBSCRIPTION_ID }}
-          azure_app_id: ${{ secrets.AZURE_ALTINNACR_APP_ID }}
+          azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
       - name: Re-tag existing image with yt01
         uses: Altinn/altinn-platform/actions/flux/retag-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
@@ -98,7 +100,7 @@ jobs:
           tag: "yt01"
           workdir: ./flux/syncroot
           azure_subscription_id: ${{ secrets.AZURE_ALTINNACR_SUBSCRIPTION_ID }}
-          azure_app_id: ${{ secrets.AZURE_ALTINNACR_APP_ID }}
+          azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
       - name: Re-tag existing image with prod
         uses: Altinn/altinn-platform/actions/flux/retag-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
@@ -108,5 +110,5 @@ jobs:
           tag: "prod"
           workdir: ./flux/syncroot
           azure_subscription_id: ${{ secrets.AZURE_ALTINNACR_SUBSCRIPTION_ID }}
-          azure_app_id: ${{ secrets.AZURE_ALTINNACR_APP_ID }}
+          azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
