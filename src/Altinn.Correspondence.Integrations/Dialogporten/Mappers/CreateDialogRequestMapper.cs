@@ -17,7 +17,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
     internal static class CreateDialogRequestMapper
     {
-        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdOverride = null, string? confirmedActivityIdOverride = null)
+        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null)
         {
             var dialogId = Guid.CreateVersion7().ToString(); // Dialogporten requires time-stamped GUIDs
             bool isArchived = correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Archived);
@@ -47,7 +47,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
                     GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
                     Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
-                    Activities = includeActivities ? GetActivitiesForCorrespondence(correspondence, openedActivityIdOverride, confirmedActivityIdOverride) : new List<Activity>(),
+                    Activities = includeActivities ? GetActivitiesForCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey) : new List<Activity>(),
                     Transmissions = new List<Transmission>(),
                     SystemLabel = isArchived ? SystemLabel.Archived : SystemLabel.Default
                 };
