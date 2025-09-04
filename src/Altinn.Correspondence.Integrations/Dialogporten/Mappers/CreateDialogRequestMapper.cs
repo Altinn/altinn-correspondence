@@ -17,7 +17,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
     internal static class CreateDialogRequestMapper
     {
-        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null)
+        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdOverride = null, string? confirmedActivityIdOverride = null)
         {
             var dialogId = Guid.CreateVersion7().ToString(); // Dialogporten requires time-stamped GUIDs
             bool isArchived = correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Archived);
@@ -47,7 +47,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
                     GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
                     Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
-                    Activities = includeActivities ? GetActivitiesForCorrespondence(correspondence) : new List<Activity>(),
+                    Activities = includeActivities ? GetActivitiesForCorrespondence(correspondence, openedActivityIdOverride, confirmedActivityIdOverride) : new List<Activity>(),
                     Transmissions = new List<Transmission>(),
                     SystemLabel = isArchived ? SystemLabel.Archived : SystemLabel.Default
                 };
@@ -143,17 +143,21 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return list;
         }
 
-        private static List<Activity> GetActivitiesForCorrespondence(CorrespondenceEntity correspondence)
+        private static List<Activity> GetActivitiesForCorrespondence(CorrespondenceEntity correspondence, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null)
         {
             List<Activity> activities = new();
             var orderedStatuses = correspondence.Statuses.OrderBy(s => s.StatusChanged);
 
-            orderedStatuses.Where(s => s.Status == CorrespondenceStatus.Read).ToList().ForEach(s => activities.Add(GetActivityFromStatus(correspondence, s)));
+            var firstReadStatus = orderedStatuses.FirstOrDefault(s => s.Status == CorrespondenceStatus.Read);
+            if (firstReadStatus != null && !string.IsNullOrWhiteSpace(openedActivityIdempotencyKey))
+            {
+                activities.Add(GetActivityFromStatus(correspondence, firstReadStatus, openedActivityIdempotencyKey));
+            }
 
             var confirmedStatus = orderedStatuses.FirstOrDefault(s => s.Status == CorrespondenceStatus.Confirmed);
-            if(confirmedStatus != null)
+            if (confirmedStatus != null && !string.IsNullOrWhiteSpace(confirmedActivityIdempotencyKey))
             {
-                activities.Add(GetActivityFromStatus(correspondence, confirmedStatus));
+                activities.Add(GetActivityFromStatus(correspondence, confirmedStatus, confirmedActivityIdempotencyKey));
             }
 
             activities.AddRange(GetActivitiesFromNotifications(correspondence));
@@ -161,12 +165,12 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return activities.OrderBy(a => a.CreatedAt).ToList();
         }
 
-        private static Activity GetActivityFromStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity status)
+        private static Activity GetActivityFromStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity status, string? idOverride = null)
         {
             bool isConfirmation = status.Status == CorrespondenceStatus.Confirmed;
 
             Activity activity = new Activity();
-            activity.Id = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString();
+            activity.Id = string.IsNullOrWhiteSpace(idOverride) ? Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString() : idOverride;
             activity.PerformedBy = new PerformedBy()
             {
                 ActorId = correspondence.GetRecipientUrn(),

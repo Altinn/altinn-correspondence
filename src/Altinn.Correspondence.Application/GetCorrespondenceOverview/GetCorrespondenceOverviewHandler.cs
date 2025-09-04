@@ -92,8 +92,8 @@ public class GetCorrespondenceOverviewHandler(
                         StatusChanged = DateTimeOffset.UtcNow,
                         PartyUuid = partyUuid
                     }, cancellationToken);
-                    backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp));
                 }
+                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp));
             }
             var notificationsOverview = new List<CorrespondenceNotificationOverview>();
             foreach (var notification in correspondence.Notifications)

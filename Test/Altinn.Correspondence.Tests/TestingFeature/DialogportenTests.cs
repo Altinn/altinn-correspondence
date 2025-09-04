@@ -256,8 +256,7 @@ public class DialogportenTests
         using var scope = testFactory.Services.CreateScope();
         GetCorrespondenceOverviewRequest request = new GetCorrespondenceOverviewRequest()
         {
-            CorrespondenceId = testCorrespondence.Id,
-            OnlyGettingContent = true
+            CorrespondenceId = testCorrespondence.Id
         };
         var handler = scope.ServiceProvider.GetRequiredService<GetCorrespondenceOverviewHandler>();
         var result = await handler.Process(request, new(), CancellationToken.None);
