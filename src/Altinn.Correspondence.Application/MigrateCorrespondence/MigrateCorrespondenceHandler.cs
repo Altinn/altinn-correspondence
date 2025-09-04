@@ -191,7 +191,7 @@ public class MigrateCorrespondenceHandler(
         bool isSoftDeleted = await IsCorrespondenceSoftDeleted(correspondence, cancellationToken);
         if (isSoftDeleted)
         {
-            await dialogportenService.UpdateSystemLabelsOnDialog(correspondenceId, correspondence.Recipient, new List<string> { "Bin" }, null);
+            await dialogportenService.UpdateSystemLabelsOnDialog(correspondenceId, correspondence.Recipient, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Bin }, null);
         }
 
         var updateResult = await TransactionWithRetriesPolicy.Execute<string>(async (cancellationToken) =>

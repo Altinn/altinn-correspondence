@@ -525,7 +525,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="Exception"></exception>
-    public async Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string enduserId, List<string>? systemLabelsToAdd, List<string>? systemLabelsToRemove)
+    public async Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string enduserId, List<DialogPortenSystemLabel>? systemLabelsToAdd, List<DialogPortenSystemLabel>? systemLabelsToRemove)
     {
         if (string.IsNullOrWhiteSpace(enduserId))
         {
@@ -540,7 +540,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         if (systemLabelsToAdd != null && systemLabelsToRemove != null)
         {
             var overlap = systemLabelsToAdd
-                .Intersect(systemLabelsToRemove, StringComparer.OrdinalIgnoreCase)
+                .Cast<DialogPortenSystemLabel>()
+                .Intersect(systemLabelsToRemove.Cast<DialogPortenSystemLabel>())
                 .ToList();
             if (overlap.Count > 0)
             {

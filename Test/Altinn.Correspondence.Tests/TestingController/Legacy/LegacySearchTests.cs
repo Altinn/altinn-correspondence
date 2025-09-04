@@ -61,14 +61,19 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
             Assert.True(response?.Items.Count > 0);
             Assert.Contains(response?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId);
+            
             await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview"); // Fetch in order to be able to Confirm
             await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/confirm", null); // Update to Confirmed in order to be able to Archive
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Confirmed);
+            
             listPayload.Status = CorrespondenceStatusExt.Confirmed;
             correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
             Assert.True(response?.Items.Count > 0);
             Assert.Contains(response?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId);
             await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/archive", null);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Archived);
+
             listPayload.Status = CorrespondenceStatusExt.Archived;
             correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
@@ -118,6 +123,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
 
             var archiveResponse = await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/archive", null);
             Assert.Equal(HttpStatusCode.OK, archiveResponse.StatusCode);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Archived);
 
             var listPayload = GetBasicLegacyGetCorrespondenceRequestExt();
             listPayload.IncludeActive = false;
@@ -127,7 +133,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);            
             Assert.Contains(response?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId); // Should be in list before purge
-
 
             var purgeResponse = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/purge");
             Assert.Equal(HttpStatusCode.OK, purgeResponse.StatusCode);
@@ -142,7 +147,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             listPayload3.IncludeDeleted = true;
             var correspondenceList3 = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload3);
             var response3 = await correspondenceList3.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
-            Assert.DoesNotContain(response3?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId); // Should NOT be in deleted list after purge as only soft deletes should be there
+            Assert.DoesNotContain(response3?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId); // Should NOT be in deleted list after purge
         }
 
         [Fact]
