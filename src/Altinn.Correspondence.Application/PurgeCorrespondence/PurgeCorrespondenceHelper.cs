@@ -1,5 +1,7 @@
 using Altinn.Correspondence.Application.CancelNotification;
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.ProcessLegacyParty;
+using Altinn.Correspondence.Application.SyncLegacyCorrespondenceEvent;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -79,7 +81,7 @@ public class PurgeCorrespondenceHelper(
         }
     }
 
-    public async Task<Guid> PurgeCorrespondence(CorrespondenceEntity correspondence, bool isSender, Guid partyUuid, DateTimeOffset operationTimestamp, CancellationToken cancellationToken)
+    public async Task<Guid> PurgeCorrespondence(CorrespondenceEntity correspondence, bool isSender, Guid partyUuid, int partyId, DateTimeOffset operationTimestamp, CancellationToken cancellationToken)
     {
         var status = isSender ? CorrespondenceStatus.PurgedByAltinn : CorrespondenceStatus.PurgedByRecipient;
         await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity()
@@ -92,6 +94,11 @@ public class PurgeCorrespondenceHelper(
         }, cancellationToken);
 
         backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+        if (correspondence.Altinn2CorrespondenceId.HasValue)
+        {
+            backgroundJobClient.Enqueue<SyncLegacyCorrespondenceEventHandler>(legacyEventSync => legacyEventSync.Process(partyId, correspondence.Altinn2CorrespondenceId.Value, operationTimestamp, SyncEventType.Delete, CancellationToken.None));
+        }
+        
         await CheckAndPurgeAttachments(correspondence.Id, partyUuid, cancellationToken);
         var reportToDialogportenJob = ReportActivityToDialogporten(isSender: isSender, correspondence.Id, operationTimestamp);
         var cancelNotificationJob = backgroundJobClient.ContinueJobWith<CancelNotificationHandler>(reportToDialogportenJob, 
