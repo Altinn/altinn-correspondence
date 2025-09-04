@@ -1,7 +1,10 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.SyncLegacyCorrespondenceEvent;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -13,6 +16,7 @@ public class UpdateCorrespondenceStatusHandler(
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     UpdateCorrespondenceStatusHelper updateCorrespondenceStatusHelper,
+    IBackgroundJobClient backgroundJobClient,
     ILogger<UpdateCorrespondenceStatusHandler> logger) : IHandler<UpdateCorrespondenceStatusRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(UpdateCorrespondenceStatusRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -61,16 +65,26 @@ public class UpdateCorrespondenceStatusHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
-        logger.LogInformation("Executing status update transaction for correspondence {CorrespondenceId}", request.CorrespondenceId);
-        await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
+        if (correspondence.Altinn2CorrespondenceId.HasValue && (request.Status == Core.Models.Enums.CorrespondenceStatus.Read || request.Status == Core.Models.Enums.CorrespondenceStatus.Confirmed))
         {
-            await updateCorrespondenceStatusHelper.AddCorrespondenceStatus(correspondence, request.Status, partyUuid, cancellationToken);
-            updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status, operationTimestamp);
-            updateCorrespondenceStatusHelper.PatchCorrespondenceDialog(request.CorrespondenceId, request.Status);
-            updateCorrespondenceStatusHelper.PublishEvent(correspondence, request.Status);
+            SyncEventType syncEventType = SyncEventType.Read;
+            if (request.Status == CorrespondenceStatus.Confirmed)
+            {
+                syncEventType = SyncEventType.Confirm;
+            }
+            backgroundJobClient.Enqueue<SyncLegacyCorrespondenceEventHandler>(eventSync => eventSync.Process(party.PartyId, correspondence.Altinn2CorrespondenceId.Value, DateTimeOffset.UtcNow, syncEventType, CancellationToken.None));
+        }
 
-            return Task.CompletedTask;
-        }, logger, cancellationToken);
+        logger.LogInformation("Executing status update transaction for correspondence {CorrespondenceId}", request.CorrespondenceId);        
+        await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
+            {
+                await updateCorrespondenceStatusHelper.AddCorrespondenceStatus(correspondence, request.Status, partyUuid, cancellationToken);
+                updateCorrespondenceStatusHelper.ReportActivityToDialogporten(request.CorrespondenceId, request.Status, operationTimestamp);
+                updateCorrespondenceStatusHelper.PatchCorrespondenceDialog(request.CorrespondenceId, request.Status);
+                updateCorrespondenceStatusHelper.PublishEvent(correspondence, request.Status);
+
+                return Task.CompletedTask;
+            }, logger, cancellationToken);
 
         logger.LogInformation("Successfully updated status to {Status} for correspondence {CorrespondenceId}", 
             request.Status, 

@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Options;
+﻿using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Altinn.Register;
 using Microsoft.Extensions.Logging;
@@ -35,6 +36,29 @@ public class AltinnStorageService : IAltinnStorageService
             var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
             throw new Exception($"Error when adding party to SBL Bridge through Storage. Statuscode was: ${statusCode}, error was: ${errorContent}");
         }
+        return true;
+    }
+
+    public async Task<bool> SyncCorrespondenceEventToSblBridge(int altinn2CorrespondenceId, int partyId, DateTimeOffset utcEventTimeStamp, SyncEventType eventType, CancellationToken cancellationToken)
+    {
+        if (partyId <= 0 || altinn2CorrespondenceId <= 0 || utcEventTimeStamp == DateTimeOffset.MinValue)
+        {
+            return false;
+        }
+        using var response = await _httpClient.PostAsJsonAsync($"", new SyncCorrespondenceEvent()
+        {
+            PartyId = partyId,
+            CorrespondenceId = altinn2CorrespondenceId,
+            EventTimeStamp = utcEventTimeStamp,
+            EventType = eventType.ToString().ToLower()
+        }, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var statusCode = response.StatusCode;
+            var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new Exception($"Error when adding party to SBL Bridge through Storage. Statuscode was: ${statusCode}, error was: ${errorContent}");
+        }
+
         return true;
     }
 }
