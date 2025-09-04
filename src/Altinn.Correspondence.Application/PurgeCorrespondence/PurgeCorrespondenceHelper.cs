@@ -1,7 +1,6 @@
 using Altinn.Correspondence.Application.CancelNotification;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.ProcessLegacyParty;
-using Altinn.Correspondence.Application.SyncLegacyCorrespondenceEvent;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -96,7 +95,8 @@ public class PurgeCorrespondenceHelper(
         backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
         if (correspondence.Altinn2CorrespondenceId.HasValue)
         {
-            backgroundJobClient.Enqueue<SyncLegacyCorrespondenceEventHandler>(legacyEventSync => legacyEventSync.Process(partyId, correspondence.Altinn2CorrespondenceId.Value, operationTimestamp, SyncEventType.Delete, CancellationToken.None));
+            backgroundJobClient.Enqueue<IAltinnStorageService>(
+                syncEventToAltinn2 => syncEventToAltinn2.SyncCorrespondenceEventToSblBridge(partyId, correspondence.Altinn2CorrespondenceId.Value, operationTimestamp, SyncEventType.Delete, CancellationToken.None));
         }
         
         await CheckAndPurgeAttachments(correspondence.Id, partyUuid, cancellationToken);

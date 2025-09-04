@@ -45,7 +45,7 @@ public class AltinnStorageService : IAltinnStorageService
         {
             return false;
         }
-        using var response = await _httpClient.PostAsJsonAsync($"", new SyncCorrespondenceEvent()
+        using var response = await _httpClient.PostAsJsonAsync($"storage/api/v1/sblbridge/synccorrespondenceevent", new SyncCorrespondenceEvent()
         {
             PartyId = partyId,
             CorrespondenceId = altinn2CorrespondenceId,
@@ -56,7 +56,7 @@ public class AltinnStorageService : IAltinnStorageService
         {
             var statusCode = response.StatusCode;
             var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new Exception($"Error when adding party to SBL Bridge through Storage. Statuscode was: ${statusCode}, error was: ${errorContent}");
+            throw new Exception($"Error when syncing Correspondence Event to SBL Bridge through Storage. Statuscode was: ${statusCode}, error was: ${errorContent}");
         }
 
         return true;

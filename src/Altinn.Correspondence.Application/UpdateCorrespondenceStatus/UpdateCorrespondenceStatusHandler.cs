@@ -1,5 +1,4 @@
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Application.SyncLegacyCorrespondenceEvent;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -65,14 +64,15 @@ public class UpdateCorrespondenceStatusHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
-        if (correspondence.Altinn2CorrespondenceId.HasValue && (request.Status == Core.Models.Enums.CorrespondenceStatus.Read || request.Status == Core.Models.Enums.CorrespondenceStatus.Confirmed))
+        if (correspondence.Altinn2CorrespondenceId.HasValue && (request.Status == CorrespondenceStatus.Read || request.Status == CorrespondenceStatus.Confirmed))
         {
             SyncEventType syncEventType = SyncEventType.Read;
             if (request.Status == CorrespondenceStatus.Confirmed)
             {
                 syncEventType = SyncEventType.Confirm;
             }
-            backgroundJobClient.Enqueue<SyncLegacyCorrespondenceEventHandler>(eventSync => eventSync.Process(party.PartyId, correspondence.Altinn2CorrespondenceId.Value, DateTimeOffset.UtcNow, syncEventType, CancellationToken.None));
+            backgroundJobClient.Enqueue<IAltinnStorageService>(
+                syncToAltinn2 => syncToAltinn2.SyncCorrespondenceEventToSblBridge(party.PartyId, correspondence.Altinn2CorrespondenceId.Value, DateTimeOffset.UtcNow, syncEventType, CancellationToken.None));
         }
 
         logger.LogInformation("Executing status update transaction for correspondence {CorrespondenceId}", request.CorrespondenceId);        

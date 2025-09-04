@@ -320,7 +320,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
 
         // Arrange Event call
-        await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+        await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/content");
     }
 
     [Fact]
@@ -337,6 +337,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
 
         // Arrange Event call
+        await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
         var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
     }
 
