@@ -32,7 +32,7 @@ public class SlackTestController : ControllerBase
     /// <param name="message">The message to send</param>
     /// <returns>Result indicating success or failure</returns>
     [HttpPost("send-simple-message")]
-    [Authorize(Policy = AuthorizationConstants.Sender)]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
     public async Task<IActionResult> SendSimpleMessage([FromBody] string message)
     {
         if (string.IsNullOrWhiteSpace(message))
