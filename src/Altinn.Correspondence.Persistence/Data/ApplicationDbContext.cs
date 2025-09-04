@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Persistence.Helpers;
+using Azure.Core;
 using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -8,13 +9,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using Polly;
+using System;
 using System.IdentityModel.Tokens.Jwt;
 
 namespace Altinn.Correspondence.Persistence;
 
 public class ApplicationDbContext : DbContext
 {
-    private string? _accessToken;
+    public string? _accessToken;
     public ApplicationDbContext(DbContextOptions options) : base(options)
     {
         var conn = this.Database.GetDbConnection();
@@ -111,15 +113,23 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
         }
 
         Console.WriteLine($"Using environment: {environment}");
-        Console.WriteLine(databaseOptions.ConnectionString);
+        Console.WriteLine("Design time factory");
+
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        optionsBuilder.UseNpgsql(databaseOptions.ConnectionString);
+        optionsBuilder.UseNpgsql(databaseOptions.ConnectionString, npgsqlOptions =>
+        {
+            npgsqlOptions.ConfigureDataSource(dataSourceBuilder =>
+            {
+                dataSourceBuilder.UsePeriodicPasswordProvider(async (settings, ct) =>
+                {
+                    var credential = new DefaultAzureCredential();
+                    var tokenRequestContext = new TokenRequestContext(new[] { "https://ossrdbms-aad.database.windows.net/.default" });
+                    var token = await credential.GetTokenAsync(tokenRequestContext, ct);
+                    return token.Token;
+                }, TimeSpan.FromHours(1), TimeSpan.FromMinutes(55));
+            });
+        });
 
-        var context = new ApplicationDbContext(optionsBuilder.Options);
-
-        // Ensure token is acquired before returning
-        context.EnsureTokenAsync().GetAwaiter().GetResult();
-
-        return context;
+        return new ApplicationDbContext(optionsBuilder.Options);
     }
 }
