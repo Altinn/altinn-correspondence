@@ -111,6 +111,7 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
         }
 
         Console.WriteLine($"Using environment: {environment}");
+        Console.WriteLine(databaseOptions.ConnectionString);
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
         optionsBuilder.UseNpgsql(databaseOptions.ConnectionString);
 
