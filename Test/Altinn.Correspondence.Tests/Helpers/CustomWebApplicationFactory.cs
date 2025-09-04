@@ -22,6 +22,7 @@ using Npgsql;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Json;
+using Altinn.Correspondence.Integrations.Altinn.Storage;
 
 namespace Altinn.Correspondence.Tests.Helpers;
 
@@ -86,6 +87,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             services.OverrideAltinnAuthorization();
             services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
+            services.AddScoped<IAltinnStorageService, AltinnStorageDevService>();
             var mockContactReservationRegistryService = new Mock<IContactReservationRegistryService>();
             mockContactReservationRegistryService.Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => recipients.Contains(ReservedSsn)))).ReturnsAsync([ReservedSsn]);
             mockContactReservationRegistryService.Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => !recipients.Contains(ReservedSsn)))).ReturnsAsync([]);
@@ -116,8 +118,18 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             {
                 Console.WriteLine($"Error stopping Hangfire server: {ex.Message}");
             }
-            
-            var dataSource = Services.GetRequiredService<NpgsqlDataSource>();
+
+            NpgsqlDataSource? dataSource = null; 
+            try
+
+            {
+                Services.GetRequiredService<NpgsqlDataSource>();
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"Error getting Services: {ex}");
+            }
+
             try
             {
                 base.Dispose(disposing);
