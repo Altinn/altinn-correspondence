@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Services;
+﻿using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Services;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Storage
 {
@@ -11,6 +12,11 @@ namespace Altinn.Correspondence.Integrations.Altinn.Storage
                 return false;
             }
             return true;
+        }
+
+        public async Task<bool> SyncCorrespondenceEventToSblBridge(int altinn2CorrespondenceId, int partyId, DateTimeOffset utcEventTimeStamp, SyncEventType eventType, CancellationToken cancellationToken)
+        {
+            return altinn2CorrespondenceId > 0;
         }
     }
 }
