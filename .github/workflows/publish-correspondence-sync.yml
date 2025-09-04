@@ -26,10 +26,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
-      - name: Validate syncroot image
-        uses: Altinn/altinn-platform/actions/flux/verify-syncroot@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
-        with:
-          workdir: ./flux/correspondence
       - name: Build and push latest artifact
         uses: Altinn/altinn-platform/actions/flux/build-push-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
         with:
