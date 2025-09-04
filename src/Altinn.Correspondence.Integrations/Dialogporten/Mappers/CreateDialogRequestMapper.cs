@@ -165,12 +165,12 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return activities.OrderBy(a => a.CreatedAt).ToList();
         }
 
-        private static Activity GetActivityFromStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity status, string? idOverride = null)
+        private static Activity GetActivityFromStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity status, string? activityId = null)
         {
             bool isConfirmation = status.Status == CorrespondenceStatus.Confirmed;
 
             Activity activity = new Activity();
-            activity.Id = string.IsNullOrWhiteSpace(idOverride) ? Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString() : idOverride;
+            activity.Id = string.IsNullOrWhiteSpace(activityId) ? Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString() : activityId;
             activity.PerformedBy = new PerformedBy()
             {
                 ActorId = correspondence.GetRecipientUrn(),

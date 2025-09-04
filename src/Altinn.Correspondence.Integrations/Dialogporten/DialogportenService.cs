@@ -431,7 +431,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return dialogRequest;
     }
 
-    private async Task<(Guid OpenedId, Guid? ConfirmedId, Dictionary<Guid, Guid> AttachmentDownloadIds)> CreateIdempotencyKeysForCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
+    private async Task<(Guid OpenedId, Guid? ConfirmedId)> CreateIdempotencyKeysForCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
     {
         // Create idempotency key for open dialog activity
         var openActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
@@ -463,7 +463,6 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
         // Create idempotency keys for each attachment's download activity
         var attachmentIdempotencyKeys = new List<IdempotencyKeyEntity>();
-        var attachmentDownloadIds = new Dictionary<Guid, Guid>();
         foreach (var attachment in correspondence.Content?.Attachments ?? Enumerable.Empty<CorrespondenceAttachmentEntity>())
         {
             var downloadActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
@@ -475,11 +474,10 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 StatusAction = StatusAction.AttachmentDownloaded
             };
             attachmentIdempotencyKeys.Add(downloadIdempotencyKey);
-            attachmentDownloadIds[attachment.AttachmentId] = downloadActivityId;
         }
         await _idempotencyKeyRepository.CreateRangeAsync(attachmentIdempotencyKeys, cancellationToken);
 
-        return (openActivityId, confirmActivityId, attachmentDownloadIds);
+        return (openActivityId, confirmActivityId);
     }
 
 
@@ -501,7 +499,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             return correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue ?? string.Empty;
         }
 
-        var (OpenedId, ConfirmedId, AttachmentDownloadIds) = await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
+        var (OpenedId, ConfirmedId) = await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
 
         var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(
             correspondence,
