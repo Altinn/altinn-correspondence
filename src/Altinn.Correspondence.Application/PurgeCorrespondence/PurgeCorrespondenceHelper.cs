@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Application.CancelNotification;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.ProcessLegacyParty;
+using Altinn.Correspondence.Application.SyncLegacyCorrespondenceEvent;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
