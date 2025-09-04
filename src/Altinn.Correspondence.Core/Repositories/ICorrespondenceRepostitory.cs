@@ -29,7 +29,6 @@ namespace Altinn.Correspondence.Core.Repositories
             List<string> resourceIds,
             bool includeActive,
             bool includeArchived,
-            bool includePurged,
             string searchString,
             CancellationToken cancellationToken,
             bool filterMigrated = true);

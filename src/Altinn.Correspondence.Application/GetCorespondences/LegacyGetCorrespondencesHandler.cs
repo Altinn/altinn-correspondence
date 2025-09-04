@@ -78,7 +78,18 @@ public class LegacyGetCorrespondencesHandler(
         List<string> resourcesToSearch = new List<string>();
 
         // Get all correspondences owned by Recipients
-        var correspondences = await correspondenceRepository.GetCorrespondencesForParties(limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken, request.FilterMigrated);
+        // request.IncludeDeleted is not used as this is for soft deleted correspondences only, which are not relevant in legacy
+        var correspondences = await correspondenceRepository.GetCorrespondencesForParties(limit: limit,
+                                                                                          from: from,
+                                                                                          to: to,
+                                                                                          status: request.Status,
+                                                                                          recipientIds: recipients,
+                                                                                          resourceIds: resourcesToSearch,
+                                                                                          includeActive: request.IncludeActive,
+                                                                                          includeArchived: request.IncludeArchived,
+                                                                                          searchString: request.SearchString,
+                                                                                          cancellationToken: cancellationToken,
+                                                                                          filterMigrated: request.FilterMigrated);
 
         var resourceIds = correspondences.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();

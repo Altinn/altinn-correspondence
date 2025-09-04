@@ -156,7 +156,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
-        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, bool includeActive, bool includeArchived, bool includePurged, string searchString, CancellationToken cancellationToken, bool filterMigrated = true)
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, bool includeActive, bool includeArchived, string searchString, CancellationToken cancellationToken, bool filterMigrated = true)
         {
             var correspondences = recipientIds.Count == 1
                 ? _context.Correspondences.Where(c => c.Recipient == recipientIds[0])     // Filter by single recipient
@@ -166,7 +166,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
                 .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter                              
                 .Where(c => resourceIds.Count == 0 || resourceIds.Contains(c.ResourceId))       // Filter by resources
-                .IncludeByStatuses(includeActive, includeArchived, includePurged, status) // Filter by statuses
+                .IncludeByStatuses(includeActive, includeArchived, status) // Filter by statuses
+                .ExcludePurged() // Exclude purged correspondences
                 .Where(c => string.IsNullOrEmpty(searchString) || (c.Content != null && c.Content.MessageTitle.Contains(searchString))) // Filter by messageTitle containing searchstring
                 .FilterMigrated(filterMigrated) // Filter all migrated correspondences no matter their IsMigrating status
                 .Include(c => c.Statuses)
