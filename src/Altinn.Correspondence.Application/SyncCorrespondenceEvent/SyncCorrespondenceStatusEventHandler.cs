@@ -129,9 +129,9 @@ public class SyncCorrespondenceStatusEventHandler(
 
         var txResult = await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            logger.LogInformation("Executing status sync transaction for correspondence for {CorrespondenceId} with {SyncedEventsCount} # of status events", request.CorrespondenceId, statusEventsToExecute.Count);
             if (statusEventsToExecute.Count > 0)
             {
+                logger.LogInformation("Executing status event sync transaction for correspondence {CorrespondenceId} with {SyncedEventsCount} # of status events", request.CorrespondenceId, statusEventsToExecute.Count);
                 // Log the status events to the database
                 foreach (var entity in statusEventsToExecute)
                 {
@@ -146,8 +146,9 @@ public class SyncCorrespondenceStatusEventHandler(
                 {
                     foreach (var eventToExecute in statusEventsToExecute)
                     {
+                        logger.LogDebug("Perform Sync status event {Status} for {CorrespondenceId}", eventToExecute.Status, request.CorrespondenceId);
                         switch (eventToExecute.Status)
-                        {
+                        {   
                             case CorrespondenceStatus.Confirmed:
                                 {
                                     backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateConfirmedActivity(request.CorrespondenceId, DialogportenActorType.Recipient, eventToExecute.StatusChanged)); // Set the operationtime to the time the status was changed in Altinn 2;
@@ -169,6 +170,9 @@ public class SyncCorrespondenceStatusEventHandler(
                                     backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(request.CorrespondenceId, GetPrefixedIdentifierForParty(endUserParty), new List<string> { "Archive" }, null)); ;
                                     break;
                                 }
+                            default:
+                                logger.LogWarning("Unsupported Status Event type {Status} for Correspondence {CorrespondenceId}. The event will be ignored.", eventToExecute.Status, request.CorrespondenceId);
+                                break;
                         }
                     }
                 }
@@ -177,8 +181,10 @@ public class SyncCorrespondenceStatusEventHandler(
             // Handle deletion events
             if (deletionEventsToExecute.Count > 0)
             {
+                logger.LogInformation("Executing delete event sync transaction for correspondence {CorrespondenceId} with {SyncedEventsCount} # of delete events", request.CorrespondenceId, deletionEventsToExecute.Count);
                 foreach (var deletionEvent in deletionEventsToExecute)
                 {
+                    logger.LogDebug("Perform sync of delete event {EventType} for {CorrespondenceId}", deletionEvent.EventType, request.CorrespondenceId);
                     switch (deletionEvent.EventType)
                     {
                         case CorrespondenceDeleteEventType.HardDeletedByServiceOwner:

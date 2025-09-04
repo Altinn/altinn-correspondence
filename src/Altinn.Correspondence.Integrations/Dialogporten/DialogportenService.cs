@@ -578,7 +578,12 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 enduserId,
                 systemLabelsToAdd,
                 systemLabelsToRemove);
-
+        logger.LogDebug("Updating system labels on dialog {dialogId} for correspondence {correspondenceId}. Adding: {systemLabelsToAdd}, Removing: {systemLabelsToRemove}",
+            dialogId,
+            correspondenceId,
+            systemLabelsToAdd != null ? string.Join(", ", systemLabelsToAdd) : "None",
+            systemLabelsToRemove != null ? string.Join(", ", systemLabelsToRemove) : "None"
+        );
         var url = $"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/endusercontext/systemlabels?enduserId={Uri.EscapeDataString(enduserId)}";
         var response = await _httpClient.PutAsJsonAsync(url, request, cancellationToken);
         if (!response.IsSuccessStatusCode)
