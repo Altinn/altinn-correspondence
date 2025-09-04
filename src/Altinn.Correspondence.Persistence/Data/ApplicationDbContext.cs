@@ -6,11 +6,7 @@ using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
 using Npgsql;
-using Polly;
-using System;
-using System.IdentityModel.Tokens.Jwt;
 
 namespace Altinn.Correspondence.Persistence;
 
@@ -20,19 +16,6 @@ public class ApplicationDbContext : DbContext
     public ApplicationDbContext(DbContextOptions options) : base(options)
     {
         var conn = this.Database.GetDbConnection();
-        if (IsAccessTokenValid())
-        {
-            var connectionString = conn.ConnectionString;
-            var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions());
-            var token = credential
-                .GetToken(
-                    new Azure.Core.TokenRequestContext(new[] { "https://ossrdbms-aad.database.windows.net/.default" })
-                );
-            _accessToken = token.Token;
-            var connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString);
-            connectionStringBuilder.Password = token.Token;
-            conn.ConnectionString = connectionStringBuilder.ToString();
-        }
     }
 
     public DbSet<AttachmentEntity> Attachments { get; set; }
@@ -50,35 +33,6 @@ public class ApplicationDbContext : DbContext
     public DbSet<IdempotencyKeyEntity> IdempotencyKeys { get; set; } = null!;
     public DbSet<ServiceOwnerEntity> ServiceOwners { get; set; }
     public DbSet<StorageProviderEntity> StorageProviders { get; set; }
-
-    private bool IsAccessTokenValid()
-    {
-        if (string.IsNullOrWhiteSpace(_accessToken))
-        {
-            return false;
-        }
-        JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-        SecurityToken token = tokenHandler.ReadToken(_accessToken);
-        return DateTimeOffset.UtcNow.AddSeconds(60) < token.ValidTo;
-    }
-
-    public async Task EnsureTokenAsync()
-    {
-        if (IsAccessTokenValid())
-            return;
-
-        var conn = this.Database.GetDbConnection();
-        var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions());
-        var token = await credential.GetTokenAsync(
-            new Azure.Core.TokenRequestContext(new[] { "https://ossrdbms-aad.database.windows.net/.default" })
-        );
-
-        _accessToken = token.Token;
-
-        var connectionStringBuilder = new NpgsqlConnectionStringBuilder(conn.ConnectionString);
-        connectionStringBuilder.Password = token.Token;
-        conn.ConnectionString = connectionStringBuilder.ToString();
-    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
