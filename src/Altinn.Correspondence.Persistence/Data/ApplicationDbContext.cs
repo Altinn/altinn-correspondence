@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
+using Polly;
 using System.IdentityModel.Tokens.Jwt;
 
 namespace Altinn.Correspondence.Persistence;
@@ -59,6 +60,24 @@ public class ApplicationDbContext : DbContext
         return DateTimeOffset.UtcNow.AddSeconds(60) < token.ValidTo;
     }
 
+    public async Task EnsureTokenAsync()
+    {
+        if (IsAccessTokenValid())
+            return;
+
+        var conn = this.Database.GetDbConnection();
+        var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions());
+        var token = await credential.GetTokenAsync(
+            new Azure.Core.TokenRequestContext(new[] { "https://ossrdbms-aad.database.windows.net/.default" })
+        );
+
+        _accessToken = token.Token;
+
+        var connectionStringBuilder = new NpgsqlConnectionStringBuilder(conn.ConnectionString);
+        connectionStringBuilder.Password = token.Token;
+        conn.ConnectionString = connectionStringBuilder.ToString();
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("correspondence");
@@ -95,6 +114,11 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
         optionsBuilder.UseNpgsql(databaseOptions.ConnectionString);
 
-        return new ApplicationDbContext(optionsBuilder.Options);
+        var context = new ApplicationDbContext(optionsBuilder.Options);
+
+        // Ensure token is acquired before returning
+        context.EnsureTokenAsync().GetAwaiter().GetResult();
+
+        return context;
     }
 }
