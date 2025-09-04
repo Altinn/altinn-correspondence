@@ -36,7 +36,7 @@ jobs:
           image_name: ${{ env.ARTIFACT_NAME }}
           tag: at22
           workdir: ./flux/syncroot
-          azure_subscription_id: ${{ secrets.AZURE_ALTINNACR_SUBSCRIPTION_ID }}
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
   release:
@@ -59,7 +59,7 @@ jobs:
           from_tag: ${{ steps.get_tags.outputs.short_sha }}
           tag: ${{ steps.get_tags.outputs.tag }}
           workdir: ./flux/syncroot
-          azure_subscription_id: ${{ secrets.AZURE_ALTINNACR_SUBSCRIPTION_ID }}
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
       - name: Re-tag existing image with at23
@@ -69,7 +69,7 @@ jobs:
           from_tag: ${{ steps.get_tags.outputs.short_sha }}
           tag: "at23"
           workdir: ./flux/syncroot
-          azure_subscription_id: ${{ secrets.AZURE_ALTINNACR_SUBSCRIPTION_ID }}
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
       - name: Re-tag existing image with at24
@@ -79,7 +79,7 @@ jobs:
           from_tag: ${{ steps.get_tags.outputs.short_sha }}
           tag: "at24"
           workdir: ./flux/syncroot
-          azure_subscription_id: ${{ secrets.AZURE_ALTINNACR_SUBSCRIPTION_ID }}
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
       - name: Re-tag existing image with tt02
@@ -89,7 +89,7 @@ jobs:
           from_tag: ${{ steps.get_tags.outputs.short_sha }}
           tag: "tt02"
           workdir: ./flux/syncroot
-          azure_subscription_id: ${{ secrets.AZURE_ALTINNACR_SUBSCRIPTION_ID }}
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
       - name: Re-tag existing image with yt01
@@ -99,7 +99,7 @@ jobs:
           from_tag: ${{ steps.get_tags.outputs.short_sha }}
           tag: "yt01"
           workdir: ./flux/syncroot
-          azure_subscription_id: ${{ secrets.AZURE_ALTINNACR_SUBSCRIPTION_ID }}
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
       - name: Re-tag existing image with prod
@@ -109,6 +109,6 @@ jobs:
           from_tag: ${{ steps.get_tags.outputs.short_sha }}
           tag: "prod"
           workdir: ./flux/syncroot
-          azure_subscription_id: ${{ secrets.AZURE_ALTINNACR_SUBSCRIPTION_ID }}
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
