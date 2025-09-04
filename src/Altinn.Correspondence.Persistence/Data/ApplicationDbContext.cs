@@ -116,19 +116,27 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
         Console.WriteLine("Design time factory");
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        optionsBuilder.UseNpgsql(databaseOptions.ConnectionString, npgsqlOptions =>
+        var connectionStringBuilder = new NpgsqlConnectionStringBuilder(databaseOptions.ConnectionString);
+        if (connectionStringBuilder.Host == "localhost")
         {
-            npgsqlOptions.ConfigureDataSource(dataSourceBuilder =>
+            optionsBuilder.UseNpgsql(databaseOptions.ConnectionString);
+        } 
+        else 
+        { 
+            optionsBuilder.UseNpgsql(databaseOptions.ConnectionString, npgsqlOptions =>
             {
-                dataSourceBuilder.UsePeriodicPasswordProvider(async (settings, ct) =>
+                npgsqlOptions.ConfigureDataSource(dataSourceBuilder =>
                 {
-                    var credential = new DefaultAzureCredential();
-                    var tokenRequestContext = new TokenRequestContext(new[] { "https://ossrdbms-aad.database.windows.net/.default" });
-                    var token = await credential.GetTokenAsync(tokenRequestContext, ct);
-                    return token.Token;
-                }, TimeSpan.FromHours(1), TimeSpan.FromMinutes(55));
+                    dataSourceBuilder.UsePeriodicPasswordProvider(async (settings, ct) =>
+                    {
+                        var credential = new DefaultAzureCredential();
+                        var tokenRequestContext = new TokenRequestContext(new[] { "https://ossrdbms-aad.database.windows.net/.default" });
+                        var token = await credential.GetTokenAsync(tokenRequestContext, ct);
+                        return token.Token;
+                    }, TimeSpan.FromHours(1), TimeSpan.FromMinutes(55));
+                });
             });
-        });
+        }
 
         return new ApplicationDbContext(optionsBuilder.Options);
     }
