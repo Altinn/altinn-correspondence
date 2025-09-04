@@ -148,10 +148,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             List<Activity> activities = new();
             var orderedStatuses = correspondence.Statuses.OrderBy(s => s.StatusChanged);
 
-            var firstReadStatus = orderedStatuses.FirstOrDefault(s => s.Status == CorrespondenceStatus.Read);
-            if (firstReadStatus != null && !string.IsNullOrWhiteSpace(openedActivityIdempotencyKey))
+            var readStatus = orderedStatuses.FirstOrDefault(s => s.Status == CorrespondenceStatus.Read);
+            if (readStatus != null && !string.IsNullOrWhiteSpace(openedActivityIdempotencyKey))
             {
-                activities.Add(GetActivityFromStatus(correspondence, firstReadStatus, openedActivityIdempotencyKey));
+                activities.Add(GetActivityFromStatus(correspondence, readStatus, openedActivityIdempotencyKey));
             }
 
             var confirmedStatus = orderedStatuses.FirstOrDefault(s => s.Status == CorrespondenceStatus.Confirmed);
