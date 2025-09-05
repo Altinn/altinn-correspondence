@@ -187,12 +187,6 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
 
-        if (correspondence.Statuses.Count(s => s.Status == CorrespondenceStatus.Fetched) >= 2)
-        {
-            logger.LogInformation("Correspondence with id {correspondenceId} already has a Fetched status, skipping activity creation on Dialogporten", correspondenceId);
-            return;
-        }
-
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
@@ -231,7 +225,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            if (response.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity)
+            if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 if (errorContent.Contains("already exists"))
@@ -431,7 +425,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return dialogRequest;
     }
 
-    private async Task CreateIdempotencyKeysForCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
+    private async Task<(Guid OpenedId, Guid? ConfirmedId)> CreateIdempotencyKeysForCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
     {
         // Create idempotency key for open dialog activity
         var openActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
@@ -446,12 +440,13 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         await _idempotencyKeyRepository.CreateAsync(openIdempotencyKey, cancellationToken);
 
         // Create idempotency key for confirm activity if confirmation is needed
+        Guid? confirmActivityId = null;
         if (correspondence.IsConfirmationNeeded)
         {
-            var confirmActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
+            confirmActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
             var confirmIdempotencyKey = new IdempotencyKeyEntity
             {
-                Id = confirmActivityId,
+                Id = confirmActivityId.Value,
                 CorrespondenceId = correspondence.Id,
                 AttachmentId = null,
                 StatusAction = StatusAction.Confirmed,
@@ -464,7 +459,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var attachmentIdempotencyKeys = new List<IdempotencyKeyEntity>();
         foreach (var attachment in correspondence.Content?.Attachments ?? Enumerable.Empty<CorrespondenceAttachmentEntity>())
         {
-            var downloadActivityId = Uuid.NewDatabaseFriendly(UUIDNext.Database.PostgreSql);
+            var downloadActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
             var downloadIdempotencyKey = new IdempotencyKeyEntity
             {
                 Id = downloadActivityId,
@@ -475,6 +470,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             attachmentIdempotencyKeys.Add(downloadIdempotencyKey);
         }
         await _idempotencyKeyRepository.CreateRangeAsync(attachmentIdempotencyKeys, cancellationToken);
+
+        return (openActivityId, confirmActivityId);
     }
 
 
@@ -496,9 +493,15 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             return correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue ?? string.Empty;
         }
 
-        await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
+        var (OpenedId, ConfirmedId) = await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
 
-        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, true, logger);
+        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(
+            correspondence,
+            generalSettings.Value.CorrespondenceBaseUrl,
+            true,
+            logger,
+            OpenedId.ToString(),
+            ConfirmedId?.ToString());
         string updateType = enableEvents ? "" : "?IsSilentUpdate=true";
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs{updateType}", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
