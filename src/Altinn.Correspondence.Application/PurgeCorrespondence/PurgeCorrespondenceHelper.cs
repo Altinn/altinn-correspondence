@@ -79,19 +79,29 @@ public class PurgeCorrespondenceHelper(
         }
     }
 
-    public async Task<Guid> PurgeCorrespondence(CorrespondenceEntity correspondence, bool isSender, Guid partyUuid, DateTimeOffset operationTimestamp, CancellationToken cancellationToken)
+    public async Task<Guid> PurgeCorrespondence(CorrespondenceEntity correspondence, bool isSender, Guid partyUuid, int partyId, DateTimeOffset operationTimestamp, CancellationToken cancellationToken)
     {
         var status = isSender ? CorrespondenceStatus.PurgedByAltinn : CorrespondenceStatus.PurgedByRecipient;
         await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity()
         {
             CorrespondenceId = correspondence.Id,
             Status = status,
-            StatusChanged = DateTimeOffset.UtcNow,
+            StatusChanged = operationTimestamp,
             StatusText = status.ToString(),
             PartyUuid = partyUuid
         }, cancellationToken);
 
         backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+        if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId > 0)
+        {
+            backgroundJobClient.Enqueue<IAltinnStorageService>(syncEventToAltinn2 => syncEventToAltinn2.SyncCorrespondenceEventToSblBridge(
+                correspondence.Altinn2CorrespondenceId.Value,
+                partyId,
+                operationTimestamp,
+                SyncEventType.Delete,
+                CancellationToken.None));
+        }
+        
         await CheckAndPurgeAttachments(correspondence.Id, partyUuid, cancellationToken);
         var reportToDialogportenJob = ReportActivityToDialogporten(isSender: isSender, correspondence.Id, operationTimestamp);
         var cancelNotificationJob = backgroundJobClient.ContinueJobWith<CancelNotificationHandler>(reportToDialogportenJob, 

@@ -13,8 +13,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Migration;
 [Collection(nameof(CustomWebApplicationTestsCollection))]
 public class SyncCorrespondenceStatusEventTests : MigrationTestBase
 {
-    internal const string syncCorresponenceStatusEventUrl = $"{migrateCorrespondenceControllerBaseUrl}/correspondence/syncStatusEvent";
-
+    internal const string syncCorrespondenceStatusEventUrl = $"{migrateCorrespondenceControllerBaseUrl}/correspondence/syncStatusEvent";
     private readonly Guid _defaultUserPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920");
     private readonly Guid _defaultUserUuid = new Guid("2607D808-29EC-4BD8-B89F-B9D14BDE634C");
     private readonly Guid _secondUserPartyUuid = new Guid("AE985685-5D8F-45E0-AE00-240F5F5C60C5");
@@ -65,7 +64,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         };
 
         // Act
-        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
+        var response = await _migrationClient.PostAsJsonAsync(syncCorrespondenceStatusEventUrl, request);
 
         // Assert
         Assert.True(response.IsSuccessStatusCode);
@@ -111,7 +110,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         };
 
         // Act
-        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
+        var response = await _migrationClient.PostAsJsonAsync(syncCorrespondenceStatusEventUrl, request);
 
         // Assert
         Assert.True(response.IsSuccessStatusCode);
@@ -123,7 +122,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
     }
 
     [Fact]
-    public async Task SyncCorrespondenceStatusEvent_Archived__NewStatuseSaved()
+    public async Task SyncCorrespondenceStatusEvent_Archived_NewStatusSaved()
     {
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
@@ -156,7 +155,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         };
 
         // Act
-        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
+        var response = await _migrationClient.PostAsJsonAsync(syncCorrespondenceStatusEventUrl, request);
 
         // Assert
         Assert.True(response.IsSuccessStatusCode);
@@ -201,7 +200,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         };
 
         // Act
-        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
+        var response = await _migrationClient.PostAsJsonAsync(syncCorrespondenceStatusEventUrl, request);
 
         // Assert
         Assert.True(response.IsSuccessStatusCode);
@@ -243,7 +242,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         };
 
         // Act
-        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
+        var response = await _migrationClient.PostAsJsonAsync(syncCorrespondenceStatusEventUrl, request);
 
         // Assert
         Assert.True(response.IsSuccessStatusCode);
@@ -299,7 +298,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         };
 
         // Act
-        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
+        var response = await _migrationClient.PostAsJsonAsync(syncCorrespondenceStatusEventUrl, request);
 
         // Assert
         Assert.True(response.IsSuccessStatusCode);
@@ -333,7 +332,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         };
 
         // Act
-        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
+        var response = await _migrationClient.PostAsJsonAsync(syncCorrespondenceStatusEventUrl, request);
 
         // Assert
         Assert.False(response.IsSuccessStatusCode);
@@ -374,7 +373,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         };
 
         // Act
-        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceStatusEventUrl, request);
+        var response = await _migrationClient.PostAsJsonAsync(syncCorrespondenceStatusEventUrl, request);
 
         // Assert
         Assert.True(response.IsSuccessStatusCode);
@@ -394,11 +393,77 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         Assert.NotNull(respExt.Statuses[0].Error);
     }
 
+    [Fact]
+    public async Task SyncToAltinn2CorrespondenceStatusEvent_Read_OK()
+    {
+        // Arrange
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithIsMigrating(false)
+            .Build();
+
+        // Setup initial Migrated Correspondence
+        var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
+
+        // Act
+        var response = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/content");
+        Assert.True(response.IsSuccessStatusCode);
+        var details = await GetCorrespondenceDetailsAsync(correspondenceId);
+        Assert.Contains(details.StatusHistory, s => s.Status == CorrespondenceStatusExt.Read);
+    }
+
+    [Fact]
+    public async Task SyncToAltinn2CorrespondenceStatusEvent_Confirm_OK()
+    {
+        // Arrange
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithIsMigrating(false)
+            .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
+            .Build();
+
+        // Setup initial Migrated Correspondence
+        var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
+
+        // Act
+        var getResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+        Assert.True(getResponse.IsSuccessStatusCode);        
+        var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
+
+        // Assert
+        Assert.True(confirmResponse.IsSuccessStatusCode);
+        var details = await GetCorrespondenceDetailsAsync(correspondenceId);
+        Assert.Contains(details.StatusHistory, s => s.Status == CorrespondenceStatusExt.Confirmed);
+    }
+
+    [Fact]
+    public async Task SyncToAltinn2CorrespondenceStatusEvent_Purge_OK()
+    {
+        // Arrange
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithIsMigrating(false)
+            .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
+            .Build();
+
+        // Setup initial Migrated Correspondence
+        var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
+
+        // Act
+        var recipientResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
+        Assert.True(recipientResponse.IsSuccessStatusCode);
+        var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceDetailsResponse.StatusCode);
+    }
+
     private async Task<Guid> MigrateCorrespondence(MigrateCorrespondenceExt migrateCorrespondenceExt)
     {
         var migrateResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
         Assert.True(migrateResponse.IsSuccessStatusCode);
-        var resultObj = await migrateResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>();        
+        var resultObj = await migrateResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>();
+        Assert.NotNull(resultObj);
         return resultObj.CorrespondenceId;
     }
 

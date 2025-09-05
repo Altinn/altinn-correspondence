@@ -23,7 +23,7 @@ public class GetCorrespondenceOverviewHandler(
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(GetCorrespondenceOverviewRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Processing correspondence overview request for {CorrespondenceId}", request.CorrespondenceId);
-        
+
         var operationTimestamp = DateTimeOffset.UtcNow;
         var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, includeStatus: true, includeContent: true, includeForwardingEvents: false, cancellationToken);
         if (correspondence == null)
@@ -79,7 +79,7 @@ public class GetCorrespondenceOverviewHandler(
                     CorrespondenceId = correspondence.Id,
                     Status = CorrespondenceStatus.Fetched,
                     StatusText = CorrespondenceStatus.Fetched.ToString(),
-                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusChanged = operationTimestamp,
                     PartyUuid = partyUuid
                 }, cancellationToken);
                 if (request.OnlyGettingContent && !correspondence.StatusHasBeen(CorrespondenceStatus.Read))
@@ -89,10 +89,21 @@ public class GetCorrespondenceOverviewHandler(
                         CorrespondenceId = correspondence.Id,
                         Status = CorrespondenceStatus.Read,
                         StatusText = CorrespondenceStatus.Read.ToString(),
-                        StatusChanged = DateTimeOffset.UtcNow,
+                        StatusChanged = operationTimestamp,
                         PartyUuid = partyUuid
                     }, cancellationToken);
+                    if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId > 0)
+                    {
+                        backgroundJobClient.Enqueue<IAltinnStorageService>(
+                            syncToAltinn2 => syncToAltinn2.SyncCorrespondenceEventToSblBridge(
+                                correspondence.Altinn2CorrespondenceId.Value,
+                                party.PartyId,
+                                operationTimestamp,
+                                SyncEventType.Read,
+                                CancellationToken.None));
+                    }
                     backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp));
+
                 }
             }
             var notificationsOverview = new List<CorrespondenceNotificationOverview>();

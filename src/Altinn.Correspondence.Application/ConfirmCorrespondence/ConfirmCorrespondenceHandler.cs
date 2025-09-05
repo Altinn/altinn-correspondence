@@ -77,13 +77,25 @@ public class ConfirmCorrespondenceHandler(
             {
                 CorrespondenceId = correspondence.Id,
                 Status = CorrespondenceStatus.Confirmed,
-                StatusChanged = DateTime.UtcNow,
+                StatusChanged = operationTimestamp,
                 StatusText = CorrespondenceStatus.Confirmed.ToString(),
                 PartyUuid = partyUuid
             }, cancellationToken);
             backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateConfirmedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp));
             backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondence.Id));
             backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+
+            if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId > 0)
+            {
+                backgroundJobClient.Enqueue<IAltinnStorageService>((syncToAltinn2) =>
+                    syncToAltinn2.SyncCorrespondenceEventToSblBridge(
+                        correspondence.Altinn2CorrespondenceId.Value,
+                        party.PartyId,
+                        operationTimestamp,
+                        SyncEventType.Confirm,
+                        CancellationToken.None));
+            }
+
             return Task.CompletedTask;
         }, logger, cancellationToken);
 
