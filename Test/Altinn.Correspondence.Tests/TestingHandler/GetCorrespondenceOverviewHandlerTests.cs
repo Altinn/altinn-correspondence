@@ -19,7 +19,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<ICorrespondenceStatusRepository> _correspondenceStatusRepositoryMock;
         private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock;
         private readonly Mock<ILogger<GetCorrespondenceOverviewHandler>> _loggerMock;
-        private readonly Mock<IAltinnStorageService> _altinnStorageMock;
         private readonly GetCorrespondenceOverviewHandler _handler;
 
         public GetCorrespondenceOverviewHandlerTests()
@@ -30,7 +29,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceStatusRepositoryMock = new Mock<ICorrespondenceStatusRepository>();
             _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
             _loggerMock = new Mock<ILogger<GetCorrespondenceOverviewHandler>>();
-            _altinnStorageMock = new Mock<IAltinnStorageService>();
 
             _handler = new GetCorrespondenceOverviewHandler(
                 _altinnAuthorizationServiceMock.Object,

@@ -17,13 +17,13 @@ namespace Altinn.Correspondence.Integrations.Altinn.Storage
         public int PartyId { get; set; }
 
         /// <summary>
-        /// Gets or sets the timestamp of the event. Timestamp should always be UTC time.
+        /// Gets or sets the UTC timestamp of the event.
         /// </summary>
         [JsonPropertyName("eventTimestamp")]
         public DateTimeOffset EventTimeStamp { get; set; }
 
         /// <summary>
-        /// Gets or sets the Correspondence Event Type. (Expects Read, Commit or Delete).
+        /// Gets or sets the Correspondence Event Type. (Expects Read, Confirm, or Delete).
         /// </summary>
         [JsonPropertyName("eventType")]
         public string? EventType { get; set; }

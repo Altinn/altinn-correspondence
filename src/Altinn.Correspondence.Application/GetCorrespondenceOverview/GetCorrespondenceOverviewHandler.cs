@@ -79,28 +79,26 @@ public class GetCorrespondenceOverviewHandler(
                     CorrespondenceId = correspondence.Id,
                     Status = CorrespondenceStatus.Fetched,
                     StatusText = CorrespondenceStatus.Fetched.ToString(),
-                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusChanged = operationTimestamp,
                     PartyUuid = partyUuid
                 }, cancellationToken);
                 if (request.OnlyGettingContent && !correspondence.StatusHasBeen(CorrespondenceStatus.Read))
                 {
-                    DateTimeOffset readStatus = DateTimeOffset.UtcNow;
                     await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
                     {
                         CorrespondenceId = correspondence.Id,
                         Status = CorrespondenceStatus.Read,
                         StatusText = CorrespondenceStatus.Read.ToString(),
-                        StatusChanged = readStatus,
+                        StatusChanged = operationTimestamp,
                         PartyUuid = partyUuid
                     }, cancellationToken);
-                    backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp));
-                    if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId.Value > 0)
+                    if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId > 0)
                     {
                         backgroundJobClient.Enqueue<IAltinnStorageService>(
                             syncToAltinn2 => syncToAltinn2.SyncCorrespondenceEventToSblBridge(
-                                party.PartyId,
                                 correspondence.Altinn2CorrespondenceId.Value,
-                                readStatus,
+                                party.PartyId,
+                                operationTimestamp,
                                 SyncEventType.Read,
                                 CancellationToken.None));
                     }
