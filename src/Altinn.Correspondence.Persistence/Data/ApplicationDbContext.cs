@@ -1,21 +1,20 @@
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Persistence.Helpers;
-using Azure.Core;
 using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using Npgsql;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace Altinn.Correspondence.Persistence;
 
 public class ApplicationDbContext : DbContext
 {
-    public string? _accessToken;
     public ApplicationDbContext(DbContextOptions options) : base(options)
     {
-        var conn = this.Database.GetDbConnection();
     }
 
     public DbSet<AttachmentEntity> Attachments { get; set; }
@@ -43,55 +42,5 @@ public class ApplicationDbContext : DbContext
         configurationBuilder
             .Properties<DateTimeOffset>()
             .HaveConversion<DateTimeOffsetConverter>();
-    }
-}
-
-public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
-{
-    public ApplicationDbContext CreateDbContext(string[] args)
-    {
-        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";   
-        var configuration = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: true)
-            .AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true)
-            .AddEnvironmentVariables()
-            .Build();
-
-        var databaseOptions = new DatabaseOptions() { ConnectionString = "" };
-        configuration.GetSection(nameof(DatabaseOptions)).Bind(databaseOptions);
-
-        if (string.IsNullOrEmpty(databaseOptions.ConnectionString))
-        {
-            throw new InvalidOperationException($"Connection string 'DatabaseOptions:ConnectionString' not found for environment {environment}.");
-        }
-
-        Console.WriteLine($"Using environment: {environment}");
-        Console.WriteLine("Design time factory");
-
-        var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        var connectionStringBuilder = new NpgsqlConnectionStringBuilder(databaseOptions.ConnectionString);
-        if (connectionStringBuilder.Host == "localhost")
-        {
-            optionsBuilder.UseNpgsql(databaseOptions.ConnectionString);
-        } 
-        else 
-        { 
-            optionsBuilder.UseNpgsql(databaseOptions.ConnectionString, npgsqlOptions =>
-            {
-                npgsqlOptions.ConfigureDataSource(dataSourceBuilder =>
-                {
-                    dataSourceBuilder.UsePeriodicPasswordProvider(async (settings, ct) =>
-                    {
-                        var credential = new DefaultAzureCredential();
-                        var tokenRequestContext = new TokenRequestContext(new[] { "https://ossrdbms-aad.database.windows.net/.default" });
-                        var token = await credential.GetTokenAsync(tokenRequestContext, ct);
-                        return token.Token;
-                    }, TimeSpan.FromHours(1), TimeSpan.FromMinutes(55));
-                });
-            });
-        }
-
-        return new ApplicationDbContext(optionsBuilder.Options);
     }
 }
