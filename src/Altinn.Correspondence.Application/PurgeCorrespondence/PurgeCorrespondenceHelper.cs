@@ -94,8 +94,12 @@ public class PurgeCorrespondenceHelper(
         backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
         if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId > 0)
         {
-            backgroundJobClient.Enqueue<IAltinnStorageService>(
-                syncEventToAltinn2 => syncEventToAltinn2.SyncCorrespondenceEventToSblBridge(correspondence.Altinn2CorrespondenceId.Value, partyId, operationTimestamp, SyncEventType.Delete, CancellationToken.None));
+            backgroundJobClient.Enqueue<IAltinnStorageService>(syncEventToAltinn2 => syncEventToAltinn2.SyncCorrespondenceEventToSblBridge(
+                correspondence.Altinn2CorrespondenceId.Value,
+                partyId,
+                operationTimestamp,
+                SyncEventType.Delete,
+                CancellationToken.None));
         }
         
         await CheckAndPurgeAttachments(correspondence.Id, partyUuid, cancellationToken);

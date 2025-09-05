@@ -100,7 +100,7 @@ public class GetCorrespondenceOverviewHandler(
                                 party.PartyId,
                                 operationTimestamp,
                                 SyncEventType.Read,
-                                cancellationToken));
+                                CancellationToken.None));
                     }
                     backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp));
 

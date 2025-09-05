@@ -426,7 +426,8 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
 
         // Act
-        await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+        var getResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+        Assert.True(getResponse.IsSuccessStatusCode);        
         var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
 
         // Assert
@@ -450,10 +451,10 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
 
         // Act
         var recipientResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
+        Assert.True(recipientResponse.IsSuccessStatusCode);
         var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
 
         // Assert
-        Assert.True(recipientResponse.IsSuccessStatusCode);
         Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceDetailsResponse.StatusCode);
     }
 
@@ -462,6 +463,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         var migrateResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
         Assert.True(migrateResponse.IsSuccessStatusCode);
         var resultObj = await migrateResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>();
+        Assert.NotNull(resultObj);
         return resultObj.CorrespondenceId;
     }
 

@@ -39,9 +39,9 @@ public class AltinnStorageService : IAltinnStorageService
         return true;
     }
 
-    public async Task<bool> SyncCorrespondenceEventToSblBridge(int altinn2CorrespondenceId, int partyId, DateTimeOffset utcEventTimeStamp, SyncEventType eventType, CancellationToken cancellationToken)
+    public async Task<bool> SyncCorrespondenceEventToSblBridge(int altinn2CorrespondenceId, int partyId, DateTimeOffset utcEventTimestamp, SyncEventType eventType, CancellationToken cancellationToken)
     {
-        if (partyId <= 0 || altinn2CorrespondenceId <= 0 || utcEventTimeStamp == DateTimeOffset.MinValue)
+        if (partyId <= 0 || altinn2CorrespondenceId <= 0 || utcEventTimestamp == DateTimeOffset.MinValue)
         {
             return false;
         }
@@ -49,14 +49,14 @@ public class AltinnStorageService : IAltinnStorageService
         {
             PartyId = partyId,
             CorrespondenceId = altinn2CorrespondenceId,
-            EventTimeStamp = utcEventTimeStamp,
+            EventTimeStamp = utcEventTimestamp,
             EventType = eventType.ToString().ToLowerInvariant()
         }, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             var statusCode = response.StatusCode;
             var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new Exception($"Error when syncing Correspondence Event {eventType} for Altinn2 CorrespondenceId {altinn2CorrespondenceId} to SBL Bridge through Storage. Activating party: {partyId}. Event UTC timestamp: {utcEventTimeStamp} Statuscode was: ${statusCode}, error was: ${errorContent}");
+            throw new Exception($"Error when syncing Correspondence Event {eventType} for Altinn2 CorrespondenceId {altinn2CorrespondenceId} to SBL Bridge through Storage. Activating party: {partyId}. Event UTC timestamp: {utcEventTimeStamp}. Status code: {statusCode}, error: {errorContent}");
         }
 
         return true;
