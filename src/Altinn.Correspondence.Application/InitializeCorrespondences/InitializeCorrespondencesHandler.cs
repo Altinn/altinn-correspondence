@@ -137,6 +137,14 @@ public class InitializeCorrespondencesHandler(
             return contentError;
         }
 
+        logger.LogDebug("Validating correspondence sender");
+        var senderError = initializeCorrespondenceHelper.ValidateCorrespondenceSender(request.Correspondence);
+        if (senderError != null)
+        {
+            logger.LogWarning("Sender validation failed: {Error}", senderError);
+            return senderError;
+        }
+
         var existingAttachmentIds = request.ExistingAttachments;
         var uploadAttachments = request.Attachments;
         var uploadAttachmentMetadata = request.Correspondence.Content.Attachments;
