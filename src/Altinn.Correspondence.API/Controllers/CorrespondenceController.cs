@@ -61,10 +61,12 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1019: The Content field must be provided for the correspondence</li>
         /// <li>1020: Message title cannot be empty</li>
         /// <li>1021: Message body cannot be empty</li>
+        /// <li>1022: Message body cannot exceed 1023 characters</li>
         /// <li>1023: Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)</li>
         /// <li>1033: The idempotency key must be a valid non-empty GUID</li>
         /// <li>1035: Reply options must be well-formed URIs and HTTPS with a max length of 255 characters</li>
         /// <li>1038: A correspondence cannot contain more than 100 attachments in total</li>
+        /// <li>1039: Message sender must be plain text</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// <li>3002: Email body and subject must be provided when sending email notifications</li>
         /// <li>3003: Reminder email body and subject must be provided when sending reminder email notifications</li>
@@ -152,10 +154,12 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1019: The Content field must be provided for the correspondence</li>
         /// <li>1020: Message title cannot be empty</li>
         /// <li>1021: Message body cannot be empty</li>
+        /// <li>1022: Message body cannot exceed 1023 characters</li>
         /// <li>1023: Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)</li>
         /// <li>1033: The idempotency key must be a valid non-empty GUID</li>
         /// <li>1035: Reply options must be well-formed URIs and HTTPS with a max length of 255 characters</li>
         /// <li>1038: A correspondence cannot contain more than 100 attachments in total</li>
+        /// <li>1039: Message sender must be plain text</li>
         /// <li>2001: The requested attachment was not found</li>
         /// <li>2004: File must have content and has a max file size of 2GB</li>
         /// <li>2008: Checksum mismatch</li>
