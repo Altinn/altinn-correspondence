@@ -82,7 +82,6 @@ public class GetCorrespondenceOverviewHandler(
                     StatusChanged = operationTimestamp,
                     PartyUuid = partyUuid
                 }, cancellationToken);
-                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp));
                 if (request.OnlyGettingContent && !correspondence.StatusHasBeen(CorrespondenceStatus.Read))
                 {
                     await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
@@ -103,6 +102,8 @@ public class GetCorrespondenceOverviewHandler(
                                 SyncEventType.Read,
                                 CancellationToken.None));
                     }
+                    backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp));
+
                 }
             }
             var notificationsOverview = new List<CorrespondenceNotificationOverview>();
