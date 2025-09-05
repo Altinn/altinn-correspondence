@@ -3,7 +3,7 @@ namespace Altinn.Correspondence.Application.GenerateStatisticsReport;
 public class GenerateStatisticsReportResponse
 {
     /// <summary>
-    /// Path to the generated parquet file
+    /// URL to the generated parquet file in blob storage
     /// </summary>
     public required string FilePath { get; set; }
     

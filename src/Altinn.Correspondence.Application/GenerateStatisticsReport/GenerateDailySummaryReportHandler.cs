@@ -17,6 +17,7 @@ public class GenerateDailySummaryReportHandler(
     ICorrespondenceRepository correspondenceRepository,
     IServiceOwnerRepository serviceOwnerRepository,
     IResourceRegistryService resourceRegistryService,
+    IStorageRepository storageRepository,
     ILogger<GenerateDailySummaryReportHandler> logger,
     IHostEnvironment hostEnvironment)
 {
@@ -43,21 +44,20 @@ public class GenerateDailySummaryReportHandler(
             var summaryData = AggregateDailyData(correspondences);
             logger.LogInformation("Aggregated data into {count} daily summary records", summaryData.Count);
 
-            // Generate parquet file
-            var filePath = await GenerateParquetFile(summaryData, cancellationToken);
-            var fileInfo = new FileInfo(filePath);
+            // Generate parquet file and upload to blob storage
+            var (blobUrl, fileHash, fileSize) = await GenerateAndUploadParquetFile(summaryData, request.Altinn2Included, cancellationToken);
 
             var response = new GenerateStatisticsReportResponse
             {
-                FilePath = filePath,
+                FilePath = blobUrl, // Now contains the blob storage URL
                 ServiceOwnerCount = summaryData.Select(d => d.ServiceOwnerId).Distinct().Count(),
                 TotalCorrespondenceCount = summaryData.Sum(d => d.MessageCount),
                 GeneratedAt = DateTimeOffset.UtcNow,
                 Environment = hostEnvironment.EnvironmentName ?? "Unknown",
-                FileSizeBytes = fileInfo.Length
+                FileSizeBytes = fileSize
             };
 
-            logger.LogInformation("Successfully generated daily summary report: {filePath}", filePath);
+            logger.LogInformation("Successfully generated and uploaded daily summary report to blob storage: {blobUrl}", blobUrl);
             return response;
         }
         catch (Exception ex)
@@ -178,30 +178,25 @@ public class GenerateDailySummaryReportHandler(
 
     private long CalculateDatabaseStorage(List<CorrespondenceEntity> correspondences)
     {
-        // Estimate database storage based on correspondence metadata
-        // This is a rough estimate - you might want to calculate actual storage
-        const long estimatedBytesPerCorrespondence = 1024; // 1KB per correspondence metadata
-        return correspondences.Count * estimatedBytesPerCorrespondence;
+        // TODO: Calculate atabase storage based on correspondence metadata
+        // For now, return 0 as placeholder
+        return 0;
     }
 
     private long CalculateAttachmentStorage(List<CorrespondenceEntity> correspondences)
     {
         // TODO: Calculate actual attachment storage from AttachmentEntity
-        // For now, return 0 as we don't have attachment data in the current query
+        // For now, return 0 as placeholder
         return 0;
     }
 
-    private async Task<string> GenerateParquetFile(List<DailySummaryData> summaryData, CancellationToken cancellationToken)
+    private async Task<(string blobUrl, string fileHash, long fileSize)> GenerateAndUploadParquetFile(List<DailySummaryData> summaryData, bool altinn2Included, CancellationToken cancellationToken)
     {
-        // Create reports directory if it doesn't exist
-        var reportsDir = Path.Combine(Directory.GetCurrentDirectory(), "reports");
-        Directory.CreateDirectory(reportsDir);
+        // Generate filename with timestamp as prefix and Altinn version indicator
+        var altinnVersionIndicator = altinn2Included ? "A2A3" : "A3";
+        var fileName = $"{DateTimeOffset.UtcNow:yyyyMMdd_HHmmss}_daily_summary_report_{altinnVersionIndicator}_{hostEnvironment.EnvironmentName}.parquet";
 
-        // Generate filename with timestamp
-        var fileName = $"daily_summary_report_{DateTimeOffset.UtcNow:yyyyMMdd_HHmmss}_{hostEnvironment.EnvironmentName}.parquet";
-        var filePath = Path.Combine(reportsDir, fileName);
-
-        logger.LogInformation("Generating daily summary parquet file with {count} records to {filePath}", summaryData.Count, filePath);
+        logger.LogInformation("Generating daily summary parquet file with {count} records for blob storage", summaryData.Count);
 
         // Convert to parquet-friendly model
         var parquetData = summaryData.Select(d => new ParquetDailySummaryData
@@ -222,11 +217,18 @@ public class GenerateDailySummaryReportHandler(
             AttachmentStorageBytes = d.AttachmentStorageBytes
         }).ToList();
 
-        // Write parquet file
-        await ParquetSerializer.SerializeAsync(parquetData, filePath, cancellationToken: cancellationToken);
+        // Create a memory stream for the parquet data
+        using var memoryStream = new MemoryStream();
+        
+        // Write parquet data to memory stream
+        await ParquetSerializer.SerializeAsync(parquetData, memoryStream, cancellationToken: cancellationToken);
+        memoryStream.Position = 0; // Reset position for reading
 
-        logger.LogInformation("Successfully generated daily summary parquet file: {filePath}", filePath);
+        // Upload to blob storage
+        var (blobUrl, fileHash, fileSize) = await storageRepository.UploadReportFile(fileName, memoryStream, cancellationToken);
 
-        return filePath;
+        logger.LogInformation("Successfully generated and uploaded daily summary parquet file to blob storage: {blobUrl}", blobUrl);
+
+        return (blobUrl, fileHash, fileSize);
     }
 }

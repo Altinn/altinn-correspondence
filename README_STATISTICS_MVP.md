@@ -36,7 +36,13 @@ POST /correspondence/api/v1/statistics/generate-report
 
 ### 2. Generate Daily Summary Report
 
-Generate a daily summary report with aggregated data per service owner per day. Each row represents one day's usage for one service owner.
+Generate a daily summary report with aggregated data per service owner per day. Each row represents one day's usage for one service owner. The report is uploaded to Azure Blob Storage in the "reports" container.
+
+**Filename Format:**
+- `{TIMESTAMP}_daily_summary_report_{VERSION}_{ENVIRONMENT}.parquet`
+- **TIMESTAMP**: `yyyyMMdd_HHmmss` (UTC) - for easy sorting
+- **VERSION**: `A3` (Altinn3 only) or `A2A3` (Altinn2 + Altinn3)
+- **ENVIRONMENT**: Environment name (Development, Test, Production)
 
 **Request Body (optional):**
 ```json
@@ -57,7 +63,7 @@ POST /correspondence/api/v1/statistics/generate-daily-summary
 **Response:**
 ```json
 {
-  "filePath": "C:\\path\\to\\reports\\daily_summary_report_20250127_143022_Development.parquet",
+  "filePath": "https://yourstorageaccount.blob.core.windows.net/reports/20250127_143022_daily_summary_report_A2A3_Development.parquet",
   "serviceOwnerCount": 5,
   "totalCorrespondenceCount": 150,
   "generatedAt": "2025-01-27T14:30:22.123Z",
