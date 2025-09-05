@@ -1492,7 +1492,69 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
         }
 
+        [Theory]
+        [InlineData("<h1>test</h1>")]
+        [InlineData("# test")]
+        public async Task InitializeCorrespondence_With_HTML_Or_Markdown_In_Sender_fails(string messageSender)
+        {
+            var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithMessageSender(messageSender)
+            .Build();
 
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithMessageBodyTooLong_ReturnsBadRequest()
+        {
+            // Arrange - Create a message body that exceeds 1023 characters
+            var longMessageBody = new string('A', 1024); // 1024 characters to exceed the limit
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageBody(longMessageBody)
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithMessageBodyAt1023Characters_Succeeds()
+        {
+            // Arrange - Create a message body exactly at the 1023 character limit
+            var maxLengthMessageBody = new string('A', 1023); // Exactly 1023 characters
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageBody(maxLengthMessageBody)
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithMessageBodyEmpty_ReturnsBadRequest()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageBody("")
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+        }
     }
 }
 
