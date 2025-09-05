@@ -100,7 +100,7 @@ public class GetCorrespondenceOverviewHandler(
                                 party.PartyId,
                                 operationTimestamp,
                                 SyncEventType.Read,
-                                CancellationToken.None));
+                                cancellationToken));
                     }
                 }
             }
