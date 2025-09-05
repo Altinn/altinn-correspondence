@@ -1032,6 +1032,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Verify background jobs Dialogporten activities
             VerifyDialogportenServiceCreatePurgedActivityEnqueued(correspondenceId, DialogportenActorType.Sender, "avsender", new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)));
             VerifyDialogportenServiceSoftDeleteDialogEnqueued("dialog-id-123");
+            // Verify actual deletion of blob scheduled
+            VerifyStorageDeletionScheduled();
             // Should not trigger any additional Dialogporten changes or background jobs
             _backgroundJobClientMock.VerifyNoOtherCalls();
             _dialogPortenServiceMock.VerifyNoOtherCalls();
@@ -1428,6 +1430,12 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _backgroundJobClientMock.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == nameof(IEventBus.Publish) && (AltinnEventType)job.Args[0] == eventType && (string)job.Args[4] == recipient),
                 It.IsAny<EnqueuedState>()));
+        }
+
+        private void VerifyStorageDeletionScheduled()
+        {
+            _backgroundJobClientMock.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == nameof(IStorageRepository.PurgeAttachment)), It.IsAny<EnqueuedState>()));
         }
 
         private void VerifyDialogportenServiceCreateInformationActivityEnqueued(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType dpTextType, string recipient)

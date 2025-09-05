@@ -66,7 +66,7 @@ public class PurgeCorrespondenceHelper(
                 continue;
             }
 
-            await storageRepository.PurgeAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
+            backgroundJobClient.Enqueue<IStorageRepository>(repository => repository.PurgeAttachment(attachment.Id, attachment.StorageProvider, cancellationToken));
             var attachmentStatus = new AttachmentStatusEntity
             {
                 AttachmentId = attachment.Id,
