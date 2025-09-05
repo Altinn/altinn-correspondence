@@ -25,7 +25,7 @@ namespace Altinn.Correspondence.Tests.Factories
                     {
                         Language = "nb",
                         MessageTitle = "test",
-                        MessageSummary = "# test",
+                        MessageSummary = "test",
                         MessageBody = "# test body /n __test__ /n **test**/n [test](www.test.no) /n ![test](www.test.no) /n ```test``` /n > test /n - test /n 1. test /n 1. test /n [x] test /n [ ] test /n ## test /n ### test /n #### test /n ##### test /n ###### test /n + test list /n - test list /n * list element",
                     },
                     RequestedPublishTime = DateTimeOffset.UtcNow,
@@ -65,14 +65,19 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.Content.MessageTitle = title;
             return this;
         }
-        public CorrespondenceBuilder WithMessageBody(string? messageBody)
+        public CorrespondenceBuilder WithMessageSender(string messageSender)
+        {
+            _correspondence.Correspondence.MessageSender = messageSender;
+            return this;
+        }
+        public CorrespondenceBuilder WithMessageBody(string messageBody)
         {
             _correspondence.Correspondence.Content.MessageBody = messageBody;
             return this;
         }
-        public CorrespondenceBuilder WithMessageSummary(string? messageBody)
+        public CorrespondenceBuilder WithMessageSummary(string? messageSummary)
         {
-            _correspondence.Correspondence.Content.MessageSummary = messageBody;
+            _correspondence.Correspondence.Content.MessageSummary = messageSummary;
             return this;
         }
         public CorrespondenceBuilder WithAttachments()
@@ -225,6 +230,7 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.SendersReference = sendersReference;
             return this;
         }
+
 
         public static CorrespondenceEntity CorrespondenceEntityWithNotifications()
         {
