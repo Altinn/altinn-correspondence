@@ -14,6 +14,12 @@ param tenantId string
 param prodLikeEnvironment bool
 param logAnalyticsWorkspaceId string = ''
 
+// Backup retention parameters
+param backupRetentionDays int = 35
+param enableLongTermRetention bool = false
+param longTermRetentionDays int = 2555 // 7 years
+param enablePointInTimeRestore bool = true
+
 
 var databaseName = 'correspondence'
 var databaseUser = 'adminuser'
@@ -52,7 +58,10 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
       autoGrow: 'Enabled'
       tier: prodLikeEnvironment ? 'P50' : 'P4'
     }
-    backup: { backupRetentionDays: 35 }
+    backup: { 
+      backupRetentionDays: backupRetentionDays
+      geoRedundantBackup: prodLikeEnvironment ? 'Enabled' : 'Disabled'
+    }
     authConfig: {
       activeDirectoryAuth: 'Enabled'
       passwordAuth: 'Enabled'
@@ -270,6 +279,81 @@ module adoConnectionString '../keyvault/upsertSecret.bicep' = {
   }
 }
 
+// Azure Backup Vault for long-term retention
+resource backupVault 'Microsoft.DataProtection/backupVaults@2024-04-01' = if (enableLongTermRetention) {
+  name: '${namePrefix}-backup-vault'
+  location: location
+  properties: {
+    storageSettings: [
+      {
+        datastoreType: 'VaultStore'
+        type: 'LocallyRedundant'
+      }
+    ]
+    securitySettings: {
+      softDeleteSettings: {
+        state: 'On'
+        retentionDurationInDays: 14
+      }
+    }
+  }
+  sku: {
+    name: 'RS0'
+    tier: 'Standard'
+  }
+}
+
+// Backup policy for PostgreSQL
+resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2024-04-01' = if (enableLongTermRetention) {
+  name: '${namePrefix}-postgres-backup-policy'
+  parent: backupVault
+  properties: {
+    datasourceTypes: ['Microsoft.DBforPostgreSQL/flexibleServers/databases']
+    objectType: 'BackupPolicy'
+    policyRules: [
+      {
+        name: 'Default'
+        objectType: 'AzureBackupRule'
+        backupParameters: {
+          objectType: 'AzureBackupParams'
+          backupType: 'Full'
+          dataStoreParameters: {
+            objectType: 'DataStoreParameters'
+            dataStoreType: 'VaultStore'
+          }
+        }
+        dataStore: {
+          dataStoreType: 'VaultStore'
+          objectType: 'DataStoreInfoBase'
+        }
+        trigger: {
+          objectType: 'ScheduleBasedTriggerContext'
+          schedule: {
+            repeatingTimeIntervals: ['R/2024-01-01T02:00:00+00:00/P1D']
+            timeZone: 'UTC'
+          }
+        }
+        lifecycle: [
+          {
+            deleteAfter: {
+              objectType: 'AbsoluteDeleteOption'
+              duration: 'P${longTermRetentionDays}D'
+            }
+            sourceDataStore: {
+              dataStoreType: 'VaultStore'
+              objectType: 'DataStoreInfoBase'
+            }
+            targetDataStore: {
+              dataStoreType: 'VaultStore'
+              objectType: 'DataStoreInfoBase'
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+
 // Diagnostic settings for Query Store and monitoring
 resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (logAnalyticsWorkspaceId != '') {
   name: 'QueryStoreDiagnostics'
@@ -287,6 +371,45 @@ resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
       }
       {
         category: 'PostgreSQLFlexSessions'
+        enabled: true
+      }
+    ]
+  }
+}
+
+// Additional diagnostic settings for backup monitoring
+resource backupDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableLongTermRetention && logAnalyticsWorkspaceId != '') {
+  name: 'BackupDiagnostics'
+  scope: backupVault
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      {
+        category: 'AzureBackupReport'
+        enabled: true
+      }
+      {
+        category: 'CoreAzureBackup'
+        enabled: true
+      }
+      {
+        category: 'AddonAzureBackupJobs'
+        enabled: true
+      }
+      {
+        category: 'AddonAzureBackupAlerts'
+        enabled: true
+      }
+      {
+        category: 'AddonAzureBackupPolicy'
+        enabled: true
+      }
+      {
+        category: 'AddonAzureBackupStorage'
+        enabled: true
+      }
+      {
+        category: 'AddonAzureBackupProtectedInstance'
         enabled: true
       }
     ]
