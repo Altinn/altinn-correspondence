@@ -22,6 +22,12 @@ Database migrations is applied automaticly on startup when doing local developme
 dotnet ef database update --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API
 ``` 
 
+### Connecting to DB in Azure:
+Generate an access token using
+```
+az account get-access-token --resource-type oss-rdbms --query accessToken -o tsv
+```
+
 ### Formatting
 Formatting of the code base is handled by Dotnet format. [See how to configure it to format-on-save in Visual Studio here.](https://learn.microsoft.com/en-us/community/content/how-to-enforce-dotnet-format-using-editorconfig-github-actions#3---formatting-your-code-locally)
 
