@@ -121,15 +121,15 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
 
             NpgsqlDataSource? dataSource = null; 
             try
-
             {
-                Services.GetRequiredService<NpgsqlDataSource>();
+                dataSource = Services.GetRequiredService<NpgsqlDataSource>();
             }
             catch(Exception ex)
             {
                 Console.WriteLine($"Error getting Services: {ex}");
             }
 
+            dataSource?.Dispose();
             try
             {
                 base.Dispose(disposing);
@@ -139,7 +139,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             {
                 Console.WriteLine($"Error during base application disposal: {ex}");
             }
-            dataSource?.Dispose();
         }
         else
         {

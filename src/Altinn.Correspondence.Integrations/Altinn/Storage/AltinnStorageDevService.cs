@@ -16,7 +16,11 @@ namespace Altinn.Correspondence.Integrations.Altinn.Storage
 
         public async Task<bool> SyncCorrespondenceEventToSblBridge(int altinn2CorrespondenceId, int partyId, DateTimeOffset utcEventTimeStamp, SyncEventType eventType, CancellationToken cancellationToken)
         {
-            return altinn2CorrespondenceId > 0;
+            if (partyId <= 0 || altinn2CorrespondenceId <= 0 || utcEventTimeStamp == DateTimeOffset.MinValue)
+            {
+                return false;
+            }
+            return true;
         }
     }
 }
