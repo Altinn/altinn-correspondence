@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services.Enums;
 
 namespace Altinn.Correspondence.Core.Services;
@@ -15,5 +16,5 @@ public interface IDialogportenService
     Task SoftDeleteDialog(string dialogId);
     Task<bool> TrySoftDeleteDialog(string dialogId);
     Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType, string actorName, DateTimeOffset activityTimestamp);
-    Task SetArchivedSystemLabelOnDialog(Guid correspondenceId, string enduserId);
+    Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string enduserId, List<DialogPortenSystemLabel>? systemLabelsToAdd, List<DialogPortenSystemLabel>? systemLabelsToRemove);
 }

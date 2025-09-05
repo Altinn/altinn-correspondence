@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Altinn.Correspondence.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250828130038_AddCorespondenceDeleteEventEntity")]
+    partial class AddCorrespondenceDeleteEventEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -74,12 +77,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasMaxLength(4096)
                         .HasColumnType("character varying(4096)");
 
-                    b.Property<string>("ServiceOwnerId")
-                        .HasColumnType("text");
-
-                    b.Property<int>("ServiceOwnerMigrationStatus")
-                        .HasColumnType("integer");
-
                     b.Property<long?>("StorageProviderId")
                         .HasColumnType("bigint");
 
@@ -89,8 +86,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("DataLocationUrl");
-
-                    b.HasIndex("ServiceOwnerId");
 
                     b.HasIndex("StorageProviderId");
 
@@ -285,12 +280,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasMaxLength(4096)
                         .HasColumnType("character varying(4096)");
 
-                    b.Property<string>("ServiceOwnerId")
-                        .HasColumnType("text");
-
-                    b.Property<int>("ServiceOwnerMigrationStatus")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
 
                     b.HasIndex("Altinn2CorrespondenceId")
@@ -307,8 +296,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasIndex("ResourceId");
 
                     b.HasIndex("Sender");
-
-                    b.HasIndex("ServiceOwnerId");
 
                     b.HasIndex("Recipient", "RequestedPublishTime", "Id")
                         .IsDescending(false, true, false);

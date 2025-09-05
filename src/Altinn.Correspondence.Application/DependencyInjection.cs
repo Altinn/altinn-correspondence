@@ -90,8 +90,7 @@ public static class DependencyInjection
         services.AddScoped<MigrateToStorageProviderHandler>();
 
         // EventSync
-        services.AddScoped<SyncCorrespondenceStatusEventHandler>();        
-        services.AddScoped<SyncCorrespondenceStatusEventHelper>();
+        services.AddScoped<SyncCorrespondenceStatusEventHandler>();
         services.AddScoped<SyncCorrespondenceNotificationEventHandler>();
         services.AddScoped<SyncCorrespondenceForwardingEventHandler>();
     }

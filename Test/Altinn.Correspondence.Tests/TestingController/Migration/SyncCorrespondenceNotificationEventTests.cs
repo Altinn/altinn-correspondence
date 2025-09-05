@@ -24,11 +24,14 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
-            .WithNotificationHistoryEvent(1, "testemail@altinn.no",NotificationChannelExt.Email, new DateTime(2024,1,7),false)
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
+            .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7, 12, 0, 0, 0), false)
+            .WithRecipient("urn:altinn:person:identifier-no:29909898925")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
             .Build();
-        
+        migrateCorrespondenceExt.MakeAvailable = true;
+
         // Setup initial Migrated Correspondence
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
 
@@ -68,10 +71,13 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
+            .WithRecipient("urn:altinn:person:identifier-no:29909898925")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
             .Build();
+        migrateCorrespondenceExt.MakeAvailable = true;
 
         // Setup initial Migrated Correspondence
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
@@ -110,10 +116,13 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
-            .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7, 12 ,0 ,0 ,0), false)
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
+            .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7, 12, 0, 0, 0), false)
+            .WithRecipient("urn:altinn:person:identifier-no:29909898925")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
             .Build();
+        migrateCorrespondenceExt.MakeAvailable = true;
 
         // Setup initial Migrated Correspondence
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
@@ -152,11 +161,14 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
     {
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
-            .CreateMigrateCorrespondence()
-            .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
-            .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
-            .Build();
+             .CreateMigrateCorrespondence()
+             .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+             .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
+             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7, 12, 0, 0, 0), false)
+             .WithRecipient("urn:altinn:person:identifier-no:29909898925")
+             .WithResourceId("skd-migratedcorrespondence-5229-1")
+             .Build();
+        migrateCorrespondenceExt.MakeAvailable = true;
 
         // Setup initial Migrated Correspondence
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
