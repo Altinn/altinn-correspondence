@@ -13,9 +13,10 @@ param apimIp string
 
 var containerAppJobName = '${namePrefix}-migration'
 var containerAppEnvName = '${namePrefix}-env'
+var migrationConnectionStringName = 'correspondence-migration-connection-string'
 
 resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: '${namePrefix}-app-identity'
+  name: '${namePrefix}-migration-identity'
   location: location
 }
 
@@ -39,11 +40,10 @@ module databaseAccess '../../modules/postgreSql/AddAdministrationAccess.bicep' =
     namePrefix: namePrefix
   }
 }
-var adoConnectionStringName = 'correspondence-ado-connection-string'
 var secrets = [
   {
-    name: adoConnectionStringName
-    keyVaultUrl: '${keyVaultUrl}/secrets/${adoConnectionStringName}'
+    name: migrationConnectionStringName
+    keyVaultUrl: '${keyVaultUrl}/secrets/${migrationConnectionStringName}'
     identity: userAssignedIdentity.id
   }
 ]
@@ -55,7 +55,7 @@ var containerAppEnvVars = [
   }
   {
     name: 'DatabaseOptions__ConnectionString'
-    secretRef: adoConnectionStringName
+    secretRef: migrationConnectionStringName
   }
   {
     name: 'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT'

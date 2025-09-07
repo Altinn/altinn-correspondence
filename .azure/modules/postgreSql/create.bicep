@@ -240,6 +240,15 @@ module adoConnectionString '../keyvault/upsertSecret.bicep' = {
   }
 }
 
+module saveMigrationConnectionString '../keyvault/upsertSecret.bicep' = {	
+  name: 'migrationConnectiionString'	
+  params: {	
+    destKeyVaultName: environmentKeyVaultName
+    secretName: 'correspondence-migration-connection-string'	
+    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${namePrefix}-app-identity;Ssl Mode=Require;Trust Server Certificate=True;Maximum Pool Size=5;options=-c role=azure_pg_admin;;'	
+  }	
+}
+
 // Diagnostic settings for Query Store and monitoring
 resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (logAnalyticsWorkspaceId != '') {
   name: 'QueryStoreDiagnostics'
