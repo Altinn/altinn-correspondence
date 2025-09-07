@@ -48,7 +48,7 @@ public static class DependencyInjection
         var psqlServerTokenProvider = new DefaultAzureCredential();
         var tokenRequestContext = new TokenRequestContext(scopes: ["https://ossrdbms-aad.database.windows.net/.default"]) { };
         dataSourceBuilder.UsePeriodicPasswordProvider(async (_, cancellationToken) =>
-            psqlServerTokenProvider.GetTokenAsync(tokenRequestContext).Result.Token, TimeSpan.FromMinutes(45), TimeSpan.FromSeconds(0)
+            (await psqlServerTokenProvider.GetTokenAsync(tokenRequestContext, cancellationToken)).Token, TimeSpan.FromMinutes(45), TimeSpan.FromSeconds(0)
         );
 
         return dataSourceBuilder.Build();
