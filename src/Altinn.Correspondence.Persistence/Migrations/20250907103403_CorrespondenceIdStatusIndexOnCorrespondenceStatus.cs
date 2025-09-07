@@ -10,32 +10,28 @@ namespace Altinn.Correspondence.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_CorrespondenceStatuses_CorrespondenceId",
-                schema: "correspondence",
-                table: "CorrespondenceStatuses");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CorrespondenceStatuses_CorrespondenceId_Status",
-                schema: "correspondence",
-                table: "CorrespondenceStatuses",
-                columns: new[] { "CorrespondenceId", "Status" },
-                descending: new[] { false, true });
+            migrationBuilder.Sql(
+                "CREATE INDEX CONCURRENTLY IF NOT EXISTS \"IX_CorrespondenceStatuses_CorrespondenceId_Status\" " +
+                "ON correspondence.\"CorrespondenceStatuses\" (\"CorrespondenceId\" ASC, \"Status\" DESC);",
+                suppressTransaction: true);
+            
+            migrationBuilder.Sql(
+                "DROP INDEX CONCURRENTLY IF EXISTS correspondence.\"IX_CorrespondenceStatuses_CorrespondenceId\";",
+                suppressTransaction: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_CorrespondenceStatuses_CorrespondenceId_Status",
-                schema: "correspondence",
-                table: "CorrespondenceStatuses");
+            migrationBuilder.Sql(
+                "CREATE INDEX CONCURRENTLY IF NOT EXISTS \"IX_CorrespondenceStatuses_CorrespondenceId\" " + 
+                "ON correspondence.\"CorrespondenceStatuses\" (\"CorrespondenceId\");",
+                suppressTransaction: true);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_CorrespondenceStatuses_CorrespondenceId",
-                schema: "correspondence",
-                table: "CorrespondenceStatuses",
-                column: "CorrespondenceId");
+            migrationBuilder.Sql(
+                "DROP INDEX CONCURRENTLY IF EXISTS correspondence.\"IX_CorrespondenceStatuses_CorrespondenceId_Status\";",
+                suppressTransaction: true);
         }
     }
 }
+
