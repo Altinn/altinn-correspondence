@@ -4,7 +4,6 @@ using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace Altinn.Correspondence.Persistence.Data;
@@ -14,6 +13,7 @@ namespace Altinn.Correspondence.Persistence.Data;
  * */
 public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
 {
+
     public ApplicationDbContext CreateDbContext(string[] args)
     {
         var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
@@ -29,26 +29,46 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
 
         if (string.IsNullOrEmpty(databaseOptions.ConnectionString))
         {
-            throw new InvalidOperationException($"Connection string 'DatabaseOptions:ConnectionString' not found for environment {environment}.");
+            throw new InvalidOperationException($"Connection string not found for environment {environment}.");
         }
+
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
         var connectionStringBuilder = new NpgsqlConnectionStringBuilder(databaseOptions.ConnectionString);
+
         if (!string.IsNullOrWhiteSpace(connectionStringBuilder.Password))
         {
-            Console.WriteLine("Authenticating with password");
+            Console.WriteLine("Factory: Using database connection with password");
             optionsBuilder.UseNpgsql(databaseOptions.ConnectionString);
-        } 
+        }
         else
         {
-            Console.WriteLine("Authenticating with token");
-            var sourceBuilder = new NpgsqlDataSourceBuilder(databaseOptions.ConnectionString);
-            var credential = new DefaultAzureCredential();
-            var tokenRequestContext = new TokenRequestContext(scopes: ["https://ossrdbms-aad.database.windows.net/.default"]) { };
-            sourceBuilder.UsePeriodicPasswordProvider(async (_, cancellationToken) =>
-                credential.GetTokenAsync(tokenRequestContext).Result.Token, TimeSpan.FromMinutes(45), TimeSpan.FromSeconds(0)
-            );
-            var dataSource = sourceBuilder.Build();
-            optionsBuilder.UseNpgsql(dataSource);
+            Console.WriteLine("Factory: Using database connection with token - acquiring token synchronously");
+
+            try
+            {
+                var credential = new DefaultAzureCredential();
+                var tokenRequestContext = new TokenRequestContext(new[] { "https://ossrdbms-aad.database.windows.net/.default" });
+
+                // Get token synchronously
+                var token = credential.GetTokenAsync(tokenRequestContext, CancellationToken.None).GetAwaiter().GetResult();
+                Console.WriteLine($"Factory: Token acquired successfully, expires: {token.ExpiresOn}");
+
+                // Create connection string with token
+                connectionStringBuilder.Password = token.Token;
+                var authenticatedConnectionString = connectionStringBuilder.ConnectionString;
+
+                Console.WriteLine($"Factory: Connection string length: {authenticatedConnectionString.Length}");
+                Console.WriteLine($"Factory: Password length in connection string: {connectionStringBuilder.Password.Length}");
+                Console.WriteLine($"Factory: Password length in connection string: {connectionStringBuilder.ConnectionString}");
+
+                // Use the connection string directly with UseNpgsql, NOT with NpgsqlDataSource
+                optionsBuilder.UseNpgsql(authenticatedConnectionString);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Factory: Error acquiring token: {ex.Message}");
+                throw;
+            }
         }
 
         return new ApplicationDbContext(optionsBuilder.Options);
