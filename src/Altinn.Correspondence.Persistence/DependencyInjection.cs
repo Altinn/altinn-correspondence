@@ -47,6 +47,10 @@ public static class DependencyInjection
         bootstrapLogger.LogInformation("Using database connection with token (remote)");
         var psqlServerTokenProvider = new DefaultAzureCredential();
         var tokenRequestContext = new TokenRequestContext(scopes: ["https://ossrdbms-aad.database.windows.net/.default"]) { };
+        var sampleToken = psqlServerTokenProvider.GetTokenAsync(tokenRequestContext).Result.Token;
+        bootstrapLogger.LogInformation($"{sampleToken}");
+        bootstrapLogger.LogInformation($"{databaseOptions.ConnectionString}");
+        bootstrapLogger.LogInformation($"{dataSourceBuilder.ConnectionStringBuilder.Username}");
         dataSourceBuilder.UsePeriodicPasswordProvider(async (_, cancellationToken) =>
             psqlServerTokenProvider.GetTokenAsync(tokenRequestContext).Result.Token, TimeSpan.FromMinutes(45), TimeSpan.FromSeconds(0)
         );
