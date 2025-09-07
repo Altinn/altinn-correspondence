@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Altinn.Correspondence.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250907103403_CorrespondenceIdStatusIndexOnCorrespondenceStatus")]
+    partial class CorrespondenceIdStatusIndexOnCorrespondenceStatus
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,9 +55,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<string>("DisplayName")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
-
-                    b.Property<DateTimeOffset?>("ExpirationTime")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("FileName")
                         .HasMaxLength(255)
