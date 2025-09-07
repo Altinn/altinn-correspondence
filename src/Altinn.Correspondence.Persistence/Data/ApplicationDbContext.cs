@@ -1,13 +1,6 @@
 using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Persistence.Helpers;
-using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-using Npgsql;
-using System.IdentityModel.Tokens.Jwt;
 
 namespace Altinn.Correspondence.Persistence;
 
