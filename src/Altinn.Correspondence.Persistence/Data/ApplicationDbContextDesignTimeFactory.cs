@@ -33,7 +33,7 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
         }
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
         var connectionStringBuilder = new NpgsqlConnectionStringBuilder(databaseOptions.ConnectionString);
-        if (!string.IsNullOrWhiteSpace(databaseOptions.ConnectionString))
+        if (!string.IsNullOrWhiteSpace(connectionStringBuilder.Password))
         {
             Console.WriteLine("Authenticating with password");
             optionsBuilder.UseNpgsql(databaseOptions.ConnectionString);
