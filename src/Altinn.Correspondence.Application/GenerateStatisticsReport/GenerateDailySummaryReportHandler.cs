@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using OneOf;
 using Parquet.Serialization;
 using System.Security.Claims;
+using System.Security.Cryptography;
 
 namespace Altinn.Correspondence.Application.GenerateStatisticsReport;
 
@@ -198,6 +199,25 @@ public class GenerateDailySummaryReportHandler(
 
         logger.LogInformation("Generating daily summary parquet file with {count} records for blob storage", summaryData.Count);
 
+        // Generate the parquet file as a stream
+        var (parquetStream, fileHash, fileSize) = await GenerateParquetFileStream(summaryData, altinn2Included, cancellationToken);
+
+        // Upload to blob storage
+        var (blobUrl, _, _) = await storageRepository.UploadReportFile(fileName, parquetStream, cancellationToken);
+
+        logger.LogInformation("Successfully generated and uploaded daily summary parquet file to blob storage: {blobUrl}", blobUrl);
+
+        return (blobUrl, fileHash, fileSize);
+    }
+
+    private async Task<(Stream parquetStream, string fileHash, long fileSize)> GenerateParquetFileStream(List<DailySummaryData> summaryData, bool altinn2Included, CancellationToken cancellationToken)
+    {
+        // Generate filename with timestamp as prefix and Altinn version indicator
+        var altinnVersionIndicator = altinn2Included ? "A2A3" : "A3";
+        var fileName = $"{DateTimeOffset.UtcNow:yyyyMMdd_HHmmss}_daily_summary_report_{altinnVersionIndicator}_{hostEnvironment.EnvironmentName}.parquet";
+
+        logger.LogInformation("Generating daily summary parquet file with {count} records", summaryData.Count);
+
         // Convert to parquet-friendly model
         var parquetData = summaryData.Select(d => new ParquetDailySummaryData
         {
@@ -218,17 +238,74 @@ public class GenerateDailySummaryReportHandler(
         }).ToList();
 
         // Create a memory stream for the parquet data
-        using var memoryStream = new MemoryStream();
+        var memoryStream = new MemoryStream();
         
         // Write parquet data to memory stream
         await ParquetSerializer.SerializeAsync(parquetData, memoryStream, cancellationToken: cancellationToken);
         memoryStream.Position = 0; // Reset position for reading
 
-        // Upload to blob storage
-        var (blobUrl, fileHash, fileSize) = await storageRepository.UploadReportFile(fileName, memoryStream, cancellationToken);
+        // Calculate MD5 hash
+        using var md5 = MD5.Create();
+        var hash = Convert.ToBase64String(md5.ComputeHash(memoryStream.ToArray()));
+        memoryStream.Position = 0; // Reset position for reading
 
-        logger.LogInformation("Successfully generated and uploaded daily summary parquet file to blob storage: {blobUrl}", blobUrl);
+        logger.LogInformation("Successfully generated daily summary parquet file stream");
 
-        return (blobUrl, fileHash, fileSize);
+        return (memoryStream, hash, memoryStream.Length);
+    }
+
+    public async Task<OneOf<GenerateAndDownloadDailySummaryReportResponse, Error>> ProcessAndDownload(
+        ClaimsPrincipal user,
+        GenerateDailySummaryReportRequest request,
+        CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Starting daily summary report generation and download with Altinn2Included={altinn2Included}", request.Altinn2Included);
+
+        try
+        {
+            // Get correspondences data
+            var correspondences = await correspondenceRepository.GetCorrespondencesForStatistics(request.Altinn2Included, cancellationToken);
+            
+            if (!correspondences.Any())
+            {
+                logger.LogWarning("No correspondences found for report generation");
+                return StatisticsErrors.NoCorrespondencesFound;
+            }
+
+            logger.LogInformation("Found {count} correspondences for report generation", correspondences.Count);
+
+            // Aggregate data by day and service owner
+            var summaryData = AggregateDailyData(correspondences);
+
+            // Generate the parquet file as a stream
+            var (parquetStream, fileHash, fileSize) = await GenerateParquetFileStream(summaryData, request.Altinn2Included, cancellationToken);
+
+            // Generate filename
+            var altinnVersionIndicator = request.Altinn2Included ? "A2A3" : "A3";
+            var fileName = $"{DateTimeOffset.UtcNow:yyyyMMdd_HHmmss}_daily_summary_report_{altinnVersionIndicator}_{hostEnvironment.EnvironmentName}.parquet";
+
+            var response = new GenerateAndDownloadDailySummaryReportResponse
+            {
+                FileStream = parquetStream,
+                FileName = fileName,
+                FileHash = fileHash,
+                FileSizeBytes = fileSize,
+                ServiceOwnerCount = summaryData.Select(d => d.ServiceOwnerId).Distinct().Count(),
+                TotalCorrespondenceCount = correspondences.Count,
+                GeneratedAt = DateTimeOffset.UtcNow,
+                Environment = hostEnvironment.EnvironmentName,
+                Altinn2Included = request.Altinn2Included
+            };
+
+            logger.LogInformation("Successfully generated daily summary report for download with {serviceOwnerCount} service owners and {totalCount} correspondences", 
+                response.ServiceOwnerCount, response.TotalCorrespondenceCount);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to generate daily summary report for download");
+            return StatisticsErrors.ReportGenerationFailed;
+        }
     }
 }

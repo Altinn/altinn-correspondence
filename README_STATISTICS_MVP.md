@@ -72,7 +72,43 @@ POST /correspondence/api/v1/statistics/generate-daily-summary
 }
 ```
 
-### 3. Generate Statistics Summary
+### 3. Generate and Download Daily Summary Report
+
+Generate a daily summary report with aggregated data per service owner per day and download it directly as a parquet file. This is the recommended endpoint for most use cases as it combines generation and download in a single request.
+
+**Parameters:**
+- `altinn2Included` (boolean, optional): Whether to include Altinn2 correspondences in the report. Default is `true`. Set to `false` to generate reports with only Altinn3 correspondences.
+
+**Response:**
+- **200 OK**: Returns the parquet file as `application/octet-stream` with filename in Content-Disposition header
+- **500 Internal Server Error**: Server error during generation
+
+**Filename Format:**
+- `{TIMESTAMP}_daily_summary_report_{VERSION}_{ENVIRONMENT}.parquet`
+- **TIMESTAMP**: `yyyyMMdd_HHmmss` (UTC) - for easy sorting
+- **VERSION**: `A3` (Altinn3 only) or `A2A3` (Altinn2 + Altinn3)
+- **ENVIRONMENT**: Environment name (Development, Test, Production)
+
+```bash
+POST /correspondence/api/v1/statistics/generate-and-download-daily-summary
+# No authentication required
+# Optional request body: {"altinn2Included": true}
+```
+
+**Example Response Headers:**
+```
+Content-Type: application/octet-stream
+Content-Disposition: attachment; filename="20250127_143022_daily_summary_report_A2A3_Development.parquet"
+X-File-Hash: base64-encoded-md5-hash
+X-File-Size: 4096
+X-Service-Owner-Count: 5
+X-Total-Correspondence-Count: 150
+X-Generated-At: 2025-01-27T14:30:22.123Z
+X-Environment: Development
+X-Altinn2-Included: true
+```
+
+### 4. Generate Statistics Summary
 
 Generate a summary with correspondence counts per service owner. This endpoint automatically generates a new detailed report and then creates an in-memory summary from it:
 

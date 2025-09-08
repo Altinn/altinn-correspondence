@@ -105,4 +105,7 @@ public static class StatisticsErrors
 {
     public static Error NoCorrespondencesFound = new Error(6001, "No correspondences found for report generation", HttpStatusCode.NotFound);
     public static Error ReportGenerationFailed = new Error(6002, "Failed to generate statistics report", HttpStatusCode.InternalServerError);
+    public static Error InvalidFileName = new Error(6003, "Invalid file name provided", HttpStatusCode.BadRequest);
+    public static Error ReportNotFound = new Error(6004, "The requested report file was not found", HttpStatusCode.NotFound);
+    public static Error ReportDownloadFailed = new Error(6005, "Failed to download report file", HttpStatusCode.InternalServerError);
 }
