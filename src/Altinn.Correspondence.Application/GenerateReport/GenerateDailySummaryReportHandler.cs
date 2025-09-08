@@ -40,7 +40,6 @@ public class GenerateDailySummaryReportHandler(
                 logger.LogWarning("No correspondences found for daily summary report generation");
                 return StatisticsErrors.NoCorrespondencesFound;
             }
-
             // Aggregate daily data
             var summaryData = AggregateDailyData(correspondences);
             logger.LogInformation("Aggregated data into {count} daily summary records", summaryData.Count);
