@@ -13,28 +13,7 @@ This implementation generates comprehensive statistics reports with detailed cor
 
 ## How to Test
 
-### 1. Generate a Statistics Report
-
-Make a POST request to generate a new report:
-
-```bash
-POST /correspondence/api/v1/statistics/generate-report
-# No authentication required
-```
-
-**Response:**
-```json
-{
-  "filePath": "C:\\path\\to\\reports\\correspondence_detailed_report_20250127_143022_Development.parquet",
-  "serviceOwnerCount": 5,
-  "totalCorrespondenceCount": 150,
-  "generatedAt": "2025-01-27T14:30:22.123Z",
-  "environment": "Development",
-  "fileSizeBytes": 8192
-}
-```
-
-### 2. Generate Daily Summary Report
+### 1. Generate Daily Summary Report
 
 Generate a daily summary report with aggregated data per service owner per day. Each row represents one day's usage for one service owner. The report is uploaded to Azure Blob Storage in the "reports" container.
 
@@ -72,7 +51,7 @@ POST /correspondence/api/v1/statistics/generate-daily-summary
 }
 ```
 
-### 3. Generate and Download Daily Summary Report
+### 2. Generate and Download Daily Summary Report
 
 Generate a daily summary report with aggregated data per service owner per day and download it directly as a parquet file. This is the recommended endpoint for most use cases as it combines generation and download in a single request.
 
@@ -108,72 +87,7 @@ X-Environment: Development
 X-Altinn2-Included: true
 ```
 
-### 4. Generate Statistics Summary
 
-Generate a summary with correspondence counts per service owner. This endpoint automatically generates a new detailed report and then creates an in-memory summary from it:
-
-```bash
-POST /correspondence/api/v1/statistics/generate-summary
-# No authentication required
-# No request body or parameters needed
-```
-
-**Response:**
-```json
-{
-  "serviceOwnerSummaries": [
-    {
-      "serviceOwnerId": "123456789",
-      "serviceOwnerName": "Test Organization",
-      "correspondenceCount": 45,
-      "percentageOfTotal": 30.0,
-      "uniqueResourceCount": 3,
-      "mostRecentCorrespondence": "2025-01-27T10:30:00Z"
-    }
-  ],
-  "totalCorrespondences": 150,
-  "totalServiceOwners": 5,
-  "generatedAt": "2025-01-27T14:30:22.123Z",
-  "environment": "Development",
-  "dateRange": {
-    "from": "2025-01-01T00:00:00Z",
-    "to": "2025-01-27T14:30:22Z"
-  }
-}
-```
-
-### 4. List Available Reports
-
-Get a list of all generated report files:
-
-```bash
-GET /correspondence/api/v1/statistics/reports
-# No authentication required
-```
-
-**Response:**
-```json
-[
-  {
-    "fileName": "correspondence_detailed_report_20250127_143022_Development.parquet",
-    "filePath": "C:\\path\\to\\reports\\correspondence_detailed_report_20250127_143022_Development.parquet",
-    "size": 8192,
-    "created": "2025-01-27T14:30:22.000Z",
-    "lastModified": "2025-01-27T14:30:22.000Z"
-  }
-]
-```
-
-### 5. Download a Report File
-
-Download a specific report file:
-
-```bash
-GET /correspondence/api/v1/statistics/download/{fileName}
-# No authentication required
-```
-
-This will return the parquet file as a binary download.
 
 ## Data Structure
 

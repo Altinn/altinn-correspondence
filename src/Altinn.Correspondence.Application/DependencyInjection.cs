@@ -64,7 +64,6 @@ public static class DependencyInjection
         services.AddScoped<CleanupOrphanedDialogsHandler>();
 
         // Statistics & Reporting
-        services.AddScoped<GenerateStatisticsReportHandler>();
         services.AddScoped<GenerateDailySummaryReportHandler>();
 
         // Helpers

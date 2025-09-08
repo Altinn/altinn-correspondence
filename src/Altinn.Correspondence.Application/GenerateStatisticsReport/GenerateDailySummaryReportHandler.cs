@@ -22,7 +22,7 @@ public class GenerateDailySummaryReportHandler(
     ILogger<GenerateDailySummaryReportHandler> logger,
     IHostEnvironment hostEnvironment)
 {
-    public async Task<OneOf<GenerateStatisticsReportResponse, Error>> Process(
+    public async Task<OneOf<GenerateDailySummaryReportResponse, Error>> Process(
         ClaimsPrincipal user,
         GenerateDailySummaryReportRequest request,
         CancellationToken cancellationToken)
@@ -48,14 +48,16 @@ public class GenerateDailySummaryReportHandler(
             // Generate parquet file and upload to blob storage
             var (blobUrl, fileHash, fileSize) = await GenerateAndUploadParquetFile(summaryData, request.Altinn2Included, cancellationToken);
 
-            var response = new GenerateStatisticsReportResponse
+            var response = new GenerateDailySummaryReportResponse
             {
                 FilePath = blobUrl, // Now contains the blob storage URL
                 ServiceOwnerCount = summaryData.Select(d => d.ServiceOwnerId).Distinct().Count(),
                 TotalCorrespondenceCount = summaryData.Sum(d => d.MessageCount),
                 GeneratedAt = DateTimeOffset.UtcNow,
                 Environment = hostEnvironment.EnvironmentName ?? "Unknown",
-                FileSizeBytes = fileSize
+                FileSizeBytes = fileSize,
+                FileHash = fileHash,
+                Altinn2Included = request.Altinn2Included
             };
 
             logger.LogInformation("Successfully generated and uploaded daily summary report to blob storage: {blobUrl}", blobUrl);
