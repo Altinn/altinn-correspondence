@@ -51,6 +51,24 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public CorrespondenceEntityBuilder WithRequestedPublishTime(DateTimeOffset requestedPublishTime)
+        {
+            _correspondenceEntity.RequestedPublishTime = requestedPublishTime;
+            return this;
+        }
+
+        public CorrespondenceEntityBuilder WithRecipient(string recipient)
+        {
+            _correspondenceEntity.Recipient = recipient;
+            return this;
+        }
+
+        public CorrespondenceEntityBuilder WithResourceId(string resourceId)
+        {
+            _correspondenceEntity.ResourceId = resourceId;
+            return this;
+        }
+
         public CorrespondenceEntityBuilder WithCreated(DateTime created)
         {
             _correspondenceEntity.Created = new DateTimeOffset(created);

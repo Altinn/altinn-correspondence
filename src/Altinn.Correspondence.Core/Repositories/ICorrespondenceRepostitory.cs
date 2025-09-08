@@ -29,7 +29,6 @@ namespace Altinn.Correspondence.Core.Repositories
             List<string> resourceIds,
             bool includeActive,
             bool includeArchived,
-            bool includePurged,
             string searchString,
             CancellationToken cancellationToken,
             bool filterMigrated = true);
@@ -55,11 +54,17 @@ namespace Altinn.Correspondence.Core.Repositories
         Task UpdateIsMigrating(Guid correspondenceId, bool isMigrating, CancellationToken cancellationToken);
         Task<bool> AreAllAttachmentsPublished(Guid correspondenceId, CancellationToken cancellationToken = default);
         Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, int offset, CancellationToken cancellationToken = default);
-        Task<List<CorrespondenceEntity>> GetPurgedCorrespondencesWithDialogsAfter(
+        Task<List<CorrespondenceEntity>> GetCorrespondencesWindowAfter(
             int limit,
             DateTimeOffset? lastCreated,
             Guid? lastId,
             bool filterMigrated,
+            CancellationToken cancellationToken);
+
+        Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndCurrentStatus(
+            List<Guid> correspondenceIds,
+            ReferenceType referenceType,
+            List<CorrespondenceStatus> currentStatuses,
             CancellationToken cancellationToken);
         
         Task<List<CorrespondenceEntity>> GetCorrespondencesForReport(bool includeAltinn2, CancellationToken cancellationToken);

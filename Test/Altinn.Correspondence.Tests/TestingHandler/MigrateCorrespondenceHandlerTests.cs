@@ -21,22 +21,25 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<IDialogportenService> _mockDialogportenService;
         private readonly Mock<IBackgroundJobClient> _mockBackgroundJobClient;
         private readonly Mock<ILogger<MigrateCorrespondenceHandler>> _mockLogger;
+        private readonly Mock<ICorrespondenceDeleteEventRepository> _mockCorrespondenceDeleteRepository;
         private readonly MigrateCorrespondenceHandler _handler;
 
         public MigrateCorrespondenceHandlerTests()
         {
             _mockCorrespondenceRepository = new Mock<ICorrespondenceRepository>();
+            _mockCorrespondenceDeleteRepository = new Mock<ICorrespondenceDeleteEventRepository>();
             _mockDialogportenService = new Mock<IDialogportenService>();
-            _mockBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            _mockBackgroundJobClient = new Mock<IBackgroundJobClient>();            
             _mockLogger = new Mock<ILogger<MigrateCorrespondenceHandler>>();
             var mockCache = new Mock<IHybridCacheWrapper>();
 
             var hangfireScheduleHelper = new HangfireScheduleHelper(_mockBackgroundJobClient.Object, mockCache.Object, _mockCorrespondenceRepository.Object, new NullLogger<HangfireScheduleHelper>());
             _handler = new MigrateCorrespondenceHandler(
                 _mockCorrespondenceRepository.Object,
+                _mockCorrespondenceDeleteRepository.Object,
                 _mockDialogportenService.Object,
                 hangfireScheduleHelper,
-                _mockBackgroundJobClient.Object,
+                _mockBackgroundJobClient.Object,                
                 _mockLogger.Object);
         }
 
@@ -242,6 +245,42 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, response.Statuses[0].CorrespondenceId);
             Assert.Equal("dialog-123", response.Statuses[0].DialogId);
             Assert.True(response.Statuses[0].Ok);
+        }
+
+        [Fact]
+        public async Task MakeCorrespondenceAvailable_WithCorrespondenceId_CorrespondenceIsPurged_ShouldNotMakeAvailable()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var request = new MakeCorrespondenceAvailableRequest
+            {
+                CorrespondenceId = correspondenceId,
+                CreateEvents = true
+            };
+
+            var mockCorrespondence = CreateMockCorrespondence(correspondenceId);
+            mockCorrespondence.Statuses.Add(new CorrespondenceStatusEntity
+            {
+                Status = Core.Models.Enums.CorrespondenceStatus.PurgedByRecipient,
+                StatusChanged = DateTimeOffset.UtcNow.AddDays(-1)
+            });
+            _mockCorrespondenceRepository.Setup(x => x.GetCorrespondenceById(
+                correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
+                .ReturnsAsync(mockCorrespondence);            
+
+            // Act
+            var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.True(result.IsT0);
+            var response = result.AsT0;
+            Assert.NotNull(response.Statuses);
+            Assert.Single(response.Statuses);
+            Assert.Equal(correspondenceId, response.Statuses[0].CorrespondenceId);
+            Assert.False(response.Statuses[0].Ok);
+
+            _mockDialogportenService.VerifyNoOtherCalls();
         }
 
         [Fact]

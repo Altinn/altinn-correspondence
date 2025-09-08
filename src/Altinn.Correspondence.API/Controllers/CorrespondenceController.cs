@@ -1,23 +1,24 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.API.ValidationAttributes;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.CheckNotification;
-using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Application.ConfirmCorrespondence;
 using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
+using Altinn.Correspondence.Application.MarkCorrespondenceAsRead;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
-using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using Altinn.Correspondence.API.ValidationAttributes;
 
 namespace Altinn.Correspondence.API.Controllers
 {
@@ -335,8 +336,7 @@ namespace Altinn.Correspondence.API.Controllers
             return commandResult.Match(
                 data =>
                 {
-                    var messageBody = data.Content.MessageBody;
-                    return Ok(messageBody);
+                    return Ok(MessageBodyHelpers.ConvertMixedToMarkdown(data.Content!.MessageBody));
                 },
                 Problem
             );
@@ -418,15 +418,14 @@ namespace Altinn.Correspondence.API.Controllers
 
         public async Task<ActionResult> MarkAsRead(
             Guid correspondenceId,
-            [FromServices] UpdateCorrespondenceStatusHandler handler,
+            [FromServices] MarkCorrespondenceAsReadHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Marking Correspondence as read for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
+            var commandResult = await handler.Process(new MarkCorrespondenceAsReadRequest
             {
-                CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Read
+                CorrespondenceId = correspondenceId
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
@@ -457,15 +456,14 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("{correspondenceId}/confirm")]
         public async Task<ActionResult> Confirm(
             Guid correspondenceId,
-            [FromServices] UpdateCorrespondenceStatusHandler handler,
+            [FromServices] ConfirmCorrespondenceHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Marking Correspondence as confirmed for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
+            var commandResult = await handler.Process(new ConfirmCorrespondenceRequest
             {
-                CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Confirmed
+                CorrespondenceId = correspondenceId
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(

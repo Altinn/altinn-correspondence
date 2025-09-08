@@ -126,26 +126,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
         var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, textType, ActivityType.Information, activityTimestamp, tokens);
 
-        if (textType == DialogportenTextType.CorrespondenceConfirmed)
-        {
-            if (correspondence.Statuses.Count(s => s.Status == CorrespondenceStatus.Confirmed) >= 2)
-            {
-                logger.LogInformation("Correspondence with id {correspondenceId} already has a Confirmed status, skipping activity creation on Dialogporten", correspondenceId);
-                return;
-            }
-            // Get the pre-created idempotency key for confirm activity
-            var existingConfirmIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
-                correspondence.Id,
-                null, // No attachment for confirm activity
-                StatusAction.Confirmed,
-                IdempotencyType.DialogportenActivity,
-                cancellationToken);
 
-            if (existingConfirmIdempotencyKey != null)
-            {
-                createDialogActivityRequest.Id = existingConfirmIdempotencyKey.Id.ToString(); // Use the pre-created activity ID
-            }
-        }
 
         // Only set activity ID for download events using the stored idempotency key
         if (textType == DialogportenTextType.DownloadStarted)
@@ -206,12 +187,6 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
 
-        if (correspondence.Statuses.Count(s => s.Status == CorrespondenceStatus.Fetched) >= 2)
-        {
-            logger.LogInformation("Correspondence with id {correspondenceId} already has a Fetched status, skipping activity creation on Dialogporten", correspondenceId);
-            return;
-        }
-
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
@@ -250,6 +225,79 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
+            if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                if (errorContent.Contains("already exists"))
+                {
+                    logger.LogWarning("Activity already exists for correspondence {correspondenceId} and dialog {dialogId}", correspondenceId, dialogId);
+                    return; // Skip if the activity already exists
+                }
+            }
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        }
+    }
+
+    public async Task CreateConfirmedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp)
+    {
+        logger.LogInformation("CreateConfirmedActivity by {actorType} for correspondence {correspondenceId}",
+            Enum.GetName(typeof(DialogportenActorType), actorType),
+            correspondenceId
+        );
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        if (correspondence is null)
+        {
+            logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+
+        if (correspondence.Statuses.Count(s => s.Status == CorrespondenceStatus.Confirmed) >= 2)
+        {
+            logger.LogInformation("Correspondence with id {correspondenceId} already has a Confirmed status, skipping activity creation on Dialogporten", correspondenceId);
+            return;
+        }
+
+        var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        if (dialogId is null)
+        {
+            if (correspondence.IsMigrating)
+            {
+                logger.LogWarning("Skipping creating confirmed activity for {correspondenceId} as it is an Altinn2 correspondence without Dialogporten dialog", correspondenceId);
+                return;
+            }
+            throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
+        }
+
+        // Get the pre-created idempotency key for confirm activity
+        var existingConfirmIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
+            correspondence.Id,
+            null, // No attachment for confirm activity
+            StatusAction.Confirmed,
+            IdempotencyType.DialogportenActivity,
+            cancellationToken);
+
+        if (existingConfirmIdempotencyKey == null)
+        {
+            existingConfirmIdempotencyKey = await _idempotencyKeyRepository.CreateAsync(
+                new IdempotencyKeyEntity
+                {
+                    Id = Uuid.NewDatabaseFriendly(Database.PostgreSql),
+                    CorrespondenceId = correspondence.Id,
+                    AttachmentId = null, // No attachment for confirm activity
+                    StatusAction = StatusAction.Confirmed,
+                    IdempotencyType = IdempotencyType.DialogportenActivity
+                },
+                cancellationToken);
+        }
+
+        var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.CorrespondenceConfirmed, activityTimestamp);
+        createDialogActivityRequest.Id = existingConfirmIdempotencyKey.Id.ToString(); // Use the created activity ID
+
+        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
             if (response.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
@@ -262,6 +310,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         }
     }
+
 
     public async Task PurgeCorrespondenceDialog(Guid correspondenceId)
     {
@@ -376,7 +425,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return dialogRequest;
     }
 
-    private async Task CreateIdempotencyKeysForCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
+    private async Task<(Guid OpenedId, Guid? ConfirmedId)> CreateIdempotencyKeysForCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
     {
         // Create idempotency key for open dialog activity
         var openActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
@@ -391,12 +440,13 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         await _idempotencyKeyRepository.CreateAsync(openIdempotencyKey, cancellationToken);
 
         // Create idempotency key for confirm activity if confirmation is needed
+        Guid? confirmActivityId = null;
         if (correspondence.IsConfirmationNeeded)
         {
-            var confirmActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
+            confirmActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
             var confirmIdempotencyKey = new IdempotencyKeyEntity
             {
-                Id = confirmActivityId,
+                Id = confirmActivityId.Value,
                 CorrespondenceId = correspondence.Id,
                 AttachmentId = null,
                 StatusAction = StatusAction.Confirmed,
@@ -409,7 +459,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var attachmentIdempotencyKeys = new List<IdempotencyKeyEntity>();
         foreach (var attachment in correspondence.Content?.Attachments ?? Enumerable.Empty<CorrespondenceAttachmentEntity>())
         {
-            var downloadActivityId = Uuid.NewDatabaseFriendly(UUIDNext.Database.PostgreSql);
+            var downloadActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
             var downloadIdempotencyKey = new IdempotencyKeyEntity
             {
                 Id = downloadActivityId,
@@ -420,6 +470,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             attachmentIdempotencyKeys.Add(downloadIdempotencyKey);
         }
         await _idempotencyKeyRepository.CreateRangeAsync(attachmentIdempotencyKeys, cancellationToken);
+
+        return (openActivityId, confirmActivityId);
     }
 
 
@@ -441,9 +493,15 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             return correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue ?? string.Empty;
         }
 
-        await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
+        var (OpenedId, ConfirmedId) = await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
 
-        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, true, logger);
+        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(
+            correspondence,
+            generalSettings.Value.CorrespondenceBaseUrl,
+            true,
+            logger,
+            OpenedId.ToString(),
+            ConfirmedId?.ToString());
         string updateType = enableEvents ? "" : "?IsSilentUpdate=true";
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs{updateType}", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -460,19 +518,39 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     }
 
     /// <summary>
-    /// Set system label on Dialogporten dialog to archived to handle sync of archive event from Altinn 2
+    /// Method to add or remove system labels on a dialog in Dialogporten.
+    /// Used for setting the "Archived" system label when a correspondence is archived in Altinn 2, or adding/removing "Bin" labels when a correspondence is soft deleted/restored in Altinn 2.
     /// </summary>
-    /// <param name="correspondenceId">id of the archived correspondence</param>
-    /// <param name="enduserId">id of the user that triggered the archiving</param>
+    /// <param name="correspondenceId">ID of the correspondence</param>
+    /// <param name="enduserId">ID of the user who performed the aciton</param>
+    /// <param name="systemLabelsToAdd">list of labels to add</param>
+    /// <param name="systemLabelsToRemove">list of labels to remove</param>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="Exception"></exception>
-    public async Task SetArchivedSystemLabelOnDialog(Guid correspondenceId, string enduserId)
+    public async Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string enduserId, List<DialogPortenSystemLabel>? systemLabelsToAdd, List<DialogPortenSystemLabel>? systemLabelsToRemove)
     {
         if (string.IsNullOrWhiteSpace(enduserId))
         {
-            logger.LogError("Missing enduserId for correspondence {correspondenceId} when setting archived system label", correspondenceId);
+            logger.LogError("Missing enduserId for correspondence {correspondenceId} when updating system labels", correspondenceId);
             throw new ArgumentException("enduserId cannot be null or whitespace", nameof(enduserId));
+        }
+
+        if((systemLabelsToAdd == null || systemLabelsToAdd.Count == 0) && (systemLabelsToRemove == null || systemLabelsToRemove.Count == 0))
+        {
+            throw new ArgumentException("Either systemLabelsToAdd or systemLabelsToRemove must be provided");
+        }
+        if (systemLabelsToAdd != null && systemLabelsToRemove != null)
+        {
+            var overlap = systemLabelsToAdd
+                .Cast<DialogPortenSystemLabel>()
+                .Intersect(systemLabelsToRemove.Cast<DialogPortenSystemLabel>())
+                .ToList();
+            if (overlap.Count > 0)
+            {
+                throw new ArgumentException(
+                    $"Label(s) present in both add and remove: {string.Join(", ", overlap)}");
+            }
         }
 
         using var cancellationTokenSource = new CancellationTokenSource();
@@ -493,14 +571,29 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             }
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
-
-        var request = SetDialogSystemLabelsMapper.CreateSetDialogSystemLabelsRequestForArchived(new Guid(dialogId), enduserId);
+        if (!Guid.TryParse(dialogId, out var dialogGuid))
+        {
+            logger.LogError("DialogId {dialogId} is not a valid GUID for correspondence {correspondenceId}", dialogId, correspondenceId);
+            throw new ArgumentException( $"DialogId {dialogId} is not a valid GUID for correspondence {correspondenceId}");
+        }
+        var request = SetDialogSystemLabelsMapper
+            .CreateSetDialogSystemLabelRequest(
+                dialogGuid,
+                enduserId,
+                systemLabelsToAdd,
+                systemLabelsToRemove);
+        logger.LogDebug("Updating system labels on dialog {dialogId} for correspondence {correspondenceId}. Adding: {systemLabelsToAdd}, Removing: {systemLabelsToRemove}",
+            dialogId,
+            correspondenceId,
+            systemLabelsToAdd != null ? string.Join(", ", systemLabelsToAdd) : "None",
+            systemLabelsToRemove != null ? string.Join(", ", systemLabelsToRemove) : "None"
+        );
         var url = $"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/endusercontext/systemlabels?enduserId={Uri.EscapeDataString(enduserId)}";
         var response = await _httpClient.PutAsJsonAsync(url, request, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()} when setting archived system label for dialogid {dialogId} for correpondence {correspondenceId}");
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()} when setting system labels for dialogid {dialogId} for correpondence {correspondenceId}");
         }
     }
-        #endregion
+    #endregion
 }
