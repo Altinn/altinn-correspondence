@@ -330,6 +330,11 @@ resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2023
           dataStoreType: 'VaultStore'
           objectType: 'DataStoreInfoBase'
         }
+      }
+      {
+        name: 'DefaultRetention'
+        objectType: 'AzureRetentionRule'
+        isDefault: true
         lifecycles: [
           {
             deleteAfter: {
