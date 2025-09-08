@@ -145,6 +145,11 @@ module postgresql '../modules/postgreSql/create.bicep' = {
     tenantId: tenantId
     prodLikeEnvironment: prodLikeEnvironment
     logAnalyticsWorkspaceId: containerAppEnv.outputs.logAnalyticsWorkspaceId
+    // Backup retention configuration - Weekly Sunday backups with 12 months retention
+    backupRetentionDays: prodLikeEnvironment ? 90 : 35
+    enableLongTermRetention: prodLikeEnvironment
+    enablePointInTimeRestore: true
+    // existingBackupVaultResourceId: '/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.DataProtection/backupVaults/{vault-name}'
   }
 }
 
