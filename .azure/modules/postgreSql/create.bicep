@@ -1,13 +1,7 @@
 param namePrefix string
 param location string
 param environmentKeyVaultName string
-param srcSecretName string
 
-@secure()
-param srcKeyVault object
-
-@secure()
-param administratorLoginPassword string
 @secure()
 param tenantId string
 
@@ -16,37 +10,13 @@ param logAnalyticsWorkspaceId string = ''
 
 
 var databaseName = 'correspondence'
-var databaseUser = 'adminuser'
 var poolSize = prodLikeEnvironment ? 100 : 25
-
-module saveAdmPassword '../keyvault/upsertSecret.bicep' = {
-  name: 'Save_${srcSecretName}'
-  scope: resourceGroup(srcKeyVault.subscriptionId, srcKeyVault.resourceGroupName)
-  params: {
-    destKeyVaultName: srcKeyVault.name
-    secretName: srcSecretName
-    secretValue: administratorLoginPassword
-  }
-}
-
-var migrationConnectionStringName = 'correspondence-migration-connection-string'
-module saveMigrationConnectionString '../keyvault/upsertSecret.bicep' = {
-  name: 'Save_${migrationConnectionStringName}'
-  scope: resourceGroup(srcKeyVault.subscriptionId, srcKeyVault.resourceGroupName)
-  params: {
-    destKeyVaultName: srcKeyVault.name
-    secretName: migrationConnectionStringName
-    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${databaseUser};Password=${administratorLoginPassword};'
-  }
-}
 
 resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   name: '${namePrefix}-dbserver'
   location: location
   properties: {
     version: '16'
-    administratorLogin: databaseUser
-    administratorLoginPassword: administratorLoginPassword
     storage: {
       storageSizeGB: prodLikeEnvironment ? 4096 : 32
       autoGrow: 'Enabled'
@@ -55,7 +25,7 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
     backup: { backupRetentionDays: 35 }
     authConfig: {
       activeDirectoryAuth: 'Enabled'
-      passwordAuth: 'Enabled'
+      passwordAuth: 'Disabled'
       tenantId: tenantId
     }
   }
@@ -268,6 +238,15 @@ module adoConnectionString '../keyvault/upsertSecret.bicep' = {
     secretName: 'correspondence-ado-connection-string'
     secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${namePrefix}-app-identity;Ssl Mode=Require;Trust Server Certificate=True;Maximum Pool Size=${poolSize};options=-c role=azure_pg_admin;'
   }
+}
+
+module saveMigrationConnectionString '../keyvault/upsertSecret.bicep' = {	
+  name: 'migrationConnectiionString'	
+  params: {	
+    destKeyVaultName: environmentKeyVaultName
+    secretName: 'correspondence-migration-connection-string'	
+    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${namePrefix}-app-identity;Ssl Mode=Require;Trust Server Certificate=True;Maximum Pool Size=5;options=-c role=azure_pg_admin;;'	
+  }	
 }
 
 // Diagnostic settings for Query Store and monitoring

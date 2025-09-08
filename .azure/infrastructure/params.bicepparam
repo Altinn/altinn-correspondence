@@ -5,7 +5,6 @@ param location = 'norwayeast'
 param environment = readEnvironmentVariable('ENVIRONMENT')
 
 // secrets
-param correspondencePgAdminPassword = readEnvironmentVariable('DB_PWD')
 param tenantId = readEnvironmentVariable('TENANT_ID')
 param test_client_id = readEnvironmentVariable('TEST_CLIENT_ID')
 param sourceKeyVaultName = readEnvironmentVariable('KEY_VAULT_NAME')
@@ -19,3 +18,5 @@ param idportenClientId = readEnvironmentVariable('IDPORTEN_CLIENT_ID')
 param idportenClientSecret = readEnvironmentVariable('IDPORTEN_CLIENT_SECRET')
 param maskinporten_token_exchange_environment = readEnvironmentVariable('MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT')
 param resourceWhiteList = readEnvironmentVariable('RESOURCE_WHITELIST')
+param maintenanceAdGroupId = readEnvironmentVariable('MAINTENANCE_AD_GROUP_ID')
+param maintenanceAdGroupName = readEnvironmentVariable('MAINTENANCE_AD_GROUP_NAME')

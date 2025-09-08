@@ -28,7 +28,7 @@ module addKeyvaultRead '../../modules/keyvault/addReaderRoles.bicep' = {
     principalIds: [userAssignedIdentity.properties.principalId]
   }
 }
-module databaseAccess '../../modules/postgreSql/AddAdministrationAccess.bicep' = {
+module databaseAccess '../../modules/postgreSql/addAdminAccess.bicep' = {
   name: 'databaseAccess'
   dependsOn: [
     addKeyvaultRead // Timing issue
@@ -38,6 +38,7 @@ module databaseAccess '../../modules/postgreSql/AddAdministrationAccess.bicep' =
     principalId: userAssignedIdentity.properties.principalId
     appName: userAssignedIdentity.name
     namePrefix: namePrefix
+    principalType: 'ServicePrincipal'
   }
 }
 var secrets = [
