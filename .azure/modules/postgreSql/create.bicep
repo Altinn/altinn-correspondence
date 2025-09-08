@@ -310,9 +310,9 @@ resource backupVault 'Microsoft.DataProtection/backupVaults@2024-04-01' = if (en
 // Reference to existing backup vault
 var backupVaultId = existingBackupVaultResourceId != '' ? existingBackupVaultResourceId : backupVault.id
 
-// Backup policy for PostgreSQL - Weekly Saturday backups with 12 months retention
+// Backup policy for PostgreSQL - Weekly Sunday backups with 12 months retention
 resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2024-04-01' = if (enableLongTermRetention) {
-  name: '${namePrefix}-postgres-weekly-saturday-backup-policy-12m'
+  name: '${namePrefix}-postgres-weekly-sunday-backup-policy-12m'
   scope: resourceGroup(backupVaultId)
   parent: resource(backupVaultId)
   properties: {
@@ -338,7 +338,7 @@ resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2024
           objectType: 'ScheduleBasedTriggerContext'
           schedule: {
             repeatingTimeIntervals: backupSchedule == 'weekly' 
-              ? ['R/2024-01-06T00:00:00+00:00/P1W']  // Weekly on Saturday at midnight UTC
+              ? ['R/2024-01-07T01:00:00+00:00/P1W']  // Weekly on Sunday at 2 AM UTC (3 AM Norwegian time)
               : ['R/2024-01-01T02:00:00+00:00/P1D']  // Daily at 2 AM UTC
             timeZone: backupSchedule == 'weekly' ? 'W. Europe Standard Time' : 'UTC'
           }
