@@ -1,4 +1,4 @@
-namespace Altinn.Correspondence.Application.GenerateStatisticsReport;
+namespace Altinn.Correspondence.Application.GenerateReport;
 
 /// <summary>
 /// Request parameters for generating daily summary report

@@ -25,7 +25,7 @@ using Altinn.Notifications.Core.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Altinn.Correspondence.Application.CleanupOrphanedDialogs;
 using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
-using Altinn.Correspondence.Application.GenerateStatisticsReport;
+using Altinn.Correspondence.Application.GenerateReport;
 
 namespace Altinn.Correspondence.Application;
 

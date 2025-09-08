@@ -1,4 +1,4 @@
-namespace Altinn.Correspondence.Application.GenerateStatisticsReport;
+namespace Altinn.Correspondence.Application.GenerateReport;
 
 /// <summary>
 /// Parquet-friendly model for daily summary data.

@@ -1,6 +1,6 @@
 using Altinn.Correspondence.Core.Models.Enums;
 
-namespace Altinn.Correspondence.Application.GenerateStatisticsReport;
+namespace Altinn.Correspondence.Application.GenerateReport;
 
 /// <summary>
 /// Aggregated daily summary data for cost allocation and reporting.

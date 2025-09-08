@@ -12,7 +12,7 @@ using Parquet.Serialization;
 using System.Security.Claims;
 using System.Security.Cryptography;
 
-namespace Altinn.Correspondence.Application.GenerateStatisticsReport;
+namespace Altinn.Correspondence.Application.GenerateReport;
 
 public class GenerateDailySummaryReportHandler(
     ICorrespondenceRepository correspondenceRepository,

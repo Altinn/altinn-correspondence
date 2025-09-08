@@ -1,5 +1,5 @@
 using Altinn.Correspondence.Application;
-using Altinn.Correspondence.Application.GenerateStatisticsReport;
+using Altinn.Correspondence.Application.GenerateReport;
 using Microsoft.AspNetCore.Mvc;
 using Parquet.Serialization;
 
