@@ -56,7 +56,7 @@ public class AltinnStorageService : IAltinnStorageService
         {
             var statusCode = response.StatusCode;
             var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new Exception($"Error when syncing Correspondence Event {eventType} for Altinn2 CorrespondenceId {altinn2CorrespondenceId} to SBL Bridge through Storage. Activating party: {partyId}. Event UTC timestamp: {utcEventTimeStamp}. Status code: {statusCode}, error: {errorContent}");
+            throw new Exception($"Error when syncing Correspondence Event {eventType} for Altinn2 CorrespondenceId {altinn2CorrespondenceId} to SBL Bridge through Storage. Activating party: {partyId}. Event UTC timestamp: {utcEventTimestamp}. Status code: {statusCode}, error: {errorContent}");
         }
 
         return true;
