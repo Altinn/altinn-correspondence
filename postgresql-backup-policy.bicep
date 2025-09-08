@@ -1,42 +1,66 @@
 @description('Name of the backup policy')
-param policyName string = 'postgresql-weekly-sunday-backup-policy-12m'
+param policyName string = 'my-postgresql-backup-policy'
 
-@description('ID of the backup vault')
+@description('Full resource ID of the backup vault')
 param vaultId string
 
-@description('Backup repeating time intervals')
-param backupRepeatingTimeIntervals array = [
-  'R/2024-01-07T01:00:00+00:00/P1W'
-]
+@description('Backup schedule (ISO 8601 recurring format)')
+param backupSchedule string = 'R/2024-01-07T01:00:00+00:00/P1W'
 
 @description('Time zone for the backup policy')
 param timeZone string = 'W. Europe Standard Time'
 
-@description('Default retention duration')
-param defaultRetentionDuration string = 'P12M'
+@description('Retention duration (ISO 8601 duration format)')
+param retentionDuration string = 'P12M'
 
-@description('Weekly retention duration')
-param weeklyRetentionDuration string = 'P12M'
+// Extract vault name from full resource ID
+var vaultName = last(split(vaultId, '/'))
 
-// Extract scope parts and bind the existing vault to its real scope
-// Expected format: /subscriptions/{subscriptionId}/resourceGroups/{rgName}/providers/Microsoft.DataProtection/backupVaults/{vaultName}
-var vaultIdParts = split(vaultId, '/')
-var vaultSubscriptionId = vaultIdParts[2]
-var vaultRgName = vaultIdParts[4]
-var vaultName = last(vaultIdParts)
+// Reference to the vault resource
+resource vaultResource 'Microsoft.DataProtection/backupVaults@2023-05-01' existing = {
+  name: vaultName
+}
 
-// Note: vaultId should be in format: /subscriptions/{subscriptionId}/resourceGroups/{rgName}/providers/Microsoft.DataProtection/backupVaults/{vaultName}
-
-// Deploy backup policy to the vault's scope
-module backupPolicyModule 'backup-policy-module.bicep' = {
-  name: 'backup-policy-deployment'
-  scope: resourceGroup(vaultSubscriptionId, vaultRgName)
-  params: {
-    policyName: policyName
-    vaultName: vaultName
-    backupRepeatingTimeIntervals: backupRepeatingTimeIntervals
-    timeZone: timeZone
-    defaultRetentionDuration: defaultRetentionDuration
-    weeklyRetentionDuration: weeklyRetentionDuration
+// Create backup policy
+resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2023-05-01' = {
+  name: policyName
+  parent: vaultResource
+  properties: {
+    datasourceTypes: [
+      'Microsoft.DBforPostgreSQL/flexibleServers/databases'
+    ]
+    policyRules: [
+      {
+        name: 'Default'
+        objectType: 'AzureBackupRule'
+        backupParameters: {
+          objectType: 'AzureBackupParams'
+          backupType: 'Full'
+        }
+        trigger: {
+          objectType: 'ScheduleBasedTriggerContext'
+          schedule: {
+            repeatingTimeIntervals: [backupSchedule]
+            timeZone: timeZone
+          }
+        }
+        lifecycles: [
+          {
+            deleteAfter: {
+              duration: retentionDuration
+              objectType: 'AbsoluteDeleteOption'
+            }
+            sourceDataStore: {
+              dataStoreType: 'VaultStore'
+              objectType: 'DataStoreInfoBase'
+            }
+            targetDataStore: {
+              dataStoreType: 'VaultStore'
+              objectType: 'DataStoreInfoBase'
+            }
+          }
+        ]
+      }
+    ]
   }
 }
