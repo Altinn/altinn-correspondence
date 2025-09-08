@@ -411,22 +411,15 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         var response = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/content");
         Assert.True(response.IsSuccessStatusCode);
         var details = await GetCorrespondenceDetailsAsync(correspondenceId);
-        int verify = 1;
-        while (verify > 0 && verify < 4)
-        {
-            try
-            {
-                _factory.altinnStorageServiceMock.Verify(c => c.SyncCorrespondenceEventToSblBridge(migrateCorrespondenceExt.Altinn2CorrespondenceId, It.IsAny<int>(), It.IsAny<DateTimeOffset>(), SyncEventType.Read, It.IsAny<CancellationToken>()));
-                verify = -1;
-            }
-            catch
-            {
-                verify++;
-                Thread.Sleep(100);
-            }
-        }
-
-        Assert.True(verify == -1, "Unable to assert that Read SyncCorrespondenceEvent was sent to SblBridge");
+        await VerifyEventuallyAsync(() =>
+            _factory.altinnStorageServiceMock.Verify(c => c.SyncCorrespondenceEventToSblBridge(
+                migrateCorrespondenceExt.Altinn2CorrespondenceId,
+                It.IsAny<int>(),
+                It.IsAny<DateTimeOffset>(),
+                SyncEventType.Read,
+                It.IsAny<CancellationToken>())),
+            TimeSpan.FromSeconds(5),
+            TimeSpan.FromMilliseconds(100));
     }
 
     [Fact]
@@ -450,22 +443,15 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Assert
         Assert.True(confirmResponse.IsSuccessStatusCode);
         var details = await GetCorrespondenceDetailsAsync(correspondenceId);
-        int verify = 1;
-        while (verify > 0 && verify < 4)
-        {
-            try
-            {
-                _factory.altinnStorageServiceMock.Verify(c => c.SyncCorrespondenceEventToSblBridge(migrateCorrespondenceExt.Altinn2CorrespondenceId, It.IsAny<int>(), It.IsAny<DateTimeOffset>(), SyncEventType.Confirm, It.IsAny<CancellationToken>()));
-                verify = -1;
-            }
-            catch
-            {
-                verify++;
-                Thread.Sleep(500);
-            }
-        }
-
-        Assert.True(verify == -1, "Unable to assert that Confirm SyncCorrespondenceEvent was sent to SblBridge");
+        await VerifyEventuallyAsync(() =>
+            _factory.altinnStorageServiceMock.Verify(c => c.SyncCorrespondenceEventToSblBridge(
+                migrateCorrespondenceExt.Altinn2CorrespondenceId,
+                It.IsAny<int>(),
+                It.IsAny<DateTimeOffset>(),
+                SyncEventType.Confirm,
+                It.IsAny<CancellationToken>())),
+            TimeSpan.FromSeconds(5),
+            TimeSpan.FromMilliseconds(100));
     }
 
     [Fact]
@@ -488,22 +474,27 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceDetailsResponse.StatusCode);
-        int verify = 1;
-        while (verify > 0 && verify < 4)
-        {
-            try
-            {
-                _factory.altinnStorageServiceMock.Verify(c => c.SyncCorrespondenceEventToSblBridge(migrateCorrespondenceExt.Altinn2CorrespondenceId, It.IsAny<int>(), It.IsAny<DateTimeOffset>(), SyncEventType.Delete, It.IsAny<CancellationToken>()));
-                verify = -1;
-            }
-            catch
-            {
-                verify++;
-                Thread.Sleep(100);
-            }
-        }
+        await VerifyEventuallyAsync(() =>
+            _factory.altinnStorageServiceMock.Verify(c => c.SyncCorrespondenceEventToSblBridge(
+                migrateCorrespondenceExt.Altinn2CorrespondenceId,
+                It.IsAny<int>(),
+                It.IsAny<DateTimeOffset>(),
+                SyncEventType.Delete,
+                It.IsAny<CancellationToken>())),
+            TimeSpan.FromSeconds(5),
+            TimeSpan.FromMilliseconds(100));
+    }
 
-        Assert.True(verify == -1, "Unable to assert that Delete SyncCorrespondenceEvent was sent to SblBridge");
+    private static async Task VerifyEventuallyAsync(Action verify, TimeSpan timeout, TimeSpan pollInterval)
+    {
+        var stop = DateTime.UtcNow + timeout;
+        Exception? last = null;
+        while (DateTime.UtcNow < stop)
+        {
+            try { verify(); return; } catch (Exception ex) { last = ex; }
+            await Task.Delay(pollInterval);
+        }
+        throw new Xunit.Sdk.XunitException($"Verification did not pass within {timeout}. Last error: {last}");
     }
 
     private async Task<Guid> MigrateCorrespondence(MigrateCorrespondenceExt migrateCorrespondenceExt)
