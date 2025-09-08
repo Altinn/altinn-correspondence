@@ -327,6 +327,10 @@ resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2023
             timeZone: 'W. Europe Standard Time'
           }
         }
+        dataStore: {
+          dataStoreType: 'VaultStore'
+          objectType: 'DataStoreInfoBase'
+        }
         lifecycles: [
           {
             deleteAfter: {
