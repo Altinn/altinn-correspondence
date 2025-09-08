@@ -1,10 +1,12 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondences;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Migration.Base;
+using Moq;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -409,7 +411,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         var response = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/content");
         Assert.True(response.IsSuccessStatusCode);
         var details = await GetCorrespondenceDetailsAsync(correspondenceId);
-        Assert.Contains(details.StatusHistory, s => s.Status == CorrespondenceStatusExt.Read);
+        _factory.altinnStorageServiceMock.Verify(c => c.SyncCorrespondenceEventToSblBridge(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<DateTimeOffset>(), SyncEventType.Read, It.IsAny<CancellationToken>()));
     }
 
     [Fact]
@@ -433,7 +435,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Assert
         Assert.True(confirmResponse.IsSuccessStatusCode);
         var details = await GetCorrespondenceDetailsAsync(correspondenceId);
-        Assert.Contains(details.StatusHistory, s => s.Status == CorrespondenceStatusExt.Confirmed);
+        _factory.altinnStorageServiceMock.Verify(c => c.SyncCorrespondenceEventToSblBridge(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<DateTimeOffset>(), SyncEventType.Confirm, It.IsAny<CancellationToken>()));
     }
 
     [Fact]
@@ -456,6 +458,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceDetailsResponse.StatusCode);
+        _factory.altinnStorageServiceMock.Verify(c => c.SyncCorrespondenceEventToSblBridge(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<DateTimeOffset>(), SyncEventType.Delete, It.IsAny<CancellationToken>()));
     }
 
     private async Task<Guid> MigrateCorrespondence(MigrateCorrespondenceExt migrateCorrespondenceExt)
