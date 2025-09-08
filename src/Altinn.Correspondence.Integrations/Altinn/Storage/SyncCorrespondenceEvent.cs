@@ -23,7 +23,7 @@ namespace Altinn.Correspondence.Integrations.Altinn.Storage
         public DateTimeOffset EventTimeStamp { get; set; }
 
         /// <summary>
-        /// Gets or sets the Correspondence Event Type. (Expects Read, Confirm, or Delete).
+        /// Gets or sets the Correspondence Event Type. (Expects read, confirm, or delete).
         /// </summary>
         [JsonPropertyName("eventType")]
         public string? EventType { get; set; }

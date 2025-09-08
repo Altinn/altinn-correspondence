@@ -119,16 +119,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
                 Console.WriteLine($"Error stopping Hangfire server: {ex.Message}");
             }
 
-            NpgsqlDataSource? dataSource = null; 
-            try
-            {
-                dataSource = Services.GetRequiredService<NpgsqlDataSource>();
-            }
-            catch(Exception ex)
-            {
-                Console.WriteLine($"Error getting Services: {ex}");
-            }
-
+            NpgsqlDataSource? dataSource = Services.GetRequiredService<NpgsqlDataSource>();
             dataSource?.Dispose();
             try
             {
