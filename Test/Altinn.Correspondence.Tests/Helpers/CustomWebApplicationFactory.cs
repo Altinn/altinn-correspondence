@@ -32,7 +32,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
     public const string ReservedSsn = "08900499559";
     public Action<IServiceCollection>? CustomServices;
     private readonly string _hangfireSchemaName;
-    public Mock<IAltinnStorageService> altinnStorageServiceMock;
+    public Mock<IAltinnStorageService> altinnStorageServiceMock = new();
 
     public CustomWebApplicationFactory()
     {
