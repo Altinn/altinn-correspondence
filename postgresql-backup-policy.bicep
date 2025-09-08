@@ -79,7 +79,9 @@ resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2023
         ]
         criteria: {
           objectType: 'ScheduleBasedBackupCriteria'
-          absoluteCriteria: 'FirstOfWeek'
+          absoluteCriteria: [
+            'FirstOfWeek'
+          ]
         }
       }
     ]
