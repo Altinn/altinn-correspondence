@@ -86,7 +86,17 @@ resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2023
   }
 }
 
-// Reference to the vault resource (you'll need to define this or pass it as a parameter)
+// Extract scope parts and bind the existing vault to its real scope
+var vaultSubscriptionId = split(vaultId, '/')[2]
+var vaultRgName         = split(vaultId, '/')[4]
+var vaultName           = last(split(vaultId, '/'))
+
+resource vaultRg 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
+  scope: subscription(vaultSubscriptionId)
+  name: vaultRgName
+}
+
 resource vaultResource 'Microsoft.DataProtection/backupVaults@2023-05-01' existing = {
-  name: split(vaultId, '/')[8] // Extract vault name from full resource ID
+  scope: vaultRg
+  name: vaultName
 }
