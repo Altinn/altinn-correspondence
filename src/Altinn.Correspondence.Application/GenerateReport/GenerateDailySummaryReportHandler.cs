@@ -32,7 +32,7 @@ public class GenerateDailySummaryReportHandler(
             logger.LogInformation("Starting daily summary report generation with Altinn2Included={altinn2Included}", request.Altinn2Included);
 
             // Get correspondences for statistics with filtering
-            var correspondences = await correspondenceRepository.GetCorrespondencesForStatistics(request.Altinn2Included, cancellationToken);
+            var correspondences = await correspondenceRepository.GetCorrespondencesForReport(request.Altinn2Included, cancellationToken);
             logger.LogInformation("Retrieved {count} correspondences for daily summary report", correspondences.Count);
 
             if (correspondences.Count == 0)
@@ -265,7 +265,7 @@ public class GenerateDailySummaryReportHandler(
         try
         {
             // Get correspondences data
-            var correspondences = await correspondenceRepository.GetCorrespondencesForStatistics(request.Altinn2Included, cancellationToken);
+            var correspondences = await correspondenceRepository.GetCorrespondencesForReport(request.Altinn2Included, cancellationToken);
             
             if (!correspondences.Any())
             {

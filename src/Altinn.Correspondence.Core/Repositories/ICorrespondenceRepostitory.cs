@@ -62,7 +62,6 @@ namespace Altinn.Correspondence.Core.Repositories
             bool filterMigrated,
             CancellationToken cancellationToken);
         
-        Task<List<CorrespondenceEntity>> GetAllCorrespondencesForStatistics(CancellationToken cancellationToken);
-        Task<List<CorrespondenceEntity>> GetCorrespondencesForStatistics(bool includeAltinn2, CancellationToken cancellationToken);
+        Task<List<CorrespondenceEntity>> GetCorrespondencesForReport(bool includeAltinn2, CancellationToken cancellationToken);
     }
 }
