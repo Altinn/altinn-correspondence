@@ -89,7 +89,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             services.OverrideAltinnAuthorization();
             services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
 
-            altinnStorageServiceMock = new Mock<IAltinnStorageService>();
             altinnStorageServiceMock.Setup(x => x.SyncCorrespondenceEventToSblBridge(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<DateTimeOffset>(), SyncEventType.Read, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true)
                 .Verifiable();
