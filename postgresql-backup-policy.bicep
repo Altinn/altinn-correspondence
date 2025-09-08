@@ -95,9 +95,13 @@ var vaultSubscriptionId = vaultIdParts[2]
 var vaultRgName = vaultIdParts[4]
 var vaultName = last(vaultIdParts)
 
-// Validate vaultId format
-@description('Validate that vaultId has the expected format')
-param validateVaultId bool = length(vaultIdParts) >= 9 && vaultIdParts[0] == '' && vaultIdParts[1] == 'subscriptions' && vaultIdParts[3] == 'resourceGroups' && vaultIdParts[5] == 'providers' && vaultIdParts[6] == 'Microsoft.DataProtection' && vaultIdParts[7] == 'backupVaults'
+assert length(vaultIdParts) >= 9
+  && vaultIdParts[0] == ''
+  && vaultIdParts[1] == 'subscriptions'
+  && vaultIdParts[3] == 'resourceGroups'
+  && vaultIdParts[5] == 'providers'
+  && vaultIdParts[6] == 'Microsoft.DataProtection'
+  && vaultIdParts[7] == 'backupVaults' : 'vaultId must be in the format: /subscriptions/{subscriptionId}/resourceGroups/{rgName}/providers/Microsoft.DataProtection/backupVaults/{vaultName}'
 
 resource vaultRg 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
   scope: subscription(vaultSubscriptionId)
