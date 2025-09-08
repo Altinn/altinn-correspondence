@@ -88,18 +88,18 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             services.OverrideAuthorization();
             services.OverrideAltinnAuthorization();
             services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
-
-            altinnStorageServiceMock.Setup(x => x.AddPartyToSblBridge(It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(true);
             altinnStorageServiceMock.Setup(x => x.SyncCorrespondenceEventToSblBridge(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<DateTimeOffset>(), SyncEventType.Read, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(true)
+                .Returns(Task.FromResult<bool>(true))
                 .Verifiable();
             altinnStorageServiceMock.Setup(x => x.SyncCorrespondenceEventToSblBridge(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<DateTimeOffset>(), SyncEventType.Confirm, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(true)
+                .Returns(Task.FromResult<bool>(true))
                 .Verifiable();
             altinnStorageServiceMock.Setup(x => x.SyncCorrespondenceEventToSblBridge(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<DateTimeOffset>(), SyncEventType.Delete, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(true)
+                .Returns(Task.FromResult<bool>(true))
                 .Verifiable();
+            altinnStorageServiceMock.Setup(x => x.AddPartyToSblBridge(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<bool>(true));
+
             services.AddScoped(_ => altinnStorageServiceMock.Object);
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
             // services.AddScoped<IAltinnStorageService, AltinnStorageDevService>();
