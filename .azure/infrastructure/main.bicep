@@ -145,6 +145,12 @@ module postgresql '../modules/postgreSql/create.bicep' = {
     tenantId: tenantId
     prodLikeEnvironment: prodLikeEnvironment
     logAnalyticsWorkspaceId: containerAppEnv.outputs.logAnalyticsWorkspaceId
+    // Backup retention configuration - Weekly Saturday backups with 12 months retention
+    backupRetentionDays: prodLikeEnvironment ? 90 : 35
+    enableLongTermRetention: prodLikeEnvironment
+    longTermRetentionDays: 365 // 12 months (P12M) for all environments
+    enablePointInTimeRestore: true
+    backupSchedule: 'weekly' // Weekly Saturday backups
   }
 }
 

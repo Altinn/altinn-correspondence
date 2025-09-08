@@ -17,8 +17,9 @@ param logAnalyticsWorkspaceId string = ''
 // Backup retention parameters
 param backupRetentionDays int = 35
 param enableLongTermRetention bool = false
-param longTermRetentionDays int = 2555 // 7 years
+param longTermRetentionDays int = 365 // 12 months (P12M)
 param enablePointInTimeRestore bool = true
+param backupSchedule string = 'weekly' // 'daily' or 'weekly'
 
 
 var databaseName = 'correspondence'
@@ -303,9 +304,9 @@ resource backupVault 'Microsoft.DataProtection/backupVaults@2024-04-01' = if (en
   }
 }
 
-// Backup policy for PostgreSQL
+// Backup policy for PostgreSQL - Weekly Saturday backups with 12 months retention
 resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2024-04-01' = if (enableLongTermRetention) {
-  name: '${namePrefix}-postgres-backup-policy'
+  name: '${namePrefix}-postgres-weekly-saturday-backup-policy-12m'
   parent: backupVault
   properties: {
     datasourceTypes: ['Microsoft.DBforPostgreSQL/flexibleServers/databases']
@@ -329,8 +330,10 @@ resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2024
         trigger: {
           objectType: 'ScheduleBasedTriggerContext'
           schedule: {
-            repeatingTimeIntervals: ['R/2024-01-01T02:00:00+00:00/P1D']
-            timeZone: 'UTC'
+            repeatingTimeIntervals: backupSchedule == 'weekly' 
+              ? ['R/2024-01-06T00:00:00+00:00/P1W']  // Weekly on Saturday at midnight UTC
+              : ['R/2024-01-01T02:00:00+00:00/P1D']  // Daily at 2 AM UTC
+            timeZone: backupSchedule == 'weekly' ? 'W. Europe Standard Time' : 'UTC'
           }
         }
         lifecycle: [
