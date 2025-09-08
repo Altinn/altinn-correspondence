@@ -27,7 +27,7 @@ public static class CorrespondenceErrors
     public static Error MissingContent = new Error(1019, "The Content field must be provided for the correspondence", HttpStatusCode.BadRequest);
     public static Error MessageTitleEmpty = new Error(1020, "Message title cannot be empty", HttpStatusCode.BadRequest);
     public static Error MessageBodyEmpty = new Error(1021, "Message body cannot be empty", HttpStatusCode.BadRequest);
-    public static Error MessageBodyTooLong = new Error(1022, "Message body cannot exceed 1023 characters", HttpStatusCode.BadRequest);
+    public static Error MessageBodyTooLong = new Error(1022, "Message body cannot exceed 10000 characters", HttpStatusCode.BadRequest);
     public static Error InvalidLanguage = new Error(1023, "Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)", HttpStatusCode.BadRequest);
     public static Error ReadBeforeFetched = new Error(1024, "Correspondence must be fetched before it can be read", HttpStatusCode.BadRequest);
     public static Error ConfirmBeforeFetched = new Error(1025, "Correspondence must be fetched before it can be confirmed", HttpStatusCode.BadRequest);
