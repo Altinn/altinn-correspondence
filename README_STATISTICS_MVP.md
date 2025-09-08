@@ -1,15 +1,29 @@
-# Detailed Correspondence Statistics Report
+# Daily Summary Statistics Report
 
-This implementation generates comprehensive statistics reports with detailed correspondence data per service owner in parquet format.
+This implementation generates daily summary reports with aggregated correspondence data per service owner per day in parquet format.
 
 ## Features Implemented
 
-✅ **Detailed Statistics Report Handler** - Generates comprehensive correspondence data grouped by service owner  
+✅ **Daily Summary Report Handler** - Generates aggregated daily correspondence data grouped by service owner  
 ✅ **Parquet File Generation** - Uses Parquet.Net to create structured data files  
 ✅ **API Endpoints** - Manual trigger endpoints for testing  
 ✅ **Direct ServiceOwnerId Usage** - Uses the new ServiceOwnerId field from database entities  
-✅ **Local File Storage** - Stores reports in `./reports/` directory  
-✅ **Comprehensive Data** - Includes all correspondence details, not just counts  
+✅ **Azure Blob Storage** - Stores reports in Azure Blob Storage "reports" container  
+✅ **Aggregated Data** - Includes daily aggregated metrics and counts per service owner  
+✅ **Maskinporten Authentication** - Secure endpoints with maintenance scope requirement
+
+## Authentication Requirements
+
+All statistics endpoints require **Maskinporten integration authentication** with the following requirements:
+
+- **Authentication Type**: Maskinporten integration token
+- **Required Scope**: `altinn:correspondence.maintenance` (exact scope required)
+- **Authorization Header**: `Bearer <token>`
+- **Response Codes**:
+  - `200 OK` - Success
+  - `401 Unauthorized` - Missing or invalid authentication
+  - `403 Forbidden` - Insufficient permissions (missing `altinn:correspondence.maintenance` scope)
+  - `500 Internal Server Error` - Server error
 
 ## How to Test
 
@@ -35,7 +49,7 @@ Generate a daily summary report with aggregated data per service owner per day. 
 
 ```bash
 POST /correspondence/api/v1/statistics/generate-daily-summary
-# No authentication required
+# Requires Maskinporten integration authentication with scope: altinn:correspondence.maintenance
 # Optional request body to filter Altinn versions
 ```
 
@@ -70,7 +84,7 @@ Generate a daily summary report with aggregated data per service owner per day a
 
 ```bash
 POST /correspondence/api/v1/statistics/generate-and-download-daily-summary
-# No authentication required
+# Requires Maskinporten integration authentication with scope: altinn:correspondence.maintenance
 # Optional request body: {"altinn2Included": true}
 ```
 
@@ -120,24 +134,6 @@ Date       | Year | Month | Day | ServiceOwnerId | ServiceOwnerName | MessageSen
 2025-01-16 | 2025 | 1     | 16  | 987654321     | Test Org         | sender1      | resource1  | Digitaliseringsdirektoratet | Unknown       | Altinn3       | 8           | 8192                | 0
 ```
 
-### Detailed Correspondence Report Structure
-
-The detailed correspondence parquet files contain information for each individual correspondence with the following fields:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `CorrespondenceId` | string | Unique identifier for the correspondence |
-| `ServiceOwnerId` | string | Service Owner ID from the database ServiceOwnerId field |
-| `ServiceOwnerName` | string | Service owner name (looked up from ServiceOwner table) |
-| `ResourceId` | string | Resource ID for the correspondence |
-| `Sender` | string | Correspondence sender (URN format) |
-| `Recipient` | string | Correspondence recipient |
-| `SendersReference` | string | Sender's reference for the correspondence |
-| `Created` | DateTimeOffset | When the correspondence was created |
-| `RequestedPublishTime` | DateTimeOffset | When the correspondence was requested to be published |
-| `ReportDate` | DateTimeOffset | When this report was generated |
-| `Environment` | string | Environment name (Development, Test, Production) |
-| `ServiceOwnerMigrationStatus` | int | Migration status (0: pending, 1: completed with owner, 2: completed without) |
 
 ## Service Owner ID Usage
 
@@ -150,23 +146,30 @@ The system now uses the direct `ServiceOwnerId` field from the database entities
 
 ## File Storage
 
-- **Location**: `./reports/` directory (relative to application root)
-- **Naming**: `correspondence_detailed_report_{timestamp}_{environment}.parquet`
+- **Location**: Azure Blob Storage in the "reports" container
+- **Naming**: `{TIMESTAMP}_daily_summary_report_{VERSION}_{ENVIRONMENT}.parquet`
 - **Format**: Apache Parquet for efficient data storage and analysis
+- **Access**: Files are accessible via the generated blob URLs in the API responses
 
 ## Security
 
-- **No authentication required** - endpoints are open for internal reporting use
-- Files are stored locally (will be moved to blob storage in future iterations)
+- **Maskinporten Integration Authentication Required** - endpoints require proper authentication
+- **Scope Required**: `altinn:correspondence.maintenance` (exact scope) - only users with this specific scope can access
+- **Response Codes**:
+  - `200 OK` - Success
+  - `401 Unauthorized` - Missing or invalid authentication
+  - `403 Forbidden` - Insufficient permissions (missing maintenance scope)
+  - `500 Internal Server Error` - Server error
+- Files are stored in Azure Blob Storage in the "reports" container
 - Download endpoint validates filenames to prevent directory traversal attacks
-- **Note**: These endpoints should not be exposed in production without proper security
+- **Production Ready**: Secure for production use with proper authentication
 
 ## Next Steps for Full Implementation
 
-1. **Automated Scheduling** - Implement monthly scheduled background jobs using Hangfire
-2. **Blob Storage** - Move from local storage to Azure Blob Storage
-3. **Additional Metrics** - Add attachment storage, database storage, and resource-level statistics
-4. **Environment Configuration** - Separate test and production data processing
+1. **Automated Scheduling** - Implement daily scheduled background jobs using Hangfire
+2. ✅ **Blob Storage** - Azure Blob Storage integration completed
+3. ✅ **Additional Metrics** - Attachment storage, database storage, and resource-level statistics implemented
+4. ✅ **Environment Configuration** - Environment-specific processing implemented
 5. **Historical Tracking** - Implement accumulated yearly overviews with monthly updates
 6. **Notification System** - Alert when reports are generated or fail
 
@@ -174,9 +177,10 @@ The system now uses the direct `ServiceOwnerId` field from the database entities
 
 1. Ensure you have some test correspondence data in your database
 2. Run the application locally
-3. Use the API endpoints above with appropriate authentication
-4. Check the `./reports/` directory for generated files
-5. Use a parquet file viewer to inspect the data (e.g., Python pandas, Apache Arrow, etc.)
+3. Obtain a Maskinporten integration token with the `altinn:correspondence.maintenance` scope
+4. Use the API endpoints above with the token in the Authorization header: `Bearer <token>`
+5. Check the Azure Blob Storage "reports" container for generated files
+6. Use a parquet file viewer to inspect the data (e.g., Python pandas, Apache Arrow, etc.)
 
 ## Example Using Python to Read Generated File
 
@@ -184,23 +188,31 @@ The system now uses the direct `ServiceOwnerId` field from the database entities
 import pandas as pd
 
 # Read the parquet file
-df = pd.read_parquet('correspondence_detailed_report_20250127_143022_Development.parquet')
+df = pd.read_parquet('20250127_143022_daily_summary_report_A2A3_Development.parquet')
 
 # Display the data
-print("Sample of correspondence data:")
+print("Sample of daily summary data:")
 print(df.head())
 
 # Basic statistics
-print(f"\nTotal correspondences in report: {len(df)}")
+print(f"\nTotal daily summary records in report: {len(df)}")
 print(f"Unique service owners: {df['ServiceOwnerId'].nunique()}")
-print(f"Date range: {df['Created'].min()} to {df['Created'].max()}")
+print(f"Date range: {df['Date'].min()} to {df['Date'].max()}")
+print(f"Total messages across all service owners: {df['MessageCount'].sum()}")
 
 # Group by service owner
 service_owner_summary = df.groupby(['ServiceOwnerId', 'ServiceOwnerName']).agg({
-    'CorrespondenceId': 'count',
-    'ResourceId': 'nunique'
-}).rename(columns={'CorrespondenceId': 'TotalCorrespondences', 'ResourceId': 'UniqueResources'})
+    'MessageCount': 'sum',
+    'ResourceId': 'nunique',
+    'DatabaseStorageBytes': 'sum',
+    'AttachmentStorageBytes': 'sum'
+}).rename(columns={
+    'MessageCount': 'TotalMessages', 
+    'ResourceId': 'UniqueResources',
+    'DatabaseStorageBytes': 'TotalDatabaseStorage',
+    'AttachmentStorageBytes': 'TotalAttachmentStorage'
+})
 
-print(f"\nCorrespondences per service owner:")
-print(service_owner_summary.sort_values('TotalCorrespondences', ascending=False))
+print(f"\nDaily summary per service owner:")
+print(service_owner_summary.sort_values('TotalMessages', ascending=False))
 ```
