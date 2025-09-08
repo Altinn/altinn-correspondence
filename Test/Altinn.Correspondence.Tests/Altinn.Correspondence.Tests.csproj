@@ -16,6 +16,9 @@
     <None Remove="Data\MalwareScanResult_NoThreatFound.json" />
     <None Remove="Data\WebHookSubscriptionValidationTest.json" />
     <None Remove="Data\Markdown.txt" />
+    <None Remove="Data\Markdown1.txt" />
+    <None Remove="Data\Markdown2.txt" />
+    <None Remove="Data\Markdown3.txt" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,6 +32,15 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Data\Markdown.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Markdown1.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Markdown2.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\Markdown3.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Data\test.txt">

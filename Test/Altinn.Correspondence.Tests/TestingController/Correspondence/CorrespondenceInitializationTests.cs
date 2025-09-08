@@ -290,12 +290,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
         }
 
-        [Fact]
-        public async Task InitializeCorrespondence_With_Different_Markdown_In_Body()
+        [Theory]
+        [InlineData("Data/Markdown1.txt")]
+        [InlineData("Data/Markdown2.txt")]
+        [InlineData("Data/Markdown3.txt")]
+        public async Task InitializeCorrespondence_With_Different_Markdown_In_Body(string filePath)
         {
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithMessageBody(File.ReadAllText("Data/Markdown.txt"))
+                .WithMessageBody(File.ReadAllText(filePath))
                 .Build();
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             initializeCorrespondenceResponse.EnsureSuccessStatusCode();
@@ -1427,7 +1430,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task InitializeCorrespondence_WithSummaryTooLong_ReturnsBadRequest()
         {
             // Arrange - Create a summary that exceeds 255 characters
-            var longSummary = new string('A', 256); // 256 characters to exceed the limit
+            var longSummary = new string('A', 256);
             var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithMessageSummary(longSummary)
@@ -1445,7 +1448,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task InitializeCorrespondence_WithSummaryAt255Characters_Succeeds()
         {
             // Arrange - Create a summary exactly at the 255 character limit
-            var maxLengthSummary = new string('A', 255); // Exactly 255 characters
+            var maxLengthSummary = new string('A', 255);
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithMessageSummary(maxLengthSummary)
@@ -1462,7 +1465,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task InitializeCorrespondence_WithSenderAt255Characters_Succeeds()
         {
             // Arrange - Create a sender exactly at the 255 character limit
-            var maxLengthSender = new string('A', 255); // Exactly 255 characters
+            var maxLengthSender = new string('A', 255);
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithMessageSender(maxLengthSender)
@@ -1479,7 +1482,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task InitializeCorrespondence_WithSenderTooLong_ReturnsBadRequest()
         {
             // Arrange - Create a sender that exceeds the 255 character limit
-            var longSender = new string('A', 256); // 256 characters to exceed the limit
+            var longSender = new string('A', 256);
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithMessageSender(longSender)
@@ -1509,8 +1512,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [Fact]
         public async Task InitializeCorrespondence_WithMessageBodyTooLong_ReturnsBadRequest()
         {
-            // Arrange - Create a message body that exceeds 1023 characters
-            var longMessageBody = new string('A', 1024); // 1024 characters to exceed the limit
+            // Arrange - Create a message body that exceeds 10000 characters
+            var longMessageBody = new string('A', 10001);
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithMessageBody(longMessageBody)
@@ -1524,10 +1527,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task InitializeCorrespondence_WithMessageBodyAt1023Characters_Succeeds()
+        public async Task InitializeCorrespondence_WithMessageBodyAt10000Characters_Succeeds()
         {
-            // Arrange - Create a message body exactly at the 1023 character limit
-            var maxLengthMessageBody = new string('A', 1023); // Exactly 1023 characters
+            // Arrange - Create a message body exactly at the 10000 character limit
+            var maxLengthMessageBody = new string('A', 10000);
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithMessageBody(maxLengthMessageBody)
