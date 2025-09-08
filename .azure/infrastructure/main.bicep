@@ -151,6 +151,7 @@ module postgresql '../modules/postgreSql/create.bicep' = {
     longTermRetentionDays: 365 // 12 months (P12M) for all environments
     enablePointInTimeRestore: true
     backupSchedule: 'weekly' // Weekly Saturday backups
+    // existingBackupVaultResourceId: '/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.DataProtection/backupVaults/{vault-name}'
   }
 }
 

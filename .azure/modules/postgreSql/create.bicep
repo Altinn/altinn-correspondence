@@ -21,6 +21,9 @@ param longTermRetentionDays int = 365 // 12 months (P12M)
 param enablePointInTimeRestore bool = true
 param backupSchedule string = 'weekly' // 'daily' or 'weekly'
 
+// Existing backup vault (optional)
+param existingBackupVaultResourceId string = ''
+
 
 var databaseName = 'correspondence'
 var databaseUser = 'adminuser'
@@ -281,7 +284,7 @@ module adoConnectionString '../keyvault/upsertSecret.bicep' = {
 }
 
 // Azure Backup Vault for long-term retention
-resource backupVault 'Microsoft.DataProtection/backupVaults@2024-04-01' = if (enableLongTermRetention) {
+resource backupVault 'Microsoft.DataProtection/backupVaults@2024-04-01' = if (enableLongTermRetention && existingBackupVaultResourceId == '') {
   name: '${namePrefix}-backup-vault'
   location: location
   properties: {
@@ -304,10 +307,14 @@ resource backupVault 'Microsoft.DataProtection/backupVaults@2024-04-01' = if (en
   }
 }
 
+// Reference to existing backup vault
+var backupVaultId = existingBackupVaultResourceId != '' ? existingBackupVaultResourceId : backupVault.id
+
 // Backup policy for PostgreSQL - Weekly Saturday backups with 12 months retention
 resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2024-04-01' = if (enableLongTermRetention) {
   name: '${namePrefix}-postgres-weekly-saturday-backup-policy-12m'
-  parent: backupVault
+  scope: resourceGroup(backupVaultId)
+  parent: resource(backupVaultId)
   properties: {
     datasourceTypes: ['Microsoft.DBforPostgreSQL/flexibleServers/databases']
     objectType: 'BackupPolicy'
@@ -383,7 +390,7 @@ resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
 // Additional diagnostic settings for backup monitoring
 resource backupDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableLongTermRetention && logAnalyticsWorkspaceId != '') {
   name: 'BackupDiagnostics'
-  scope: backupVault
+  scope: resource(backupVaultId)
   properties: {
     workspaceId: logAnalyticsWorkspaceId
     logs: [
