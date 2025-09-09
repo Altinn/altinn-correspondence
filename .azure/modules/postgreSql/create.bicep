@@ -318,7 +318,7 @@ resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2023
   properties: {
     objectType: 'BackupPolicy'
     datasourceTypes: [
-      'Microsoft.DBforPostgreSQL/flexibleServers/databases'
+      'Microsoft.DBforPostgreSQL/flexibleServers'
     ]
     policyRules: [
       {
