@@ -57,6 +57,19 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             return null;
         }
+
+        public Error? ValidateCorrespondenceSender(CorrespondenceEntity correspondence)
+        {
+            if (!string.IsNullOrEmpty(correspondence.MessageSender))
+            {
+            if (!TextValidation.ValidatePlainText(correspondence.MessageSender))
+                {
+                    return CorrespondenceErrors.MessageSenderIsNotPlainText;
+                }
+            }
+            return null;
+        }
+
         public Error? ValidateCorrespondenceContent(CorrespondenceContentEntity? content)
         {
             if (content == null)
@@ -75,23 +88,26 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return CorrespondenceErrors.MessageTitleTooLong;
             }
-            if (string.IsNullOrWhiteSpace(content.MessageBody))
+            if (!TextValidation.ValidatePlainText(content.MessageSummary))
             {
-                return CorrespondenceErrors.MessageBodyEmpty;
+                return CorrespondenceErrors.MessageSummaryIsNotPlainText;
             }
             if (!TextValidation.ValidateMarkdown(content.MessageBody))
             {
                 return CorrespondenceErrors.MessageBodyIsNotMarkdown;
             }
-            if (!string.IsNullOrWhiteSpace(content.MessageSummary) && !TextValidation.ValidateMarkdown(content.MessageSummary))
+            if (content.MessageBody.Length < 1)
             {
-                return CorrespondenceErrors.MessageSummaryIsNotMarkdown;
+                return CorrespondenceErrors.MessageBodyEmpty;
+            }
+            if (content.MessageBody.Length > 10000)
+            {
+                return CorrespondenceErrors.MessageBodyTooLong;
             }
             if (!IsLanguageValid(content.Language))
             {
                 return CorrespondenceErrors.InvalidLanguage;
             }
-
             return null;
         }
         private static bool IsLanguageValid(string language)
