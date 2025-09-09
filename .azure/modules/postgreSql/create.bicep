@@ -293,8 +293,9 @@ resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
   }
 }
 
-var vaultName string = '${namePrefix}-backupvault'
-
+//var vaultName string = '${namePrefix}-backupvault'
+@description('Name of the existing backup vault')
+param vaultName string
 //@description('Resource group where the vault is located')
 //param vaultResourceGroup string = '${namePrefix}-rg'
 
