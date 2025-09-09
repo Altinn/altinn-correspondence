@@ -312,6 +312,19 @@ resource vaultResource 'Microsoft.DataProtection/backupVaults@2023-05-01' = {
   }
 }
 
+resource symbolicname 'Microsoft.DataProtection/backupVaults/backupPolicies@2025-07-01' = {
+  parent: vaultResource
+  name: 'weekly-sunday-backup-policy-12m'
+  properties: {
+    datasourceTypes: [
+      'Microsoft.DBforPostgreSQL/flexibleServers'
+    ]
+    objectType: 'BackupPolicy'
+    // For remaining properties, see BaseBackupPolicy objects
+  }
+}
+
+/*
 resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2023-05-01' = {
   name: 'weekly-sunday-backup-policy-12m'
   parent: vaultResource
@@ -364,3 +377,4 @@ resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2023
     ]
   }
 }
+*/
