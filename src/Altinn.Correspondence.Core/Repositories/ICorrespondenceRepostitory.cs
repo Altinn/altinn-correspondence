@@ -66,5 +66,7 @@ namespace Altinn.Correspondence.Core.Repositories
             ReferenceType referenceType,
             List<CorrespondenceStatus> currentStatuses,
             CancellationToken cancellationToken);
+        
+        Task<List<CorrespondenceEntity>> GetCorrespondencesForReport(bool includeAltinn2, CancellationToken cancellationToken);
     }
 }

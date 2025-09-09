@@ -102,7 +102,7 @@ public class ResourceRegistryService : IResourceRegistryService
 
     private string GetNameOfResourceResponse(GetResourceResponse resourceResponse)
     {
-        var nameAttributes = new List<string> { "en", "nb", "nn" };
+        var nameAttributes = new List<string> { "nb", "nn", "en" };
         string? name = null;
         foreach (var nameAttribute in nameAttributes)
         {
@@ -124,4 +124,6 @@ public class ResourceRegistryService : IResourceRegistryService
         }
         return altinnResourceResponse.HasCompetentAuthority?.Organization;
     }
+
+
 }
