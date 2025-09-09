@@ -293,13 +293,12 @@ resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
   }
 }
 
-//var vaultName string = '${namePrefix}-backupvault'
-@description('Name of the existing backup vault')
-param vaultName string
+var vaultName string = '${namePrefix}-backupvault'
+
 //@description('Resource group where the vault is located')
 //param vaultResourceGroup string = '${namePrefix}-rg'
 
-resource vaultResource 'Microsoft.DataProtection/backupVaults@2023-05-01' existing = {
+resource vaultResource 'Microsoft.DataProtection/backupVaults@2023-05-01' = {
   name: vaultName
 }
 
