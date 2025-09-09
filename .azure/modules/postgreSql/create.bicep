@@ -298,7 +298,7 @@ param vaultName string
 
 //@description('Resource group where the vault is located')
 //param vaultResourceGroup string = '${namePrefix}-rg'
-
+/*
 resource vaultResource 'Microsoft.DataProtection/backupVaults@2023-05-01' = {
   name: vaultName
   location: location
@@ -311,8 +311,71 @@ resource vaultResource 'Microsoft.DataProtection/backupVaults@2023-05-01' = {
     ]
   }
 }
+*/
 
-resource symbolicname 'Microsoft.DataProtection/backupVaults/backupPolicies@2025-07-01' = {
+resource vaultResource 'Microsoft.DataProtection/backupVaults@2025-07-01' = {
+  eTag: 'string'
+  identity: {
+    type: 'string'
+    userAssignedIdentities: {
+      {customized property}: {}
+    }
+  }
+  location: 'string'
+  name: 'string'
+  properties: {
+    featureSettings: {
+      crossRegionRestoreSettings: {
+        state: 'string'
+      }
+      crossSubscriptionRestoreSettings: {
+        state: 'string'
+      }
+    }
+    monitoringSettings: {
+      azureMonitorAlertSettings: {
+        alertsForAllJobFailures: 'string'
+      }
+    }
+    replicatedRegions: [
+      'string'
+    ]
+    resourceGuardOperationRequests: [
+      'string'
+    ]
+    securitySettings: {
+      encryptionSettings: {
+        infrastructureEncryption: 'string'
+        kekIdentity: {
+          identityId: 'string'
+          identityType: 'string'
+        }
+        keyVaultProperties: {
+          keyUri: 'string'
+        }
+        state: 'string'
+      }
+      immutabilitySettings: {
+        state: 'string'
+      }
+      softDeleteSettings: {
+        retentionDurationInDays: int
+        state: 'string'
+      }
+    }
+    storageSettings: [
+      {
+        datastoreType: 'string'
+        type: 'string'
+      }
+    ]
+  }
+  tags: {
+    {customized property}: 'string'
+  }
+}
+
+resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2025-07-01' = {
   parent: vaultResource
   name: 'weekly-sunday-backup-policy-12m'
   properties: {
