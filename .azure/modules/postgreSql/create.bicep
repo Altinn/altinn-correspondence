@@ -306,6 +306,7 @@ resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2023
   name: 'weekly-sunday-backup-policy-12m'
   parent: vaultResource
   properties: {
+    objectType: 'BackupPolicy'
     datasourceTypes: [
       'Microsoft.DBforPostgreSQL/flexibleServers/databases'
     ]
@@ -325,6 +326,7 @@ resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2023
             ]
             timeZone: 'W. Europe Standard Time'
           }
+          taggingCriteria: []
         }
         dataStore: {
           dataStoreType: 'VaultStore'
@@ -345,10 +347,7 @@ resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2023
               dataStoreType: 'VaultStore'
               objectType: 'DataStoreInfoBase'
             }
-            targetDataStore: {
-              dataStoreType: 'VaultStore'
-              objectType: 'DataStoreInfoBase'
-            }
+            targetDataStoreCopySettings: []
           }
         ]
       }
