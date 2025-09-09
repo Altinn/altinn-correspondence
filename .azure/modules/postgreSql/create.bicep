@@ -300,6 +300,15 @@ var vaultName string = '${namePrefix}-backupvault'
 
 resource vaultResource 'Microsoft.DataProtection/backupVaults@2023-05-01' = {
   name: vaultName
+  location: location
+  properties: {
+    storageSettings: [
+      {
+        datastoreType: 'VaultStore'
+        type: 'LocallyRedundant'
+      }
+    ]
+  }
 }
 
 resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2023-05-01' = {
