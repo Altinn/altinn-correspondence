@@ -138,6 +138,7 @@ module postgresql '../modules/postgreSql/create.bicep' = {
   params: {
     namePrefix: namePrefix
     location: location
+    vaultName: '${namePrefix}-backupvault'
     environmentKeyVaultName: sourceKeyVaultName
     srcKeyVault: srcKeyVault
     srcSecretName: correspondenceAdminPasswordSecretName
