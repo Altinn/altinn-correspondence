@@ -185,14 +185,9 @@ public class MigrateCorrespondenceHandler(
             throw new InvalidOperationException($"Correspondence with id {correspondenceId} is purged and cannot be made available in Dialogporten or API");
         }
 
-        var dialogId = await dialogportenService.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId, correspondence, createEvents);
-
-        // If the correspondence is soft deleted in Correspondence, we need to update the system labels in Dialogporten as a separate step, since the dialog only accepts one system label on creation, and this is already used for "archved" if applicable.
+        // If the correspondence was soft deleted in Altinn 2, we need to pass this forward in order to set the system label correctly on the Dialog
         bool isSoftDeleted = await IsCorrespondenceSoftDeleted(correspondence, cancellationToken);
-        if (isSoftDeleted)
-        {
-            await dialogportenService.UpdateSystemLabelsOnDialog(correspondenceId, correspondence.Recipient, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Bin }, null);
-        }
+        var dialogId = await dialogportenService.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId: correspondenceId, correspondence: correspondence, isSoftDeleted: isSoftDeleted, enableEvents: createEvents);
 
         var updateResult = await TransactionWithRetriesPolicy.Execute<string>(async (cancellationToken) =>
         {

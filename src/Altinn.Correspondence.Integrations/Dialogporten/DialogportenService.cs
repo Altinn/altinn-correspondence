@@ -479,7 +479,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     /// <summary>
     /// Create Dialog in Dialogportern without creating any events. Used in regards to old correspondences being migrated from Altinn 2 to Altinn 3.
     /// </summary>
-    public async Task<string> CreateCorrespondenceDialogForMigratedCorrespondence(Guid correspondenceId, CorrespondenceEntity? correspondence, bool enableEvents = false)
+    public async Task<string> CreateCorrespondenceDialogForMigratedCorrespondence(Guid correspondenceId, CorrespondenceEntity? correspondence, bool isSoftDeleted, bool enableEvents = false)
     {
         var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
@@ -496,12 +496,13 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var (OpenedId, ConfirmedId) = await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
 
         var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(
-            correspondence,
-            generalSettings.Value.CorrespondenceBaseUrl,
-            true,
-            logger,
-            OpenedId.ToString(),
-            ConfirmedId?.ToString());
+            correspondence: correspondence,
+            baseUrl: generalSettings.Value.CorrespondenceBaseUrl,
+            includeActivities: true,
+            logger: logger,
+            openedActivityIdempotencyKey: OpenedId.ToString(),
+            confirmedActivityIdempotencyKey: ConfirmedId?.ToString(),
+            isSoftDeleted: isSoftDeleted);
         string updateType = enableEvents ? "" : "?IsSilentUpdate=true";
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs{updateType}", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)

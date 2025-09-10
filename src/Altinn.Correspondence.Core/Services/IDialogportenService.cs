@@ -6,7 +6,7 @@ namespace Altinn.Correspondence.Core.Services;
 
 public interface IDialogportenService
 {
-    Task<string> CreateCorrespondenceDialogForMigratedCorrespondence(Guid correspondenceId, CorrespondenceEntity? correspondence, bool enableEvents = false);
+    Task<string> CreateCorrespondenceDialogForMigratedCorrespondence(Guid correspondenceId, CorrespondenceEntity? correspondence, bool isSoftDeleted, bool enableEvents = false);
     Task<string> CreateCorrespondenceDialog(Guid correspondenceId);
     Task PatchCorrespondenceDialogToConfirmed(Guid correspondenceId);
     Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, params string[] tokens);
