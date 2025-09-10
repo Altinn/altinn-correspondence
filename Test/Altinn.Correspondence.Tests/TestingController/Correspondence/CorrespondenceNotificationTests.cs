@@ -567,7 +567,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task Correspondence_CustomRecipient_WithMultipleRecipients_GivesBadRequest()
+        public async Task Correspondence_CustomRecipient_WithMultipleRecipients_GivesOk()
         {
             var recipient1 = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
             var recipient2 = $"{UrnConstants.OrganizationNumberAttribute}:991825828";
@@ -585,11 +585,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build();
 
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
-            var responseContent = await initResponse.Content.ReadAsStringAsync();
-            Console.WriteLine($"Response content: {responseContent}");
-            var problemDetails = await initResponse.Content.ReadFromJsonAsync<ProblemDetails>(_responseSerializerOptions);
-            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
-            Assert.Equal(NotificationErrors.CustomRecipientWithMultipleRecipientsNotAllowed.Message, problemDetails?.Detail);
+            var response = await initResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            initResponse.EnsureSuccessStatusCode();
+            Assert.NotNull(response);
         }
 
         [Fact]
@@ -694,9 +692,16 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>()))
                     .Callback<NotificationOrderRequest, CancellationToken>((request, _) =>
                     {
-                        Assert.Single(request.Recipients);
-                        Assert.Equal(customRecipient.EmailAddress, request.Recipients[0].EmailAddress);
-                        Assert.Null(request.Recipients[0].MobileNumber);
+                        // Should have 2 recipients: default correspondence recipient + custom recipient
+                        Assert.Equal(2, request.Recipients.Count);
+                        
+                        // First recipient should be the default correspondence recipient (organization)
+                        Assert.Equal("991825827", request.Recipients[0].OrganizationNumber);
+                        Assert.Null(request.Recipients[0].EmailAddress);
+                        
+                        // Second recipient should be the custom recipient
+                        Assert.Equal(customRecipient.EmailAddress, request.Recipients[1].EmailAddress);
+                        Assert.Null(request.Recipients[1].OrganizationNumber);
                     })
                     .ReturnsAsync(new NotificationOrderRequestResponse()
                     {
@@ -754,6 +759,177 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, initResponse.StatusCode);
             Assert.NotNull(content);
+        }
+
+        [Fact]
+        public async Task Correspondence_CustomRecipients_SingleRecipient_GivesOk()
+        {
+            // Arrange
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipients = new List<NotificationRecipientExt>
+            {
+                new()
+                {
+                    EmailAddress = "custom@example.com"
+                }
+            };
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Email)
+                .WithEmailContent()
+                .WithCustomRecipients(customRecipients)
+                .Build();
+
+            // Act
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            var content = await initResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initResponse.StatusCode);
+            Assert.NotNull(content);
+        }
+
+        [Fact]
+        public async Task Correspondence_CustomRecipients_MultipleRecipients_GivesOk()
+        {
+            // Arrange
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipients = new List<NotificationRecipientExt>
+            {
+                new()
+                {
+                    EmailAddress = "custom1@example.com"
+                },
+                new()
+                {
+                    MobileNumber = "+4798765432"
+                },
+                new()
+                {
+                    OrganizationNumber = "123456789"
+                }
+            };
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.EmailPreferred)
+                .WithEmailContent()
+                .WithSmsContent()
+                .WithCustomRecipients(customRecipients)
+                .Build();
+
+            // Act
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            var content = await initResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initResponse.StatusCode);
+            Assert.NotNull(content);
+        }
+
+        [Fact]
+        public async Task Correspondence_CustomRecipients_WithMultipleCorrespondenceRecipients_GivesOk()
+        {
+            // Arrange
+            var recipient1 = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var recipient2 = $"{UrnConstants.OrganizationNumberAttribute}:991825828";
+            var customRecipients = new List<NotificationRecipientExt>
+            {
+                new()
+                {
+                    EmailAddress = "custom@example.com"
+                }
+            };
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient1, recipient2])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Email)
+                .WithEmailContent()
+                .WithCustomRecipients(customRecipients)
+                .Build();
+
+            // Act
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            var content = await initResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initResponse.StatusCode);
+            Assert.NotNull(content);
+        }
+
+        [Fact]
+        public async Task Correspondence_CustomRecipientsTakesPrecedenceOverCustomRecipient_GivesOk()
+        {
+            // Arrange
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipient = new NotificationRecipientExt
+            {
+                EmailAddress = "ignored@example.com"
+            };
+            var customRecipients = new List<NotificationRecipientExt>
+            {
+                new()
+                {
+                    EmailAddress = "custom@example.com"
+                }
+            };
+
+            var orderId = Guid.NewGuid();
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockNotificationService = new Mock<IAltinnNotificationService>();
+                mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>()))
+                    .Callback<NotificationOrderRequest, CancellationToken>((request, _) =>
+                    {
+                        // Should have 2 recipients: default correspondence recipient + custom recipients
+                        Assert.Equal(2, request.Recipients.Count);
+                        
+                        // First recipient should be the default correspondence recipient (organization)
+                        Assert.Equal("991825827", request.Recipients[0].OrganizationNumber);
+                        Assert.Null(request.Recipients[0].EmailAddress);
+                        
+                        // Second recipient should be from customRecipients (not customRecipient)
+                        Assert.Equal("custom@example.com", request.Recipients[1].EmailAddress);
+                        Assert.Null(request.Recipients[1].OrganizationNumber);
+                    })
+                    .ReturnsAsync(new NotificationOrderRequestResponse()
+                    {
+                        OrderId = orderId,
+                        RecipientLookup = new RecipientLookupResult()
+                        {
+                            Status = RecipientLookupStatus.Success,
+                            MissingContact = [],
+                            IsReserved = []
+                        }
+                    });
+                services.AddSingleton(mockNotificationService.Object);
+            });
+            var senderClient = testFactory.CreateSenderClient();
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Email)
+                .WithEmailContent()
+                .WithCustomNotificationRecipient(customRecipient)
+                .WithCustomRecipients(customRecipients)
+                .Build();
+
+            // Act
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(senderClient, _responseSerializerOptions, payload);
+            var correspondence = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(senderClient, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            // Assert
+            Assert.NotNull(initializedCorrespondence);
+            Assert.Equal(CorrespondenceStatusExt.Published, correspondence.Status);
         }
     }
 }

@@ -1,9 +1,7 @@
 ﻿using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.API.ValidationAttributes;
 using Altinn.Correspondence.Core.Models.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-using System;
 
 namespace Altinn.Correspondence.API.Models
 {

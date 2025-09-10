@@ -256,6 +256,7 @@ public class CreateNotificationHandler(
         bool isOrganization = recipientWithoutPrefix.IsOrganizationNumber();
         bool isPerson = recipientWithoutPrefix.IsSocialSecurityNumber();
         
+        
         recipientsToProcess.Add(new Recipient
         {
             OrganizationNumber = isOrganization ? recipientWithoutPrefix : null,
@@ -312,6 +313,7 @@ public class CreateNotificationHandler(
         var emailSubject = isReminder ? content.ReminderEmailSubject : content.EmailSubject;
         var emailBody = isReminder ? content.ReminderEmailBody : content.EmailBody;
         var smsBody = isReminder ? content.ReminderSmsBody : content.SmsBody;
+
 
         var emailSettings = !string.IsNullOrWhiteSpace(emailSubject) && !string.IsNullOrWhiteSpace(emailBody)
             ? new EmailSettings
@@ -402,6 +404,7 @@ public class CreateNotificationHandler(
         
         var allSuccessful = true;
         var successfulNotifications = new List<CorrespondenceNotificationEntity>();
+        var notificationResponses = new List<NotificationOrderRequestResponseV2>();
         
         foreach (var notificationRequestV2 in notificationRequestsV2)
         {
@@ -428,6 +431,7 @@ public class CreateNotificationHandler(
                     ShipmentId = notificationResponse.Notification.ShipmentId
                 };
                 successfulNotifications.Add(notification);
+                notificationResponses.Add(notificationResponse);
             }
         }
 
@@ -453,19 +457,22 @@ public class CreateNotificationHandler(
             if (notificationRequest.SendReminder)
             {
                 logger.LogInformation("Creating reminder notification entities to database for correspondence {CorrespondenceId}", correspondence.Id);
-                foreach (var notificationRequestV2 in notificationRequestsV2)
+                for (int i = 0; i < notificationRequestsV2.Count && i < notificationResponses.Count; i++)
                 {
+                    var notificationRequestV2 = notificationRequestsV2[i];
+                    var notificationResponse = notificationResponses[i];
+                    
                     var reminder = new CorrespondenceNotificationEntity()
                     {
                         Created = DateTimeOffset.UtcNow,
                         NotificationChannel = notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel,
                         NotificationTemplate = notificationRequest.NotificationTemplate,
                         CorrespondenceId = correspondence.Id,
-                        NotificationOrderId = Guid.NewGuid(), // Reminder orders don't have separate order IDs
+                        NotificationOrderId = notificationResponse.NotificationOrderId,
                         RequestedSendTime = notificationRequestV2.RequestedSendTime.AddDays(notificationRequestV2.Reminders?.FirstOrDefault()?.DelayDays ?? 0),
                         IsReminder = true,
                         OrderRequest = JsonSerializer.Serialize(notificationRequestV2),
-                        ShipmentId = null // Reminders don't have shipment IDs initially
+                        ShipmentId = notificationResponse.Notification.Reminders?.FirstOrDefault()?.ShipmentId
                     };
                     await correspondenceNotificationRepository.AddNotification(reminder, cancellationToken);
 
