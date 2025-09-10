@@ -56,7 +56,20 @@ public class LegacyGetCorrespondencesHandler(
         var recipients = new List<string>();
         if (request.InstanceOwnerPartyIdList != null && request.InstanceOwnerPartyIdList.Length > 0)
         {
-            var authorizedParties = await altinnAccessManagementService.GetAuthorizedParties(userParty, cancellationToken);
+            var authorizedPartiesResponse = await altinnAccessManagementService.GetAuthorizedParties(userParty, cancellationToken);
+            var authorizedParties = new List<PartyWithSubUnits>();
+            foreach(var authorizedParty in authorizedPartiesResponse)
+            {
+                if (authorizedParty.OnlyHierarchyElementWithNoAccess)
+                {
+                    authorizedParties.AddRange(authorizedParty.SubUnits.Where(party => !party.OnlyHierarchyElementWithNoAccess));
+                } 
+                else
+                {
+                    authorizedParties.Add(authorizedParty);
+                }
+            }
+            authorizedParties = authorizedParties.DistinctBy(party => party.PartyId).ToList();
             var authorizedPartiesDict = authorizedParties.ToDictionary(p => p.PartyId, p => p);
             foreach (int instanceOwnerPartyId in request.InstanceOwnerPartyIdList)
             {
