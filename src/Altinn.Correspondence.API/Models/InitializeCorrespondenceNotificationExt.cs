@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.API.ValidationAttributes;
 using Altinn.Correspondence.Core.Models.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
@@ -104,14 +105,21 @@ namespace Altinn.Correspondence.API.Models
         /// <summary>
         /// A list of recipients for the notification. If not set, the notification will be sent to the recipient of the Correspondence
         /// </summary>
+        [JsonPropertyName("customRecipients")]
+        public List<NotificationRecipientExt>? CustomRecipients { get; set; }
+
+        /// <summary>
+        /// A single recipient for the notification. If not set, the notification will be sent to the recipient of the Correspondence
+        /// </summary>
         [JsonPropertyName("customRecipient")]
+        [Obsolete("This property is deprecated. Use customRecipients instead.")]
         public NotificationRecipientExt? CustomRecipient { get; set; }
 
         /// <summary>
         /// Only the first list of recipients will be used. If not set, the notification will be sent to the recipient of the Correspondence
         /// </summary>
         [JsonPropertyName("customNotificationRecipients")]
-        [Obsolete("This property is deprecated. Use customRecipient instead.")]
+        [Obsolete("This property is deprecated. Use customRecipients instead.")]
         public List<CustomNotificationRecipientExt>? CustomNotificationRecipients { get; set; }
     }
 

@@ -22,28 +22,48 @@ internal static class InitializeCorrespondenceNotificationMapper
 
     internal static NotificationRequest MapToRequest(InitializeCorrespondenceNotificationExt correspondenceNotificationExt)
     {
-        // If CustomRecipient is not set but CustomNotificationRecipients is, transform the first recipient
-        // This code should be refactored when we finish with deprecating CustomNotificationRecipients
-        Recipient? customRecipient = correspondenceNotificationExt.CustomRecipient != null 
-            ? new Recipient
+        // Handle customRecipients - prioritize the new property
+        List<Recipient>? customRecipients = null;
+        
+        if (correspondenceNotificationExt.CustomRecipients != null && correspondenceNotificationExt.CustomRecipients.Any())
+        {
+            // Use the new customRecipients property
+            customRecipients = correspondenceNotificationExt.CustomRecipients.Select(recipient => new Recipient
             {
-                EmailAddress = correspondenceNotificationExt.CustomRecipient.EmailAddress,
-                IsReserved = correspondenceNotificationExt.CustomRecipient.IsReserved,
-                MobileNumber = correspondenceNotificationExt.CustomRecipient.MobileNumber,
-                NationalIdentityNumber = correspondenceNotificationExt.CustomRecipient.NationalIdentityNumber,
-                OrganizationNumber = correspondenceNotificationExt.CustomRecipient.OrganizationNumber
-            }
-            : correspondenceNotificationExt.CustomNotificationRecipients?.FirstOrDefault()?.Recipients.FirstOrDefault() != null
-                ? new Recipient
+                EmailAddress = recipient.EmailAddress,
+                IsReserved = recipient.IsReserved,
+                MobileNumber = recipient.MobileNumber,
+                NationalIdentityNumber = recipient.NationalIdentityNumber,
+                OrganizationNumber = recipient.OrganizationNumber
+            }).ToList();
+        }
+        else if (correspondenceNotificationExt.CustomRecipient != null)
+        {
+            // Map single customRecipient to customRecipients list for backward compatibility
+            customRecipients = new List<Recipient>
+            {
+                new Recipient
                 {
-                    EmailAddress = correspondenceNotificationExt.CustomNotificationRecipients.First().Recipients.First().EmailAddress,
-                    IsReserved = correspondenceNotificationExt.CustomNotificationRecipients.First().Recipients.First().IsReserved,
-                    MobileNumber = correspondenceNotificationExt.CustomNotificationRecipients.First().Recipients.First().MobileNumber,
-                    NationalIdentityNumber = correspondenceNotificationExt.CustomNotificationRecipients.First().Recipients.First().NationalIdentityNumber,
-                    OrganizationNumber = correspondenceNotificationExt.CustomNotificationRecipients.First().Recipients.First().OrganizationNumber
+                    EmailAddress = correspondenceNotificationExt.CustomRecipient.EmailAddress,
+                    IsReserved = correspondenceNotificationExt.CustomRecipient.IsReserved,
+                    MobileNumber = correspondenceNotificationExt.CustomRecipient.MobileNumber,
+                    NationalIdentityNumber = correspondenceNotificationExt.CustomRecipient.NationalIdentityNumber,
+                    OrganizationNumber = correspondenceNotificationExt.CustomRecipient.OrganizationNumber
                 }
-                : null;
-
+            };
+        }
+        else if (correspondenceNotificationExt.CustomNotificationRecipients?.FirstOrDefault()?.Recipients.FirstOrDefault() != null)
+        {
+            // Map deprecated customNotificationRecipients to customRecipients list
+            customRecipients = correspondenceNotificationExt.CustomNotificationRecipients.First().Recipients.Select(recipient => new Recipient
+            {
+                EmailAddress = recipient.EmailAddress,
+                IsReserved = recipient.IsReserved,
+                MobileNumber = recipient.MobileNumber,
+                NationalIdentityNumber = recipient.NationalIdentityNumber,
+                OrganizationNumber = recipient.OrganizationNumber
+            }).ToList();
+        }
 
         var notification = new NotificationRequest
         {
@@ -60,7 +80,7 @@ internal static class InitializeCorrespondenceNotificationMapper
             ReminderNotificationChannel = (NotificationChannel?)correspondenceNotificationExt.ReminderNotificationChannel,
             SmsBody = correspondenceNotificationExt.SmsBody,
             SendReminder = correspondenceNotificationExt.SendReminder,
-            CustomRecipient = customRecipient
+            CustomRecipients = customRecipients
         };
         return notification;
     }
