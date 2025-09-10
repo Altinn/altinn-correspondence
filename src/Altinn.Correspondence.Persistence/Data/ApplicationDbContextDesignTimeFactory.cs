@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
 
-namespace Altinn.Correspondence.Persistence.Data;
+namespace Altinn.Correspondence.Persistence;
 
 /**
  * This is used by the migrations bundle
@@ -56,10 +56,6 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
                 // Create connection string with token
                 connectionStringBuilder.Password = token.Token;
                 var authenticatedConnectionString = connectionStringBuilder.ConnectionString;
-
-                Console.WriteLine($"Factory: Connection string length: {authenticatedConnectionString.Length}");
-                Console.WriteLine($"Factory: Password length in connection string: {connectionStringBuilder.Password.Length}");
-                Console.WriteLine($"Factory: Password length in connection string: {connectionStringBuilder.ConnectionString}");
 
                 // Use the connection string directly with UseNpgsql, NOT with NpgsqlDataSource
                 optionsBuilder.UseNpgsql(authenticatedConnectionString);
