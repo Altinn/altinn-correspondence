@@ -343,12 +343,5 @@ Because link names may contain spaces, this shortcut even works for
 multiple words in the link text:
 
 	Visit [Daring Fireball][] for more information.
-
-And then define the link:
 	
 	[Daring Fireball]: http://daringfireball.net/
-
-Link definitions can be placed anywhere in your Markdown document. I
-tend to put them immediately after each paragraph in which they're
-used, but if you want, you can put them all at the end of your
-document, sort of like footnotes.
