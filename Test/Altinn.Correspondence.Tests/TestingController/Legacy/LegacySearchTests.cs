@@ -12,6 +12,7 @@ using Altinn.Correspondence.Core.Services;
 using Moq;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Tests.Fixtures;
+using Altinn.Correspondence.Core.Repositories;
 
 namespace Altinn.Correspondence.Tests.TestingController.Legacy
 {
@@ -225,6 +226,98 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             Assert.Equal(HttpStatusCode.BadRequest, correspondenceList.StatusCode);
         }
+
+        [Fact]
+        public async Task LegacyGetCorrespondences_DuplicateAuthorizedParties_IsIgnored()
+        {
+            var duplicateParty = new PartyWithSubUnits()
+            {
+                PartyId = 1,
+                Name = "hovedenhet",
+                OnlyHierarchyElementWithNoAccess = true,
+                ChildParties = new List<Party>()
+                            {
+                                new Party()
+                                {
+                                    PartyId = 2,
+                                    Name = "underenhet",
+                                    IsDeleted = false,
+                                }
+                            }
+            };
+            using var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
+                mockAccessManagementService
+                    .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(new List<PartyWithSubUnits>()
+                    {
+                        duplicateParty,
+                        duplicateParty
+                    });
+                services.AddSingleton(mockAccessManagementService.Object);
+            });
+            var listPayload = GetBasicLegacyGetCorrespondenceRequestExt();
+            listPayload.InstanceOwnerPartyIdList = new int[] { };
+            listPayload.From = DateTimeOffset.UtcNow.AddDays(-1); 
+            listPayload.To = DateTimeOffset.UtcNow;
+            var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
+            var respnse = await correspondenceList.Content.ReadAsStringAsync();
+            Assert.Equal(HttpStatusCode.OK, correspondenceList.StatusCode);
+        }
+
+
+        [Fact]
+        public async Task LegacyGetCorrespondences_NoAuthorizedParties_Fails()
+        {
+            using var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
+                mockAccessManagementService
+                    .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync([]);
+                services.AddSingleton(mockAccessManagementService.Object);
+            });
+            var listPayload = GetBasicLegacyGetCorrespondenceRequestExt();
+            listPayload.InstanceOwnerPartyIdList = new int[] { 1 };
+            listPayload.From = DateTimeOffset.UtcNow.AddDays(-1);
+            listPayload.To = DateTimeOffset.UtcNow;
+            var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
+            Assert.Equal(HttpStatusCode.Unauthorized, correspondenceList.StatusCode);
+        }
+        [Fact]
+        public async Task LegacyGetCorrespondences_AccessToOnlySubunit_Succeeds()
+        {
+            using var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
+                mockAccessManagementService
+                    .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(new List<PartyWithSubUnits>()
+                    {
+                        new PartyWithSubUnits()
+                        {
+                            Name = "hovedenhet",
+                            OnlyHierarchyElementWithNoAccess = true,
+                            ChildParties = new List<Party>()
+                            {
+                                new Party()
+                                {
+                                    Name = "underenhet",
+                                    IsDeleted = false,
+                                }
+                            }
+                        }
+                    });
+                services.AddSingleton(mockAccessManagementService.Object);
+            });
+            var listPayload = GetBasicLegacyGetCorrespondenceRequestExt();
+            listPayload.From = DateTimeOffset.UtcNow.AddDays(-1);
+            listPayload.To = DateTimeOffset.UtcNow;
+            var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
+            Assert.Equal(HttpStatusCode.OK, correspondenceList.StatusCode);
+        }
+
         private LegacyGetCorrespondencesRequestExt GetBasicLegacyGetCorrespondenceRequestExt()
         {
             return new LegacyGetCorrespondencesRequestExt
