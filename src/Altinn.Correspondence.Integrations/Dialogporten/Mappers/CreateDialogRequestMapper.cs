@@ -60,7 +60,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 {
                     return SystemLabel.Bin;
                 }
-                if (correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Archived))
+                if (correspondence.Statuses != null && correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Archived))
                 {
                     return SystemLabel.Archived;
                 }
