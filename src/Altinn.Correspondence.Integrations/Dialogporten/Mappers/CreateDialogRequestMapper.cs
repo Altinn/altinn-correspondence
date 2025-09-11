@@ -17,10 +17,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
     internal static class CreateDialogRequestMapper
     {
-        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null)
+        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, bool isSoftDeleted = false)
         {
             var dialogId = Guid.CreateVersion7().ToString(); // Dialogporten requires time-stamped GUIDs
-            bool isArchived = correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Archived);
             DateTimeOffset? dueAt = correspondence.DueDateTime != default ? correspondence.DueDateTime : null;
 
             // The problem of DueAt being in the past should only occur for migrated data, as such we are checking includeActivities flag first, since this is only set when making migrated correspondences available.
@@ -49,8 +48,25 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
                     Activities = includeActivities ? GetActivitiesForCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey) : new List<Activity>(),
                     Transmissions = new List<Transmission>(),
-                    SystemLabel = isArchived ? SystemLabel.Archived : SystemLabel.Default
+                    SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted)
                 };
+        }
+
+        private static string GetSystemLabelForCorrespondence(CorrespondenceEntity correspondence, bool isSoftDeleted)
+        {
+            if(correspondence.Altinn2CorrespondenceId.HasValue) // Only relevant for migrated correspondences
+            {
+                if(isSoftDeleted)
+                {
+                    return SystemLabel.Bin;
+                }
+                if (correspondence.Statuses != null && correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Archived))
+                {
+                    return SystemLabel.Archived;
+                }
+            }
+            
+            return SystemLabel.Default;
         }
 
         private static string GetDialogStatusForCorrespondence(CorrespondenceEntity correspondence)

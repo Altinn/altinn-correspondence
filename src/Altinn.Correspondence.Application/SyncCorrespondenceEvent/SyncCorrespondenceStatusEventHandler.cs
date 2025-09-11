@@ -379,7 +379,9 @@ public class SyncCorrespondenceStatusEventHandler(
             }
             else
             {
-                await SetSoftDeleteOrRestoreOnDialog(correspondence.Id, endUserId, deleteEventToSync.EventType, cancellationToken);
+                bool isArchived = correspondence.StatusHasBeen(CorrespondenceStatus.Archived);
+
+                await SetSoftDeleteOrRestoreOnDialog(correspondence.Id, endUserId, deleteEventToSync.EventType, isArchived, cancellationToken);
             }
         }
     }
@@ -391,7 +393,7 @@ public class SyncCorrespondenceStatusEventHandler(
         await correspondenceDeleteEventRepository.AddDeleteEvent(deleteEventToSync, cancellationToken);
     }
 
-    private async Task SetSoftDeleteOrRestoreOnDialog(Guid correspondenceId, string endUserId, CorrespondenceDeleteEventType eventType, CancellationToken cancellationToken)
+    private async Task SetSoftDeleteOrRestoreOnDialog(Guid correspondenceId, string endUserId, CorrespondenceDeleteEventType eventType, bool isArchived, CancellationToken cancellationToken)
     {
         switch (eventType)
         {
@@ -403,7 +405,15 @@ public class SyncCorrespondenceStatusEventHandler(
 
             case CorrespondenceDeleteEventType.RestoredByRecipient:
                 {
-                    backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondenceId, endUserId, null, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Bin }));
+                    if (isArchived)
+                    {
+                        // Add "Archive" label if the correspondence has been archived
+                        backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondenceId, endUserId, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
+                    }
+                    else
+                    {
+                        backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondenceId, endUserId, null, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Bin }));
+                    }
                     break;
                 }
 
