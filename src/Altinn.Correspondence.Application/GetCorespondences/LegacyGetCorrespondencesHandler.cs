@@ -62,7 +62,7 @@ public class LegacyGetCorrespondencesHandler(
             {
                 if (authorizedParty.OnlyHierarchyElementWithNoAccess)
                 {
-                    authorizedParties.AddRange(authorizedParty.SubUnits.Where(party => !party.OnlyHierarchyElementWithNoAccess));
+                    authorizedParties.AddRange(authorizedParty.SubUnits);
                 } 
                 else
                 {
