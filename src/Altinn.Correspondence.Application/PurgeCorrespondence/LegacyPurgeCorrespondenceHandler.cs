@@ -51,7 +51,7 @@ public class LegacyPurgeCorrespondenceHandler(
         }
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            return await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, false, partyUuid, operationTimestamp, cancellationToken);
+            return await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, false, partyUuid, partyId, operationTimestamp, cancellationToken);
         }, logger, cancellationToken);
     }
 }

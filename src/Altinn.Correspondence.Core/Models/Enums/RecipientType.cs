@@ -14,5 +14,10 @@ namespace Altinn.Correspondence.Core.Models.Enums
         /// Specifies that the recipient is an organization
         /// </summary>
         Organization = 1,
+
+        /// <summary>
+        /// Specifies that the recipient type is unknown or could not be determined
+        /// </summary>
+        Unknown = 2,
     }
 }

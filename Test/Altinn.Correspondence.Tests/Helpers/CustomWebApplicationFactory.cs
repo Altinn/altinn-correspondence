@@ -22,6 +22,8 @@ using Npgsql;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Json;
+using Altinn.Correspondence.Integrations.Altinn.Storage;
+using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Tests.Helpers;
 
@@ -30,6 +32,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
     public const string ReservedSsn = "08900499559";
     public Action<IServiceCollection>? CustomServices;
     private readonly string _hangfireSchemaName;
+    public Mock<IAltinnStorageService> altinnStorageServiceMock = new();
 
     public CustomWebApplicationFactory()
     {
@@ -85,7 +88,21 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             services.OverrideAuthorization();
             services.OverrideAltinnAuthorization();
             services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
+            altinnStorageServiceMock.Setup(x => x.SyncCorrespondenceEventToSblBridge(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<DateTimeOffset>(), SyncEventType.Read, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<bool>(true))
+                .Verifiable();
+            altinnStorageServiceMock.Setup(x => x.SyncCorrespondenceEventToSblBridge(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<DateTimeOffset>(), SyncEventType.Confirm, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<bool>(true))
+                .Verifiable();
+            altinnStorageServiceMock.Setup(x => x.SyncCorrespondenceEventToSblBridge(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<DateTimeOffset>(), SyncEventType.Delete, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<bool>(true))
+                .Verifiable();
+            altinnStorageServiceMock.Setup(x => x.AddPartyToSblBridge(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<bool>(true));
+
+            services.AddScoped(_ => altinnStorageServiceMock.Object);
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
+            // services.AddScoped<IAltinnStorageService, AltinnStorageDevService>();
             var mockContactReservationRegistryService = new Mock<IContactReservationRegistryService>();
             mockContactReservationRegistryService.Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => recipients.Contains(ReservedSsn)))).ReturnsAsync([ReservedSsn]);
             mockContactReservationRegistryService.Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => !recipients.Contains(ReservedSsn)))).ReturnsAsync([]);
