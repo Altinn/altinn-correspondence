@@ -60,14 +60,12 @@ public class LegacyGetCorrespondencesHandler(
             var authorizedParties = new List<PartyWithSubUnits>();
             foreach(var authorizedParty in authorizedPartiesResponse)
             {
-                if (authorizedParty.OnlyHierarchyElementWithNoAccess)
-                {
-                    authorizedParties.AddRange(authorizedParty.SubUnits);
-                } 
-                else
+                if (!authorizedParty.OnlyHierarchyElementWithNoAccess)
                 {
                     authorizedParties.Add(authorizedParty);
-                }
+                } 
+                
+                authorizedParties.AddRange(authorizedParty.SubUnits);
             }
             authorizedParties = authorizedParties.DistinctBy(party => party.PartyId).ToList();
             var authorizedPartiesDict = authorizedParties.ToDictionary(p => p.PartyId, p => p);
