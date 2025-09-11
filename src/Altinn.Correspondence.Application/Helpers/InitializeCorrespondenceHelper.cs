@@ -176,6 +176,12 @@ namespace Altinn.Correspondence.Application.Helpers
             // Check if we have custom recipients
             if (notification.CustomRecipients != null && notification.CustomRecipients.Any())
             {
+                // Validate that if the custom recipient exists, the correspondence does not have multiple recipients
+                if (recipients.Count > 1)
+                {
+                    return NotificationErrors.CustomRecipientWithMultipleRecipientsNotAllowed;
+                }
+
                 // Validate each recipient in the list
                 foreach (var customRecipient in notification.CustomRecipients)
                 {

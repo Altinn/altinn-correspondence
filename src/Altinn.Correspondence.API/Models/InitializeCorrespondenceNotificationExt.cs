@@ -101,7 +101,8 @@ namespace Altinn.Correspondence.API.Models
         public DateTimeOffset? RequestedSendTime { get; set; }
 
         /// <summary>
-        /// A list of recipients for the notification. If not set, the notification will be sent to the recipient of the Correspondence
+        /// A list of additional recipients for the notification. These are processed in addition to the Correspondence recipient;
+        /// if not set, only the Correspondence recipient receives the notification.
         /// </summary>
         [JsonPropertyName("customRecipients")]
         public List<NotificationRecipientExt>? CustomRecipients { get; set; }

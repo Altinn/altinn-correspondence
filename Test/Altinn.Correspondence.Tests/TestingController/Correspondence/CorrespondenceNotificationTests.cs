@@ -586,7 +586,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             var response = await initResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            initResponse.EnsureSuccessStatusCode();
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
             Assert.NotNull(response);
         }
 
@@ -833,7 +833,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task Correspondence_CustomRecipients_WithMultipleCorrespondenceRecipients_GivesOk()
+        public async Task Correspondence_CustomRecipients_WithMultipleCorrespondenceRecipients_GivesBadRequest()
         {
             // Arrange
             var recipient1 = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
@@ -857,11 +857,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Act
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
-            var content = await initResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
 
             // Assert
-            Assert.Equal(HttpStatusCode.OK, initResponse.StatusCode);
-            Assert.NotNull(content);
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
         }
 
         [Fact]
