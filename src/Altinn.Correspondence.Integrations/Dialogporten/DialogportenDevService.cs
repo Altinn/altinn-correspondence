@@ -54,7 +54,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.CompletedTask;
         }
 
-        public Task<string> CreateCorrespondenceDialogForMigratedCorrespondence(Guid correspondenceId, CorrespondenceEntity? correspondence, bool isSoftDeleted, bool enableEvents = false)
+        public Task<string> CreateCorrespondenceDialogForMigratedCorrespondence(Guid correspondenceId, CorrespondenceEntity? correspondence, bool enableEvents = false, bool isSoftDeleted = false)
         {
             // var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, "https://platform.tt02.altinn.no/", true);
             // string result = JsonConvert.SerializeObject(createDialogRequest);

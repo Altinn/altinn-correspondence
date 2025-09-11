@@ -54,7 +54,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static string GetSystemLabelForCorrespondence(CorrespondenceEntity correspondence, bool isSoftDeleted)
         {
-            if(correspondence.Altinn2CorrespondenceId.HasValue)
+            if(correspondence.Altinn2CorrespondenceId.HasValue) // Only relevant for migrated correspondences
             {
                 if(isSoftDeleted)
                 {

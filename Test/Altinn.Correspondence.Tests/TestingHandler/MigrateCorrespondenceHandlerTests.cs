@@ -421,7 +421,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 Assert.Equal($"dialog-{status.CorrespondenceId}", status.DialogId);
             }
             _mockDialogportenService.Verify(x => x.CreateCorrespondenceDialogForMigratedCorrespondence(
-                correspondence.Id, correspondence, true, It.IsAny<bool>()), Times.Once);
+                correspondence.Id, correspondence, It.IsAny<bool>(), true), Times.Once);
         }
 
         [Fact]
@@ -481,7 +481,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 Assert.Equal($"dialog-{status.CorrespondenceId}", status.DialogId);
             }
             _mockDialogportenService.Verify(x => x.CreateCorrespondenceDialogForMigratedCorrespondence(
-                correspondence.Id, correspondence, true, It.IsAny<bool>()), Times.Once);
+                correspondence.Id, correspondence, It.IsAny<bool>(), true), Times.Once);
         }
 
         [Fact]
