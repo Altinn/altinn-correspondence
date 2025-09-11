@@ -24,25 +24,8 @@ public static class MessageBodyHelpers
 
         // Split by lines to handle mixed content properly
         string preprocessed = ConvertLinksToMarkdown(html);
-        var lines = preprocessed.Split('\n');
-        var result = new StringBuilder();
-
-        foreach (var line in lines)
-        {
-            if (ContainsHtmlTags(line))
-            {
-                // Convert HTML to markdown
-                var convertedLine = converter.Convert(line);
-                result.AppendLine(convertedLine);
-            }
-            else
-            {
-                // Keep markdown
-                result.AppendLine(line);
-            }
-        }
-
-        return CleanupResult(result.ToString());
+        var processed = converter.Convert(preprocessed);
+        return processed;
     }
 
     private static string ConvertLinksToMarkdown(string input)
@@ -63,20 +46,4 @@ public static class MessageBodyHelpers
 
         return result;
     }
-
-
-    private static bool ContainsHtmlTags(string line)
-    {
-        return Regex.IsMatch(line, @"<[^>]+>");
-    }
-
-    private static string CleanupResult(string input)
-    {
-        // Clean up excessive line breaks and spaces
-        string result = Regex.Replace(input, @"\n{3,}", "\n\n");
-        result = Regex.Replace(result, @"[ \t]+", " ");
-        result = result.Replace("\\", "");
-        return result.Trim();
-    }
-
 }
