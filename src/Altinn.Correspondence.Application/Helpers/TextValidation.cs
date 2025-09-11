@@ -13,7 +13,7 @@ public class TextValidation
             .UseAdvancedExtensions()
             .UseYamlFrontMatter()
             .Build();
-        var html = Markdown.ToHtml(markdown, pipleline).Replace("\n", "");
+        var html = Markdown.ToHtml(markdown, pipleline);
         return html;
     }
 
