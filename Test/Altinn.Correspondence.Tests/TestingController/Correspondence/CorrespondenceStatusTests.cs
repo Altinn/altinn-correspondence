@@ -129,5 +129,54 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
         }
+
+        [Fact]
+        public async Task UpdateCorrespondenceStatus_ToConfirmed_Succeeds()
+        {
+            //  Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .Build();
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = initializedCorrespondence.CorrespondenceId;
+            var correspondence = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+            //  Act
+            var fetchResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+            Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
+            var readResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
+            readResponse.EnsureSuccessStatusCode();
+            var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
+            confirmResponse.EnsureSuccessStatusCode();
+
+            // Assert
+            var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceId}", _responseSerializerOptions);
+            Assert.Equal(CorrespondenceStatusExt.Confirmed, overview?.Status);
+        }
+
+        [Fact]
+        public async Task UpdateCorrespondenceStatus_ToConfirmed_Twice_ReturnsBadRequest()
+        {
+            //  Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .Build();
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = initializedCorrespondence.CorrespondenceId;
+            var correspondence = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+            //  Act
+            var fetchResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+            Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
+            var readResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
+            readResponse.EnsureSuccessStatusCode();
+            var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
+            confirmResponse.EnsureSuccessStatusCode();
+
+            var secondConfirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, secondConfirmResponse.StatusCode);
+        }
     }
 }
