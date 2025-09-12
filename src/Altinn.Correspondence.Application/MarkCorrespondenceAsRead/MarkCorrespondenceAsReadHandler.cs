@@ -114,6 +114,10 @@ public class MarkCorrespondenceAsReadHandler(
         {
             return CorrespondenceErrors.ReadBeforeFetched;
         }
+          if (correspondence.StatusHasBeen(CorrespondenceStatus.Read))
+        {
+            return CorrespondenceErrors.AlreadyMarkedAsRead;
+        }
         return null;
     }
 } 
