@@ -173,24 +173,36 @@ namespace Altinn.Correspondence.Application.Helpers
         /// </summary>
         public Error? ValidateCustomRecipient(NotificationRequest notification, List<string> recipients)
         {
-            var customRecipient = notification.CustomRecipient;
-
-            // If no custom recipient is provided, no need to validate
-            if (customRecipient == null)
+            // Check if we have custom recipients
+            if (notification.CustomRecipients != null && notification.CustomRecipients.Any())
             {
-                return null;
-            }
-            
-            // Validate that if the custom recipient exists, the correspondence does not have multiple recipients
-            else
-            {
+                // Validate that if the custom recipient exists, the correspondence does not have multiple recipients
                 if (recipients.Count > 1)
                 {
                     return NotificationErrors.CustomRecipientWithMultipleRecipientsNotAllowed;
                 }
-            }
 
-            // Validate that the custom recipient only has one  and only one identifier
+                // Validate each recipient in the list
+                foreach (var customRecipient in notification.CustomRecipients)
+                {
+                    var error = ValidateSingleCustomRecipient(customRecipient, notification);
+                    if (error != null)
+                    {
+                        return error;
+                    }
+                }
+            }
+            
+            // No custom recipients to validate
+            return null;
+        }
+
+        /// <summary>
+        /// Validate a single custom recipient
+        /// </summary>
+        private Error? ValidateSingleCustomRecipient(Recipient customRecipient, NotificationRequest notification)
+        {
+            // Validate that the custom recipient only has one and only one identifier
             var fieldsWithValue = new List<string>();
             if (!string.IsNullOrEmpty(customRecipient.OrganizationNumber)) fieldsWithValue.Add("OrganizationNumber");
             if (!string.IsNullOrEmpty(customRecipient.NationalIdentityNumber)) fieldsWithValue.Add("NationalIdentityNumber");
