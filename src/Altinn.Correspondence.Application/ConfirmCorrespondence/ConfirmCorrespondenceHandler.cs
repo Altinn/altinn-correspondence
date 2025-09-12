@@ -128,6 +128,10 @@ public class ConfirmCorrespondenceHandler(
         {
             return CorrespondenceErrors.ConfirmBeforeFetched;
         }
+        if (correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
+        {
+            return CorrespondenceErrors.CorrespondenceAlreadyConfirmed;
+        }
         return null;
     }
 } 
