@@ -129,5 +129,48 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
         }
+
+        [Fact]
+        public async Task UpdateCorrespondenceStatus_ToRead_Succeeds()
+        {
+            //  Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .Build();
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = initializedCorrespondence.CorrespondenceId;
+            var correspondence = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+            //  Act
+            var fetchResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+            Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
+            var readResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, readResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateCorrespondenceStatus_ToRead_Twice_ReturnsBadRequest()
+        {
+            //  Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .Build();
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = initializedCorrespondence.CorrespondenceId;
+            var correspondence = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+            //  Act
+            var fetchResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+            Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
+            var readResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
+            Assert.Equal(HttpStatusCode.OK, readResponse.StatusCode);
+
+            var readResponse2 = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, readResponse2.StatusCode);
+        }
     }
 }
