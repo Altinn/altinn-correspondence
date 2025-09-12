@@ -119,6 +119,10 @@ public class ConfirmCorrespondenceHandler(
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
+        if (correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
+        {
+            return CorrespondenceErrors.CorrespondenceAlreadyConfirmed;
+        }
         return null;
     }
 

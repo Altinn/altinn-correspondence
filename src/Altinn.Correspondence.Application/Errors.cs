@@ -45,6 +45,7 @@ public static class CorrespondenceErrors
     public static Error MessageTitleTooLong = new Error(1037, "Message title cannot exceed 255 characters", HttpStatusCode.BadRequest);
     public static Error AttachmentCountExceeded = new Error(1038, "A correspondence cannot contain more than 100 attachments in total", HttpStatusCode.BadRequest);
     public static Error MessageSenderIsNotPlainText = new Error(1039, "Message sender must be plain text", HttpStatusCode.BadRequest);
+    public static Error CorrespondenceAlreadyConfirmed = new Error(1041, "Correspondence has already been confirmed", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
