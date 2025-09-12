@@ -72,16 +72,25 @@ public class MarkCorrespondenceAsReadHandler(
         logger.LogInformation("Executing mark as read transaction for correspondence {CorrespondenceId}", request.CorrespondenceId);
         await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
         {
+            var operationTimestamp = DateTime.UtcNow;
             await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
             {
                 CorrespondenceId = correspondence.Id,
                 Status = CorrespondenceStatus.Read,
-                StatusChanged = DateTime.UtcNow,
+                StatusChanged = operationTimestamp,
                 StatusText = CorrespondenceStatus.Read.ToString(),
                 PartyUuid = partyUuid
             }, cancellationToken);
             backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-
+            if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId > 0)
+            {
+                backgroundJobClient.Enqueue<IAltinnStorageService>(syncEventToAltinn2 => syncEventToAltinn2.SyncCorrespondenceEventToSblBridge(
+                    correspondence.Altinn2CorrespondenceId.Value,
+                    party.PartyId,
+                    operationTimestamp,
+                    SyncEventType.Read,
+                    CancellationToken.None));
+            }
             return Task.CompletedTask;
         }, logger, cancellationToken);
 
