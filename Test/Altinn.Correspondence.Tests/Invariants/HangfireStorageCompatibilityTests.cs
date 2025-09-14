@@ -147,7 +147,7 @@ public class HangfireStorageCompatibilityTests
 
             // Check jobs in sync queue
             var syncQueueJobs = monitoringApi.EnqueuedJobs(HangfireQueues.Sync, 0, jobsCount);
-            Assert.Equal(syncQueueJobs.Count, syncQueueJobs.Count);
+            Assert.Equal(syncJobs.Count, syncQueueJobs.Count);
 
             // Check jobs in migration queue
             var migrationQueueJobs = monitoringApi.EnqueuedJobs(HangfireQueues.Migration, 0, jobsCount);
