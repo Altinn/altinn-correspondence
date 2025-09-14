@@ -73,7 +73,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             {
                 options.SchedulePollingInterval = TimeSpan.FromSeconds(1);
                 options.WorkerCount = 1;
-                options.Queues = new[] { "default", "sync", "migration" };
+                options.Queues = new[] { HangfireQueues.Default, HangfireQueues.Sync, HangfireQueues.Migration };
                 options.ServerTimeout = TimeSpan.FromSeconds(2);
                 options.ShutdownTimeout = TimeSpan.FromSeconds(1);
                 options.StopTimeout = TimeSpan.FromSeconds(1);
