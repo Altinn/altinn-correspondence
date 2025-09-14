@@ -4,7 +4,6 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Hangfire;
-using Azure.Core;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -47,8 +46,8 @@ public class MigrateCorrespondenceHandler(
             string dialogId = "";
             if (request.MakeAvailable)
             {
-                var makeAvailableJob = backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Sync, (handler) => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, correspondence, true));
-                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(makeAvailableJob, HangfireQueues.Sync, (helper) => helper.SchedulePublishAtPublishTime(correspondence, CancellationToken.None));;
+                var makeAvailableJob = backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Sync, (handler) => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, true));
+                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(makeAvailableJob, HangfireQueues.Sync, (helper) => helper.SchedulePublishAtPublishTime(correspondence.Id, CancellationToken.None));
             }
             
             return new MigrateCorrespondenceResponse()
