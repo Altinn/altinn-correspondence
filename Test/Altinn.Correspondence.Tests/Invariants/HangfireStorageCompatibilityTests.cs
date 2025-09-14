@@ -123,13 +123,13 @@ public class HangfireStorageCompatibilityTests
                         }
                     case 1:
                         {
-                            backgroundJobClient.Enqueue<TestJobTracker>((testJobTracker) => testJobTracker.ExecuteJob("default-job-" + i));
+                            backgroundJobClient.Enqueue<TestJobTracker>(HangfireQueues.Default, (testJobTracker) => testJobTracker.ExecuteJob("default-job-" + i));
                             defaultJobs.Add(i.ToString());
                             break;
                         }
                     case 2:
                         {
-                            backgroundJobClient.Enqueue<TestJobTracker>((testJobTracker) => testJobTracker.ExecuteJob("sync-job-" + i));
+                            backgroundJobClient.Enqueue<TestJobTracker>(HangfireQueues.Sync, (testJobTracker) => testJobTracker.ExecuteJob("sync-job-" + i));
                             syncJobs.Add(i.ToString());
                             break;
                         }
@@ -201,7 +201,7 @@ public class HangfireStorageCompatibilityTests
                 .Select(x => x.index)
                 .ToList();
 
-            Assert.Equal(defaultQueueJobs.Count + migrationQueueJobs.Count, executionList.Count);
+            Assert.Equal(defaultQueueJobs.Count + migrationQueueJobs.Count + syncQueueJobs.Count, executionList.Count);
             var maxDefaultIndex = defaultIndices.Max();
             var maxSyncIndex = syncIndices.Max();
             var minMigrationIndex = migrationIndices.Min();
@@ -209,7 +209,7 @@ public class HangfireStorageCompatibilityTests
             Assert.True(maxDefaultIndex < minMigrationIndex,
                 $"Default queue jobs should execute before migration queue jobs. " +
                 $"Execution order: [{string.Join(", ", executionList)}]");
-            Assert.True(maxDefaultIndex < minMigrationIndex,
+            Assert.True(maxSyncIndex < minMigrationIndex,
                 $"Sync queue jobs should execute before migration queue jobs. " +
                 $"Execution order: [{string.Join(", ", executionList)}]");
         }
@@ -285,7 +285,7 @@ public class HangfireStorageCompatibilityTests
         var serverOptions = (BackgroundJobServerOptions)optionsField.GetValue(hangfireServer);
 
         Assert.NotNull(serverOptions);
-        Assert.Equal(new[] { HangfireQueues.Default }, serverOptions.Queues);
+        Assert.Equal(new[] { HangfireQueues.Default, HangfireQueues.Sync }, serverOptions.Queues);
     }
 
     internal class DisabledMigrationWebApplicationFactory : WebApplicationFactory<Program>
