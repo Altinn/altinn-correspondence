@@ -106,19 +106,18 @@ public class HangfireStorageCompatibilityTests
 
             // Enqueue jobs in different queues but added in random order
             var randomGen = new Random();
-            var migrationJobs = new List<string>();
+            var batchMigrationJobs = new List<string>();
             var defaultJobs = new List<string>();
-            var syncJobs = new List<string>();
+            var liveMigrationJobs = new List<string>();
             for (int i = 1; i <= jobsCount; i++)
             {
-                bool scheduleAsMigrationJob = randomGen.Next(2) == 0;
                 int schedule = randomGen.Next(3);
                 switch (schedule)
                 {
                     case 0:
                         {
                             backgroundJobClient.Enqueue<TestJobTracker>(HangfireQueues.Migration, (testJobTracker) => testJobTracker.ExecuteJob("migration-job-" + i));
-                            migrationJobs.Add(i.ToString());
+                            batchMigrationJobs.Add(i.ToString());
                             break;
                         }
                     case 1:
@@ -129,8 +128,8 @@ public class HangfireStorageCompatibilityTests
                         }
                     case 2:
                         {
-                            backgroundJobClient.Enqueue<TestJobTracker>(HangfireQueues.Sync, (testJobTracker) => testJobTracker.ExecuteJob("sync-job-" + i));
-                            syncJobs.Add(i.ToString());
+                            backgroundJobClient.Enqueue<TestJobTracker>(HangfireQueues.LiveMigration, (testJobTracker) => testJobTracker.ExecuteJob("live-migration-job-" + i));
+                            liveMigrationJobs.Add(i.ToString());
                             break;
                         }
                     default:
@@ -145,27 +144,28 @@ public class HangfireStorageCompatibilityTests
             var defaultQueueJobs = monitoringApi.EnqueuedJobs(HangfireQueues.Default, 0, jobsCount);
             Assert.Equal(defaultJobs.Count, defaultQueueJobs.Count);
 
-            // Check jobs in sync queue
-            var syncQueueJobs = monitoringApi.EnqueuedJobs(HangfireQueues.Sync, 0, jobsCount);
-            Assert.Equal(syncJobs.Count, syncQueueJobs.Count);
+            // Check jobs in live migration queue
+            var liveMigrationQueueJobs = monitoringApi.EnqueuedJobs(HangfireQueues.LiveMigration, 0, jobsCount);
+            Assert.Equal(liveMigrationJobs.Count, liveMigrationQueueJobs.Count);
 
-            // Check jobs in migration queue
-            var migrationQueueJobs = monitoringApi.EnqueuedJobs(HangfireQueues.Migration, 0, jobsCount);
-            Assert.Equal(migrationJobs.Count, migrationQueueJobs.Count);
+            // Check jobs in batch migration queue
+            var batchMigrationQueueJobs = monitoringApi.EnqueuedJobs(HangfireQueues.Migration, 0, jobsCount);
+            Assert.Equal(batchMigrationJobs.Count, batchMigrationQueueJobs.Count);
 
             // Verify the specific job IDs are in the correct queues
             var actualDefaultJobIds = defaultQueueJobs.Select(j => j.Key).ToArray();
-            var actualMigrationJobIds = migrationQueueJobs.Select(j => j.Key).ToArray();
+            var actualBatchMigrationJobIds = batchMigrationQueueJobs.Select(j => j.Key).ToArray();
+            var actualLiveMigrationJob = liveMigrationQueueJobs.Select(j => j.Key).ToArray();
 
             Assert.All(actualDefaultJobIds, jobId =>
                 Assert.Contains(jobId, defaultJobs));
-            Assert.All(actualMigrationJobIds, jobId =>
-                Assert.Contains(jobId, migrationJobs));
+            Assert.All(actualBatchMigrationJobIds, jobId =>
+                Assert.Contains(jobId, batchMigrationJobs));
 
             // Start background job server with queue priority
             var serverOptions = new BackgroundJobServerOptions
             {
-                Queues = new[] { HangfireQueues.Default, HangfireQueues.Sync, HangfireQueues.Migration }, // default processed first
+                Queues = new[] { HangfireQueues.Default, HangfireQueues.LiveMigration, HangfireQueues.Migration }, // default processed first
                 WorkerCount = 1, // Single worker for deterministic ordering
                 ServerTimeout = TimeSpan.FromSeconds(30),
                 SchedulePollingInterval = TimeSpan.FromSeconds(1)
@@ -189,28 +189,28 @@ public class HangfireStorageCompatibilityTests
                 .Select(x => x.index)
                 .ToList();
 
-            var syncIndices = executionList
+            var liveMigrationIndices = executionList
                 .Select((job, index) => new { job, index })
-                .Where(x => x.job.StartsWith(HangfireQueues.Sync))
+                .Where(x => x.job.StartsWith(HangfireQueues.LiveMigration))
                 .Select(x => x.index)
                 .ToList();
 
-            var migrationIndices = executionList
+            var batchMigrationIndices = executionList
                 .Select((job, index) => new { job, index })
                 .Where(x => x.job.StartsWith(HangfireQueues.Migration))
                 .Select(x => x.index)
                 .ToList();
 
-            Assert.Equal(defaultQueueJobs.Count + migrationQueueJobs.Count + syncQueueJobs.Count, executionList.Count);
-            var maxDefaultIndex = defaultIndices.Max();
-            var maxSyncIndex = syncIndices.Max();
-            var minMigrationIndex = migrationIndices.Min();
+            Assert.Equal(defaultQueueJobs.Count + batchMigrationQueueJobs.Count + liveMigrationQueueJobs.Count, executionList.Count);
+            var maxDefaultIndex = defaultIndices?.Max() ?? 0;
+            var maxLiveMigrationIndex = liveMigrationIndices?.Max() ?? 0;
+            var minBatchMigrationIndex = batchMigrationIndices?.Min() ?? 0;
 
-            Assert.True(maxDefaultIndex < minMigrationIndex,
+            Assert.True(maxDefaultIndex < minBatchMigrationIndex,
                 $"Default queue jobs should execute before migration queue jobs. " +
                 $"Execution order: [{string.Join(", ", executionList)}]");
-            Assert.True(maxSyncIndex < minMigrationIndex,
-                $"Sync queue jobs should execute before migration queue jobs. " +
+            Assert.True(maxLiveMigrationIndex < minBatchMigrationIndex,
+                $"Live migration queue jobs should execute before batch migration queue jobs. " +
                 $"Execution order: [{string.Join(", ", executionList)}]");
         }
         finally
@@ -260,7 +260,7 @@ public class HangfireStorageCompatibilityTests
         var serverOptions = (BackgroundJobServerOptions)optionsField.GetValue(hangfireServer);
 
         Assert.NotNull(serverOptions);
-        Assert.Equal(new[] { HangfireQueues.Default, HangfireQueues.Sync, HangfireQueues.Migration }, serverOptions.Queues);
+        Assert.Equal(new[] { HangfireQueues.Default, HangfireQueues.LiveMigration, HangfireQueues.Migration }, serverOptions.Queues);
         Assert.Equal(HangfireQueues.Default, serverOptions.Queues[0]); // Should be highest priority
     }
 
@@ -285,7 +285,7 @@ public class HangfireStorageCompatibilityTests
         var serverOptions = (BackgroundJobServerOptions)optionsField.GetValue(hangfireServer);
 
         Assert.NotNull(serverOptions);
-        Assert.Equal(new[] { HangfireQueues.Default, HangfireQueues.Sync }, serverOptions.Queues);
+        Assert.Equal(new[] { HangfireQueues.Default, HangfireQueues.LiveMigration }, serverOptions.Queues);
     }
 
     internal class DisabledMigrationWebApplicationFactory : WebApplicationFactory<Program>

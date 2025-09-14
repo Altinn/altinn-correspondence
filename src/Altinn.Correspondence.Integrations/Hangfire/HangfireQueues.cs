@@ -3,6 +3,6 @@
 public static class HangfireQueues
 {
     public const string Default = "default";
-    public const string Sync = "sync";
+    public const string LiveMigration = "live-migration";
     public const string Migration = "migration";
 }
