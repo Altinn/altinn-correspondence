@@ -117,8 +117,8 @@ runs:
         IDPORTEN_CLIENT_SECRET: ${{ inputs.IDPORTEN_CLIENT_SECRET }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
         RESOURCE_WHITELIST: ${{ inputs.RESOURCE_WHITELIST }}
-        MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
-        MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
+        MAINTENANCE_AD_GROUP_ID: ${{ inputs.MAINTENANCE_AD_GROUP_ID }}
+        MAINTENANCE_AD_GROUP_NAME: ${{ inputs.MAINTENANCE_AD_GROUP_NAME }}
       with:
         scope: subscription
         template: ./.azure/infrastructure/main.bicep
