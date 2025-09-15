@@ -202,7 +202,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
                 .WithRequestedPublishTime(t)
                 .WithExternalReference(ReferenceType.DialogportenDialogId, "dD")
                 .WithStatus(CorrespondenceStatus.Archived, t.AddMinutes(1), idA)
-                .WithStatus(CorrespondenceStatus.PurgedByRecipient, t.AddMinutes(1), idB)
+                .WithStatus(CorrespondenceStatus.PurgedByRecipient, t.AddMinutes(2), idB)
                 .WithStatus(CorrespondenceStatus.Initialized, t, idC)
                 .Build();
 

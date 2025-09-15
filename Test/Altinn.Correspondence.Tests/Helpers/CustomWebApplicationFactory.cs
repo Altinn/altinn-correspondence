@@ -72,8 +72,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             services.AddHangfireServer(options => 
             {
                 options.SchedulePollingInterval = TimeSpan.FromSeconds(1);
-                options.WorkerCount = 1;
-                options.Queues = new[] { "default", "migration" };
+                options.WorkerCount = 5;
+                options.Queues = new[] { HangfireQueues.Default, HangfireQueues.LiveMigration, HangfireQueues.Migration };
                 options.ServerTimeout = TimeSpan.FromSeconds(2);
                 options.ShutdownTimeout = TimeSpan.FromSeconds(1);
                 options.StopTimeout = TimeSpan.FromSeconds(1);
