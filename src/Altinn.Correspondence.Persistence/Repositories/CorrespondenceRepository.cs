@@ -34,6 +34,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             string orgNo,
             CorrespondencesRoleType role,
             string? sendersReference,
+            Guid? idempotentKey,
             CancellationToken cancellationToken)
         {
             var correspondences = _context.Correspondences
@@ -287,6 +288,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     Statuses = new List<CorrespondenceStatusEntity>() // Initialize required property
                 })
                 .ToListAsync(cancellationToken);
+        }
+
+        public async Task<CorrespondenceEntity?> GetCorrespondenceByIdempotentKey(Guid idempotentKey, CancellationToken cancellationToken)
+        {
+        var correspondence = await _context.Correspondences
+        .Where(c => c.IdempotencyKeys.Any(k => k.Id == idempotentKey))
+        .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
+        .SingleOrDefaultAsync(cancellationToken);
+
+    return correspondence;
         }
     }
 }
