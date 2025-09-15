@@ -29,7 +29,6 @@ namespace Altinn.Correspondence.Core.Repositories
             List<string> resourceIds,
             bool includeActive,
             bool includeArchived,
-            bool includePurged,
             string searchString,
             CancellationToken cancellationToken,
             bool filterMigrated = true);
@@ -67,5 +66,7 @@ namespace Altinn.Correspondence.Core.Repositories
             ReferenceType referenceType,
             List<CorrespondenceStatus> currentStatuses,
             CancellationToken cancellationToken);
+        
+        Task<List<CorrespondenceEntity>> GetCorrespondencesForReport(bool includeAltinn2, CancellationToken cancellationToken);
     }
 }

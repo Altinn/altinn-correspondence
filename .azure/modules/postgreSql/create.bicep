@@ -245,7 +245,7 @@ module saveMigrationConnectionString '../keyvault/upsertSecret.bicep' = {
   params: {	
     destKeyVaultName: environmentKeyVaultName
     secretName: 'correspondence-migration-connection-string'	
-    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${namePrefix}-app-identity;Ssl Mode=Require;Trust Server Certificate=True;Maximum Pool Size=5;options=-c role=azure_pg_admin;;'	
+    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${namePrefix}-migration-identity;Ssl Mode=Require;Trust Server Certificate=True;Maximum Pool Size=5;options=-c role=azure_pg_admin;'	
   }	
 }
 

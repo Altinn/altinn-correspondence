@@ -285,6 +285,82 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 throw;
             }
         }
+
+        public async Task<(string locationUrl, string hash, long size)> UploadReportFile(string fileName, Stream stream, CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Starting upload of report file: {fileName}", fileName);
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            
+            try
+            {
+                // Use the legacy implementation for reports (Correspondence's storage account)
+                var connectionString = _options.ConnectionString;
+                var blobServiceClient = new BlobServiceClient(connectionString, _blobClientOptions);
+                var blobContainerClient = blobServiceClient.GetBlobContainerClient("reports");
+                
+                // Ensure the reports container exists
+                await blobContainerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
+                
+                var blobClient = blobContainerClient.GetBlobClient(fileName);
+                
+                // Calculate MD5 hash
+                using var md5 = MD5.Create();
+                var hash = Convert.ToBase64String(md5.ComputeHash(stream));
+                stream.Position = 0; // Reset stream position after hash calculation
+                
+                // Upload the file
+                var response = await blobClient.UploadAsync(stream, overwrite: true, cancellationToken);
+                
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully uploaded report file {fileName} in {elapsedMs}ms", fileName, stopwatch.ElapsedMilliseconds);
+                
+                return (blobClient.Uri.ToString(), hash, stream.Length);
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "Failed to upload report file {fileName} after {elapsedMs}ms", fileName, stopwatch.ElapsedMilliseconds);
+                throw;
+            }
+        }
+
+    public async Task<Stream> DownloadReportFile(string fileName, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Starting download of report file: {fileName}", fileName);
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        
+        try
+        {
+            // Use the same connection string as for uploads
+            var connectionString = _options.ConnectionString;
+            var blobServiceClient = new BlobServiceClient(connectionString, _blobClientOptions);
+            var blobContainerClient = blobServiceClient.GetBlobContainerClient("reports");
+            
+            var blobClient = blobContainerClient.GetBlobClient(fileName);
+            
+            // Check if the blob exists
+            var exists = await blobClient.ExistsAsync(cancellationToken);
+            if (!exists.Value)
+            {
+                throw new FileNotFoundException($"Report file '{fileName}' not found in blob storage");
+            }
+            
+            // Download the blob to a memory stream
+            var memoryStream = new MemoryStream();
+            await blobClient.DownloadToAsync(memoryStream, cancellationToken);
+            memoryStream.Position = 0; // Reset position for reading
+            
+            stopwatch.Stop();
+            _logger.LogInformation("Successfully downloaded report file {fileName} in {elapsedMs}ms", fileName, stopwatch.ElapsedMilliseconds);
+            
+            return memoryStream;
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            _logger.LogError(ex, "Failed to download report file {fileName} after {elapsedMs}ms", fileName, stopwatch.ElapsedMilliseconds);
+            throw;
+        }
     }
 }
 
@@ -301,4 +377,5 @@ internal static class BlobRetryPolicy
         );
 
     public static Task ExecuteAsync(ILogger logger, Func<Task> action) => RetryWithBackoff(logger).ExecuteAsync(action);
+}
 }

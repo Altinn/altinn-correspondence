@@ -27,6 +27,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Altinn.Correspondence.Application.CleanupOrphanedDialogs;
 using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 using Altinn.Correspondence.Application.LegacyUpdateCorrespondenceStatus;
+using Altinn.Correspondence.Application.GenerateReport;
 
 namespace Altinn.Correspondence.Application;
 
@@ -65,6 +66,9 @@ public static class DependencyInjection
         // Maintenance
         services.AddScoped<CleanupOrphanedDialogsHandler>();
 
+        // Statistics & Reporting
+        services.AddScoped<GenerateDailySummaryReportHandler>();
+
         // Helpers
         services.AddScoped<AttachmentHelper>();
         services.AddScoped<UserClaimsHelper>();
@@ -90,8 +94,7 @@ public static class DependencyInjection
         services.AddScoped<MigrateToStorageProviderHandler>();
 
         // EventSync
-        services.AddScoped<SyncCorrespondenceStatusEventHandler>();        
-        services.AddScoped<SyncCorrespondenceStatusEventHelper>();
+        services.AddScoped<SyncCorrespondenceStatusEventHandler>();
         services.AddScoped<SyncCorrespondenceNotificationEventHandler>();
         services.AddScoped<SyncCorrespondenceForwardingEventHandler>();
     }

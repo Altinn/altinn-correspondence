@@ -57,6 +57,19 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             return null;
         }
+
+        public Error? ValidateCorrespondenceSender(CorrespondenceEntity correspondence)
+        {
+            if (!string.IsNullOrEmpty(correspondence.MessageSender))
+            {
+            if (!TextValidation.ValidatePlainText(correspondence.MessageSender))
+                {
+                    return CorrespondenceErrors.MessageSenderIsNotPlainText;
+                }
+            }
+            return null;
+        }
+
         public Error? ValidateCorrespondenceContent(CorrespondenceContentEntity? content)
         {
             if (content == null)
@@ -75,23 +88,26 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return CorrespondenceErrors.MessageTitleTooLong;
             }
-            if (string.IsNullOrWhiteSpace(content.MessageBody))
+            if (!TextValidation.ValidatePlainText(content.MessageSummary))
             {
-                return CorrespondenceErrors.MessageBodyEmpty;
+                return CorrespondenceErrors.MessageSummaryIsNotPlainText;
             }
             if (!TextValidation.ValidateMarkdown(content.MessageBody))
             {
                 return CorrespondenceErrors.MessageBodyIsNotMarkdown;
             }
-            if (!string.IsNullOrWhiteSpace(content.MessageSummary) && !TextValidation.ValidateMarkdown(content.MessageSummary))
+            if (content.MessageBody.Length < 1)
             {
-                return CorrespondenceErrors.MessageSummaryIsNotMarkdown;
+                return CorrespondenceErrors.MessageBodyEmpty;
+            }
+            if (content.MessageBody.Length > 10000)
+            {
+                return CorrespondenceErrors.MessageBodyTooLong;
             }
             if (!IsLanguageValid(content.Language))
             {
                 return CorrespondenceErrors.InvalidLanguage;
             }
-
             return null;
         }
         private static bool IsLanguageValid(string language)
@@ -157,24 +173,36 @@ namespace Altinn.Correspondence.Application.Helpers
         /// </summary>
         public Error? ValidateCustomRecipient(NotificationRequest notification, List<string> recipients)
         {
-            var customRecipient = notification.CustomRecipient;
-
-            // If no custom recipient is provided, no need to validate
-            if (customRecipient == null)
+            // Check if we have custom recipients
+            if (notification.CustomRecipients != null && notification.CustomRecipients.Any())
             {
-                return null;
-            }
-            
-            // Validate that if the custom recipient exists, the correspondence does not have multiple recipients
-            else
-            {
+                // Validate that if the custom recipient exists, the correspondence does not have multiple recipients
                 if (recipients.Count > 1)
                 {
                     return NotificationErrors.CustomRecipientWithMultipleRecipientsNotAllowed;
                 }
-            }
 
-            // Validate that the custom recipient only has one  and only one identifier
+                // Validate each recipient in the list
+                foreach (var customRecipient in notification.CustomRecipients)
+                {
+                    var error = ValidateSingleCustomRecipient(customRecipient, notification);
+                    if (error != null)
+                    {
+                        return error;
+                    }
+                }
+            }
+            
+            // No custom recipients to validate
+            return null;
+        }
+
+        /// <summary>
+        /// Validate a single custom recipient
+        /// </summary>
+        private Error? ValidateSingleCustomRecipient(Recipient customRecipient, NotificationRequest notification)
+        {
+            // Validate that the custom recipient only has one and only one identifier
             var fieldsWithValue = new List<string>();
             if (!string.IsNullOrEmpty(customRecipient.OrganizationNumber)) fieldsWithValue.Add("OrganizationNumber");
             if (!string.IsNullOrEmpty(customRecipient.NationalIdentityNumber)) fieldsWithValue.Add("NationalIdentityNumber");

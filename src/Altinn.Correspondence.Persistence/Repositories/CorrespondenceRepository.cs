@@ -156,7 +156,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
-        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, bool includeActive, bool includeArchived, bool includePurged, string searchString, CancellationToken cancellationToken, bool filterMigrated = true)
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, bool includeActive, bool includeArchived, string searchString, CancellationToken cancellationToken, bool filterMigrated = true)
         {
             var correspondences = recipientIds.Count == 1
                 ? _context.Correspondences.Where(c => c.Recipient == recipientIds[0])     // Filter by single recipient
@@ -166,7 +166,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
                 .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter                              
                 .Where(c => resourceIds.Count == 0 || resourceIds.Contains(c.ResourceId))       // Filter by resources
-                .IncludeByStatuses(includeActive, includeArchived, includePurged, status) // Filter by statuses
+                .IncludeByStatuses(includeActive, includeArchived, status) // Filter by statuses
+                .ExcludePurged() // Exclude purged correspondences
                 .Where(c => string.IsNullOrEmpty(searchString) || (c.Content != null && c.Content.MessageTitle.Contains(searchString))) // Filter by messageTitle containing searchstring
                 .FilterMigrated(filterMigrated) // Filter all migrated correspondences no matter their IsMigrating status
                 .Include(c => c.Statuses)
@@ -189,6 +190,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             return _context.Correspondences
                 .Where(c => c.Altinn2CorrespondenceId != null && c.IsMigrating) // Only include correspondences that are not already migrated 
+                .ExcludePurged() // Exclude purged correspondences
                 .OrderByDescending(c => c.Created)
                 .ThenBy(c => c.Id)
                 .Skip(offset)
@@ -254,6 +256,36 @@ namespace Altinn.Correspondence.Persistence.Repositories
                         .FirstOrDefault()))
                 .Include(c => c.ExternalReferences)
                 .Include(c => c.Statuses)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForReport(bool includeAltinn2, CancellationToken cancellationToken)
+        {
+            var query = _context.Correspondences.AsQueryable();
+
+            // Filter by Altinn version if needed
+            if (!includeAltinn2)
+            {
+                query = query.Where(c => c.Altinn2CorrespondenceId == null);
+            }
+
+            // Get all correspondence data needed for detailed statistics including ServiceOwnerId and AltinnVersion info
+            return await query
+                .Select(c => new CorrespondenceEntity
+                {
+                    Id = c.Id,
+                    Sender = c.Sender,
+                    ResourceId = c.ResourceId,
+                    Created = c.Created,
+                    Recipient = c.Recipient,
+                    SendersReference = c.SendersReference,
+                    RequestedPublishTime = c.RequestedPublishTime,
+                    ServiceOwnerId = c.ServiceOwnerId,
+                    ServiceOwnerMigrationStatus = c.ServiceOwnerMigrationStatus,
+                    Altinn2CorrespondenceId = c.Altinn2CorrespondenceId,
+                    MessageSender = c.MessageSender,
+                    Statuses = new List<CorrespondenceStatusEntity>() // Initialize required property
+                })
                 .ToListAsync(cancellationToken);
         }
     }

@@ -58,7 +58,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             var addedCorrespondence = await correspondenceRepository.CreateCorrespondence(entity, CancellationToken.None);
 
             // Act
-            var correspondences = await correspondenceRepository.GetCorrespondencesForParties(1000, from, to, null, [recipient], [resource], true, false, false, "", CancellationToken.None);
+            var correspondences = await correspondenceRepository.GetCorrespondencesForParties(1000, from, to, null, [recipient], [resource], true, false, "", CancellationToken.None);
 
             // Assert
             Assert.NotNull(correspondences);
@@ -202,7 +202,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
                 .WithRequestedPublishTime(t)
                 .WithExternalReference(ReferenceType.DialogportenDialogId, "dD")
                 .WithStatus(CorrespondenceStatus.Archived, t.AddMinutes(1), idA)
-                .WithStatus(CorrespondenceStatus.PurgedByRecipient, t.AddMinutes(1), idB)
+                .WithStatus(CorrespondenceStatus.PurgedByRecipient, t.AddMinutes(2), idB)
                 .WithStatus(CorrespondenceStatus.Initialized, t, idC)
                 .Build();
 

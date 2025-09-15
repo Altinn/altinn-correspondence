@@ -56,7 +56,18 @@ public class LegacyGetCorrespondencesHandler(
         var recipients = new List<string>();
         if (request.InstanceOwnerPartyIdList != null && request.InstanceOwnerPartyIdList.Length > 0)
         {
-            var authorizedParties = await altinnAccessManagementService.GetAuthorizedParties(userParty, cancellationToken);
+            var authorizedPartiesResponse = await altinnAccessManagementService.GetAuthorizedParties(userParty, cancellationToken);
+            var authorizedParties = new List<PartyWithSubUnits>();
+            foreach(var authorizedParty in authorizedPartiesResponse)
+            {
+                if (!authorizedParty.OnlyHierarchyElementWithNoAccess)
+                {
+                    authorizedParties.Add(authorizedParty);
+                } 
+                
+                authorizedParties.AddRange(authorizedParty.SubUnits);
+            }
+            authorizedParties = authorizedParties.DistinctBy(party => party.PartyId).ToList();
             var authorizedPartiesDict = authorizedParties.ToDictionary(p => p.PartyId, p => p);
             foreach (int instanceOwnerPartyId in request.InstanceOwnerPartyIdList)
             {
@@ -78,7 +89,18 @@ public class LegacyGetCorrespondencesHandler(
         List<string> resourcesToSearch = new List<string>();
 
         // Get all correspondences owned by Recipients
-        var correspondences = await correspondenceRepository.GetCorrespondencesForParties(limit, from, to, request.Status, recipients, resourcesToSearch, request.IncludeActive, request.IncludeArchived, request.IncludeDeleted, request.SearchString, cancellationToken, request.FilterMigrated);
+        // request.IncludeDeleted is not used as this is for soft deleted correspondences only, which are not relevant in legacy
+        var correspondences = await correspondenceRepository.GetCorrespondencesForParties(limit: limit,
+                                                                                          from: from,
+                                                                                          to: to,
+                                                                                          status: request.Status,
+                                                                                          recipientIds: recipients,
+                                                                                          resourceIds: resourcesToSearch,
+                                                                                          includeActive: request.IncludeActive,
+                                                                                          includeArchived: request.IncludeArchived,
+                                                                                          searchString: request.SearchString,
+                                                                                          cancellationToken: cancellationToken,
+                                                                                          filterMigrated: request.FilterMigrated);
 
         var resourceIds = correspondences.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
