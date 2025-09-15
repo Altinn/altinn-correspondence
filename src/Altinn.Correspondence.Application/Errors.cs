@@ -89,7 +89,7 @@ public static class NotificationErrors
 }
 public static class AuthorizationErrors
 {
-    public static Error NoAccessToResource = new Error(4001, "You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization", HttpStatusCode.Unauthorized);
+    public static Error NoAccessToResource = new Error(4001, "You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization", HttpStatusCode.Unauthorized);
     public static Error CouldNotFindPartyUuid = new Error(4002, "Could not retrieve party uuid from lookup in Altinn Register", HttpStatusCode.BadRequest);
     public static Error InvalidPartyId = new Error(4003, "Invalid partyId", HttpStatusCode.BadRequest);
     public static Error LegacyNoAccessToCorrespondence = new Error(4004, "User does not have access to the correspondence", HttpStatusCode.Unauthorized);
