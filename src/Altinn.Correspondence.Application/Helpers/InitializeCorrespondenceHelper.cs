@@ -80,9 +80,21 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return CorrespondenceErrors.MessageTitleEmpty;
             }
+            if (!TextValidation.ValidatePlainText(content.MessageTitle))
+            {
+                return CorrespondenceErrors.MessageTitleIsNotPlainText;
+            }
             if (content.MessageTitle.Length > 255)
             {
                 return CorrespondenceErrors.MessageTitleTooLong;
+            }
+            /*if (!TextValidation.ValidatePlainText(content.MessageSummary))
+            {
+                return CorrespondenceErrors.MessageSummaryIsNotPlainText;
+            }*/
+            if (!TextValidation.ValidateMarkdown(content.MessageBody))
+            {
+                return CorrespondenceErrors.MessageBodyIsNotMarkdown;
             }
             if (content.MessageBody.Length < 1)
             {
