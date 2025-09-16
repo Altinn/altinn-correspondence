@@ -292,12 +292,12 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<CorrespondenceEntity?> GetCorrespondenceByIdempotentKey(Guid idempotentKey, CancellationToken cancellationToken)
         {
-        var correspondence = await _context.Correspondences
-        .Where(c => c.IdempotencyKeys.Any(k => k.Id == idempotentKey))
-        .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
-        .SingleOrDefaultAsync(cancellationToken);
+            var correspondence = await _context.Correspondences
+            .Where(c => c.IdempotencyKeys.Any(k => k.Id == idempotentKey))
+            .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
+            .SingleOrDefaultAsync(cancellationToken);
 
-    return correspondence;
+            return correspondence;
         }
     }
 }

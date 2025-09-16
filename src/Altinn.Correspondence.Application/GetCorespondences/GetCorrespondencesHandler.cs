@@ -41,20 +41,20 @@ public class GetCorrespondencesHandler(
             return AuthorizationErrors.NoAccessToResource;
         }
         // TODO: Add implementation to retrieve instances delegated to the user
-
-        if (request.IdempotentKey.HasValue)
+         if (request.IdempotentKey.HasValue)
         {
             logger.LogInformation("Retrieving correspondence for resource {ResourceId} with idempotentKey {IdempotentKey}",
                 request.ResourceId.SanitizeForLogging(),
                 request.IdempotentKey);
             var correspondence = await correspondenceRepository.GetCorrespondenceByIdempotentKey(request.IdempotentKey.Value, cancellationToken);
-            if (correspondence != null)
+            if (correspondence == null)
             {
-                return new GetCorrespondencesResponse { Ids = new List<Guid> { correspondence.Id } };
+                return new GetCorrespondencesResponse { Ids = new List<Guid>() };
             }
+                return new GetCorrespondencesResponse { Ids = new List<Guid> { correspondence.Id } };
         }
 
-            logger.LogInformation("Retrieving correspondences for resource {ResourceId} with filters: from={From}, to={To}, limit={Limit} status={Status}, onBehalfOf={onBehalfOf}, role={Role}",
+        logger.LogInformation("Retrieving correspondences for resource {ResourceId} with filters: from={From}, to={To}, limit={Limit} status={Status}, onBehalfOf={onBehalfOf}, role={Role}",
                 request.ResourceId.SanitizeForLogging(),
                 from,
                 to,
