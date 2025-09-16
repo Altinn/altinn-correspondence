@@ -441,7 +441,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Act
             var search = await _senderClient.GetAsync($"/correspondence/api/v1/correspondence?resourceId={resourceId}&idempotentKey={idempotentKey}&role={"recipientandsender"}");
             var result = await search.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
-
+            
             // Assert
             Assert.Single(result.Ids);
             Assert.Equal(expectedCorrespondenceId, result.Ids.First());
@@ -460,6 +460,28 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.BadRequest, search.StatusCode);
         }
 
+        [Fact]
+        public async Task GetCorrespondence_WithIdempotentKey_CorrespondenceNotFound_ReturnsEmptyList()
+        {
+            var resourceId = Guid.NewGuid().ToString();
+            var idempotentKey = Guid.NewGuid();
+            var idempotentKey2 = Guid.NewGuid();
 
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithResourceId(resourceId)
+                .WithIdempotentKey(idempotentKey)
+                .Build();
+
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            Assert.True(initResponse.IsSuccessStatusCode, await initResponse.Content.ReadAsStringAsync());
+
+            // Act
+            var search = await _senderClient.GetAsync($"/correspondence/api/v1/correspondence?resourceId={resourceId}&idempotentKey={idempotentKey2}&role={"recipientandsender"}");
+            var result = await search.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
+
+            // Assert
+            Assert.Empty(result.Ids);
+        }
     }
 }
