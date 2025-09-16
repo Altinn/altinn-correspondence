@@ -91,7 +91,7 @@ namespace Altinn.Correspondence.Application.Helpers
             
             if (!TextValidation.ValidatePlainText(content.MessageSummary))
             {
-                //return CorrespondenceErrors.MessageSummaryIsNotPlainText; // Temporarily disabled until changed by customer
+                //return CorrespondenceErrors.MessageSummaryIsNotPlainText; // Temporarily disabled until changed by customer #1331
                 logger.LogWarning("Markdown used in MessageSummary");
             }
             if (!TextValidation.ValidateMarkdown(content.MessageBody))
