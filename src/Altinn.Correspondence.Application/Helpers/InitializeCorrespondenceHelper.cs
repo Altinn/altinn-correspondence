@@ -88,10 +88,12 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return CorrespondenceErrors.MessageTitleTooLong;
             }
-            /*if (!TextValidation.ValidatePlainText(content.MessageSummary))
+            
+            if (!TextValidation.ValidatePlainText(content.MessageSummary))
             {
-                return CorrespondenceErrors.MessageSummaryIsNotPlainText;
-            }*/
+                //return CorrespondenceErrors.MessageSummaryIsNotPlainText; // Temporarily disabled until changed by customer
+                logger.LogWarning("Markdown used in MessageSummary");
+            }
             if (!TextValidation.ValidateMarkdown(content.MessageBody))
             {
                 return CorrespondenceErrors.MessageBodyIsNotMarkdown;
