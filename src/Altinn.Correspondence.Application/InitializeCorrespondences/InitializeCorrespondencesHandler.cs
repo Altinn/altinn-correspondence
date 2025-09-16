@@ -272,32 +272,7 @@ public class InitializeCorrespondencesHandler(
                     logger.LogWarning("Duplicate idempotency key {Key} found", request.IdempotentKey.Value);
                     return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
                 }
-
-                logger.LogInformation("Creating new idempotency key {Key}", request.IdempotentKey.Value);
-                var idempotencyKey = new IdempotencyKeyEntity()
-                {
-                    Id = request.IdempotentKey.Value,
-                    CorrespondenceId = null,
-                    AttachmentId = null,
-                    StatusAction = null,
-                    IdempotencyType = IdempotencyType.Correspondence
-                };
-                
-                try
-                {
-                    await idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
-                    return new OneOf<InitializeCorrespondencesResponse, Error>();
-                }
-                catch (DbUpdateException e)
-                {
-                    var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
-                    if (sqlState == "23505") // PostgreSQL unique constraint violation
-                    {
-                        logger.LogWarning("Idempotency key {Key} already exists in database", request.IdempotentKey.Value);
-                        return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
-                    }
-                    throw;
-                }
+            return new OneOf<InitializeCorrespondencesResponse, Error>();
             }, logger, cancellationToken);
 
             if (result.IsT1)
@@ -309,11 +284,6 @@ public class InitializeCorrespondencesHandler(
         var validationResult = await ValidatePrepareDataAndUploadAttachments(request, user, cancellationToken);
         if (validationResult.IsT1)
         {
-            if (request.IdempotentKey.HasValue)
-            {
-                logger.LogInformation("Deleting idempotency key {Key} due to validation failure", request.IdempotentKey.Value);
-                await idempotencyKeyRepository.DeleteAsync(request.IdempotentKey.Value, cancellationToken);
-            }
             return validationResult.AsT1;
         }
 
@@ -372,10 +342,24 @@ public class InitializeCorrespondencesHandler(
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
+        
         var initializedCorrespondences = new List<InitializedCorrespondences>();
         foreach (var correspondence in correspondences)
         {
             logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
+            if (request.IdempotentKey.HasValue)
+            {
+                logger.LogInformation("Creating new idempotency key {Key}", request.IdempotentKey.Value);
+                var idempotencyKey = new IdempotencyKeyEntity()
+                {
+                    Id = request.IdempotentKey.Value,
+                    CorrespondenceId = correspondence.Id,
+                    AttachmentId = null,
+                    StatusAction = null,
+                    IdempotencyType = IdempotencyType.Correspondence
+                };
+                await idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
+            }
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
             await hybridCacheWrapper.SetAsync($"dialogJobId_{correspondence.Id}", dialogJob, new HybridCacheEntryOptions
             {
