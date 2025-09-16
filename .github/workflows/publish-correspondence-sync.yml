@@ -20,8 +20,7 @@ permissions:
 
 jobs:
   build:
-    name: Build latest from main
-    if: github.ref == 'refs/heads/main'
+    name: Build lates
     runs-on: ubuntu-latest
     environment: test
     steps:
@@ -38,7 +37,6 @@ jobs:
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
   release:
     name: Build release from tag
-    if: startsWith(github.ref, 'refs/tags/corr-sync-')
     runs-on: ubuntu-latest
     environment: production
     steps:
