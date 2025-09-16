@@ -219,6 +219,12 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public CorrespondenceBuilder WithOverrideKoFuVi(bool overrideKoFuVi)
+        {
+            _correspondence.Correspondence.Notification!.OverrideKoFuVi = overrideKoFuVi;
+            return this;
+        }
+
         public CorrespondenceBuilder WithIgnoreReservation(bool ignoreReservation)
         {
             _correspondence.Correspondence.IgnoreReservation = ignoreReservation;
