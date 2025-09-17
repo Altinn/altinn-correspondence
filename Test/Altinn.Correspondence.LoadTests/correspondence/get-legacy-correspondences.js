@@ -13,7 +13,7 @@ const traceCalls = (__ENV.traceCalls ?? 'false') === 'true';
 
 export default function(data) {
     const myEndUsers = data[exec.vu.idInTest - 1];
-    getLegacyCorrespondences(myEndUsers[__ITER % myEndUsers.length], traceCalls);  
+    getLegacyCorrespondences(randomItem(myEndUsers), traceCalls);  
 }
 
 function getLegacyCorrespondences(endUser, traceCalls) {
@@ -60,8 +60,6 @@ function getLegacyCorrespondences(endUser, traceCalls) {
         }
         let r = http.post(url.toString(), JSON.stringify(payload), paramsWithToken);
         expect(r.status, 'response status').to.equal(200);
-        //console.log(endUser.UserPartyId, r.json().items.length, r.timings.duration);
-
     });
     
 }
