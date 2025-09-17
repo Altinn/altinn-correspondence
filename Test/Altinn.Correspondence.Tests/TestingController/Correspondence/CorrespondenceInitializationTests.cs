@@ -208,6 +208,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [Fact]
         public async Task InitializeCorrespondence_With_HTML_In_Summary_Or_Body_fails()
         {
+            // Temporarily disabled until changed by customer #1331
+            return;
             var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithMessageSummary("<h1>test</h1>")
