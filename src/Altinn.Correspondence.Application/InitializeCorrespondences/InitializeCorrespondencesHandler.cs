@@ -358,7 +358,20 @@ public class InitializeCorrespondencesHandler(
                     StatusAction = null,
                     IdempotencyType = IdempotencyType.Correspondence
                 };
-                await idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
+                try
+                {
+                    await idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
+                }
+                catch (DbUpdateException e)
+                {
+                    var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
+                    if (sqlState == "23505") // PostgreSQL unique constraint violation
+                    {
+                        logger.LogWarning("Idempotency key {Key} already exists in database", request.IdempotentKey.Value);
+                        return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
+                    }
+                    throw;
+                }
             }
             var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
             await hybridCacheWrapper.SetAsync($"dialogJobId_{correspondence.Id}", dialogJob, new HybridCacheEntryOptions
