@@ -10,6 +10,7 @@ using Slack.Webhooks;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using Altinn.Correspondence.Core.Options;
+using Altinn.Correspondence.Core.Models.Enums;
 
 [assembly: InternalsVisibleTo("Altinn.Correspondence.Tests")]
 namespace Altinn.Correspondence.Application.CancelNotification
@@ -36,10 +37,11 @@ namespace Altinn.Correspondence.Application.CancelNotification
             var retryAttempts = context.GetJobParameter<int>(RetryCountKey);
             logger.LogInformation("Cancelling notifications for correspondence {correspondenceId}. Retry attempt: {retryAttempts}", correspondenceId, retryAttempts);
             var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, cancellationToken);
+            var dialogId = correspondence?.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
             var notificationEntities = correspondence?.Notifications ?? [];
-            await CancelNotification(correspondenceId, notificationEntities, retryAttempts, operationTimestamp, cancellationToken);
+            await CancelNotification(correspondenceId, notificationEntities, retryAttempts, operationTimestamp, cancellationToken, dialogId);
         }
-        public async Task CancelNotification(Guid correspondenceId, List<CorrespondenceNotificationEntity> notificationEntities, int retryAttempts, DateTimeOffset operationTimestamp, CancellationToken cancellationToken)
+        public async Task CancelNotification(Guid correspondenceId, List<CorrespondenceNotificationEntity> notificationEntities, int retryAttempts, DateTimeOffset operationTimestamp, CancellationToken cancellationToken, string? dialogId)
         {
             var env = hostEnvironment.EnvironmentName;
             var error = $"Error while attempting to cancel notifications for correspondenceId: {correspondenceId} in environment: {env}.";
@@ -54,7 +56,10 @@ namespace Altinn.Correspondence.Application.CancelNotification
                     if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
                     throw new Exception(error);
                 }
-                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled, operationTimestamp));
+                if (dialogId is not null)
+                {
+                    backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled, operationTimestamp));
+                }
             }
         }
         private void SendSlackNotificationWithMessage(string message)
