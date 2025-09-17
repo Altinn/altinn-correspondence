@@ -1,4 +1,6 @@
 param principalId string
+type PrincipalType = 'Group' | 'ServicePrincipal' | 'Unknown' | 'User'
+param principalType PrincipalType 
 param tenantId string
 param appName string
 param namePrefix string
@@ -10,7 +12,7 @@ resource databaseAccess 'Microsoft.DBforPostgreSQL/flexibleServers/administrator
   name: principalId
   parent: database
   properties: {
-    principalType: 'ServicePrincipal'
+    principalType: principalType
     tenantId: tenantId
     principalName: appName
   }
