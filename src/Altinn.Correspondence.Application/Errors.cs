@@ -9,7 +9,7 @@ public static class CorrespondenceErrors
     public static Error CorrespondenceNotFound = new Error(1001, "The requested correspondence was not found", HttpStatusCode.NotFound);
     public static Error MessageTitleIsNotPlainText = new Error(1002, "Message title must be plain text", HttpStatusCode.BadRequest);
     public static Error MessageBodyIsNotMarkdown = new Error(1003, "Message body must be markdown", HttpStatusCode.BadRequest);
-    public static Error MessageSummaryIsNotMarkdown = new Error(1004, "Message summary must be markdown", HttpStatusCode.BadRequest);
+    public static Error MessageSummaryIsNotPlainText = new Error(1004, "Message summary must be plain text", HttpStatusCode.BadRequest);
     public static Error UploadedFilesDoesNotMatchAttachments = new Error(1005, "Mismatch between uploaded files and attachment metadata", HttpStatusCode.BadRequest);
     public static Error DuplicateRecipients = new Error(1006, "Recipients must be unique", HttpStatusCode.BadRequest);
     public static Error ExistingAttachmentNotFound = new Error(1007, "Existing attachment not found", HttpStatusCode.BadRequest);
@@ -27,6 +27,7 @@ public static class CorrespondenceErrors
     public static Error MissingContent = new Error(1019, "The Content field must be provided for the correspondence", HttpStatusCode.BadRequest);
     public static Error MessageTitleEmpty = new Error(1020, "Message title cannot be empty", HttpStatusCode.BadRequest);
     public static Error MessageBodyEmpty = new Error(1021, "Message body cannot be empty", HttpStatusCode.BadRequest);
+    public static Error MessageBodyTooLong = new Error(1022, "Message body cannot exceed 10000 characters", HttpStatusCode.BadRequest);
     public static Error InvalidLanguage = new Error(1023, "Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)", HttpStatusCode.BadRequest);
     public static Error ReadBeforeFetched = new Error(1024, "Correspondence must be fetched before it can be read", HttpStatusCode.BadRequest);
     public static Error ConfirmBeforeFetched = new Error(1025, "Correspondence must be fetched before it can be confirmed", HttpStatusCode.BadRequest);
@@ -43,6 +44,9 @@ public static class CorrespondenceErrors
     public static Error ServiceOwnerOrgNumberNotFound = new Error(1036, "Service owner/sender's organization number (9 digits) not found for resource", HttpStatusCode.InternalServerError);
     public static Error MessageTitleTooLong = new Error(1037, "Message title cannot exceed 255 characters", HttpStatusCode.BadRequest);
     public static Error AttachmentCountExceeded = new Error(1038, "A correspondence cannot contain more than 100 attachments in total", HttpStatusCode.BadRequest);
+    public static Error MessageSenderIsNotPlainText = new Error(1039, "Message sender must be plain text", HttpStatusCode.BadRequest);
+    public static Error AlreadyMarkedAsRead = new Error(1040, "Correspondence is already marked as read", HttpStatusCode.BadRequest);
+    public static Error CorrespondenceAlreadyConfirmed = new Error(1041, "Correspondence has already been confirmed", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
@@ -85,7 +89,7 @@ public static class NotificationErrors
 }
 public static class AuthorizationErrors
 {
-    public static Error NoAccessToResource = new Error(4001, "You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization", HttpStatusCode.Unauthorized);
+    public static Error NoAccessToResource = new Error(4001, "You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization", HttpStatusCode.Unauthorized);
     public static Error CouldNotFindPartyUuid = new Error(4002, "Could not retrieve party uuid from lookup in Altinn Register", HttpStatusCode.BadRequest);
     public static Error InvalidPartyId = new Error(4003, "Invalid partyId", HttpStatusCode.BadRequest);
     public static Error LegacyNoAccessToCorrespondence = new Error(4004, "User does not have access to the correspondence", HttpStatusCode.Unauthorized);
@@ -99,4 +103,10 @@ public static class AuthorizationErrors
 public static class SyncErrors
 {   
     public static Error NoEventsToSync = new Error(5001, "No Events were specified in request", HttpStatusCode.BadRequest);
+}
+
+public static class StatisticsErrors
+{
+    public static Error NoCorrespondencesFound = new Error(6001, "No correspondences found for report generation", HttpStatusCode.NotFound);
+    public static Error ReportGenerationFailed = new Error(6002, "Failed to generate statistics report", HttpStatusCode.InternalServerError);
 }

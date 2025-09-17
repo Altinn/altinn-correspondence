@@ -39,7 +39,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register </li>
     /// <li>4009: Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService. </li>
     /// </ul></response>
-    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
     [HttpPost]
     [Consumes("application/json")]
     [Produces("application/json")]
@@ -78,7 +78,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <li>2009: Could not get data location url</li>
     /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li>
     /// </ul></response>
-    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
     /// <response code="404">2001: The requested attachment was not found</response>
     /// <response code="502">2002: Error occurred during upload</response>
     [HttpPost]
@@ -130,7 +130,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <response code="200">Returns attachment metadata</response>
-    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
     /// <response code="404">2001: The requested attachment was not found</response>
     [HttpGet]
     [Route("{attachmentId}")]
@@ -162,7 +162,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <response code="200">Returns attachment metadata</response>
-    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
     /// <response code="404">2001: The requested attachment was not found</response>
     [HttpGet]
     [Produces("application/json")]
@@ -200,7 +200,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <li>2007: Attachment cannot be purged as it is linked to at least one existing correspondence</li>
     /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li>
     /// </ul></response>
-    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
     /// <response code="404">2001: The requested attachment was not found</response>
     [HttpDelete]
     [Route("{attachmentId}")]
@@ -232,7 +232,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// - altinn:correspondence.write <br/>
     /// </remarks>
     /// <response code="200">Returns the attachment</response>
-    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+    /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
     /// <response code="404">2001: The requested attachment was not found</response>
     [HttpGet]
     [Produces("application/octet-stream")]

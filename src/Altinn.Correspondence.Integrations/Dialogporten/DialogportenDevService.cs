@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
@@ -28,6 +29,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.CompletedTask;
         }
 
+        public Task CreateConfirmedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp)
+        {
+            return Task.CompletedTask;
+        }
+
         public Task PurgeCorrespondenceDialog(Guid correspondenceId)
         {
             return Task.CompletedTask;
@@ -48,7 +54,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.CompletedTask;
         }
 
-        public Task<string> CreateCorrespondenceDialogForMigratedCorrespondence(Guid correspondenceId, CorrespondenceEntity? correspondence, bool enableEvents = false)
+        public Task<string> CreateCorrespondenceDialogForMigratedCorrespondence(Guid correspondenceId, CorrespondenceEntity? correspondence, bool enableEvents = false, bool isSoftDeleted = false)
         {
             // var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, "https://platform.tt02.altinn.no/", true);
             // string result = JsonConvert.SerializeObject(createDialogRequest);
@@ -56,7 +62,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.FromResult(Guid.NewGuid().ToString());
         }
 
-        public Task SetArchivedSystemLabelOnDialog(Guid correspondenceId, string enduserId)
+        public Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string enduserId, List<DialogPortenSystemLabel>? systemLabelsToAdd, List<DialogPortenSystemLabel>? systemLabelsToRemove)
         {
             return Task.CompletedTask;
         }

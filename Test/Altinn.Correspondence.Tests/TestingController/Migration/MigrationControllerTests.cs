@@ -28,8 +28,8 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
-            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
 
         SetNotificationHistory(migrateCorrespondenceExt);
@@ -46,8 +46,8 @@ public class MigrationControllerTests : MigrationTestBase
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
             .WithIsMigrating(false)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
-            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
 
         SetNotificationHistory(migrateCorrespondenceExt);
@@ -71,8 +71,8 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
-            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
         SetNotificationHistory(migrateCorrespondenceExt);
 
@@ -96,8 +96,8 @@ public class MigrationControllerTests : MigrationTestBase
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
             .WithMessageSender(messageSender)
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6), _testUserPartyUuId)
-            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7), _testUserPartyUuId)
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6), _testUserPartyUuId)
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7), _testUserPartyUuId)
             .Build();
         SetNotificationHistory(migrateCorrespondenceExt);
 
@@ -122,8 +122,8 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
-            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
 
         SetNotificationHistory(migrateCorrespondenceExt);
@@ -215,11 +215,11 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6, 11, 10, 21))
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 7, 15, 11, 56))
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 8, 14, 19, 22))
-            .WithStatusEvent(CorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 8, 14, 20, 5))
-            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 9, 10, 50, 17))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6, 11, 10, 21))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 7, 15, 11, 56))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 8, 14, 19, 22))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 8, 14, 20, 5))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 9, 10, 50, 17))
             .Build();
         SetNotificationHistory(migrateCorrespondenceExt);
 
@@ -250,11 +250,11 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6, 11, 10, 21))
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 7, 15, 11, 56))
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 8, 14, 19, 22))
-            .WithStatusEvent(CorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 8, 14, 20, 5))
-            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 9, 10, 50, 17))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6, 11, 10, 21))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 7, 15, 11, 56))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 8, 14, 19, 22))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 8, 14, 20, 5))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 9, 10, 50, 17))
             .Build();
         SetNotificationHistory(migrateCorrespondenceExt);
         string jsonCorr = "{\"correspondenceData\":{\"correspondence\":{\"resourceId\":\"skd-migratedcorrespondence-3476-130314\",\"sender\":\"urn:altinn:organization:identifier-no:974761076\",\"senderPartyUuid\":\"e6e80419-0019-4892-b8a7-78ac03eb3c51\",\"sendersReference\":\"b4199d2c-c063-4bb2-bce6-0b4d69f5acea\",\"messageSender\":\"Skatteetaten\",\"content\":{\"language\":\"nb\",\"messageTitle\":\"A03 a-melding tilbakemelding for 2025-05 - meldingsId: tlx-1232714052\",\"messageSummary\":\"\",\"messageBody\":\"Tilbakemelding på a-melding\"},\"requestedPublishTime\":\"2025-06-30T12:06:09.487+02:00\",\"allowSystemDeleteAfter\":null,\"dueDateTime\":null,\"externalReferences\":[],\"propertyList\":{\"Altinn2ArchiveUnitReference\":\"AR20699019\"},\"replyOptions\":[],\"ignoreReservation\":null,\"published\":\"2025-06-30T12:06:09.487+02:00\",\"isConfirmationNeeded\":false},\"recipients\":[\"urn:altinn:organization:identifier-no:313414450\"],\"recipientPartyUuids\":[\"aa0c3933-4d4e-4bbb-8ac6-1becd706ffe8\"],\"existingAttachments\":[]},\"altinn2CorrespondenceId\":30088189,\"eventHistory\":[{\"status\":0,\"statusText\":\"Correspondence Created in Altinn 2\",\"statusChanged\":\"2025-06-30T12:06:09.487+02:00\",\"eventUserUuid\":\"00000000-0000-0000-0000-000000000000\",\"eventUserPartyUuid\":\"00000000-0000-0000-0000-000000000000\"},{\"status\":2,\"statusText\":\"Correspondence Published in Altinn 2\",\"statusChanged\":\"2025-06-30T12:06:09.487+02:00\",\"eventUserUuid\":\"e6e80419-0019-4892-b8a7-78ac03eb3c51\",\"eventUserPartyUuid\":\"e6e80419-0019-4892-b8a7-78ac03eb3c51\"},{\"status\":4,\"statusText\":\"Migrated event Read from Altinn 2\",\"statusChanged\":\"2025-06-30T12:06:46.337+02:00\",\"eventUserUuid\":\"2a064dc8-193e-4ca0-9027-9aef49c96db1\",\"eventUserPartyUuid\":\"2a064dc8-193e-4ca0-9027-9aef49c96db1\"}],\"notificationHistory\":[],\"forwardingHistory\":[],\"IsMigrating\":true,\"created\":\"2025-06-30T12:06:09.487+02:00\",\"partyId\":51843981}";
@@ -288,11 +288,11 @@ public class MigrationControllerTests : MigrationTestBase
         // In this case, summary and DueAt.
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6, 11, 10, 21))
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 7, 15, 11, 56))
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 8, 14, 19, 22))
-            .WithStatusEvent(CorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 8, 14, 20, 5))
-            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 9, 10, 50, 17))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6, 11, 10, 21))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 7, 15, 11, 56))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 8, 14, 19, 22))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 8, 14, 20, 5))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 9, 10, 50, 17))
             .WithDueAt(new DateTime(2025, 05, 01))
             .WithSummary("")
             .Build();
@@ -325,9 +325,9 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 12, 14, 20, 11))
-            .WithStatusEvent(CorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 12, 14, 21, 05))
-            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 22, 09, 55, 20))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 12, 14, 20, 11))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 12, 14, 21, 05))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 22, 09, 55, 20))
             .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
             .WithRecipient("urn:altinn:person:identifier-no:29909898925")
             .WithResourceId("skd-migratedcorrespondence-5229-1")
@@ -352,8 +352,8 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithStatusEvent(CorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
-            .WithStatusEvent(CorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
             .Build();
         SetNotificationHistory(migrateCorrespondenceExt);
 

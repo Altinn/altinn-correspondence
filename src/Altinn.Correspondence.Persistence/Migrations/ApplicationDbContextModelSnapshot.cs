@@ -19,7 +19,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("correspondence")
-                .HasAnnotation("ProductVersion", "9.0.6")
+                .HasAnnotation("ProductVersion", "9.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "hstore");
@@ -74,6 +74,12 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasMaxLength(4096)
                         .HasColumnType("character varying(4096)");
 
+                    b.Property<string>("ServiceOwnerId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ServiceOwnerMigrationStatus")
+                        .HasColumnType("integer");
+
                     b.Property<long?>("StorageProviderId")
                         .HasColumnType("bigint");
 
@@ -83,6 +89,8 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("DataLocationUrl");
+
+                    b.HasIndex("ServiceOwnerId");
 
                     b.HasIndex("StorageProviderId");
 
@@ -178,6 +186,36 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.ToTable("CorrespondenceContents", "correspondence");
                 });
 
+            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.CorrespondenceDeleteEventEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CorrespondenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("EventOccurred")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EventType")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("PartyUuid")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("SyncedFromAltinn2")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CorrespondenceId");
+
+                    b.HasIndex("EventType");
+
+                    b.ToTable("CorrespondenceDeleteEvents", "correspondence");
+                });
+
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.CorrespondenceEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -247,6 +285,12 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasMaxLength(4096)
                         .HasColumnType("character varying(4096)");
 
+                    b.Property<string>("ServiceOwnerId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ServiceOwnerMigrationStatus")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Altinn2CorrespondenceId")
@@ -263,6 +307,8 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasIndex("ResourceId");
 
                     b.HasIndex("Sender");
+
+                    b.HasIndex("ServiceOwnerId");
 
                     b.HasIndex("Recipient", "RequestedPublishTime", "Id")
                         .IsDescending(false, true, false);
@@ -630,6 +676,17 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasOne("Altinn.Correspondence.Core.Models.Entities.CorrespondenceEntity", "Correspondence")
                         .WithOne("Content")
                         .HasForeignKey("Altinn.Correspondence.Core.Models.Entities.CorrespondenceContentEntity", "CorrespondenceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Correspondence");
+                });
+
+            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.CorrespondenceDeleteEventEntity", b =>
+                {
+                    b.HasOne("Altinn.Correspondence.Core.Models.Entities.CorrespondenceEntity", "Correspondence")
+                        .WithMany()
+                        .HasForeignKey("CorrespondenceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

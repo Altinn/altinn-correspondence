@@ -1,6 +1,7 @@
 ﻿using Altinn.AccessManagement.Core.Models;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Primitives;
 using OpenTelemetry;
 using System.Collections.Frozen;
@@ -128,6 +129,10 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
         {
             return true;
         }
+        if (_generalSettings.DisableTelemetryForSync)
+        {
+            return pathSpan.Contains("/correspondence/api/v1/migration/correspondence/sync".AsSpan(), StringComparison.InvariantCultureIgnoreCase);
+        }        
         if (_generalSettings.DisableTelemetryForMigration)
         {
             return pathSpan.Contains("/correspondence/api/v1/migration/correspondence".AsSpan(), StringComparison.InvariantCultureIgnoreCase)

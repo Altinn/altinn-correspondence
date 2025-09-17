@@ -1,23 +1,24 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.API.ValidationAttributes;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.CheckNotification;
-using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Application.ConfirmCorrespondence;
 using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
+using Altinn.Correspondence.Application.MarkCorrespondenceAsRead;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
-using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using Altinn.Correspondence.API.ValidationAttributes;
 
 namespace Altinn.Correspondence.API.Controllers
 {
@@ -45,7 +46,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <response code="400"><ul>
         /// <li>1002: Message title must be plain text</li>
         /// <li>1003: Message body must be markdown</li>
-        /// <li>1004: Message summary must be markdown</li>
+        /// <li>1004: Message summary must be plain text</li>
         /// <li>1006: Recipients must be unique</li>
         /// <li>1007: Existing attachment not found</li>
         /// <li>1008: DueDateTime cannot be prior to today</li>
@@ -60,10 +61,12 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1019: The Content field must be provided for the correspondence</li>
         /// <li>1020: Message title cannot be empty</li>
         /// <li>1021: Message body cannot be empty</li>
+        /// <li>1022: Message body cannot exceed 10000 characters</li>
         /// <li>1023: Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)</li>
         /// <li>1033: The idempotency key must be a valid non-empty GUID</li>
         /// <li>1035: Reply options must be well-formed URIs and HTTPS with a max length of 255 characters</li>
         /// <li>1038: A correspondence cannot contain more than 100 attachments in total</li>
+        /// <li>1039: Message sender must be plain text</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// <li>3002: Email body and subject must be provided when sending email notifications</li>
         /// <li>3003: Reminder email body and subject must be provided when sending reminder email notifications</li>
@@ -81,7 +84,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>4009: Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService</li>
         /// </ul></response>
         /// <response code="401"><ul>
-        /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</li>
+        /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</li>
         /// </ul></response>
         /// <response code="403"><ul>
         /// <li>4008: Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no</li>
@@ -135,7 +138,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <response code="400"><ul>
         /// <li>1002: Message title must be plain text</li>
         /// <li>1003: Message body must be markdown</li>
-        /// <li>1004: Message summary must be markdown</li>
+        /// <li>1004: Message summary must be plain text</li>
         /// <li>1005: Mismatch between uploaded files and attachment metadata</li>
         /// <li>1006: Recipients must be unique</li>
         /// <li>1007: Existing attachment not found</li>
@@ -151,10 +154,12 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1019: The Content field must be provided for the correspondence</li>
         /// <li>1020: Message title cannot be empty</li>
         /// <li>1021: Message body cannot be empty</li>
+        /// <li>1022: Message body cannot exceed 10000 characters</li>
         /// <li>1023: Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)</li>
         /// <li>1033: The idempotency key must be a valid non-empty GUID</li>
         /// <li>1035: Reply options must be well-formed URIs and HTTPS with a max length of 255 characters</li>
         /// <li>1038: A correspondence cannot contain more than 100 attachments in total</li>
+        /// <li>1039: Message sender must be plain text</li>
         /// <li>2001: The requested attachment was not found</li>
         /// <li>2004: File must have content and has a max file size of 2GB</li>
         /// <li>2008: Checksum mismatch</li>
@@ -180,7 +185,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>4009: Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService</li>
         /// </ul></response>
         /// <response code="401"><ul>
-        /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</li>
+        /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</li>
         /// </ul></response>
         /// <response code="403"><ul>
         /// <li>4008: Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no</li>
@@ -239,7 +244,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <response code="200">Returns an overview of metadata about the published correspondence</response>
         /// <response code="400">4002: Could not retrieve party uuid from lookup in Altinn Register</response>
-        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
         /// <response code="404">1001: The requested correspondence was not found</response>
         [HttpGet]
         [Route("{correspondenceId}")]
@@ -279,7 +284,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <response code="200">Detailed information about the correspondence with current status and status history</response>
         /// <response code="400">4002: Could not retrieve party uuid from lookup in Altinn Register</response>
-        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
         /// <response code="404">1001: The requested correspondence was not found</response>
         [HttpGet]
         [Produces("application/json")]
@@ -335,8 +340,7 @@ namespace Altinn.Correspondence.API.Controllers
             return commandResult.Match(
                 data =>
                 {
-                    var messageBody = data.Content.MessageBody;
-                    return Ok(messageBody);
+                    return Ok(MessageBodyHelpers.ConvertMixedToMarkdown(data.Content!.MessageBody));
                 },
                 Problem
             );
@@ -357,7 +361,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li>
         /// </ul></response>
         /// <response code="401"><ul>
-        /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</li>
+        /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</li>
         /// <li>4006: Could not determine the caller</li>
         /// </ul></response>
         [HttpGet]
@@ -405,7 +409,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <response code="200">the Id of the correspondence</response>
         /// <response code="400">4002: Could not retrieve party uuid from lookup in Altinn Register</response>
-        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
         /// <response code="404">1001: The requested correspondence was not found</response>
         [HttpPost]
         [Produces("application/json")]
@@ -418,15 +422,14 @@ namespace Altinn.Correspondence.API.Controllers
 
         public async Task<ActionResult> MarkAsRead(
             Guid correspondenceId,
-            [FromServices] UpdateCorrespondenceStatusHandler handler,
+            [FromServices] MarkCorrespondenceAsReadHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Marking Correspondence as read for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
+            var commandResult = await handler.Process(new MarkCorrespondenceAsReadRequest
             {
-                CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Read
+                CorrespondenceId = correspondenceId
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
@@ -444,7 +447,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <response code="200">the Id of the correspondence</response>
         /// <response code="400">4002: Could not retrieve party uuid from lookup in Altinn Register</response>
-        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
         /// <response code="404">1001: The requested correspondence was not found</response>
         [HttpPost]
         [Produces("application/json")]
@@ -457,15 +460,14 @@ namespace Altinn.Correspondence.API.Controllers
         [Route("{correspondenceId}/confirm")]
         public async Task<ActionResult> Confirm(
             Guid correspondenceId,
-            [FromServices] UpdateCorrespondenceStatusHandler handler,
+            [FromServices] ConfirmCorrespondenceHandler handler,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Marking Correspondence as confirmed for {correspondenceId}", correspondenceId.ToString());
 
-            var commandResult = await handler.Process(new UpdateCorrespondenceStatusRequest
+            var commandResult = await handler.Process(new ConfirmCorrespondenceRequest
             {
-                CorrespondenceId = correspondenceId,
-                Status = CorrespondenceStatus.Confirmed
+                CorrespondenceId = correspondenceId
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
@@ -490,7 +492,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1026: Cannot archive or delete a correspondence which has not been confirmed when confirmation is required</li>
         /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li> 
         /// </ul></response>
-        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
         /// <response code="404">1001: The requested correspondence was not found</response>
         [HttpDelete]
         [Produces("application/json")]
@@ -529,7 +531,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <response code="200">Returns the attachment file</response>
         /// <response code="400">4002: Could not retrieve party uuid from lookup in Altinn Register</response>
-        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
         /// <response code="404"><ul>
         /// <li>1001: The requested correspondence was not found</li>
         /// <li>2001: The requested attachment was not found</li>

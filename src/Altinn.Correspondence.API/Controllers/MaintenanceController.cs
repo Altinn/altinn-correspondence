@@ -29,10 +29,11 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> CleanupOrphanedDialogs(
         [FromServices] CleanupOrphanedDialogsHandler handler,
+        [FromBody] CleanupOrphanedDialogsRequest request,
         CancellationToken cancellationToken)
     {
         _logger.LogInformation("Request to cleanup orphaned dialogs received");
-        var result = await handler.Process(HttpContext.User, cancellationToken);
+        var result = await handler.Process(request, HttpContext.User, cancellationToken);
         return result.Match(
             Ok,
             Problem

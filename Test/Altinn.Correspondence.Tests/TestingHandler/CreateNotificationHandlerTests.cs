@@ -102,7 +102,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 Id = correspondenceId,
                 ResourceId = "resource1",
                 SendersReference = "ref1",
-                Recipient = "12345678901",
+                Recipient = "0192:991825827", // Valid Norwegian organization number with prefix
                 RequestedPublishTime = requestedPublishTime,
                 Sender = "sender",
                 Statuses = new List<CorrespondenceStatusEntity>(),
@@ -205,6 +205,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             await _handler.Process(notificationRequest, CancellationToken.None);
 
             // Assert
+            // Verify main notification was added (should be called once for the default recipient)
             _mockCorrespondenceNotificationRepository.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n => 
                 n.NotificationOrderId == expectedResponse.NotificationOrderId &&
                 n.ShipmentId == expectedResponse.Notification.ShipmentId &&
@@ -216,6 +217,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 n.RequestedSendTime >= expectedMainNotificationTime.AddSeconds(-20) && // Allow 20 seconds difference
                 n.RequestedSendTime <= expectedMainNotificationTime.AddSeconds(20)), CancellationToken.None), Times.Once);
 
+            // Verify reminder notification was added (should be called once for the default recipient)
             _mockCorrespondenceNotificationRepository.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n => 
                 n.NotificationOrderId == expectedResponse.NotificationOrderId &&
                 n.ShipmentId == expectedResponse.Notification.Reminders[0].ShipmentId &&

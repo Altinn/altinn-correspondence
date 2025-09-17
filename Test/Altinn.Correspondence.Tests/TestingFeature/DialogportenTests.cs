@@ -2,7 +2,7 @@
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.PublishCorrespondence;
-using Altinn.Correspondence.Application.UpdateCorrespondenceStatus;
+using Altinn.Correspondence.Application.LegacyUpdateCorrespondenceStatus;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
@@ -256,7 +256,8 @@ public class DialogportenTests
         using var scope = testFactory.Services.CreateScope();
         GetCorrespondenceOverviewRequest request = new GetCorrespondenceOverviewRequest()
         {
-            CorrespondenceId = testCorrespondence.Id
+            CorrespondenceId = testCorrespondence.Id,
+            OnlyGettingContent = true
         };
         var handler = scope.ServiceProvider.GetRequiredService<GetCorrespondenceOverviewHandler>();
         var result = await handler.Process(request, new(), CancellationToken.None);

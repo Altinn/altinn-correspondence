@@ -25,6 +25,7 @@ public static class DependencyInjection
         services.AddScoped<ICorrespondenceStatusRepository, CorrespondenceStatusRepository>();
         services.AddScoped<ICorrespondenceNotificationRepository, CorrespondenceNotificationRepository>();
         services.AddScoped<ICorrespondenceForwardingEventRepository, CorrespondenceForwardingEventRepository>();
+        services.AddScoped<ICorrespondenceDeleteEventRepository, CorrespondenceDeleteEventRepository>();
         services.AddSingleton<IStorageRepository, StorageRepository>();
         services.AddScoped<INotificationTemplateRepository, NotificationTemplateRepository>();
         services.AddScoped<ILegacyPartyRepository, LegacyPartyRepository>();
@@ -48,7 +49,7 @@ public static class DependencyInjection
         var psqlServerTokenProvider = new DefaultAzureCredential();
         var tokenRequestContext = new TokenRequestContext(scopes: ["https://ossrdbms-aad.database.windows.net/.default"]) { };
         dataSourceBuilder.UsePeriodicPasswordProvider(async (_, cancellationToken) =>
-            psqlServerTokenProvider.GetTokenAsync(tokenRequestContext).Result.Token, TimeSpan.FromMinutes(45), TimeSpan.FromSeconds(0)
+            (await psqlServerTokenProvider.GetTokenAsync(tokenRequestContext, cancellationToken)).Token, TimeSpan.FromMinutes(45), TimeSpan.FromSeconds(0)
         );
 
         return dataSourceBuilder.Build();

@@ -29,6 +29,11 @@ public static class CorrespondenceStatusExtensions
         return statusEntity;
     }
 
+    public static bool HasBeenPurged(this CorrespondenceEntity correspondence)
+    {
+        return correspondence.Statuses.Any(s => s.Status.IsPurged());
+    }
+
     public static bool IsAvailableForSender(this CorrespondenceStatus correspondenceStatus)
     {
         List<CorrespondenceStatus> validStatuses =

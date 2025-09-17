@@ -9,9 +9,10 @@ namespace Altinn.Correspondence.Persistence.Helpers
         {
             return role switch
             {
-                CorrespondencesRoleType.RecipientAndSender => query.Where(c => c.Sender.Contains(orgNo) || c.Recipient.Contains(orgNo)),
+                CorrespondencesRoleType.RecipientAndSender => query.Where(c => 
+                    c.ServiceOwnerId == orgNo || c.Sender.Contains(orgNo) || c.Recipient.Contains(orgNo)),
                 CorrespondencesRoleType.Recipient => query.Where(c => c.Recipient.Contains(orgNo)),
-                CorrespondencesRoleType.Sender => query.Where(c => c.Sender.Contains(orgNo)),
+                CorrespondencesRoleType.Sender => query.Where(c => c.ServiceOwnerId == orgNo || c.Sender.Contains(orgNo)),
                 _ => query.Where(c => false),
             };
         }
@@ -37,7 +38,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
             // Helper functions for common query patterns
             IQueryable<CorrespondenceEntity> FilterForSender()
             {
-                return query.Where(c => c.Sender.Contains(orgNo) &&
+                return query.Where(c => (c.ServiceOwnerId == orgNo || c.Sender.Contains(orgNo)) &&
                     status.HasValue ?
                     (!blacklistSender.Contains(status)) && status == c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status :
                     (!blacklistSender.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)));
@@ -59,7 +60,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
             };
         }
 
-        public static IQueryable<CorrespondenceEntity> IncludeByStatuses(this IQueryable<CorrespondenceEntity> query, bool includeActive, bool includeArchived, bool includePurged, CorrespondenceStatus? specificStatus)
+        public static IQueryable<CorrespondenceEntity> IncludeByStatuses(this IQueryable<CorrespondenceEntity> query, bool includeActive, bool includeArchived, CorrespondenceStatus? specificStatus)
         {
             var statusesToFilter = new List<CorrespondenceStatus?>();
 
@@ -83,16 +84,18 @@ namespace Altinn.Correspondence.Persistence.Helpers
                 {
                     statusesToFilter.Add(CorrespondenceStatus.Archived);
                 }
-
-                if (includePurged) // Include correspondences with active status
-                {
-                    statusesToFilter.Add(CorrespondenceStatus.PurgedByAltinn);
-                    statusesToFilter.Add(CorrespondenceStatus.PurgedByRecipient);
-                }
             }
 
-            return query
-                .Where(cs => statusesToFilter.Contains(cs.Statuses.OrderBy(cs => cs.Status).Last().Status));
+            return query.Where(cs =>
+                statusesToFilter.Contains(cs.Statuses.OrderBy(s => s.Status).Last().Status));
+        }
+
+        public static IQueryable<CorrespondenceEntity> ExcludePurged(this IQueryable<CorrespondenceEntity> query)
+        {
+            return query.Where(cs =>
+                    !cs.Statuses.Any(s =>
+                        s.Status == CorrespondenceStatus.PurgedByAltinn ||
+                        s.Status == CorrespondenceStatus.PurgedByRecipient));
         }
 
         public static IQueryable<CorrespondenceEntity> WhereCurrentStatusIn(

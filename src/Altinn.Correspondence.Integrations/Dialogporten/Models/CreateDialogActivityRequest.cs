@@ -32,7 +32,8 @@ public enum ActivityType
     PaymentMade,
     SignatureProvided,
     CorrespondenceOpened,
-    DialogDeleted
+    DialogDeleted,
+    CorrespondenceConfirmed
 }
 
 public class CreateDialogActivityRequest

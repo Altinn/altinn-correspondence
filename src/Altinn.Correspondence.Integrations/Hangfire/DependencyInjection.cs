@@ -34,7 +34,7 @@ public static class DependencyInjection
         services.AddHangfireServer(options =>
         {
             options.SchedulePollingInterval = TimeSpan.FromSeconds(2);
-            options.Queues = generalSettings.EnableMigrationQueue ? ["default", "migration"] : ["default"];
+            options.Queues = generalSettings.EnableMigrationQueue ? [HangfireQueues.Default, HangfireQueues.LiveMigration, HangfireQueues.Migration] : [HangfireQueues.Default, HangfireQueues.LiveMigration];
         });
     }
 }

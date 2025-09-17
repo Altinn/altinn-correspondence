@@ -13,24 +13,12 @@ public static class SyncEventDateTimeOffsetExtensions
     /// <returns></returns>
     public static bool EqualsToSecond(this DateTimeOffset dto1, DateTimeOffset dto2)
     {
-        // Normalize to UTC to handle different offsets correctly
-        DateTimeOffset utcDto1 = dto1.ToUniversalTime();
-        DateTimeOffset utcDto2 = dto2.ToUniversalTime();
+        return dto1.TruncateToSecondUtc() == dto2.TruncateToSecondUtc();
+    }
 
-        // Truncate to the second by creating a new DateTimeOffset
-        // with milliseconds, microseconds, and ticks set to zero.
-        DateTimeOffset truncatedDto1 = new DateTimeOffset(
-            utcDto1.Year, utcDto1.Month, utcDto1.Day,
-            utcDto1.Hour, utcDto1.Minute, utcDto1.Second,
-            TimeSpan.Zero // Set offset to zero for UTC
-        );
-
-        DateTimeOffset truncatedDto2 = new DateTimeOffset(
-            utcDto2.Year, utcDto2.Month, utcDto2.Day,
-            utcDto2.Hour, utcDto2.Minute, utcDto2.Second,
-            TimeSpan.Zero // Set offset to zero for UTC
-        );
-
-        return truncatedDto1.Equals(truncatedDto2);
+    public static DateTimeOffset TruncateToSecondUtc(this DateTimeOffset value)
+    {
+        var utc = value.ToUniversalTime();
+        return new DateTimeOffset(utc.Year, utc.Month, utc.Day, utc.Hour, utc.Minute, utc.Second, TimeSpan.Zero);
     }
 }
