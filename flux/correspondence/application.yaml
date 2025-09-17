@@ -14,9 +14,9 @@ spec:
         app: correspondence
     spec:
       containers:
-        - image: altinncr.azurecr.io/traefik/whoami
+        - image: altinncr.azurecr.io/corr/correspondence-sync
           imagePullPolicy: IfNotPresent
-          name: whoami
+          name: correspondence-app
           ports:
             - containerPort: 80
           env:
