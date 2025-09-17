@@ -162,10 +162,7 @@ public class PublishCorrespondenceHandler(
                 }
                 eventType = AltinnEventType.CorrespondencePublishFailed;
                 logger.LogInformation("Cancelling notifications for failed correspondence {CorrespondenceId}", correspondenceId);
-                foreach (var notification in correspondence.Notifications)
-                {
-                    backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
-                }
+                backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
                 if (hasDialogportenDialog)
                 {
                     logger.LogInformation("Purging Dialogporten dialog for failed correspondence {CorrespondenceId}", correspondenceId);
