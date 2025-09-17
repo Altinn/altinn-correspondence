@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
       - name: Get short sha
         id: get_sha
-        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: echo "short_sha=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
       - name: Build and push latest artifact
         uses: Altinn/altinn-platform/actions/flux/build-push-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
         with:
@@ -50,7 +50,7 @@ jobs:
         id: get_tags
         run: |
           echo "tag=${GITHUB_REF/refs\/tags\/corr-sync-/}" >> $GITHUB_OUTPUT
-          echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "short_sha=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
       - name: Re-tag existing image with semver
         uses: Altinn/altinn-platform/actions/flux/retag-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
         with:
