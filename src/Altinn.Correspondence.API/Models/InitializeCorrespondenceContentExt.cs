@@ -34,7 +34,7 @@ namespace Altinn.Correspondence.API.Models
         /// Gets or sets the main body of the correspondence.
         /// </summary>
         [JsonPropertyName("messageBody")]
-        [StringLength(10000, MinimumLength = 1)]
+        [StringLength(10000)]
         public required string MessageBody { get; set; }
 
         /// <summary>
