@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.CleanupOrphanedDialogs;
+using Altinn.Correspondence.Application.CleanupPerishingDialogs;
 using Altinn.Correspondence.Common.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -33,6 +34,32 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
         CancellationToken cancellationToken)
     {
         _logger.LogInformation("Request to cleanup orphaned dialogs received");
+        var result = await handler.Process(request, HttpContext.User, cancellationToken);
+        return result.Match(
+            Ok,
+            Problem
+        );
+    }
+
+    /// <summary>
+    /// Enqueue cleanup to remove expiresAt from dialogs in Dialogporten for correspondences where AllowSystemDeleteAfter has been set
+    /// </summary>
+    /// <response code="200">Returns the enqueued job id</response>
+    /// <response code="401">Unauthorized</response>
+    /// <response code="403">Forbidden</response>
+    [HttpPost]
+    [Route("cleanup-perishing-dialogs")] 
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(CleanupPerishingDialogsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> CleanupPerishingDialogs(
+        [FromServices] CleanupPerishingDialogsHandler handler,
+        [FromBody] CleanupPerishingDialogsRequest request,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Request to cleanup perishing dialogs received");
         var result = await handler.Process(request, HttpContext.User, cancellationToken);
         return result.Match(
             Ok,

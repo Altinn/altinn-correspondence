@@ -65,6 +65,7 @@ public static class DependencyInjection
 
         // Maintenance
         services.AddScoped<CleanupOrphanedDialogsHandler>();
+        services.AddScoped<CleanupPerishingDialogs.CleanupPerishingDialogsHandler>();
 
         // Statistics & Reporting
         services.AddScoped<GenerateDailySummaryReportHandler>();

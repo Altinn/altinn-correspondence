@@ -260,6 +260,26 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndAllowSystemDeleteAfter(
+            List<Guid> correspondenceIds,
+            ReferenceType referenceType,
+            CancellationToken cancellationToken)
+        {
+            if (correspondenceIds == null || correspondenceIds.Count == 0)
+            {
+                return new List<CorrespondenceEntity>();
+            }
+
+            return await _context.Correspondences
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Where(c => correspondenceIds.Contains(c.Id))
+                .Where(c => c.AllowSystemDeleteAfter != null)
+                .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == referenceType))
+                .Include(c => c.ExternalReferences)
+                .ToListAsync(cancellationToken);
+        }
+        
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesForReport(bool includeAltinn2, CancellationToken cancellationToken)
         {
             var query = _context.Correspondences.AsQueryable();

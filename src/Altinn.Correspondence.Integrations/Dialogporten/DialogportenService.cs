@@ -369,6 +369,28 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
     }
 
+    public async Task<bool> TryRemoveDialogExpiresAt(string dialogId, CancellationToken cancellationToken = default)
+    {
+        var dialog = await GetDialog(dialogId);
+        if (dialog is null)
+        {
+            throw new Exception($"Dialog {dialogId} not found when attempting to remove expiresAt");
+        }
+        if (dialog.ExpiresAt == null)
+        {
+            return false;
+        }
+        var patchRequestBuilder = new DialogPatchRequestBuilder()
+            .WithRemoveExpiresAtOperation();
+        var patchRequest = patchRequestBuilder.Build();
+        var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", patchRequest, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        }
+        return true;
+    }
+
     public async Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType, string actorName, DateTimeOffset activityTimestamp)
     {
         logger.LogInformation("CreateCorrespondencePurgedActivity by {actorType}: for correspondence {correspondenceId}",

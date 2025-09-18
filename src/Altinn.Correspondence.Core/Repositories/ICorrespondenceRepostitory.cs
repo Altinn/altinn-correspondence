@@ -68,6 +68,11 @@ namespace Altinn.Correspondence.Core.Repositories
             List<CorrespondenceStatus> currentStatuses,
             CancellationToken cancellationToken);
 
+        Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndAllowSystemDeleteAfter(
+            List<Guid> correspondenceIds,
+            ReferenceType referenceType,
+            CancellationToken cancellationToken);
+        
         Task<List<CorrespondenceEntity>> GetCorrespondencesForReport(bool includeAltinn2, CancellationToken cancellationToken);
         
         Task<CorrespondenceEntity?> GetCorrespondenceByIdempotentKey(Guid idempotentKey, CancellationToken cancellationToken);

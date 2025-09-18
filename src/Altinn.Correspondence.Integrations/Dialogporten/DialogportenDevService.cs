@@ -49,6 +49,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.FromResult(true);
         }
 
+        public Task<bool> TryRemoveDialogExpiresAt(string dialogId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(true);
+        }
+
         public Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType,  string actorName, DateTimeOffset activityTimestamp)
         {
             return Task.CompletedTask;
