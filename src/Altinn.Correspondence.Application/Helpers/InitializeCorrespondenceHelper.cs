@@ -178,6 +178,16 @@ namespace Altinn.Correspondence.Application.Helpers
         /// </summary>
         public Error? ValidateCustomRecipient(NotificationRequest notification, List<string> recipients)
         {
+            // Validate OverrideRegisteredContactInformation flag usage
+            if (notification.OverrideRegisteredContactInformation)
+            {
+                // OverrideRegisteredContactInformation can only be used when CustomRecipients is provided
+                if (notification.CustomRecipients == null || !notification.CustomRecipients.Any())
+                {
+                    return NotificationErrors.OverrideRegisteredContactInformationRequiresCustomRecipients;
+                }
+            }
+
             // Check if we have custom recipients
             if (notification.CustomRecipients != null && notification.CustomRecipients.Any())
             {
