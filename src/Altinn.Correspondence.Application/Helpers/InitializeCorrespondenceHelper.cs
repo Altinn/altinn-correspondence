@@ -90,7 +90,7 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             if (!string.IsNullOrWhiteSpace(content.MessageSummary) && content.MessageSummary.Length > 255)
             {
-
+                return CorrespondenceErrors.MessageSummaryWrongLength;
             }
             if (!TextValidation.ValidatePlainText(content.MessageSummary))
             {
