@@ -1,7 +1,7 @@
 import http from 'k6/http';
 import exec from 'k6/execution';
 import { URL, describe, expect, uuidv4, getPersonalToken, randomItem } from '../common/testimports.js';
-import { baseUrlLegacyCorrespondence, buildOptions } from '../common/config.js';
+import { baseUrlLegacyCorrespondence, buildOptions, tokenGeneratorEnv } from '../common/config.js';
 export { setup as setup } from "../common/readLegacyTestdata.js";
 
 const getLegacyCorrespondencesLabel = 'get legacy correspondences';
@@ -21,12 +21,12 @@ function getLegacyCorrespondences(endUser, traceCalls) {
 
     const tokenOptions = {
         scopes: "altinn:portal/enduser", 
-        partyId: endUser.UserPartyId,
+        partyId: endUser.partyid,
     }
 
     var paramsWithToken = {
         headers: {
-            Authorization: "Bearer " + getPersonalToken(tokenOptions),
+            Authorization: "Bearer " + getPersonalToken(tokenOptions, tokenGeneratorEnv),
             traceparent: traceparent,
             'Content-Type': 'application/json',
             'Accept': '*/*, application/json',
@@ -38,17 +38,17 @@ function getLegacyCorrespondences(endUser, traceCalls) {
 
     if (traceCalls) {
         paramsWithToken.tags.traceparent = traceparent;
-        paramsWithToken.tags.enduser = endUser.ssn;
+        paramsWithToken.tags.enduser = endUser.partyid;
     }
 
     describe('get legacy correspondences', () => {
         let url = new URL(baseUrlLegacyCorrespondence);
         const payload = {
             "instanceOwnerPartyIdList": [
-                endUser.UserPartyId
+                endUser.partyid
             ],
             "offset": 0,
-            "limit": 1000,
+            "limit": 100,
             "includeActive": true,
             "includeArchived": false,
             "includeDeleted": false,
