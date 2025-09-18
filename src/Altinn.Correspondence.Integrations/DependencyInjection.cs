@@ -84,17 +84,15 @@ public static class DependencyInjection
         services.AddSingleton<IDistributedLockHelper, DistributedLockHelper>();
     }
 
-    public static void RegisterAltinnHttpClient<TClient, TImplementation>(
-        this IServiceCollection services,
-        MaskinportenSettings maskinportenSettings,
-        AltinnOptions altinnOptions)
+
+
+    public static void RegisterAltinnHttpClient<TClient, TImplementation>(this IServiceCollection services, MaskinportenSettings maskinportenSettings, AltinnOptions altinnOptions)
         where TClient : class
         where TImplementation : class, TClient
     {
         services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(TClient).FullName, maskinportenSettings);
 
-        var httpClientBuilder = services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl));
-        httpClientBuilder
+        var httpClientBuilder = services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
             .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>()
             .AddStandardRetryPolicy();
     }
