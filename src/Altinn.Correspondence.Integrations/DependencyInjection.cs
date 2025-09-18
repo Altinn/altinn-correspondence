@@ -51,11 +51,7 @@ public static class DependencyInjection
         {
             var altinnOptions = new AltinnOptions();
             config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
-            var authorizationOptions = new AltinnOptions()
-            {
-                PlatformGatewayUrl = "https://internal.platform.yt01.altinn.cloud"
-            };
-            services.RegisterAltinnHttpClient<IAltinnAuthorizationService, AltinnAuthorizationService>(maskinportenSettings, authorizationOptions, true);
+            services.RegisterAltinnHttpClientForAuthorization<IAltinnAuthorizationService, AltinnAuthorizationService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IResourceRegistryService, ResourceRegistryService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnRegisterService, AltinnRegisterService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnAccessManagementService, AltinnAccessManagementService>(maskinportenSettings, altinnOptions);
@@ -91,26 +87,43 @@ public static class DependencyInjection
     public static void RegisterAltinnHttpClient<TClient, TImplementation>(
         this IServiceCollection services,
         MaskinportenSettings maskinportenSettings,
-        AltinnOptions altinnOptions,
-        bool bypassCertificateValidation = false)
+        AltinnOptions altinnOptions)
         where TClient : class
         where TImplementation : class, TClient
     {
         services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(TClient).FullName, maskinportenSettings);
 
         var httpClientBuilder = services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl));
+        httpClientBuilder
+            .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>()
+            .AddStandardRetryPolicy();
+    }
 
-        if (bypassCertificateValidation)
+
+    public static void RegisterAltinnHttpClientForAuthorization<TClient, TImplementation>(
+        this IServiceCollection services,
+        MaskinportenSettings maskinportenSettings,
+        AltinnOptions altinnOptions)
+        where TClient : class
+        where TImplementation : class, TClient
+    {
+        var bypassApim = !string.IsNullOrWhiteSpace(altinnOptions.OverrideAuthorizationUrl);
+        if (bypassApim)
         {
+            services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(TClient).FullName, maskinportenSettings);
+            var httpClientBuilder = services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(altinnOptions.OverrideAuthorizationUrl));
             httpClientBuilder.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
             {
                 ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
             });
+            httpClientBuilder
+                .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>()
+                .AddStandardRetryPolicy();
+        } 
+        else
+        {
+            services.RegisterAltinnHttpClient<IAltinnAuthorizationService, AltinnAuthorizationService>(maskinportenSettings, altinnOptions);
         }
-
-        httpClientBuilder
-            .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>()
-            .AddStandardRetryPolicy();
     }
 
     public static void RegisterMaskinportenHttpClient<TClient, TImplementation>(this IServiceCollection services, IConfiguration config, string baseAddress)

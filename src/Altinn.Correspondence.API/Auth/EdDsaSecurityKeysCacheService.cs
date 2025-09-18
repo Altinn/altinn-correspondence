@@ -60,7 +60,7 @@ namespace Altinn.Correspondence.API.Auth
         {
             var httpClient = _httpClientFactory.CreateClient();
             var keys = new List<EdDsaSecurityKey>();
-            var endpoint = $"https://platform.tt02.altinn.no/dialogporten/api/v1/.well-known/jwks.json";
+            var endpoint = $"{_altinnOptions.PlatformGatewayUrl.Trim('/')}/dialogporten/api/v1/.well-known/jwks.json";
             try
             {
                 var response = await httpClient.GetStringAsync(endpoint, cancellationToken);
