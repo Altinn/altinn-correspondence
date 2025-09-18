@@ -1,9 +1,8 @@
 ﻿using Altinn.Authorization.ABAC.Xacml.JsonProfile;
 using Altinn.Common.PEP.Helpers;
 using Altinn.Correspondence.Common.Helpers;
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Common.Helpers.Models;
-
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
@@ -103,6 +102,53 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         return minLevel;
     }
 
+    private static XacmlJsonAttributeAssignment GetObligation(string category, List<XacmlJsonObligationOrAdvice> obligations)
+    {
+        foreach (XacmlJsonObligationOrAdvice obligation in obligations)
+        {
+            XacmlJsonAttributeAssignment assignment = obligation.AttributeAssignment.FirstOrDefault(a => a.Category.Equals(category));
+            if (assignment != null)
+            {
+                return assignment;
+            }
+        }
+
+        return null;
+    }
+    public async Task<Dictionary<(string, string), int?>> CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(ClaimsPrincipal? user, string ssn, List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken = default)
+    {
+        if (user is null)
+        {
+            throw new InvalidOperationException("This operation cannot be called outside an authenticated HttpContext");
+        }
+        if (correspondences.Count == 0)
+        {
+            return new Dictionary<(string, string), int?>();
+        }
+
+        List<(string Recipient, string ResourceId)> recipientWithResources = correspondences.Select(correspondence => (correspondence.Recipient, correspondence.ResourceId)).Distinct().ToList();
+        XacmlJsonRequestRoot jsonRequest = CreateMultiDecisionRequestForLegacy(user, ssn, recipientWithResources);
+        var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
+
+        var results = new Dictionary<(string, string), int?>();
+        for (int i = 0; i < responseContent.Response.Count; i++)
+        {
+            var authorizationResponse = responseContent.Response[i];
+            var recipientWithResource = recipientWithResources[i];
+            if (authorizationResponse.Decision == "Permit")
+            {
+                var obligation = GetObligation("urn:altinn:minimum-authenticationlevel", authorizationResponse.Obligations);
+                int? authLevel = int.Parse(obligation.Value);
+                results.Add((recipientWithResource.Recipient, recipientWithResource.ResourceId), authLevel);
+            } 
+            else
+            {
+                results.Add((recipientWithResource.Recipient, recipientWithResource.ResourceId), null);
+            }
+        }
+        return results;
+    }
+
     private async Task<bool> CheckUserAccess(ClaimsPrincipal? user, string resourceId, string party, string? correspondenceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Checking access for party {party} and resource {resourceId}", party.SanitizeForLogging(), resourceId.SanitizeForLogging());
@@ -136,7 +182,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         {
             var consumerClaim = user.Claims.FirstOrDefault(c => c.Type == "consumer")?.Value;
             var consumerOrg = string.Empty;
-            
+
             if (!string.IsNullOrWhiteSpace(consumerClaim))
             {
                 try
@@ -155,7 +201,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             {
                 if (!string.IsNullOrWhiteSpace(serviceOwnerId) && consumerOrg.Equals(serviceOwnerId, StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogInformation("Bypass granted for service owner: {serviceOwner} accessing resource: {resourceId}", 
+                    _logger.LogInformation("Bypass granted for service owner: {serviceOwner} accessing resource: {resourceId}",
                         consumerOrg.SanitizeForLogging(), resourceId.SanitizeForLogging());
                     return true; // Allow access without PDP call
                 }
@@ -173,6 +219,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
     private async Task<XacmlJsonResponse> AuthorizeRequest(XacmlJsonRequestRoot jsonRequest, CancellationToken cancellationToken)
     {
+        XacmlJsonMultiRequests xacmlJsonMultiRequests = new XacmlJsonMultiRequests();
         var response = await _httpClient.PostAsJsonAsync("authorization/api/v1/authorize", jsonRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -205,6 +252,16 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
         {
             return AltinnTokenXacmlMapper.CreateAltinnDecisionRequestForLegacy(user, ssn, actionTypes, resourceId, onBehalfOf);
+        }
+        throw new SecurityTokenInvalidIssuerException();
+    }
+
+    private XacmlJsonRequestRoot CreateMultiDecisionRequestForLegacy(ClaimsPrincipal user, string ssn, List<(string Recipient, string ResourceId)> recipientParties)
+    {
+        var personIdClaim = GetPersonIdClaim(user);
+        if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
+        {
+            return AltinnTokenXacmlMapper.CreateMultiDecisionRequestForLegacy(user, ssn, recipientParties);
         }
         throw new SecurityTokenInvalidIssuerException();
     }
