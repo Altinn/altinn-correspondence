@@ -81,7 +81,7 @@ internal static class InitializeCorrespondenceNotificationMapper
             SmsBody = correspondenceNotificationExt.SmsBody,
             SendReminder = correspondenceNotificationExt.SendReminder,
             CustomRecipients = customRecipients,
-            OverrideKoFuVi = correspondenceNotificationExt.OverrideKoFuVi
+            OverrideRegisteredContactInformation = correspondenceNotificationExt.OverrideRegisteredContactInformation
         };
         return notification;
     }

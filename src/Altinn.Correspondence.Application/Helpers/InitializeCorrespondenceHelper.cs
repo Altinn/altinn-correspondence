@@ -178,13 +178,13 @@ namespace Altinn.Correspondence.Application.Helpers
         /// </summary>
         public Error? ValidateCustomRecipient(NotificationRequest notification, List<string> recipients)
         {
-            // Validate OverrideKoFuVi flag usage
-            if (notification.OverrideKoFuVi)
+            // Validate OverrideRegisteredContactInformation flag usage
+            if (notification.OverrideRegisteredContactInformation)
             {
-                // OverrideKoFuVi can only be used when CustomRecipients is provided
+                // OverrideRegisteredContactInformation can only be used when CustomRecipients is provided
                 if (notification.CustomRecipients == null || !notification.CustomRecipients.Any())
                 {
-                    return NotificationErrors.OverrideKoFuViRequiresCustomRecipients;
+                    return NotificationErrors.OverrideRegisteredContactInformationRequiresCustomRecipients;
                 }
             }
 

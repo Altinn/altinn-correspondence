@@ -126,8 +126,8 @@ namespace Altinn.Correspondence.API.Models
         /// This flag can only be used when CustomRecipients is provided.
         /// Default value is false (use default contact info + custom recipients).
         /// </summary>
-        [JsonPropertyName("overrideKoFuVi")]
-        public bool OverrideKoFuVi { get; set; } = false;
+        [JsonPropertyName("overrideRegisteredContactInformation")]
+        public bool OverrideRegisteredContactInformation { get; set; } = false;
     }
 
     /// <summary>

@@ -931,7 +931,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task Correspondence_OverrideKoFuVi_WithoutCustomRecipients_GivesBadRequest()
+        public async Task Correspondence_OverrideRegisteredContactInformation_WithoutCustomRecipients_GivesBadRequest()
         {
             // Arrange
             var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
@@ -942,7 +942,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
                 .WithNotificationChannel(NotificationChannelExt.Email)
                 .WithEmailContent()
-                .WithOverrideKoFuVi(true)
+                .WithOverrideRegisteredContactInformation(true)
                 .Build();
 
             // Act
@@ -951,11 +951,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
-            Assert.Equal(NotificationErrors.OverrideKoFuViRequiresCustomRecipients.Message, problemDetails?.Detail);
+            Assert.Equal(NotificationErrors.OverrideRegisteredContactInformationRequiresCustomRecipients.Message, problemDetails?.Detail);
         }
 
         [Fact]
-        public async Task Correspondence_OverrideKoFuVi_WithCustomRecipients_GivesOk()
+        public async Task Correspondence_OverrideRegisteredContactInformation_WithCustomRecipients_GivesOk()
         {
             // Arrange
             var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
@@ -974,7 +974,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithNotificationChannel(NotificationChannelExt.Email)
                 .WithEmailContent()
                 .WithCustomRecipients(customRecipients)
-                .WithOverrideKoFuVi(true)
+                .WithOverrideRegisteredContactInformation(true)
                 .Build();
 
             // Act
@@ -987,7 +987,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task Correspondence_OverrideKoFuVi_WithCustomRecipients_OnlyCustomRecipientsUsed()
+        public async Task Correspondence_OverrideRegisteredContactInformation_WithCustomRecipients_OnlyCustomRecipientsUsed()
         {
             // Arrange
             var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
@@ -1032,7 +1032,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithNotificationChannel(NotificationChannelExt.Email)
                 .WithEmailContent()
                 .WithCustomRecipients(customRecipients)
-                .WithOverrideKoFuVi(true)
+                .WithOverrideRegisteredContactInformation(true)
                 .Build();
 
             // Act
@@ -1045,7 +1045,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task Correspondence_OverrideKoFuVi_False_WithCustomRecipients_DefaultAndCustomRecipientsUsed()
+        public async Task Correspondence_OverrideRegisteredContactInformation_False_WithCustomRecipients_DefaultAndCustomRecipientsUsed()
         {
             // Arrange
             var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
@@ -1096,7 +1096,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithNotificationChannel(NotificationChannelExt.Email)
                 .WithEmailContent()
                 .WithCustomRecipients(customRecipients)
-                .WithOverrideKoFuVi(false)
+                .WithOverrideRegisteredContactInformation(false)
                 .Build();
 
             // Act

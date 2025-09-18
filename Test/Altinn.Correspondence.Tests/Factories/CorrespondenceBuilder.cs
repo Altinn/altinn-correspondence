@@ -219,9 +219,9 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
-        public CorrespondenceBuilder WithOverrideKoFuVi(bool overrideKoFuVi)
+        public CorrespondenceBuilder WithOverrideRegisteredContactInformation(bool overrideRegisteredContactInformation)
         {
-            _correspondence.Correspondence.Notification!.OverrideKoFuVi = overrideKoFuVi;
+            _correspondence.Correspondence.Notification!.OverrideRegisteredContactInformation = overrideRegisteredContactInformation;
             return this;
         }
 

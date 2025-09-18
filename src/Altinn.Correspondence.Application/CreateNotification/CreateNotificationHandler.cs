@@ -248,11 +248,11 @@ public class CreateNotificationHandler(
     { 
         logger.LogInformation("Creating notification request V2 for correspondence {CorrespondenceId}", correspondence.Id);
         
-        // Determine recipients to process - behavior depends on OverrideKoFuVi flag
+        // Determine recipients to process - behavior depends on OverrideRegisteredContactInformation flag
         List<Recipient> recipientsToProcess = new List<Recipient>();
         
-        // If OverrideKoFuVi is false (default), add the default correspondence recipient
-        if (!notificationRequest.OverrideKoFuVi)
+        // If OverrideRegisteredContactInformation is false (default), add the default correspondence recipient
+        if (!notificationRequest.OverrideRegisteredContactInformation)
         {
             string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
             bool isOrganization = recipientWithoutPrefix.IsOrganizationNumber();
@@ -265,7 +265,7 @@ public class CreateNotificationHandler(
             });
         }
         
-        // Add custom recipients if they exist (in addition to default recipient when OverrideKoFuVi is false)
+        // Add custom recipients if they exist (in addition to default recipient when OverrideRegisteredContactInformation is false)
         if (notificationRequest.CustomRecipients != null && notificationRequest.CustomRecipients.Any())
         {
             recipientsToProcess.AddRange(notificationRequest.CustomRecipients);

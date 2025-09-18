@@ -37,6 +37,6 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
         /// This flag can only be used when CustomRecipients is provided.
         /// Default value is false (use default contact info + custom recipients).
         /// </summary>
-        public bool OverrideKoFuVi { get; set; } = false;
+        public bool OverrideRegisteredContactInformation { get; set; } = false;
     }
 }
