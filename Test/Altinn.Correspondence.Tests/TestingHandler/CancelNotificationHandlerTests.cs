@@ -49,7 +49,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             try
             {
                 var fixedTimestamp = new DateTimeOffset(2025, 1, 15, 10, 30, 0, TimeSpan.Zero);
-                await cancelNotificationHandler.CancelNotification(Guid.Empty, notificationEntities, retryAttempts: 10, fixedTimestamp, default, Guid.NewGuid().ToString());
+                await cancelNotificationHandler.CancelNotification(Guid.Empty, notificationEntities, retryAttempts: 10, fixedTimestamp, default);
             }
             catch
             {
