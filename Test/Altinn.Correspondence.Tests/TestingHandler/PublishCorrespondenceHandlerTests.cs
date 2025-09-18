@@ -7,6 +7,8 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Redlock;
 using Hangfire;
+using Hangfire.Common;
+using Hangfire.States;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -45,6 +47,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _brregServiceMock = new Mock<IBrregService>();
             _distributedLockHelperMock = new Mock<IDistributedLockHelper>();
             _slackSettings = new SlackSettings(_hostEnvironmentMock.Object);
+            _backgroundJobClientMock
+                .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
+                .Returns(() => Guid.NewGuid().ToString());
 
             _handler = new PublishCorrespondenceHandler(
                 _altinnRegisterServiceMock.Object,

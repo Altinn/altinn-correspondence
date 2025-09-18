@@ -33,6 +33,11 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _mockLogger = new Mock<ILogger<MigrateCorrespondenceHandler>>();
             var mockCache = new Mock<IHybridCacheWrapper>();
 
+            // Ensure Create returns a non-null job id by default (needed for continuations)
+            _mockBackgroundJobClient
+                .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
+                .Returns(() => Guid.NewGuid().ToString());
+
             var hangfireScheduleHelper = new HangfireScheduleHelper(_mockBackgroundJobClient.Object, mockCache.Object, _mockCorrespondenceRepository.Object, new NullLogger<HangfireScheduleHelper>());
             _handler = new MigrateCorrespondenceHandler(
                 _mockCorrespondenceRepository.Object,
