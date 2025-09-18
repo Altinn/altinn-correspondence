@@ -129,7 +129,12 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         List<(string Recipient, string ResourceId)> recipientWithResources = correspondences.Select(correspondence => (correspondence.Recipient, correspondence.ResourceId)).Distinct().ToList();
         XacmlJsonRequestRoot jsonRequest = CreateMultiDecisionRequestForLegacy(user, ssn, recipientWithResources);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
-
+        if (responseContent.Response.Count != recipientWithResources.Count)
+        {
+            _logger.LogError("Authorization response count mismatch. Expected: {Expected}, Received: {Received}",
+                recipientWithResources.Count, responseContent.Response.Count);
+            throw new InvalidOperationException($"Authorization service returned {responseContent.Response.Count} decisions but {recipientWithResources.Count} were requested");
+        }
         var results = new Dictionary<(string, string), int?>();
         for (int i = 0; i < responseContent.Response.Count; i++)
         {
