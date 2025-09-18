@@ -21,7 +21,7 @@ function getLegacyCorrespondences(endUser, traceCalls) {
 
     const tokenOptions = {
         scopes: "altinn:portal/enduser", 
-        partyId: endUser.UserPartyId,
+        partyId: endUser.partyid,
     }
 
     var paramsWithToken = {
@@ -38,14 +38,14 @@ function getLegacyCorrespondences(endUser, traceCalls) {
 
     if (traceCalls) {
         paramsWithToken.tags.traceparent = traceparent;
-        paramsWithToken.tags.enduser = endUser.ssn;
+        paramsWithToken.tags.enduser = endUser.partyid;
     }
 
     describe('get legacy correspondences', () => {
         let url = new URL(baseUrlLegacyCorrespondence);
         const payload = {
             "instanceOwnerPartyIdList": [
-                endUser.UserPartyId
+                endUser.partyid
             ],
             "offset": 0,
             "limit": 100,
