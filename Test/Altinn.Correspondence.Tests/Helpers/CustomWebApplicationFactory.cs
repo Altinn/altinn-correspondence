@@ -153,10 +153,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             {
                 Console.WriteLine($"Error during base application disposal: {ex}");
             }
-            
             dataSource?.Dispose();
-            
-            
         }
         else
         {
