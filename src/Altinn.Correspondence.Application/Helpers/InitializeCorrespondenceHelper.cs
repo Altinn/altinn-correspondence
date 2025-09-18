@@ -88,7 +88,10 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return CorrespondenceErrors.MessageTitleTooLong;
             }
-            
+            if (!string.IsNullOrEmpty(content.MessageSummary) && content.MessageSummary.Length > 255)
+            {
+                return CorrespondenceErrors.MessageSummaryWrongLength;
+            }
             if (!TextValidation.ValidatePlainText(content.MessageSummary))
             {
                 //return CorrespondenceErrors.MessageSummaryIsNotPlainText; // Temporarily disabled until changed by customer #1331
