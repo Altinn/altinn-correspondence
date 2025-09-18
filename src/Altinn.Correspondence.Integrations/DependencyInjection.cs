@@ -88,6 +88,7 @@ public static class DependencyInjection
         where TClient : class
         where TImplementation : class, TClient
     {
+        services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(TClient).FullName, maskinportenSettings);
         services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
             .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>()
             .AddStandardRetryPolicy();
