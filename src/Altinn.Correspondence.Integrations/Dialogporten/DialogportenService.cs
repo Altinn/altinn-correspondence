@@ -619,4 +619,20 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
     }
     #endregion
+
+    public async Task<bool> TryRestoreSoftDeletedDialog(string dialogId, CancellationToken cancellationToken = default)
+    {
+        // We assume Dialogporten exposes a restore endpoint for soft-deleted dialogs
+        var response = await _httpClient.PostAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/actions/restore", null, cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+        if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.Gone)
+        {
+            // Treat as already restored or not applicable
+            return false;
+        }
+        throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+    }
 }

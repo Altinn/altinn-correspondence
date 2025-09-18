@@ -4,6 +4,7 @@ using Altinn.Correspondence.Application.CleanupPerishingDialogs;
 using Altinn.Correspondence.Common.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Altinn.Correspondence.Application.RestoreSoftDeletedDialogs;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -60,6 +61,32 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
         CancellationToken cancellationToken)
     {
         _logger.LogInformation("Request to cleanup perishing dialogs received");
+        var result = await handler.Process(request, HttpContext.User, cancellationToken);
+        return result.Match(
+            Ok,
+            Problem
+        );
+    }
+
+    /// <summary>
+    /// Enqueue restore of soft-deleted dialogs in Dialogporten for correspondences that are not purged
+    /// </summary>
+    /// <response code="200">Returns the enqueued job id</response>
+    /// <response code="401">Unauthorized</response>
+    /// <response code="403">Forbidden</response>
+    [HttpPost]
+    [Route("restore-soft-deleted-dialogs")] 
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(RestoreSoftDeletedDialogsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> RestoreSoftDeletedDialogs(
+        [FromServices] RestoreSoftDeletedDialogsHandler handler,
+        [FromBody] RestoreSoftDeletedDialogsRequest request,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Request to restore soft-deleted dialogs received");
         var result = await handler.Process(request, HttpContext.User, cancellationToken);
         return result.Match(
             Ok,
