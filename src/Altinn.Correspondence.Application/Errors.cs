@@ -47,7 +47,7 @@ public static class CorrespondenceErrors
     public static Error MessageSenderIsNotPlainText = new Error(1039, "Message sender must be plain text", HttpStatusCode.BadRequest);
     public static Error AlreadyMarkedAsRead = new Error(1040, "Correspondence is already marked as read", HttpStatusCode.BadRequest);
     public static Error CorrespondenceAlreadyConfirmed = new Error(1041, "Correspondence has already been confirmed", HttpStatusCode.BadRequest);
-    public static Error MessageSummaryWrongLength = new Error(1042, "Message summary, if not null, must be between 0 and 255 characters long");
+    public static Error MessageSummaryWrongLength = new Error(1042, "Message summary, if not null, must be between 0 and 255 characters long", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
