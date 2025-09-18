@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: correspondence
+  namespace: correspondence
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: correspondence
+  template:
+    metadata:
+      labels:
+        app: correspondence
+    spec:
+      containers:
+        - image: altinncr.azurecr.io/corr/correspondence-sync
+          imagePullPolicy: IfNotPresent
+          name: correspondence-app
+          ports:
+            - containerPort: 80
+          env:
+            - name: PORT
+              value: "80"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: correspondence
+  namespace: correspondence
+spec:
+  ipFamilyPolicy: PreferDualStack
+  ipFamilies:
+    - IPv6
+    - IPv4
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+  type: ClusterIP
+  selector:
+    app: correspondence
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: correspondence
+  namespace: correspondence
+spec:
+  entryPoints:
+    - http
+    - https
+  routes:
+    - kind: Rule
+      match: PathPrefix(`/correspondence/api/v1/`) || Path(`/correspondence/api/v1`)
+      services:
+        - name: correspondence
+          namespace: correspondence
+          port: 80

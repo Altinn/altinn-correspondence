@@ -84,7 +84,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>4009: Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService</li>
         /// </ul></response>
         /// <response code="401"><ul>
-        /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</li>
+        /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</li>
         /// </ul></response>
         /// <response code="403"><ul>
         /// <li>4008: Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no</li>
@@ -185,7 +185,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>4009: Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService</li>
         /// </ul></response>
         /// <response code="401"><ul>
-        /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</li>
+        /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</li>
         /// </ul></response>
         /// <response code="403"><ul>
         /// <li>4008: Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no</li>
@@ -244,7 +244,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <response code="200">Returns an overview of metadata about the published correspondence</response>
         /// <response code="400">4002: Could not retrieve party uuid from lookup in Altinn Register</response>
-        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
         /// <response code="404">1001: The requested correspondence was not found</response>
         [HttpGet]
         [Route("{correspondenceId}")]
@@ -284,7 +284,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <response code="200">Detailed information about the correspondence with current status and status history</response>
         /// <response code="400">4002: Could not retrieve party uuid from lookup in Altinn Register</response>
-        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
         /// <response code="404">1001: The requested correspondence was not found</response>
         [HttpGet]
         [Produces("application/json")]
@@ -361,7 +361,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li>
         /// </ul></response>
         /// <response code="401"><ul>
-        /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</li>
+        /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</li>
         /// <li>4006: Could not determine the caller</li>
         /// </ul></response>
         [HttpGet]
@@ -411,7 +411,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <response code="200">the Id of the correspondence</response>
         /// <response code="400">4002: Could not retrieve party uuid from lookup in Altinn Register</response>
-        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
         /// <response code="404">1001: The requested correspondence was not found</response>
         [HttpPost]
         [Produces("application/json")]
@@ -449,7 +449,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <response code="200">the Id of the correspondence</response>
         /// <response code="400">4002: Could not retrieve party uuid from lookup in Altinn Register</response>
-        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
         /// <response code="404">1001: The requested correspondence was not found</response>
         [HttpPost]
         [Produces("application/json")]
@@ -494,7 +494,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1026: Cannot archive or delete a correspondence which has not been confirmed when confirmation is required</li>
         /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li> 
         /// </ul></response>
-        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
         /// <response code="404">1001: The requested correspondence was not found</response>
         [HttpDelete]
         [Produces("application/json")]
@@ -533,7 +533,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// </remarks>
         /// <response code="200">Returns the attachment file</response>
         /// <response code="400">4002: Could not retrieve party uuid from lookup in Altinn Register</response>
-        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and orgaization in Altinn Authorization</response>
+        /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
         /// <response code="404"><ul>
         /// <li>1001: The requested correspondence was not found</li>
         /// <li>2001: The requested attachment was not found</li>

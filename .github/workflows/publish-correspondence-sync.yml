@@ -4,6 +4,7 @@ env:
   ARTIFACT_NAME: corr/correspondence-sync
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -19,26 +20,28 @@ permissions:
 
 jobs:
   build:
-    name: Build latest from main
-    if: github.ref == 'refs/heads/main'
+    name: Build latest
     runs-on: ubuntu-latest
     environment: test
     steps:
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      - name: Get short sha
+        id: get_sha
+        run: echo "short_sha=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
       - name: Build and push latest artifact
         uses: Altinn/altinn-platform/actions/flux/build-push-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
         with:
           image_name: ${{ env.ARTIFACT_NAME }}
-          tag: main
+          tag: ${{ steps.get_sha.outputs.short_sha }}
           workdir: ./flux/correspondence
           azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
   release:
     name: Build release from tag
-    if: startsWith(github.ref, 'refs/tags/corr-sync-')
     runs-on: ubuntu-latest
+    needs: [ build ]
     environment: production
     steps:
       - name: Checkout
@@ -47,7 +50,7 @@ jobs:
         id: get_tags
         run: |
           echo "tag=${GITHUB_REF/refs\/tags\/corr-sync-/}" >> $GITHUB_OUTPUT
-          echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "short_sha=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
       - name: Re-tag existing image with semver
         uses: Altinn/altinn-platform/actions/flux/retag-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
         with:
