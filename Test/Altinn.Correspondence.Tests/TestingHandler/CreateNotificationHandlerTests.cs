@@ -46,7 +46,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _mockGeneralSettings = new Mock<IOptions<GeneralSettings>>();
             _mockLogger = new Mock<ILogger<CreateNotificationHandler>>();
 
-            _mockGeneralSettings.Setup(x => x.Value).Returns(new GeneralSettings());
+            _mockGeneralSettings.Setup(x => x.Value).Returns(new GeneralSettings 
+            { 
+                CorrespondenceBaseUrl = "https://test.altinn.no" 
+            });
             _mockHostEnvironment.Setup(x => x.EnvironmentName).Returns("Development");
 
             // Create a real instance of HangfireScheduleHelper with all required dependencies
@@ -228,6 +231,27 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 n.Created >= testStartTime &&
                 n.RequestedSendTime >= expectedReminderTime.AddSeconds(-20) && // Allow 20 seconds difference
                 n.RequestedSendTime <= expectedReminderTime.AddSeconds(20)), CancellationToken.None), Times.Once);
+        }
+
+        [Fact]
+        public async Task Process_ShouldSetConditionEndpointForV2Reminders_WhenSendReminderIsTrue()
+        {
+            // Arrange
+            var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
+            var (notificationRequest, correspondence, template, expectedResponse) = SetupTestData(requestedPublishTime);
+
+            // Act
+            await _handler.Process(notificationRequest, CancellationToken.None);
+
+            // Assert
+            // Verify that CreateNotificationV2 was called with a reminder that has a condition endpoint
+            _mockAltinnNotificationService.Verify(x => x.CreateNotificationV2(It.Is<NotificationOrderRequestV2>(req => 
+                req.Reminders != null &&
+                req.Reminders.Count == 1 &&
+                req.Reminders[0].ConditionEndpoint != null &&
+                req.Reminders[0].ConditionEndpoint.Contains($"/correspondence/api/v1/correspondence/{correspondence.Id}/notification/check") &&
+                req.Reminders[0].SendersReference == correspondence.SendersReference),
+                CancellationToken.None), Times.Once);
         }
     }
 } 
