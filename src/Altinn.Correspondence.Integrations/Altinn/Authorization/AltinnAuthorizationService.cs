@@ -129,9 +129,9 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         List<(string Recipient, string ResourceId)> recipientWithResources = correspondences.Select(correspondence => (correspondence.Recipient, correspondence.ResourceId)).Distinct().ToList();
         XacmlJsonRequestRoot jsonRequest = CreateMultiDecisionRequestForLegacy(user, ssn, recipientWithResources);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
-        if (responseContent.Response.Count != recipientWithResources.Count)
+                if (responseContent.Response.Count != recipientWithResources.Count)
         {
-            _logger.LogError("Authorization response count mismatch. Expected: {Expected}, Received: {Received}",
+            _logger.LogError("Authorization response count mismatch. Expected: {Expected}, Received: {Received}", 
                 recipientWithResources.Count, responseContent.Response.Count);
             throw new InvalidOperationException($"Authorization service returned {responseContent.Response.Count} decisions but {recipientWithResources.Count} were requested");
         }
@@ -224,7 +224,6 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
     private async Task<XacmlJsonResponse> AuthorizeRequest(XacmlJsonRequestRoot jsonRequest, CancellationToken cancellationToken)
     {
-        XacmlJsonMultiRequests xacmlJsonMultiRequests = new XacmlJsonMultiRequests();
         var response = await _httpClient.PostAsJsonAsync("authorization/api/v1/authorize", jsonRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
