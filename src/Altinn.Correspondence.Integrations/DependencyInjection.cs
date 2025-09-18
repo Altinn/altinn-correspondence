@@ -84,8 +84,6 @@ public static class DependencyInjection
         services.AddSingleton<IDistributedLockHelper, DistributedLockHelper>();
     }
 
-
-
     public static void RegisterAltinnHttpClient<TClient, TImplementation>(this IServiceCollection services, MaskinportenSettings maskinportenSettings, AltinnOptions altinnOptions)
         where TClient : class
         where TImplementation : class, TClient
