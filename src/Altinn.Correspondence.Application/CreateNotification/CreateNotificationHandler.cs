@@ -294,6 +294,7 @@ public class CreateNotificationHandler(
                     {
                         SendersReference = correspondence.SendersReference,
                         DelayDays = hostEnvironment.IsProduction() ? 7 : 1,
+                        ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString())?.ToString(),
                         Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), correspondence, isReminder: true)
                     }
                 ];

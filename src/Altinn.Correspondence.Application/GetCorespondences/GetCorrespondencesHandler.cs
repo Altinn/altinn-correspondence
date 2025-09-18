@@ -41,27 +41,40 @@ public class GetCorrespondencesHandler(
             return AuthorizationErrors.NoAccessToResource;
         }
         // TODO: Add implementation to retrieve instances delegated to the user
+         if (request.IdempotentKey.HasValue)
+        {
+            logger.LogInformation("Retrieving correspondence for resource {ResourceId} with idempotentKey {IdempotentKey}",
+                request.ResourceId.SanitizeForLogging(),
+                request.IdempotentKey);
+            var correspondence = await correspondenceRepository.GetCorrespondenceByIdempotentKey(request.IdempotentKey.Value, cancellationToken);
+            if (correspondence == null)
+            {
+                return new GetCorrespondencesResponse { Ids = new List<Guid>() };
+            }
+                return new GetCorrespondencesResponse { Ids = new List<Guid> { correspondence.Id } };
+        }
 
         logger.LogInformation("Retrieving correspondences for resource {ResourceId} with filters: from={From}, to={To}, limit={Limit} status={Status}, onBehalfOf={onBehalfOf}, role={Role}",
-            request.ResourceId.SanitizeForLogging(),
-            from,
-            to,
-            limit,
-            request.Status,
-            onBehalfOf.SanitizeForLogging(),
-            request.Role
-        );
-        var correspondenceIds = await correspondenceRepository.GetCorrespondences(
-            request.ResourceId,
-            limit,
-            from,
-            to,
-            request.Status,
-            onBehalfOf,
-            request.Role,
-            request.SendersReference,
-            cancellationToken);
-        logger.LogInformation("Found {Count} correspondences for resource {ResourceId}", correspondenceIds.Count, request.ResourceId.SanitizeForLogging());
-        return new GetCorrespondencesResponse { Ids = correspondenceIds };
+                request.ResourceId.SanitizeForLogging(),
+                from,
+                to,
+                limit,
+                request.Status,
+                onBehalfOf.SanitizeForLogging(),
+                request.Role
+            );
+            var correspondenceIds = await correspondenceRepository.GetCorrespondences(
+                request.ResourceId,
+                limit,
+                from,
+                to,
+                request.Status,
+                onBehalfOf,
+                request.Role,
+                request.SendersReference,
+                request.IdempotentKey.HasValue ? request.IdempotentKey.Value : default,
+                cancellationToken);
+            logger.LogInformation("Found {Count} correspondences for resource {ResourceId}", correspondenceIds.Count, request.ResourceId.SanitizeForLogging());
+            return new GetCorrespondencesResponse { Ids = correspondenceIds };
+        }
     }
-}

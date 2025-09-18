@@ -379,6 +379,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromQuery, RequiredEnum] CorrespondencesRoleType role,
             [FromQuery, OnBehalfOf] string? onBehalfOf,
             [FromQuery] string? sendersReference,
+            [FromQuery] Guid? idempotentKey,
             CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Get correspondences for receiver");
@@ -391,7 +392,8 @@ namespace Altinn.Correspondence.API.Controllers
                 Status = status is null ? null : (CorrespondenceStatus)status,
                 Role = role,
                 OnBehalfOf = onBehalfOf,
-                SendersReference = sendersReference
+                SendersReference = sendersReference,
+                IdempotentKey = idempotentKey
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(

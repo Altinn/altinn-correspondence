@@ -3,7 +3,6 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Hangfire;
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
