@@ -88,7 +88,7 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return CorrespondenceErrors.MessageTitleTooLong;
             }
-            if (!string.IsNullOrWhiteSpace(content.MessageSummary) && content.MessageSummary.Length > 255)
+            if (!string.IsNullOrEmpty(content.MessageSummary) && content.MessageSummary.Length > 255)
             {
                 return CorrespondenceErrors.MessageSummaryWrongLength;
             }
