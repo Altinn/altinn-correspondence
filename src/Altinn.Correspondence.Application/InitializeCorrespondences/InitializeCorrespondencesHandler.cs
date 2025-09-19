@@ -411,8 +411,7 @@ public class InitializeCorrespondencesHandler(
                     throw;
                 }
             }
-            var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
-            await hybridCacheWrapper.SetAsync($"dialogJobId_{correspondence.Id}", dialogJob, new HybridCacheEntryOptions
+
             if (correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId))
             {
                 logger.LogInformation("Correspondence {correspondenceId} already has a Dialogporten dialog, creating a transmission", correspondence.Id);
@@ -424,7 +423,6 @@ public class InitializeCorrespondencesHandler(
             }
             else
             {
-                logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
                 var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
                 await hybridCacheWrapper.SetAsync($"dialogJobId_{correspondence.Id}", dialogJob, new HybridCacheEntryOptions
                 {
