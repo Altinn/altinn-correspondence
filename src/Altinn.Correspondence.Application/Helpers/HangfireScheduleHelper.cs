@@ -29,6 +29,19 @@ namespace Altinn.Correspondence.Application.Helpers
                 backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(dialogJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken));
             }
         }
+        public async Task SchedulePublishAfterTransmissionCreated(Guid correspondenceId, CancellationToken cancellationToken)
+        {
+            var transmissionJobId = await hybridCacheWrapper.GetAsync<string?>($"transmissionJobId_{correspondenceId}", cancellationToken: cancellationToken);
+            if (transmissionJobId is null)
+            {
+                logger.LogError("Could not find transmissionJobId for correspondence {correspondenceId} in cache. More than 24 hours delayed?", correspondenceId);
+                await SchedulePublishAtPublishTime(correspondenceId, cancellationToken);
+            }
+            else
+            {
+                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(transmissionJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken));
+            }
+        }
 
         public async Task SchedulePublishAtPublishTime(Guid correspondenceId, CancellationToken cancellationToken)
         {
