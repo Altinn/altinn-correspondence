@@ -10,12 +10,12 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
 using System.Security.Claims;
-using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
@@ -100,6 +100,19 @@ public class InitializeCorrespondencesHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
         validatedData.PartyUuid = partyUuid;
+        var recipientsNotFound = new List<string>();
+        foreach (var recipient in request.Recipients)
+        {
+            var recipientParty = await altinnRegisterService.LookUpPartyById(recipient, cancellationToken);
+            if (recipientParty is null)
+            {
+                recipientsNotFound.Add(recipient);
+            }
+        }
+        if (recipientsNotFound.Count > 0)
+        {
+            return CorrespondenceErrors.RecipientLookupFailed(recipientsNotFound);
+        }
 
         if (request.Recipients.Count != request.Recipients.Distinct().Count())
         {

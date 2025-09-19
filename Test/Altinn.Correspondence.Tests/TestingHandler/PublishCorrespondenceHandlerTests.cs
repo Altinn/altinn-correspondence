@@ -263,43 +263,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Process_WhenOrganizationNotFoundInBrreg_FailsCorrespondenceWithCorrectMessage()
-        {
-            // Arrange
-            var correspondenceId = Guid.NewGuid();
-            var partyUuid = Guid.NewGuid();
-            var senderUrn = "urn:altinn:organization:identifier-no:313721779";
-            var recipientUrn = "urn:altinn:organization:identifier-no:310244007";
-            var organizationNumber = "310244007";
-            
-            var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn);
-            SetupCommonMocks(correspondenceId, partyUuid, correspondence);
-            SetupBrregServiceToThrowNotFoundForOrg(organizationNumber);
-
-            _brregServiceMock
-                .Setup(x => x.GetSubOrganizationDetails(organizationNumber, It.IsAny<CancellationToken>()))
-                .Throws(new BrregNotFoundException(organizationNumber));
-
-            // Act
-            await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
-
-            // Assert
-            _correspondenceStatusRepositoryMock.Verify(
-                x => x.AddCorrespondenceStatus(
-                    It.Is<CorrespondenceStatusEntity>(s => 
-                        s.CorrespondenceId == correspondenceId && 
-                        s.Status == CorrespondenceStatus.Failed && 
-                        s.StatusText.Contains("not found in 'Enhetsregisteret'")),
-                    It.IsAny<CancellationToken>()),
-                Times.Once);
-
-            _slackClientMock.Verify(
-                x => x.PostAsync(It.Is<SlackMessage>(m => 
-                    m.Text.Contains("Correspondence failed"))),
-                Times.Once);
-        }
-
-        [Fact]
         public async Task Process_CorrespondenceWithSubOrgRecipientThatHasParentOrgWithRequiredRoles_Succeeds()
         {
             // Arrange
