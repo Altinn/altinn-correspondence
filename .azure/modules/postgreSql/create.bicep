@@ -7,7 +7,7 @@ param tenantId string
 
 param prodLikeEnvironment bool
 param logAnalyticsWorkspaceId string = ''
-
+param environment string
 
 var databaseName = 'correspondence'
 var poolSize = prodLikeEnvironment ? 100 : 25
@@ -28,6 +28,10 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
       passwordAuth: 'Disabled'
       tenantId: tenantId
     }
+    highAvailability: environment == 'production' ? {
+      mode: 'ZoneRedundant'
+      standbyAvailabilityZone: '1'
+    } : null
   }
   sku: prodLikeEnvironment
     ? {
