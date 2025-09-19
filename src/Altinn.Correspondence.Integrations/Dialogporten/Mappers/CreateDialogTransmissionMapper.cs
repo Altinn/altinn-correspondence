@@ -1,9 +1,5 @@
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Integrations.Dialogporten.Models;
-using UUIDNext;
 using Microsoft.Extensions.Logging;
 
 
@@ -27,7 +23,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 Id = dialogId,
                 CreatedAt = correspondence.Created,
-                // AuthorizationAttribute = ?,
+                AuthorizationAttribute = UrnConstants.Resource + ":" + correspondence.ResourceId,
                 IsAuthorized = true,
                 ExternalReference = correspondence.SendersReference,
                 RelatedTransmissionId = null,
@@ -125,14 +121,14 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             return $"{baseUrl.Trim('/')}/correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentId}/download";
         }
-        
+
         private static TransmissionSender CreateTransmissionSender(CorrespondenceEntity correspondence)
         {
             return new TransmissionSender
             {
                 ActorId = correspondence.GetRecipientUrn(),
                 ActorType = "PartyRepresentative",
-                
+
             };
         }
     }
