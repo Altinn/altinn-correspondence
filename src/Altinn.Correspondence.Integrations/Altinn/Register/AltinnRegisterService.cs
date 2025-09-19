@@ -156,6 +156,10 @@ public class AltinnRegisterService : IAltinnRegisterService
         var response = await _httpClient.PostAsJsonAsync("register/api/v1/parties/lookup", partyLookup, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return null; 
+            }            
             throw new Exception($"Error when looking up organization in Altinn Register.Statuscode was: {response.StatusCode}, error was: {await response.Content.ReadAsStringAsync()}");
         }
 
