@@ -43,6 +43,36 @@ public static class AltinnTokenXacmlMapper
         return jsonRequest;
     }
 
+    public static XacmlJsonRequestRoot CreateMultiDecisionRequestForLegacy(ClaimsPrincipal user, string ssn, List<(string Recipient, string ResourceId)> recipientParties)
+    {
+        XacmlJsonRequest request = new XacmlJsonRequest();
+        request.AccessSubject = new List<XacmlJsonCategory>();
+        request.Action = new List<XacmlJsonCategory>();
+        request.Resource = new List<XacmlJsonCategory>();
+
+        var subjectCategory = CreateSubjectCategoryForLegacy(user, ssn);
+        subjectCategory.Id = "s1";
+        request.AccessSubject.Add(subjectCategory);
+        var actionCategory = DecisionHelper.CreateActionCategory("read");
+        actionCategory.Id = "a1";
+        request.Action.Add(actionCategory);
+        request.MultiRequests = new XacmlJsonMultiRequests()
+        {
+            RequestReference = new List<XacmlJsonRequestReference>()
+        };
+        foreach (var recipientParty in recipientParties)
+        {
+            var resourceCategory = CreateResourceCategory(recipientParty.ResourceId, user, recipientParty.Recipient);
+            resourceCategory.Id = recipientParty.Recipient + "::" + recipientParty.ResourceId;
+            request.Resource.Add(resourceCategory);
+            request.MultiRequests.RequestReference.Add(new XacmlJsonRequestReference(){
+                ReferenceId = [subjectCategory.Id, actionCategory.Id, resourceCategory.Id]
+            });
+        }
+        XacmlJsonRequestRoot jsonRequest = new() { Request = request };
+
+        return jsonRequest;
+    }
 
     private static XacmlJsonCategory CreateResourceCategory(string resourceId, ClaimsPrincipal user, string party, string? instanceId = null)
     {
