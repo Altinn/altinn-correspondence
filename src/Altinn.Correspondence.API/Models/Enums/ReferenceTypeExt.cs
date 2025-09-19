@@ -29,5 +29,9 @@
         /// Specifies that the reference is a Dialogporten Process ID
         /// </summary>
         DialogportenProcessId = 4,
+        /// <summary>
+        /// Specifies that the reference is a Dialogporten Transmission ID
+        /// </summary>
+        DialogportenTransmissionId = 5,
     }
 }
