@@ -174,8 +174,8 @@ namespace Altinn.Correspondence.API.Models
             var externalReferences = (List<ExternalReferenceExt>)value;
             if (externalReferences.Count > 10)
                 return new ValidationResult("externalReferences can contain at most 10 references");
-            if (externalReferences.Any(externalReference => externalReference.ReferenceType == Enums.ReferenceTypeExt.DialogportenDialogId))
-                return new ValidationResult("Cannot initialize a correspondence with pre-existing dialog element defined");
+            if (externalReferences.Any(externalReference => externalReference.ReferenceType == Enums.ReferenceTypeExt.DialogportenTransmissionId))
+                return new ValidationResult("Cannot initialize a correspondence with pre-existing transmission defined");
 
             return ValidationResult.Success;
         }

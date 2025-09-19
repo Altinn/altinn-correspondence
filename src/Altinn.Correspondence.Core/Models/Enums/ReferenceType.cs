@@ -30,5 +30,10 @@ namespace Altinn.Correspondence.Core.Models.Enums
         /// </summary>
         DialogportenProcessId = 4,
 
+        /// <summary>
+        /// Specifies that the reference is a Dialogporten Transmission ID
+        /// </summary>
+        DialogportenTransmissionId = 5,
+
     }
 }
