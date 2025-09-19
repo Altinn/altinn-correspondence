@@ -384,6 +384,7 @@ public class InitializeCorrespondencesHandler(
         var initializedCorrespondences = new List<InitializedCorrespondences>();
         foreach (var correspondence in correspondences)
         {
+<<<<<<< HEAD
             logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
             if (request.IdempotentKey.HasValue)
             {
@@ -430,6 +431,9 @@ public class InitializeCorrespondencesHandler(
                 });
             }
             await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
+=======
+            await CreateDialogOrTransmissionJob(correspondence, request, cancellationToken);
+>>>>>>> 7fc69776 (Extract dialog/transmission job logic to separate method)
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
             if (!isReserved)
             {
@@ -463,6 +467,37 @@ public class InitializeCorrespondencesHandler(
             Correspondences = initializedCorrespondences,
             AttachmentIds = correspondences.SelectMany(c => c.Content?.Attachments.Select(a => a.AttachmentId)).Distinct().ToList()
         };
+    }
+
+    private async Task CreateDialogOrTransmissionJob(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
+    {
+        bool hasDialogId = correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId);
+        if (hasDialogId)
+        {
+            logger.LogInformation("Correspondence {correspondenceId} already has a Dialogporten dialog, creating a transmission", correspondence.Id);
+            var transmissionJob = backgroundJobClient.Enqueue(() => CreateDialogportenTransmission(correspondence.Id));
+            await hybridCacheWrapper.SetAsync($"transmissionJobId_{correspondence.Id}", transmissionJob, new HybridCacheEntryOptions
+            {
+                Expiration = TimeSpan.FromHours(24)
+            });
+            if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+            {
+                await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondence.Id, cancellationToken);
+            }
+        }
+        else
+        {
+            logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
+            var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
+            await hybridCacheWrapper.SetAsync($"dialogJobId_{correspondence.Id}", dialogJob, new HybridCacheEntryOptions
+            {
+                Expiration = TimeSpan.FromHours(24)
+            });
+            if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+            {
+                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
+            }
+        }
     }
 
     public async Task CreateDialogportenDialog(Guid correspondenceId)
