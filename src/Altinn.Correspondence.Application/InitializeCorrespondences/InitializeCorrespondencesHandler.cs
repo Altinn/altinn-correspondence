@@ -385,6 +385,7 @@ public class InitializeCorrespondencesHandler(
         foreach (var correspondence in correspondences)
         {
 <<<<<<< HEAD
+<<<<<<< HEAD
             logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
             if (request.IdempotentKey.HasValue)
             {
@@ -424,6 +425,20 @@ public class InitializeCorrespondencesHandler(
             }
             else
             {
+=======
+            if (correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId))
+            {
+                logger.LogInformation("Correspondence {correspondenceId} already has a Dialogporten dialog, creating a transmission", correspondence.Id);
+                var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenTransmission(correspondence.Id));
+                await hybridCacheWrapper.SetAsync($"dialogJobId_{correspondence.Id}", dialogJob, new HybridCacheEntryOptions
+                {
+                    Expiration = TimeSpan.FromHours(24)
+                });
+            }
+            else
+            {
+                logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
+>>>>>>> cb9a316d (Update handler to accomodate transmissions)
                 var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
                 await hybridCacheWrapper.SetAsync($"dialogJobId_{correspondence.Id}", dialogJob, new HybridCacheEntryOptions
                 {
@@ -431,9 +446,12 @@ public class InitializeCorrespondencesHandler(
                 });
             }
             await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
+<<<<<<< HEAD
 =======
             await CreateDialogOrTransmissionJob(correspondence, request, cancellationToken);
 >>>>>>> 7fc69776 (Extract dialog/transmission job logic to separate method)
+=======
+>>>>>>> cb9a316d (Update handler to accomodate transmissions)
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
             if (!isReserved)
             {
