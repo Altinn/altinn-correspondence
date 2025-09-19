@@ -23,7 +23,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         {
             return Task.CompletedTask;
         }
-        
+
         public Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp)
         {
             return Task.CompletedTask;
@@ -59,7 +59,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.FromResult(true);
         }
 
-        public Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType,  string actorName, DateTimeOffset activityTimestamp)
+        public Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType, string actorName, DateTimeOffset activityTimestamp)
         {
             return Task.CompletedTask;
         }
@@ -75,6 +75,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         public Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string enduserId, List<DialogPortenSystemLabel>? systemLabelsToAdd, List<DialogPortenSystemLabel>? systemLabelsToRemove)
         {
             return Task.CompletedTask;
+        }
+        
+        public Task<string> CreateDialogTransmission(Guid correspondenceId)
+        {
+            return Task.FromResult(Guid.NewGuid().ToString());
         }
     }
 }
