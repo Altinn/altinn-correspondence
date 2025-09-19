@@ -25,7 +25,7 @@ jobs:
     environment: test
     steps:
       - name: Checkout
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - name: Validate syncroot image
         uses: Altinn/altinn-platform/actions/flux/verify-syncroot@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
         with:
@@ -46,7 +46,7 @@ jobs:
     environment: production
     steps:
       - name: Checkout
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - name: Get tag short sha
         id: get_tags
         run: |
