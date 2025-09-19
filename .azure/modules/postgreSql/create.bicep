@@ -17,6 +17,7 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   location: location
   properties: {
     version: '16'
+    availabilityZone: environment == 'production' ? '2' : null
     storage: {
       storageSizeGB: prodLikeEnvironment ? 4096 : 32
       autoGrow: 'Enabled'
