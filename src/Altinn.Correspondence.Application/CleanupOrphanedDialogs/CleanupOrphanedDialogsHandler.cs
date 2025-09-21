@@ -32,7 +32,7 @@ public class CleanupOrphanedDialogsHandler(
     }
 
     [AutomaticRetry(Attempts = 0)]
-    [DisableConcurrentExecution(timeoutInSeconds: 1800)]
+    [DisableConcurrentExecution(timeoutInSeconds: 14400)]
     public async Task ExecuteCleanupInBackground(int windowSize, CancellationToken cancellationToken)
     {
         logger.LogInformation("Executing cleanup of orphaned dialogs in background job");
