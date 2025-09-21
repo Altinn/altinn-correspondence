@@ -195,5 +195,11 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondenceEntity.ServiceOwnerId = serviceOwnerId;
             return this;
         }
+
+        public CorrespondenceEntityBuilder WithAllowSystemDeleteAfter(DateTimeOffset? allowSystemDeleteAfter)
+        {
+            _correspondenceEntity.AllowSystemDeleteAfter = allowSystemDeleteAfter;
+            return this;
+        }
     }
 }
