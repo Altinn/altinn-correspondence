@@ -6,4 +6,6 @@ public class RestoreSoftDeletedDialogsRequest
 {
     [Range(100, int.MaxValue)]
     public int WindowSize { get; set; } = 1000;
+    
+    public bool DryRun { get; set; } = false;
 } 

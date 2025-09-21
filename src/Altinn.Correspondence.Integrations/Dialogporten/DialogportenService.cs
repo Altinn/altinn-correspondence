@@ -439,12 +439,30 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         {
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         }
-        var dialogRequest = await response.Content.ReadFromJsonAsync<CreateDialogRequest>(cancellationToken);
-        if (dialogRequest is null)
+        var dialogResponse = await response.Content.ReadFromJsonAsync<CreateDialogRequest>(cancellationToken);
+        if (dialogResponse is null)
         {
-            throw new Exception("Failed to deserialize the dialog request from the response.");
+            throw new Exception("Failed to deserialize the dialog response from the response.");
         }
-        return dialogRequest;
+        return dialogResponse;
+    }
+
+    public async Task<bool> HasDialogBeenDeleted(string dialogId)
+    {
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+
+        var response = await _httpClient.GetAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        }
+        var dialogResponse = await response.Content.ReadFromJsonAsync<DialogResponse>(cancellationToken);
+        if (dialogResponse is null)
+        {
+            throw new Exception("Failed to deserialize the dialog response from the response.");
+        }
+        return dialogResponse.DeletedAt != null;
     }
 
     private async Task<(Guid OpenedId, Guid? ConfirmedId)> CreateIdempotencyKeysForCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
