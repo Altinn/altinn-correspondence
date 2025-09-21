@@ -54,7 +54,7 @@ public class RestoreSoftDeletedDialogsHandler(
 
     [AutomaticRetry(Attempts = 0)]
     [DisableConcurrentExecution(timeoutInSeconds: 3600)]
-    private async Task<(int totalProcessed, int totalAlreadyDeleted, int totalNotDeleted, int totalErrors)> ExecuteDryRun(int windowSize, CancellationToken cancellationToken)
+    public async Task<(int totalProcessed, int totalAlreadyDeleted, int totalNotDeleted, int totalErrors)> ExecuteDryRun(int windowSize, CancellationToken cancellationToken)
     {
         var totalProcessed = 0;
         var totalAlreadyDeleted = 0;
