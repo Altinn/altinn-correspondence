@@ -51,8 +51,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             _PatchDialogRequest.Add(
                 new
                 {
-                    op = "remove",
-                    path = "/expiresAt"
+                    op = "replace",
+                    path = "/expiresAt",
+                    value = "2099-12-31T23:59:59Z"
                 }
             );
             return this;
