@@ -76,5 +76,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         {
             return Task.CompletedTask;
         }
+
+        public Task<bool> HasDialogBeenDeleted(string dialogId)
+        {
+            return Task.FromResult(true);
+        }
     }
 }

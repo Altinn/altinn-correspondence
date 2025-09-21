@@ -52,7 +52,7 @@ public class RestoreSoftDeletedDialogsHandlerTests
         var handler = new RestoreSoftDeletedDialogsHandler(repo.Object, dialog.Object, bg.Object, logger.Object);
 
         // Act
-        await handler.ExecuteRestoreInBackground(100, CancellationToken.None);
+        await handler.ExecuteRestoreInBackground(100, false, CancellationToken.None);
 
         // Assert
         dialog.Verify(s => s.TryRestoreSoftDeletedDialog("d1", It.IsAny<CancellationToken>()), Times.Once);
@@ -107,7 +107,7 @@ public class RestoreSoftDeletedDialogsHandlerTests
         var handler = new RestoreSoftDeletedDialogsHandler(repo.Object, dialog.Object, bg.Object, logger.Object);
 
         // Act
-        await handler.ExecuteRestoreInBackground(2, CancellationToken.None);
+        await handler.ExecuteRestoreInBackground(2, false, CancellationToken.None);
 
         // Assert
         Assert.Equal(all.Count, processed.Count);
