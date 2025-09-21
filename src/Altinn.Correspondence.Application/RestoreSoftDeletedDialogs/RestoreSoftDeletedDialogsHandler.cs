@@ -155,7 +155,7 @@ public class RestoreSoftDeletedDialogsHandler(
             throw;
         }
 
-        logger.LogInformation("Dry run completed processing {totalProcessed} with {totalAlreadyDeleted} already deleted. {totalNotDeleted}was not deleted, and there were {totalErrors} errors.", totalProcessed, totalAlreadyDeleted, totalNotDeleted, totalErrors)
+        logger.LogInformation("Dry run completed processing {totalProcessed} with {totalAlreadyDeleted} already deleted. {totalNotDeleted}was not deleted, and there were {totalErrors} errors.", totalProcessed, totalAlreadyDeleted, totalNotDeleted, totalErrors);
         return (totalProcessed, totalAlreadyDeleted, totalNotDeleted, totalErrors);
     }
 
