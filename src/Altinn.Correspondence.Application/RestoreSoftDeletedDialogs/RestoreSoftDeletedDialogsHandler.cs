@@ -22,18 +22,18 @@ public class RestoreSoftDeletedDialogsHandler(
         {
             logger.LogInformation("Starting dry run check of soft-deleted dialogs with window size {windowSize}", request.WindowSize);
             
-            var (totalProcessed, totalAlreadyDeleted, totalNotDeleted, totalErrors) = await ExecuteDryRun(request.WindowSize, cancellationToken);
+            backgroundJobClient.Enqueue(() => ExecuteDryRun(request.WindowSize, cancellationToken));
             
-            logger.LogInformation("Dry run completed. Total processed: {processedCount}, Already deleted: {alreadyDeletedCount}, Not deleted: {notDeletedCount}, Total errors: {errorCount}", 
-                totalProcessed, totalAlreadyDeleted, totalNotDeleted, totalErrors);
+            //logger.LogInformation("Dry run completed. Total processed: {processedCount}, Already deleted: {alreadyDeletedCount}, Not deleted: {notDeletedCount}, Total errors: {errorCount}", 
+              //  totalProcessed, totalAlreadyDeleted, totalNotDeleted, totalErrors);
 
             return new RestoreSoftDeletedDialogsResponse
             {
                 Message = "Dry run completed",
-                TotalProcessed = totalProcessed,
-                TotalAlreadyDeleted = totalAlreadyDeleted,
-                TotalNotDeleted = totalNotDeleted,
-                TotalErrors = totalErrors
+                TotalProcessed = 0,
+                TotalAlreadyDeleted = 0,
+                TotalNotDeleted = 0,
+                TotalErrors = 0
             };
         }
         else
@@ -52,6 +52,8 @@ public class RestoreSoftDeletedDialogsHandler(
         }
     }
 
+    [AutomaticRetry(Attempts = 0)]
+    [DisableConcurrentExecution(timeoutInSeconds: 3600)]
     private async Task<(int totalProcessed, int totalAlreadyDeleted, int totalNotDeleted, int totalErrors)> ExecuteDryRun(int windowSize, CancellationToken cancellationToken)
     {
         var totalProcessed = 0;
@@ -153,6 +155,7 @@ public class RestoreSoftDeletedDialogsHandler(
             throw;
         }
 
+        logger.LogInformation("Dry run completed processing {totalProcessed} with {totalAlreadyDeleted} already deleted. {totalNotDeleted}was not deleted, and there were {totalErrors} errors.", totalProcessed, totalAlreadyDeleted, totalNotDeleted, totalErrors)
         return (totalProcessed, totalAlreadyDeleted, totalNotDeleted, totalErrors);
     }
 
