@@ -6,6 +6,7 @@ using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
+using System.Collections.Concurrent;
 
 namespace Altinn.Correspondence.Application.RestoreSoftDeletedDialogs;
 
@@ -57,7 +58,7 @@ public class RestoreSoftDeletedDialogsHandler(
         var totalAlreadyDeleted = 0;
         var totalNotDeleted = 0;
         var totalErrors = 0;
-        var allErrors = new List<string>();
+        var allErrors = new ConcurrentBag<string>();
 
         try
         {
@@ -102,23 +103,37 @@ public class RestoreSoftDeletedDialogsHandler(
                     nonPurgedWithDialog.Count,
                     isMoreCorrespondences);
 
-                foreach (var correspondence in nonPurgedWithDialog)
+                // Process correspondences in parallel with 10 threads
+                var parallelOptions = new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = 10,
+                    CancellationToken = cancellationToken
+                };
+
+                var batchAlreadyDeleted = 0;
+                var batchNotDeleted = 0;
+                var batchErrors = 0;
+
+                await Parallel.ForEachAsync(nonPurgedWithDialog, parallelOptions, async (correspondence, ct) =>
                 {
                     try
                     {
                         var (_, _, alreadyDeleted, notDeleted) = await ProcessSingleCorrespondence(correspondence, true);
-                        if (alreadyDeleted) totalAlreadyDeleted++;
-                        if (notDeleted) totalNotDeleted++;
+                        if (alreadyDeleted) Interlocked.Increment(ref batchAlreadyDeleted);
+                        if (notDeleted) Interlocked.Increment(ref batchNotDeleted);
                     }
                     catch (Exception ex)
                     {
-                        totalErrors++;
+                        Interlocked.Increment(ref batchErrors);
                         var errorMessage = $"Failed to process correspondence {correspondence.Id}: {ex.Message}";
                         allErrors.Add(errorMessage);
                         logger.LogError(ex, "Failed to process correspondence {correspondenceId}", correspondence.Id);
                     }
-                }
+                });
 
+                totalAlreadyDeleted += batchAlreadyDeleted;
+                totalNotDeleted += batchNotDeleted;
+                totalErrors += batchErrors;
                 totalProcessed += nonPurgedWithDialog.Count;
 
                 if (correspondencesWindow.Count == 0)
@@ -153,7 +168,7 @@ public class RestoreSoftDeletedDialogsHandler(
         var totalAlreadyDeleted = 0;
         var totalNotDeleted = 0;
         var totalErrors = 0;
-        var allErrors = new List<string>();
+        var allErrors = new ConcurrentBag<string>();
 
         try
         {
@@ -198,24 +213,43 @@ public class RestoreSoftDeletedDialogsHandler(
                     nonPurgedWithDialog.Count,
                     isMoreCorrespondences);
 
-                foreach (var correspondence in nonPurgedWithDialog)
+                // Process correspondences in parallel with 10 threads
+                var parallelOptions = new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = 10,
+                    CancellationToken = cancellationToken
+                };
+
+                var batchRestored = 0;
+                var batchAlreadyActive = 0;
+                var batchAlreadyDeleted = 0;
+                var batchNotDeleted = 0;
+                var batchErrors = 0;
+
+                await Parallel.ForEachAsync(nonPurgedWithDialog, parallelOptions, async (correspondence, ct) =>
                 {
                     try
                     {
                         var (restored, alreadyActive, alreadyDeleted, notDeleted) = await ProcessSingleCorrespondence(correspondence, dryRun);
-                        if (restored) totalRestored++;
-                        if (alreadyActive) totalAlreadyActive++;
-                        if (alreadyDeleted) totalAlreadyDeleted++;
-                        if (notDeleted) totalNotDeleted++;
+                        if (restored) Interlocked.Increment(ref batchRestored);
+                        if (alreadyActive) Interlocked.Increment(ref batchAlreadyActive);
+                        if (alreadyDeleted) Interlocked.Increment(ref batchAlreadyDeleted);
+                        if (notDeleted) Interlocked.Increment(ref batchNotDeleted);
                     }
                     catch (Exception ex)
                     {
-                        totalErrors++;
+                        Interlocked.Increment(ref batchErrors);
                         var errorMessage = $"Failed to process correspondence {correspondence.Id}: {ex.Message}";
                         allErrors.Add(errorMessage);
                         logger.LogError(ex, "Failed to process correspondence {correspondenceId}", correspondence.Id);
                     }
-                }
+                });
+
+                totalRestored += batchRestored;
+                totalAlreadyActive += batchAlreadyActive;
+                totalAlreadyDeleted += batchAlreadyDeleted;
+                totalNotDeleted += batchNotDeleted;
+                totalErrors += batchErrors;
 
                 totalProcessed += nonPurgedWithDialog.Count;
 
