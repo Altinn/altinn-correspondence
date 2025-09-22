@@ -159,6 +159,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, bool includeActive, bool includeArchived, string searchString, CancellationToken cancellationToken, bool filterMigrated = true)
         {
+            logger.LogInformation("GetCorrespondencesForParties executed: " +
+                "Limit={Limit}, From={From}, To={To}, Status={Status}, " +
+                "RecipientIds={RecipientIds} (Count: {RecipientIdsCount}), " +
+                "ResourceIds Count={ResourceIdsCount}, IncludeActive={IncludeActive}, " +
+                "IncludeArchived={IncludeArchived}, SearchString='{SearchString}', " +
+                "FilterMigrated={FilterMigrated}",
+                limit, from, to, status,
+                string.Join(", ", recipientIds.Take(3)) + (recipientIds.Count > 3 ? "..." : ""),
+                recipientIds.Count, resourceIds.Count,
+                includeActive, includeArchived,
+                searchString ?? "null", filterMigrated);
             var correspondences = recipientIds.Count == 1
                 ? _context.Correspondences.Where(c => c.Recipient == recipientIds[0])     // Filter by single recipient
                 : _context.Correspondences.Where(c => recipientIds.Contains(c.Recipient)); // Filter multiple recipients
