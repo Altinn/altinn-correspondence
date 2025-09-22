@@ -88,9 +88,14 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return CorrespondenceErrors.MessageTitleTooLong;
             }
+            if (!string.IsNullOrEmpty(content.MessageSummary) && content.MessageSummary.Length > 255)
+            {
+                return CorrespondenceErrors.MessageSummaryWrongLength;
+            }
             if (!TextValidation.ValidatePlainText(content.MessageSummary))
             {
-                return CorrespondenceErrors.MessageSummaryIsNotPlainText;
+                //return CorrespondenceErrors.MessageSummaryIsNotPlainText; // Temporarily disabled until changed by customer #1331
+                logger.LogWarning("Markdown used in MessageSummary");
             }
             if (!TextValidation.ValidateMarkdown(content.MessageBody))
             {
@@ -173,6 +178,16 @@ namespace Altinn.Correspondence.Application.Helpers
         /// </summary>
         public Error? ValidateCustomRecipient(NotificationRequest notification, List<string> recipients)
         {
+            // Validate OverrideRegisteredContactInformation flag usage
+            if (notification.OverrideRegisteredContactInformation)
+            {
+                // OverrideRegisteredContactInformation can only be used when CustomRecipients is provided
+                if (notification.CustomRecipients == null || !notification.CustomRecipients.Any())
+                {
+                    return NotificationErrors.OverrideRegisteredContactInformationRequiresCustomRecipients;
+                }
+            }
+
             // Check if we have custom recipients
             if (notification.CustomRecipients != null && notification.CustomRecipients.Any())
             {

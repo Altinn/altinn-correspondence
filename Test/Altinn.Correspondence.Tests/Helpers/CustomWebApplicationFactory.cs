@@ -133,8 +133,17 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             {
                 Console.WriteLine($"Error stopping Hangfire server: {ex.Message}");
             }
-            
-            var dataSource = Services.GetRequiredService<NpgsqlDataSource>();
+
+            NpgsqlDataSource? dataSource = null;
+            try
+            {
+                dataSource = Services.GetRequiredService<NpgsqlDataSource>();
+            }
+            catch (ObjectDisposedException ex)
+            {
+                Console.WriteLine($"NpgsqlDataSource already disposed: {ex.Message}");
+            }
+
             try
             {
                 base.Dispose(disposing);

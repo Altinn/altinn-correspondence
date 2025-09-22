@@ -248,22 +248,24 @@ public class CreateNotificationHandler(
     { 
         logger.LogInformation("Creating notification request V2 for correspondence {CorrespondenceId}", correspondence.Id);
         
-        // Determine recipients to process - custom recipients are in addition to the default correspondence recipient
+        // Determine recipients to process - behavior depends on OverrideRegisteredContactInformation flag
         List<Recipient> recipientsToProcess = new List<Recipient>();
         
-        // Always add the default correspondence recipient
-        string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
-        bool isOrganization = recipientWithoutPrefix.IsOrganizationNumber();
-        bool isPerson = recipientWithoutPrefix.IsSocialSecurityNumber();
-        
-        
-        recipientsToProcess.Add(new Recipient
+        // If OverrideRegisteredContactInformation is false (default), add the default correspondence recipient
+        if (!notificationRequest.OverrideRegisteredContactInformation)
         {
-            OrganizationNumber = isOrganization ? recipientWithoutPrefix : null,
-            NationalIdentityNumber = isPerson ? recipientWithoutPrefix : null
-        });
+            string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
+            bool isOrganization = recipientWithoutPrefix.IsOrganizationNumber();
+            bool isPerson = recipientWithoutPrefix.IsSocialSecurityNumber();
+            
+            recipientsToProcess.Add(new Recipient
+            {
+                OrganizationNumber = isOrganization ? recipientWithoutPrefix : null,
+                NationalIdentityNumber = isPerson ? recipientWithoutPrefix : null
+            });
+        }
         
-        // Add custom recipients if they exist (in addition to the default recipient)
+        // Add custom recipients if they exist (in addition to default recipient when OverrideRegisteredContactInformation is false)
         if (notificationRequest.CustomRecipients != null && notificationRequest.CustomRecipients.Any())
         {
             recipientsToProcess.AddRange(notificationRequest.CustomRecipients);
@@ -292,6 +294,7 @@ public class CreateNotificationHandler(
                     {
                         SendersReference = correspondence.SendersReference,
                         DelayDays = hostEnvironment.IsProduction() ? 7 : 1,
+                        ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString())?.ToString(),
                         Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), correspondence, isReminder: true)
                     }
                 ];

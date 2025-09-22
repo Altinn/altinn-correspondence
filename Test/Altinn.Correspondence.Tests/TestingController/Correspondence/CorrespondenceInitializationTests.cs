@@ -22,6 +22,7 @@ using System.Text;
 using Altinn.Correspondence.Tests.TestingFeature;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Core.Models.Entities;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -209,6 +210,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [Fact]
         public async Task InitializeCorrespondence_With_HTML_In_Summary_Or_Body_fails()
         {
+            // Temporarily disabled until changed by customer #1331
+            return;
             var payload = new CorrespondenceBuilder()
             .CreateCorrespondence()
             .WithMessageSummary("<h1>test</h1>")
@@ -1558,6 +1561,51 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithNonExistentRecipient_ReturnsNotFound()
+        {
+            // Arrange
+            var nonExistentRecipient = "0192:999999999"; // Organization number that doesn't exist
+            var validRecipient = "0192:986252932"; // Valid organization number
+
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockRegisterService = new Mock<IAltinnRegisterService>();
+
+                // Mock to return null for the non-existent recipient
+                mockRegisterService
+                    .Setup(service => service.LookUpPartyById(nonExistentRecipient, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync((Party?)null);
+
+                // Mock to return a valid party for existing recipients
+                mockRegisterService
+                    .Setup(service => service.LookUpPartyById(validRecipient, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(new Party { PartyUuid = Guid.NewGuid(), OrgNumber = "986252932" });
+
+                // Mock for sender lookup (needed for authorization)
+                mockRegisterService
+                    .Setup(service => service.LookUpPartyById(It.Is<string>(s => s.Contains("991825827")), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(new Party { PartyUuid = Guid.NewGuid(), OrgNumber = "991825827" });
+
+                services.AddSingleton(mockRegisterService.Object);
+            });
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([nonExistentRecipient])
+                .Build();
+
+            // Act
+            var senderClient = testFactory.CreateSenderClient();
+            var initializeCorrespondenceResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.NotFound, initializeCorrespondenceResponse.StatusCode);
+            var errorContent = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+            Assert.Contains("Could not find partyId for the following recipients", errorContent);
+            Assert.Contains(nonExistentRecipient.WithoutPrefix(), errorContent);
         }
 
         [Fact]
