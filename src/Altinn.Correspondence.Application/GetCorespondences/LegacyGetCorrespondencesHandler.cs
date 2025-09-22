@@ -63,7 +63,8 @@ public class LegacyGetCorrespondencesHandler(
             {
                 if (!authorizedPartiesDict.TryGetValue(instanceOwnerPartyId, out var mappedInstanceOwner))
                 {
-                    return AuthorizationErrors.LegacyNotAccessToOwner(instanceOwnerPartyId);
+                    logger.LogWarning("{instanceOwnerPartyId} is not one of the {authorizedPartiesCount} authorized parties: {authorizedParties}", instanceOwnerPartyId, authorizedParties.Count, string.Join(',', authorizedParties.Select(party => party.PartyId)));
+                    continue;
                 }
                 if (mappedInstanceOwner.OrgNumber != null)
                     recipients.Add(GetPrefixedForOrg(mappedInstanceOwner.OrgNumber));
@@ -76,7 +77,14 @@ public class LegacyGetCorrespondencesHandler(
             if (!string.IsNullOrEmpty(userParty.SSN)) recipients.Add(GetPrefixedForPerson(userParty.SSN));
             if (!string.IsNullOrEmpty(userParty.OrgNumber)) recipients.Add(GetPrefixedForOrg(userParty.OrgNumber));
         }
-
+        if (recipients.Count == 0)
+        {
+            logger.LogWarning("Caller did not have access to any inboxes");
+            return new LegacyGetCorrespondencesResponse()
+            {
+                Items = []
+            };
+        }
         // Get all correspondences owned by Recipients
         // request.IncludeDeleted is not used as this is for soft deleted correspondences only, which are not relevant in legacy
         var correspondences = await correspondenceRepository.GetCorrespondencesForParties(limit: limit,
