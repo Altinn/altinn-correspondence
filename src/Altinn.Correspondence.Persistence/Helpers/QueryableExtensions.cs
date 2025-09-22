@@ -85,9 +85,8 @@ namespace Altinn.Correspondence.Persistence.Helpers
                     statusesToFilter.Add(CorrespondenceStatus.Archived);
                 }
             }
-
             return query.Where(cs =>
-                statusesToFilter.Contains(cs.Statuses.OrderBy(s => s.Status).Last().Status));
+                statusesToFilter.Contains(cs.Statuses.Max(s => s.Status)));
         }
 
         public static IQueryable<CorrespondenceEntity> ExcludePurged(this IQueryable<CorrespondenceEntity> query)
