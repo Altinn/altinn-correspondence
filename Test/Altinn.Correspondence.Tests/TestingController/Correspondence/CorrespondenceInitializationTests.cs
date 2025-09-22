@@ -1601,15 +1601,37 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var transmissionResponse = await _senderClient.PostAsJsonAsync(
                 $"correspondence/api/v1/correspondence", payload2);
             Assert.Equal(HttpStatusCode.OK, transmissionResponse.StatusCode);
-            var transmissionsContent = await transmissionResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var initializedTransmission = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload2);
+            var transmissionContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedTransmission.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+
+
 
             var transmission = await correspondenceRepository.GetCorrespondenceById(
-                transmissionsContent.Correspondences.First().CorrespondenceId,
+                transmissionContent.CorrespondenceId,
                 includeStatus: false,
                 includeContent: false,
                 includeForwardingEvents: false,
                 cancellationToken: CancellationToken.None);
-            Assert.Equal("DialogportenDialogId", transmission.ExternalReferences.First().ReferenceType.ToString());
+            var transmissionExternalReference = transmission?.ExternalReferences;
+            Assert.Equal(2, transmissionExternalReference.Count);
+            Assert.Contains("DialogportenTransmissionId", transmissionExternalReference.Select(r => r.ReferenceType.ToString()));
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithDialogportenTransmissionId_ReturnsBadRequest()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesTransmissionId()
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
         }
     }
 }
