@@ -120,14 +120,6 @@ namespace Altinn.Correspondence.API.Models
         [JsonPropertyName("customNotificationRecipients")]
         [Obsolete("This property is deprecated. Use customRecipients instead.")]
         public List<CustomNotificationRecipientExt>? CustomNotificationRecipients { get; set; }
-
-        /// <summary>
-        /// When set to true, only CustomRecipients will be used for notifications, overriding the default correspondence recipient.
-        /// This flag can only be used when CustomRecipients is provided.
-        /// Default value is false (use default contact info + custom recipients).
-        /// </summary>
-        [JsonPropertyName("overrideRegisteredContactInformation")]
-        public bool OverrideRegisteredContactInformation { get; set; } = false;
     }
 
     /// <summary>

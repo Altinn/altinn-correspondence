@@ -45,17 +45,5 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             );
             return this;
         }
-
-        internal DialogPatchRequestBuilder WithRemoveExpiresAtOperation()
-        {
-            _PatchDialogRequest.Add(
-                new
-                {
-                    op = "remove",
-                    path = "/expiresAt"
-                }
-            );
-            return this;
-        }
     }
 }

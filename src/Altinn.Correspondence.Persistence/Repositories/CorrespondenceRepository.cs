@@ -34,7 +34,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             string orgNo,
             CorrespondencesRoleType role,
             string? sendersReference,
-            Guid? idempotentKey,
             CancellationToken cancellationToken)
         {
             var correspondences = _context.Correspondences
@@ -260,58 +259,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndAllowSystemDeleteAfter(
-            List<Guid> correspondenceIds,
-            ReferenceType referenceType,
-            CancellationToken cancellationToken)
-        {
-            if (correspondenceIds == null || correspondenceIds.Count == 0)
-            {
-                return new List<CorrespondenceEntity>();
-            }
-
-            return await _context.Correspondences
-                .AsNoTracking()
-                .AsSplitQuery()
-                .Where(c => correspondenceIds.Contains(c.Id))
-                .Where(c => c.AllowSystemDeleteAfter != null)
-                .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == referenceType))
-                .Include(c => c.ExternalReferences)
-                .ToListAsync(cancellationToken);
-        }
-        
-        public async Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndNotCurrentStatuses(
-            List<Guid> correspondenceIds,
-            ReferenceType referenceType,
-            List<CorrespondenceStatus> excludedCurrentStatuses,
-            CancellationToken cancellationToken)
-        {
-            if (correspondenceIds == null || correspondenceIds.Count == 0)
-            {
-                return new List<CorrespondenceEntity>();
-            }
-
-            if (excludedCurrentStatuses == null)
-            {
-                excludedCurrentStatuses = new List<CorrespondenceStatus>();
-            }
-
-            return await _context.Correspondences
-                .AsNoTracking()
-                .AsSplitQuery()
-                .Where(c => correspondenceIds.Contains(c.Id))
-                .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == referenceType))
-                .Where(c => !excludedCurrentStatuses.Contains(
-                    c.Statuses
-                        .OrderByDescending(s => s.StatusChanged)
-                        .ThenByDescending(s => s.Id)
-                        .Select(s => s.Status)
-                        .FirstOrDefault()))
-                .Include(c => c.ExternalReferences)
-                .Include(c => c.Statuses)
-                .ToListAsync(cancellationToken);
-        }
-
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesForReport(bool includeAltinn2, CancellationToken cancellationToken)
         {
             var query = _context.Correspondences.AsQueryable();
@@ -340,16 +287,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     Statuses = new List<CorrespondenceStatusEntity>() // Initialize required property
                 })
                 .ToListAsync(cancellationToken);
-        }
-
-        public async Task<CorrespondenceEntity?> GetCorrespondenceByIdempotentKey(Guid idempotentKey, CancellationToken cancellationToken)
-        {
-            var correspondence = await _context.Correspondences
-            .Where(c => c.IdempotencyKeys.Any(k => k.Id == idempotentKey))
-            .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
-            .SingleOrDefaultAsync(cancellationToken);
-
-            return correspondence;
         }
     }
 }

@@ -140,7 +140,6 @@ module postgresql '../modules/postgreSql/create.bicep' = {
     tenantId: tenantId
     prodLikeEnvironment: prodLikeEnvironment
     logAnalyticsWorkspaceId: containerAppEnv.outputs.logAnalyticsWorkspaceId
-    environment: environment
   }
 }
 

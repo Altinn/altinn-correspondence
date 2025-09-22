@@ -124,8 +124,6 @@ namespace Altinn.Correspondence.Core.Models.Notifications
 
         public int DelayDays { get; set; }
 
-        public string? ConditionEndpoint { get; set; }
-
         public RecipientV2 Recipient { get; set; } = null!;
     }
 } 

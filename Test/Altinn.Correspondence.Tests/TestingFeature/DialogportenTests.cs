@@ -117,9 +117,6 @@ public class DialogportenTests
     {
         // Arrange
         var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
-        hangfireBackgroundJobClient
-            .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
-            .Returns(() => Guid.NewGuid().ToString());
         var contactReservationRegistry = new Mock<IContactReservationRegistryService>();
         contactReservationRegistry.Setup(contactReservationRegistry => contactReservationRegistry.IsPersonReserved(It.IsAny<string>())).ReturnsAsync(true);
         contactReservationRegistry.Setup(contactReservationRegistry => contactReservationRegistry.GetReservedRecipients(It.IsAny<List<string>>())).ReturnsAsync(new List<string>());

@@ -17,6 +17,4 @@ public class GetCorrespondencesRequest
     public string? OnBehalfOf { get; set; }
 
     public string? SendersReference { get; set; }
-
-    public Guid? IdempotentKey { get; set; }
 }

@@ -80,8 +80,7 @@ internal static class InitializeCorrespondenceNotificationMapper
             ReminderNotificationChannel = (NotificationChannel?)correspondenceNotificationExt.ReminderNotificationChannel,
             SmsBody = correspondenceNotificationExt.SmsBody,
             SendReminder = correspondenceNotificationExt.SendReminder,
-            CustomRecipients = customRecipients,
-            OverrideRegisteredContactInformation = correspondenceNotificationExt.OverrideRegisteredContactInformation
+            CustomRecipients = customRecipients
         };
         return notification;
     }

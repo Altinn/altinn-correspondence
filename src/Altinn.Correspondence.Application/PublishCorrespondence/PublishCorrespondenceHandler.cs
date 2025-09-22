@@ -120,6 +120,18 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Recipient of {correspondenceId} has been set to reserved in kontakt- og reserverasjonsregisteret ('KRR')";
         }
+        else if (OrganizationNotFoundInBrreg)
+        {
+            errorMessage = $"Recipient of {correspondenceId} is not found in 'Enhetsregisteret'";
+        }
+        else if (details != null && details.IsBankrupt)
+        {
+            errorMessage = $"Recipient of {correspondenceId} is bankrupt";
+        }
+        else if (details != null && details.IsDeleted)
+        {
+            errorMessage = $"Recipient of {correspondenceId} is deleted";
+        }
         else if (roles != null && !roles.HasAnyOfRolesOnPerson(
             correspondence.IsConfidential
                 ? ApplicationConstants.RequiredOrganizationRolesForConfidentialCorrespondenceRecipient
@@ -150,11 +162,14 @@ public class PublishCorrespondenceHandler(
                 }
                 eventType = AltinnEventType.CorrespondencePublishFailed;
                 logger.LogInformation("Cancelling notifications for failed correspondence {CorrespondenceId}", correspondenceId);
-                var cancelNotificationJob = backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
+                foreach (var notification in correspondence.Notifications)
+                {
+                    backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
+                }
                 if (hasDialogportenDialog)
                 {
                     logger.LogInformation("Purging Dialogporten dialog for failed correspondence {CorrespondenceId}", correspondenceId);
-                    backgroundJobClient.ContinueJobWith<IDialogportenService>(cancelNotificationJob, dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
+                    backgroundJobClient.Enqueue<IDialogportenService>(dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
                 }
             }
             else

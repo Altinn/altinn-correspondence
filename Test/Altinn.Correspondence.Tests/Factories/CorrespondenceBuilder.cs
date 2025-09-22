@@ -243,12 +243,6 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
-        public CorrespondenceBuilder WithOverrideRegisteredContactInformation(bool overrideRegisteredContactInformation)
-        {
-            _correspondence.Correspondence.Notification!.OverrideRegisteredContactInformation = overrideRegisteredContactInformation;
-            return this;
-        }
-
         public CorrespondenceBuilder WithIgnoreReservation(bool ignoreReservation)
         {
             _correspondence.Correspondence.IgnoreReservation = ignoreReservation;

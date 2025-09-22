@@ -10,12 +10,12 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OneOf;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
@@ -100,19 +100,6 @@ public class InitializeCorrespondencesHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
         validatedData.PartyUuid = partyUuid;
-        var recipientsNotFound = new List<string>();
-        foreach (var recipient in request.Recipients)
-        {
-            var recipientParty = await altinnRegisterService.LookUpPartyById(recipient, cancellationToken);
-            if (recipientParty is null)
-            {
-                recipientsNotFound.Add(recipient);
-            }
-        }
-        if (recipientsNotFound.Count > 0)
-        {
-            return CorrespondenceErrors.RecipientLookupFailed(recipientsNotFound);
-        }
 
         if (request.Recipients.Count != request.Recipients.Distinct().Count())
         {
@@ -285,7 +272,32 @@ public class InitializeCorrespondencesHandler(
                     logger.LogWarning("Duplicate idempotency key {Key} found", request.IdempotentKey.Value);
                     return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
                 }
-            return new OneOf<InitializeCorrespondencesResponse, Error>();
+
+                logger.LogInformation("Creating new idempotency key {Key}", request.IdempotentKey.Value);
+                var idempotencyKey = new IdempotencyKeyEntity()
+                {
+                    Id = request.IdempotentKey.Value,
+                    CorrespondenceId = null,
+                    AttachmentId = null,
+                    StatusAction = null,
+                    IdempotencyType = IdempotencyType.Correspondence
+                };
+
+                try
+                {
+                    await idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
+                    return new OneOf<InitializeCorrespondencesResponse, Error>();
+                }
+                catch (DbUpdateException e)
+                {
+                    var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
+                    if (sqlState == "23505") // PostgreSQL unique constraint violation
+                    {
+                        logger.LogWarning("Idempotency key {Key} already exists in database", request.IdempotentKey.Value);
+                        return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
+                    }
+                    throw;
+                }
             }, logger, cancellationToken);
 
             if (result.IsT1)
@@ -297,6 +309,11 @@ public class InitializeCorrespondencesHandler(
         var validationResult = await ValidatePrepareDataAndUploadAttachments(request, user, cancellationToken);
         if (validationResult.IsT1)
         {
+            if (request.IdempotentKey.HasValue)
+            {
+                logger.LogInformation("Deleting idempotency key {Key} due to validation failure", request.IdempotentKey.Value);
+                await idempotencyKeyRepository.DeleteAsync(request.IdempotentKey.Value, cancellationToken);
+            }
             return validationResult.AsT1;
         }
 
@@ -355,47 +372,10 @@ public class InitializeCorrespondencesHandler(
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
-        
         var initializedCorrespondences = new List<InitializedCorrespondences>();
         foreach (var correspondence in correspondences)
         {
-            logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
-            if (request.IdempotentKey.HasValue)
-            {
-                logger.LogInformation("Creating new idempotency key {Key}", request.IdempotentKey.Value);
-                var idempotencyKey = new IdempotencyKeyEntity()
-                {
-                    Id = request.IdempotentKey.Value,
-                    CorrespondenceId = correspondence.Id,
-                    AttachmentId = null,
-                    StatusAction = null,
-                    IdempotencyType = IdempotencyType.Correspondence
-                };
-                try
-                {
-                    await idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
-                }
-                catch (DbUpdateException e)
-                {
-                    var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
-                    if (sqlState == "23505") // PostgreSQL unique constraint violation
-                    {
-                        logger.LogWarning("Idempotency key {Key} already exists in database", request.IdempotentKey.Value);
-                        return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
-                    }
-                    throw;
-                }
-            }
-            var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
-            await hybridCacheWrapper.SetAsync($"dialogJobId_{correspondence.Id}", dialogJob, new HybridCacheEntryOptions
-            {
-                Expiration = TimeSpan.FromHours(24)
-            });
-            if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
-            {
-                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
-            }
-
+            await CreateDialogOrTransmissionJob(correspondence, request, cancellationToken);
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
             if (!isReserved)
             {

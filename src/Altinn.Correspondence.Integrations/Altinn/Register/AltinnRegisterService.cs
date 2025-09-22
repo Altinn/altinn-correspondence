@@ -156,17 +156,15 @@ public class AltinnRegisterService : IAltinnRegisterService
         var response = await _httpClient.PostAsJsonAsync("register/api/v1/parties/lookup", partyLookup, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                return null; 
-            }            
-            throw new Exception($"Error when looking up organization in Altinn Register.Statuscode was: {response.StatusCode}, error was: {await response.Content.ReadAsStringAsync()}");
+            _logger.LogError("Error when looking up organization in Altinn Register.Statuscode was: {statusCode}, error was: {error}", response.StatusCode, await response.Content.ReadAsStringAsync());
+            return null;
         }
 
         var party = await response.Content.ReadFromJsonAsync<Party>();
         if (party is null)
         {
-            throw new Exception("Unexpected json response when looking up organization in Altinn Register");
+            _logger.LogError("Unexpected json response when looking up organization in Altinn Register");
+            return null;
         }
 
         try
