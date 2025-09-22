@@ -51,6 +51,7 @@ public class LegacyGetCorrespondencesHandler(
         var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
         {
+            logger.LogWarning("Unauthorized because could not find org number in Altinn Register.");
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
         var recipients = new List<string>();
@@ -73,6 +74,7 @@ public class LegacyGetCorrespondencesHandler(
             {
                 if (!authorizedPartiesDict.TryGetValue(instanceOwnerPartyId, out var mappedInstanceOwner))
                 {
+                    logger.LogWarning("Unauthorized because not an authorized party");
                     return AuthorizationErrors.LegacyNotAccessToOwner(instanceOwnerPartyId);
                 }
                 if (mappedInstanceOwner.OrgNumber != null)
