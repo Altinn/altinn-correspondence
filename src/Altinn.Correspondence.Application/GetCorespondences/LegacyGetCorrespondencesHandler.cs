@@ -65,8 +65,8 @@ public class LegacyGetCorrespondencesHandler(
                 logger.LogInformation("Checking if {instanceOwnerPartyId} is an authorized party", instanceOwnerPartyId);
                 if (!authorizedPartiesDict.TryGetValue(instanceOwnerPartyId, out var mappedInstanceOwner))
                 {
-                    logger.LogWarning("Unauthorized because {instanceOwnerPartyId} is not one of the {authorizedPartiesCount} authorized parties: {authorizedParties}", instanceOwnerPartyId, authorizedParties.Count, string.Join(',', authorizedParties.Select(party => party.PartyId)));
-                    return AuthorizationErrors.LegacyNotAccessToOwner(instanceOwnerPartyId);
+                    logger.LogWarning("{instanceOwnerPartyId} is not one of the {authorizedPartiesCount} authorized parties: {authorizedParties}", instanceOwnerPartyId, authorizedParties.Count, string.Join(',', authorizedParties.Select(party => party.PartyId)));
+                    continue;
                 }
                 if (mappedInstanceOwner.OrgNumber != null)
                     recipients.Add(GetPrefixedForOrg(mappedInstanceOwner.OrgNumber));
