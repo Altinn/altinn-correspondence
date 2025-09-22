@@ -75,15 +75,18 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         List<PartyWithSubUnits> parties = new();
         foreach (var p in responseContent)
         {
-            parties.Add(new PartyWithSubUnits
-            {
-                PartyId = p.partyId,
-                PartyUuid = p.partyUuid,
-                OrgNumber = p.organizationNumber,
-                SSN = p.personId,
-                Resources = p.authorizedResources,
-                PartyTypeName = GetType(p.type),
-            });
+            if (!p.onlyHierarchyElementWithNoAccess) 
+            { 
+                parties.Add(new PartyWithSubUnits
+                {
+                    PartyId = p.partyId,
+                    PartyUuid = p.partyUuid,
+                    OrgNumber = p.organizationNumber,
+                    SSN = p.personId,
+                    Resources = p.authorizedResources,
+                    PartyTypeName = GetType(p.type),
+                });
+            }
             if (p.subunits != null && p.subunits.Count > 0)
             {
                 parties.AddRange(GetPartiesFromSubunits(p.subunits));
