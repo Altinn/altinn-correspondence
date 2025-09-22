@@ -102,11 +102,11 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         return minLevel;
     }
 
-    private static XacmlJsonAttributeAssignment GetObligation(string category, List<XacmlJsonObligationOrAdvice> obligations)
+    private static XacmlJsonAttributeAssignment? GetObligation(string category, List<XacmlJsonObligationOrAdvice> obligations)
     {
         foreach (XacmlJsonObligationOrAdvice obligation in obligations)
         {
-            XacmlJsonAttributeAssignment assignment = obligation.AttributeAssignment.FirstOrDefault(a => a.Category.Equals(category));
+            var assignment = obligation.AttributeAssignment.FirstOrDefault(a => a.Category.Equals(category));
             if (assignment != null)
             {
                 return assignment;
@@ -143,7 +143,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             if (authorizationResponse.Decision == "Permit")
             {
                 var obligation = GetObligation("urn:altinn:minimum-authenticationlevel", authorizationResponse.Obligations);
-                int? authLevel = int.Parse(obligation.Value);
+                int? authLevel = obligation is not null ? int.Parse(obligation.Value) : null;
                 results.Add((recipientWithResource.Recipient, recipientWithResource.ResourceId), authLevel);
             } 
             else
