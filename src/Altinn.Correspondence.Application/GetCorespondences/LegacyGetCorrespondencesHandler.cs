@@ -103,8 +103,9 @@ public class LegacyGetCorrespondencesHandler(
                                                                                           searchString: request.SearchString,
                                                                                           cancellationToken: cancellationToken,
                                                                                           filterMigrated: request.FilterMigrated);
-
+        
         var resourceIds = correspondences.Select(c => c.ResourceId).Distinct().ToList();
+        logger.LogInformation("Retrieved {correspondenceCount} from database of {distinctResourceIdCount} different resources", correspondences.Count, resourceIds.Count);
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
         List<LegacyCorrespondenceItem> correspondenceItems = new List<LegacyCorrespondenceItem>();
 
