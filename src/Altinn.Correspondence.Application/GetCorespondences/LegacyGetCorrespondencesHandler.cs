@@ -86,7 +86,6 @@ public class LegacyGetCorrespondencesHandler(
             if (!string.IsNullOrEmpty(userParty.SSN)) recipients.Add(GetPrefixedForPerson(userParty.SSN));
             if (!string.IsNullOrEmpty(userParty.OrgNumber)) recipients.Add(GetPrefixedForOrg(userParty.OrgNumber));
         }
-        List<string> resourcesToSearch = new List<string>();
 
         // Get all correspondences owned by Recipients
         // request.IncludeDeleted is not used as this is for soft deleted correspondences only, which are not relevant in legacy
@@ -95,7 +94,6 @@ public class LegacyGetCorrespondencesHandler(
                                                                                           to: to,
                                                                                           status: request.Status,
                                                                                           recipientIds: recipients,
-                                                                                          resourceIds: resourcesToSearch,
                                                                                           includeActive: request.IncludeActive,
                                                                                           includeArchived: request.IncludeArchived,
                                                                                           searchString: request.SearchString,
