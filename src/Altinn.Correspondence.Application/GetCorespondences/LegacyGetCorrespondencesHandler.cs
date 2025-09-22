@@ -58,20 +58,11 @@ public class LegacyGetCorrespondencesHandler(
         if (request.InstanceOwnerPartyIdList != null && request.InstanceOwnerPartyIdList.Length > 0)
         {
             var authorizedPartiesResponse = await altinnAccessManagementService.GetAuthorizedParties(userParty, cancellationToken);
-            var authorizedParties = new List<PartyWithSubUnits>();
-            foreach(var authorizedParty in authorizedPartiesResponse)
-            {
-                if (!authorizedParty.OnlyHierarchyElementWithNoAccess)
-                {
-                    authorizedParties.Add(authorizedParty);
-                } 
-                
-                authorizedParties.AddRange(authorizedParty.SubUnits);
-            }
-            authorizedParties = authorizedParties.DistinctBy(party => party.PartyId).ToList();
+            var authorizedParties = authorizedPartiesResponse.DistinctBy(party => party.PartyId).ToList();
             var authorizedPartiesDict = authorizedParties.ToDictionary(p => p.PartyId, p => p);
             foreach (int instanceOwnerPartyId in request.InstanceOwnerPartyIdList)
             {
+                logger.LogInformation("Checking if {instanceOwnerPartyId} is an authorized party", instanceOwnerPartyId);
                 if (!authorizedPartiesDict.TryGetValue(instanceOwnerPartyId, out var mappedInstanceOwner))
                 {
                     logger.LogWarning("Unauthorized because {instanceOwnerPartyId} is not one of the {authorizedPartiesCount} authorized parties: {authorizedParties}", instanceOwnerPartyId, authorizedParties.Count, string.Join(',', authorizedParties.Select(party => party.PartyId)));
