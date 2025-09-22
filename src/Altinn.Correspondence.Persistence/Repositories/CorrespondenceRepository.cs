@@ -157,17 +157,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
-        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, bool includeActive, bool includeArchived, string searchString, CancellationToken cancellationToken, bool filterMigrated = true)
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, bool includeActive, bool includeArchived, string searchString, CancellationToken cancellationToken, bool filterMigrated = true)
         {
             logger.LogInformation("GetCorrespondencesForParties executed: " +
                 "Limit={Limit}, From={From}, To={To}, Status={Status}, " +
-                "RecipientIds={RecipientIds} (Count: {RecipientIdsCount}), " +
-                "ResourceIds Count={ResourceIdsCount}, IncludeActive={IncludeActive}, " +
+                "RecipientIds={RecipientIds} (Count: {RecipientIdsCount}), IncludeActive={IncludeActive}, " +
                 "IncludeArchived={IncludeArchived}, SearchString='{SearchString}', " +
                 "FilterMigrated={FilterMigrated}",
                 limit, from, to, status,
                 string.Join(", ", recipientIds.Take(3)) + (recipientIds.Count > 3 ? "..." : ""),
-                recipientIds.Count, resourceIds.Count,
+                recipientIds.Count,
                 includeActive, includeArchived,
                 searchString ?? "null", filterMigrated);
             var correspondences = recipientIds.Count == 1
@@ -177,7 +176,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             correspondences = correspondences
                 .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
                 .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter                              
-                .Where(c => resourceIds.Count == 0 || resourceIds.Contains(c.ResourceId))       // Filter by resources
                 .IncludeByStatuses(includeActive, includeArchived, status) // Filter by statuses
                 .ExcludePurged() // Exclude purged correspondences
                 .Where(c => string.IsNullOrEmpty(searchString) || (c.Content != null && c.Content.MessageTitle.Contains(searchString))) // Filter by messageTitle containing searchstring

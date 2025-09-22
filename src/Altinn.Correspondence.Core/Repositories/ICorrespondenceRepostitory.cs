@@ -27,7 +27,6 @@ namespace Altinn.Correspondence.Core.Repositories
             DateTimeOffset? to,
             CorrespondenceStatus? status,
             List<string> recipientIds,
-            List<string> resourceIds,
             bool includeActive,
             bool includeArchived,
             string searchString,
