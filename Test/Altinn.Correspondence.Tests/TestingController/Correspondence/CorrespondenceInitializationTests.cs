@@ -7,6 +7,7 @@ using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
