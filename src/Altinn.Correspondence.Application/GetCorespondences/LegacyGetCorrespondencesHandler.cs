@@ -79,6 +79,14 @@ public class LegacyGetCorrespondencesHandler(
             if (!string.IsNullOrEmpty(userParty.SSN)) recipients.Add(GetPrefixedForPerson(userParty.SSN));
             if (!string.IsNullOrEmpty(userParty.OrgNumber)) recipients.Add(GetPrefixedForOrg(userParty.OrgNumber));
         }
+        if (recipients.Count == 0)
+        {
+            logger.LogWarning("Caller did not have access to any inboxes");
+            return new LegacyGetCorrespondencesResponse()
+            {
+                Items = []
+            };
+        }
         List<string> resourcesToSearch = new List<string>();
 
         // Get all correspondences owned by Recipients
