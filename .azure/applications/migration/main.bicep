@@ -20,8 +20,8 @@ resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@
   location: location
 }
 
-module keyvaultAddReadRolesMigrationIdentity '../../modules/keyvault/addReaderRoles.bicep' = {
-  name: 'kv-rbac-${namePrefix}-migration'
+module keyvaultAddReaderRolesMigrationIdentity '../../modules/keyvault/addReaderRoles.bicep' = {
+  name: 'kvreader-${namePrefix}-migration'
   params: {
     keyvaultName: keyVaultName
     principals: [
@@ -33,7 +33,7 @@ module keyvaultAddReadRolesMigrationIdentity '../../modules/keyvault/addReaderRo
 module databaseAccess '../../modules/postgreSql/AddAdministrationAccess.bicep' = {
   name: 'databaseAccess'
   dependsOn: [
-    keyvaultAddReadRolesMigrationIdentity // Timing issue
+    keyvaultAddReaderRolesMigrationIdentity // Timing issue
   ]
   params: {
     tenantId: userAssignedIdentity.properties.tenantId
@@ -100,7 +100,7 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2023-11-02-preview' 
 module containerAppJob '../../modules/migrationJob/main.bicep' = {
   name: containerAppJobName
   dependsOn: [
-    keyvaultAddReadRolesMigrationIdentity
+    keyvaultAddReaderRolesMigrationIdentity
   ]
   params: {
     name: containerAppJobName
