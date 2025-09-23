@@ -341,10 +341,10 @@ public class InitializeCorrespondencesHandler(
         ValidatedData validatedData,
         CancellationToken cancellationToken)
     {
-        logger.LogInformation("Initializing {correspondenceCount} correspondences for {resourceId}",
-            request.Recipients.Count,
+        logger.LogInformation("Initializing {correspondenceCount} correspondences for {resourceId}", 
+            request.Recipients.Count, 
             request.Correspondence.ResourceId.SanitizeForLogging());
-
+        
         var correspondences = new List<CorrespondenceEntity>();
         var serviceOwnerOrgNumber = validatedData.ServiceOwnerOrgNumber;
         foreach (var recipient in request.Recipients)
@@ -355,10 +355,37 @@ public class InitializeCorrespondencesHandler(
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
-
+        
         var initializedCorrespondences = new List<InitializedCorrespondences>();
         foreach (var correspondence in correspondences)
         {
+            logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
+            if (request.IdempotentKey.HasValue)
+            {
+                logger.LogInformation("Creating new idempotency key {Key}", request.IdempotentKey.Value);
+                var idempotencyKey = new IdempotencyKeyEntity()
+                {
+                    Id = request.IdempotentKey.Value,
+                    CorrespondenceId = correspondence.Id,
+                    AttachmentId = null,
+                    StatusAction = null,
+                    IdempotencyType = IdempotencyType.Correspondence
+                };
+                try
+                {
+                    await idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
+                }
+                catch (DbUpdateException e)
+                {
+                    var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
+                    if (sqlState == "23505") // PostgreSQL unique constraint violation
+                    {
+                        logger.LogWarning("Idempotency key {Key} already exists in database", request.IdempotentKey.Value);
+                        return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
+                    }
+                    throw;
+                }
+            }
             await CreateDialogOrTransmissionJob(correspondence, request, cancellationToken);
 
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
