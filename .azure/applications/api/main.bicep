@@ -64,7 +64,7 @@ module addStorageBlobDataContributor '../../modules/identity/addStorageBlobDataC
   }
 }
 
-module addRbacRolesAppIdentity '../../modules/keyvault/addRbacRoles.bicep' = {
+module keyvaultAddReadRolesAppIdentity '../../modules/keyvault/addReadRoles.bicep' = {
   name: 'kvrbac-${namePrefix}-app'
   scope: resourceGroup
   params: {
@@ -77,7 +77,7 @@ module databaseAccess '../../modules/postgreSql/AddAdministrationAccess.bicep' =
   name: 'databaseAccess'
   scope: resourceGroup
   dependsOn: [
-    addRbacRolesAppIdentity // Timing issue
+    keyvaultAddReadRolesAppIdentity // Timing issue
   ]
   params: {
     tenantId: appIdentity.outputs.tenantId
@@ -95,7 +95,7 @@ resource keyvault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
 module fetchEventGridIpsScript '../../modules/containerApp/fetchEventGridIps.bicep' = {
   name: 'fetchAzureEventGridIpsScript'
   scope: resourceGroup
-  dependsOn: [addRbacRolesAppIdentity, databaseAccess, addContributorAccess]
+  dependsOn: [keyvaultAddReadRolesAppIdentity, databaseAccess, addContributorAccess]
   params: {
     location: location
     principal_id: appIdentity.outputs.id
@@ -105,7 +105,7 @@ module fetchEventGridIpsScript '../../modules/containerApp/fetchEventGridIps.bic
 module containerApp '../../modules/containerApp/main.bicep' = {
   name: containerAppName
   scope: resourceGroup
-  dependsOn: [addRbacRolesAppIdentity, databaseAccess]
+  dependsOn: [keyvaultAddReadRolesAppIdentity, databaseAccess]
   params: {
     eventGridIps: fetchEventGridIpsScript.outputs.eventGridIps!
     namePrefix: namePrefix
