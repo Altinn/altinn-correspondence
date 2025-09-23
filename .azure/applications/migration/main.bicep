@@ -28,10 +28,22 @@ module addKeyvaultRead '../../modules/keyvault/addReaderRoles.bicep' = {
     principalIds: [userAssignedIdentity.properties.principalId]
   }
 }
+
+module addRbacRolesMigrationIdentity '../../modules/keyvault/addRbacRoles.bicep' = {
+  name: 'kv-rbac-${namePrefix}-migration'
+  params: {
+    keyvaultName: keyVaultName
+    principals: [
+      { objectId: userAssignedIdentity.properties.principalId, principalType: 'ServicePrincipal' }
+    ]
+  }
+}
+
 module databaseAccess '../../modules/postgreSql/AddAdministrationAccess.bicep' = {
   name: 'databaseAccess'
   dependsOn: [
     addKeyvaultRead // Timing issue
+    addRbacRolesMigrationIdentity
   ]
   params: {
     tenantId: userAssignedIdentity.properties.tenantId
@@ -99,6 +111,7 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
   name: containerAppJobName
   dependsOn: [
     addKeyvaultRead
+    addRbacRolesMigrationIdentity
   ]
   params: {
     name: containerAppJobName
