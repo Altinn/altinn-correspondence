@@ -108,7 +108,7 @@ jobs:
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
 
   deploy_other_environments:
-    name: Deploy to other environments (${\{\{ matrix.environment \}\}})
+    name: Deploy to other environments (${{ matrix.environment }})
     runs-on: ubuntu-latest
     needs: [ deploy_test ]
     strategy:
