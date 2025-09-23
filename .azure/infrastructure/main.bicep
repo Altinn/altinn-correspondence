@@ -50,9 +50,10 @@ module environmentKeyVault '../modules/keyvault/create.bicep' = {
   }
 }
 
-module grantTestClientSecretsOfficer '../modules/keyvault/addSecretsOfficerRole.bicep' = if (environment == 'test') {
+module grantTestClientSecretsOfficerRole '../modules/keyvault/addSecretsOfficerRole.bicep' = if (environment == 'test') {
   scope: resourceGroup
   name: 'kv-secrets-officer-test-client'
+  dependsOn: [ environmentKeyVault ]
   params: {
     keyvaultName: sourceKeyVaultName
     principalObjectId: test_client_id
