@@ -18,6 +18,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' = {
       family: 'A'
     }
     tenantId: tenant_id
+    enableRbacAuthorization: true
     accessPolicies: environment == 'test'
       ? [
           {
