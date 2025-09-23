@@ -47,8 +47,6 @@ module environmentKeyVault '../modules/keyvault/create.bicep' = {
     vaultName: sourceKeyVaultName
     location: location
     tenant_id: tenantId
-    environment: environment
-    test_client_id: test_client_id
   }
 }
 
