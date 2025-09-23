@@ -27,7 +27,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 Id = dialogId,
                 CreatedAt = correspondence.Created,
-                // AuthorizationAttribute = ?,
+                AuthorizationAttribute = UrnConstants.Resource + ":" + correspondence.ResourceId,
                 IsAuthorized = true,
                 ExternalReference = correspondence.SendersReference,
                 RelatedTransmissionId = null,
