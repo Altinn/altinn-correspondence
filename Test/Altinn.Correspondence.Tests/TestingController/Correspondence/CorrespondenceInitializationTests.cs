@@ -1618,19 +1618,14 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
 
             // Act
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence1);
-
-            // Assert
-            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
-            var responseContent = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            Assert.NotNull(responseContent);
-            Assert.NotEmpty(responseContent.Correspondences);
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, correspondence1);
+            var correspondenceContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
 
             using var scope = _factory.Services.CreateScope();
             var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
 
             var correspondence = await correspondenceRepository.GetCorrespondenceById(
-                responseContent.Correspondences.First().CorrespondenceId,
+                initializedCorrespondence.CorrespondenceId,
                 includeStatus: false,
                 includeContent: false,
                 includeForwardingEvents: false,
@@ -1645,9 +1640,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .CreateCorrespondence()
                 .WithExternalReferencesDialogId(dialogId)
                 .Build();
-            var transmissionResponse = await _senderClient.PostAsJsonAsync(
-                $"correspondence/api/v1/correspondence", payload2);
-            Assert.Equal(HttpStatusCode.OK, transmissionResponse.StatusCode);
+            
             var initializedTransmission = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload2);
             var transmissionContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedTransmission.CorrespondenceId, CorrespondenceStatusExt.Published);
             var transmission = await correspondenceRepository.GetCorrespondenceById(
