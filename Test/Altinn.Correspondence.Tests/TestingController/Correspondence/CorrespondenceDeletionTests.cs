@@ -6,6 +6,8 @@ using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
 using System.Net;
 using System.Net.Http.Json;
+using Altinn.Correspondence.Core.Repositories;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -148,6 +150,51 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             var deleteResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/00000000-0100-0000-0000-000000000000/purge");
             Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task Delete_TransmissionCorrespondence_ReturnsBadRequest()
+        {
+            // Arrange
+            var correspondence1 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("First Title")
+                .Build();
+
+
+
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, correspondence1);
+            var correspondenceContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+          
+
+            using var scope = _factory.Services.CreateScope();
+            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(
+                initializedCorrespondence.CorrespondenceId,
+                includeStatus: false,
+                includeContent: false,
+                includeForwardingEvents: false,
+                cancellationToken: CancellationToken.None);
+
+            var externalReference = correspondence?.ExternalReferences;
+            var dialogId = externalReference.First().ReferenceValue;
+            Assert.NotNull(dialogId);
+
+
+            var payload2 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId(dialogId)
+                .Build();
+            
+            var initializedTransmission = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload2);
+            var transmissionContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedTransmission.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            // Act
+            var deleteResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{initializedTransmission.CorrespondenceId}/purge");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, deleteResponse.StatusCode);
         }
 
         private async Task<InitializeCorrespondencesResponseExt> CreateCorrespondenceWithAttachment(

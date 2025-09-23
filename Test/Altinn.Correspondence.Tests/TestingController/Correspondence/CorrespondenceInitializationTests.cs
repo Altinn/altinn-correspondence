@@ -1570,13 +1570,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build();
 
 
-            // Act
-
             var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, correspondence1);
             var correspondenceContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
-            // Assert
           
-
             using var scope = _factory.Services.CreateScope();
             var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
 
@@ -1597,11 +1593,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithExternalReferencesDialogId(dialogId)
                 .Build();
             
+            // Act
             var initializedTransmission = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload2);
             var transmissionContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedTransmission.CorrespondenceId, CorrespondenceStatusExt.Published);
-
-
-
 
             var transmission = await correspondenceRepository.GetCorrespondenceById(
                 transmissionContent.CorrespondenceId,
@@ -1610,6 +1604,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 includeForwardingEvents: false,
                 cancellationToken: CancellationToken.None);
             var transmissionExternalReference = transmission?.ExternalReferences;
+
+            // Assert
             Assert.Equal(2, transmissionExternalReference.Count);
             Assert.Contains("DialogportenTransmissionId", transmissionExternalReference.Select(r => r.ReferenceType.ToString()));
         }
