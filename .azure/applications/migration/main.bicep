@@ -20,7 +20,7 @@ resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@
   location: location
 }
 
-module keyvaultAddReadRolesMigrationIdentity '../../modules/keyvault/addReadRoles.bicep' = {
+module keyvaultAddReadRolesMigrationIdentity '../../modules/keyvault/addReaderRoles.bicep' = {
   name: 'kv-rbac-${namePrefix}-migration'
   params: {
     keyvaultName: keyVaultName

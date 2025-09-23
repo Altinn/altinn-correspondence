@@ -64,7 +64,7 @@ module addStorageBlobDataContributor '../../modules/identity/addStorageBlobDataC
   }
 }
 
-module keyvaultAddReadRolesAppIdentity '../../modules/keyvault/addReadRoles.bicep' = {
+module keyvaultAddReadRolesAppIdentity '../../modules/keyvault/addReaderRoles.bicep' = {
   name: 'kvrbac-${namePrefix}-app'
   scope: resourceGroup
   params: {
