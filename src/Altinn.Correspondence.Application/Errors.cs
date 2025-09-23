@@ -47,6 +47,7 @@ public static class CorrespondenceErrors
     public static Error MessageSenderIsNotPlainText = new Error(1039, "Message sender must be plain text", HttpStatusCode.BadRequest);
     public static Error AlreadyMarkedAsRead = new Error(1040, "Correspondence is already marked as read", HttpStatusCode.BadRequest);
     public static Error CorrespondenceAlreadyConfirmed = new Error(1041, "Correspondence has already been confirmed", HttpStatusCode.BadRequest);
+    public static Error CannotPurgeCorrespondenceLinkedToDialogportenTransmission = new Error(1042, "Cannot purge correspondence linked to a Dialogporten Transmission", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
