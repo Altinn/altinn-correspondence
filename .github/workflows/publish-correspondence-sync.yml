@@ -114,7 +114,7 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-        environment: [ yt01, at21, at22, at23, at24 ]
+        environment: [ yt01, at22, at23, at24 ]
     environment: ${{ matrix.environment }}
     steps:
       - name: Checkout
