@@ -1,4 +1,5 @@
 using Altinn.Correspondence.API.Auth;
+using Altinn.Correspondence.API.Filters;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.IpSecurityRestrictionsUpdater;
 using Altinn.Correspondence.Common.Caching;
@@ -141,6 +142,9 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
 
     services.AddHttpClient();
     services.AddProblemDetails();
+
+    // Register filters
+    services.AddScoped<StatisticsApiKeyFilter>();
 
     services.ConfigureHangfire(config);
 

@@ -23,7 +23,6 @@ public class GenerateDailySummaryReportHandler(
     IHostEnvironment hostEnvironment)
 {
     public async Task<OneOf<GenerateDailySummaryReportResponse, Error>> Process(
-        ClaimsPrincipal user,
         GenerateDailySummaryReportRequest request,
         CancellationToken cancellationToken)
     {
@@ -256,7 +255,6 @@ public class GenerateDailySummaryReportHandler(
     }
 
     public async Task<OneOf<GenerateAndDownloadDailySummaryReportResponse, Error>> ProcessAndDownload(
-        ClaimsPrincipal user,
         GenerateDailySummaryReportRequest request,
         CancellationToken cancellationToken)
     {

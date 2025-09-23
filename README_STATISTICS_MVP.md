@@ -14,16 +14,19 @@ This implementation generates daily summary reports with aggregated corresponden
 
 ## Authentication Requirements
 
-All statistics endpoints require **Maskinporten integration authentication** with the following requirements:
+Both statistics endpoints use **API Key authentication**:
 
-- **Authentication Type**: Maskinporten integration token
-- **Required Scope**: `altinn:correspondence.maintenance` (exact scope required)
-- **Authorization Header**: `Bearer <token>`
-- **Response Codes**:
-  - `200 OK` - Success
-  - `401 Unauthorized` - Missing or invalid authentication
-  - `403 Forbidden` - Insufficient permissions (missing `altinn:correspondence.maintenance` scope)
-  - `500 Internal Server Error` - Server error
+- **Authentication Type**: API Key
+- **Required Header**: `X-API-Key: <your-api-key>`
+- **Configuration**: Set `StatisticsApiKey` in appsettings
+- **Development Key**: `dev-api-key-12345`
+- **Production Key**: Set `StatisticsApiKey` in production configuration
+
+**Response Codes**:
+- `200 OK` - Success
+- `401 Unauthorized` - Missing or invalid API key
+- `403 Forbidden` - Invalid API key
+- `500 Internal Server Error` - Server error
 
 ## How to Test
 
@@ -49,7 +52,7 @@ Generate a daily summary report with aggregated data per service owner per day. 
 
 ```bash
 POST /correspondence/api/v1/statistics/generate-daily-summary
-# Requires Maskinporten integration authentication with scope: altinn:correspondence.maintenance
+# Requires API key authentication via X-API-Key header
 # Optional request body to filter Altinn versions
 ```
 
@@ -84,7 +87,7 @@ Generate a daily summary report with aggregated data per service owner per day a
 
 ```bash
 POST /correspondence/api/v1/statistics/generate-and-download-daily-summary
-# Requires Maskinporten integration authentication with scope: altinn:correspondence.maintenance
+# Requires API key authentication via X-API-Key header
 # Optional request body: {"altinn2Included": true}
 ```
 
@@ -153,16 +156,15 @@ The system now uses the direct `ServiceOwnerId` field from the database entities
 
 ## Security
 
-- **Maskinporten Integration Authentication Required** - endpoints require proper authentication
-- **Scope Required**: `altinn:correspondence.maintenance` (exact scope) - only users with this specific scope can access
+- **API Key Authentication**: Both endpoints require API key authentication via `X-API-Key` header
 - **Response Codes**:
   - `200 OK` - Success
-  - `401 Unauthorized` - Missing or invalid authentication
-  - `403 Forbidden` - Insufficient permissions (missing maintenance scope)
+  - `401 Unauthorized` - Missing or invalid API key
+  - `403 Forbidden` - Invalid API key
   - `500 Internal Server Error` - Server error
 - Files are stored in Azure Blob Storage in the "reports" container
 - Download endpoint validates filenames to prevent directory traversal attacks
-- **Production Ready**: Secure for production use with proper authentication
+- **Production Ready**: Secure for production use with proper API key authentication
 
 ## Next Steps for Full Implementation
 
@@ -177,8 +179,9 @@ The system now uses the direct `ServiceOwnerId` field from the database entities
 
 1. Ensure you have some test correspondence data in your database
 2. Run the application locally
-3. Obtain a Maskinporten integration token with the `altinn:correspondence.maintenance` scope
-4. Use the API endpoints above with the token in the Authorization header: `Bearer <token>`
+3. Use the API key from configuration (`dev-api-key-12345` in development)
+4. Use the API endpoints above with API key authentication:
+   - Header: `X-API-Key: dev-api-key-12345`
 5. Check the Azure Blob Storage "reports" container for generated files
 6. Use a parquet file viewer to inspect the data (e.g., Python pandas, Apache Arrow, etc.)
 
