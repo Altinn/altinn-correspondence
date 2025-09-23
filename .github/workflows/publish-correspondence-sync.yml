@@ -38,10 +38,56 @@ jobs:
           azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
-  release:
-    name: Release to production
+  deploy_test:
+    name: Deploy to test
     runs-on: ubuntu-latest
     needs: [ build ]
+    environment: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      - name: Get short sha
+        id: get_tags
+        run: |
+          echo "short_sha=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+      - name: Re-tag existing image with test
+        uses: Altinn/altinn-platform/actions/flux/retag-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
+        with:
+          image_name: ${{ env.ARTIFACT_NAME }}
+          from_tag: ${{ steps.get_tags.outputs.short_sha }}
+          tag: "test"
+          workdir: ./flux/correspondence
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+
+  deploy_staging:
+    name: Deploy to staging
+    runs-on: ubuntu-latest
+    needs: [ deploy_test ]
+    environment: staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      - name: Get short sha
+        id: get_tags
+        run: |
+          echo "short_sha=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+      - name: Re-tag existing image with staging
+        uses: Altinn/altinn-platform/actions/flux/retag-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
+        with:
+          image_name: ${{ env.ARTIFACT_NAME }}
+          from_tag: ${{ steps.get_tags.outputs.short_sha }}
+          tag: "staging"
+          workdir: ./flux/correspondence
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+
+  deploy_production:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    needs: [ deploy_staging ]
     environment: production
     steps:
       - name: Checkout
@@ -56,6 +102,33 @@ jobs:
           image_name: ${{ env.ARTIFACT_NAME }}
           from_tag: ${{ steps.get_tags.outputs.short_sha }}
           tag: "prod"
+          workdir: ./flux/correspondence
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+
+  deploy_other_environments:
+    name: Deploy to other environments (${\{\{ matrix.environment \}\}})
+    runs-on: ubuntu-latest
+    needs: [ deploy_test ]
+    strategy:
+      max-parallel: 1
+      matrix:
+        environment: [ yt01, at21, at22, at23, at24 ]
+    environment: ${{ matrix.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      - name: Get short sha
+        id: get_tags
+        run: |
+          echo "short_sha=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+      - name: Re-tag existing image with environment tag
+        uses: Altinn/altinn-platform/actions/flux/retag-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
+        with:
+          image_name: ${{ env.ARTIFACT_NAME }}
+          from_tag: ${{ steps.get_tags.outputs.short_sha }}
+          tag: ${{ matrix.environment }}
           workdir: ./flux/correspondence
           azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
