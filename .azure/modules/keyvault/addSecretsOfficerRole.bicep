@@ -1,5 +1,5 @@
 param keyvaultName string
-param principalType string = 'ServicePrincipal'
+param principalType string = 'Group'
 param principalObjectId string
 
 var secretsOfficerRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7')
