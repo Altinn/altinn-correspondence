@@ -38,7 +38,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         };
     }
 
-    public async Task<List<PartyWithSubUnits>> GetAuthorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default)
+    public async Task<List<PartyWithSubUnits>> GetAuthorizedParties(Party partyToRequestFor, string? userId, CancellationToken cancellationToken = default)
     {
         string cacheKey = $"AuthorizedParties_{partyToRequestFor.PartyId}";
         try {
@@ -53,7 +53,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             _logger.LogWarning(ex, "Error retrieving authorized parties from cache in Access Management Service.");
         }
 
-        AuthorizedPartiesRequest request = new(partyToRequestFor);
+        AuthorizedPartiesRequest request = new(partyToRequestFor, userId);
         _logger.LogInformation("PartyId {partyId} has partyType {partyType}", partyToRequestFor.PartyId, request.Type);
         JsonSerializerOptions serializerOptions = new()
         {
@@ -148,9 +148,14 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         public string Type { get; init; }
         public string Value { get; init; }
 
-        public AuthorizedPartiesRequest(Party party)
+        public AuthorizedPartiesRequest(Party party, string? userId)
         {
-            if (party.PartyTypeName == PartyType.Person)
+            if (userId is not null)
+            {
+                Type = UrnConstants.UserId;
+                Value = userId;
+            }
+            else if (party.PartyTypeName == PartyType.Person)
             {
                 Type = UrnConstants.PersonIdAttribute;
                 Value = party.SSN;

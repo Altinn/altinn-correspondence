@@ -56,7 +56,7 @@ public class LegacyGetCorrespondencesHandler(
         var recipients = new List<string>();
         if (request.InstanceOwnerPartyIdList != null && request.InstanceOwnerPartyIdList.Length > 0)
         {
-            var authorizedParties = await altinnAccessManagementService.GetAuthorizedParties(userParty, cancellationToken);
+            var authorizedParties = await altinnAccessManagementService.GetAuthorizedParties(userParty, userClaimsHelper.GetUserId(), cancellationToken);
             authorizedParties = authorizedParties.DistinctBy(party => party.PartyId).ToList();
             var authorizedPartiesDict = authorizedParties.ToDictionary(p => p.PartyId, p => p);
             foreach (int instanceOwnerPartyId in request.InstanceOwnerPartyIdList)

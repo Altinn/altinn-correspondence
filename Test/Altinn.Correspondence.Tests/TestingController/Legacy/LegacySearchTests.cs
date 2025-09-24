@@ -256,7 +256,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                     });
                 var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
                 mockAccessManagementService
-                    .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<CancellationToken>()))
+                    .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync(new List<PartyWithSubUnits>()
                     {
                         duplicateParty,
@@ -277,6 +277,52 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
 
 
         [Fact]
+        public async Task LegacyGetCorrespondences_CalledWithUserId_UsesUserIdForAuthorizedParties()
+        {
+            var userId = "1234567";
+            var party = new PartyWithSubUnits()
+            {
+                PartyId = 1,
+                Name = "hovedenhet",
+                OnlyHierarchyElementWithNoAccess = false,
+                SubUnits = new List<PartyWithSubUnits>()
+                            {
+                                new PartyWithSubUnits()
+                                {
+                                    PartyId = 2,
+                                    Name = "underenhet",
+                                    IsDeleted = false,
+                                }
+                            }
+            };
+            var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
+            mockAccessManagementService
+                .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<PartyWithSubUnits>()
+                {
+                        party
+                });
+            using var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                services.AddSingleton(mockAccessManagementService.Object);
+            });
+            var client = factory.CreateClientWithAddedClaims(
+                ("scope", AuthorizationConstants.LegacyScope),
+                (_partyIdClaim, _digdirPartyId.ToString()),
+                (UrnConstants.UserId, userId));
+            var listPayload = GetBasicLegacyGetCorrespondenceRequestExt();
+            listPayload.InstanceOwnerPartyIdList = new int[] { 1 };
+            listPayload.From = DateTimeOffset.UtcNow.AddDays(-1);
+            listPayload.To = DateTimeOffset.UtcNow;
+            var correspondenceList = await client.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
+            Assert.Equal(HttpStatusCode.OK, correspondenceList.StatusCode);
+            mockAccessManagementService.Verify(service => service.GetAuthorizedParties(
+                It.IsAny<Party>(),
+                It.Is<string>(party => party == userId),
+                It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
         public async Task LegacyGetCorrespondences_NoAuthorizedParties_Fails()
         {
             using var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
@@ -290,7 +336,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                     });
                 var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
                 mockAccessManagementService
-                    .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<CancellationToken>()))
+                    .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync([]);
                 services.AddSingleton(mockAccessManagementService.Object);
             });
@@ -318,7 +364,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                     });
                 var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
                 mockAccessManagementService
-                    .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<CancellationToken>()))
+                    .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync(new List<PartyWithSubUnits>()
                     {
                         new PartyWithSubUnits()
@@ -363,7 +409,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                     });
                 var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
                 mockAccessManagementService
-                    .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<CancellationToken>()))
+                    .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync(new List<PartyWithSubUnits>()
                     {
                         new PartyWithSubUnits()

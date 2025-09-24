@@ -8,7 +8,7 @@ namespace Altinn.Correspondence.Integrations.Altinn.AccessManagement;
 public class AltinnAccessManagementDevService : IAltinnAccessManagementService
 {
     private readonly int _digdirPartyId = 50952483;
-    public Task<List<PartyWithSubUnits>> GetAuthorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default)
+    public Task<List<PartyWithSubUnits>> GetAuthorizedParties(Party partyToRequestFor, string? userId, CancellationToken cancellationToken = default)
     {
         PartyWithSubUnits party = new()
         {
