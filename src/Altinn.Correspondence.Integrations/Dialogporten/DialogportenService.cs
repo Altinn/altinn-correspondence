@@ -386,7 +386,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", patchRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            logger.LogError(($"Response from Dialogporten when removing expiresAt for {dialogId} was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}"));
+            return false;
         }
         return true;
     }
