@@ -30,6 +30,8 @@ param storageAccountName string
 param maskinporten_token_exchange_environment string
 @secure()
 param resourceWhiteList string
+@secure()
+param statisticsApiKey string
 
 @secure()
 param maintenanceAdGroupId string
@@ -88,6 +90,10 @@ var secrets = [
   {
     name: 'resource-whitelist'
     value: resourceWhiteList
+  }
+  {
+    name: 'statistics-api-key'
+    value: statisticsApiKey
   }
 ]
 

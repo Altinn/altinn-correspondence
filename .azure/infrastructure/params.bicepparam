@@ -20,3 +20,4 @@ param maskinporten_token_exchange_environment = readEnvironmentVariable('MASKINP
 param resourceWhiteList = readEnvironmentVariable('RESOURCE_WHITELIST')
 param maintenanceAdGroupId = readEnvironmentVariable('MAINTENANCE_AD_GROUP_ID')
 param maintenanceAdGroupName = readEnvironmentVariable('MAINTENANCE_AD_GROUP_NAME')
+param statisticsApiKey = readEnvironmentVariable('STATISTICS_API_KEY')

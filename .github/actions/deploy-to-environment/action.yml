@@ -96,6 +96,9 @@ inputs:
   MAINTENANCE_AD_GROUP_NAME:
     description: "IP address for APIM"
     required: false
+  STATISTICS_API_KEY:
+    description: "API Key for authentication to Statistics endpoints"
+    required: true
 
 runs:
   using: "composite"
@@ -126,6 +129,7 @@ runs:
         RESOURCE_WHITELIST: ${{ inputs.RESOURCE_WHITELIST }}
         MAINTENANCE_AD_GROUP_ID: ${{ inputs.MAINTENANCE_AD_GROUP_ID }}
         MAINTENANCE_AD_GROUP_NAME: ${{ inputs.MAINTENANCE_AD_GROUP_NAME }}
+        STATISTICS_API_KEY: ${{ inputs.STATISTICS_API_KEY }}
 
     - name: Migrate database
       uses: ./.github/actions/migrate-database

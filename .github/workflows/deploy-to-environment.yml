@@ -96,3 +96,4 @@ jobs:
         APIM_IP: ${{ secrets.APIM_IP }}
         MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
         MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
+        STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
