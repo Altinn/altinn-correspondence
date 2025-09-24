@@ -413,6 +413,11 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         {
             return false;
         }
+        if (dialog.ExpiresAt > DateTime.UtcNow.AddYears(50))
+        {
+            return false;
+        }
+        logger.LogInformation("Found dialog that needs to get expiresAt removed: {dialogId}", dialogId);
         var patchRequestBuilder = new DialogPatchRequestBuilder()
             .WithRemoveExpiresAtOperation();
         var patchRequest = patchRequestBuilder.Build();
