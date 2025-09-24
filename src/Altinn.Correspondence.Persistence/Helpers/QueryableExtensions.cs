@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 
@@ -96,6 +97,12 @@ namespace Altinn.Correspondence.Persistence.Helpers
                     !cs.Statuses.Any(s =>
                         s.Status == CorrespondenceStatus.PurgedByAltinn ||
                         s.Status == CorrespondenceStatus.PurgedByRecipient));
+        }
+
+        public static IQueryable<CorrespondenceEntity> ExcludeSelfIdentifiedRecipients(this IQueryable<CorrespondenceEntity> query)
+        {
+            return query.Where(cs =>
+                    !cs.Recipient.IsWithPartyUuidPrefix());
         }
 
         public static IQueryable<CorrespondenceEntity> WhereCurrentStatusIn(

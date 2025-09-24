@@ -115,6 +115,11 @@ public static class StringExtensions
         return identifier.StartsWith("0192:");
     }
 
+    public static bool IsWithPartyUuidPrefix(this string identifier)
+    {
+        return identifier.StartsWith(UrnConstants.PartyUuid);
+    }
+
     /// <summary>
     /// Adds a prefix to the identifier if it is a organization number (9 digits) or social security number (11 digits).
     /// </summary>

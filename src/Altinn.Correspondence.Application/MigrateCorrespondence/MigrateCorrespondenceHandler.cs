@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -183,6 +184,11 @@ public class MigrateCorrespondenceHandler(
         if(correspondence.HasBeenPurged())
         {
             throw new InvalidOperationException($"Correspondence with id {correspondenceId} is purged and cannot be made available in Dialogporten or API");
+        }
+        
+        if(correspondence.Recipient.IsWithPartyUuidPrefix())
+        {
+            throw new InvalidOperationException($"Correspondence with id {correspondenceId} has an Self-Identifed User as recipient and cannot be made available in Dialogporten");
         }
 
         // If the correspondence was soft deleted in Altinn 2, we need to pass this forward in order to set the system label correctly on the Dialog
