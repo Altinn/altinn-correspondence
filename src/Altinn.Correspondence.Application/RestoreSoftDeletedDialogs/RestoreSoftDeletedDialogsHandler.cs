@@ -307,10 +307,10 @@ public class RestoreSoftDeletedDialogsHandler(
             logger.LogInformation("Checking deletion status of dialog {dialogId} for correspondence {correspondenceId}", 
                 dialogId, correspondence.Id);
 
-            var dialogDeleted = await dialogportenService.HasDialogBeenDeleted(dialogId);
+            var dialogDeleted = await dialogportenService.IsDialogExpiring(dialogId);
             if (dialogDeleted)
             {
-                logger.LogWarning("Dialog {dialogId} is already deleted for correspondence {correspondenceId}", 
+                logger.LogWarning("Dialog {dialogId} has expiresat set for correspondence {correspondenceId}", 
                     dialogId, correspondence.Id);
                 return (false, false, true, false);
             }

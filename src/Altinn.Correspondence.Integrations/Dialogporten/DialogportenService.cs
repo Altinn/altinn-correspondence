@@ -465,6 +465,24 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return dialogResponse.DeletedAt != null;
     }
 
+    public async Task<bool> IsDialogExpiring(string dialogId)
+    {
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+
+        var response = await _httpClient.GetAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        }
+        var dialogResponse = await response.Content.ReadFromJsonAsync<DialogResponse>(cancellationToken);
+        if (dialogResponse is null)
+        {
+            throw new Exception("Failed to deserialize the dialog response from the response.");
+        }
+        return dialogResponse.ExpiresAt != null;
+    }
+
     private async Task<(Guid OpenedId, Guid? ConfirmedId)> CreateIdempotencyKeysForCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
     {
         // Create idempotency key for open dialog activity

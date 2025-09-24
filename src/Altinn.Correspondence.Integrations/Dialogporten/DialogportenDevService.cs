@@ -81,5 +81,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         {
             return Task.FromResult(true);
         }
+
+        public Task<bool> IsDialogExpiring(string dialogId)
+        {
+            return Task.FromResult(true);
+        }
     }
 }
