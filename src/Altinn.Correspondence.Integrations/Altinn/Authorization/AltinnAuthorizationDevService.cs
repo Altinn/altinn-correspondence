@@ -31,5 +31,10 @@ namespace Altinn.Correspondence.Integrations.Altinn.Authorization
         {
             return Task.FromResult((int?)3);
         }
+
+        public Task<Dictionary<(string, string), int?>> CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(ClaimsPrincipal? user, string ssn, List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(correspondences.ToDictionary(correspondence => ValueTuple.Create(correspondence.Recipient, correspondence.ResourceId), _ => new Nullable<int>(3)));
+        }
     }
 }
