@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Primitives;
 using System.Text.Json;
 
@@ -11,19 +12,26 @@ namespace Altinn.Correspondence.API.Filters;
 /// </summary>
 public class StatisticsApiKeyFilter : IAuthorizationFilter
 {
+    private const int RateLimitWindowMinutes = 60;
+    
     private readonly IConfiguration _configuration;
     private readonly ILogger<StatisticsApiKeyFilter> _logger;
     private readonly IDistributedCache _cache;
+    private readonly IHostEnvironment _environment;
 
     public StatisticsApiKeyFilter(
         IConfiguration configuration, 
         ILogger<StatisticsApiKeyFilter> logger,
-        IDistributedCache cache)
+        IDistributedCache cache,
+        IHostEnvironment environment)
     {
         _configuration = configuration;
         _logger = logger;
         _cache = cache;
+        _environment = environment;
     }
+
+    private int RateLimitAttempts => _environment.IsDevelopment() ? 5 : 10;
 
     public void OnAuthorization(AuthorizationFilterContext context)
     {
@@ -87,23 +95,23 @@ public class StatisticsApiKeyFilter : IAuthorizationFilter
                 StatusCode = 429 // Too Many Requests
             };
 
-            // Add rate limit headers
-            context.HttpContext.Response.Headers["X-RateLimit-Limit"] = _configuration["StatisticsRateLimit:RateLimitAttempts"];
-            context.HttpContext.Response.Headers["X-RateLimit-Remaining"] = rateLimitResult.RemainingAttempts.ToString();
-            context.HttpContext.Response.Headers["X-RateLimit-Reset"] = rateLimitResult.ResetTime.ToUnixTimeSeconds().ToString();
-            context.HttpContext.Response.Headers["Retry-After"] = rateLimitResult.RetryAfterSeconds.ToString();
+             // Add rate limit headers
+             context.HttpContext.Response.Headers["X-RateLimit-Limit"] = RateLimitAttempts.ToString();
+             context.HttpContext.Response.Headers["X-RateLimit-Remaining"] = rateLimitResult.RemainingAttempts.ToString();
+             context.HttpContext.Response.Headers["X-RateLimit-Reset"] = rateLimitResult.ResetTime.ToUnixTimeSeconds().ToString();
+             context.HttpContext.Response.Headers["Retry-After"] = rateLimitResult.RetryAfterSeconds.ToString();
             
             return;
         }
 
         // Add rate limit headers for successful requests
-        context.HttpContext.Response.Headers["X-RateLimit-Limit"] = _configuration["StatisticsRateLimit:RateLimitAttempts"];
+        context.HttpContext.Response.Headers["X-RateLimit-Limit"] = RateLimitAttempts.ToString();
         context.HttpContext.Response.Headers["X-RateLimit-Remaining"] = rateLimitResult.RemainingAttempts.ToString();
         context.HttpContext.Response.Headers["X-RateLimit-Reset"] = rateLimitResult.ResetTime.ToUnixTimeSeconds().ToString();
 
         _logger.LogInformation("Statistics endpoint accessed with valid API key from IP: {ClientIp}. " +
             "Rate limit: {RemainingAttempts}/{Limit} remaining",
-            clientIp, rateLimitResult.RemainingAttempts, _configuration["StatisticsRateLimit:RateLimitAttempts"]);
+            clientIp, rateLimitResult.RemainingAttempts, RateLimitAttempts);
     }
 
     private static string? GetClientIpAddress(HttpContext context)
@@ -146,12 +154,10 @@ public class StatisticsApiKeyFilter : IAuthorizationFilter
     /// <returns>Rate limit check result</returns>
     private async Task<RateLimitResult> CheckRateLimitAsync(string clientIdentifier)
     {
-        var rateLimitAttempts = _configuration.GetValue<int>("StatisticsRateLimit:RateLimitAttempts", 10);
-        var rateLimitWindowMinutes = _configuration.GetValue<int>("StatisticsRateLimit:RateLimitWindowMinutes", 60);
         
         var cacheKey = $"rate_limit:statistics:{clientIdentifier}";
         var now = DateTimeOffset.UtcNow;
-        var windowStart = now.AddMinutes(-rateLimitWindowMinutes);
+        var windowStart = now.AddMinutes(-RateLimitWindowMinutes);
 
         try
         {
@@ -167,14 +173,14 @@ public class StatisticsApiKeyFilter : IAuthorizationFilter
                 .ToList();
 
             // Check if limit is exceeded
-            if (rateLimitData.Requests.Count >= rateLimitAttempts)
+            if (rateLimitData.Requests.Count >= RateLimitAttempts)
             {
                 var oldestRequest = rateLimitData.Requests.Min();
-                var resetTime = oldestRequest.AddMinutes(rateLimitWindowMinutes);
+                var resetTime = oldestRequest.AddMinutes(RateLimitWindowMinutes);
                 
                 _logger.LogWarning("Rate limit exceeded for IP {ClientIdentifier}. " +
                     "Attempts: {Attempts}/{Limit}, Reset at: {ResetTime}",
-                    clientIdentifier, rateLimitData.Requests.Count, rateLimitAttempts, resetTime);
+                    clientIdentifier, rateLimitData.Requests.Count, RateLimitAttempts, resetTime);
 
                 return new RateLimitResult
                 {
@@ -192,17 +198,17 @@ public class StatisticsApiKeyFilter : IAuthorizationFilter
             var updatedDataJson = JsonSerializer.Serialize(rateLimitData);
             var cacheOptions = new DistributedCacheEntryOptions
             {
-                AbsoluteExpiration = now.AddMinutes(rateLimitWindowMinutes + 1) // Add buffer
+                AbsoluteExpiration = now.AddMinutes(RateLimitWindowMinutes + 1) // Add buffer
             };
             
             await _cache.SetStringAsync(cacheKey, updatedDataJson, cacheOptions);
 
-            var remainingAttempts = rateLimitAttempts - rateLimitData.Requests.Count;
-            var nextResetTime = rateLimitData.Requests.Min().AddMinutes(rateLimitWindowMinutes);
+            var remainingAttempts = RateLimitAttempts - rateLimitData.Requests.Count;
+            var nextResetTime = rateLimitData.Requests.Min().AddMinutes(RateLimitWindowMinutes);
 
             _logger.LogDebug("Rate limit check for IP {ClientIdentifier}. " +
                 "Attempts: {Attempts}/{Limit}, Remaining: {Remaining}",
-                clientIdentifier, rateLimitData.Requests.Count, rateLimitAttempts, remainingAttempts);
+                clientIdentifier, rateLimitData.Requests.Count, RateLimitAttempts, remainingAttempts);
 
             return new RateLimitResult
             {
@@ -220,8 +226,8 @@ public class StatisticsApiKeyFilter : IAuthorizationFilter
             return new RateLimitResult
             {
                 IsAllowed = true,
-                RemainingAttempts = rateLimitAttempts,
-                ResetTime = now.AddMinutes(rateLimitWindowMinutes),
+                RemainingAttempts = RateLimitAttempts,
+                ResetTime = now.AddMinutes(RateLimitWindowMinutes),
                 RetryAfterSeconds = 0
             };
         }
