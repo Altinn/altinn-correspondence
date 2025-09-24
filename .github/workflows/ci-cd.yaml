@@ -78,13 +78,15 @@ jobs:
           MASKINPORTEN_CLIENT_ID: ${{ secrets.MASKINPORTEN_CLIENT_ID }}
           MASKINPORTEN_JWK: ${{ secrets.MASKINPORTEN_JWK }}
           PLATFORM_BASE_URL: ${{ secrets.PLATFORM_BASE_URL }}
+          OVERRIDE_AUTHORIZATION_URL: ${{ secrets.OVERRIDE_AUTHORIZATION_URL }}
           PLATFORM_SUBSCRIPTION_KEY: ${{ secrets.PLATFORM_SUBSCRIPTION_KEY }}
           SLACK_URL: ${{ secrets.SLACK_URL }}
           SBL_BRIDGE_BASE_URL: ${{ secrets.SBL_BRIDGE_BASE_URL }}
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
-          DB_PWD: ${{ secrets.DB_PWD }}
+          MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
+          MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
 
   deploy-at22:
     name: deploy at22
@@ -123,6 +125,7 @@ jobs:
           MASKINPORTEN_CLIENT_ID: ${{ secrets.MASKINPORTEN_CLIENT_ID }}
           MASKINPORTEN_JWK: ${{ secrets.MASKINPORTEN_JWK }}
           PLATFORM_BASE_URL: ${{ secrets.PLATFORM_BASE_URL }}
+          OVERRIDE_AUTHORIZATION_URL: ${{ secrets.OVERRIDE_AUTHORIZATION_URL }}
           PLATFORM_SUBSCRIPTION_KEY: ${{ secrets.PLATFORM_SUBSCRIPTION_KEY }}
           SLACK_URL: ${{ secrets.SLACK_URL }}
           SBL_BRIDGE_BASE_URL: ${{ secrets.SBL_BRIDGE_BASE_URL }}
@@ -130,7 +133,8 @@ jobs:
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
-          DB_PWD: ${{ secrets.DB_PWD }}
+          MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
+          MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
 
   deploy-staging:
     name: Internal staging
@@ -172,6 +176,7 @@ jobs:
           MASKINPORTEN_CLIENT_ID: ${{ secrets.MASKINPORTEN_CLIENT_ID }}
           MASKINPORTEN_JWK: ${{ secrets.MASKINPORTEN_JWK }}
           PLATFORM_BASE_URL: ${{ secrets.PLATFORM_BASE_URL }}
+          OVERRIDE_AUTHORIZATION_URL: ${{ secrets.OVERRIDE_AUTHORIZATION_URL }}
           PLATFORM_SUBSCRIPTION_KEY: ${{ secrets.PLATFORM_SUBSCRIPTION_KEY }}
           SLACK_URL: ${{ secrets.SLACK_URL }}
           SBL_BRIDGE_BASE_URL: ${{ secrets.SBL_BRIDGE_BASE_URL }}
@@ -179,7 +184,8 @@ jobs:
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
-          DB_PWD: ${{ secrets.DB_PWD }}
+          MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
+          MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
 
   deploy-production:
     name: Production
@@ -221,6 +227,7 @@ jobs:
           MASKINPORTEN_CLIENT_ID: ${{ secrets.MASKINPORTEN_CLIENT_ID }}
           MASKINPORTEN_JWK: ${{ secrets.MASKINPORTEN_JWK }}
           PLATFORM_BASE_URL: ${{ secrets.PLATFORM_BASE_URL }}
+          OVERRIDE_AUTHORIZATION_URL: ${{ secrets.OVERRIDE_AUTHORIZATION_URL }}
           PLATFORM_SUBSCRIPTION_KEY: ${{ secrets.PLATFORM_SUBSCRIPTION_KEY }}
           SLACK_URL: ${{ secrets.SLACK_URL }}
           SBL_BRIDGE_BASE_URL: ${{ secrets.SBL_BRIDGE_BASE_URL }}
@@ -228,7 +235,8 @@ jobs:
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
-          DB_PWD: ${{ secrets.DB_PWD }}
+          MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
+          MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
 
   check-version-bump:
     name: Check if version was bumped

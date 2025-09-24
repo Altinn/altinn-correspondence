@@ -41,4 +41,8 @@ public static class UrnConstants
     /// xacml string that refers to systemuser authentication
     /// </summary>
     public const string SystemUser = "urn:altinn:systemuser";
+    /// <summary>
+    /// xacml string that refers to userid
+    /// </summary>
+    public const string UserId = "urn:altinn:userid";
 }

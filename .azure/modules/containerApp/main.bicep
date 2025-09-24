@@ -4,6 +4,7 @@ param namePrefix string
 param image string
 param environment string
 param platform_base_url string
+param override_authorization_url string
 param maskinporten_environment string
 param correspondenceBaseUrl string
 param contactReservationRegistryBaseUrl string
@@ -73,7 +74,7 @@ var probes = [
   }
 ]
 
-var containerAppEnvVarsdefault = [
+var containerAppEnvVarsDefault = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: environment }
   { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'application-insights-connection-string' }
   { name: 'DatabaseOptions__ConnectionString', secretRef: 'correspondence-ado-connection-string' }
@@ -92,6 +93,7 @@ var containerAppEnvVarsdefault = [
     value: '${platform_base_url}/authentication/api/v1/openid/.well-known/openid-configuration'
   }
   { name: 'AltinnOptions__PlatformGatewayUrl', value: platform_base_url }
+  { name: 'AltinnOptions__OverrideAuthorizationUrl', value: override_authorization_url }
   { name: 'AltinnOptions__PlatformSubscriptionKey', secretRef: 'platform-subscription-key' }
   { name: 'AltinnOptions__AccessManagementSubscriptionKey', secretRef: 'access-management-subscription-key' }
   { name: 'MaskinportenSettings__Environment', value: maskinporten_environment }
@@ -117,10 +119,11 @@ var containerAppEnvVarsdefault = [
   { name: 'IdportenSettings__ClientId', secretRef: 'idporten-client-id' }
   { name: 'IdportenSettings__ClientSecret', secretRef: 'idporten-client-secret' }
   { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretRef: 'application-insights-connection-string' }
+  { name: 'StatisticsApiKey', secretRef: 'statistics-api-key' }
 ]
 
 var containerAppEnvVars = concat(
-  containerAppEnvVarsdefault,
+  containerAppEnvVarsDefault,
   maskinporten_token_exchange_environment != '' && maskinporten_token_exchange_environment != null
     ? [
         { name: 'MaskinportenSettings__TokenExchangeEnvironment', value: maskinporten_token_exchange_environment }
@@ -222,6 +225,11 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           identity: principal_id
           keyVaultUrl: '${keyVaultUrl}/secrets/resource-whitelist'
           name: 'resource-whitelist'
+        }
+        {
+          identity: principal_id
+          keyVaultUrl: '${keyVaultUrl}/secrets/statistics-api-key'
+          name: 'statistics-api-key'
         }
       ]
     }

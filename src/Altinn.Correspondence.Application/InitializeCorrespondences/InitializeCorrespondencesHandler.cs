@@ -74,7 +74,7 @@ public class InitializeCorrespondencesHandler(
             validatedData.ServiceOwnerOrgNumber.WithoutPrefix(),
             null,
             cancellationToken);
-            
+
         if (!hasAccess)
         {
             logger.LogWarning("Access denied for resource {ResourceId}", request.Correspondence.ResourceId);
@@ -244,8 +244,8 @@ public class InitializeCorrespondencesHandler(
             return uploadError;
         }
 
-        if (request.Correspondence.Content!.MessageBody.Contains("{{recipientName}}") || 
-            request.Correspondence.Content!.MessageTitle.Contains("{{recipientName}}") || 
+        if (request.Correspondence.Content!.MessageBody.Contains("{{recipientName}}") ||
+            request.Correspondence.Content!.MessageTitle.Contains("{{recipientName}}") ||
             request.Correspondence.Content!.MessageSummary.Contains("{{recipientName}}"))
         {
             var recipientsToSearch = request.Recipients.Select(r => r.WithoutPrefix()).ToList();
@@ -253,8 +253,8 @@ public class InitializeCorrespondencesHandler(
             if (validatedData.RecipientDetails == null || validatedData.RecipientDetails.Count != recipientsToSearch.Count)
             {
                 return CorrespondenceErrors.RecipientLookupFailed(recipientsToSearch.Except(
-                    validatedData.RecipientDetails != null ? 
-                    validatedData.RecipientDetails.Select(r => r.SSN ?? r.OrgNumber) : 
+                    validatedData.RecipientDetails != null ?
+                    validatedData.RecipientDetails.Select(r => r.SSN ?? r.OrgNumber) :
                     new List<string>()).ToList());
             }
             foreach (var details in validatedData.RecipientDetails)
@@ -285,7 +285,7 @@ public class InitializeCorrespondencesHandler(
                     logger.LogWarning("Duplicate idempotency key {Key} found", request.IdempotentKey.Value);
                     return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
                 }
-            return new OneOf<InitializeCorrespondencesResponse, Error>();
+                return new OneOf<InitializeCorrespondencesResponse, Error>();
             }, logger, cancellationToken);
 
             if (result.IsT1)
@@ -386,15 +386,7 @@ public class InitializeCorrespondencesHandler(
                     throw;
                 }
             }
-            var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
-            await hybridCacheWrapper.SetAsync($"dialogJobId_{correspondence.Id}", dialogJob, new HybridCacheEntryOptions
-            {
-                Expiration = TimeSpan.FromHours(24)
-            });
-            if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
-            {
-                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
-            }
+            await CreateDialogOrTransmissionJob(correspondence, request, cancellationToken);
 
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
             if (!isReserved)
@@ -437,5 +429,43 @@ public class InitializeCorrespondencesHandler(
         var dialogId = await dialogportenService.CreateCorrespondenceDialog(correspondenceId);
         await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
         logger.LogInformation("Successfully created Dialogporten dialog for correspondence {CorrespondenceId}", correspondenceId);
+    }
+
+    public async Task CreateDialogportenTransmission(Guid correspondenceId)
+    {
+        logger.LogInformation("Creating Dialogporten transmission for correspondence {CorrespondenceId}", correspondenceId);
+        var transmissionId = await dialogportenService.CreateDialogTransmission(correspondenceId);
+        await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenTransmissionId, transmissionId);
+        logger.LogInformation("Successfully created Dialogporten transmission for correspondence {CorrespondenceId}", correspondenceId);
+    }
+    private async Task CreateDialogOrTransmissionJob(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
+    {
+        bool hasDialogId = correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId);
+        if (hasDialogId)
+        {
+            logger.LogInformation("Correspondence {correspondenceId} already has a Dialogporten dialog, creating a transmission", correspondence.Id);
+            var transmissionJob = backgroundJobClient.Enqueue(() => CreateDialogportenTransmission(correspondence.Id));
+            await hybridCacheWrapper.SetAsync($"transmissionJobId_{correspondence.Id}", transmissionJob, new HybridCacheEntryOptions
+            {
+                Expiration = TimeSpan.FromHours(24)
+            });
+            if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+            {
+                await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondence.Id, cancellationToken);
+            }
+        }
+        else
+        {
+            logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
+            var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
+            await hybridCacheWrapper.SetAsync($"dialogJobId_{correspondence.Id}", dialogJob, new HybridCacheEntryOptions
+            {
+                Expiration = TimeSpan.FromHours(24)
+            });
+            if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+            {
+                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
+            }
+        }
     }
 }

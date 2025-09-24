@@ -57,8 +57,8 @@ public class LegacyGetCorrespondencesHandler(
         var recipients = new List<string>();
         if (request.InstanceOwnerPartyIdList != null && request.InstanceOwnerPartyIdList.Length > 0)
         {
-            var authorizedPartiesResponse = await altinnAccessManagementService.GetAuthorizedParties(userParty, cancellationToken);
-            var authorizedParties = authorizedPartiesResponse.DistinctBy(party => party.PartyId).ToList();
+            var authorizedParties = await altinnAccessManagementService.GetAuthorizedParties(userParty, userClaimsHelper.GetUserId(), cancellationToken);
+            authorizedParties = authorizedParties.DistinctBy(party => party.PartyId).ToList();
             var authorizedPartiesDict = authorizedParties.ToDictionary(p => p.PartyId, p => p);
             foreach (int instanceOwnerPartyId in request.InstanceOwnerPartyIdList)
             {
@@ -87,7 +87,6 @@ public class LegacyGetCorrespondencesHandler(
                 Items = []
             };
         }
-
         // Get all correspondences owned by Recipients
         // request.IncludeDeleted is not used as this is for soft deleted correspondences only, which are not relevant in legacy
         var correspondences = await correspondenceRepository.GetCorrespondencesForParties(limit: limit,
@@ -150,15 +149,10 @@ public class LegacyGetCorrespondencesHandler(
             }
         }
 
-        Dictionary<string, int?> authlevels = new(correspondences.Count);
+        Dictionary<(string, string), int?> authlevels = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(user, userParty.SSN, correspondences, cancellationToken);
         foreach (var correspondence in correspondences)
         {
-            string authLevelKey = $"{correspondence.Recipient}::{correspondence.ResourceId}";
-            if (!authlevels.TryGetValue(authLevelKey, out int? authLevel))
-            {
-                authLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
-                authlevels.Add(authLevelKey, authLevel);
-            }
+            authlevels.TryGetValue((correspondence.Recipient, correspondence.ResourceId), out int? authLevel);
             if (authLevel == null || minAuthLevel < authLevel)
             {
                 continue;

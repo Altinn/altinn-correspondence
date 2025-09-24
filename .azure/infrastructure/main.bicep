@@ -30,6 +30,13 @@ param storageAccountName string
 param maskinporten_token_exchange_environment string
 @secure()
 param resourceWhiteList string
+@secure()
+param statisticsApiKey string
+
+@secure()
+param maintenanceAdGroupId string
+@secure()
+param maintenanceAdGroupName string
 
 var prodLikeEnvironment = environment == 'production' || environment == 'staging' || maskinporten_token_exchange_environment == 'yt01'
 var resourceGroupName = '${namePrefix}-rg'
@@ -84,6 +91,10 @@ var secrets = [
     name: 'resource-whitelist'
     value: resourceWhiteList
   }
+  {
+    name: 'statistics-api-key'
+    value: statisticsApiKey
+  }
 ]
 
 module keyvaultSecrets '../modules/keyvault/upsertSecrets.bicep' = {
@@ -126,7 +137,6 @@ module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
   }
 }
 
-var correspondenceAdminPasswordSecretName = 'correspondence-admin-password'
 module postgresql '../modules/postgreSql/create.bicep' = {
   scope: resourceGroup
   name: 'postgresql'
@@ -141,6 +151,21 @@ module postgresql '../modules/postgreSql/create.bicep' = {
     prodLikeEnvironment: prodLikeEnvironment
     logAnalyticsWorkspaceId: containerAppEnv.outputs.logAnalyticsWorkspaceId
     environment: environment
+  }
+}
+
+module maintenanceDbAccess '../modules/postgreSql/addAdminAccess.bicep' = {
+  name: 'databaseAccess'
+  scope: resourceGroup
+  dependsOn: [
+    postgresql
+  ]
+  params: {
+    principalType: 'Group'
+    tenantId: tenantId
+    principalId: maintenanceAdGroupId
+    appName: maintenanceAdGroupName
+    namePrefix: namePrefix
   }
 }
 

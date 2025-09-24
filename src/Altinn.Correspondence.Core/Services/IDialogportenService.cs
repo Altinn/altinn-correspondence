@@ -8,6 +8,7 @@ public interface IDialogportenService
 {
     Task<string> CreateCorrespondenceDialogForMigratedCorrespondence(Guid correspondenceId, CorrespondenceEntity? correspondence, bool enableEvents = false, bool isSoftDeleted = false);
     Task<string> CreateCorrespondenceDialog(Guid correspondenceId);
+    Task<string> CreateDialogTransmission(Guid correspondenceId);
     Task PatchCorrespondenceDialogToConfirmed(Guid correspondenceId);
     Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, params string[] tokens);
     Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp);
