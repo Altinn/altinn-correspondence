@@ -289,10 +289,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
         
-        public async Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndNotCurrentStatuses(
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndNeverBeenStatuses(
             List<Guid> correspondenceIds,
             ReferenceType referenceType,
-            List<CorrespondenceStatus> excludedCurrentStatuses,
+            List<CorrespondenceStatus> excludedStatuses,
             CancellationToken cancellationToken)
         {
             if (correspondenceIds == null || correspondenceIds.Count == 0)
@@ -300,9 +300,9 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 return new List<CorrespondenceEntity>();
             }
 
-            if (excludedCurrentStatuses == null)
+            if (excludedStatuses == null)
             {
-                excludedCurrentStatuses = new List<CorrespondenceStatus>();
+                excludedStatuses = new List<CorrespondenceStatus>();
             }
 
             return await _context.Correspondences
@@ -310,14 +310,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .AsSplitQuery()
                 .Where(c => correspondenceIds.Contains(c.Id))
                 .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == referenceType))
-                .Where(c => !excludedCurrentStatuses.Contains(
-                    c.Statuses
-                        .OrderByDescending(s => s.StatusChanged)
-                        .ThenByDescending(s => s.Id)
-                        .Select(s => s.Status)
-                        .FirstOrDefault()))
+                .Where(c => excludedStatuses.Count == 0 || !c.Statuses.Any(s => excludedStatuses.Contains(s.Status)))
                 .Include(c => c.ExternalReferences)
-                .Include(c => c.Statuses)
                 .ToListAsync(cancellationToken);
         }
 

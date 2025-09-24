@@ -93,7 +93,7 @@ public class RestoreSoftDeletedDialogsHandler(
                 }
                 
                 var windowIds = correspondencesWindow.Select(c => c.Id).ToList();
-                var nonPurgedWithDialog = await correspondenceRepository.GetCorrespondencesByIdsWithExternalReferenceAndNotCurrentStatuses(
+                var nonPurgedWithDialog = await correspondenceRepository.GetCorrespondencesByIdsWithExternalReferenceAndNeverBeenStatuses(
                     windowIds,
                     ReferenceType.DialogportenDialogId,
                     new List<CorrespondenceStatus> { CorrespondenceStatus.PurgedByAltinn, CorrespondenceStatus.PurgedByRecipient },
@@ -204,7 +204,7 @@ public class RestoreSoftDeletedDialogsHandler(
                 }
                 
                 var windowIds = correspondencesWindow.Select(c => c.Id).ToList();
-                var nonPurgedWithDialog = await correspondenceRepository.GetCorrespondencesByIdsWithExternalReferenceAndNotCurrentStatuses(
+                var nonPurgedWithDialog = await correspondenceRepository.GetCorrespondencesByIdsWithExternalReferenceAndNeverBeenStatuses(
                     windowIds,
                     ReferenceType.DialogportenDialogId,
                     new List<CorrespondenceStatus> { CorrespondenceStatus.PurgedByAltinn, CorrespondenceStatus.PurgedByRecipient },

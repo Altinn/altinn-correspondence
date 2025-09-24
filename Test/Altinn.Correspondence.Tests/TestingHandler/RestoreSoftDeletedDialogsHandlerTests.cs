@@ -34,7 +34,7 @@ public class RestoreSoftDeletedDialogsHandlerTests
         repo.SetupSequence(r => r.GetCorrespondencesWindowAfter(It.IsAny<int>(), It.IsAny<DateTimeOffset?>(), It.IsAny<Guid?>(), true, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CorrespondenceEntity> { c1, c2 })
             .ReturnsAsync(new List<CorrespondenceEntity>());
-        repo.Setup(r => r.GetCorrespondencesByIdsWithExternalReferenceAndNotCurrentStatuses(
+        repo.Setup(r => r.GetCorrespondencesByIdsWithExternalReferenceAndNeverBeenStatuses(
                 It.IsAny<List<Guid>>(),
                 It.IsAny<ReferenceType>(),
                 It.IsAny<List<CorrespondenceStatus>>(),
@@ -88,7 +88,7 @@ public class RestoreSoftDeletedDialogsHandlerTests
                     .ToList();
                 return query;
             });
-        repo.Setup(r => r.GetCorrespondencesByIdsWithExternalReferenceAndNotCurrentStatuses(
+        repo.Setup(r => r.GetCorrespondencesByIdsWithExternalReferenceAndNeverBeenStatuses(
                 It.IsAny<List<Guid>>(),
                 It.IsAny<ReferenceType>(),
                 It.IsAny<List<CorrespondenceStatus>>(),
