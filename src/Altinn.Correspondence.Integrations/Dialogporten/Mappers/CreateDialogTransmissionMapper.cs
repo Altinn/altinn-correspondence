@@ -83,7 +83,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         /// Truncates titles longer than 255 characters to 252 characters and adds "..." to fit within Dialogporten's 255 character limit.
         /// Titles 255 characters or shorter are sent as-is to Dialogporten.
         /// This serves as a safety net for existing correspondence with long titles that failed Dialog Porten creation,
-        /// allowing them to retry successß
+        /// allowing them to retry successfully.
         /// </summary>
         /// <param name="title">The original title</param>
         /// <returns>The title truncated to fit Dialogporten's requirements</returns>
