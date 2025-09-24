@@ -115,6 +115,30 @@ namespace Altinn.Correspondence.Tests.Factories
             };
             return this;
         }
+
+        public CorrespondenceBuilder WithExternalReferencesDialogId(string dialogId)
+        {
+            _correspondence.Correspondence.ExternalReferences = new List<ExternalReferenceExt>(){
+                new ExternalReferenceExt()
+                {
+                    ReferenceValue = dialogId,
+                    ReferenceType = ReferenceTypeExt.DialogportenDialogId
+                }
+            };
+            return this;
+        }
+
+        public CorrespondenceBuilder WithExternalReferencesTransmissionId()
+        {
+            _correspondence.Correspondence.ExternalReferences = new List<ExternalReferenceExt>(){
+                new ExternalReferenceExt()
+                {
+                    ReferenceValue = Guid.NewGuid().ToString(),
+                    ReferenceType = ReferenceTypeExt.DialogportenTransmissionId
+                }
+            };
+            return this;
+        }
         public CorrespondenceBuilder WithAttachments(List<InitializeCorrespondenceAttachmentExt> attachmentMetaData)
         {
             _correspondence.Correspondence.Content!.Attachments = attachmentMetaData;
