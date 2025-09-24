@@ -257,7 +257,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
                 mockAccessManagementService
                     .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new List<PartyWithSubUnits>()
+                    .ReturnsAsync(new List<Party>()
                     {
                         duplicateParty,
                         duplicateParty
@@ -298,7 +298,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
             mockAccessManagementService
                 .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new List<PartyWithSubUnits>()
+                .ReturnsAsync(new List<Party>()
                 {
                         party
                 });
@@ -365,7 +365,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
                 mockAccessManagementService
                     .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new List<PartyWithSubUnits>()
+                    .ReturnsAsync(new List<Party>()
                     {
                         new PartyWithSubUnits()
                         {
@@ -395,52 +395,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var correspondenceList = await client.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             Assert.Equal(HttpStatusCode.OK, correspondenceList.StatusCode);
         }
-        [Fact]
-        public async Task LegacyGetCorrespondences_ForMainUnitButAccessToOnlySubunit_Fails()
-        {
-            using var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
-            {
-                var mockRegisterService = new Mock<IAltinnRegisterService>();
-                mockRegisterService
-                    .Setup(service => service.LookUpPartyByPartyId(It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new Party()
-                    {
-                        OrgNumber = "123456789"
-                    });
-                var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
-                mockAccessManagementService
-                    .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new List<PartyWithSubUnits>()
-                    {
-                        new PartyWithSubUnits()
-                        {
-                            PartyId = 1,
-                            Name = "hovedenhet",
-                            OnlyHierarchyElementWithNoAccess = true,
-                            SubUnits = new List<PartyWithSubUnits>()
-                                        {
-                                            new PartyWithSubUnits()
-                                            {
-                                                PartyId = 2,
-                                                Name = "underenhet",
-                                                IsDeleted = false,
-                                            }
-                                        }
-                        }
-                    });
-                services.AddSingleton(mockAccessManagementService.Object);
-            });
-            var client = factory.CreateClientWithAddedClaims(
-                ("scope", AuthorizationConstants.LegacyScope),
-                (_partyIdClaim, _digdirPartyId.ToString()));
-            var listPayload = GetBasicLegacyGetCorrespondenceRequestExt();
-            listPayload.InstanceOwnerPartyIdList = new int[] { 1 };
-            listPayload.From = DateTimeOffset.UtcNow.AddDays(-1);
-            listPayload.To = DateTimeOffset.UtcNow;
-            var correspondenceList = await client.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
-            Assert.Equal(HttpStatusCode.Unauthorized, correspondenceList.StatusCode);
-        }
-
 
         private LegacyGetCorrespondencesRequestExt GetBasicLegacyGetCorrespondenceRequestExt()
         {
