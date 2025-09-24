@@ -67,9 +67,6 @@ public class StatisticsApiKeyFilter : IAuthorizationFilter
             context.Result = new UnauthorizedObjectResult(new { error = "API key validation not configured" });
             return;
         }
-        
-        _logger.LogInformation("Statistics endpoint accessed with API key: {ProvidedApiKey}", providedApiKey);
-        _logger.LogInformation("Statistics endpoint accessed with configured API key: {ConfiguredApiKey}", configuredApiKey);
 
         // Validate API key using constant-time comparison
         if (!SecureEquals(providedApiKey, configuredApiKey))
