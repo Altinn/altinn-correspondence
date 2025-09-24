@@ -85,7 +85,8 @@ jobs:
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
-          DB_PWD: ${{ secrets.DB_PWD }}
+          MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
+          MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
 
   deploy-at22:
     name: deploy at22
@@ -132,7 +133,8 @@ jobs:
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
-          DB_PWD: ${{ secrets.DB_PWD }}
+          MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
+          MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
 
   deploy-staging:
     name: Internal staging
@@ -182,7 +184,8 @@ jobs:
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
-          DB_PWD: ${{ secrets.DB_PWD }}
+          MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
+          MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
 
   deploy-production:
     name: Production
@@ -232,7 +235,8 @@ jobs:
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
-          DB_PWD: ${{ secrets.DB_PWD }}
+          MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
+          MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
 
   check-version-bump:
     name: Check if version was bumped

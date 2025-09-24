@@ -74,13 +74,14 @@ module keyVaultReaderAccessPolicyUserIdentity '../../modules/keyvault/addReaderR
   }
 }
 
-module databaseAccess '../../modules/postgreSql/AddAdministrationAccess.bicep' = {
+module databaseAccess '../../modules/postgreSql/addAdminAccess.bicep' = {
   name: 'databaseAccess'
   scope: resourceGroup
   dependsOn: [
     keyVaultReaderAccessPolicyUserIdentity // Timing issue
   ]
   params: {
+    principalType: 'ServicePrincipal'
     tenantId: appIdentity.outputs.tenantId
     principalId: appIdentity.outputs.principalId
     appName: appIdentity.outputs.name
