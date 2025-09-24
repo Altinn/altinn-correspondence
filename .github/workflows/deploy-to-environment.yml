@@ -94,3 +94,4 @@ jobs:
         MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
         APIM_IP: ${{ secrets.APIM_IP }}
         DB_PWD: ${{ secrets.DB_PWD }}
+        STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}

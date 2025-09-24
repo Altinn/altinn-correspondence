@@ -30,6 +30,8 @@ param storageAccountName string
 param maskinporten_token_exchange_environment string
 @secure()
 param resourceWhiteList string
+@secure()
+param statisticsApiKey string
 
 var prodLikeEnvironment = environment == 'production' || environment == 'staging' || maskinporten_token_exchange_environment == 'yt01'
 var resourceGroupName = '${namePrefix}-rg'
@@ -83,6 +85,10 @@ var secrets = [
   {
     name: 'resource-whitelist'
     value: resourceWhiteList
+  }
+  {
+    name: 'statistics-api-key'
+    value: statisticsApiKey
   }
 ]
 

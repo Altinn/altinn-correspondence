@@ -87,6 +87,9 @@ inputs:
   APIM_IP:
     description: "IP address for APIM"
     required: true
+  STATISTICS_API_KEY:
+    description: "Statistics API Key for authentication"
+    required: true
 
 runs:
   using: "composite"
@@ -115,6 +118,7 @@ runs:
         SLACK_URL: ${{ inputs.SLACK_URL }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
         RESOURCE_WHITELIST: ${{ inputs.RESOURCE_WHITELIST }}
+        STATISTICS_API_KEY: ${{ inputs.STATISTICS_API_KEY }}
 
     - name: Migrate database
       uses: ./.github/actions/migrate-database
