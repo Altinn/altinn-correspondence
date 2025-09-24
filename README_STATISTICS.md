@@ -10,7 +10,7 @@ This implementation generates daily summary reports with aggregated corresponden
 ✅ **Direct ServiceOwnerId Usage** - Uses the new ServiceOwnerId field from database entities  
 ✅ **Azure Blob Storage** - Stores reports in Azure Blob Storage "reports" container  
 ✅ **Aggregated Data** - Includes daily aggregated metrics and counts per service owner  
-✅ **Maskinporten Authentication** - Secure endpoints with maintenance scope requirement
+✅ **API Key Authentication** - Secure endpoints with API key and rate limiting
 
 ## Authentication Requirements
 
@@ -22,7 +22,10 @@ Both statistics endpoints use **API Key authentication** with **IP-based rate li
 - **Development Key**: `dev-api-key-12345`
 - **Production Key**: Set `StatisticsApiKey` in production configuration
 - **Rate Limiting**: Enforced per IP address using Redis
-- **Rate Limit Configuration**: Set `StatisticsRateLimit:RateLimitAttempts` and `StatisticsRateLimit:RateLimitWindowMinutes` in appsettings
+- **Rate Limits**: 
+  - **Development**: 5 attempts per 60 minutes per IP
+  - **Production**: 10 attempts per 60 minutes per IP
+- **Rate Limit Configuration**: Hardcoded in `StatisticsApiKeyFilter` class
 
 **Response Codes**:
 - `200 OK` - Success
@@ -192,9 +195,9 @@ The system now uses the direct `ServiceOwnerId` field from the database entities
 - **API Key Authentication**: Both endpoints require API key authentication via `X-API-Key` header
 - **IP-based Rate Limiting**: Rate limiting enforced per client IP address using Redis distributed cache
 - **Rate Limit Configuration**:
-  - **Development**: 10 requests per hour per IP
-  - **Production**: 100 requests per hour per IP
-  - **Configurable**: Set via `StatisticsRateLimit:RateLimitAttempts` and `StatisticsRateLimit:RateLimitWindowMinutes`
+  - **Development**: 5 requests per 60 minutes per IP
+  - **Production**: 10 requests per 60 minutes per IP
+  - **Hardcoded**: Rate limits are defined as constants in `StatisticsApiKeyFilter` class
 - **Response Codes**:
   - `200 OK` - Success
   - `401 Unauthorized` - Missing or invalid API key
