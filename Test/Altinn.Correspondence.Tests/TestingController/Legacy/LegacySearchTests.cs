@@ -323,7 +323,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         }
 
         [Fact]
-        public async Task LegacyGetCorrespondences_NoAuthorizedParties_Fails()
+        public async Task LegacyGetCorrespondences_NoAuthorizedParties_NoResults()
         {
             using var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
@@ -348,7 +348,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             listPayload.From = DateTimeOffset.UtcNow.AddDays(-1);
             listPayload.To = DateTimeOffset.UtcNow;
             var correspondenceList = await client.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
-            Assert.Equal(HttpStatusCode.Unauthorized, correspondenceList.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, correspondenceList.StatusCode);
+            var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
+            Assert.Empty(response?.Items);
         }
         [Fact]
         public async Task LegacyGetCorrespondences_ForSubUnitAndAccessToOnlySubunit_Succeeds()
