@@ -40,7 +40,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
 
     public async Task<List<Party>> GetAuthorizedParties(Party partyToRequestFor, string? userId, CancellationToken cancellationToken = default)
     {
-        string cacheKey = $"AuthorizedParties_{partyToRequestFor.PartyId}";
+        string cacheKey = $"AuthorizedParties_{partyToRequestFor.PartyId}_{userId}";
         try {
             var cachedParties = await CacheHelpers.GetObjectFromCacheAsync<List<Party>>(cacheKey, _cache, cancellationToken);
             if (cachedParties != null)
