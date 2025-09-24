@@ -91,6 +91,10 @@ namespace Altinn.Correspondence.Persistence.Helpers
                 statusesToFilter.Contains(cs.Statuses.Max(s => s.Status)));
         }
 
+        /// <summary>
+        /// Excludes correspondences that have been purged (either by Altinn or by the recipient).
+        /// </summary>
+        /// <returns>An <see cref="IQueryable{CorrespondenceEntity}"/> containing only correspondences that do not have any status entries of <see cref="CorrespondenceStatus.PurgedByAltinn"/> or <see cref="CorrespondenceStatus.PurgedByRecipient"/>.</returns>
         public static IQueryable<CorrespondenceEntity> ExcludePurged(this IQueryable<CorrespondenceEntity> query)
         {
             return query.Where(cs =>
@@ -99,12 +103,25 @@ namespace Altinn.Correspondence.Persistence.Helpers
                         s.Status == CorrespondenceStatus.PurgedByRecipient));
         }
 
+        /// <summary>
+        /// Filters out correspondences whose Recipient is a self-identified party (i.e., whose Recipient value starts with the party-UUID prefix).
+        /// </summary>
+        /// <returns>An <see cref="IQueryable{CorrespondenceEntity}"/> containing only correspondences whose Recipient does not have the party-UUID prefix.</returns>
         public static IQueryable<CorrespondenceEntity> ExcludeSelfIdentifiedRecipients(this IQueryable<CorrespondenceEntity> query)
         {
             return query.Where(cs =>
                     !cs.Recipient.IsWithPartyUuidPrefix());
         }
 
+        /// <summary>
+        /// Filters correspondences to those whose current (latest) status is one of the provided statuses.
+        /// </summary>
+        /// <remarks>
+        /// The "current" status is determined by ordering the <c>Statuses</c> collection by <c>StatusChanged</c> then <c>Id</c> and taking the last element.
+        /// If <paramref name="statuses"/> is null or empty, the method returns an empty result set.
+        /// </remarks>
+        /// <param name="statuses">One or more status values to match against an entity's latest status.</param>
+        /// <returns>An <see cref="IQueryable{CorrespondenceEntity}"/> containing only entities whose latest status is in <paramref name="statuses"/>.</returns>
         public static IQueryable<CorrespondenceEntity> WhereCurrentStatusIn(
             this IQueryable<CorrespondenceEntity> query,
             params CorrespondenceStatus[] statuses)

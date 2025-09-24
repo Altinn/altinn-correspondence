@@ -186,6 +186,18 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .SingleOrDefaultAsync(cancellationToken);
         }
 
+        /// <summary>
+        /// Retrieves a paginated batch of correspondences that are candidates for migration to Dialogporten.
+        /// </summary>
+        /// <remarks>
+        /// Returned correspondences are those with a non-null Altinn2CorrespondenceId and with IsMigrating == true,
+        /// excluding purged correspondences and correspondences belonging to self-identified recipients.
+        /// Results are ordered by Created descending, then by Id to provide a stable ordering.
+        /// </remarks>
+        /// <param name="batchSize">Maximum number of correspondences to return.</param>
+        /// <param name="offset">Number of matching correspondences to skip (for paging).</param>
+        /// <param name="cancellationToken">Token to cancel the asynchronous operation.</param>
+        /// <returns>A task that resolves to a list of correspondence entities matching the migration candidate criteria.</returns>
         public Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, int offset, CancellationToken cancellationToken = default)
         {
             return _context.Correspondences

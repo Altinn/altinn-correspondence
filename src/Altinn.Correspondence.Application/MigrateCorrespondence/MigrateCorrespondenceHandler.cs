@@ -173,6 +173,16 @@ public class MigrateCorrespondenceHandler(
         return await MakeCorrespondenceAvailableInDialogportenAndApi(correspondenceId, CancellationToken.None, null, false);
     }
 
+    /// <summary>
+    /// Creates a Dialogporten dialog for an existing correspondence and updates the correspondence record in the database.
+    /// </summary>
+    /// <param name="correspondenceId">The identifier of the correspondence to make available.</param>
+    /// <param name="cancellationToken">Cancellation token that can be used to cancel the operation.</param>
+    /// <param name="correspondenceEntity">Optional pre-fetched correspondence entity to avoid re-loading it from the repository; if null the method will fetch it.</param>
+    /// <param name="createEvents">If true, enable creation of associated events on the Dialogporten dialog.</param>
+    /// <returns>The Dialogporten dialog id created for the correspondence.</returns>
+    /// <exception cref="ArgumentException">Thrown when no correspondence exists for the provided <paramref name="correspondenceId"/>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the correspondence has been purged or its recipient is a self-identified user (party UUID prefix), in which case it cannot be made available in Dialogporten/API.</exception>
     public async Task<string> MakeCorrespondenceAvailableInDialogportenAndApi(Guid correspondenceId, CancellationToken cancellationToken, CorrespondenceEntity? correspondenceEntity = null, bool createEvents = false)
     {
         var correspondence = correspondenceEntity ?? await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken, true);

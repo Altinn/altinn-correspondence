@@ -22,6 +22,21 @@ public class SyncCorrespondenceStatusEventHandler(
     IBackgroundJobClient backgroundJobClient,
     ILogger<SyncCorrespondenceStatusEventHandler> logger) : IHandler<SyncCorrespondenceStatusEventRequest, Guid>
 {
+    /// <summary>
+    /// Processes a sync request containing status and delete events for a single correspondence coming from Altinn 2.
+    /// </summary>
+    /// <remarks>
+    /// Validates and de-duplicates incoming events, persists new status and delete events, and triggers related side effects:
+    /// - Enqueues Dialogporten background jobs and event-bus publications for status events (Confirmed, Read, Archived) when the correspondence is fully migrated.
+    /// - Performs purge, soft-delete or restore flows for delete events, including attachment purge and Dialogporten updates when applicable.
+    /// Duplicate or invalid events are ignored. Dialogporten updates are skipped for correspondences that are still migrating.
+    /// </remarks>
+    /// <param name="request">Request containing the correspondence Id and lists of synced status and delete events to process.</param>
+    /// <param name="user">Optional caller principal (not required for processing; included for context/audit).</param>
+    /// <param name="cancellationToken">Cancellation token for async operations.</param>
+    /// <returns>
+    /// On success returns the processed correspondence Id (Guid). On failure returns an Error value (for example when the correspondence is not found).
+    /// </returns>
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceStatusEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         int numSyncedEvents = request.SyncedEvents?.Count ?? 0;
@@ -218,6 +233,20 @@ public class SyncCorrespondenceStatusEventHandler(
         return txResult;
     }
 
+    /// <summary>
+    /// Builds a mapping from party UUID to Dialogporten enduserId for events that require a Dialogporten user identifier.
+    /// </summary>
+    /// <param name="statusEventsToExecute">Status events to consider; only events with <see cref="CorrespondenceStatus.Archived"/> require an enduserId.</param>
+    /// <param name="deletionEventsToExecute">Deletion events to consider; only <see cref="CorrespondenceDeleteEventType.SoftDeletedByRecipient"/> and <see cref="CorrespondenceDeleteEventType.RestoredByRecipient"/> require an enduserId.</param>
+    /// <param name="cancellationToken">Cancellation token for async lookups.</param>
+    /// <returns>
+    /// A dictionary mapping party UUIDs to Dialogporten enduserId strings in the form "urn:person:&lt;SSN&gt;" for parties that could be resolved and are of type Person.
+    /// </returns>
+    /// <exception cref="ArgumentException">Thrown when a required party UUID cannot be found in Altinn Register.</exception>
+    /// <remarks>
+    /// Parties that are not of type Person are skipped (a warning is logged) and are not included in the returned dictionary.
+    /// Duplicate UUIDs across inputs are handled and looked up only once.
+    /// </remarks>
     private async Task<Dictionary<Guid, string>> GetDialogPortenEndUserIdsForEvents(List<CorrespondenceStatusEntity> statusEventsToExecute, List<CorrespondenceDeleteEventEntity> deletionEventsToExecute, CancellationToken cancellationToken)
     {
         var enduserIdByPartyUuid = new Dictionary<Guid, string>();
@@ -321,6 +350,14 @@ public class SyncCorrespondenceStatusEventHandler(
         return true;
     }
 
+    /// <summary>
+    /// Apply a hard purge to a correspondence based on a hard-delete event: persist a corresponding Purged status, record the delete event, purge attachments, and (when not migrating) publish a purge event and create a Dialogporten purged activity followed by a soft-delete of the dialog.
+    /// </summary>
+    /// <param name="correspondence">The correspondence to purge (must contain ExternalReferences for Dialogporten when not migrating).</param>
+    /// <param name="deleteEventToSync">The delete event that triggered the purge; must have EventType of HardDeletedByServiceOwner or HardDeletedByRecipient and a valid EventOccurred timestamp and PartyUuid.</param>
+    /// <param name="cancellationToken">Cancellation token for async operations.</param>
+    /// <returns>The Id of the purged correspondence.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="deleteEventToSync"/> has an unsupported EventType, or when a Dialogporten dialog id is required but missing on the correspondence.</exception>
     public async Task<Guid> PurgeCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, CancellationToken cancellationToken)
     {
         var corrStatus = CorrespondenceStatus.PurgedByRecipient;
@@ -373,6 +410,21 @@ public class SyncCorrespondenceStatusEventHandler(
         return correspondence.Id;
     }
 
+    /// <summary>
+    /// Persists a recipient soft-delete or restore event for a correspondence and, when applicable,
+    /// updates the associated Dialogporten dialog state.
+    /// </summary>
+    /// <remarks>
+    /// - Accepts only <see cref="CorrespondenceDeleteEventType.SoftDeletedByRecipient"/> or
+    ///   <see cref="CorrespondenceDeleteEventType.RestoredByRecipient"/>; other event types cause an <see cref="ArgumentException"/>.
+    /// - The delete event is stored unconditionally. Dialogporten is updated only when the correspondence is not migrating,
+    ///   the correspondence has not been purged, and an enduserId is available for the event's PartyUuid.
+    /// - If the correspondence has been purged or the enduserId is missing, the method logs a warning and skips dialog updates.
+    /// </remarks>
+    /// <param name="deleteEventToSync">The delete event to persist and process (must be SoftDeletedByRecipient or RestoredByRecipient).</param>
+    /// <param name="enduserIdByPartyUuid">Mapping from PartyUuid to Dialogporten enduserId; used to look up the enduserId for the event's party.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="deleteEventToSync"/> has an unsupported <see cref="CorrespondenceDeleteEventType"/>.</exception>
     private async Task SoftDeleteOrRestoreCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, Dictionary<Guid, string> enduserIdByPartyUuid, CancellationToken cancellationToken)
     {
         DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;
@@ -403,6 +455,11 @@ public class SyncCorrespondenceStatusEventHandler(
         }
     }
 
+    /// <summary>
+    /// If a Dialogporten end-user id exists for the status event's party, enqueue a background job to apply the Archive system label to the correspondence's dialog; otherwise log and skip the update.
+    /// </summary>
+    /// <param name="statusEventToSync">Status event whose PartyUuid is used to look up the Dialogporten end-user id.</param>
+    /// <param name="enduserIdByPartyUuid">Mapping of PartyUuid to Dialogporten end-user id; the method looks up the id for <paramref name="statusEventToSync"/>.PartyUuid and skips the update if missing.</param>
     private async Task SetArchivedOnCorrespondenceDialog(CorrespondenceEntity correspondence, CorrespondenceStatusEntity statusEventToSync, Dictionary<Guid, string> enduserIdByPartyUuid, CancellationToken cancellationToken)
     {
         if (!enduserIdByPartyUuid.ContainsKey(statusEventToSync.PartyUuid))
@@ -415,6 +472,13 @@ public class SyncCorrespondenceStatusEventHandler(
         }   
     }
 
+    /// <summary>
+    /// Associates a delete event with the given correspondence, sets the Altinn‑2 synced timestamp, and persists the event.
+    /// </summary>
+    /// <param name="correspondence">The correspondence to associate the delete event with.</param>
+    /// <param name="deleteEventToSync">The delete event to store; its CorrespondenceId and SyncedFromAltinn2 will be set.</param>
+    /// <param name="syncedTimestamp">Timestamp to record in <c>SyncedFromAltinn2</c> indicating when the event was synced.</param>
+    /// <param name="cancellationToken">Cancellation token for the asynchronous operation.</param>
     private async Task StoreDeleteEventForCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, DateTimeOffset syncedTimestamp, CancellationToken cancellationToken)
     {
         deleteEventToSync.CorrespondenceId = correspondence.Id;
@@ -422,6 +486,20 @@ public class SyncCorrespondenceStatusEventHandler(
         await correspondenceDeleteEventRepository.AddDeleteEvent(deleteEventToSync, cancellationToken);
     }
 
+    /// <summary>
+    /// Enqueues a Dialogporten update to apply or remove system labels on the dialog for a recipient soft-delete or restore event.
+    /// </summary>
+    /// <remarks>
+    /// - For <see cref="CorrespondenceDeleteEventType.SoftDeletedByRecipient"/>, enqueues a job to add the "Bin" label.
+    /// - For <see cref="CorrespondenceDeleteEventType.RestoredByRecipient"/>, enqueues a job to either add the "Archive" label (if <paramref name="isArchived"/> is true)
+    ///   or remove the "Bin" label (if <paramref name="isArchived"/> is false).
+    /// </remarks>
+    /// <param name="correspondenceId">The identifier of the correspondence whose dialog should be updated.</param>
+    /// <param name="endUserId">The Dialogporten end-user identifier for the recipient (prefixed URN).</param>
+    /// <param name="eventType">The delete event type determining whether to soft-delete or restore labels.</param>
+    /// <param name="isArchived">True if the correspondence is currently archived; affects label choice when restoring.</param>
+    /// <param name="cancellationToken">Cancellation token for the asynchronous operation.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="eventType"/> is not supported by this operation.</exception>
     private async Task SetSoftDeleteOrRestoreOnDialog(Guid correspondenceId, string endUserId, CorrespondenceDeleteEventType eventType, bool isArchived, CancellationToken cancellationToken)
     {
         switch (eventType)

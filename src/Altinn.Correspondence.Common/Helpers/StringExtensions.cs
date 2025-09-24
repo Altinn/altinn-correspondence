@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using Altinn.Correspondence.Common.Constants;
@@ -110,11 +110,21 @@ public static class StringExtensions
         return finalResult;
     }
 
+    /// <summary>
+    /// Returns true if <paramref name="identifier"/> begins with the ISO/IEC 6523 organization prefix "0192:".
+    /// </summary>
+    /// <param name="identifier">The string to check for the ISO 6523 prefix.</param>
+    /// <returns>True when <paramref name="identifier"/> starts with "0192:"; otherwise false.</returns>
     public static bool IsWithISO6523Prefix(this string identifier)
     {
         return identifier.StartsWith("0192:");
     }
 
+    /// <summary>
+    /// Returns true when the given identifier begins with the party UUID URN prefix defined by <see cref="UrnConstants.PartyUuid"/>.
+    /// </summary>
+    /// <param name="identifier">The identifier to test for the party UUID URN prefix.</param>
+    /// <returns>True if <paramref name="identifier"/> starts with <see cref="UrnConstants.PartyUuid"/>; otherwise false.</returns>
     public static bool IsWithPartyUuidPrefix(this string identifier)
     {
         return identifier.StartsWith(UrnConstants.PartyUuid);
