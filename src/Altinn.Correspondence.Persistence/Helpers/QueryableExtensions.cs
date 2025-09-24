@@ -1,4 +1,4 @@
-using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 
@@ -101,8 +101,8 @@ namespace Altinn.Correspondence.Persistence.Helpers
 
         public static IQueryable<CorrespondenceEntity> ExcludeSelfIdentifiedRecipients(this IQueryable<CorrespondenceEntity> query)
         {
-            return query.Where(cs =>
-                    !cs.Recipient.IsWithPartyUuidPrefix());
+            var prefix = UrnConstants.PartyUuid + ":";
+            return query.Where(cs => cs.Recipient == null || !cs.Recipient.StartsWith(prefix));
         }
 
         public static IQueryable<CorrespondenceEntity> WhereCurrentStatusIn(

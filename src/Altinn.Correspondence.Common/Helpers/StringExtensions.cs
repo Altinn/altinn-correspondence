@@ -117,7 +117,7 @@ public static class StringExtensions
 
     public static bool IsWithPartyUuidPrefix(this string identifier)
     {
-        return identifier.StartsWith(UrnConstants.PartyUuid);
+        return identifier.StartsWith($"{UrnConstants.PartyUuid}:", StringComparison.Ordinal);
     }
 
     /// <summary>

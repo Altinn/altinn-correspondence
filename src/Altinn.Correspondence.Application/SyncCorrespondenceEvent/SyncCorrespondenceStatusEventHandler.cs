@@ -395,10 +395,9 @@ public class SyncCorrespondenceStatusEventHandler(
             }
             else
             {
-                bool isArchived = correspondence.StatusHasBeen(CorrespondenceStatus.Archived);
-
                 // Perform SoftDelete or Restore in Dialogporten
-                await SetSoftDeleteOrRestoreOnDialog(correspondence.Id, enduserIdByPartyUuid[deleteEventToSync.PartyUuid], deleteEventToSync.EventType, correspondence.StatusHasBeen(CorrespondenceStatus.Archived), cancellationToken);
+                bool isArchived = correspondence.StatusHasBeen(CorrespondenceStatus.Archived);
+                await SetSoftDeleteOrRestoreOnDialog(correspondence.Id, enduserIdByPartyUuid[deleteEventToSync.PartyUuid], deleteEventToSync.EventType, isArchived, cancellationToken);
             }
         }
     }

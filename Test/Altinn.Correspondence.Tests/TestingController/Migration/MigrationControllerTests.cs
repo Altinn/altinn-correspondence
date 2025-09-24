@@ -1,6 +1,5 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Factories;
@@ -19,6 +18,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Migration;
 [Collection(nameof(CustomWebApplicationTestsCollection))]
 public class MigrationControllerTests : MigrationTestBase
 {
+    internal const string _selfIdentifedPartyUuidUrn = "urn:altinn:party:uuid:B00D8E8B-3026-46B5-B144-A343AC799038";
+
     public MigrationControllerTests(CustomWebApplicationFactory factory) : base(factory)
     {
     }
@@ -250,7 +251,7 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithRecipient("urn:altinn:party:uuid:B00D8E8B-3026-46B5-B144-A343AC799038")
+            .WithRecipient(_selfIdentifedPartyUuidUrn)
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6, 11, 10, 21))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 7, 15, 11, 56))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 8, 14, 19, 22))
@@ -271,8 +272,10 @@ public class MigrationControllerTests : MigrationTestBase
         var makeAvailableResponse = await _migrationClient.PostAsJsonAsync(makeAvailableUrl, request);
         Assert.True(makeAvailableResponse.IsSuccessStatusCode);
         MakeCorrespondenceAvailableResponseExt respExt = await makeAvailableResponse.Content.ReadFromJsonAsync<MakeCorrespondenceAvailableResponseExt>();
+        Assert.NotNull(respExt);
         Assert.NotNull(respExt.Statuses);
         Assert.Equal(1, respExt.Statuses.Count);
+        Assert.Equal(resultObj.CorrespondenceId, respExt.Statuses.First().CorrespondenceId);
         Assert.False(respExt.Statuses.First().Ok);
 
         // Verify that correspondence still has IsMigrating set to true, which means we cannot retrieve it through GetOverview.
@@ -391,7 +394,7 @@ public class MigrationControllerTests : MigrationTestBase
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 12, 14, 21, 05))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 22, 09, 55, 20))
             .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
-            .WithRecipient("urn:altinn:party:uuid:B00D8E8B-3026-46B5-B144-A343AC799038")
+            .WithRecipient(_selfIdentifedPartyUuidUrn)
             .WithResourceId("skd-migratedcorrespondence-5229-1")
             .Build();
         SetNotificationHistory(migrateCorrespondenceExt);

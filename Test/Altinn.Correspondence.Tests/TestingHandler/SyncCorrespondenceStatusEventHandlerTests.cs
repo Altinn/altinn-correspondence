@@ -566,7 +566,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Available_ArchivedBySelfIdentfiedUser_NoDPUpdate()
+        public async Task Available_ArchivedBySelfIdentifiedUser_NoDPUpdate()
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
