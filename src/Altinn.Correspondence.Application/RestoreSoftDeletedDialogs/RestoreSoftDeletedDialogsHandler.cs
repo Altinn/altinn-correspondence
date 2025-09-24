@@ -154,7 +154,6 @@ public class RestoreSoftDeletedDialogsHandler(
             logger.LogError(ex, "Failed to execute dry run of soft-deleted dialogs");
             throw;
         }
-
         logger.LogInformation("Dry run completed processing {totalProcessed} with {totalAlreadyDeleted} already deleted. {totalNotDeleted}was not deleted, and there were {totalErrors} errors.", totalProcessed, totalAlreadyDeleted, totalNotDeleted, totalErrors);
         return (totalProcessed, totalAlreadyDeleted, totalNotDeleted, totalErrors);
     }
@@ -324,14 +323,21 @@ public class RestoreSoftDeletedDialogsHandler(
             logger.LogInformation("Attempting to restore soft-deleted dialog {dialogId} for correspondence {correspondenceId}", 
                 dialogId, correspondence.Id);
 
+            var dialogDeleted = await dialogportenService.HasDialogBeenDeleted(dialogId);
+            if (!dialogDeleted)
+            {
+                return (false, true, false, false);
+            }
+            logger.LogWarning("Now restoring {dialogId} for correspondence {correspondenceId}",
+                dialogId, correspondence.Id);
             var restored = await dialogportenService.TryRestoreSoftDeletedDialog(dialogId);
             if (restored)
             {
                 logger.LogInformation("Successfully restored dialog {dialogId} for correspondence {correspondenceId}", dialogId, correspondence.Id);
                 return (true, false, false, false);
             }
-            logger.LogInformation("Dialog {dialogId} was not restored (possibly already active) for correspondence {correspondenceId}", dialogId, correspondence.Id);
-            return (false, true, false, false);
+            logger.LogInformation("Dialog {dialogId} was not restored for correspondence {correspondenceId}", dialogId, correspondence.Id);
+            return (false, true, false, true);
         }
     }
 } 
