@@ -97,7 +97,7 @@ inputs:
     description: "IP address for APIM"
     required: false
   STATISTICS_API_KEY:
-    description: "Statistics API Key for authentication"
+    description: "API Key for authentication to Statistics endpoints"
     required: true
 
 runs:
