@@ -58,7 +58,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             var addedCorrespondence = await correspondenceRepository.CreateCorrespondence(entity, CancellationToken.None);
 
             // Act
-            var correspondences = await correspondenceRepository.GetCorrespondencesForParties(1000, from, to, null, [recipient], [resource], true, false, "", CancellationToken.None);
+            var correspondences = await correspondenceRepository.GetCorrespondencesForParties(1000, from, to, null, [recipient], true, false, "", CancellationToken.None);
 
             // Assert
             Assert.NotNull(correspondences);
