@@ -27,6 +27,7 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     /// Each row represents one day's usage for one service owner.
     /// You can optionally exclude Altinn2 correspondences by setting Altinn2Included to false.
     /// Requires API key authentication via X-API-Key header.
+    /// Rate limiting is enforced per IP address.
     /// </remarks>
     /// <param name="request">Request parameters including whether to include Altinn2 correspondences</param>
     /// <param name="handler">The handler service</param>
@@ -34,6 +35,7 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     /// <response code="200">Returns the summary report generation response</response>
     /// <response code="401">Unauthorized - Missing or invalid API key</response>
     /// <response code="403">Forbidden - Invalid API key</response>
+    /// <response code="429">Too Many Requests - Rate limit exceeded</response>
     /// <response code="500">Internal server error</response>
     [HttpPost]
     [Route("generate-daily-summary")]
@@ -77,6 +79,7 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     /// You can optionally exclude Altinn2 correspondences by setting Altinn2Included to false.
     /// The response includes both the file and metadata about the report.
     /// Requires API key authentication via X-API-Key header.
+    /// Rate limiting is enforced per IP address.
     /// </remarks>
     /// <param name="request">Request parameters including whether to include Altinn2 correspondences</param>
     /// <param name="handler">The handler service</param>
@@ -84,6 +87,7 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     /// <response code="200">Returns the parquet file with metadata</response>
     /// <response code="401">Unauthorized - Missing or invalid API key</response>
     /// <response code="403">Forbidden - Invalid API key</response>
+    /// <response code="429">Too Many Requests - Rate limit exceeded</response>
     /// <response code="500">Internal server error</response>
     [HttpPost]
     [Route("generate-and-download-daily-summary")]

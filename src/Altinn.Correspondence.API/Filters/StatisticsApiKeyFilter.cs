@@ -1,21 +1,28 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Primitives;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.API.Filters;
 
 /// <summary>
-/// Authorization filter to validate API key for statistics endpoints
+/// Authorization filter to validate API key and enforce IP-based rate limiting for statistics endpoints
 /// </summary>
 public class StatisticsApiKeyFilter : IAuthorizationFilter
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<StatisticsApiKeyFilter> _logger;
+    private readonly IDistributedCache _cache;
 
-    public StatisticsApiKeyFilter(IConfiguration configuration, ILogger<StatisticsApiKeyFilter> logger)
+    public StatisticsApiKeyFilter(
+        IConfiguration configuration, 
+        ILogger<StatisticsApiKeyFilter> logger,
+        IDistributedCache cache)
     {
         _configuration = configuration;
         _logger = logger;
+        _cache = cache;
     }
 
     public void OnAuthorization(AuthorizationFilterContext context)
@@ -26,7 +33,7 @@ public class StatisticsApiKeyFilter : IAuthorizationFilter
             return; // Not a statistics endpoint, let it pass
         }
 
-        _logger.LogDebug("Statistics endpoint accessed, validating API key");
+        _logger.LogDebug("Statistics endpoint accessed, validating API key and rate limit");
 
         // Check if API key is provided
         if (!context.HttpContext.Request.Headers.TryGetValue("X-API-Key", out StringValues apiKeyHeader))
@@ -61,7 +68,42 @@ public class StatisticsApiKeyFilter : IAuthorizationFilter
             return;
         }
 
-        _logger.LogInformation("Statistics endpoint accessed with valid API key from IP: {ClientIp}", GetClientIpAddress(context.HttpContext));
+        // Check rate limit using client IP as identifier
+        var clientIp = GetClientIpAddress(context.HttpContext) ?? "unknown";
+        var rateLimitResult = CheckRateLimitAsync(clientIp).GetAwaiter().GetResult();
+        
+        if (!rateLimitResult.IsAllowed)
+        {
+            _logger.LogWarning("Rate limit exceeded for IP: {ClientIp}. " +
+                "Remaining attempts: {RemainingAttempts}, Reset time: {ResetTime}",
+                clientIp, rateLimitResult.RemainingAttempts, rateLimitResult.ResetTime);
+
+            context.Result = new ObjectResult(new { 
+                error = "Rate limit exceeded", 
+                retryAfter = rateLimitResult.RetryAfterSeconds,
+                resetTime = rateLimitResult.ResetTime
+            })
+            {
+                StatusCode = 429 // Too Many Requests
+            };
+
+            // Add rate limit headers
+            context.HttpContext.Response.Headers["X-RateLimit-Limit"] = _configuration["StatisticsRateLimit:RateLimitAttempts"];
+            context.HttpContext.Response.Headers["X-RateLimit-Remaining"] = rateLimitResult.RemainingAttempts.ToString();
+            context.HttpContext.Response.Headers["X-RateLimit-Reset"] = rateLimitResult.ResetTime.ToUnixTimeSeconds().ToString();
+            context.HttpContext.Response.Headers["Retry-After"] = rateLimitResult.RetryAfterSeconds.ToString();
+            
+            return;
+        }
+
+        // Add rate limit headers for successful requests
+        context.HttpContext.Response.Headers["X-RateLimit-Limit"] = _configuration["StatisticsRateLimit:RateLimitAttempts"];
+        context.HttpContext.Response.Headers["X-RateLimit-Remaining"] = rateLimitResult.RemainingAttempts.ToString();
+        context.HttpContext.Response.Headers["X-RateLimit-Reset"] = rateLimitResult.ResetTime.ToUnixTimeSeconds().ToString();
+
+        _logger.LogInformation("Statistics endpoint accessed with valid API key from IP: {ClientIp}. " +
+            "Rate limit: {RemainingAttempts}/{Limit} remaining",
+            clientIp, rateLimitResult.RemainingAttempts, _configuration["StatisticsRateLimit:RateLimitAttempts"]);
     }
 
     private static string? GetClientIpAddress(HttpContext context)
@@ -96,4 +138,111 @@ public class StatisticsApiKeyFilter : IAuthorizationFilter
 
         return result == 0;
     }
+
+    /// <summary>
+    /// Checks if the client has exceeded the rate limit
+    /// </summary>
+    /// <param name="clientIdentifier">Unique identifier for the client (IP address)</param>
+    /// <returns>Rate limit check result</returns>
+    private async Task<RateLimitResult> CheckRateLimitAsync(string clientIdentifier)
+    {
+        var rateLimitAttempts = _configuration.GetValue<int>("StatisticsRateLimit:RateLimitAttempts", 10);
+        var rateLimitWindowMinutes = _configuration.GetValue<int>("StatisticsRateLimit:RateLimitWindowMinutes", 60);
+        
+        var cacheKey = $"rate_limit:statistics:{clientIdentifier}";
+        var now = DateTimeOffset.UtcNow;
+        var windowStart = now.AddMinutes(-rateLimitWindowMinutes);
+
+        try
+        {
+            // Get existing rate limit data
+            var existingDataJson = await _cache.GetStringAsync(cacheKey);
+            var rateLimitData = existingDataJson != null 
+                ? JsonSerializer.Deserialize<RateLimitData>(existingDataJson) ?? new RateLimitData { Requests = new List<DateTimeOffset>() }
+                : new RateLimitData { Requests = new List<DateTimeOffset>() };
+
+            // Remove requests outside the current window
+            rateLimitData.Requests = rateLimitData.Requests
+                .Where(requestTime => requestTime > windowStart)
+                .ToList();
+
+            // Check if limit is exceeded
+            if (rateLimitData.Requests.Count >= rateLimitAttempts)
+            {
+                var oldestRequest = rateLimitData.Requests.Min();
+                var resetTime = oldestRequest.AddMinutes(rateLimitWindowMinutes);
+                
+                _logger.LogWarning("Rate limit exceeded for IP {ClientIdentifier}. " +
+                    "Attempts: {Attempts}/{Limit}, Reset at: {ResetTime}",
+                    clientIdentifier, rateLimitData.Requests.Count, rateLimitAttempts, resetTime);
+
+                return new RateLimitResult
+                {
+                    IsAllowed = false,
+                    RemainingAttempts = 0,
+                    ResetTime = resetTime,
+                    RetryAfterSeconds = (int)(resetTime - now).TotalSeconds
+                };
+            }
+
+            // Add current request
+            rateLimitData.Requests.Add(now);
+
+            // Store updated data
+            var updatedDataJson = JsonSerializer.Serialize(rateLimitData);
+            var cacheOptions = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpiration = now.AddMinutes(rateLimitWindowMinutes + 1) // Add buffer
+            };
+            
+            await _cache.SetStringAsync(cacheKey, updatedDataJson, cacheOptions);
+
+            var remainingAttempts = rateLimitAttempts - rateLimitData.Requests.Count;
+            var nextResetTime = rateLimitData.Requests.Min().AddMinutes(rateLimitWindowMinutes);
+
+            _logger.LogDebug("Rate limit check for IP {ClientIdentifier}. " +
+                "Attempts: {Attempts}/{Limit}, Remaining: {Remaining}",
+                clientIdentifier, rateLimitData.Requests.Count, rateLimitAttempts, remainingAttempts);
+
+            return new RateLimitResult
+            {
+                IsAllowed = true,
+                RemainingAttempts = remainingAttempts,
+                ResetTime = nextResetTime,
+                RetryAfterSeconds = 0
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking rate limit for IP {ClientIdentifier}", clientIdentifier);
+            
+            // In case of error, allow the request but log the issue
+            return new RateLimitResult
+            {
+                IsAllowed = true,
+                RemainingAttempts = rateLimitAttempts,
+                ResetTime = now.AddMinutes(rateLimitWindowMinutes),
+                RetryAfterSeconds = 0
+            };
+        }
+    }
+}
+
+/// <summary>
+/// Result of a rate limit check
+/// </summary>
+public class RateLimitResult
+{
+    public bool IsAllowed { get; set; }
+    public int RemainingAttempts { get; set; }
+    public DateTimeOffset ResetTime { get; set; }
+    public int RetryAfterSeconds { get; set; }
+}
+
+/// <summary>
+/// Data structure for storing rate limit information in cache
+/// </summary>
+internal class RateLimitData
+{
+    public List<DateTimeOffset> Requests { get; set; } = new();
 }
