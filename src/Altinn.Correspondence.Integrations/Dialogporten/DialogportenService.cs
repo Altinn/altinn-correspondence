@@ -480,7 +480,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         {
             throw new Exception("Failed to deserialize the dialog response from the response.");
         }
-        return dialogResponse.ExpiresAt != null;
+        return dialogResponse.ExpiresAt != null && dialogResponse.ExpiresAt < DateTime.Now.AddYears(50);
     }
 
     private async Task<(Guid OpenedId, Guid? ConfirmedId)> CreateIdempotencyKeysForCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
