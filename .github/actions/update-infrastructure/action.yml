@@ -64,6 +64,12 @@ inputs:
     description: "Whitelist for approved resources"
     required: false
     default: ""
+  MAINTENANCE_AD_GROUP_ID:
+    description: "AD Group principal id for the group that should have access"
+    required: false
+  MAINTENANCE_AD_GROUP_NAME:
+    description: "IP address for APIM"
+    required: false
   STATISTICS_API_KEY:
     description: "Statistics API Key for authentication"
     required: true
@@ -114,8 +120,9 @@ runs:
         IDPORTEN_CLIENT_SECRET: ${{ inputs.IDPORTEN_CLIENT_SECRET }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
         RESOURCE_WHITELIST: ${{ inputs.RESOURCE_WHITELIST }}
+        MAINTENANCE_AD_GROUP_ID: ${{ inputs.MAINTENANCE_AD_GROUP_ID }}
+        MAINTENANCE_AD_GROUP_NAME: ${{ inputs.MAINTENANCE_AD_GROUP_NAME }}
         STATISTICS_API_KEY: ${{ inputs.STATISTICS_API_KEY }}
-        DB_PWD: ${{ inputs.DB_PWD }}
       with:
         scope: subscription
         template: ./.azure/infrastructure/main.bicep

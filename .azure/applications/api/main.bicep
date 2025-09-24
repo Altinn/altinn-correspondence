@@ -8,6 +8,7 @@ param environment string
 param location string
 @minLength(3)
 param platform_base_url string
+param override_authorization_url string
 @secure()
 @minLength(3)
 param sourceKeyVaultName string
@@ -73,13 +74,14 @@ module keyVaultReaderAccessPolicyUserIdentity '../../modules/keyvault/addReaderR
   }
 }
 
-module databaseAccess '../../modules/postgreSql/AddAdministrationAccess.bicep' = {
+module databaseAccess '../../modules/postgreSql/addAdminAccess.bicep' = {
   name: 'databaseAccess'
   scope: resourceGroup
   dependsOn: [
     keyVaultReaderAccessPolicyUserIdentity // Timing issue
   ]
   params: {
+    principalType: 'ServicePrincipal'
     tenantId: appIdentity.outputs.tenantId
     principalId: appIdentity.outputs.principalId
     appName: appIdentity.outputs.name
@@ -116,6 +118,7 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     subscription_id: subscription().subscriptionId
     principal_id: appIdentity.outputs.id
     platform_base_url: platform_base_url
+    override_authorization_url: override_authorization_url
     keyVaultUrl: keyVaultUrl
     userIdentityClientId: appIdentity.outputs.clientId
     containerAppEnvId: keyvault.getSecret('container-app-env-id')

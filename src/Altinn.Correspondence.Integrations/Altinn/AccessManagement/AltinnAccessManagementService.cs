@@ -38,11 +38,11 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         };
     }
 
-    public async Task<List<PartyWithSubUnits>> GetAuthorizedParties(Party partyToRequestFor, CancellationToken cancellationToken = default)
+    public async Task<List<Party>> GetAuthorizedParties(Party partyToRequestFor, string? userId, CancellationToken cancellationToken = default)
     {
-        string cacheKey = $"AuthorizedParties_{partyToRequestFor.PartyId}";
+        string cacheKey = $"AuthorizedParties_{partyToRequestFor.PartyId}_{userId}";
         try {
-            var cachedParties = await CacheHelpers.GetObjectFromCacheAsync<List<PartyWithSubUnits>>(cacheKey, _cache, cancellationToken);
+            var cachedParties = await CacheHelpers.GetObjectFromCacheAsync<List<Party>>(cacheKey, _cache, cancellationToken);
             if (cachedParties != null)
             {
                 return cachedParties;
@@ -53,7 +53,8 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             _logger.LogWarning(ex, "Error retrieving authorized parties from cache in Access Management Service.");
         }
 
-        AuthorizedPartiesRequest request = new(partyToRequestFor);
+        AuthorizedPartiesRequest request = new(partyToRequestFor, userId);
+        _logger.LogInformation("PartyId {partyId} has partyType {partyType} with userId {userId}", partyToRequestFor.PartyId, request.Type, userId);
         JsonSerializerOptions serializerOptions = new()
         {
             PropertyNameCaseInsensitive = true,
@@ -72,18 +73,21 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             _logger.LogError("Unexpected null or invalid json response from Authorization GetAuthorizedParties.");
             throw new Exception("Unexpected null or invalid json response from Authorization GetAuthorizedParties.");
         }
-        List<PartyWithSubUnits> parties = new();
+        List<Party> parties = new();
         foreach (var p in responseContent)
         {
-            parties.Add(new PartyWithSubUnits
+            if (!p.onlyHierarchyElementWithNoAccess)
             {
-                PartyId = p.partyId,
-                PartyUuid = p.partyUuid,
-                OrgNumber = p.organizationNumber,
-                SSN = p.personId,
-                Resources = p.authorizedResources,
-                PartyTypeName = GetType(p.type),
-            });
+                parties.Add(new Party
+                {
+                    PartyId = p.partyId,
+                    PartyUuid = p.partyUuid,
+                    OrgNumber = p.organizationNumber,
+                    SSN = p.personId,
+                    Resources = p.authorizedResources,
+                    PartyTypeName = GetType(p.type),
+                });
+            }
             if (p.subunits != null && p.subunits.Count > 0)
             {
                 parties.AddRange(GetPartiesFromSubunits(p.subunits));
@@ -111,9 +115,9 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             _ => throw new NotImplementedException()
         };
     }
-    private List<PartyWithSubUnits> GetPartiesFromSubunits(List<AuthroizedPartiesResponse> subunits, int depth = 0)
+    private List<Party> GetPartiesFromSubunits(List<AuthroizedPartiesResponse> subunits, int depth = 0)
     {
-        List<PartyWithSubUnits> parties = new();
+        List<Party> parties = new();
         if (depth > _MAX_DEPTH_FOR_SUBUNITS)
         {
             _logger.LogWarning("Max depth for subunits reached. Ignoring further subunits.");
@@ -121,7 +125,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         }
         foreach (var subunit in subunits)
         {
-            parties.Add(new PartyWithSubUnits
+            parties.Add(new Party
             {
 
                 PartyId = subunit.partyId,
@@ -144,9 +148,14 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         public string Type { get; init; }
         public string Value { get; init; }
 
-        public AuthorizedPartiesRequest(Party party)
+        public AuthorizedPartiesRequest(Party party, string? userId)
         {
-            if (party.PartyTypeName == PartyType.Person)
+            if (userId is not null)
+            {
+                Type = UrnConstants.UserId;
+                Value = userId;
+            }
+            else if (party.PartyTypeName == PartyType.Person)
             {
                 Type = UrnConstants.PersonIdAttribute;
                 Value = party.SSN;

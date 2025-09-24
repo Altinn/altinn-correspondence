@@ -22,6 +22,8 @@ namespace Altinn.Correspondence.Application.Helpers
             return null;
         }
 
+        public string? GetUserId() => _claims.FirstOrDefault(c => c.Type == UrnConstants.UserId)?.Value;
+
         public int GetMinimumAuthenticationLevel()
         {
             var authLevelClaim = _claims.FirstOrDefault(c => c.Type == UrnConstants.AuthenticationLevel);
