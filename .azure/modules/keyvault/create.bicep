@@ -19,23 +19,23 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' = {
     }
     tenantId: tenant_id
     accessPolicies: environment == 'test'
-    ? [
-        {
-          applicationId: null
-          tenantId: tenant_id
-          objectId: test_client_id
-          permissions: {
-            keys: []
-            secrets: [
-              'Get'
-              'List'
-              'Set'
-            ]
-            certificates: []
+      ? [
+          {
+            applicationId: null
+            tenantId: tenant_id
+            objectId: test_client_id
+            permissions: {
+              keys: []
+              secrets: [
+                'Get'
+                'List'
+                'Set'
+              ]
+              certificates: []
+            }
           }
-        }
-      ]
-    : []
+        ]
+      : []
   }
 }
 
