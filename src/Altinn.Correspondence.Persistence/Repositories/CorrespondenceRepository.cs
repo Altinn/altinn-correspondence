@@ -4,7 +4,6 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {

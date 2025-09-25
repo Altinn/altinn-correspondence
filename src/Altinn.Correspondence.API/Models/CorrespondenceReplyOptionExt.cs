@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using System.ComponentModel.DataAnnotations;
 
 namespace Altinn.Correspondence.API.Models
 {

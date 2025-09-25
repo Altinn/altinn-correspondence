@@ -1,6 +1,5 @@
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {

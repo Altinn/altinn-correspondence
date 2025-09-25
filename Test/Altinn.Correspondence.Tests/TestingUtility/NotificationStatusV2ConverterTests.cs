@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Altinn.Correspondence.Core.Models.Enums;
-using Xunit;
 
 namespace Altinn.Correspondence.Tests.TestingUtility;
 

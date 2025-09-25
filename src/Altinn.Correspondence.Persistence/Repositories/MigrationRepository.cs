@@ -1,9 +1,6 @@
-using System.IO.Compression;
 using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {

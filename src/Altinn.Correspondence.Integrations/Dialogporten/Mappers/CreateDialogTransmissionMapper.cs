@@ -1,9 +1,5 @@
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Integrations.Dialogporten.Models;
-using UUIDNext;
 using Microsoft.Extensions.Logging;
 
 

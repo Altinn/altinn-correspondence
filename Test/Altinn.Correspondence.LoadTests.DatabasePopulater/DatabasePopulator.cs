@@ -1,5 +1,4 @@
 ﻿using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Persistence;
 using Npgsql;
 using System.Collections.Concurrent;
 using System.Text;

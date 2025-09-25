@@ -12,8 +12,6 @@ using Hangfire.Common;
 using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Collections.Generic;
-using System.Linq.Expressions;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {

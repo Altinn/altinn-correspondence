@@ -1,7 +1,6 @@
 ﻿using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Integrations.Altinn.Register;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
