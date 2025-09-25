@@ -139,7 +139,7 @@ namespace Altinn.Correspondence.Tests.Factories
                 ReferenceType = ReferenceType.DialogportenDialogId,
                 ReferenceValue = dialogId
             });
-            
+
             return this;
         }
 
@@ -199,6 +199,15 @@ namespace Altinn.Correspondence.Tests.Factories
         public CorrespondenceEntityBuilder WithAllowSystemDeleteAfter(DateTimeOffset? allowSystemDeleteAfter)
         {
             _correspondenceEntity.AllowSystemDeleteAfter = allowSystemDeleteAfter;
+            return this;
+        }
+
+        public CorrespondenceEntityBuilder WithMessageSummary(string messageSummary)
+        {
+            if (_correspondenceEntity.Content != null)
+            {
+                _correspondenceEntity.Content.MessageSummary = messageSummary;
+            }
             return this;
         }
     }
