@@ -33,7 +33,7 @@ jobs:
         uses: Altinn/altinn-platform/actions/flux/build-push-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
         with:
           image_name: ${{ env.ARTIFACT_NAME }}
-          tag: ${{ steps.get_sha.outputs.short_sha }}
+          tag: main
           workdir: ./flux/correspondence
           azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
