@@ -105,7 +105,7 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return CorrespondenceErrors.MessageBodyEmpty;
             }
-            if (content.MessageBody.Length > 10000)
+            if (content.MessageBody.Length > 30000)
             {
                 return CorrespondenceErrors.MessageBodyTooLong;
             }
