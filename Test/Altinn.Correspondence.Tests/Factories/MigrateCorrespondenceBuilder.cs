@@ -1,6 +1,5 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
-using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests.Factories
 {

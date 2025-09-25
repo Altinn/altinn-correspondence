@@ -1,16 +1,13 @@
-﻿using Altinn.Correspondence.Core.Options;
-using Altinn.Correspondence.Integrations.Hangfire;
+﻿using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using Npgsql;
 using System.Collections.Concurrent;
 using System.Data;

@@ -1,5 +1,4 @@
 using System.Net;
-using Hangfire.Storage.Monitoring;
 
 namespace Altinn.Correspondence.Application;
 

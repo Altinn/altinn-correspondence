@@ -1,6 +1,3 @@
-using Altinn.Correspondence.Core.Models.Entities;
-using System.Text.Json.Serialization;
-
 namespace Altinn.Correspondence.Application.MigrateCorrespondence;
 
 public class MakeCorrespondenceAvailableRequest

@@ -1,8 +1,6 @@
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
-using Azure.Core;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {

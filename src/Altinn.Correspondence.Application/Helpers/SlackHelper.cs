@@ -1,5 +1,3 @@
-
-using System.Threading.Tasks;
 using Slack.Webhooks;
 
 namespace Altinn.Correspondence.Helpers

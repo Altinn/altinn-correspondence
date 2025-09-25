@@ -1,6 +1,5 @@
 using System.Text;
 using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Tests.Helpers;
 
 namespace Altinn.Correspondence.Tests.Factories

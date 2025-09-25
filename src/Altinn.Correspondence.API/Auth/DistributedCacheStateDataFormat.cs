@@ -1,6 +1,5 @@
 using Altinn.Correspondence.Common.Caching;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.Extensions.Caching.Distributed;
 using System.Text.Json;
 
 namespace Altinn.Correspondence.API.Auth

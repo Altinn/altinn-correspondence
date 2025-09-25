@@ -2,8 +2,6 @@
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
-using Newtonsoft.Json;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten
 {

@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Primitives;
 using System.Text.Json;
 

@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Slack.Webhooks;
 using Altinn.Correspondence.Core.Options;
-using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Dialogporten;
 
 namespace Altinn.Correspondence.Tests.TestingHandler

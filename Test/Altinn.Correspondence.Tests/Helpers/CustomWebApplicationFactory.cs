@@ -22,7 +22,6 @@ using Npgsql;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Json;
-using Altinn.Correspondence.Integrations.Altinn.Storage;
 using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Tests.Helpers;

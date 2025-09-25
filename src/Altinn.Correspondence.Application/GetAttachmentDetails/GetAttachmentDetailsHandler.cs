@@ -1,11 +1,9 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
-using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
-using Altinn.Correspondence.Common.Helpers;
 
 namespace Altinn.Correspondence.Application.GetAttachmentDetails;
 
