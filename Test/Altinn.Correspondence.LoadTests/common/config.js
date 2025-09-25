@@ -1,6 +1,8 @@
 const testBaseUrl = "https://altinn-dev-api.azure-api.net/correspondence/";
+const stagingBaseUrl = "https://platform.tt02.altinn.no/correspondence/";
 const yt01BaseUrl = "https://platform.yt01.altinn.cloud/correspondence/";
 const testDialogPortenBaseUrl = "https://altinn-dev-api.azure-api.net/dialogporten/";
+const stagingDialogPortenBaseUrl = "https://platform.tt02.altinn.no/dialogporten/";
 const yt01DialogPortenBaseUrl = "https://platform.yt01.altinn.cloud/dialogporten/";
 
 const endUserPath = "api/v1/correspondence/";
@@ -11,15 +13,18 @@ export const baseUrls = {
     v1: {
         correspondence: {
             test: testBaseUrl + endUserPath,
+            staging: stagingBaseUrl + endUserPath,
             yt01: yt01BaseUrl + endUserPath
         },
 
         dialogPortenEndUser: {
             test: testDialogPortenBaseUrl + dialogPortenEndUserPath,
+            staging: stagingDialogPortenBaseUrl + dialogPortenEndUserPath,
             yt01: yt01DialogPortenBaseUrl + dialogPortenEndUserPath
         },
         legacyCorrespondence: {
             test: testBaseUrl + legacyCorrespondencePath,
+            staging: stagingBaseUrl + legacyCorrespondencePath,
             yt01: yt01BaseUrl + legacyCorrespondencePath
         }
     }

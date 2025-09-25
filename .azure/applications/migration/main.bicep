@@ -29,8 +29,7 @@ module keyvaultAddReaderRolesMigrationIdentity '../../modules/keyvault/addReader
     ]
   }
 }
-
-module databaseAccess '../../modules/postgreSql/AddAdministrationAccess.bicep' = {
+module databaseAccess '../../modules/postgreSql/addAdminAccess.bicep' = {
   name: 'databaseAccess'
   dependsOn: [
     keyvaultAddReaderRolesMigrationIdentity // Timing issue
@@ -40,6 +39,7 @@ module databaseAccess '../../modules/postgreSql/AddAdministrationAccess.bicep' =
     principalId: userAssignedIdentity.properties.principalId
     appName: userAssignedIdentity.name
     namePrefix: namePrefix
+    principalType: 'ServicePrincipal'
   }
 }
 var secrets = [

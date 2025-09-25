@@ -10,20 +10,59 @@ This implementation generates daily summary reports with aggregated corresponden
 ✅ **Direct ServiceOwnerId Usage** - Uses the new ServiceOwnerId field from database entities  
 ✅ **Azure Blob Storage** - Stores reports in Azure Blob Storage "reports" container  
 ✅ **Aggregated Data** - Includes daily aggregated metrics and counts per service owner  
-✅ **Maskinporten Authentication** - Secure endpoints with maintenance scope requirement
+✅ **API Key Authentication** - Secure endpoints with API key and rate limiting
 
 ## Authentication Requirements
 
-All statistics endpoints require **Maskinporten integration authentication** with the following requirements:
+Both statistics endpoints use **API Key authentication** with **IP-based rate limiting**:
 
-- **Authentication Type**: Maskinporten integration token
-- **Required Scope**: `altinn:correspondence.maintenance` (exact scope required)
-- **Authorization Header**: `Bearer <token>`
-- **Response Codes**:
-  - `200 OK` - Success
-  - `401 Unauthorized` - Missing or invalid authentication
-  - `403 Forbidden` - Insufficient permissions (missing `altinn:correspondence.maintenance` scope)
-  - `500 Internal Server Error` - Server error
+- **Authentication Type**: API Key
+- **Required Header**: `X-API-Key: <your-api-key>`
+- **Configuration**: Set `StatisticsApiKey` in appsettings
+- **Development Key**: `dev-api-key-12345`
+- **Production Key**: Set `StatisticsApiKey` in production configuration
+- **Rate Limiting**: Enforced per IP address using Redis
+- **Rate Limits**: 
+  - **Development**: 5 attempts per 60 minutes per IP
+  - **Production**: 10 attempts per 60 minutes per IP
+- **Rate Limit Configuration**: Hardcoded in `StatisticsApiKeyFilter` class
+
+**Response Codes**:
+- `200 OK` - Success
+- `401 Unauthorized` - Missing or invalid API key
+- `403 Forbidden` - Invalid API key
+- `429 Too Many Requests` - Rate limit exceeded (per IP address)
+- `500 Internal Server Error` - Server error
+
+**Rate Limit Headers** (included in all responses):
+- `X-RateLimit-Limit` - Maximum requests allowed per window
+- `X-RateLimit-Remaining` - Remaining requests in current window
+- `X-RateLimit-Reset` - Unix timestamp when the rate limit resets
+- `Retry-After` - Seconds to wait before retrying (when rate limited)
+
+### Rate Limiting Behavior
+
+- **Sliding Window**: Uses a sliding window approach (not fixed windows)
+- **Per IP Address**: Each client IP gets its own rate limit quota
+- **Redis-based**: Distributed rate limiting that works across multiple application instances
+- **Graceful Degradation**: If Redis is unavailable, requests are allowed (with error logging)
+
+**Example Rate Limit Response (429):**
+```json
+{
+  "error": "Rate limit exceeded",
+  "retryAfter": 1800,
+  "resetTime": "2025-01-27T15:30:00.000Z"
+}
+```
+
+**Example Rate Limit Headers:**
+```
+X-RateLimit-Limit: 10
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1737991800
+Retry-After: 1800
+```
 
 ## How to Test
 
@@ -49,7 +88,7 @@ Generate a daily summary report with aggregated data per service owner per day. 
 
 ```bash
 POST /correspondence/api/v1/statistics/generate-daily-summary
-# Requires Maskinporten integration authentication with scope: altinn:correspondence.maintenance
+# Requires API key authentication via X-API-Key header
 # Optional request body to filter Altinn versions
 ```
 
@@ -84,7 +123,7 @@ Generate a daily summary report with aggregated data per service owner per day a
 
 ```bash
 POST /correspondence/api/v1/statistics/generate-and-download-daily-summary
-# Requires Maskinporten integration authentication with scope: altinn:correspondence.maintenance
+# Requires API key authentication via X-API-Key header
 # Optional request body: {"altinn2Included": true}
 ```
 
@@ -153,16 +192,21 @@ The system now uses the direct `ServiceOwnerId` field from the database entities
 
 ## Security
 
-- **Maskinporten Integration Authentication Required** - endpoints require proper authentication
-- **Scope Required**: `altinn:correspondence.maintenance` (exact scope) - only users with this specific scope can access
+- **API Key Authentication**: Both endpoints require API key authentication via `X-API-Key` header
+- **IP-based Rate Limiting**: Rate limiting enforced per client IP address using Redis distributed cache
+- **Rate Limit Configuration**:
+  - **Development**: 5 requests per 60 minutes per IP
+  - **Production**: 10 requests per 60 minutes per IP
+  - **Hardcoded**: Rate limits are defined as constants in `StatisticsApiKeyFilter` class
 - **Response Codes**:
   - `200 OK` - Success
-  - `401 Unauthorized` - Missing or invalid authentication
-  - `403 Forbidden` - Insufficient permissions (missing maintenance scope)
+  - `401 Unauthorized` - Missing or invalid API key
+  - `403 Forbidden` - Invalid API key
+  - `429 Too Many Requests` - Rate limit exceeded (per IP address)
   - `500 Internal Server Error` - Server error
 - Files are stored in Azure Blob Storage in the "reports" container
 - Download endpoint validates filenames to prevent directory traversal attacks
-- **Production Ready**: Secure for production use with proper authentication
+- **Production Ready**: Secure for production use with proper API key authentication and rate limiting
 
 ## Next Steps for Full Implementation
 
@@ -177,8 +221,9 @@ The system now uses the direct `ServiceOwnerId` field from the database entities
 
 1. Ensure you have some test correspondence data in your database
 2. Run the application locally
-3. Obtain a Maskinporten integration token with the `altinn:correspondence.maintenance` scope
-4. Use the API endpoints above with the token in the Authorization header: `Bearer <token>`
+3. Use the API key from configuration (`dev-api-key-12345` in development)
+4. Use the API endpoints above with API key authentication:
+   - Header: `X-API-Key: dev-api-key-12345`
 5. Check the Azure Blob Storage "reports" container for generated files
 6. Use a parquet file viewer to inspect the data (e.g., Python pandas, Apache Arrow, etc.)
 
