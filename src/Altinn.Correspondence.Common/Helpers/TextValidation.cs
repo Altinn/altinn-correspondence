@@ -3,7 +3,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using Markdig;
 
-namespace Altinn.Correspondence.Application.Helpers;
+namespace Altinn.Correspondence.Common.Helpers;
 
 public class TextValidation
 {
