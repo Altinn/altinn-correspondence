@@ -90,6 +90,26 @@ public static class ServiceCollectionExtensions
             {
                 return Task.FromResult<int?>(3);
             });
+        
+        altinnAuthorizationService
+            .Setup(x => x.CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(
+                It.IsAny<ClaimsPrincipal>(),
+                It.IsAny<string>(),
+                It.IsAny<List<CorrespondenceEntity>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((ClaimsPrincipal? user, string ssn, List<CorrespondenceEntity> correspondences, CancellationToken token) =>
+            {
+                List<(string Recipient, string ResourceId)> recipientWithResources = correspondences
+                    .Select(correspondence => (correspondence.Recipient, correspondence.ResourceId))
+                    .Distinct()
+                    .ToList();
+                var resultDict = recipientWithResources.ToDictionary(
+                    keySelector: pair => pair,
+                    elementSelector: _ => (int?)3
+                );
+                return Task.FromResult(resultDict);
+            });
+
 
         return services.AddScoped(_ => altinnAuthorizationService.Object);
     }

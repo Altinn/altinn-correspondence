@@ -119,6 +119,7 @@ var containerAppEnvVarsDefault = [
   { name: 'IdportenSettings__ClientId', secretRef: 'idporten-client-id' }
   { name: 'IdportenSettings__ClientSecret', secretRef: 'idporten-client-secret' }
   { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretRef: 'application-insights-connection-string' }
+  { name: 'StatisticsApiKey', secretRef: 'statistics-api-key' }
 ]
 
 var containerAppEnvVars = concat(
@@ -224,6 +225,11 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           identity: principal_id
           keyVaultUrl: '${keyVaultUrl}/secrets/resource-whitelist'
           name: 'resource-whitelist'
+        }
+        {
+          identity: principal_id
+          keyVaultUrl: '${keyVaultUrl}/secrets/statistics-api-key'
+          name: 'statistics-api-key'
         }
       ]
     }

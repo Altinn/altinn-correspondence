@@ -85,7 +85,9 @@ jobs:
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
-          DB_PWD: ${{ secrets.DB_PWD }}
+          MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
+          MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
+          STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
 
   deploy-at22:
     name: deploy at22
@@ -132,8 +134,9 @@ jobs:
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
-          DB_PWD: ${{ secrets.DB_PWD }}
-
+          MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
+          MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
+          STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
   deploy-staging:
     name: Internal staging
     runs-on: ubuntu-latest
@@ -182,8 +185,9 @@ jobs:
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
-          DB_PWD: ${{ secrets.DB_PWD }}
-
+          MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
+          MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
+          STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
   deploy-production:
     name: Production
     runs-on: ubuntu-latest
@@ -232,8 +236,9 @@ jobs:
           RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
-          DB_PWD: ${{ secrets.DB_PWD }}
-
+          MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
+          MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
+          STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
   check-version-bump:
     name: Check if version was bumped
     runs-on: ubuntu-latest

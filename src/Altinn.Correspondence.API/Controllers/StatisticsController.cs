@@ -1,3 +1,4 @@
+using Altinn.Correspondence.API.Filters;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.GenerateReport;
 using Altinn.Correspondence.Common.Constants;
@@ -10,7 +11,7 @@ namespace Altinn.Correspondence.API.Controllers;
 [ApiController]
 [ApiExplorerSettings(IgnoreApi = true)]  // Hide from public API documentation for now
 [Route("correspondence/api/v1/statistics")]
-[Authorize]
+[ServiceFilter(typeof(StatisticsApiKeyFilter))]
 public class StatisticsController(ILogger<StatisticsController> logger) : Controller
 {
     private readonly ILogger<StatisticsController> _logger = logger;
@@ -25,18 +26,19 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     /// This generates a parquet file with daily aggregated summary data.
     /// Each row represents one day's usage for one service owner.
     /// You can optionally exclude Altinn2 correspondences by setting Altinn2Included to false.
-    /// Requires Maskinporten integration authentication with maintenance scope.
+    /// Requires API key authentication via X-API-Key header.
+    /// Rate limiting is enforced per IP address.
     /// </remarks>
     /// <param name="request">Request parameters including whether to include Altinn2 correspondences</param>
     /// <param name="handler">The handler service</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <response code="200">Returns the summary report generation response</response>
-    /// <response code="401">Unauthorized - Missing or invalid authentication</response>
-    /// <response code="403">Forbidden - Insufficient permissions (missing maintenance scope)</response>
+    /// <response code="401">Unauthorized - Missing or invalid API key</response>
+    /// <response code="403">Forbidden - Invalid API key</response>
+    /// <response code="429">Too Many Requests - Rate limit exceeded</response>
     /// <response code="500">Internal server error</response>
     [HttpPost]
     [Route("generate-daily-summary")]
-    [Authorize(Policy = AuthorizationConstants.Maintenance)]
     [Produces("application/json")]
     [ProducesResponseType(typeof(GenerateDailySummaryReportResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -54,7 +56,7 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
             // Use default request if none provided
             request ??= new GenerateDailySummaryReportRequest();
             
-            var result = await handler.Process(HttpContext.User, request, cancellationToken);
+            var result = await handler.Process(request, cancellationToken);
             
             return result.Match(
                 Ok,
@@ -76,18 +78,19 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     /// Each row represents one day's usage for one service owner.
     /// You can optionally exclude Altinn2 correspondences by setting Altinn2Included to false.
     /// The response includes both the file and metadata about the report.
-    /// Requires Maskinporten integration authentication with maintenance scope.
+    /// Requires API key authentication via X-API-Key header.
+    /// Rate limiting is enforced per IP address.
     /// </remarks>
     /// <param name="request">Request parameters including whether to include Altinn2 correspondences</param>
     /// <param name="handler">The handler service</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <response code="200">Returns the parquet file with metadata</response>
-    /// <response code="401">Unauthorized - Missing or invalid authentication</response>
-    /// <response code="403">Forbidden - Insufficient permissions (missing maintenance scope)</response>
+    /// <response code="401">Unauthorized - Missing or invalid API key</response>
+    /// <response code="403">Forbidden - Invalid API key</response>
+    /// <response code="429">Too Many Requests - Rate limit exceeded</response>
     /// <response code="500">Internal server error</response>
     [HttpPost]
     [Route("generate-and-download-daily-summary")]
-    [Authorize(Policy = AuthorizationConstants.Maintenance)]
     [Produces("application/octet-stream")]
     [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -105,7 +108,7 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
             // Use default request if none provided
             request ??= new GenerateDailySummaryReportRequest();
             
-            var result = await handler.ProcessAndDownload(HttpContext.User, request, cancellationToken);
+            var result = await handler.ProcessAndDownload(request, cancellationToken);
             
             return result.Match(
                 response => {

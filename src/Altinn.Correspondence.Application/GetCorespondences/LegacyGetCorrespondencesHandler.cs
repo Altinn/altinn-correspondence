@@ -56,24 +56,15 @@ public class LegacyGetCorrespondencesHandler(
         var recipients = new List<string>();
         if (request.InstanceOwnerPartyIdList != null && request.InstanceOwnerPartyIdList.Length > 0)
         {
-            var authorizedPartiesResponse = await altinnAccessManagementService.GetAuthorizedParties(userParty, cancellationToken);
-            var authorizedParties = new List<PartyWithSubUnits>();
-            foreach(var authorizedParty in authorizedPartiesResponse)
-            {
-                if (!authorizedParty.OnlyHierarchyElementWithNoAccess)
-                {
-                    authorizedParties.Add(authorizedParty);
-                } 
-                
-                authorizedParties.AddRange(authorizedParty.SubUnits);
-            }
+            var authorizedParties = await altinnAccessManagementService.GetAuthorizedParties(userParty, userClaimsHelper.GetUserId(), cancellationToken);
             authorizedParties = authorizedParties.DistinctBy(party => party.PartyId).ToList();
             var authorizedPartiesDict = authorizedParties.ToDictionary(p => p.PartyId, p => p);
             foreach (int instanceOwnerPartyId in request.InstanceOwnerPartyIdList)
             {
                 if (!authorizedPartiesDict.TryGetValue(instanceOwnerPartyId, out var mappedInstanceOwner))
                 {
-                    return AuthorizationErrors.LegacyNotAccessToOwner(instanceOwnerPartyId);
+                    logger.LogWarning("{instanceOwnerPartyId} is not one of the {authorizedPartiesCount} authorized parties: {authorizedParties}", instanceOwnerPartyId, authorizedParties.Count, string.Join(',', authorizedParties.Select(party => party.PartyId)));
+                    continue;
                 }
                 if (mappedInstanceOwner.OrgNumber != null)
                     recipients.Add(GetPrefixedForOrg(mappedInstanceOwner.OrgNumber));
@@ -86,8 +77,14 @@ public class LegacyGetCorrespondencesHandler(
             if (!string.IsNullOrEmpty(userParty.SSN)) recipients.Add(GetPrefixedForPerson(userParty.SSN));
             if (!string.IsNullOrEmpty(userParty.OrgNumber)) recipients.Add(GetPrefixedForOrg(userParty.OrgNumber));
         }
-        List<string> resourcesToSearch = new List<string>();
-
+        if (recipients.Count == 0)
+        {
+            logger.LogWarning("Caller did not have access to any inboxes");
+            return new LegacyGetCorrespondencesResponse()
+            {
+                Items = []
+            };
+        }
         // Get all correspondences owned by Recipients
         // request.IncludeDeleted is not used as this is for soft deleted correspondences only, which are not relevant in legacy
         var correspondences = await correspondenceRepository.GetCorrespondencesForParties(limit: limit,
@@ -95,7 +92,6 @@ public class LegacyGetCorrespondencesHandler(
                                                                                           to: to,
                                                                                           status: request.Status,
                                                                                           recipientIds: recipients,
-                                                                                          resourceIds: resourcesToSearch,
                                                                                           includeActive: request.IncludeActive,
                                                                                           includeArchived: request.IncludeArchived,
                                                                                           searchString: request.SearchString,
@@ -150,15 +146,10 @@ public class LegacyGetCorrespondencesHandler(
             }
         }
 
-        Dictionary<string, int?> authlevels = new(correspondences.Count);
+        Dictionary<(string, string), int?> authlevels = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(user, userParty.SSN, correspondences, cancellationToken);
         foreach (var correspondence in correspondences)
         {
-            string authLevelKey = $"{correspondence.Recipient}::{correspondence.ResourceId}";
-            if (!authlevels.TryGetValue(authLevelKey, out int? authLevel))
-            {
-                authLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
-                authlevels.Add(authLevelKey, authLevel);
-            }
+            authlevels.TryGetValue((correspondence.Recipient, correspondence.ResourceId), out int? authLevel);
             if (authLevel == null || minAuthLevel < authLevel)
             {
                 continue;
