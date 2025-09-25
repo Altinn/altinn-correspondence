@@ -9,7 +9,7 @@ resource kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
 }
 
 resource secretsOfficer 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(kv.id, principalObjectId, 'kv-secrets-officer')
+  name: guid(subscription().id, kv.id, principalObjectId, 'kv-secrets-officer')
   scope: kv
   properties: {
     roleDefinitionId: secretsOfficerRoleId

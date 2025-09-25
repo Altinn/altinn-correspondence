@@ -28,7 +28,7 @@ resource kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
 }
 
 resource secretsUsers 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for p in principals: {
-  name: guid(kv.id, p.objectId, 'kv-secrets-user')
+  name: guid(subscription().id, kv.id, p.objectId, 'kv-secrets-user')
   scope: kv
   properties: {
     roleDefinitionId: secretsUserRoleId
@@ -38,7 +38,7 @@ resource secretsUsers 'Microsoft.Authorization/roleAssignments@2022-04-01' = [fo
 }]
 
 resource kvReaders 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for p in principals: {
-  name: guid(kv.id, p.objectId, 'kv-reader')
+  name: guid(subscription().id,kv.id, p.objectId, 'kv-reader')
   scope: kv
   properties: {
     roleDefinitionId: keyVaultReaderRoleId
