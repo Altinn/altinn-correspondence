@@ -6,6 +6,7 @@ using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using UUIDNext;
 using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
+using Altinn.Correspondence.Common.Helpers;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
@@ -28,35 +29,35 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 dueAt = null;
             }
-            
+
             return new CreateDialogRequest
-                {
-                    Id = dialogId,
-                    ServiceResource = UrnConstants.Resource + ":" + correspondence.ResourceId,
-                    Party = correspondence.GetRecipientUrn(),
-                    CreatedAt = correspondence.Created,
-                    UpdatedAt = (correspondence.Statuses ?? []).Select(s => s.StatusChanged).Concat([correspondence.Created]).Max(),
-                    VisibleFrom = correspondence.RequestedPublishTime < DateTime.UtcNow.AddMinutes(1) ? null : correspondence.RequestedPublishTime,
-                    Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
-                    DueAt = dueAt,
-                    Status = GetDialogStatusForCorrespondence(correspondence),
-                    ExternalReference = correspondence.SendersReference,
-                    Content = CreateCorrespondenceContent(correspondence, baseUrl),
-                    SearchTags = GetSearchTagsForCorrespondence(correspondence, logger),
-                    ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
-                    GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
-                    Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
-                    Activities = includeActivities ? GetActivitiesForCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey) : new List<Activity>(),
-                    Transmissions = new List<Transmission>(),
-                    SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted)
-                };
+            {
+                Id = dialogId,
+                ServiceResource = UrnConstants.Resource + ":" + correspondence.ResourceId,
+                Party = correspondence.GetRecipientUrn(),
+                CreatedAt = correspondence.Created,
+                UpdatedAt = (correspondence.Statuses ?? []).Select(s => s.StatusChanged).Concat([correspondence.Created]).Max(),
+                VisibleFrom = correspondence.RequestedPublishTime < DateTime.UtcNow.AddMinutes(1) ? null : correspondence.RequestedPublishTime,
+                Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
+                DueAt = dueAt,
+                Status = GetDialogStatusForCorrespondence(correspondence),
+                ExternalReference = correspondence.SendersReference,
+                Content = CreateCorrespondenceContent(correspondence, baseUrl),
+                SearchTags = GetSearchTagsForCorrespondence(correspondence, logger),
+                ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
+                GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
+                Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
+                Activities = includeActivities ? GetActivitiesForCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey) : new List<Activity>(),
+                Transmissions = new List<Transmission>(),
+                SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted)
+            };
         }
 
         private static string GetSystemLabelForCorrespondence(CorrespondenceEntity correspondence, bool isSoftDeleted)
         {
-            if(correspondence.Altinn2CorrespondenceId.HasValue) // Only relevant for migrated correspondences
+            if (correspondence.Altinn2CorrespondenceId.HasValue) // Only relevant for migrated correspondences
             {
-                if(isSoftDeleted)
+                if (isSoftDeleted)
                 {
                     return SystemLabel.Bin;
                 }
@@ -467,15 +468,14 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             if (string.IsNullOrEmpty(input))
                 return input;
 
+            // Convert Markdown to HTML
+            string withoutMarkdown = TextValidation.ConvertToHtml(input);
             // Remove HTML tags
-            string withoutHtml = Regex.Replace(input, @"<[^>]*>", string.Empty);
-            
-            // Remove Markdown formatting
-            string withoutMarkdown = Regex.Replace(withoutHtml, @"(\*{1,2}|_{1,2}|#{1,6}\s?|`{1,3}|~~|>\s?|\[.*?\]\(.*?\)|\!?\[.*?\])", string.Empty);
-            
+            string withoutHtml = Regex.Replace(withoutMarkdown, @"<[^>]*>", string.Empty);
+
             // Clean up extra whitespace
-            return Regex.Replace(withoutMarkdown, @"\s+", " ").Trim();
-            
-        }
+            return Regex.Replace(withoutHtml, @"\s+", " ").Trim();
+
+        }        
     }
 }
