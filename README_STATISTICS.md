@@ -34,11 +34,26 @@ Both statistics endpoints use **API Key authentication** with **IP-based rate li
 - `429 Too Many Requests` - Rate limit exceeded (per IP address)
 - `500 Internal Server Error` - Server error
 
+**Response Headers**:
+
 **Rate Limit Headers** (included in all responses):
-- `X-RateLimit-Limit` - Maximum requests allowed per window
+- `X-RateLimit-Limit` - Maximum requests allowed per window (10 for production, 5 for development)
 - `X-RateLimit-Remaining` - Remaining requests in current window
 - `X-RateLimit-Reset` - Unix timestamp when the rate limit resets
-- `Retry-After` - Seconds to wait before retrying (when rate limited)
+
+**Rate Limit Exceeded Headers** (only when rate limited - 429 status):
+- `Retry-After` - Seconds to wait before retrying
+
+**File Download Headers** (only for generate-and-download-daily-summary endpoint):
+- `Content-Type: application/octet-stream`
+- `Content-Disposition: attachment; filename="..."` 
+- `X-File-Hash` - MD5 hash of the file
+- `X-File-Size` - File size in bytes
+- `X-Service-Owner-Count` - Number of service owners in the report
+- `X-Total-Correspondence-Count` - Total number of correspondences
+- `X-Generated-At` - ISO 8601 timestamp when report was generated
+- `X-Environment` - Environment name
+- `X-Altinn2-Included` - Whether Altinn2 correspondences are included
 
 ### Rate Limiting Behavior
 
@@ -96,11 +111,13 @@ POST /correspondence/api/v1/statistics/generate-daily-summary
 ```json
 {
   "filePath": "https://yourstorageaccount.blob.core.windows.net/reports/20250127_143022_daily_summary_report_A2A3_Development.parquet",
+  "fileHash": "base64-encoded-md5-hash",
+  "fileSizeBytes": 4096,
   "serviceOwnerCount": 5,
   "totalCorrespondenceCount": 150,
   "generatedAt": "2025-01-27T14:30:22.123Z",
   "environment": "Development",
-  "fileSizeBytes": 4096
+  "altinn2Included": true
 }
 ```
 
@@ -138,6 +155,9 @@ X-Total-Correspondence-Count: 150
 X-Generated-At: 2025-01-27T14:30:22.123Z
 X-Environment: Development
 X-Altinn2-Included: true
+X-RateLimit-Limit: 10
+X-RateLimit-Remaining: 7
+X-RateLimit-Reset: 1738065022
 ```
 
 
@@ -150,27 +170,27 @@ The daily summary parquet files contain aggregated data with the following field
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `Date` | string | Date in YYYY-MM-DD format |
-| `Year` | int | Year (YYYY) |
-| `Month` | int | Month (MM) |
-| `Day` | int | Day (DD) |
-| `ServiceOwnerId` | string | Service Owner ID (organization number) |
-| `ServiceOwnerName` | string | Service Owner Name (for readability) |
-| `MessageSender` | string | Message sender |
-| `ResourceId` | string | Resource ID |
-| `ResourceTitle` | string | Service owner name in Norwegian (from Resource Registry) |
-| `RecipientType` | string | Recipient type (Organization, Person, or Unknown) |
-| `AltinnVersion` | string | Altinn version (Altinn2 or Altinn3) |
-| `MessageCount` | int | Number of messages/correspondences for this service owner on this date |
-| `DatabaseStorageBytes` | long | Total database storage used (metadata) in bytes |
-| `AttachmentStorageBytes` | long | Total attachment storage used in bytes |
+| `date` | string | Date in YYYY-MM-DD format |
+| `year` | int | Year (YYYY) |
+| `month` | int | Month (MM) |
+| `day` | int | Day (DD) |
+| `serviceownerorgnr` | string | Service Owner ID (organization number) |
+| `serviceownercode` | string | Service Owner Name (for readability) |
+| `messagesender` | string | Message sender |
+| `serviceresourceid` | string | Resource ID |
+| `serviceresourcetitle` | string | Service owner name in Norwegian (from Resource Registry) |
+| `recipienttype` | string | Recipient type (Organization, Person, or Unknown) |
+| `costcenter` | string | Altinn version (Altinn2 or Altinn3) |
+| `messagecount` | int | Number of messages/correspondences for this service owner on this date |
+| `databasestoragebytes` | long | Total database storage used (metadata) in bytes |
+| `attachmentstoragebytes` | long | Total attachment storage used in bytes |
 
 **Example Daily Summary Data:**
 ```parquet
-Date       | Year | Month | Day | ServiceOwnerId | ServiceOwnerName | MessageSender | ResourceId | ResourceTitle | RecipientType | AltinnVersion | MessageCount | DatabaseStorageBytes | AttachmentStorageBytes
-2025-01-15 | 2025 | 1     | 15  | 987654321     | Test Org         | sender1      | resource1  | Digitaliseringsdirektoratet | Organization  | Altinn3       | 45          | 46080               | 0
-2025-01-15 | 2025 | 1     | 15  | 123456789     | Another Org      | sender2      | resource2  | NAV | Person        | Altinn2       | 23          | 23552               | 0
-2025-01-16 | 2025 | 1     | 16  | 987654321     | Test Org         | sender1      | resource1  | Digitaliseringsdirektoratet | Unknown       | Altinn3       | 8           | 8192                | 0
+date       | year | month | day | serviceownerorgnr | serviceownercode | messagesender | serviceresourceid | serviceresourcetitle | recipienttype | costcenter | messagecount | databasestoragebytes | attachmentstoragebytes
+2025-01-15 | 2025 | 1     | 15  | 987654321         | Test Org         | sender1       | resource1         | Digitaliseringsdirektoratet | Organization  | Altinn3     | 45           | 46080                | 0
+2025-01-15 | 2025 | 1     | 15  | 123456789         | Another Org      | sender2       | resource2         | NAV                      | Person        | Altinn2     | 23           | 23552                | 0
+2025-01-16 | 2025 | 1     | 16  | 987654321         | Test Org         | sender1       | resource1         | Digitaliseringsdirektoratet | Unknown       | Altinn3     | 8            | 8192                 | 0
 ```
 
 
@@ -241,21 +261,21 @@ print(df.head())
 
 # Basic statistics
 print(f"\nTotal daily summary records in report: {len(df)}")
-print(f"Unique service owners: {df['ServiceOwnerId'].nunique()}")
-print(f"Date range: {df['Date'].min()} to {df['Date'].max()}")
-print(f"Total messages across all service owners: {df['MessageCount'].sum()}")
+print(f"Unique service owners: {df['serviceownerorgnr'].nunique()}")
+print(f"Date range: {df['date'].min()} to {df['date'].max()}")
+print(f"Total messages across all service owners: {df['messagecount'].sum()}")
 
 # Group by service owner
-service_owner_summary = df.groupby(['ServiceOwnerId', 'ServiceOwnerName']).agg({
-    'MessageCount': 'sum',
-    'ResourceId': 'nunique',
-    'DatabaseStorageBytes': 'sum',
-    'AttachmentStorageBytes': 'sum'
+service_owner_summary = df.groupby(['serviceownerorgnr', 'serviceownercode']).agg({
+    'messagecount': 'sum',
+    'serviceresourceid': 'nunique',
+    'databasestoragebytes': 'sum',
+    'attachmentstoragebytes': 'sum'
 }).rename(columns={
-    'MessageCount': 'TotalMessages', 
-    'ResourceId': 'UniqueResources',
-    'DatabaseStorageBytes': 'TotalDatabaseStorage',
-    'AttachmentStorageBytes': 'TotalAttachmentStorage'
+    'messagecount': 'TotalMessages', 
+    'serviceresourceid': 'UniqueResources',
+    'databasestoragebytes': 'TotalDatabaseStorage',
+    'attachmentstoragebytes': 'TotalAttachmentStorage'
 })
 
 print(f"\nDaily summary per service owner:")
