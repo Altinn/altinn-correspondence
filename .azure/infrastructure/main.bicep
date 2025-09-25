@@ -66,7 +66,7 @@ module grantTestClientSecretsOfficerRole '../modules/keyvault/addSecretsOfficerR
   params: {
     keyvaultName: sourceKeyVaultName
     principalObjectId: test_client_id
-    principalType: 'ServicePrincipal'
+    principalType: 'Group'
   }
 }
 
