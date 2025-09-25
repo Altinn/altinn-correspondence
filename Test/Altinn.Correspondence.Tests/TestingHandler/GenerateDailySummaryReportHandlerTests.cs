@@ -64,7 +64,7 @@ public class GenerateDailySummaryReportHandlerTests
             .ReturnsAsync("Test Resource Title");
 
         // Act
-        var result = await _handler.ProcessAndDownload(user, request, CancellationToken.None);
+        var result = await _handler.ProcessAndDownload(request, CancellationToken.None);
 
         // Assert
         Assert.True(result.IsT0); // Should be successful response
