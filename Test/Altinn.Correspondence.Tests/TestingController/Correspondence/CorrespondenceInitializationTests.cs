@@ -1516,8 +1516,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [Fact]
         public async Task InitializeCorrespondence_WithMessageBodyTooLong_ReturnsBadRequest()
         {
-            // Arrange - Create a message body that exceeds 10000 characters
-            var longMessageBody = new string('A', 10001);
+            // Arrange - Create a message body that exceeds 30000 characters
+            var longMessageBody = new string('A', 30001);
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithMessageBody(longMessageBody)
@@ -1531,10 +1531,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task InitializeCorrespondence_WithMessageBodyAt10000Characters_Succeeds()
+        public async Task InitializeCorrespondence_WithMessageBodyAt30000Characters_Succeeds()
         {
-            // Arrange - Create a message body exactly at the 10000 character limit
-            var maxLengthMessageBody = new string('A', 10000);
+            // Arrange - Create a message body exactly at the 30000 character limit
+            var maxLengthMessageBody = new string('A', 30000);
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithMessageBody(maxLengthMessageBody)
