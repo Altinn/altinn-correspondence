@@ -98,7 +98,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Value = new List<DialogValue> {
                     new DialogValue()
                     {
-                        Value = StripSummaryForHtmlAndMarkdown(correspondence.Content.MessageSummary ?? ""),
+                        Value = TextValidation.StripSummaryForHtmlAndMarkdown(correspondence.Content.MessageSummary ?? ""),
                         LanguageCode = correspondence.Content.Language
                     }
                 }
@@ -461,21 +461,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
             // Dialogporten has a 255 character limit, so we truncate to 252 and add "..." only for titles > 255 chars
             return title.Length <= 255 ? title : title.Substring(0, 252) + "...";
-        }
-
-        private static string StripSummaryForHtmlAndMarkdown(string input)
-        {
-            if (string.IsNullOrEmpty(input))
-                return input;
-
-            // Convert Markdown to HTML
-            string withoutMarkdown = TextValidation.ConvertToHtml(input);
-            // Remove HTML tags
-            string withoutHtml = Regex.Replace(withoutMarkdown, @"<[^>]*>", string.Empty);
-
-            // Clean up extra whitespace
-            return Regex.Replace(withoutHtml, @"\s+", " ").Trim();
-
-        }        
+        }       
     }
 }
