@@ -31,7 +31,7 @@ jobs:
     permissions: 
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: "Get current version"
         uses: ./.github/actions/get-current-version
         id: get-version
@@ -43,7 +43,7 @@ jobs:
       packages: write
       contents: read
     steps:        
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: "Publish image"
         uses: ./.github/actions/publish-image
         with:
@@ -61,7 +61,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Deploy to environment
       uses: ./.github/actions/deploy-to-environment
