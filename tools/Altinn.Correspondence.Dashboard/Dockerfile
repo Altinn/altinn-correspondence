@@ -1,14 +1,14 @@
 # See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 USER $APP_UID
 WORKDIR /app
 EXPOSE 2526
 ENV ASPNETCORE_URLS=http://+:2526
 
 # This stage is used to build the service project
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY ["tools/Altinn.Correspondence.Dashboard/Altinn.Correspondence.Dashboard.csproj", "tools/Altinn.Correspondence.Dashboard/"]
 COPY ["src/Altinn.Correspondence.Persistence/Altinn.Correspondence.Persistence.csproj", "src/Altinn.Correspondence.Persistence/"]
