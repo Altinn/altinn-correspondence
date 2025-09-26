@@ -5,6 +5,8 @@ using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using UUIDNext;
 using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
+using Altinn.Correspondence.Common.Helpers;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
@@ -27,35 +29,35 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 dueAt = null;
             }
-            
+
             return new CreateDialogRequest
-                {
-                    Id = dialogId,
-                    ServiceResource = UrnConstants.Resource + ":" + correspondence.ResourceId,
-                    Party = correspondence.GetRecipientUrn(),
-                    CreatedAt = correspondence.Created,
-                    UpdatedAt = (correspondence.Statuses ?? []).Select(s => s.StatusChanged).Concat([correspondence.Created]).Max(),
-                    VisibleFrom = correspondence.RequestedPublishTime < DateTime.UtcNow.AddMinutes(1) ? null : correspondence.RequestedPublishTime,
-                    Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
-                    DueAt = dueAt,
-                    Status = GetDialogStatusForCorrespondence(correspondence),
-                    ExternalReference = correspondence.SendersReference,
-                    Content = CreateCorrespondenceContent(correspondence, baseUrl),
-                    SearchTags = GetSearchTagsForCorrespondence(correspondence, logger),
-                    ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
-                    GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
-                    Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
-                    Activities = includeActivities ? GetActivitiesForCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey) : new List<Activity>(),
-                    Transmissions = new List<Transmission>(),
-                    SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted)
-                };
+            {
+                Id = dialogId,
+                ServiceResource = UrnConstants.Resource + ":" + correspondence.ResourceId,
+                Party = correspondence.GetRecipientUrn(),
+                CreatedAt = correspondence.Created,
+                UpdatedAt = (correspondence.Statuses ?? []).Select(s => s.StatusChanged).Concat([correspondence.Created]).Max(),
+                VisibleFrom = correspondence.RequestedPublishTime < DateTime.UtcNow.AddMinutes(1) ? null : correspondence.RequestedPublishTime,
+                Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
+                DueAt = dueAt,
+                Status = GetDialogStatusForCorrespondence(correspondence),
+                ExternalReference = correspondence.SendersReference,
+                Content = CreateCorrespondenceContent(correspondence, baseUrl),
+                SearchTags = GetSearchTagsForCorrespondence(correspondence, logger),
+                ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
+                GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
+                Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
+                Activities = includeActivities ? GetActivitiesForCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey) : new List<Activity>(),
+                Transmissions = new List<Transmission>(),
+                SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted)
+            };
         }
 
         private static string GetSystemLabelForCorrespondence(CorrespondenceEntity correspondence, bool isSoftDeleted)
         {
-            if(correspondence.Altinn2CorrespondenceId.HasValue) // Only relevant for migrated correspondences
+            if (correspondence.Altinn2CorrespondenceId.HasValue) // Only relevant for migrated correspondences
             {
-                if(isSoftDeleted)
+                if (isSoftDeleted)
                 {
                     return SystemLabel.Bin;
                 }
@@ -64,7 +66,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     return SystemLabel.Archived;
                 }
             }
-            
+
             return SystemLabel.Default;
         }
 
@@ -96,7 +98,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Value = new List<DialogValue> {
                     new DialogValue()
                     {
-                        Value = correspondence.Content.MessageSummary,
+                        Value = TextValidation.StripSummaryForHtmlAndMarkdown(correspondence.Content.MessageSummary ?? ""),
                         LanguageCode = correspondence.Content.Language
                     }
                 }
@@ -459,6 +461,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
             // Dialogporten has a 255 character limit, so we truncate to 252 and add "..." only for titles > 255 chars
             return title.Length <= 255 ? title : title.Substring(0, 252) + "...";
-        }
+        }       
     }
 }

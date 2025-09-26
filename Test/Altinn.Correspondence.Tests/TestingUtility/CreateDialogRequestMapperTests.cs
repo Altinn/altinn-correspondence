@@ -83,7 +83,7 @@ public class CreateDialogRequestMapperTests
         Assert.NotNull(result.Content);
         Assert.NotNull(result.Content.Title);
         Assert.Single(result.Content.Title.Value);
-        
+
         var resultTitle = result.Content.Title.Value[0].Value;
         Assert.Equal(255, resultTitle.Length); // 252 + 3 for "..."
         Assert.EndsWith("...", resultTitle);
@@ -107,7 +107,7 @@ public class CreateDialogRequestMapperTests
         Assert.NotNull(result.Content);
         Assert.NotNull(result.Content.Title);
         Assert.Single(result.Content.Title.Value);
-        
+
         var resultTitle = result.Content.Title.Value[0].Value;
         Assert.Equal(255, resultTitle.Length); // Should be exactly 255 (252 + "...")
         Assert.EndsWith("...", resultTitle);
@@ -150,5 +150,50 @@ public class CreateDialogRequestMapperTests
         Assert.NotNull(result.Content.Title);
         Assert.Single(result.Content.Title.Value);
         Assert.Equal("", result.Content.Title.Value[0].Value);
+    }
+
+    [Fact]
+    public void CreateCorrespondenceDialog_WithHTMLInSummary_ReturnsPlainText()
+    {
+        // Arrange
+        var htmlSummary = "<p>This is a <strong>test</strong> summary with <a href='#'>HTML</a> content.</p>";
+        var htmlSummaryLength = htmlSummary.Length;
+        var expectedPlainText = "This is a test summary with HTML content.";
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithMessageSummary(htmlSummary)
+            .Build();
+        var baseUrl = "https://example.com";
+
+        // Act
+        var result = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl);
+        var resultSummaryLength = result.Content?.Summary?.Value[0].Value.Length ?? 0;
+        Assert.True(htmlSummaryLength > resultSummaryLength, $"Expected summary to be truncated. Original length: {htmlSummaryLength}, Result length: {resultSummaryLength}");
+        // Assert
+        Assert.NotNull(result.Content);
+        Assert.NotNull(result.Content.Summary);
+        Assert.Single(result.Content.Summary.Value);
+        Assert.Equal(expectedPlainText, result.Content.Summary.Value[0].Value);
+    }
+
+    [Fact]
+    public void CreateCorrespondenceDialog_WithMarkdownInSummary_ReturnsPlainText()
+    {
+        // Arrange
+        var markdownSummary = "This is a **test** summary with [Markdown](https://example.com) content.";
+        var markdownSummaryLength = markdownSummary.Length;
+        var expectedPlainText = "This is a test summary with Markdown content.";
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithMessageSummary(markdownSummary)
+            .Build();
+        var baseUrl = "https://example.com";
+        // Act
+        var result = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl);
+        var resultSummaryLength = result.Content?.Summary?.Value[0].Value.Length ?? 0;
+        Assert.True(markdownSummaryLength > resultSummaryLength, $"Expected summary to be truncated. Original length: {markdownSummaryLength}, Result length: {resultSummaryLength}");
+        // Assert
+        Assert.NotNull(result.Content);
+        Assert.NotNull(result.Content.Summary);
+        Assert.Single(result.Content.Summary.Value);
+        Assert.Equal(expectedPlainText, result.Content.Summary.Value[0].Value);
     }
 }

@@ -54,10 +54,22 @@ module environmentKeyVault '../modules/keyvault/create.bicep' = {
     vaultName: sourceKeyVaultName
     location: location
     tenant_id: tenantId
-    environment: environment
     test_client_id: test_client_id
+    environment: environment
   }
 }
+
+module grantTestClientSecretsOfficerRole '../modules/keyvault/addSecretsOfficerRole.bicep' = if (environment == 'test') {
+  scope: resourceGroup
+  name: 'kv-secrets-officer-test-client'
+  dependsOn: [ environmentKeyVault ]
+  params: {
+    keyvaultName: sourceKeyVaultName
+    principalObjectId: test_client_id
+    principalType: 'Group'
+  }
+}
+
 var secrets = [
   {
     name: 'maskinporten-client-id'

@@ -1,7 +1,7 @@
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Microsoft.Extensions.Logging;
-
+using Altinn.Correspondence.Common.Helpers;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
@@ -51,11 +51,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             Summary = string.IsNullOrWhiteSpace(correspondence.Content.MessageSummary) ? null : new TransmissionSummary()
             {
                 MediaType = "text/plain",
-                Value = new List<TransmissionValue>
-                {
+                Value = new List<TransmissionValue>{
                     new TransmissionValue
                     {
-                        Value = correspondence.Content.MessageSummary,
+                        Value = TextValidation.StripSummaryForHtmlAndMarkdown(correspondence.Content.MessageSummary ?? ""),
                         LanguageCode = correspondence.Content.Language
                     }
                 }

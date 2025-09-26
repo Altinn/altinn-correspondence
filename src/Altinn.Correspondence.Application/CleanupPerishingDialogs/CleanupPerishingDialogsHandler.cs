@@ -31,7 +31,7 @@ public class CleanupPerishingDialogsHandler(
     }
 
     [AutomaticRetry(Attempts = 0)]
-    [DisableConcurrentExecution(timeoutInSeconds: 1800)]
+    [DisableConcurrentExecution(timeoutInSeconds: 43200)]
     public async Task ExecuteCleanupInBackground(int windowSize, CancellationToken cancellationToken)
     {
         logger.LogInformation("Executing cleanup of perishing dialogs in background job");
