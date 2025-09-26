@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Models.Register;
 using Altinn.Correspondence.Core.Services;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Register;
@@ -140,5 +141,20 @@ public class AltinnRegisterDevService : IAltinnRegisterService
             }
         }
         return Task.FromResult<List<Party>?>(parties);
+    }
+
+    public Task<List<RoleItem>> LookUpPartyRoles(int partyId, CancellationToken cancellationToken)
+    {
+        var roles = new List<RoleItem>();
+        if (partyId == _digdirPartyId)
+        {
+            roles.Add(new RoleItem
+            {
+                Role = new RoleDescriptor { Source = "ccr", Identifier = "daglig-leder", Urn = "urn:altinn:external-role:ccr:daglig-leder" },
+                From = new RoleParty { PartyUuid = _digdirPartyUuid, Urn = $"urn:altinn:party:uuid:{_digdirPartyUuid}" },
+                To = new RoleParty { PartyUuid = Guid.NewGuid(), Urn = $"urn:altinn:party:uuid:{Guid.NewGuid()}" },
+            });
+        }
+        return Task.FromResult(roles);
     }
 }

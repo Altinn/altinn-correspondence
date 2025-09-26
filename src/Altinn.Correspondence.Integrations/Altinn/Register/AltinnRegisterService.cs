@@ -5,6 +5,7 @@ using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Platform.Register.Models;
+using Altinn.Correspondence.Core.Models.Register;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -179,6 +180,23 @@ public class AltinnRegisterService : IAltinnRegisterService
         }
 
         return party;
+    }
+
+    public async Task<List<RoleItem>> LookUpPartyRoles(int partyId, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync($"register/api/v1/parties/{partyId}/roles/correspondence-roles", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Error when looking up party roles in Altinn Register.Statuscode was: {response.StatusCode}, error was: {await response.Content.ReadAsStringAsync()}");
+        }
+
+        var roles = await response.Content.ReadFromJsonAsync<Roles>(cancellationToken: cancellationToken);
+        if (roles is null)
+        {
+            throw new Exception("Unexpected json response when looking up party roles in Altinn Register");
+        }
+
+        return roles.Data ?? new List<RoleItem>();
     }
 
     public async Task<List<Party>?> LookUpPartiesByIds(List<string> identificationIds, CancellationToken cancellationToken = default)
