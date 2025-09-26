@@ -86,4 +86,18 @@ public class TextValidation
         }
         return newText;
     }
+
+    public static string StripSummaryForHtmlAndMarkdown(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return input;
+
+            // Convert Markdown to HTML
+            string withoutMarkdown = ConvertToHtml(input);
+            // Remove HTML tags
+            string withoutHtml = Regex.Replace(withoutMarkdown, @"<[^>]*>", string.Empty);
+
+            // Clean up extra whitespace
+            return Regex.Replace(withoutHtml, @"\s+", " ").Trim();
+        } 
 }
