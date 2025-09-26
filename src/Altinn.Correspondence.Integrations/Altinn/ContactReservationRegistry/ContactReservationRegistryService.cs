@@ -1,7 +1,6 @@
 ﻿using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
 using System.Net.Http.Json;
 
 namespace Altinn.Correspondence.Integrations.Altinn.ContactReservationRegistry;

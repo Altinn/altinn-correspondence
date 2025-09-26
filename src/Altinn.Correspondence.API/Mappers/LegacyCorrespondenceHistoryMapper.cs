@@ -1,7 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application.GetCorrespondenceHistory;
 using Altinn.Correspondence.Common.Helpers;
-using System.Collections.Generic;
 
 namespace Altinn.Correspondence.Mappers;
 

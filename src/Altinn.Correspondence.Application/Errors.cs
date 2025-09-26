@@ -1,5 +1,4 @@
 using System.Net;
-using Hangfire.Storage.Monitoring;
 
 namespace Altinn.Correspondence.Application;
 
@@ -48,6 +47,7 @@ public static class CorrespondenceErrors
     public static Error AlreadyMarkedAsRead = new Error(1040, "Correspondence is already marked as read", HttpStatusCode.BadRequest);
     public static Error CorrespondenceAlreadyConfirmed = new Error(1041, "Correspondence has already been confirmed", HttpStatusCode.BadRequest);
     public static Error MessageSummaryWrongLength = new Error(1042, "Message summary, if not null, must be between 0 and 255 characters long", HttpStatusCode.BadRequest);
+    public static Error CannotPurgeCorrespondenceLinkedToDialogportenTransmission = new Error(1043, "Cannot purge correspondence linked to a Dialogporten Transmission", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors

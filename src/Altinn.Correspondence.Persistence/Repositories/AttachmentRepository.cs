@@ -3,8 +3,6 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System.Net.Mail;
-using System.Text.Json;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {

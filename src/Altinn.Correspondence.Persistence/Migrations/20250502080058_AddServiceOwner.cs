@@ -1,12 +1,5 @@
-﻿using System;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
-using System.Xml.Linq;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 #nullable disable
 

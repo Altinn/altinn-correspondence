@@ -1,12 +1,5 @@
 ﻿using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
-using Azure.Core;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http.Json;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {

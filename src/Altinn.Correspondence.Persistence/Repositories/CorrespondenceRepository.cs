@@ -4,7 +4,6 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
@@ -157,7 +156,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
-        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, List<string> resourceIds, bool includeActive, bool includeArchived, string searchString, CancellationToken cancellationToken, bool filterMigrated = true)
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, bool includeActive, bool includeArchived, string searchString, CancellationToken cancellationToken, bool filterMigrated = true)
         {
             var correspondences = recipientIds.Count == 1
                 ? _context.Correspondences.Where(c => c.Recipient == recipientIds[0])     // Filter by single recipient
@@ -166,7 +165,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             correspondences = correspondences
                 .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
                 .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter                              
-                .Where(c => resourceIds.Count == 0 || resourceIds.Contains(c.ResourceId))       // Filter by resources
                 .IncludeByStatuses(includeActive, includeArchived, status) // Filter by statuses
                 .ExcludePurged() // Exclude purged correspondences
                 .Where(c => string.IsNullOrEmpty(searchString) || (c.Content != null && c.Content.MessageTitle.Contains(searchString))) // Filter by messageTitle containing searchstring
@@ -192,6 +190,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return _context.Correspondences
                 .Where(c => c.Altinn2CorrespondenceId != null && c.IsMigrating) // Only include correspondences that are not already migrated 
                 .ExcludePurged() // Exclude purged correspondences
+                .ExcludeSelfIdentifiedRecipients() // Exclude correspondences belonging to self identified users
                 .OrderByDescending(c => c.Created)
                 .ThenBy(c => c.Id)
                 .Skip(offset)

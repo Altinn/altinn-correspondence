@@ -30,6 +30,13 @@ param storageAccountName string
 param maskinporten_token_exchange_environment string
 @secure()
 param resourceWhiteList string
+@secure()
+param statisticsApiKey string
+
+@secure()
+param maintenanceAdGroupId string
+@secure()
+param maintenanceAdGroupName string
 
 var prodLikeEnvironment = environment == 'production' || environment == 'staging' || maskinporten_token_exchange_environment == 'yt01'
 var resourceGroupName = '${namePrefix}-rg'
@@ -47,10 +54,22 @@ module environmentKeyVault '../modules/keyvault/create.bicep' = {
     vaultName: sourceKeyVaultName
     location: location
     tenant_id: tenantId
-    environment: environment
     test_client_id: test_client_id
+    environment: environment
   }
 }
+
+module grantTestClientSecretsOfficerRole '../modules/keyvault/addSecretsOfficerRole.bicep' = if (environment == 'test') {
+  scope: resourceGroup
+  name: 'kv-secrets-officer-test-client'
+  dependsOn: [ environmentKeyVault ]
+  params: {
+    keyvaultName: sourceKeyVaultName
+    principalObjectId: test_client_id
+    principalType: 'Group'
+  }
+}
+
 var secrets = [
   {
     name: 'maskinporten-client-id'
@@ -83,6 +102,10 @@ var secrets = [
   {
     name: 'resource-whitelist'
     value: resourceWhiteList
+  }
+  {
+    name: 'statistics-api-key'
+    value: statisticsApiKey
   }
 ]
 
@@ -126,7 +149,6 @@ module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
   }
 }
 
-var correspondenceAdminPasswordSecretName = 'correspondence-admin-password'
 module postgresql '../modules/postgreSql/create.bicep' = {
   scope: resourceGroup
   name: 'postgresql'
@@ -141,6 +163,21 @@ module postgresql '../modules/postgreSql/create.bicep' = {
     prodLikeEnvironment: prodLikeEnvironment
     logAnalyticsWorkspaceId: containerAppEnv.outputs.logAnalyticsWorkspaceId
     environment: environment
+  }
+}
+
+module maintenanceDbAccess '../modules/postgreSql/addAdminAccess.bicep' = {
+  name: 'databaseAccess'
+  scope: resourceGroup
+  dependsOn: [
+    postgresql
+  ]
+  params: {
+    principalType: 'Group'
+    tenantId: tenantId
+    principalId: maintenanceAdGroupId
+    appName: maintenanceAdGroupName
+    namePrefix: namePrefix
   }
 }
 

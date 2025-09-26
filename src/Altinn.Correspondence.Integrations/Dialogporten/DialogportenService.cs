@@ -47,6 +47,39 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return dialogResponse;
     }
 
+    public async Task<string> CreateDialogTransmission(Guid correspondenceId)
+    {
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        if (correspondence is null)
+        {
+            logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+
+        logger.LogInformation("CreateDialogTransmission for correspondence {correspondenceId}", correspondence.Id);
+
+        // Create idempotency key for open dialog activity
+        await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
+
+        var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+
+        var createTransmissionRequest = CreateDialogTransmissionMapper.CreateDialogTransmission(correspondence, generalSettings.Value.CorrespondenceBaseUrl, false, logger);
+        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/transmissions", createTransmissionRequest, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        }
+
+        var transmissionResponse = await response.Content.ReadFromJsonAsync<string>(cancellationToken);
+        if (transmissionResponse is null)
+        {
+            throw new Exception("Dialogporten did not return a transmissionId");
+        }
+        return transmissionResponse;
+    }
+
     public async Task PatchCorrespondenceDialogToConfirmed(Guid correspondenceId)
     {
         var cancellationTokenSource = new CancellationTokenSource();
@@ -386,7 +419,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", patchRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            logger.LogError(($"Response from Dialogporten when removing expiresAt for {dialogId} was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}"));
+            return false;
         }
         return true;
     }

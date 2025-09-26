@@ -14,9 +14,13 @@ public static class UrnConstants
     /// </summary>
     public const string OrganizationNumberAttribute = "urn:altinn:organization:identifier-no";
     /// <summary>
-    /// xacml string that represents party
+    /// xacml string that represents partyId
     /// </summary>
     public const string Party = "urn:altinn:partyid";
+    /// <summary>
+    /// xacml string that represents partyUuid
+    /// </summary>
+    public const string PartyUuid = "urn:altinn:party:uuid";
     /// <summary>
     /// xacml string that represents person identifier
     /// </summary>
@@ -41,4 +45,8 @@ public static class UrnConstants
     /// xacml string that refers to systemuser authentication
     /// </summary>
     public const string SystemUser = "urn:altinn:systemuser";
+    /// <summary>
+    /// xacml string that refers to userid
+    /// </summary>
+    public const string UserId = "urn:altinn:userid";
 }

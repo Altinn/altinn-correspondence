@@ -12,8 +12,6 @@ using Hangfire.Common;
 using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Collections.Generic;
-using System.Linq.Expressions;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
@@ -32,9 +30,11 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly SyncCorrespondenceStatusEventHandler _handler;
         private readonly PurgeCorrespondenceHelper _purgeHelper;
 
-        private Guid _defaultPartyUuid = Guid.NewGuid();
-        private string _defaultPartyOrgnumber = "123456789";
-        private string _defaultPartyIdentifier = $"{UrnConstants.OrganizationNumberAttribute}:{123456789}";
+        private Guid _defaultUserPartyUuid = Guid.NewGuid();
+        private string _defaultUserPartySSN = "12018012345";
+        private string _defaultUserPartyIdentifier = $"{UrnConstants.PersonIdAttribute}:{12018012345}";
+
+        private Guid _selfIdentifiedUserPartyUuid = Guid.NewGuid();
 
         public SyncCorrespondenceStatusEventHandlerTests()
         {
@@ -87,13 +87,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         Status = CorrespondenceStatus.Read,
                         StatusChanged = DateTimeOffset.UtcNow,
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     },
                     new CorrespondenceStatusEntity
                     {
                         Status = CorrespondenceStatus.Confirmed,
                         StatusChanged = DateTimeOffset.UtcNow,
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -121,8 +121,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceStatusRepositoryMock.Verify(
                 x => x.AddCorrespondenceStatuses(It.Is<List<CorrespondenceStatusEntity>>(list =>
                     list.Count == 2 &&
-                    list.Any(e => e.Status == CorrespondenceStatus.Read && e.PartyUuid == _defaultPartyUuid && e.SyncedFromAltinn2 != null) &&
-                    list.Any(e => e.Status == CorrespondenceStatus.Confirmed && e.PartyUuid == _defaultPartyUuid && e.SyncedFromAltinn2 != null)
+                    list.Any(e => e.Status == CorrespondenceStatus.Read && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null) &&
+                    list.Any(e => e.Status == CorrespondenceStatus.Confirmed && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null)
                 ), It.IsAny<CancellationToken>()),
                 Times.Once);
             _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
@@ -153,19 +153,19 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         Status = CorrespondenceStatus.Published,
                         StatusChanged = DateTimeOffset.UtcNow,
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     },
                     new CorrespondenceStatusEntity
                     {
                         Status = CorrespondenceStatus.Fetched,
                         StatusChanged = DateTimeOffset.UtcNow,
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     },
                     new CorrespondenceStatusEntity
                     {
                         Status = CorrespondenceStatus.Replied,
                         StatusChanged = DateTimeOffset.UtcNow,
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -199,7 +199,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithStatus(CorrespondenceStatus.Published)
-                .WithStatus(CorrespondenceStatus.Read, new DateTime(2023, 10, 1, 12, 0, 0), _defaultPartyUuid)
+                .WithStatus(CorrespondenceStatus.Read, new DateTime(2023, 10, 1, 12, 0, 0), _defaultUserPartyUuid)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
                 .Build();
@@ -214,7 +214,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         Status = CorrespondenceStatus.Read,
                         StatusChanged =  new DateTime(2023, 10, 1, 12, 0, 0),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -247,7 +247,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithStatus(CorrespondenceStatus.Published)
-                .WithStatus(CorrespondenceStatus.Read, new DateTime(2023, 10, 1, 11, 0, 0, 0), _defaultPartyUuid)                
+                .WithStatus(CorrespondenceStatus.Read, new DateTime(2023, 10, 1, 11, 0, 0, 0), _defaultUserPartyUuid)                
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
                 .Build();
@@ -262,37 +262,37 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         Status = CorrespondenceStatus.Read,
                         StatusChanged =  new DateTime(2023, 10, 1, 12, 0, 0, 0),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     },
                     new CorrespondenceStatusEntity
                     {
                         Status = CorrespondenceStatus.Read,
                         StatusChanged =  new DateTime(2023, 10, 1, 12, 0, 0, 150),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     },
                     new CorrespondenceStatusEntity
                     {
                         Status = CorrespondenceStatus.Confirmed,
                         StatusChanged =  new DateTime(2023, 10, 1, 12, 5, 0, 0),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     },
                     new CorrespondenceStatusEntity
                     {
                         Status = CorrespondenceStatus.Confirmed,
                         StatusChanged =  new DateTime(2023, 10, 1, 12, 5, 0, 150),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     },
                     new CorrespondenceStatusEntity
                     {
                         Status = CorrespondenceStatus.Archived,
                         StatusChanged =  new DateTime(2023, 10, 1, 12, 6, 0, 150),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     },
                     new CorrespondenceStatusEntity
                     {
                         Status = CorrespondenceStatus.Archived,
                         StatusChanged =  new DateTime(2023, 10, 1, 12, 6, 0, 150),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 },
                 SyncedDeleteEvents = new List<CorrespondenceDeleteEventEntity>
@@ -301,13 +301,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         EventType = CorrespondenceDeleteEventType.HardDeletedByRecipient,
                         EventOccurred = new DateTime(2023, 10, 1, 12, 7, 0),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     },
                     new CorrespondenceDeleteEventEntity
                     {
                         EventType = CorrespondenceDeleteEventType.HardDeletedByRecipient,
                         EventOccurred = new DateTime(2023, 10, 1, 12, 7, 0, 500),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -322,9 +322,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceDeleteEventRepositoryMock
                 .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>());
-            _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyByPartyUuid(_defaultPartyUuid, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Core.Models.Entities.Party { PartyUuid = _defaultPartyUuid, OrgNumber = _defaultPartyOrgnumber, PartyTypeName = PartyType.Organization });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -340,9 +337,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceStatusRepositoryMock.Verify(
                x => x.AddCorrespondenceStatuses(It.Is<List<CorrespondenceStatusEntity>>(list =>
                    list.Count == 3 &&
-                   list.Any(e => e.Status == CorrespondenceStatus.Read && e.PartyUuid == _defaultPartyUuid && e.SyncedFromAltinn2 != null) &&
-                   list.Any(e => e.Status == CorrespondenceStatus.Confirmed && e.PartyUuid == _defaultPartyUuid && e.SyncedFromAltinn2 != null) &&
-                   list.Any(e => e.Status == CorrespondenceStatus.Archived && e.PartyUuid == _defaultPartyUuid && e.SyncedFromAltinn2 != null)
+                   list.Any(e => e.Status == CorrespondenceStatus.Read && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null) &&
+                   list.Any(e => e.Status == CorrespondenceStatus.Confirmed && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null) &&
+                   list.Any(e => e.Status == CorrespondenceStatus.Archived && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null)
                ), It.IsAny<CancellationToken>()),
                Times.Once);
             _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
@@ -350,7 +347,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     e.CorrespondenceId == correspondenceId &&
                     e.Status == CorrespondenceStatus.PurgedByRecipient &&
                     e.StatusChanged.Equals(new DateTimeOffset(new DateTime(2023, 10, 1, 12, 7, 0))) &&
-                    e.PartyUuid == _defaultPartyUuid &&
+                    e.PartyUuid == _defaultUserPartyUuid &&
                     e.SyncedFromAltinn2 != null),
                 It.IsAny<CancellationToken>()),
                 Times.Once);
@@ -367,7 +364,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithStatus(CorrespondenceStatus.Published)
-                .WithStatus(CorrespondenceStatus.Read, new DateTime(2023, 10, 1, 12, 0, 0), _defaultPartyUuid)
+                .WithStatus(CorrespondenceStatus.Read, new DateTime(2023, 10, 1, 12, 0, 0), _defaultUserPartyUuid)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
                 .Build();
@@ -382,7 +379,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         Status = CorrespondenceStatus.Read,
                         StatusChanged =  new DateTime(2023, 10, 1, 12, 0, 2),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -411,7 +408,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceStatusRepositoryMock.Verify(
                 x => x.AddCorrespondenceStatuses(It.Is<List<CorrespondenceStatusEntity>>(list =>
                     list.Count == 1 &&
-                    list.Any(e => e.Status == CorrespondenceStatus.Read && e.PartyUuid == _defaultPartyUuid && e.SyncedFromAltinn2 != null)
+                    list.Any(e => e.Status == CorrespondenceStatus.Read && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null)
                 ), It.IsAny<CancellationToken>()),
                 Times.Once);
             _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
@@ -442,13 +439,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         Status = CorrespondenceStatus.Read,
                         StatusChanged = DateTimeOffset.UtcNow,
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     },
                     new CorrespondenceStatusEntity
                     {
                         Status = CorrespondenceStatus.Confirmed,
                         StatusChanged = DateTimeOffset.UtcNow,
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -477,8 +474,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceStatusRepositoryMock.Verify(
                 x => x.AddCorrespondenceStatuses(It.Is<List<CorrespondenceStatusEntity>>(list =>
                     list.Count == 2 &&
-                    list.Any(e => e.Status == CorrespondenceStatus.Read && e.PartyUuid == _defaultPartyUuid && e.SyncedFromAltinn2 != null) &&
-                    list.Any(e => e.Status == CorrespondenceStatus.Confirmed && e.PartyUuid == _defaultPartyUuid && e.SyncedFromAltinn2 != null)
+                    list.Any(e => e.Status == CorrespondenceStatus.Read && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null) &&
+                    list.Any(e => e.Status == CorrespondenceStatus.Confirmed && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null)
                 ), It.IsAny<CancellationToken>()),
                 Times.Once);
             _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
@@ -517,7 +514,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         Status = CorrespondenceStatus.Archived,
                         StatusChanged = DateTimeOffset.UtcNow,
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -530,8 +527,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);           
             _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyByPartyUuid(_defaultPartyUuid, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Core.Models.Entities.Party { PartyUuid = _defaultPartyUuid, OrgNumber = _defaultPartyOrgnumber, PartyTypeName = PartyType.Organization });
+                .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -548,22 +545,89 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceStatusRepositoryMock.Verify(
                 x => x.AddCorrespondenceStatuses(It.Is<List<CorrespondenceStatusEntity>>(list =>
                     list.Count == 1 &&
-                    list.Any(e => e.Status == CorrespondenceStatus.Archived && e.PartyUuid == _defaultPartyUuid && e.SyncedFromAltinn2 != null)
+                    list.Any(e => e.Status == CorrespondenceStatus.Archived && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null)
                 ), It.IsAny<CancellationToken>()),
                 Times.Once);
             _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
             
             // Verify background jobs Dialogporten activities            
-            VerifyDialogportenServiceSetArchivedSystemLabelOnDialogEnqueued(correspondenceId, _defaultPartyIdentifier);
+            VerifyDialogportenServiceSetArchivedSystemLabelOnDialogEnqueued(correspondenceId, _defaultUserPartyIdentifier);
 
             // Verify register lookup performed
-            _altinnRegisterServiceMock.Verify(_altinnRegisterServiceMock => _altinnRegisterServiceMock.LookUpPartyByPartyUuid(_defaultPartyUuid, It.IsAny<CancellationToken>()), Times.Once);
+            _altinnRegisterServiceMock.Verify(_altinnRegisterServiceMock => _altinnRegisterServiceMock.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()), Times.Once);
             _altinnRegisterServiceMock.VerifyNoOtherCalls();
 
             // Should not trigger any additional Dialogporten changes or background jobs
             _backgroundJobClientMock.VerifyNoOtherCalls();
             _dialogPortenServiceMock.VerifyNoOtherCalls();
             _correspondenceDeleteEventRepositoryMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task Available_ArchivedBySelfIdentifiedUser_NoDPUpdate()
+        {
+            // Arrange
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .WithAltinn2CorrespondenceId(12345)
+                .WithDialogId("dialog-id-123")
+                .Build();
+            var correspondenceId = correspondence.Id;
+            var recipient = correspondence.Recipient;
+            var request = new SyncCorrespondenceStatusEventRequest
+            {
+                CorrespondenceId = correspondenceId,
+                SyncedEvents = new List<CorrespondenceStatusEntity>
+                {
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.Archived,
+                        StatusChanged = DateTimeOffset.UtcNow,
+                        PartyUuid = _selfIdentifiedUserPartyUuid
+                    }
+                }
+            };
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .ReturnsAsync(correspondence);
+            _correspondenceStatusRepositoryMock
+                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyByPartyUuid(_selfIdentifiedUserPartyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = _selfIdentifiedUserPartyUuid, PartyTypeName = PartyType.SelfIdentified });
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert OK Return
+            Assert.True(result.IsT0);
+            Assert.Equal(correspondenceId, result.AsT0);
+
+            // Verify correct calls to Correspondence repository
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify that the statuses were added to Repository with SyncedFromAltinn2 set
+            _correspondenceStatusRepositoryMock.Verify(
+                x => x.AddCorrespondenceStatuses(It.Is<List<CorrespondenceStatusEntity>>(list =>
+                    list.Count == 1 &&
+                    list.Any(e => e.Status == CorrespondenceStatus.Archived && e.PartyUuid == _selfIdentifiedUserPartyUuid && e.SyncedFromAltinn2 != null)
+                ), It.IsAny<CancellationToken>()),
+                Times.Once);
+            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+
+            // No DP update should be triggered for SelfIdentified users
+
+            // Verify register lookup performed
+            _altinnRegisterServiceMock.Verify(_altinnRegisterServiceMock => _altinnRegisterServiceMock.LookUpPartyByPartyUuid(_selfIdentifiedUserPartyUuid, It.IsAny<CancellationToken>()), Times.Once);
+            _altinnRegisterServiceMock.VerifyNoOtherCalls();
+
+            // Should not trigger any additional Dialogporten changes or background jobs
+            _backgroundJobClientMock.VerifyNoOtherCalls();
+            _dialogPortenServiceMock.VerifyNoOtherCalls();
         }
 
         [Fact]
@@ -588,7 +652,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         EventType = CorrespondenceDeleteEventType.HardDeletedByRecipient,
                         EventOccurred = new  DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -629,7 +693,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     e.CorrespondenceId == correspondenceId &&
                     e.Status == CorrespondenceStatus.PurgedByRecipient &&
                     e.StatusChanged.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0))) &&
-                    e.PartyUuid == _defaultPartyUuid &&
+                    e.PartyUuid == _defaultUserPartyUuid &&
                     e.SyncedFromAltinn2 != null),
                 It.IsAny<CancellationToken>()),
                 Times.Once);
@@ -638,7 +702,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEvent(
                It.Is<CorrespondenceDeleteEventEntity>(e =>
                    e.EventType == CorrespondenceDeleteEventType.HardDeletedByRecipient
-                   && e.PartyUuid == _defaultPartyUuid
+                   && e.PartyUuid == _defaultUserPartyUuid
                    && e.EventOccurred.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)))
                    && e.SyncedFromAltinn2 != null),
                It.IsAny<CancellationToken>()), Times.Once);
@@ -677,7 +741,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient,
                         EventOccurred = new  DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -699,8 +763,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetAttachmentsByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<AttachmentEntity>());
             _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyByPartyUuid(_defaultPartyUuid, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = _defaultPartyUuid, OrgNumber = _defaultPartyOrgnumber, PartyTypeName = PartyType.Organization });
+                .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -719,7 +783,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEvent(
                It.Is<CorrespondenceDeleteEventEntity>(e =>
                    e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient
-                   && e.PartyUuid == _defaultPartyUuid
+                   && e.PartyUuid == _defaultUserPartyUuid
                    && e.EventOccurred.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)))
                    && e.SyncedFromAltinn2 != null),
                It.IsAny<CancellationToken>()), Times.Once);
@@ -727,7 +791,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceDeleteEventRepositoryMock.VerifyNoOtherCalls();
 
             // Verify background jobs Dialogporten activities
-            VerifySoftDeleteUpdateForDialogportenEnqueued(correspondence.Id, _defaultPartyIdentifier, CorrespondenceDeleteEventType.SoftDeletedByRecipient);
+            VerifySoftDeleteUpdateForDialogportenEnqueued(correspondence.Id, _defaultUserPartyIdentifier, CorrespondenceDeleteEventType.SoftDeletedByRecipient);
 
             // Should not trigger any additional Dialogporten changes or background jobs
             _backgroundJobClientMock.VerifyNoOtherCalls();
@@ -735,12 +799,11 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Available_SoftDeleteByRecipient_ArchivedBeforeSoftDelete_OK()
+        public async Task Available_SoftDeleteBySelfIdentifiedRecipient_NoDPUpdate()
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithStatus(CorrespondenceStatus.Published)
-                .WithStatus(CorrespondenceStatus.Archived, new DateTime(2025, 7, 1, 12, 0, 0), _defaultPartyUuid)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithDialogId("dialog-id-123")
                 .Build();
@@ -757,7 +820,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient,
                         EventOccurred = new  DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _selfIdentifiedUserPartyUuid
                     }
                 }
             };
@@ -779,8 +842,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetAttachmentsByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<AttachmentEntity>());
             _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyByPartyUuid(_defaultPartyUuid, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = _defaultPartyUuid, OrgNumber = _defaultPartyOrgnumber, PartyTypeName = PartyType.Organization });
+                .Setup(x => x.LookUpPartyByPartyUuid(_selfIdentifiedUserPartyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = _selfIdentifiedUserPartyUuid, PartyTypeName = PartyType.SelfIdentified });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -799,7 +862,86 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEvent(
                It.Is<CorrespondenceDeleteEventEntity>(e =>
                    e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient
-                   && e.PartyUuid == _defaultPartyUuid
+                   && e.PartyUuid == _selfIdentifiedUserPartyUuid
+                   && e.EventOccurred.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)))
+                   && e.SyncedFromAltinn2 != null),
+               It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceDeleteEventRepositoryMock.Verify(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceDeleteEventRepositoryMock.VerifyNoOtherCalls();
+
+            // No soft delete enqueued in Dialogporten for self-identified users
+
+            // Should not trigger any additional Dialogporten changes or background jobs
+            _backgroundJobClientMock.VerifyNoOtherCalls();
+            _dialogPortenServiceMock.VerifyNoOtherCalls(); 
+        }
+
+        [Fact]
+        public async Task Available_SoftDeleteByRecipient_ArchivedBeforeSoftDelete_OK()
+        {
+            // Arrange
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Archived, new DateTime(2025, 7, 1, 12, 0, 0), _defaultUserPartyUuid)
+                .WithAltinn2CorrespondenceId(12345)
+                .WithDialogId("dialog-id-123")
+                .Build();
+            var correspondenceId = correspondence.Id;
+            var recipient = correspondence.Recipient;
+            var sender = correspondence.Sender;
+            var request = new SyncCorrespondenceStatusEventRequest
+            {
+                CorrespondenceId = correspondenceId,
+                SyncedEvents = null,
+                SyncedDeleteEvents = new List<CorrespondenceDeleteEventEntity>
+                {
+                    new CorrespondenceDeleteEventEntity
+                    {
+                        EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient,
+                        EventOccurred = new  DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)),
+                        PartyUuid = _defaultUserPartyUuid
+                    }
+                }
+            };
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .ReturnsAsync(correspondence);
+            _correspondenceStatusRepositoryMock
+                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
+            _correspondenceDeleteEventRepositoryMock
+                .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>());
+            _correspondenceDeleteEventRepositoryMock
+               .Setup(x => x.AddDeleteEvent(It.IsAny<CorrespondenceDeleteEventEntity>(), It.IsAny<CancellationToken>()))
+               .ReturnsAsync((CorrespondenceDeleteEventEntity r, CancellationToken _) => r);
+            _attachmentRepositoryMock
+                .Setup(x => x.GetAttachmentsByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<AttachmentEntity>());
+            _altinnRegisterServiceMock
+                 .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
+                 .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert OK Return
+            Assert.True(result.IsT0);
+            Assert.Equal(correspondenceId, result.AsT0);
+
+            // Verify correct calls to Correspondence repository
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify that no statuses were added to Repository with SyncedFromAltinn2 set
+            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+
+            _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEvent(
+               It.Is<CorrespondenceDeleteEventEntity>(e =>
+                   e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient
+                   && e.PartyUuid == _defaultUserPartyUuid
                    && e.EventOccurred.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)))
                    && e.SyncedFromAltinn2 != null),
                It.IsAny<CancellationToken>()), Times.Once);
@@ -807,7 +949,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceDeleteEventRepositoryMock.VerifyNoOtherCalls();
 
             // Verify background jobs Dialogporten activities
-            VerifySoftDeleteUpdateForDialogportenEnqueued(correspondence.Id, _defaultPartyIdentifier, CorrespondenceDeleteEventType.SoftDeletedByRecipient);
+            VerifySoftDeleteUpdateForDialogportenEnqueued(correspondence.Id, _defaultUserPartyIdentifier, CorrespondenceDeleteEventType.SoftDeletedByRecipient);
 
             // Should not trigger any additional Dialogporten changes or background jobs
             _backgroundJobClientMock.VerifyNoOtherCalls();
@@ -820,7 +962,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithStatus(CorrespondenceStatus.Published)
-                .WithStatus(CorrespondenceStatus.Archived, new DateTime(2025, 7, 1, 12, 0, 0), _defaultPartyUuid)
+                .WithStatus(CorrespondenceStatus.Archived, new DateTime(2025, 7, 1, 12, 0, 0), _defaultUserPartyUuid)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithDialogId("dialog-id-123")
                 .Build();
@@ -837,7 +979,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         EventType = CorrespondenceDeleteEventType.RestoredByRecipient,
                         EventOccurred = new  DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -857,7 +999,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient,
                         EventOccurred = new  DateTimeOffset(new DateTime(2025, 7, 15, 12, 0, 0)),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 });
             _correspondenceDeleteEventRepositoryMock
@@ -867,8 +1009,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetAttachmentsByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<AttachmentEntity>());
             _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyByPartyUuid(_defaultPartyUuid, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = _defaultPartyUuid, OrgNumber = _defaultPartyOrgnumber, PartyTypeName = PartyType.Organization });
+                 .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
+                 .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -887,7 +1029,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEvent(
               It.Is<CorrespondenceDeleteEventEntity>(e =>
                   e.EventType == CorrespondenceDeleteEventType.RestoredByRecipient
-                  && e.PartyUuid == _defaultPartyUuid
+                  && e.PartyUuid == _defaultUserPartyUuid
                   && e.EventOccurred.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)))
                   && e.SyncedFromAltinn2 != null),
               It.IsAny<CancellationToken>()), Times.Once);
@@ -895,7 +1037,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceDeleteEventRepositoryMock.VerifyNoOtherCalls();
 
             // Verify background jobs Dialogporten activities            
-            VerifyDialogportenServiceSetArchivedSystemLabelOnDialogEnqueued(correspondenceId, _defaultPartyIdentifier);
+            VerifyDialogportenServiceSetArchivedSystemLabelOnDialogEnqueued(correspondenceId, _defaultUserPartyIdentifier);
 
             // Should not trigger any additional Dialogporten changes or background jobs
             _backgroundJobClientMock.VerifyNoOtherCalls();
@@ -924,13 +1066,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient,
                         EventOccurred = new  DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     },
                     new CorrespondenceDeleteEventEntity
                     {
                         EventType = CorrespondenceDeleteEventType.HardDeletedByRecipient,
                         EventOccurred = new  DateTimeOffset(new DateTime(2025, 8, 15, 12, 0, 0)),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -952,8 +1094,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetAttachmentsByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<AttachmentEntity>());
             _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyByPartyUuid(_defaultPartyUuid, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = _defaultPartyUuid, OrgNumber = _defaultPartyOrgnumber, PartyTypeName = PartyType.Organization });
+                .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
             _backgroundJobClientMock
                 .Setup(x => x.Create(It.Is<Job>(j => j.Method.Name == nameof(IDialogportenService.CreateCorrespondencePurgedActivity)), It.IsAny<EnqueuedState>())).Returns("1");
 
@@ -974,7 +1116,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     e.CorrespondenceId == correspondenceId &&
                     e.Status == CorrespondenceStatus.PurgedByRecipient &&
                     e.StatusChanged.Equals(new DateTimeOffset(new DateTime(2025, 8, 15, 12, 0, 0))) &&
-                    e.PartyUuid == _defaultPartyUuid &&
+                    e.PartyUuid == _defaultUserPartyUuid &&
                     e.SyncedFromAltinn2 != null),
                 It.IsAny<CancellationToken>()),
                 Times.Once);
@@ -983,14 +1125,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEvent(
                It.Is<CorrespondenceDeleteEventEntity>(e =>
                    e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient
-                   && e.PartyUuid == _defaultPartyUuid
+                   && e.PartyUuid == _defaultUserPartyUuid
                    && e.EventOccurred.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)))
                    && e.SyncedFromAltinn2 != null),
                It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEvent(
                It.Is<CorrespondenceDeleteEventEntity>(e =>
                    e.EventType == CorrespondenceDeleteEventType.HardDeletedByRecipient
-                   && e.PartyUuid == _defaultPartyUuid
+                   && e.PartyUuid == _defaultUserPartyUuid
                    && e.EventOccurred.Equals(new DateTimeOffset(new DateTime(2025, 8, 15, 12, 0, 0)))
                    && e.SyncedFromAltinn2 != null),
                It.IsAny<CancellationToken>()), Times.Once);
@@ -1000,7 +1142,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             VerifyAltinnEventEnqueued(correspondenceId, AltinnEventType.CorrespondencePurged, sender);
 
             // Verify background jobs Dialogporten activities            
-            VerifySoftDeleteUpdateForDialogportenEnqueued(correspondence.Id, _defaultPartyIdentifier, CorrespondenceDeleteEventType.SoftDeletedByRecipient);
+            VerifySoftDeleteUpdateForDialogportenEnqueued(correspondence.Id, _defaultUserPartyIdentifier, CorrespondenceDeleteEventType.SoftDeletedByRecipient);
             VerifyDialogportenServiceCreatePurgedActivityEnqueued(correspondenceId, DialogportenActorType.Recipient, "mottaker", new DateTimeOffset(new DateTime(2025, 8, 15, 12, 0, 0)));
             VerifyDialogportenServiceSoftDeleteDialogEnqueued("dialog-id-123");
 
@@ -1032,7 +1174,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         EventType = CorrespondenceDeleteEventType.RestoredByRecipient,
                         EventOccurred = new  DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -1054,8 +1196,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetAttachmentsByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<AttachmentEntity>());
             _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyByPartyUuid(_defaultPartyUuid, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = _defaultPartyUuid, OrgNumber = _defaultPartyOrgnumber, PartyTypeName = PartyType.Organization });
+                .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -1074,7 +1216,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEvent(
                It.Is<CorrespondenceDeleteEventEntity>(e =>
                    e.EventType == CorrespondenceDeleteEventType.RestoredByRecipient
-                   && e.PartyUuid == _defaultPartyUuid
+                   && e.PartyUuid == _defaultUserPartyUuid
                    && e.EventOccurred.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)))
                    && e.SyncedFromAltinn2 != null),
                It.IsAny<CancellationToken>()), Times.Once);
@@ -1082,7 +1224,85 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceDeleteEventRepositoryMock.VerifyNoOtherCalls();
 
             // Verify background jobs Dialogporten activities
-            VerifySoftDeleteUpdateForDialogportenEnqueued(correspondence.Id, _defaultPartyIdentifier, CorrespondenceDeleteEventType.RestoredByRecipient);
+            VerifySoftDeleteUpdateForDialogportenEnqueued(correspondence.Id, _defaultUserPartyIdentifier, CorrespondenceDeleteEventType.RestoredByRecipient);
+
+            // Should not trigger any additional Dialogporten changes or background jobs
+            _backgroundJobClientMock.VerifyNoOtherCalls();
+            _dialogPortenServiceMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task Available_RestoreBySelfIdentifiedRecipient_NoDPUpdate()
+        {
+            // Arrange
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .WithAltinn2CorrespondenceId(12345)
+                .WithDialogId("dialog-id-123")
+                .Build();
+            var correspondenceId = correspondence.Id;
+            var recipient = correspondence.Recipient;
+            var sender = correspondence.Sender;
+            var request = new SyncCorrespondenceStatusEventRequest
+            {
+                CorrespondenceId = correspondenceId,
+                SyncedEvents = null,
+                SyncedDeleteEvents = new List<CorrespondenceDeleteEventEntity>
+                {
+                    new CorrespondenceDeleteEventEntity
+                    {
+                        EventType = CorrespondenceDeleteEventType.RestoredByRecipient,
+                        EventOccurred = new  DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)),
+                        PartyUuid = _selfIdentifiedUserPartyUuid
+                    }
+                }
+            };
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .ReturnsAsync(correspondence);
+            _correspondenceStatusRepositoryMock
+                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
+            _correspondenceDeleteEventRepositoryMock
+                .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>());
+            _correspondenceDeleteEventRepositoryMock
+               .Setup(x => x.AddDeleteEvent(It.IsAny<CorrespondenceDeleteEventEntity>(), It.IsAny<CancellationToken>()))
+               .ReturnsAsync((CorrespondenceDeleteEventEntity r, CancellationToken _) => r);
+            _attachmentRepositoryMock
+                .Setup(x => x.GetAttachmentsByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<AttachmentEntity>());
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyByPartyUuid(_selfIdentifiedUserPartyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = _selfIdentifiedUserPartyUuid,PartyTypeName = PartyType.SelfIdentified });
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert OK Return
+            Assert.True(result.IsT0);
+            Assert.Equal(correspondenceId, result.AsT0);
+
+            // Verify correct calls to Correspondence repository
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify that no statuses were added to Repository with SyncedFromAltinn2 set
+            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+
+            _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEvent(
+               It.Is<CorrespondenceDeleteEventEntity>(e =>
+                   e.EventType == CorrespondenceDeleteEventType.RestoredByRecipient
+                   && e.PartyUuid == _selfIdentifiedUserPartyUuid
+                   && e.EventOccurred.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)))
+                   && e.SyncedFromAltinn2 != null),
+               It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceDeleteEventRepositoryMock.Verify(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceDeleteEventRepositoryMock.VerifyNoOtherCalls();
+
+            // No restore in Dialogporten enqueued for self-identified users
 
             // Should not trigger any additional Dialogporten changes or background jobs
             _backgroundJobClientMock.VerifyNoOtherCalls();
@@ -1095,7 +1315,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithCreated(new DateTime(2025, 8, 1, 12, 0, 0))
-                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 8, 1, 12, 0, 0), _defaultPartyUuid)
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 8, 1, 12, 0, 0), _defaultUserPartyUuid)
                 .WithDialogId("dialog-id-123")
                 .WithAltinn2CorrespondenceId(12345)
                 .WithAttachment("fjas.txt")
@@ -1113,7 +1333,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         EventType = CorrespondenceDeleteEventType.HardDeletedByServiceOwner,
                         EventOccurred = new  DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -1178,7 +1398,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     e.CorrespondenceId == correspondenceId &&
                     e.Status == CorrespondenceStatus.PurgedByAltinn &&
                     e.StatusChanged.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0))) &&
-                    e.PartyUuid == _defaultPartyUuid &&
+                    e.PartyUuid == _defaultUserPartyUuid &&
                     e.SyncedFromAltinn2 != null),
                 It.IsAny<CancellationToken>()),
                 Times.Once);
@@ -1187,7 +1407,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEvent(
                 It.Is<CorrespondenceDeleteEventEntity>(e =>
                     e.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner 
-                    && e.PartyUuid == _defaultPartyUuid 
+                    && e.PartyUuid == _defaultUserPartyUuid
                     && e.EventOccurred.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)))
                     && e.SyncedFromAltinn2 != null),                
                 It.IsAny<CancellationToken>()), Times.Once);
@@ -1228,7 +1448,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         EventType = CorrespondenceDeleteEventType.HardDeletedByRecipient,
                         EventOccurred = new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -1267,7 +1487,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     e.CorrespondenceId == correspondenceId &&
                     e.Status == CorrespondenceStatus.PurgedByRecipient &&
                     e.StatusChanged.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0))) &&
-                    e.PartyUuid == _defaultPartyUuid &&
+                    e.PartyUuid == _defaultUserPartyUuid &&
                     e.SyncedFromAltinn2 != null),
                 It.IsAny<CancellationToken>()),
                 Times.Once);
@@ -1276,7 +1496,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEvent(
                It.Is<CorrespondenceDeleteEventEntity>(e =>
                    e.EventType == CorrespondenceDeleteEventType.HardDeletedByRecipient
-                   && e.PartyUuid == _defaultPartyUuid
+                   && e.PartyUuid == _defaultUserPartyUuid
                    && e.EventOccurred.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)))
                    && e.SyncedFromAltinn2 != null),
                It.IsAny<CancellationToken>()), Times.Once);
@@ -1294,7 +1514,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithStatus(CorrespondenceStatus.Published)
-                .WithStatus(CorrespondenceStatus.PurgedByRecipient, new DateTime(2025, 8, 1, 12, 0, 0), _defaultPartyUuid)
+                .WithStatus(CorrespondenceStatus.PurgedByRecipient, new DateTime(2025, 8, 1, 12, 0, 0), _defaultUserPartyUuid)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true) // Not Available in Altinn 3                
                 .Build();
@@ -1310,7 +1530,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         Status = CorrespondenceStatus.PurgedByRecipient,
                         StatusChanged = new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -1364,7 +1584,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient,
                         EventOccurred = new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -1385,9 +1605,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _attachmentRepositoryMock
                 .Setup(x => x.GetAttachmentsByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<AttachmentEntity>());
-            _altinnRegisterServiceMock
-               .Setup(x => x.LookUpPartyByPartyUuid(_defaultPartyUuid, It.IsAny<CancellationToken>()))
-               .ReturnsAsync(new Core.Models.Entities.Party { PartyUuid = _defaultPartyUuid, OrgNumber = _defaultPartyOrgnumber, PartyTypeName = PartyType.Organization });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -1406,7 +1623,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEvent(
                 It.Is<CorrespondenceDeleteEventEntity>(e =>
                     e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient
-                    && e.PartyUuid == _defaultPartyUuid
+                    && e.PartyUuid == _defaultUserPartyUuid
                     && e.EventOccurred.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)))
                     && e.SyncedFromAltinn2 != null),
                 It.IsAny<CancellationToken>()), Times.Once);
@@ -1440,13 +1657,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         EventType = CorrespondenceDeleteEventType.HardDeletedByRecipient,
                         EventOccurred = new DateTimeOffset(new DateTime(2025, 8, 15, 12, 0, 0)),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     },
                     new CorrespondenceDeleteEventEntity
                     {
                         EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient,
                         EventOccurred = new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -1467,9 +1684,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _attachmentRepositoryMock
                 .Setup(x => x.GetAttachmentsByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<AttachmentEntity>());
-            _altinnRegisterServiceMock
-               .Setup(x => x.LookUpPartyByPartyUuid(_defaultPartyUuid, It.IsAny<CancellationToken>()))
-               .ReturnsAsync(new Core.Models.Entities.Party { PartyUuid = _defaultPartyUuid, OrgNumber = _defaultPartyOrgnumber, PartyTypeName = PartyType.Organization });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -1488,7 +1702,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     e.CorrespondenceId == correspondenceId &&
                     e.Status == CorrespondenceStatus.PurgedByRecipient &&
                     e.StatusChanged.Equals(new DateTimeOffset(new DateTime(2025, 8, 15, 12, 0, 0))) &&
-                    e.PartyUuid == _defaultPartyUuid &&
+                    e.PartyUuid == _defaultUserPartyUuid &&
                     e.SyncedFromAltinn2 != null),
                 It.IsAny<CancellationToken>()),
                 Times.Once);
@@ -1497,14 +1711,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEvent(
                 It.Is<CorrespondenceDeleteEventEntity>(e =>
                     e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient
-                    && e.PartyUuid == _defaultPartyUuid
+                    && e.PartyUuid == _defaultUserPartyUuid
                     && e.EventOccurred.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)))
                     && e.SyncedFromAltinn2 != null),
                 It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEvent(
                 It.Is<CorrespondenceDeleteEventEntity>(e =>
                     e.EventType == CorrespondenceDeleteEventType.HardDeletedByRecipient
-                    && e.PartyUuid == _defaultPartyUuid
+                    && e.PartyUuid == _defaultUserPartyUuid
                     && e.EventOccurred.Equals(new DateTimeOffset(new DateTime(2025, 8, 15, 12, 0, 0)))
                     && e.SyncedFromAltinn2 != null),
                 It.IsAny<CancellationToken>()), Times.Once);
@@ -1538,7 +1752,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         EventType = CorrespondenceDeleteEventType.RestoredByRecipient,
                         EventOccurred = new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)),
-                        PartyUuid = _defaultPartyUuid
+                        PartyUuid = _defaultUserPartyUuid
                     }
                 }
             };
@@ -1560,8 +1774,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetAttachmentsByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<AttachmentEntity>());
             _altinnRegisterServiceMock
-               .Setup(x => x.LookUpPartyByPartyUuid(_defaultPartyUuid, It.IsAny<CancellationToken>()))
-               .ReturnsAsync(new Core.Models.Entities.Party { PartyUuid = _defaultPartyUuid, OrgNumber = _defaultPartyOrgnumber, PartyTypeName = PartyType.Organization });
+                .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -1580,7 +1794,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEvent(
                 It.Is<CorrespondenceDeleteEventEntity>(e =>
                     e.EventType == CorrespondenceDeleteEventType.RestoredByRecipient
-                    && e.PartyUuid == _defaultPartyUuid
+                    && e.PartyUuid == _defaultUserPartyUuid
                     && e.EventOccurred.Equals(new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)))
                     && e.SyncedFromAltinn2 != null),
                 It.IsAny<CancellationToken>()), Times.Once);            

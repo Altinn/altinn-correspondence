@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 
@@ -87,7 +88,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
             }
 
             return query.Where(cs =>
-                statusesToFilter.Contains(cs.Statuses.OrderBy(s => s.Status).Last().Status));
+                statusesToFilter.Contains(cs.Statuses.Max(s => s.Status)));
         }
 
         public static IQueryable<CorrespondenceEntity> ExcludePurged(this IQueryable<CorrespondenceEntity> query)
@@ -96,6 +97,12 @@ namespace Altinn.Correspondence.Persistence.Helpers
                     !cs.Statuses.Any(s =>
                         s.Status == CorrespondenceStatus.PurgedByAltinn ||
                         s.Status == CorrespondenceStatus.PurgedByRecipient));
+        }
+
+        public static IQueryable<CorrespondenceEntity> ExcludeSelfIdentifiedRecipients(this IQueryable<CorrespondenceEntity> query)
+        {
+            var prefix = UrnConstants.PartyUuid + ":";
+            return query.Where(cs => cs.Recipient == null || !cs.Recipient.StartsWith(prefix));
         }
 
         public static IQueryable<CorrespondenceEntity> WhereCurrentStatusIn(

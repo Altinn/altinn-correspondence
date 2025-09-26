@@ -1,4 +1,3 @@
-using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -9,7 +8,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using Parquet.Serialization;
-using System.Security.Claims;
 using System.Security.Cryptography;
 
 namespace Altinn.Correspondence.Application.GenerateReport;
@@ -23,7 +21,6 @@ public class GenerateDailySummaryReportHandler(
     IHostEnvironment hostEnvironment)
 {
     public async Task<OneOf<GenerateDailySummaryReportResponse, Error>> Process(
-        ClaimsPrincipal user,
         GenerateDailySummaryReportRequest request,
         CancellationToken cancellationToken)
     {
@@ -256,7 +253,6 @@ public class GenerateDailySummaryReportHandler(
     }
 
     public async Task<OneOf<GenerateAndDownloadDailySummaryReportResponse, Error>> ProcessAndDownload(
-        ClaimsPrincipal user,
         GenerateDailySummaryReportRequest request,
         CancellationToken cancellationToken)
     {
