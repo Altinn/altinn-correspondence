@@ -20,4 +20,5 @@ public interface IDialogportenService
     Task<bool> TryRestoreSoftDeletedDialog(string dialogId, CancellationToken cancellationToken = default);
     Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType, string actorName, DateTimeOffset activityTimestamp);
     Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string enduserId, List<DialogPortenSystemLabel>? systemLabelsToAdd, List<DialogPortenSystemLabel>? systemLabelsToRemove);
+    Task <bool> TryRemoveMarkdownAndHtmlFromSummary(string dialogId, string newSummary, CancellationToken cancellationToken = default);
 }

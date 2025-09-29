@@ -12,7 +12,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         internal DialogPatchRequestBuilder WithRemoveGuiActionOperation(int guiActionToRemoveIndex)
         {
             _PatchDialogRequest.Add(
-                new 
+                new
                 {
                     op = "remove",
                     path = $"/guiActions/{guiActionToRemoveIndex}"
@@ -24,7 +24,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         internal DialogPatchRequestBuilder WithRemoveApiActionOperation(int apiActionToRemoveIndex)
         {
             _PatchDialogRequest.Add(
-                new 
+                new
                 {
                     op = "remove",
                     path = $"/apiActions/{apiActionToRemoveIndex}"
@@ -36,7 +36,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         internal DialogPatchRequestBuilder WithReplaceStatusOperation(string newStatus)
         {
             _PatchDialogRequest.Add(
-                new 
+                new
                 {
                     op = "replace",
                     path = "/status",
@@ -53,6 +53,19 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 {
                     op = "remove",
                     path = "/expiresAt"
+                }
+            );
+            return this;
+        }
+        
+        internal DialogPatchRequestBuilder WithReplaceSummaryOperation(string newSummary)
+        {
+            _PatchDialogRequest.Add(
+                new
+                {
+                    op = "replace",
+                    path = "/content/summary",
+                    value = newSummary
                 }
             );
             return this;
