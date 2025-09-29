@@ -128,15 +128,17 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
         {
             return true;
         }
-        if (_generalSettings.DisableTelemetryForSync)
+
+        if (pathSpan.Contains("/correspondence/api/v1/migration/correspondence/sync".AsSpan(), StringComparison.OrdinalIgnoreCase))
         {
-            return pathSpan.Contains("/correspondence/api/v1/migration/correspondence/sync".AsSpan(), StringComparison.InvariantCultureIgnoreCase);
-        }        
+            return _generalSettings.DisableTelemetryForSync;
+        }
+
         if (_generalSettings.DisableTelemetryForMigration)
         {
-            return pathSpan.Contains("/correspondence/api/v1/migration/correspondence".AsSpan(), StringComparison.InvariantCultureIgnoreCase)
-                || pathSpan.Contains("/correspondence/api/v1/migration/makemigratedcorrespondenceavailable".AsSpan(), StringComparison.InvariantCultureIgnoreCase)
-                || pathSpan.Contains("/correspondence/api/v1/migration/attachment".AsSpan(), StringComparison.InvariantCultureIgnoreCase);
+            return pathSpan.Contains("/correspondence/api/v1/migration/correspondence".AsSpan(), StringComparison.OrdinalIgnoreCase)
+                || pathSpan.Contains("/correspondence/api/v1/migration/makemigratedcorrespondenceavailable".AsSpan(), StringComparison.OrdinalIgnoreCase)
+                || pathSpan.Contains("/correspondence/api/v1/migration/attachment".AsSpan(), StringComparison.OrdinalIgnoreCase);
         }
 
         return false;
