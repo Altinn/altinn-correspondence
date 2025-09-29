@@ -66,8 +66,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 {
                     new TransmissionValue
                     {
-                        Value = $"{baseUrl}/correspondence/{correspondence.Id}",
-                        LanguageCode = "nb"
+                        Value = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/content",
+                        LanguageCode = correspondence.Content.Language
                     }
             }
             }
