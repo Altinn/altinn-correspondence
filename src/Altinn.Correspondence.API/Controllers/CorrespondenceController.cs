@@ -67,6 +67,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1035: Reply options must be well-formed URIs and HTTPS with a max length of 255 characters</li>
         /// <li>1038: A correspondence cannot contain more than 100 attachments in total</li>
         /// <li>1039: Message sender must be plain text</li>
+        /// <li>1044: The following recipients lacks required roles to read correspondences: {recipients}</li>
+        /// <li>1045: The following recipients lacks required roles to read confidential correspondences: {recipients}</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// <li>3002: Email body and subject must be provided when sending email notifications</li>
         /// <li>3003: Reminder email body and subject must be provided when sending reminder email notifications</li>
@@ -160,6 +162,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1035: Reply options must be well-formed URIs and HTTPS with a max length of 255 characters</li>
         /// <li>1038: A correspondence cannot contain more than 100 attachments in total</li>
         /// <li>1039: Message sender must be plain text</li>
+        /// <li>1044: The following recipients lacks required roles to read correspondences: {recipients}</li>
+        /// <li>1045: The following recipients lacks required roles to read confidential correspondences: {recipients}</li>
         /// <li>2001: The requested attachment was not found</li>
         /// <li>2004: File must have content and has a max file size of 2GB</li>
         /// <li>2008: Checksum mismatch</li>
