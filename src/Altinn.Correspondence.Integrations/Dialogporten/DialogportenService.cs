@@ -407,7 +407,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var dialog = await GetDialog(dialogId);
         if (dialog is null)
         {
-            throw new Exception($"Dialog {dialogId} not found when attempting to remove expiresAt");
+            logger.LogError($"Dialog {dialogId} not found when attempting to remove expiresAt");
+            return false;
         }
         if (dialog.ExpiresAt == null)
         {
@@ -424,7 +425,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", patchRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            logger.LogError($"When removing expiresat the response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            return false;
         }
         return true;
     }
