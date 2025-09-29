@@ -481,12 +481,12 @@ public class InitializeCorrespondencesHandler(
             var roles = await altinnRegisterService.LookUpPartyRoles(recipientParty.PartyUuid.Value.ToString(), cancellationToken);
             if (request.Correspondence.IsConfidential)
             {
-                if (roles.Any(r => !ApplicationConstants.RequiredOrganizationRolesForConfidentialCorrespondenceRecipient.Contains(r.Role.Identifier)))
+                if (!roles.Any(r => ApplicationConstants.RequiredOrganizationRolesForConfidentialCorrespondenceRecipient.Contains(r.Role.Identifier)))
                 {
                     recipientsWithoutRequiredRoles.Add(recipient);
                 }
             }
-            else if (roles.Any(r => !ApplicationConstants.RequiredOrganizationRolesForCorrespondenceRecipient.Contains(r.Role.Identifier)))
+            else if (!roles.Any(r => ApplicationConstants.RequiredOrganizationRolesForCorrespondenceRecipient.Contains(r.Role.Identifier)))
             {
                 recipientsWithoutRequiredRoles.Add(recipient);
             }
