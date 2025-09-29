@@ -498,14 +498,7 @@ public class InitializeCorrespondencesHandler(
         }
         if (recipientsWithoutRequiredRoles.Count > 0)
         {
-            if (request.Correspondence.IsConfidential)
-            {
-                return CorrespondenceErrors.OrganizationHasNoRequiredRolesForConfidentialCorrespondenceRecipient(recipientsWithoutRequiredRoles);
-            }
-            else
-            {
-                return CorrespondenceErrors.OrganizationHasNoRequiredRolesForCorrespondenceRecipient(recipientsWithoutRequiredRoles);
-            }
+            return CorrespondenceErrors.RecipientLacksRequiredRolesForCorrespondence(recipientsWithoutRequiredRoles);
         }
 
         return true;
