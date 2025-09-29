@@ -8,7 +8,6 @@ using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
-using OpenTelemetry.Trace;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.MarkCorrespondenceAsRead;

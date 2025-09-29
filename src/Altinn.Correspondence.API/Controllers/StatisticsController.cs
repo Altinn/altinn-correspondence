@@ -1,10 +1,7 @@
 using Altinn.Correspondence.API.Filters;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.GenerateReport;
-using Altinn.Correspondence.Common.Constants;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Parquet.Serialization;
 
 namespace Altinn.Correspondence.API.Controllers;
 

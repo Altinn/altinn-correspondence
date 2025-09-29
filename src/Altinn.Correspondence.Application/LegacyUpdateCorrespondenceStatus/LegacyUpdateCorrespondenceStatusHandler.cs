@@ -4,11 +4,9 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Persistence.Repositories;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
-using OpenTelemetry.Trace;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.LegacyUpdateCorrespondenceStatus;

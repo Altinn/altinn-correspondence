@@ -10,8 +10,6 @@ using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using OneOf;
-using System.Linq.Expressions;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
@@ -272,6 +270,39 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _mockCorrespondenceRepository.Setup(x => x.GetCorrespondenceById(
                 correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
                 .ReturnsAsync(mockCorrespondence);            
+
+            // Act
+            var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.True(result.IsT0);
+            var response = result.AsT0;
+            Assert.NotNull(response.Statuses);
+            Assert.Single(response.Statuses);
+            Assert.Equal(correspondenceId, response.Statuses[0].CorrespondenceId);
+            Assert.False(response.Statuses[0].Ok);
+
+            _mockDialogportenService.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task MakeCorrespondenceAvailable_WithCorrespondenceId_CorrespondenceBelongsToSeflidentifiedRecipient_ShouldNotMakeAvailable()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var request = new MakeCorrespondenceAvailableRequest
+            {
+                CorrespondenceId = correspondenceId,
+                CreateEvents = true
+            };
+
+            var mockCorrespondence = CreateMockCorrespondence(correspondenceId);
+            mockCorrespondence.Recipient = "urn:altinn:party:uuid:96B337F1-05EB-4DF0-A83A-165C14558153";
+
+            _mockCorrespondenceRepository.Setup(x => x.GetCorrespondenceById(
+                correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
+                .ReturnsAsync(mockCorrespondence);
 
             // Act
             var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);

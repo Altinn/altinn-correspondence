@@ -3,9 +3,6 @@ using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Attachment.Base;
 using System.Net.Http.Json;
 using System.Net;
-using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.Common.Constants;
-using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Tests.Fixtures;
 
 namespace Altinn.Correspondence.Tests.TestingController.Attachment

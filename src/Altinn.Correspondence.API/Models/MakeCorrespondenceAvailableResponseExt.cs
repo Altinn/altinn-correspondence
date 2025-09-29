@@ -1,5 +1,3 @@
-using Altinn.Correspondence.Core.Models.Entities;
-
 namespace Altinn.Correspondence.API.Models;
 public class MakeCorrespondenceAvailableResponseExt
 {

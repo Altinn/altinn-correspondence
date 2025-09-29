@@ -1,5 +1,3 @@
-using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models

@@ -1,5 +1,4 @@
 using Altinn.Correspondence.Core.Models.Entities;
-using System.Text.Json;
 
 namespace Altinn.Correspondence.Core.Repositories
 {

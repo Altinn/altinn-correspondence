@@ -4,7 +4,6 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
@@ -201,6 +200,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return _context.Correspondences
                 .Where(c => c.Altinn2CorrespondenceId != null && c.IsMigrating) // Only include correspondences that are not already migrated 
                 .ExcludePurged() // Exclude purged correspondences
+                .ExcludeSelfIdentifiedRecipients() // Exclude correspondences belonging to self identified users
                 .OrderByDescending(c => c.Created)
                 .ThenBy(c => c.Id)
                 .Skip(offset)

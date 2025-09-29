@@ -1,7 +1,6 @@
 ﻿using Altinn.AccessManagement.Core.Models;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Primitives;
 using OpenTelemetry;
 using System.Collections.Frozen;

@@ -3,13 +3,11 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Core.Services.Enums;
 using OneOf;
 using System.Security.Claims;
 using Microsoft.Extensions.Logging;
 using Altinn.Correspondence.Common.Helpers;
 using Hangfire;
-using System.Linq;
 
 namespace Altinn.Correspondence.Application.PurgeAttachment;
 
