@@ -18,7 +18,7 @@ public class CleanupMarkdownAndHTMLInSummaryHandler(
 {
     public Task<OneOf<CleanupMarkdownAndHTMLInSummaryResponse, Error>> Process(CleanupMarkdownAndHTMLInSummaryRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Starting cleanup of perishing dialogs (removing expiresAt) with window size {windowSize}", request.WindowSize);
+        logger.LogInformation("Starting cleanup of dialogs with markdown or html in summary with window size {windowSize}", request.WindowSize);
 
         var jobId = backgroundJobClient.Enqueue(() => ExecuteCleanupInBackground(request.WindowSize, CancellationToken.None));
 
@@ -106,7 +106,6 @@ public class CleanupMarkdownAndHTMLInSummaryHandler(
                 {
                     isMoreCorrespondences = false;
                 }
-
             }
 
             logger.LogInformation("Background cleanup completed. Total processed: {processedCount}, Total patched: {patchedCount}, Already ok: {alreadyOkCount}, Total errors: {errorCount}", 
