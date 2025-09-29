@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Application.CreateNotification;
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -100,18 +101,11 @@ public class InitializeCorrespondencesHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
         validatedData.PartyUuid = partyUuid;
-        var recipientsNotFound = new List<string>();
-        foreach (var recipient in request.Recipients)
+
+        var recipientValidation = await ValidateRecipientParty(request, cancellationToken);
+        if (recipientValidation.IsT1)
         {
-            var recipientParty = await altinnRegisterService.LookUpPartyById(recipient, cancellationToken);
-            if (recipientParty is null)
-            {
-                recipientsNotFound.Add(recipient);
-            }
-        }
-        if (recipientsNotFound.Count > 0)
-        {
-            return CorrespondenceErrors.RecipientLookupFailed(recipientsNotFound);
+            return recipientValidation.AsT1;
         }
 
         if (request.Recipients.Count != request.Recipients.Distinct().Count())
@@ -467,5 +461,53 @@ public class InitializeCorrespondencesHandler(
                 await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
             }
         }
+    }
+
+    private async Task<OneOf<bool, Error>> ValidateRecipientParty(InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
+    {
+        var recipientsNotFound = new List<string>();
+        var recipientsWithoutRequiredRoles = new List<string>();
+
+        foreach (var recipient in request.Recipients)
+        {
+            var recipientParty = await altinnRegisterService.LookUpPartyById(recipient, cancellationToken);
+            if (recipientParty is null || recipientParty.PartyUuid is null)
+            {
+                recipientsNotFound.Add(recipient);
+                continue;
+            }
+
+            if (string.IsNullOrEmpty(recipientParty.OrgNumber)) continue;
+            var roles = await altinnRegisterService.LookUpPartyRoles(recipientParty.PartyUuid.Value.ToString(), cancellationToken);
+            if (request.Correspondence.IsConfidential)
+            {
+                if (roles.Any(r => !ApplicationConstants.RequiredOrganizationRolesForConfidentialCorrespondenceRecipient.Contains(r.Role.Identifier)))
+                {
+                    recipientsWithoutRequiredRoles.Add(recipient);
+                }
+            }
+            else if (roles.Any(r => !ApplicationConstants.RequiredOrganizationRolesForCorrespondenceRecipient.Contains(r.Role.Identifier)))
+            {
+                recipientsWithoutRequiredRoles.Add(recipient);
+            }
+        }
+
+        if (recipientsNotFound.Count > 0)
+        {
+            return CorrespondenceErrors.RecipientLookupFailed(recipientsNotFound);
+        }
+        if (recipientsWithoutRequiredRoles.Count > 0)
+        {
+            if (request.Correspondence.IsConfidential)
+            {
+                return CorrespondenceErrors.OrganizationHasNoRequiredRolesForConfidentialCorrespondenceRecipient(recipientsWithoutRequiredRoles);
+            }
+            else
+            {
+                return CorrespondenceErrors.OrganizationHasNoRequiredRolesForCorrespondenceRecipient(recipientsWithoutRequiredRoles);
+            }
+        }
+
+        return true;
     }
 }

@@ -10,5 +10,5 @@ public interface IAltinnRegisterService
     Task<Party?> LookUpPartyByPartyUuid(Guid partyUuid, CancellationToken cancellationToken);    
     Task<Party?> LookUpPartyById(string identificationId, CancellationToken cancellationToken);
     Task<List<Party>?> LookUpPartiesByIds(List<string> identificationIds, CancellationToken cancellationToken);
-    Task<List<RoleItem>> LookUpPartyRoles(int partyId, CancellationToken cancellationToken);
+    Task<List<RoleItem>> LookUpPartyRoles(string partyUuid, CancellationToken cancellationToken);
 }

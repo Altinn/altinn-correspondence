@@ -143,10 +143,10 @@ public class AltinnRegisterDevService : IAltinnRegisterService
         return Task.FromResult<List<Party>?>(parties);
     }
 
-    public Task<List<RoleItem>> LookUpPartyRoles(int partyId, CancellationToken cancellationToken)
+    public Task<List<RoleItem>> LookUpPartyRoles(string partyUuid, CancellationToken cancellationToken)
     {
         var roles = new List<RoleItem>();
-        if (partyId == _digdirPartyId)
+        if (partyUuid == _digdirPartyUuid.ToString())
         {
             roles.Add(new RoleItem
             {
