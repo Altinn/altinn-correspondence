@@ -278,7 +278,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Include(c => c.ExternalReferences)
                 .ToListAsync(cancellationToken);
         }
-        
+
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndNotCurrentStatuses(
             List<Guid> correspondenceIds,
             ReferenceType referenceType,
@@ -349,6 +349,25 @@ namespace Altinn.Correspondence.Persistence.Repositories
             .SingleOrDefaultAsync(cancellationToken);
 
             return correspondence;
+        }
+
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesByNoAltinn2IdAndExistingDialog(
+            List<Guid> correspondenceIds,
+            ReferenceType referenceType,
+            CancellationToken cancellationToken)
+        {
+            if (correspondenceIds == null || correspondenceIds.Count == 0)
+            {
+                return new List<CorrespondenceEntity>();
+            }
+            return await _context.Correspondences
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Where(c => correspondenceIds.Contains(c.Id))
+                .Where(c => c.Altinn2CorrespondenceId == null)
+                .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == referenceType))
+                .Include(c => c.Content)
+                .ToListAsync(cancellationToken);
         }
     }
 }
