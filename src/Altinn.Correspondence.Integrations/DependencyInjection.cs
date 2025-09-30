@@ -20,7 +20,6 @@ using Altinn.Correspondence.Common.Helpers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Slack.Webhooks;
-using Altinn.Correspondence.Integrations.Brreg;
 
 namespace Altinn.Correspondence.Integrations;
 public static class DependencyInjection
@@ -45,7 +44,6 @@ public static class DependencyInjection
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
             services.AddScoped<IContactReservationRegistryService, ContactReservationRegistryDevService>();
             services.AddScoped<IAltinnStorageService, AltinnStorageDevService>();
-            services.AddScoped<IBrregService, BrregDevService>();
         }
         else
         {
@@ -60,8 +58,6 @@ public static class DependencyInjection
             services.RegisterAltinnHttpClient<IDialogportenService, DialogportenService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnStorageService, AltinnStorageService>(maskinportenSettings, altinnOptions);
             services.RegisterMaskinportenHttpClient<IContactReservationRegistryService, ContactReservationRegistryService>(config, generalSettings.ContactReservationRegistryBaseUrl);
-            services.AddHttpClient<IBrregService, BrregService>()
-                .AddStandardRetryPolicy();
         }
 
         if (string.IsNullOrWhiteSpace(generalSettings.SlackUrl))

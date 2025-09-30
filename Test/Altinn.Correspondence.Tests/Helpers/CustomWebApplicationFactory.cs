@@ -5,7 +5,6 @@ using Altinn.Correspondence.Integrations.Altinn.AccessManagement;
 using Altinn.Correspondence.Integrations.Altinn.Events;
 using Altinn.Correspondence.Integrations.Altinn.Notifications;
 using Altinn.Correspondence.Integrations.Altinn.Register;
-using Altinn.Correspondence.Integrations.Brreg;
 using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Integrations.Hangfire;
 using Slack.Webhooks;
@@ -81,7 +80,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             services.AddScoped<IEventBus, ConsoleLogEventBus>();
             services.AddScoped<IAltinnNotificationService, AltinnDevNotificationService>();
             services.AddScoped<IDialogportenService, DialogportenDevService>();
-            services.AddScoped<IBrregService, BrregDevService>();
             services.AddSingleton(new Mock<ISlackClient>().Object);
             services.OverrideAuthentication();
             services.OverrideAuthorization();
