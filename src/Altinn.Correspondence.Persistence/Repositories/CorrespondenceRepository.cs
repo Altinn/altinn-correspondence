@@ -163,6 +163,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 : _context.Correspondences.Where(c => recipientIds.Contains(c.Recipient)); // Filter multiple recipients
 
             correspondences = correspondences
+                .AsNoTracking()
                 .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
                 .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter                              
                 .IncludeByStatuses(includeActive, includeArchived, status) // Filter by statuses
@@ -173,7 +174,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Include(c => c.Content)
                 .OrderByDescending(c => c.RequestedPublishTime);             // Sort by RequestedPublishTime
 
-            var result = await correspondences.Take(limit).ToListAsync(cancellationToken);
+            var result = await correspondences.AsSplitQuery().Take(limit).ToListAsync(cancellationToken);
             return result;
         }
         public async Task<bool> AreAllAttachmentsPublished(Guid correspondenceId, CancellationToken cancellationToken = default)
