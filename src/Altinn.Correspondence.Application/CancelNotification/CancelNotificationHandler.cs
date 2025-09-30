@@ -2,6 +2,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Core.Models.Enums;
 using Hangfire;
 using Hangfire.Server;
 using Microsoft.Extensions.Hosting;
@@ -10,6 +11,7 @@ using Slack.Webhooks;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using Altinn.Correspondence.Core.Options;
+using Altinn.Correspondence.Application.Helpers;
 
 [assembly: InternalsVisibleTo("Altinn.Correspondence.Tests")]
 namespace Altinn.Correspondence.Application.CancelNotification
@@ -43,18 +45,48 @@ namespace Altinn.Correspondence.Application.CancelNotification
         {
             var env = hostEnvironment.EnvironmentName;
             var error = $"Error while attempting to cancel notifications for correspondenceId: {correspondenceId} in environment: {env}.";
-            foreach (var notification in notificationEntities)
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, false, cancellationToken);
+            var dialogId = correspondence.ExternalReferences
+            .FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+            if (string.IsNullOrEmpty(dialogId))
             {
-                if (notification.RequestedSendTime <= DateTimeOffset.UtcNow) continue; // Notification has already been sent
-
-                string? notificationOrderId = notification.NotificationOrderId?.ToString();
-                if (string.IsNullOrWhiteSpace(notificationOrderId))
+                error += $" Correspondence with id: {correspondenceId} has no DialogportenDialogId reference.";
+                logger.LogError(error);
+                if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
+            }
+            else if (correspondence.StatusHasBeen(CorrespondenceStatus.Failed))
+            {
+                error += $" Correspondence with id: {correspondenceId} has status Failed.";
+                logger.LogWarning(error);
+                if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
+            }
+            else if (correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByAltinn))
+            {
+                error += $" Correspondence with id: {correspondenceId} has status PurgedByAltinn.";
+                logger.LogWarning(error);
+                if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
+            }
+            else if (correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByRecipient))
+            {
+                error += $" Correspondence with id: {correspondenceId} has status PurgedByRecipient.";
+                logger.LogWarning(error);
+                if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
+            }
+            else
+            {
+                foreach (var notification in notificationEntities)
                 {
-                    error += $"NotificationOrderId is null for notificationId: {notification.Id}";
-                    if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
-                    throw new Exception(error);
+                    if (notification.RequestedSendTime <= DateTimeOffset.UtcNow) continue; // Notification has already been sent
+
+                    string? notificationOrderId = notification.NotificationOrderId?.ToString();
+                    if (string.IsNullOrWhiteSpace(notificationOrderId))
+                    {
+                        error += $"NotificationOrderId is null for notificationId: {notification.Id}";
+                        if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
+                        throw new Exception(error);
+                    }
+                    backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled, operationTimestamp));
                 }
-                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled, operationTimestamp));
             }
         }
         private void SendSlackNotificationWithMessage(string message)
