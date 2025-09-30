@@ -156,27 +156,91 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
-        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, bool includeActive, bool includeArchived, string searchString, CancellationToken cancellationToken, bool filterMigrated = true)
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(
+            int limit,
+            DateTimeOffset? fromDateTime,
+            DateTimeOffset? toDateTime,
+            CorrespondenceStatus? status,
+            List<string> recipientIds,
+            bool includeActive,
+            bool includeArchived,
+            string searchString,
+            CancellationToken cancellationToken,
+            bool filterMigrated = true)
         {
-            var correspondences = recipientIds.Count == 1
-                ? _context.Correspondences.Where(c => c.Recipient == recipientIds[0])     // Filter by single recipient
-                : _context.Correspondences.Where(c => recipientIds.Contains(c.Recipient)); // Filter multiple recipients
+            var acceptableStatuses = BuildAcceptableStatuses(includeActive, includeArchived, status);
 
-            correspondences = correspondences
-                .AsNoTracking()
-                .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
-                .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter                              
-                .IncludeByStatuses(includeActive, includeArchived, status) // Filter by statuses
-                .ExcludePurged() // Exclude purged correspondences
-                .Where(c => string.IsNullOrEmpty(searchString) || (c.Content != null && c.Content.MessageTitle.Contains(searchString))) // Filter by messageTitle containing searchstring
-                .FilterMigrated(filterMigrated) // Filter all migrated correspondences no matter their IsMigrating status
+            // First, get IDs efficiently without includes
+            var correspondenceIds = await (
+                from c in _context.Correspondences
+                join sa in _context.CorrespondenceStatuses
+                    .GroupBy(cs => cs.CorrespondenceId)
+                    .Select(g => new
+                    {
+                        CorrespondenceId = g.Key,
+                        MaxStatus = g.Max(s => s.Status),
+                        HasPurgedStatus = g.Any(s => s.Status == CorrespondenceStatus.PurgedByRecipient ||
+                                                     s.Status == CorrespondenceStatus.PurgedByAltinn)
+                    })
+                    on c.Id equals sa.CorrespondenceId into saGroup
+                from sa in saGroup.DefaultIfEmpty()
+                where recipientIds.Contains(c.Recipient)
+                   && (fromDateTime == null || c.RequestedPublishTime > fromDateTime)
+                   && (toDateTime == null || c.RequestedPublishTime < toDateTime)
+                   && (sa == null || !sa.HasPurgedStatus)
+                   && (sa == null ? acceptableStatuses.Contains(null) : acceptableStatuses.Contains(sa.MaxStatus))
+                   && (!filterMigrated || c.Altinn2CorrespondenceId == null)
+                   && (string.IsNullOrEmpty(searchString) ||
+                       _context.CorrespondenceContents.Any(cc => cc.CorrespondenceId == c.Id &&
+                                                                 cc.MessageTitle.Contains(searchString)))
+                orderby c.RequestedPublishTime descending
+                select c.Id
+            ).Take(limit).ToListAsync(cancellationToken);
+
+            // Then fetch full entities with includes
+            if (!correspondenceIds.Any())
+                return new List<CorrespondenceEntity>();
+
+            var result = await _context.Correspondences
+                .Where(c => correspondenceIds.Contains(c.Id))
                 .Include(c => c.Statuses)
                 .Include(c => c.Content)
-                .OrderByDescending(c => c.RequestedPublishTime);             // Sort by RequestedPublishTime
+                .OrderByDescending(c => c.RequestedPublishTime)
+                .ToListAsync(cancellationToken);
 
-            var result = await correspondences.AsSplitQuery().Take(limit).ToListAsync(cancellationToken);
             return result;
         }
+
+        private List<CorrespondenceStatus?> BuildAcceptableStatuses(
+    bool includeActive,
+    bool includeArchived,
+    CorrespondenceStatus? specificStatus)
+        {
+            var statuses = new List<CorrespondenceStatus?>();
+
+            if (specificStatus.HasValue)
+            {
+                statuses.Add(specificStatus.Value);
+            }
+            else
+            {
+                if (includeActive)
+                {
+                    statuses.Add(CorrespondenceStatus.Published);
+                    statuses.Add(CorrespondenceStatus.Fetched);
+                    statuses.Add(CorrespondenceStatus.Read);
+                    statuses.Add(CorrespondenceStatus.Confirmed);
+                    statuses.Add(CorrespondenceStatus.Replied);
+                }
+                if (includeArchived)
+                {
+                    statuses.Add(CorrespondenceStatus.Archived);
+                }
+            }
+
+            return statuses;
+        }
+
         public async Task<bool> AreAllAttachmentsPublished(Guid correspondenceId, CancellationToken cancellationToken = default)
         {
             return await _context.CorrespondenceContents
@@ -279,7 +343,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Include(c => c.ExternalReferences)
                 .ToListAsync(cancellationToken);
         }
-        
+
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndNotCurrentStatuses(
             List<Guid> correspondenceIds,
             ReferenceType referenceType,
