@@ -478,15 +478,8 @@ public class InitializeCorrespondencesHandler(
             }
 
             if (string.IsNullOrEmpty(recipientParty.OrgNumber)) continue;
-            var roles = await altinnRegisterService.LookUpPartyRoles(recipientParty.PartyUuid.Value.ToString(), cancellationToken);
-            if (request.Correspondence.IsConfidential)
-            {
-                if (!roles.Any(r => ApplicationConstants.RequiredOrganizationRolesForConfidentialCorrespondenceRecipient.Contains(r.Role.Identifier)))
-                {
-                    recipientsWithoutRequiredRoles.Add(recipient);
-                }
-            }
-            else if (!roles.Any(r => ApplicationConstants.RequiredOrganizationRolesForCorrespondenceRecipient.Contains(r.Role.Identifier)))
+            var hasRequired = await altinnRegisterService.HasPartyRequiredRoles(recipient, recipientParty.PartyUuid.Value, request.Correspondence.IsConfidential, cancellationToken);
+            if (!hasRequired)
             {
                 recipientsWithoutRequiredRoles.Add(recipient);
             }

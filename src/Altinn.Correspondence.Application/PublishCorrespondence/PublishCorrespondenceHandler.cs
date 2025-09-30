@@ -17,7 +17,6 @@ using OneOf;
 using Slack.Webhooks;
 using System.Security.Claims;
 using Altinn.Correspondence.Integrations.Redlock;
-using Altinn.Correspondence.Application.Settings;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
 
@@ -111,7 +110,7 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Recipient of {correspondenceId} has been set to reserved in kontakt- og reserverasjonsregisteret ('KRR')";
         }
-        else if (!string.IsNullOrEmpty(recipientParty!.OrgNumber) && !await HasPartyRequiredRoles(recipientPartyUuid.Value, correspondence.IsConfidential, cancellationToken))
+        else if (!string.IsNullOrEmpty(recipientParty!.OrgNumber) && !await altinnRegisterService.HasPartyRequiredRoles(correspondence.Recipient, recipientPartyUuid.Value, correspondence.IsConfidential, cancellationToken))
         {
             errorMessage = $"Recipient of {correspondenceId} lacks roles required to read correspondence. Consider sending physical mail to this recipient instead.";
         }
@@ -209,14 +208,5 @@ public class PublishCorrespondenceHandler(
             }
         }
         return false;
-    }
-
-    private async Task<bool> HasPartyRequiredRoles(Guid partyUuid, bool isConfidential, CancellationToken cancellationToken)
-    {
-        var roles = await altinnRegisterService.LookUpPartyRoles(partyUuid.ToString(), cancellationToken);
-        return roles.Any(r => (isConfidential
-            ? ApplicationConstants.RequiredOrganizationRolesForConfidentialCorrespondenceRecipient
-            : ApplicationConstants.RequiredOrganizationRolesForCorrespondenceRecipient)
-            .Contains(r.Role.Identifier));
     }
 }
