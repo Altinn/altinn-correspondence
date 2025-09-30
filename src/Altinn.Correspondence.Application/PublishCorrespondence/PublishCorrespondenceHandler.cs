@@ -79,11 +79,11 @@ public class PublishCorrespondenceHandler(
         logger.LogInformation("Starting publish process with lock for correspondence {CorrespondenceId}", correspondenceId);
         var operationTimestamp = DateTimeOffset.UtcNow;        
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
-        var senderParty = await altinnRegisterService.LookUpPartyById(correspondence!.Sender, cancellationToken);
-        var recipientParty = await altinnRegisterService.LookUpPartyById(correspondence.Recipient, cancellationToken);
+        var senderParty = correspondence != null ? await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken) : null;
+        var recipientParty = correspondence != null ? await altinnRegisterService.LookUpPartyById(correspondence.Recipient, cancellationToken) : null;
         var senderPartyUuid = senderParty?.PartyUuid;
         var recipientPartyUuid = recipientParty?.PartyUuid;
-        bool hasDialogportenDialog = correspondence.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
+        bool hasDialogportenDialog = correspondence != null && correspondence.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
         logger.LogInformation("Correspondence {CorrespondenceId} has Dialogporten dialog: {HasDialog}", correspondenceId, hasDialogportenDialog);
 
         var errorMessage = "";
@@ -157,15 +157,15 @@ public class PublishCorrespondenceHandler(
                     PartyUuid = senderPartyUuid ?? Guid.Empty
                 };
                 await correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
-                backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence.Recipient, null, cancellationToken));
+                backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence!.Recipient, null, cancellationToken));
                 backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.CorrespondencePublished, operationTimestamp));
             }
 
             await correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
-            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence!.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
             if (status.Status == CorrespondenceStatus.Published)
             {
-                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, CancellationToken.None));
+                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence!.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, CancellationToken.None));
             }
             logger.LogInformation("Successfully completed publish process for correspondence {CorrespondenceId} with status {Status}", correspondenceId, status.Status);
             return Task.CompletedTask;
