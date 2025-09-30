@@ -99,9 +99,6 @@ public class CleanupMarkdownAndHTMLInSummaryHandler(
                         logger.LogError(ex, "Failed to process correspondence {correspondenceId}", correspondence.Id);
                     }
                 }
-
-                totalProcessed += candidates.Count;
-
                 if (correspondencesWindow.Count == 0)
                 {
                     isMoreCorrespondences = false;
