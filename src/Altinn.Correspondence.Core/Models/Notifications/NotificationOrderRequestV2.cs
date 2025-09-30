@@ -90,6 +90,8 @@ namespace Altinn.Correspondence.Core.Models.Notifications
         public EmailSettings? EmailSettings { get; set; }
 
         public SmsSettings? SmsSettings { get; set; }
+
+        public bool? IgnoreReservation { get; set; }
     }
 
     public class RecipientEmail
