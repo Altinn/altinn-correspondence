@@ -15,7 +15,6 @@ on:
           - staging
           - production
           - yt01
-          - at21
           - at22
           - at23
           - at24
