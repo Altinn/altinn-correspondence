@@ -66,6 +66,9 @@ inputs:
   OVERRIDE_AUTHORIZATION_URL:
     description: "Override authorization URL for Altinn"
     required: true
+  OVERRIDE_AUTHORIZATION_THUMBPRINT:
+    description: "Thumbprint used for authorization cluster certificate validation"
+    required: true
   PLATFORM_SUBSCRIPTION_KEY:
     description: "Platform Subscription Key"
     required: true
@@ -162,6 +165,7 @@ runs:
         IDPORTEN_ISSUER: ${{ inputs.IDPORTEN_ISSUER }}
         PLATFORM_BASE_URL: ${{ inputs.PLATFORM_BASE_URL }}
         OVERRIDE_AUTHORIZATION_URL: ${{ inputs.OVERRIDE_AUTHORIZATION_URL }}
+        OVERRIDE_AUTHORIZATION_THUMBPRINT: ${{ inputs.OVERRIDE_AUTHORIZATION_THUMBPRINT }}
         STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}
         SBL_BRIDGE_BASE_URL: ${{ inputs.SBL_BRIDGE_BASE_URL }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}

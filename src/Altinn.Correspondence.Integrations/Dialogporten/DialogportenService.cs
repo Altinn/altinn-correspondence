@@ -530,6 +530,27 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return (openActivityId, confirmActivityId);
     }
 
+    public async Task<bool> TryRemoveMarkdownAndHtmlFromSummary(string dialogId, string newSummary, CancellationToken cancellationToken = default)
+    {
+        var dialog = await GetDialog(dialogId);
+        if (dialog is null)
+        {
+            throw new Exception($"Dialog {dialogId} not found when attempting to remove markdown and html from summary");
+        }
+
+        var strippedSummary = newSummary;
+        var patchRequestBuilder = new DialogPatchRequestBuilder()
+            .WithReplaceSummaryOperation(strippedSummary);
+        var patchRequest = patchRequestBuilder.Build();
+        var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", patchRequest, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogError(($"Response from Dialogporten when removing markdown and html from summary for {dialogId} was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}"));
+            return false;
+        }
+        return true;
+    }
+
 
     #region MigrationRelated    
     /// <summary>

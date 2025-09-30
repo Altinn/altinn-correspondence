@@ -8,7 +8,10 @@ param environment string
 param location string
 @minLength(3)
 param platform_base_url string
+@secure()
 param override_authorization_url string
+@secure()
+param override_authorization_thumbprint string
 @secure()
 @minLength(3)
 param sourceKeyVaultName string
@@ -118,6 +121,7 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     principal_id: appIdentity.outputs.id
     platform_base_url: platform_base_url
     override_authorization_url: override_authorization_url
+    override_authorization_thumbprint: override_authorization_thumbprint
     keyVaultUrl: keyVaultUrl
     userIdentityClientId: appIdentity.outputs.clientId
     containerAppEnvId: keyvault.getSecret('container-app-env-id')
