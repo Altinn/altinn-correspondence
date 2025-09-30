@@ -79,11 +79,11 @@ public class PublishCorrespondenceHandler(
         logger.LogInformation("Starting publish process with lock for correspondence {CorrespondenceId}", correspondenceId);
         var operationTimestamp = DateTimeOffset.UtcNow;        
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
-        var senderParty = correspondence != null ? await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken) : null;
-        var recipientParty = correspondence != null ? await altinnRegisterService.LookUpPartyById(correspondence.Recipient, cancellationToken) : null;
+        var senderParty = await altinnRegisterService.LookUpPartyById(correspondence!.Sender, cancellationToken);
+        var recipientParty = await altinnRegisterService.LookUpPartyById(correspondence!.Recipient, cancellationToken);
         var senderPartyUuid = senderParty?.PartyUuid;
         var recipientPartyUuid = recipientParty?.PartyUuid;
-        bool hasDialogportenDialog = correspondence != null && correspondence.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
+        bool hasDialogportenDialog = correspondence!.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
         logger.LogInformation("Correspondence {CorrespondenceId} has Dialogporten dialog: {HasDialog}", correspondenceId, hasDialogportenDialog);
 
         var errorMessage = "";
