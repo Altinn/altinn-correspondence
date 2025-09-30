@@ -158,4 +158,22 @@ public class AltinnRegisterDevService : IAltinnRegisterService
         }
         return Task.FromResult(roles);
     }
+
+    public Task<List<MainUnitItem>> LookUpMainUnits(string urn, CancellationToken cancellationToken)
+    {
+        var items = new List<MainUnitItem>
+        {
+            new MainUnitItem
+            {
+                PartyType = "organization",
+                OrganizationIdentifier = "991825827",
+                PartyUuid = _digdirPartyUuid,
+                VersionId = 1,
+                Urn = $"urn:altinn:party:uuid:{_digdirPartyUuid}",
+                PartyId = _digdirPartyId,
+                DisplayName = "Digitaliseringsdirektoratet"
+            }
+        };
+        return Task.FromResult(items);
+    }
 }

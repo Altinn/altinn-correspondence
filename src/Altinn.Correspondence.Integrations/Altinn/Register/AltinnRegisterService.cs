@@ -252,4 +252,21 @@ public class AltinnRegisterService : IAltinnRegisterService
 
         return partyNames;
     }
+
+    public async Task<List<MainUnitItem>> LookUpMainUnits(string urn, CancellationToken cancellationToken = default)
+    {
+        var request = new MainUnitsRequest { Data = urn };
+        var response = await _httpClient.PostAsJsonAsync("register/api/v1/correspondence/parties/main-units", request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Error when looking up main-units in Altinn Register.Statuscode was: {response.StatusCode}, error was: {await response.Content.ReadAsStringAsync()}");
+        }
+        var result = await response.Content.ReadFromJsonAsync<MainUnitsResponse>(cancellationToken: cancellationToken);
+        if (result is null)
+        {
+            throw new Exception("Unexpected json response when looking up main-units in Altinn Register");
+        }
+
+        return result.Data ?? new List<MainUnitItem>();
+    }
 }
