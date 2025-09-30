@@ -85,6 +85,11 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock
                 .Setup(x => x.AreAllAttachmentsPublished(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
+
+            // Default mock: no main unit for recipient (treat recipient as main unit)
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpMainUnits(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<MainUnitItem>());
             
             // Default setup for DistributedLockHelper to return acquired lock and not skip
             _distributedLockHelperMock
@@ -140,6 +145,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
         private List<RoleItem> CreateRoleItems(params string[] identifiers) => identifiers
             .Select(code => new RoleItem { Role = new RoleDescriptor { Identifier = code } })
+            .ToList();
+
+        private List<MainUnitItem> CreateMainUnits(params (string orgId, Guid partyUuid)[] items) => items
+            .Select(i => new MainUnitItem { OrganizationIdentifier = i.orgId, PartyUuid = i.partyUuid })
             .ToList();
 
         [Fact]
@@ -209,6 +218,80 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _slackClientMock.Verify(
                 x => x.PostAsync(It.Is<SlackMessage>(m => m.Text.Contains("Correspondence failed"))),
                 Times.Never);
+        }
+
+        [Fact]
+        public async Task Process_CorrespondenceWithSubunitRecipient_MainUnitMissingRequiredRoles_FailsCorrespondence()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var partyUuid = Guid.NewGuid();
+            var mainUnitUuid = Guid.NewGuid();
+            var senderUrn = "urn:altinn:organization:identifier-no:313721779";
+            var recipientUrn = "urn:altinn:organization:identifier-no:310244007"; // subunit URN
+
+            var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn);
+            SetupCommonMocks(correspondenceId, partyUuid, correspondence);
+
+            // Recipient is org, so roles are checked via main unit
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpMainUnits(recipientUrn, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreateMainUnits(("310244007", mainUnitUuid)));
+
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyRoles(mainUnitUuid.ToString(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreateRoleItems("ANNET"));
+
+            // Act
+            await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
+
+            // Assert
+            _correspondenceStatusRepositoryMock.Verify(
+                x => x.AddCorrespondenceStatus(
+                    It.Is<CorrespondenceStatusEntity>(s =>
+                        s.CorrespondenceId == correspondenceId &&
+                        s.Status == CorrespondenceStatus.Failed &&
+                        s.StatusText.Contains("lacks roles")),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task Process_CorrespondenceWithSubunitRecipient_MainUnitHasRequiredRoles_Succeeds()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var partyUuid = Guid.NewGuid();
+            var mainUnitUuid = Guid.NewGuid();
+            var senderUrn = "urn:altinn:organization:identifier-no:313721779";
+            var recipientUrn = "urn:altinn:organization:identifier-no:310244007"; // subunit URN
+
+            var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn);
+            SetupCommonMocks(correspondenceId, partyUuid, correspondence);
+
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpMainUnits(recipientUrn, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreateMainUnits(("310244007", mainUnitUuid)));
+
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyRoles(mainUnitUuid.ToString(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreateRoleItems("daglig-leder"));
+
+            // Act
+            await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
+
+            // Assert
+            _correspondenceStatusRepositoryMock.Verify(
+                x => x.AddCorrespondenceStatus(
+                    It.Is<CorrespondenceStatusEntity>(s =>
+                        s.CorrespondenceId == correspondenceId &&
+                        s.Status == CorrespondenceStatus.Published),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+
+            _correspondenceRepositoryMock.Verify(
+                x => x.UpdatePublished(correspondenceId, It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()),
+                Times.Once);
         }
     }
 } 
