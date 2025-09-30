@@ -184,7 +184,7 @@ public class AltinnRegisterService : IAltinnRegisterService
 
     public async Task<List<RoleItem>> LookUpPartyRoles(string partyUuid, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.GetAsync($"register/api/v1/parties/{partyUuid}/roles/correspondence-roles", cancellationToken);
+        var response = await _httpClient.GetAsync($"register/api/v1/correspondence/parties/{partyUuid}/roles/correspondence-roles", cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             throw new Exception($"Error when looking up party roles in Altinn Register.Statuscode was: {response.StatusCode}, error was: {await response.Content.ReadAsStringAsync()}");
