@@ -64,7 +64,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 new
                 {
                     op = "replace",
-                    path = "/content/summary",
+                    path = "/content/summary/value/0/value",
                     value = newSummary
                 }
             );
