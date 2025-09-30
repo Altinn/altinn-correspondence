@@ -6,7 +6,6 @@ using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Migration.Base;
-using DotNet.Testcontainers.Builders;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using System.Net;
@@ -392,8 +391,8 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithCreatedAt(DateTime.Now.AddMinutes(-5))
-            .WithRequestedPublishTime(DateTime.Now.AddSeconds(2))
+            .WithCreatedAt(DateTimeOffset.Now.AddMinutes(-5))
+            .WithRequestedPublishTime(DateTimeOffset.Now.AddSeconds(5))
             .WithRecipient("urn:altinn:person:identifier-no:29909898925")
             .WithResourceId("skd-migratedcorrespondence-5229-1")
             .Build();
@@ -411,9 +410,9 @@ public class MigrationControllerTests : MigrationTestBase
         var getCorrespondenceOverviewResponse1 = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{resultObj.CorrespondenceId}/content");
         Assert.False(getCorrespondenceOverviewResponse1.IsSuccessStatusCode);
 
-        await Task.Delay(3000); // Wait until after requested publish time
+        await Task.Delay(6000); // Wait until after requested publish time
 
-        // Verify that correspondence has IsMigrating set to true, which means we can retrieve it through GetOverview.
+        // Verify that correspondence has IsMigrating set to false, which means we can retrieve it through GetOverview.
         var getCorrespondenceOverviewResponse2 = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{resultObj.CorrespondenceId}/content");
         Assert.True(getCorrespondenceOverviewResponse2.IsSuccessStatusCode);
     }

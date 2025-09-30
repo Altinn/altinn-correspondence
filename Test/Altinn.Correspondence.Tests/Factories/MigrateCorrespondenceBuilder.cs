@@ -88,9 +88,9 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
-        public MigrateCorrespondenceBuilder WithRequestedPublishTime(DateTime requestedPublishTime)
+        public MigrateCorrespondenceBuilder WithRequestedPublishTime(DateTimeOffset requestedPublishTime)
         {
-            _migratedCorrespondence.CorrespondenceData.Correspondence.RequestedPublishTime = new DateTimeOffset(requestedPublishTime);
+            _migratedCorrespondence.CorrespondenceData.Correspondence.RequestedPublishTime = requestedPublishTime;
             return this;
         }
 
