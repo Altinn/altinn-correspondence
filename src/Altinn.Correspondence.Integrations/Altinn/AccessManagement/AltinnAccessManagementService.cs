@@ -45,6 +45,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             var cachedParties = await CacheHelpers.GetObjectFromCacheAsync<List<Party>>(cacheKey, _cache, cancellationToken);
             if (cachedParties != null)
             {
+                _logger.LogInformation("Retrieved {count} authorized parties from cache.", cachedParties.Count);
                 return cachedParties;
             }
         }
