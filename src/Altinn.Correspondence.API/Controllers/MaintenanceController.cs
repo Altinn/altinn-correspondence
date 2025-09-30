@@ -95,7 +95,12 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
         );
     }
 
-
+    /// <summary>
+    /// Enqueue cleanup to remove markdown and html from summary in Dialogporten for correspondences
+    /// </summary>
+    /// <response code="200">Returns the enqueued job id</response>
+    /// <response code="401">Unauthorized</response>
+    /// <response code="403">Forbidden</response>
     [HttpPost]
     [Route("cleanup-markdown-and-html-in-summary")]
     [Authorize(Policy = AuthorizationConstants.Maintenance)]
