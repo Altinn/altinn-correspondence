@@ -146,13 +146,14 @@ public class AltinnRegisterDevService : IAltinnRegisterService
     public Task<List<RoleItem>> LookUpPartyRoles(string partyUuid, CancellationToken cancellationToken)
     {
         var roles = new List<RoleItem>();
+        var ToPartyUuid = Guid.NewGuid();
         if (partyUuid == _digdirPartyUuid.ToString())
         {
             roles.Add(new RoleItem
             {
                 Role = new RoleDescriptor { Source = "ccr", Identifier = "daglig-leder", Urn = "urn:altinn:external-role:ccr:daglig-leder" },
                 From = new RoleParty { PartyUuid = _digdirPartyUuid, Urn = $"urn:altinn:party:uuid:{_digdirPartyUuid}" },
-                To = new RoleParty { PartyUuid = Guid.NewGuid(), Urn = $"urn:altinn:party:uuid:{Guid.NewGuid()}" },
+                To = new RoleParty { PartyUuid = ToPartyUuid, Urn = $"urn:altinn:party:uuid:{ToPartyUuid}" },
             });
         }
         return Task.FromResult(roles);
