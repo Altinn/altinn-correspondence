@@ -210,7 +210,5 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 x => x.PostAsync(It.Is<SlackMessage>(m => m.Text.Contains("Correspondence failed"))),
                 Times.Never);
         }
-
-        // Removed tests relying on Brreg sub-organization lookups; role checks now use Altinn Register only.
     }
 } 
