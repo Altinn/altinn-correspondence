@@ -367,6 +367,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => c.Altinn2CorrespondenceId == null)
                 .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == referenceType))
                 .Include(c => c.Content)
+                .Include(c => c.ExternalReferences)
                 .ToListAsync(cancellationToken);
         }
     }
