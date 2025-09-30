@@ -95,7 +95,7 @@ public class LegacyGetCorrespondencesHandler(
                                                                                           includeActive: request.IncludeActive,
                                                                                           includeArchived: request.IncludeArchived,
                                                                                           searchString: request.SearchString,
-                                                                                          cancellationToken: cancellationToken,
+                                                                                          cancellationToken: CancellationToken.None,
                                                                                           filterMigrated: request.FilterMigrated);
 
         var resourceIds = correspondences.Select(c => c.ResourceId).Distinct().ToList();
