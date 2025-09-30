@@ -101,7 +101,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Verify that individual background jobs were created for each correspondence
             _mockBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "MakeCorrespondenceAvailableInDialogportenAndApi"),
+                It.Is<Job>(job => job.Method.Name == "ScheduleMakeCorrespondenceAvailableInDialogportenAndApiAtPublishTime"),
                 It.IsAny<IState>()), 
                 Times.Exactly(10000));
 
@@ -580,7 +580,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             {
                 _mockBackgroundJobClient.Verify(x => x.Create(
                     It.Is<Job>(job => 
-                        job.Method.Name == "MakeCorrespondenceAvailableInDialogportenAndApi" &&
+                        job.Method.Name == "ScheduleMakeCorrespondenceAvailableInDialogportenAndApiAtPublishTime" &&
                         job.Args.Count > 0 &&
                         job.Args[0].Equals(correspondenceId)),
                     It.IsAny<IState>()), 

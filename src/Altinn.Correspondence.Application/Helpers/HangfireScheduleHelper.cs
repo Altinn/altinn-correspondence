@@ -1,10 +1,12 @@
-﻿using Altinn.Correspondence.Application.PublishCorrespondence;
+﻿using Altinn.Correspondence.Application.MigrateCorrespondence;
+using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 
@@ -58,6 +60,22 @@ namespace Altinn.Correspondence.Application.Helpers
         public void SchedulePublishAtPublishTime(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
         {
             backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), GetActualPublishTime(correspondence.RequestedPublishTime));
+        }
+
+        public async Task ScheduleMakeCorrespondenceAvailableInDialogportenAndApiAtPublishTime(Guid correspondenceId, CancellationToken cancellationToken)
+        {
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, cancellationToken, true);
+            if (correspondence is null)
+            {
+                throw new Exception($"Correspondence with id {correspondenceId} not found when scheduling MakeAvailable");
+            }
+
+            ScheduleMakeCorrespondenceAvailableInDialogportenAndApiAtPublishTime(correspondence, cancellationToken);
+        }
+
+        public void ScheduleMakeCorrespondenceAvailableInDialogportenAndApiAtPublishTime(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
+        {
+            backgroundJobClient.Schedule<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, cancellationToken, null, true), GetActualPublishTime(correspondence.RequestedPublishTime));            
         }
 
         private static DateTimeOffset GetActualPublishTime(DateTimeOffset publishTime) => publishTime < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow : publishTime; // If in past, do now

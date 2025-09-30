@@ -47,7 +47,7 @@ public class MigrateCorrespondenceHandler(
             string dialogId = "";
             if (request.MakeAvailable)
             {
-                var makeAvailableJob = backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, true));
+                var makeAvailableJob = backgroundJobClient.Enqueue<HangfireScheduleHelper>(HangfireQueues.LiveMigration, (helper) => helper.ScheduleMakeCorrespondenceAvailableInDialogportenAndApiAtPublishTime(correspondence.Id, CancellationToken.None));
                 backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(makeAvailableJob, HangfireQueues.LiveMigration, (helper) => helper.SchedulePublishAtPublishTime(correspondence.Id, CancellationToken.None));
             }
             
@@ -160,7 +160,7 @@ public class MigrateCorrespondenceHandler(
                 var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.BatchOffset ?? 0, cancellationToken);
                 foreach(var correspondence in correspondences)
                 {
-                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id));
+                    backgroundJobClient.Enqueue<HangfireScheduleHelper>(HangfireQueues.Migration, (helper) => helper.ScheduleMakeCorrespondenceAvailableInDialogportenAndApiAtPublishTime(correspondence.Id, CancellationToken.None));
                 }
             }
         }

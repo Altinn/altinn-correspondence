@@ -6,6 +6,7 @@ using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Migration.Base;
+using DotNet.Testcontainers.Builders;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using System.Net;
@@ -367,6 +368,7 @@ public class MigrationControllerTests : MigrationTestBase
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 12, 14, 21, 05))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 22, 09, 55, 20))
             .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
+            .WithRequestedPublishTime((new DateTime(2024, 1, 1, 03, 09, 20)))
             .WithRecipient("urn:altinn:person:identifier-no:29909898925")
             .WithResourceId("skd-migratedcorrespondence-5229-1")
             .Build();
@@ -383,6 +385,37 @@ public class MigrationControllerTests : MigrationTestBase
         // Verify that correspondence has IsMigrating set to false, which means we can retrieve it through GetOverview.
         var getCorrespondenceOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{resultObj.CorrespondenceId}/content");
         Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode);
+    }
+
+    [Fact]
+    public async Task MakeCorrespondenceAvailable_OnCall_RequestedPublishTimeInFuture()
+    {
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithCreatedAt(DateTime.Now.AddMinutes(-5))
+            .WithRequestedPublishTime(DateTime.Now.AddSeconds(2))
+            .WithRecipient("urn:altinn:person:identifier-no:29909898925")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
+            .Build();
+        SetNotificationHistory(migrateCorrespondenceExt);
+        
+        migrateCorrespondenceExt.MakeAvailable = true;
+
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
+        string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
+        CorrespondenceMigrationStatusExt resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
+        Assert.NotNull(resultObj.DialogId);
+
+        // Verify that correspondence has IsMigrating set to true, which means we can't yet retrieve it through GetOverview.
+        var getCorrespondenceOverviewResponse1 = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{resultObj.CorrespondenceId}/content");
+        Assert.False(getCorrespondenceOverviewResponse1.IsSuccessStatusCode);
+
+        await Task.Delay(3000); // Wait until after requested publish time
+
+        // Verify that correspondence has IsMigrating set to true, which means we can retrieve it through GetOverview.
+        var getCorrespondenceOverviewResponse2 = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{resultObj.CorrespondenceId}/content");
+        Assert.True(getCorrespondenceOverviewResponse2.IsSuccessStatusCode);
     }
 
     [Fact]

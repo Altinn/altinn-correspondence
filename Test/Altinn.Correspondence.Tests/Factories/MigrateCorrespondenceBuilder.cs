@@ -88,6 +88,12 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public MigrateCorrespondenceBuilder WithRequestedPublishTime(DateTime requestedPublishTime)
+        {
+            _migratedCorrespondence.CorrespondenceData.Correspondence.RequestedPublishTime = new DateTimeOffset(requestedPublishTime);
+            return this;
+        }
+
         public MigrateCorrespondenceBuilder WithRecipient(string recipient)
         {
             _migratedCorrespondence.CorrespondenceData.Recipients.Clear();
