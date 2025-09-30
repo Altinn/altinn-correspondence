@@ -46,7 +46,7 @@ public class LegacyGetCorrespondencesHandler(
             request.IncludeDeleted, 
             request.FilterMigrated, 
             request.SearchString?.SanitizeForLogging(), 
-            request.InstanceOwnerPartyIdList);
+            string.Join(',', request.InstanceOwnerPartyIdList));
         var minAuthLevel = userClaimsHelper.GetMinimumAuthenticationLevel();
         var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
         if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
