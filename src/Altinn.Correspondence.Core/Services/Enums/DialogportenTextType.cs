@@ -5,6 +5,7 @@
         NotificationOrderCreated,
         NotificationOrderCancelled,
         NotificationSent,
+        NotificationReminderSent,
         DownloadStarted,
         CorrespondencePublished,
         CorrespondenceConfirmed,

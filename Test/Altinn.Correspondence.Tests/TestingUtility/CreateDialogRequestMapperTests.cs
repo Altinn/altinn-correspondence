@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Core.Models.Entities;
 
 namespace Altinn.Correspondence.Tests.TestingUtility;
 
@@ -241,4 +242,157 @@ public class CreateDialogRequestMapperTests
         Assert.NotNull(result.UpdatedAt);
         Assert.Equal(originalPublishDate, result.UpdatedAt.Value);
     }
+
+    [Fact]
+    public void CreateCorrespondenceDialog_WithEmailNotifications_ShouldCreateCorrectActivities()
+    {
+        // Arrange
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithMessageTitle("Test Message")
+            .WithExternalReference(ReferenceType.DialogportenDialogId, "dialog-id")
+            .Build();
+
+        var initialNotification = new CorrespondenceNotificationEntity
+        {
+            Id = Guid.NewGuid(),
+            CorrespondenceId = correspondence.Id,
+            NotificationChannel = NotificationChannel.Email,
+            NotificationAddress = "test@example.com",
+            IsReminder = false, // Initial notification
+            NotificationSent = DateTimeOffset.UtcNow.AddMinutes(-10),
+            Altinn2NotificationId = 12345,
+            NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
+            Created = DateTimeOffset.UtcNow
+        };
+
+        var reminderNotification = new CorrespondenceNotificationEntity
+        {
+            Id = Guid.NewGuid(),
+            CorrespondenceId = correspondence.Id,
+            NotificationChannel = NotificationChannel.Email,
+            NotificationAddress = "test@example.com",
+            IsReminder = true, // Reminder notification
+            NotificationSent = DateTimeOffset.UtcNow.AddMinutes(-5),
+            Altinn2NotificationId = 12346,
+            NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
+            Created = DateTimeOffset.UtcNow
+        };
+
+        correspondence.Notifications = new List<CorrespondenceNotificationEntity> { initialNotification, reminderNotification };
+
+        var baseUrl = "https://example.com";
+
+        // Act
+        var result = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, includeActivities: true);
+
+        // Assert
+        Assert.NotNull(result.Activities);
+        var notificationActivities = result.Activities.Where(a => a.Type == "Information").ToList();
+        Assert.Equal(2, notificationActivities.Count);
+
+        // Find initial notification activity
+        var initialActivity = notificationActivities.FirstOrDefault(a => 
+            a.Description?.Any(d => d.Value.Contains("Varsel om mottatt melding")) == true);
+        Assert.NotNull(initialActivity);
+
+        // Verify initial notification text in Norwegian and English
+        var initialNbDescription = initialActivity.Description.FirstOrDefault(d => d.LanguageCode == "nb");
+        Assert.NotNull(initialNbDescription);
+        Assert.Equal("Varsel om mottatt melding sendt til test@example.com på Email.", initialNbDescription.Value);
+
+        var initialEnDescription = initialActivity.Description.FirstOrDefault(d => d.LanguageCode == "en");
+        Assert.NotNull(initialEnDescription);
+        Assert.Equal("Notification about received message sent to test@example.com on Email.", initialEnDescription.Value);
+
+        // Find reminder notification activity
+        var reminderActivity = notificationActivities.FirstOrDefault(a => 
+            a.Description?.Any(d => d.Value.Contains("Revarsel om mottatt melding")) == true);
+        Assert.NotNull(reminderActivity);
+
+        // Verify reminder notification text in Norwegian and English
+        var reminderNbDescription = reminderActivity.Description.FirstOrDefault(d => d.LanguageCode == "nb");
+        Assert.NotNull(reminderNbDescription);
+        Assert.Equal("Revarsel om mottatt melding sendt til test@example.com på Email.", reminderNbDescription.Value);
+
+        var reminderEnDescription = reminderActivity.Description.FirstOrDefault(d => d.LanguageCode == "en");
+        Assert.NotNull(reminderEnDescription);
+        Assert.Equal("Reminder notification about received message sent to test@example.com on Email.", reminderEnDescription.Value);
+    }
+
+    [Fact]
+    public void CreateCorrespondenceDialog_WithSmsNotifications_ShouldCreateCorrectActivities()
+    {
+        // Arrange
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithMessageTitle("Test Message")
+            .WithExternalReference(ReferenceType.DialogportenDialogId, "dialog-id")
+            .Build();
+
+        var initialNotification = new CorrespondenceNotificationEntity
+        {
+            Id = Guid.NewGuid(),
+            CorrespondenceId = correspondence.Id,
+            NotificationChannel = NotificationChannel.Sms,
+            NotificationAddress = "+4712345678",
+            IsReminder = false, // Initial notification
+            NotificationSent = DateTimeOffset.UtcNow.AddMinutes(-10),
+            Altinn2NotificationId = 12345,
+            NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
+            Created = DateTimeOffset.UtcNow
+        };
+
+        var reminderNotification = new CorrespondenceNotificationEntity
+        {
+            Id = Guid.NewGuid(),
+            CorrespondenceId = correspondence.Id,
+            NotificationChannel = NotificationChannel.Sms,
+            NotificationAddress = "+4712345678",
+            IsReminder = true, // Reminder notification
+            NotificationSent = DateTimeOffset.UtcNow.AddMinutes(-5),
+            Altinn2NotificationId = 12346,
+            NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
+            Created = DateTimeOffset.UtcNow
+        };
+
+        correspondence.Notifications = new List<CorrespondenceNotificationEntity> { initialNotification, reminderNotification };
+
+        var baseUrl = "https://example.com";
+
+        // Act
+        var result = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, includeActivities: true);
+
+        // Assert
+        Assert.NotNull(result.Activities);
+        var notificationActivities = result.Activities.Where(a => a.Type == "Information").ToList();
+        Assert.Equal(2, notificationActivities.Count);
+
+        // Find initial notification activity
+        var initialActivity = notificationActivities.FirstOrDefault(a => 
+            a.Description?.Any(d => d.Value.Contains("Varsel om mottatt melding")) == true);
+        Assert.NotNull(initialActivity);
+
+        // Verify initial SMS notification text in Norwegian and English
+        var initialNbDescription = initialActivity.Description.FirstOrDefault(d => d.LanguageCode == "nb");
+        Assert.NotNull(initialNbDescription);
+        Assert.Equal("Varsel om mottatt melding sendt til +4712345678 på SMS.", initialNbDescription.Value);
+
+        var initialEnDescription = initialActivity.Description.FirstOrDefault(d => d.LanguageCode == "en");
+        Assert.NotNull(initialEnDescription);
+        Assert.Equal("Notification about received message sent to +4712345678 on SMS.", initialEnDescription.Value);
+
+        // Find reminder notification activity
+        var reminderActivity = notificationActivities.FirstOrDefault(a => 
+            a.Description?.Any(d => d.Value.Contains("Revarsel om mottatt melding")) == true);
+        Assert.NotNull(reminderActivity);
+
+        // Verify reminder SMS notification text in Norwegian and English
+        var reminderNbDescription = reminderActivity.Description.FirstOrDefault(d => d.LanguageCode == "nb");
+        Assert.NotNull(reminderNbDescription);
+        Assert.Equal("Revarsel om mottatt melding sendt til +4712345678 på SMS.", reminderNbDescription.Value);
+
+        var reminderEnDescription = reminderActivity.Description.FirstOrDefault(d => d.LanguageCode == "en");
+        Assert.NotNull(reminderEnDescription);
+        Assert.Equal("Reminder notification about received message sent to +4712345678 on SMS.", reminderEnDescription.Value);
+    }
+
 }
