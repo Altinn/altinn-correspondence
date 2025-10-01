@@ -395,6 +395,27 @@ public class CreateNotificationHandler(
         List<NotificationContent> notificationContents,
         CancellationToken cancellationToken)
     {
+        var dialogId = correspondence.ExternalReferences?.FirstOrDefault(r => r.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        if (string.IsNullOrEmpty(dialogId))
+        {
+            logger.LogWarning("Correspondence {CorrespondenceId} does not have a Dialogporten dialog ID. Skipping notification creation.", correspondence.Id);
+            return;
+        }else if (correspondence.StatusHasBeen(CorrespondenceStatus.Failed))
+        {
+            logger.LogWarning("Correspondence {CorrespondenceId} is in status Failed. Skipping notification creation.", correspondence.Id);
+            return;
+        }
+        else if (correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByAltinn))
+        {
+            logger.LogWarning("Correspondence {CorrespondenceId} is in status PurgedByAltinn. Skipping notification creation.", correspondence.Id);
+            return;
+        }
+        else if (correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByRecipient))
+        {
+            logger.LogWarning("Correspondence {CorrespondenceId} is in status PurgedByRecipient. Skipping notification creation.", correspondence.Id);
+            return;
+        }
+
         logger.LogInformation("Creating notification in Altinn Notification Service (v2) for correspondence {CorrespondenceId}", correspondence.Id);
         // Create notification requests
         var notificationRequestsV2 = CreateNotificationOrderRequestsV2(
