@@ -52,25 +52,21 @@ namespace Altinn.Correspondence.Application.CancelNotification
             {
                 error += $" Correspondence with id: {correspondenceId} has no DialogportenDialogId reference.";
                 logger.LogError(error);
-                if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
             }
             else if (correspondence.StatusHasBeen(CorrespondenceStatus.Failed))
             {
                 error += $" Correspondence with id: {correspondenceId} has status Failed.";
                 logger.LogWarning(error);
-                if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
             }
             else if (correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByAltinn))
             {
                 error += $" Correspondence with id: {correspondenceId} has status PurgedByAltinn.";
                 logger.LogWarning(error);
-                if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
             }
             else if (correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByRecipient))
             {
                 error += $" Correspondence with id: {correspondenceId} has status PurgedByRecipient.";
                 logger.LogWarning(error);
-                if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
             }
             else
             {
