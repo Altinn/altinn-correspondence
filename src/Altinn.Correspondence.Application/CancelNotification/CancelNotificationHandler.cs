@@ -46,12 +46,17 @@ namespace Altinn.Correspondence.Application.CancelNotification
             var env = hostEnvironment.EnvironmentName;
             var error = $"Error while attempting to cancel notifications for correspondenceId: {correspondenceId} in environment: {env}.";
             var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, false, cancellationToken);
-            var dialogId = correspondence.ExternalReferences
+            if (correspondence == null)
+            {
+                error += $" Correspondence with id: {correspondenceId} was not found.";
+                logger.LogWarning(error);
+            }
+            var dialogId = correspondence.ExternalReferences?
             .FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
             if (string.IsNullOrEmpty(dialogId))
             {
                 error += $" Correspondence with id: {correspondenceId} has no DialogportenDialogId reference.";
-                logger.LogError(error);
+                logger.LogWarning(error);
             }
             else if (correspondence.StatusHasBeen(CorrespondenceStatus.Failed))
             {
