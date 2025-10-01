@@ -13,6 +13,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Slack.Webhooks;
+using Altinn.Correspondence.Tests.Extensions;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
@@ -61,23 +62,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
         private void SetupCommonMocks(Guid correspondenceId, Guid partyUuid, CorrespondenceEntity correspondence)
         {
-            // Mock party lookup
-            _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyById(
-                    It.IsAny<string>(), 
-                    It.IsAny<CancellationToken>()))
-                .Returns((string id, CancellationToken token) => 
-                {
-                    var party = new Party { PartyUuid = partyUuid };
-                    // Ensure recipient is treated as organization (non-empty OrgNumber) to trigger role checks
-                    if (id.Contains("310244007") || id == correspondence.Recipient)
-                    {
-                        party.OrgNumber = "310244007";
-                    }
-                    return Task.FromResult<Party?>(party);
-                });
+            _altinnRegisterServiceMock.SetupPartyByIdLookup("313721779", Guid.NewGuid());
 
-            // Mock correspondence repository
+            _altinnRegisterServiceMock.SetupPartyByIdLookup("310244007", partyUuid);
+
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
                 .ReturnsAsync(correspondence);
@@ -86,12 +74,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.AreAllAttachmentsPublished(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
-            // Default mock: no main unit for recipient (treat recipient as main unit)
-            _altinnRegisterServiceMock
-                .Setup(x => x.LookUpMainUnits(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new List<MainUnitItem>());
-            
-            // Default setup for DistributedLockHelper to return acquired lock and not skip
+            _altinnRegisterServiceMock.SetupEmptyMainUnitsLookup("310244007");
+
             _distributedLockHelperMock
                 .Setup(x => x.ExecuteWithConditionalLockAsync(
                     It.IsAny<string>(),
@@ -162,9 +146,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             
             var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn);
             SetupCommonMocks(correspondenceId, partyUuid, correspondence);
-            _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyRoles(partyUuid.ToString(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(CreateRoleItems("ANNET"));
+            _altinnRegisterServiceMock.SetupPartyRoleLookup(partyUuid.ToString(), "ANNET");
 
             // Act
             await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
@@ -195,9 +177,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             
             var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn);
             SetupCommonMocks(correspondenceId, partyUuid, correspondence);
-            _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyRoles(partyUuid.ToString(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(CreateRoleItems("daglig-leder"));
+            _altinnRegisterServiceMock.SetupPartyRoleLookup(partyUuid.ToString(), "daglig-leder");
 
             // Act
             await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
@@ -234,13 +214,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             SetupCommonMocks(correspondenceId, partyUuid, correspondence);
 
             // Recipient is org, so roles are checked via main unit
-            _altinnRegisterServiceMock
-                .Setup(x => x.LookUpMainUnits(recipientUrn, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(CreateMainUnits(("310244007", mainUnitUuid)));
-
-            _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyRoles(mainUnitUuid.ToString(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(CreateRoleItems("ANNET"));
+            _altinnRegisterServiceMock.SetupMainUnitsLookup("310244007", "310244007", mainUnitUuid);
+            _altinnRegisterServiceMock.SetupPartyRoleLookup(mainUnitUuid.ToString(), "ANNET");
 
             // Act
             await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
@@ -269,13 +244,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn);
             SetupCommonMocks(correspondenceId, partyUuid, correspondence);
 
-            _altinnRegisterServiceMock
-                .Setup(x => x.LookUpMainUnits(recipientUrn, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(CreateMainUnits(("310244007", mainUnitUuid)));
-
-            _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyRoles(mainUnitUuid.ToString(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(CreateRoleItems("daglig-leder"));
+            _altinnRegisterServiceMock.SetupMainUnitsLookup("310244007", "310244007", mainUnitUuid);
+            _altinnRegisterServiceMock.SetupPartyRoleLookup(mainUnitUuid.ToString(), "daglig-leder");
 
             // Act
             await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
