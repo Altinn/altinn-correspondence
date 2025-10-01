@@ -85,6 +85,16 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public CorrespondenceEntityBuilder WithStatus(CorrespondenceStatus status, DateTimeOffset statusChanged)
+        {
+            _correspondenceEntity.Statuses.Add(new CorrespondenceStatusEntity
+            {
+                Status = status,
+                StatusChanged = statusChanged
+            });
+            return this;
+        }
+
         public CorrespondenceEntityBuilder WithStatus(CorrespondenceStatus status, DateTime statusChanged, Guid partyUuid)
         {
             _correspondenceEntity.Statuses.Add(new CorrespondenceStatusEntity

@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Tests.Factories;
 
@@ -195,5 +196,51 @@ public class CreateDialogRequestMapperTests
         Assert.NotNull(result.Content.Summary);
         Assert.Single(result.Content.Summary.Value);
         Assert.Equal(expectedPlainText, result.Content.Summary.Value[0].Value);
+    }
+
+    [Fact]
+    public void CreateCorrespondenceDialog_WithFuturePublishTime_UpdatedAtShouldBeNow()
+    {
+        // Arrange
+        DateTimeOffset currentUtcTime = DateTimeOffset.UtcNow;
+        DateTimeOffset futureUtcTime = currentUtcTime.AddHours(1);
+
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithRequestedPublishTime(futureUtcTime)
+            .WithStatus(CorrespondenceStatus.Published, futureUtcTime)
+            .Build();
+        
+        var baseUrl = "https://example.com";
+
+        // Act
+        var result = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, currentUtcNow: currentUtcTime);
+
+        // Assert
+        Assert.True(result.UpdatedAt.HasValue, "Expected UpdatedAt to be set.");
+        Assert.True(result.UpdatedAt.Value != futureUtcTime, "UpdatedAt set to Future Time.");
+        Assert.True(result.UpdatedAt.Value == currentUtcTime, "UpdatedAt Not set to Now.");
+    }
+
+    [Fact]
+    public void CreateCorrespondenceDialog_WithOldPublished_UpdatedAtShouldThen()
+    {
+        // Arrange
+        DateTimeOffset currentUtcTime = DateTimeOffset.UtcNow;
+        DateTimeOffset origninalPublishDate = currentUtcTime.AddHours(-1);
+
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithRequestedPublishTime(origninalPublishDate)
+            .WithStatus(CorrespondenceStatus.Published, origninalPublishDate)
+            .Build();
+
+        var baseUrl = "https://example.com";
+
+        // Act
+        var result = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, currentUtcNow: currentUtcTime);
+
+        // Assert
+        Assert.True(result.UpdatedAt.HasValue, "Expected UpdatedAt to be set.");
+        Assert.True(result.UpdatedAt.Value == origninalPublishDate, "UpdatedAt Not set to Published Time.");
+        Assert.True(result.UpdatedAt.Value != currentUtcTime, "UpdatedAt set to Now.");
     }
 }
