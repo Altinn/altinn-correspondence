@@ -216,9 +216,8 @@ public class CreateDialogRequestMapperTests
         var result = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, currentUtcNow: currentUtcTime);
 
         // Assert
-        Assert.True(result.UpdatedAt.HasValue, "Expected UpdatedAt to be set.");
-        Assert.True(result.UpdatedAt.Value != futureUtcTime, "UpdatedAt set to Future Time.");
-        Assert.True(result.UpdatedAt.Value == currentUtcTime, "UpdatedAt Not set to Now.");
+        Assert.NotNull(result.UpdatedAt);
+        Assert.Equal(currentUtcTime, result.UpdatedAt.Value);
     }
 
     [Fact]
@@ -226,11 +225,11 @@ public class CreateDialogRequestMapperTests
     {
         // Arrange
         DateTimeOffset currentUtcTime = DateTimeOffset.UtcNow;
-        DateTimeOffset origninalPublishDate = currentUtcTime.AddHours(-1);
+        DateTimeOffset originalPublishDate = currentUtcTime.AddHours(-1);
 
         var correspondence = new CorrespondenceEntityBuilder()
-            .WithRequestedPublishTime(origninalPublishDate)
-            .WithStatus(CorrespondenceStatus.Published, origninalPublishDate)
+            .WithRequestedPublishTime(originalPublishDate)
+            .WithStatus(CorrespondenceStatus.Published, originalPublishDate)
             .Build();
 
         var baseUrl = "https://example.com";
@@ -238,9 +237,8 @@ public class CreateDialogRequestMapperTests
         // Act
         var result = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, currentUtcNow: currentUtcTime);
 
-        // Assert
-        Assert.True(result.UpdatedAt.HasValue, "Expected UpdatedAt to be set.");
-        Assert.True(result.UpdatedAt.Value == origninalPublishDate, "UpdatedAt Not set to Published Time.");
-        Assert.True(result.UpdatedAt.Value != currentUtcTime, "UpdatedAt set to Now.");
+        // Assert        
+        Assert.NotNull(result.UpdatedAt);
+        Assert.Equal(originalPublishDate, result.UpdatedAt.Value);
     }
 }
