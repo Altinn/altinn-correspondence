@@ -127,14 +127,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             };
         }
 
-        private List<RoleItem> CreateRoleItems(params string[] identifiers) => identifiers
-            .Select(code => new RoleItem { Role = new RoleDescriptor { Identifier = code } })
-            .ToList();
-
-        private List<MainUnitItem> CreateMainUnits(params (string orgId, Guid partyUuid)[] items) => items
-            .Select(i => new MainUnitItem { OrganizationIdentifier = i.orgId, PartyUuid = i.partyUuid })
-            .ToList();
-
         [Fact]
         public async Task Process_CorrespondenceWithOrgRecipientMissingRequiredRoles_FailsCorrespondence()
         {
