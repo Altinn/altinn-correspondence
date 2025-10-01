@@ -4,7 +4,10 @@ param namePrefix string
 param image string
 param environment string
 param platform_base_url string
+@secure()
 param override_authorization_url string
+@secure()
+param override_authorization_thumbprint string
 param maskinporten_environment string
 param correspondenceBaseUrl string
 param contactReservationRegistryBaseUrl string
@@ -94,6 +97,7 @@ var containerAppEnvVarsDefault = [
   }
   { name: 'AltinnOptions__PlatformGatewayUrl', value: platform_base_url }
   { name: 'AltinnOptions__OverrideAuthorizationUrl', value: override_authorization_url }
+  { name: 'AltinnOptions__OverrideAuthorizationThumbprint', value: override_authorization_thumbprint }
   { name: 'AltinnOptions__PlatformSubscriptionKey', secretRef: 'platform-subscription-key' }
   { name: 'AltinnOptions__AccessManagementSubscriptionKey', secretRef: 'access-management-subscription-key' }
   { name: 'MaskinportenSettings__Environment', value: maskinporten_environment }

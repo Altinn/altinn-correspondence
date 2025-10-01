@@ -67,6 +67,7 @@ public static class DependencyInjection
         // Maintenance
         services.AddScoped<CleanupOrphanedDialogsHandler>();
         services.AddScoped<CleanupPerishingDialogs.CleanupPerishingDialogsHandler>();
+        services.AddScoped<CleanupMarkdownAndHTMLInSummary.CleanupMarkdownAndHTMLInSummaryHandler>();
         services.AddScoped<RestoreSoftDeletedDialogsHandler>();
 
         // Statistics & Reporting

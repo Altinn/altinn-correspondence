@@ -5,6 +5,7 @@ param location = 'norwayeast'
 param imageTag = readEnvironmentVariable('IMAGE_TAG')
 param platform_base_url = readEnvironmentVariable('PLATFORM_BASE_URL')
 param override_authorization_url = readEnvironmentVariable('OVERRIDE_AUTHORIZATION_URL')
+param override_authorization_thumbprint = readEnvironmentVariable('OVERRIDE_AUTHORIZATION_THUMBPRINT')
 param correspondenceBaseUrl = readEnvironmentVariable('CORRESPONDENCE_BASE_URL')
 param sblBridgeBaseUrl = readEnvironmentVariable('SBL_BRIDGE_BASE_URL')
 param contactReservationRegistryBaseUrl = readEnvironmentVariable('CONTACT_RESERVATION_REGISTRY_BASE_URL')

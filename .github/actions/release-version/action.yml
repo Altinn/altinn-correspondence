@@ -32,6 +32,9 @@ inputs:
   OVERRIDE_AUTHORIZATION_URL:
     description: "Override authorization URL for Altinn"
     required: true
+  OVERRIDE_AUTHORIZATION_THUMBPRINT:
+    description: "Thumbprint used for authorization cluster certificate validation"
+    required: true
   STORAGE_ACCOUNT_NAME:
     description: "Name of the storage account used for attachments"
     required: true
@@ -95,6 +98,7 @@ runs:
         TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
         PLATFORM_BASE_URL: ${{ inputs.PLATFORM_BASE_URL }}
         OVERRIDE_AUTHORIZATION_URL: ${{ inputs.OVERRIDE_AUTHORIZATION_URL }}
+        OVERRIDE_AUTHORIZATION_THUMBPRINT: ${{ inputs.OVERRIDE_AUTHORIZATION_THUMBPRINT }}
         STORAGE_ACCOUNT_NAME: ${{ inputs.STORAGE_ACCOUNT_NAME }}
         CORRESPONDENCE_BASE_URL: ${{ inputs.CORRESPONDENCE_BASE_URL }}
         CONTACT_RESERVATION_REGISTRY_BASE_URL: ${{ inputs.CONTACT_RESERVATION_REGISTRY_BASE_URL }}

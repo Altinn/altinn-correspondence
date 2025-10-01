@@ -1,6 +1,7 @@
 using Altinn.ApiClients.Maskinporten.Config;
 using Altinn.ApiClients.Maskinporten.Extensions;
 using Altinn.ApiClients.Maskinporten.Services;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -13,13 +14,13 @@ using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 using Altinn.Correspondence.Integrations.Altinn.Storage;
 using Altinn.Correspondence.Integrations.Azure;
-using Altinn.Correspondence.Integrations.Redlock;
 using Altinn.Correspondence.Integrations.Dialogporten;
+using Altinn.Correspondence.Integrations.Redlock;
 using Altinn.Correspondence.Integrations.Slack;
-using Altinn.Correspondence.Common.Helpers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Slack.Webhooks;
+using System.Net.Security;
 
 namespace Altinn.Correspondence.Integrations;
 public static class DependencyInjection
@@ -105,7 +106,20 @@ public static class DependencyInjection
             var httpClientBuilder = services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(altinnOptions.OverrideAuthorizationUrl));
             httpClientBuilder.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
+                {
+                    if (sslPolicyErrors == SslPolicyErrors.None)
+                        return true;
+
+                    if (string.IsNullOrWhiteSpace(altinnOptions.AuthorizationCertificateThumbprint))
+                    {
+                        return true;
+                    }
+
+                    return cert?.Thumbprint?.Equals(
+                        altinnOptions.AuthorizationCertificateThumbprint,
+                        StringComparison.OrdinalIgnoreCase) == true;
+                }
             });
             httpClientBuilder
                 .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>()

@@ -78,5 +78,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         {
             return Task.FromResult(Guid.NewGuid().ToString());
         }
+
+        public Task<bool> TryRemoveMarkdownAndHtmlFromSummary(string dialogId, string newSummary, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(true);
+        }
     }
 }
