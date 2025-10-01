@@ -2,6 +2,7 @@ using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Tests.Factories
 {
@@ -272,6 +273,7 @@ namespace Altinn.Correspondence.Tests.Factories
         {
             return new CorrespondenceEntity()
             {
+                Id = Guid.NewGuid(),
                 ResourceId = "1",
                 Sender = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
                 Recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
@@ -290,6 +292,18 @@ namespace Altinn.Correspondence.Tests.Factories
                         NotificationChannel = new Core.Models.Enums.NotificationChannel(),
                     }
                 },
+                ExternalReferences = new List<ExternalReferenceEntity>(){
+                    new ExternalReferenceEntity()
+                    {
+                        ReferenceValue = "1",
+                        ReferenceType = ReferenceType.AltinnBrokerFileTransfer
+                    },
+                    new ExternalReferenceEntity()
+                    {
+                        ReferenceValue = "12345",
+                        ReferenceType = ReferenceType.DialogportenDialogId
+                    }
+                }
             };
         }
     }
