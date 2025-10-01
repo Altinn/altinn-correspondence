@@ -48,30 +48,31 @@ namespace Altinn.Correspondence.Application.CancelNotification
             var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, false, cancellationToken);
             if (correspondence == null)
             {
-                error += $" Correspondence with id: {correspondenceId} was not found.";
-                logger.LogWarning(error);
+                throw new Exception(error + $" Correspondence with id: {correspondenceId} was not found.");
             }
             var dialogId = correspondence.ExternalReferences?
             .FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
             if (string.IsNullOrEmpty(dialogId))
             {
-                error += $" Correspondence with id: {correspondenceId} has no DialogportenDialogId reference.";
-                logger.LogWarning(error);
+                throw new Exception(error + $" Correspondence with id: {correspondenceId} has no DialogportenDialogId.");
             }
             else if (correspondence.StatusHasBeen(CorrespondenceStatus.Failed))
             {
                 error += $" Correspondence with id: {correspondenceId} has status Failed.";
                 logger.LogWarning(error);
+                return;
             }
             else if (correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByAltinn))
             {
                 error += $" Correspondence with id: {correspondenceId} has status PurgedByAltinn.";
                 logger.LogWarning(error);
+                return;
             }
             else if (correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByRecipient))
             {
                 error += $" Correspondence with id: {correspondenceId} has status PurgedByRecipient.";
                 logger.LogWarning(error);
+                return;
             }
             else
             {
