@@ -109,7 +109,15 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 RequestedPublishTime = requestedPublishTime,
                 Sender = "sender",
                 Statuses = new List<CorrespondenceStatusEntity>(),
-                Created = DateTimeOffset.UtcNow
+                Created = DateTimeOffset.UtcNow,
+                ExternalReferences = new List<ExternalReferenceEntity>
+                {
+                    new ExternalReferenceEntity
+                    {
+                        ReferenceType = ReferenceType.DialogportenDialogId,
+                        ReferenceValue = "12345"
+                    }
+                }
             };
 
             var template = new NotificationTemplateEntity
