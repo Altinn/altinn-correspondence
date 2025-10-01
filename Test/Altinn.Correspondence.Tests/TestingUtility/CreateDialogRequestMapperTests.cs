@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Tests.Factories;
 
@@ -195,5 +196,49 @@ public class CreateDialogRequestMapperTests
         Assert.NotNull(result.Content.Summary);
         Assert.Single(result.Content.Summary.Value);
         Assert.Equal(expectedPlainText, result.Content.Summary.Value[0].Value);
+    }
+
+    [Fact]
+    public void CreateCorrespondenceDialog_WithFuturePublishTime_UpdatedAtShouldBeNow()
+    {
+        // Arrange
+        DateTimeOffset currentUtcTime = DateTimeOffset.UtcNow;
+        DateTimeOffset futureUtcTime = currentUtcTime.AddHours(1);
+
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithRequestedPublishTime(futureUtcTime)
+            .WithStatus(CorrespondenceStatus.Published, futureUtcTime)
+            .Build();
+        
+        var baseUrl = "https://example.com";
+
+        // Act
+        var result = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, currentUtcNow: currentUtcTime);
+
+        // Assert
+        Assert.NotNull(result.UpdatedAt);
+        Assert.Equal(currentUtcTime, result.UpdatedAt.Value);
+    }
+
+    [Fact]
+    public void CreateCorrespondenceDialog_WithOldPublished_UpdatedAtShouldThen()
+    {
+        // Arrange
+        DateTimeOffset currentUtcTime = DateTimeOffset.UtcNow;
+        DateTimeOffset originalPublishDate = currentUtcTime.AddHours(-1);
+
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithRequestedPublishTime(originalPublishDate)
+            .WithStatus(CorrespondenceStatus.Published, originalPublishDate)
+            .Build();
+
+        var baseUrl = "https://example.com";
+
+        // Act
+        var result = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, currentUtcNow: currentUtcTime);
+
+        // Assert        
+        Assert.NotNull(result.UpdatedAt);
+        Assert.Equal(originalPublishDate, result.UpdatedAt.Value);
     }
 }
