@@ -36,6 +36,16 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 hostEnvironment.Object,
                 dialogportenService,
                 slackSettings);
+            
+            correspondenceRepositoryMock
+                .Setup(r => r.GetCorrespondenceById(
+                    correspondence.Id,
+                    true,
+                    false,
+                    false,
+                    CancellationToken.None,
+                    false))
+                .ReturnsAsync(correspondence);
 
             var notificationEntities = correspondence.Notifications;
             notificationEntities.ForEach(notification =>
@@ -48,13 +58,12 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             try
             {
                 var fixedTimestamp = new DateTimeOffset(2025, 1, 15, 10, 30, 0, TimeSpan.Zero);
-                await cancelNotificationHandler.CancelNotification(Guid.Empty, notificationEntities, retryAttempts: 10, fixedTimestamp, default);
+                await cancelNotificationHandler.CancelNotification(correspondence.Id, notificationEntities, retryAttempts: 10, fixedTimestamp, default);
             }
             catch
             {
                 Console.WriteLine("Exception thrown");
-            }
-
+            }    
             // Assert
             slackClientMock.Verify(client => client.Post(It.IsAny<SlackMessage>()), Times.Once);
         }
