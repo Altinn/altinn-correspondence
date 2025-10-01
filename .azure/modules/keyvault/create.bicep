@@ -13,6 +13,8 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' = {
     enabledForTemplateDeployment: true
     enabledForDiskEncryption: true
     enabledForDeployment: true
+    enableSoftDelete: true
+    enablePurgeProtection: true
     sku: {
       name: 'standard'
       family: 'A'
