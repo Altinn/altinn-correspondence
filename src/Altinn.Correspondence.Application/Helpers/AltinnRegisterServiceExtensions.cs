@@ -18,7 +18,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public static async Task<bool> HasPartyRequiredRoles(this IAltinnRegisterService altinnRegisterService, string recipientUrn, Guid partyUuid, bool isConfidential, CancellationToken cancellationToken)
         {
-            var mainUnits = await altinnRegisterService.LookUpMainUnits(recipientUrn.WithUrnPrefix(), cancellationToken);
+            var mainUnits = await altinnRegisterService.LookUpMainUnits(recipientUrn.WithoutPrefix().WithUrnPrefix(), cancellationToken);
             if (!mainUnits.Any())
             {
                 return await altinnRegisterService.HasRequiredOrganizationRoles(partyUuid.ToString(), isConfidential, cancellationToken);
