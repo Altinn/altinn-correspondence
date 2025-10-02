@@ -42,6 +42,11 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceStatusRepositoryMock = new Mock<ICorrespondenceStatusRepository>();
             _correspondenceDeleteEventRepositoryMock = new Mock<ICorrespondenceDeleteEventRepository>();
             _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
+            _backgroundJobClientMock
+                .Setup(x => x.Create(
+                    It.IsAny<Job>(),
+                    It.IsAny<IState>()))
+                .Returns(() => Guid.NewGuid().ToString());
             _attachmentRepositoryMock = new Mock<IAttachmentRepository>();
             _attachmentStatusRepositoryMock = new Mock<IAttachmentStatusRepository>();
             _storageRepositoryMock = new Mock<IStorageRepository>();
