@@ -1726,6 +1726,74 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 Assert.Contains("lack required roles", errorContent);
             }
         }
+
+        [Fact]
+        public async Task InitializeCorrespondence_TransmissionScheduledAtRequestedPublishTime_NotPublishedBefore()
+        {
+            // Arrange
+            var futurePublishTime = DateTimeOffset.UtcNow.AddHours(2);
+
+            var correspondence1 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("First Correspondence")
+                .Build();
+
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, correspondence1);
+            var correspondenceContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            using var scope = _factory.Services.CreateScope();
+            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(
+                initializedCorrespondence.CorrespondenceId,
+                includeStatus: false,
+                includeContent: false,
+                includeForwardingEvents: false,
+                cancellationToken: CancellationToken.None);
+
+            var dialogId = correspondence?.ExternalReferences
+                .FirstOrDefault(er => er.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenDialogId)?.ReferenceValue;
+            Assert.NotNull(dialogId);
+
+            
+            var transmissionPayload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("Transmission Correspondence")
+                .WithExternalReferencesDialogId(dialogId)
+                .WithRequestedPublishTime(futurePublishTime)
+                .Build();
+
+            // Act
+            var transmissionResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
+            Assert.Equal(HttpStatusCode.OK, transmissionResponse.StatusCode);
+
+            var transmissionContent = await transmissionResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(transmissionContent);
+
+            var transmissionId = transmissionContent.Correspondences.First().CorrespondenceId;
+
+            // Assert 
+            var statusResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{transmissionId}");
+            statusResponse.EnsureSuccessStatusCode();
+            var statusContent = await statusResponse.Content.ReadFromJsonAsync<GetCorrespondenceOverviewResponse>(_responseSerializerOptions);
+
+            Assert.NotNull(statusContent);
+            Assert.NotEqual("Published", statusContent.Status.ToString());
+
+            var transmissionEntity = await correspondenceRepository.GetCorrespondenceById(
+                transmissionId,
+                includeStatus: false,
+                includeContent: false,
+                includeForwardingEvents: false,
+                cancellationToken: CancellationToken.None);
+
+            var transmissionReference = transmissionEntity?.ExternalReferences
+                .FirstOrDefault(er => er.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenDialogId);
+
+            // The transmission reference should contain a dialog id, but not a transmission id as this is set upon publishing
+            Assert.NotNull(transmissionReference);
+            Assert.Equal(1, transmissionEntity?.ExternalReferences.Count);
+        }
     }
 }
 
