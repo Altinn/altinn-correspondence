@@ -30,7 +30,7 @@ jobs:
         id: get_sha
         run: echo "short_sha=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
       - name: Build and push latest artifact
-        uses: Altinn/altinn-platform/actions/flux/build-push-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
+        uses: Altinn/altinn-platform/actions/flux/build-push-image@8d4e42eae11efbc3a159aa62fe15ed49954d9df9 # main
         with:
           image_name: ${{ env.ARTIFACT_NAME }}
           tag: ${{ steps.get_sha.outputs.short_sha }}
@@ -51,7 +51,7 @@ jobs:
         run: |
           echo "short_sha=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
       - name: Re-tag existing image with test
-        uses: Altinn/altinn-platform/actions/flux/retag-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
+        uses: Altinn/altinn-platform/actions/flux/retag-image@8d4e42eae11efbc3a159aa62fe15ed49954d9df9 # main
         with:
           image_name: ${{ env.ARTIFACT_NAME }}
           from_tag: ${{ steps.get_tags.outputs.short_sha }}
@@ -74,7 +74,7 @@ jobs:
         run: |
           echo "short_sha=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
       - name: Re-tag existing image with staging
-        uses: Altinn/altinn-platform/actions/flux/retag-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
+        uses: Altinn/altinn-platform/actions/flux/retag-image@8d4e42eae11efbc3a159aa62fe15ed49954d9df9 # main
         with:
           image_name: ${{ env.ARTIFACT_NAME }}
           from_tag: ${{ steps.get_tags.outputs.short_sha }}
@@ -97,7 +97,7 @@ jobs:
         run: |
           echo "short_sha=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
       - name: Re-tag existing image with prod
-        uses: Altinn/altinn-platform/actions/flux/retag-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
+        uses: Altinn/altinn-platform/actions/flux/retag-image@8d4e42eae11efbc3a159aa62fe15ed49954d9df9 # main
         with:
           image_name: ${{ env.ARTIFACT_NAME }}
           from_tag: ${{ steps.get_tags.outputs.short_sha }}
@@ -124,7 +124,7 @@ jobs:
         run: |
           echo "short_sha=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
       - name: Re-tag existing image with environment tag
-        uses: Altinn/altinn-platform/actions/flux/retag-image@015e4f2b2fad90ac188e0e401c30f79de8523e1a # main
+        uses: Altinn/altinn-platform/actions/flux/retag-image@8d4e42eae11efbc3a159aa62fe15ed49954d9df9 # main
         with:
           image_name: ${{ env.ARTIFACT_NAME }}
           from_tag: ${{ steps.get_tags.outputs.short_sha }}
