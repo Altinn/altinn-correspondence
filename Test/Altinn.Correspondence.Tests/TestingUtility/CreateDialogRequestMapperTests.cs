@@ -208,6 +208,7 @@ public class CreateDialogRequestMapperTests
         var correspondence = new CorrespondenceEntityBuilder()
             .WithRequestedPublishTime(futureUtcTime)
             .WithStatus(CorrespondenceStatus.Published, futureUtcTime)
+            .WithAltinn2CorrespondenceId(123)
             .Build();
         
         var baseUrl = "https://example.com";
@@ -230,6 +231,7 @@ public class CreateDialogRequestMapperTests
         var correspondence = new CorrespondenceEntityBuilder()
             .WithRequestedPublishTime(originalPublishDate)
             .WithStatus(CorrespondenceStatus.Published, originalPublishDate)
+            .WithAltinn2CorrespondenceId(123)
             .Build();
 
         var baseUrl = "https://example.com";
