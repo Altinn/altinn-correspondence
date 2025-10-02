@@ -64,7 +64,7 @@ public class InitializeCorrespondencesHandler(
         if (serviceOwnerOrgNumber is null || serviceOwnerOrgNumber == string.Empty)
         {
             logger.LogError("Service owner/sender's organization number (9 digits) not found for resource {ResourceId}", request.Correspondence.ResourceId);
-            return CorrespondenceErrors.ServiceOwnerOrgNumberNotFound;
+            return CorrespondenceErrors.InvalidResource;
         }
         validatedData.ServiceOwnerOrgNumber = serviceOwnerOrgNumber;
 
