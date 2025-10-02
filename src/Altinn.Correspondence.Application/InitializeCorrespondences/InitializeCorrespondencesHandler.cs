@@ -438,7 +438,7 @@ public class InitializeCorrespondencesHandler(
         if (hasDialogId)
         {
             logger.LogInformation("Correspondence {correspondenceId} already has a Dialogporten dialog, creating a transmission", correspondence.Id);
-            var transmissionJob = backgroundJobClient.Enqueue(() => CreateDialogportenTransmission(correspondence.Id));
+            var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondence.Id), correspondence.RequestedPublishTime);
             await hybridCacheWrapper.SetAsync($"transmissionJobId_{correspondence.Id}", transmissionJob, new HybridCacheEntryOptions
             {
                 Expiration = TimeSpan.FromHours(24)
