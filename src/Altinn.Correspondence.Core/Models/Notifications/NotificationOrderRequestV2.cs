@@ -91,6 +91,7 @@ namespace Altinn.Correspondence.Core.Models.Notifications
 
         public SmsSettings? SmsSettings { get; set; }
 
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? IgnoreReservation { get; set; }
     }
 
