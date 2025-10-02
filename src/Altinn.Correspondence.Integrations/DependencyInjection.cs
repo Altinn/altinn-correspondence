@@ -14,7 +14,6 @@ using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 using Altinn.Correspondence.Integrations.Altinn.Storage;
 using Altinn.Correspondence.Integrations.Azure;
-using Altinn.Correspondence.Integrations.Brreg;
 using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Integrations.Redlock;
 using Altinn.Correspondence.Integrations.Slack;
@@ -46,7 +45,6 @@ public static class DependencyInjection
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
             services.AddScoped<IContactReservationRegistryService, ContactReservationRegistryDevService>();
             services.AddScoped<IAltinnStorageService, AltinnStorageDevService>();
-            services.AddScoped<IBrregService, BrregDevService>();
         }
         else
         {
@@ -61,8 +59,6 @@ public static class DependencyInjection
             services.RegisterAltinnHttpClient<IDialogportenService, DialogportenService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnStorageService, AltinnStorageService>(maskinportenSettings, altinnOptions);
             services.RegisterMaskinportenHttpClient<IContactReservationRegistryService, ContactReservationRegistryService>(config, generalSettings.ContactReservationRegistryBaseUrl);
-            services.AddHttpClient<IBrregService, BrregService>()
-                .AddStandardRetryPolicy();
         }
 
         if (string.IsNullOrWhiteSpace(generalSettings.SlackUrl))
