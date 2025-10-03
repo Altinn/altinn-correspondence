@@ -17,16 +17,6 @@ public class AltinnDevNotificationService : IAltinnNotificationService
         _logger = logger;
     }
 
-    public async Task<NotificationOrderRequestResponse?> CreateNotification(NotificationOrderRequest notification, CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("Notification for Correspondence with recipient ssn: " + notification.Recipients[0].NationalIdentityNumber + " or orgNr: " + notification.Recipients[0].OrganizationNumber);
-        return new NotificationOrderRequestResponse()
-        {
-            OrderId = Guid.NewGuid(),
-            RecipientLookup = new RecipientLookupResult()
-        };
-    }
-
     public async Task<NotificationOrderRequestResponseV2?> CreateNotificationV2(NotificationOrderRequestV2 notificationRequest, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Notification (versjon 2): ");

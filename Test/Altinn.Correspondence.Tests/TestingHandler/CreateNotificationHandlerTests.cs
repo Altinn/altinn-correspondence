@@ -67,7 +67,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _mockNotificationTemplateRepository.Object,
                 _mockBackgroundJobClient.Object,
                 _mockHostEnvironment.Object,
-                _hangfireScheduleHelper,
                 _mockGeneralSettings.Object,
                 _mockLogger.Object);
         }

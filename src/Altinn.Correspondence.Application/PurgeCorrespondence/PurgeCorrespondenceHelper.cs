@@ -10,11 +10,8 @@ using Hangfire;
 namespace Altinn.Correspondence.Application.PurgeCorrespondence;
 public class PurgeCorrespondenceHelper(
     IAttachmentRepository attachmentRepository,
-    IStorageRepository storageRepository,
     IAttachmentStatusRepository attachmentStatusRepository,
-    ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
-    IDialogportenService dialogportenService,
     IBackgroundJobClient backgroundJobClient)
 {
     public Error? ValidatePurgeRequestSender(CorrespondenceEntity correspondence)
@@ -105,7 +102,7 @@ public class PurgeCorrespondenceHelper(
         await CheckAndPurgeAttachments(correspondence.Id, partyUuid, cancellationToken);
         var reportToDialogportenJob = ReportActivityToDialogporten(isSender: isSender, correspondence.Id, operationTimestamp);
         var cancelNotificationJob = backgroundJobClient.ContinueJobWith<CancelNotificationHandler>(reportToDialogportenJob, 
-            handler => handler.Process(null, correspondence.Id, null, cancellationToken));
+            handler => handler.Process(null!, correspondence.Id, null, cancellationToken));
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
         if (dialogId is not null)
         {
