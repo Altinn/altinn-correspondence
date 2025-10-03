@@ -335,10 +335,10 @@ public class InitializeCorrespondencesHandler(
         ValidatedData validatedData,
         CancellationToken cancellationToken)
     {
-        logger.LogInformation("Initializing {correspondenceCount} correspondences for {resourceId}", 
-            request.Recipients.Count, 
+        logger.LogInformation("Initializing {correspondenceCount} correspondences for {resourceId}",
+            request.Recipients.Count,
             request.Correspondence.ResourceId.SanitizeForLogging());
-        
+
         var correspondences = new List<CorrespondenceEntity>();
         var serviceOwnerOrgNumber = validatedData.ServiceOwnerOrgNumber;
         foreach (var recipient in request.Recipients)
@@ -349,7 +349,7 @@ public class InitializeCorrespondencesHandler(
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
-        
+
         var initializedCorrespondences = new List<InitializedCorrespondences>();
         foreach (var correspondence in correspondences)
         {
@@ -380,7 +380,15 @@ public class InitializeCorrespondencesHandler(
                     throw;
                 }
             }
-            await CreateDialogOrTransmissionJob(correspondence, request, cancellationToken);
+            try
+            {
+                await CreateDialogOrTransmissionJob(correspondence, request, cancellationToken);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("Transmission only allows one recipient"))
+            {
+                logger.LogWarning("Failed to create dialog or transmission job: {Error}", ex.Message);
+                return CorrespondenceErrors.TransmissionOnlyAllowsOneRecipient;
+            }
 
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
             if (!isReserved)
@@ -432,8 +440,18 @@ public class InitializeCorrespondencesHandler(
         await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenTransmissionId, transmissionId);
         logger.LogInformation("Successfully created Dialogporten transmission for correspondence {CorrespondenceId}", correspondenceId);
     }
+    private void ValidateTransmissionRequest(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request)
+    {
+        if (request.Recipients.Count > 1)
+        {
+            throw new InvalidOperationException("Transmission only allows one recipient");
+        }
+    }
+
     private async Task CreateDialogOrTransmissionJob(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
     {
+        ValidateTransmissionRequest(correspondence, request);
+        
         bool hasDialogId = correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId);
         if (hasDialogId)
         {
