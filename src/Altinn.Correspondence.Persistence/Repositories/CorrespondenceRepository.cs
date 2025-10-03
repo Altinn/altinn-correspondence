@@ -170,11 +170,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Include(c => c.Statuses)
                 .Include(c => c.Content)
                 .OrderByDescending(c => c.RequestedPublishTime);             // Sort by RequestedPublishTime
-            if (from == null || from > DateTime.Now.AddYears(-19))
+            if (from != null || from > DateTime.Now.AddYears(-19))
             {
                 correspondences = correspondences.Where(c => c.RequestedPublishTime > from);
             }
-            if (to == null || to.Value.Date <= DateTime.UtcNow.Date)
+            if (to != null || to.Value.Date <= DateTime.UtcNow.Date)
             {
                 correspondences = correspondences.Where(c => c.RequestedPublishTime < to);
             }
