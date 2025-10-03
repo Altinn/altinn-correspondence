@@ -380,14 +380,10 @@ public class InitializeCorrespondencesHandler(
                     throw;
                 }
             }
-            try
+            var createJobResult = await CreateDialogOrTransmissionJob(correspondence, request, cancellationToken);
+            if (createJobResult.IsT1)
             {
-                await CreateDialogOrTransmissionJob(correspondence, request, cancellationToken);
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("Transmission only allows one recipient"))
-            {
-                logger.LogWarning("Failed to create dialog or transmission job: {Error}", ex.Message);
-                return CorrespondenceErrors.TransmissionOnlyAllowsOneRecipient;
+                return createJobResult.AsT1;
             }
 
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
@@ -440,21 +436,41 @@ public class InitializeCorrespondencesHandler(
         await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenTransmissionId, transmissionId);
         logger.LogInformation("Successfully created Dialogporten transmission for correspondence {CorrespondenceId}", correspondenceId);
     }
-    private void ValidateTransmissionRequest(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request)
+    private async Task<OneOf<Task, Error>> ValidateTransmissionRequest(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
     {
         if (request.Recipients.Count > 1)
         {
-            throw new InvalidOperationException("Transmission only allows one recipient");
+            return CorrespondenceErrors.TransmissionOnlyAllowsOneRecipient;
         }
+
+        var dialogId = correspondence.ExternalReferences
+            .FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        
+        if (string.IsNullOrEmpty(dialogId))
+        {
+            throw new InvalidOperationException("Dialog ID not found on correspondence");
+        }
+
+        var recipientMatches = await dialogportenService.ValidateDialogRecipientMatch(dialogId, correspondence.Recipient, cancellationToken);
+        if (!recipientMatches)
+        {
+            return CorrespondenceErrors.RecipientMismatch;
+        }
+        return Task.CompletedTask;
     }
 
-    private async Task CreateDialogOrTransmissionJob(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
+    private async Task<OneOf<Task, Error>> CreateDialogOrTransmissionJob(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
     {
         
         bool hasDialogId = correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId);
         if (hasDialogId)
         {
-            ValidateTransmissionRequest(correspondence, request);
+            var validationResult = await ValidateTransmissionRequest(correspondence, request, cancellationToken);
+            if (validationResult.IsT1)
+            {
+                return validationResult.AsT1;
+            }
+
             logger.LogInformation("Correspondence {correspondenceId} already has a Dialogporten dialog, creating a transmission", correspondence.Id);
             var transmissionJob = backgroundJobClient.Enqueue(() => CreateDialogportenTransmission(correspondence.Id));
             await hybridCacheWrapper.SetAsync($"transmissionJobId_{correspondence.Id}", transmissionJob, new HybridCacheEntryOptions
@@ -479,6 +495,8 @@ public class InitializeCorrespondencesHandler(
                 await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
             }
         }
+
+        return Task.CompletedTask;
     }
 
     private async Task<OneOf<bool, Error>> ValidateRecipientParty(InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
