@@ -40,7 +40,7 @@ public static class CorrespondenceErrors
     public static Error InvalidIdempotencyKey = new Error(1033, "The idempotency key must be a valid non-empty GUID", HttpStatusCode.BadRequest);
     public static Error DuplicateInitCorrespondenceRequest = new Error(1034, "A correspondence with the same idempotent key already exists", HttpStatusCode.Conflict);
     public static Error InvalidReplyOptions = new Error(1035, "Reply options must be well-formed URIs and HTTPS with a max length of 255 characters", HttpStatusCode.BadRequest);
-    public static Error ServiceOwnerOrgNumberNotFound = new Error(1036, "Service owner/sender's organization number (9 digits) not found for resource", HttpStatusCode.InternalServerError);
+    public static Error InvalidResource = new Error(1036, "ResourceId must match an existing resource in the resource registry", HttpStatusCode.BadRequest);
     public static Error MessageTitleTooLong = new Error(1037, "Message title cannot exceed 255 characters", HttpStatusCode.BadRequest);
     public static Error AttachmentCountExceeded = new Error(1038, "A correspondence cannot contain more than 100 attachments in total", HttpStatusCode.BadRequest);
     public static Error MessageSenderIsNotPlainText = new Error(1039, "Message sender must be plain text", HttpStatusCode.BadRequest);
