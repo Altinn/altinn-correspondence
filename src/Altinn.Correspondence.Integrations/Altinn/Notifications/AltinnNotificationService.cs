@@ -20,24 +20,6 @@ public class AltinnNotificationService : IAltinnNotificationService
         _logger = logger;
     }
 
-    public async Task<NotificationOrderRequestResponse?> CreateNotification(NotificationOrderRequest notification, CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("Creating notification in Altinn Notification");
-        var response = await _httpClient.PostAsJsonAsync("notifications/api/v1/orders", notification, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            _logger.LogError("Failed to create notification in Altinn Notification. Status code: {StatusCode}", response.StatusCode);
-            _logger.LogError("Body: {Response}", await response.Content.ReadAsStringAsync(cancellationToken));
-            return null;
-        }
-        var responseContent = await response.Content.ReadFromJsonAsync<NotificationOrderRequestResponse>(cancellationToken: cancellationToken);
-        if (responseContent is null)
-        {
-            _logger.LogError("Unexpected null or invalid json response from Notification.");
-            return null;
-        }
-        return responseContent;
-    }
 
     public async Task<NotificationOrderRequestResponseV2?> CreateNotificationV2(NotificationOrderRequestV2 notificationRequest, CancellationToken cancellationToken = default)
     {

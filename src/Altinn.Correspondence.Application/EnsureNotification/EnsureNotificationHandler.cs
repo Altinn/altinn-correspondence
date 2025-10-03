@@ -46,9 +46,9 @@ public class EnsureNotificationHandler(
                 throw new ArgumentException("Order request must be set in order to retry");
             }
             logger.LogInformation("Deserializing order request for correspondence {CorrespondenceId}", correspondenceId);
-            var orderRequest = JsonSerializer.Deserialize<NotificationOrderRequest>(primaryNotification.OrderRequest);
+            var orderRequest = JsonSerializer.Deserialize<NotificationOrderRequestV2>(primaryNotification.OrderRequest);
             orderRequest.RequestedSendTime = DateTime.Now;
-            await altinnNotificationService.CreateNotification(orderRequest, cancellationToken);
+            await altinnNotificationService.CreateNotificationV2(orderRequest, cancellationToken);
             logger.LogInformation("Wiping order for notification {NotificationId}", primaryNotification.Id);
             await correspondenceNotificationRepository.WipeOrder(primaryNotification.Id, cancellationToken);
             logger.LogInformation("Successfully ensured notification for correspondence {CorrespondenceId}", correspondenceId);
