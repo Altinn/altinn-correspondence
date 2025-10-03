@@ -359,7 +359,8 @@ public class CreateNotificationHandler(
                     ResourceId = resourceIdWithPrefix,
                     ChannelSchema = channel,
                     EmailSettings = emailSettings,
-                    SmsSettings = smsSettings
+                    SmsSettings = smsSettings,
+                    IgnoreReservation = correspondence.IgnoreReservation
                 }
             };
         }

@@ -23,6 +23,7 @@ using Altinn.Correspondence.Tests.TestingFeature;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Tests.Extensions;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -1668,6 +1669,62 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+        }
+
+        [Theory]
+        [InlineData(false, false, HttpStatusCode.BadRequest)]
+        [InlineData(true, false, HttpStatusCode.BadRequest)]
+        [InlineData(false, true, HttpStatusCode.OK)]
+        [InlineData(true, true, HttpStatusCode.OK)]
+        public async Task InitializeCorrespondence_ValidatesRolesForOrgRecipient(bool subUnit, bool hasRequiredRoles, HttpStatusCode expectedStatus)
+        {
+            // Arrange
+            var orgNo = "100000001";
+            var mainUnitOrgNo = "100000002";
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockRegisterService = new Mock<IAltinnRegisterService>();
+                
+                mockRegisterService.SetupPartyByIdLookup("991825827", Guid.NewGuid());
+
+                var recipientPartyUuid = Guid.NewGuid();
+                var mainUnitPartyUuid = Guid.NewGuid();
+                mockRegisterService.SetupPartyByIdLookup(orgNo, recipientPartyUuid);
+
+                if (subUnit) mockRegisterService.SetupMainUnitsLookup(orgNo, mainUnitOrgNo, mainUnitPartyUuid); 
+                else mockRegisterService.SetupEmptyMainUnitsLookup(orgNo);
+
+                if (hasRequiredRoles)
+                {
+                    mockRegisterService.SetupPartyRoleLookup(recipientPartyUuid.ToString(), "daglig-leder");
+                    mockRegisterService.SetupPartyRoleLookup(mainUnitPartyUuid.ToString(), "daglig-leder");
+                }
+                else 
+                {
+                    mockRegisterService.SetupPartyRoleLookup(recipientPartyUuid.ToString(), "ANNET");
+                    mockRegisterService.SetupPartyRoleLookup(mainUnitPartyUuid.ToString(), "ANNET");
+                }
+
+                services.AddSingleton(mockRegisterService.Object);
+            });
+
+            var recipientUrn = orgNo.WithUrnPrefix();
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipientUrn])
+                .Build();
+
+            // Act
+            var senderClient = testFactory.CreateSenderClient();
+            var response = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(expectedStatus, response.StatusCode);
+            if (expectedStatus == HttpStatusCode.BadRequest)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Assert.Contains("lack required roles", errorContent);
+            }
         }
     }
 }

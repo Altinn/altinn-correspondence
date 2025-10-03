@@ -24,24 +24,24 @@ public static class ApplicationConstants
     ];
     public static readonly List<string> RequiredOrganizationRolesForCorrespondenceRecipient = 
     [
-        "BEST",
-        "DAGL",
-        "DTPR",
-        "DTSO",
-        "INNH",
-        "LEDE",
-        "KOMP",
-        "BOBE"
+        "bestyrende-reder",
+        "daglig-leder",
+        "deltaker-delt-ansvar",
+        "deltaker-fullt-ansvar",
+        "innehaver",
+        "styreleder",
+        "komplementar",
+        "bostyrer"
     ];
 
     public static readonly List<string> RequiredOrganizationRolesForConfidentialCorrespondenceRecipient = 
     [
-        "BEST",
-        "DAGL",
-        "DTPR",
-        "DTSO",
-        "INNH",
-        "LEDE",
-        "KOMP"
+        "bestyrende-reder",
+        "daglig-leder",
+        "deltaker-delt-ansvar",
+        "deltaker-fullt-ansvar",
+        "innehaver",
+        "styreleder",
+        "komplementar"
     ];
 }

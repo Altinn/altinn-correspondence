@@ -19,13 +19,15 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
     internal static class CreateDialogRequestMapper
     {
-        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, bool isSoftDeleted = false)
+        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, bool isSoftDeleted = false, DateTimeOffset? currentUtcNow = null)
         {
             var dialogId = Guid.CreateVersion7().ToString(); // Dialogporten requires time-stamped GUIDs
             DateTimeOffset? dueAt = correspondence.DueDateTime != default ? correspondence.DueDateTime : null;
 
+            DateTimeOffset currentDateTimeUtcNow = currentUtcNow ?? DateTimeOffset.UtcNow;
+
             // The problem of DueAt being in the past should only occur for migrated data, as such we are checking includeActivities flag first, since this is only set when making migrated correspondences available.
-            if (includeActivities && dueAt.HasValue && dueAt < DateTimeOffset.Now)
+            if (includeActivities && dueAt.HasValue && dueAt < currentDateTimeUtcNow)
             {
                 dueAt = null;
             }
@@ -36,8 +38,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 ServiceResource = UrnConstants.Resource + ":" + correspondence.ResourceId,
                 Party = correspondence.GetRecipientUrn(),
                 CreatedAt = correspondence.Created,
-                UpdatedAt = (correspondence.Statuses ?? []).Select(s => s.StatusChanged).Concat([correspondence.Created]).Max(),
-                VisibleFrom = correspondence.RequestedPublishTime < DateTime.UtcNow.AddMinutes(1) ? null : correspondence.RequestedPublishTime,
+                UpdatedAt = correspondence.Altinn2CorrespondenceId is not null ? GetUpdatedAt(correspondence, currentDateTimeUtcNow) : null,
+                VisibleFrom = correspondence.RequestedPublishTime < currentDateTimeUtcNow.AddMinutes(1) ? null : correspondence.RequestedPublishTime,
                 Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
                 DueAt = dueAt,
                 Status = GetDialogStatusForCorrespondence(correspondence),
@@ -51,6 +53,27 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Transmissions = new List<Transmission>(),
                 SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted)
             };
+        }
+
+        /// <summary>
+        /// Method to get appropriate UpdatedAt value for Dialogporten that is not in the future.
+        /// This is primarily to handle cases where a Migrated correspondence has a "Published" status in the future due to a future RequestedVisibleTime
+        /// </summary>
+        /// <param name="correspondence">The correspondence to get for</param>
+        /// <param name="currentUtcNow">Current UTCNow time, to enable unit testing</param>
+        /// <returns></returns>
+        private static DateTimeOffset GetUpdatedAt(CorrespondenceEntity correspondence, DateTimeOffset currentUtcNow)
+        {
+            var latestStatusChange = (correspondence.Statuses is { Count: > 0 })
+                ? correspondence.Statuses.Max(s => s.StatusChanged)
+                : correspondence.Created;
+
+            if (latestStatusChange > currentUtcNow)
+            {
+                latestStatusChange = currentUtcNow;
+            }
+
+            return latestStatusChange;
         }
 
         private static string GetSystemLabelForCorrespondence(CorrespondenceEntity correspondence, bool isSoftDeleted)
@@ -222,6 +245,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             activity.CreatedAt = notification.NotificationSent ?? notification.RequestedSendTime;
             activity.Type = "Information";
 
+            // Choose the appropriate text type based on whether this is a reminder notification
+            var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
 
             string[] tokens = [];
             if (notification.NotificationAddress != null)
@@ -234,17 +259,17 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 new ()
                 {
                     LanguageCode = "nb",
-                    Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, Enums.DialogportenLanguageCode.NB, tokens)
+                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.NB, tokens)
                 },
                 new ()
                 {
                     LanguageCode = "nn",
-                    Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, Enums.DialogportenLanguageCode.NN, tokens)
+                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.NN, tokens)
                 },
                 new ()
                 {
                     LanguageCode = "en",
-                    Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, Enums.DialogportenLanguageCode.EN, tokens)
+                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.EN, tokens)
                 },
             ];
 

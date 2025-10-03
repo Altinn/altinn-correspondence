@@ -70,6 +70,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1038: A correspondence cannot contain more than 100 attachments in total</li>
         /// <li>1039: Message sender must be plain text</li>
         /// <li>1042: Message summary, if not null, must be between 0 and 255 characters long</li>
+        /// <li>1044: The following recipients lack required roles to read the correspondence: {recipients}</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// <li>3002: Email body and subject must be provided when sending email notifications</li>
         /// <li>3003: Reminder email body and subject must be provided when sending reminder email notifications</li>
@@ -166,6 +167,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1038: A correspondence cannot contain more than 100 attachments in total</li>
         /// <li>1039: Message sender must be plain text</li>
         /// <li>1042: Message summary, if not null, must be between 0 and 255 characters long</li>
+        /// <li>1044: The following recipients lack required roles to read the correspondence: {recipients}</li>
         /// <li>2001: The requested attachment was not found</li>
         /// <li>2004: File must have content and has a max file size of 2GB</li>
         /// <li>2008: Checksum mismatch</li>
