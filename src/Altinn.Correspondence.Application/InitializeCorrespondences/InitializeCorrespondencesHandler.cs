@@ -450,11 +450,11 @@ public class InitializeCorrespondencesHandler(
 
     private async Task CreateDialogOrTransmissionJob(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
     {
-        ValidateTransmissionRequest(correspondence, request);
         
         bool hasDialogId = correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId);
         if (hasDialogId)
         {
+            ValidateTransmissionRequest(correspondence, request);
             logger.LogInformation("Correspondence {correspondenceId} already has a Dialogporten dialog, creating a transmission", correspondence.Id);
             var transmissionJob = backgroundJobClient.Enqueue(() => CreateDialogportenTransmission(correspondence.Id));
             await hybridCacheWrapper.SetAsync($"transmissionJobId_{correspondence.Id}", transmissionJob, new HybridCacheEntryOptions
