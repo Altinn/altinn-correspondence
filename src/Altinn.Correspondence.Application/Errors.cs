@@ -49,6 +49,8 @@ public static class CorrespondenceErrors
     public static Error MessageSummaryWrongLength = new Error(1042, "Message summary, if not null, must be between 0 and 255 characters long", HttpStatusCode.BadRequest);
     public static Error CannotPurgeCorrespondenceLinkedToDialogportenTransmission = new Error(1043, "Cannot purge correspondence linked to a Dialogporten Transmission", HttpStatusCode.BadRequest);
     public static Error RecipientLacksRequiredRolesForCorrespondence(List<string> recipients) { return new Error(1044, $"The following recipients lack required roles to read the correspondence: {string.Join(", ", recipients)}", HttpStatusCode.BadRequest); }
+    public static Error TransmissionOnlyAllowsOneRecipient = new Error(1045, "Transmission correspondences only support one recipient", HttpStatusCode.BadRequest);
+    public static Error RecipientMismatch = new Error(1046, "The recipient of the correspondence must be equal to the recipient of the transmission", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
