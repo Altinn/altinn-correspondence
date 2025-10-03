@@ -163,8 +163,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 : _context.Correspondences.Where(c => recipientIds.Contains(c.Recipient)); // Filter multiple recipients
 
             correspondences = correspondences
-                .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
-                .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter                              
+                .Where(c => (from == null || from < DateTime.Now.AddYears(-19)) || c.RequestedPublishTime > from)   // From date filter
+                .Where(c => (to == null || to.Value.Date >= DateTime.UtcNow.Date) || c.RequestedPublishTime < to)       // To date filter                              
                 .IncludeByStatuses(includeActive, includeArchived, status) // Filter by statuses
                 .ExcludePurged() // Exclude purged correspondences
                 .Where(c => string.IsNullOrEmpty(searchString) || (c.Content != null && c.Content.MessageTitle.Contains(searchString))) // Filter by messageTitle containing searchstring
