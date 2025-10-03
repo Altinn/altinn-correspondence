@@ -163,8 +163,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 : _context.Correspondences.Where(c => recipientIds.Contains(c.Recipient)); // Filter multiple recipients
 
             correspondences = correspondences
-                .Where(c => (from == null || from < DateTime.Now.AddYears(-19)) || c.RequestedPublishTime > from)   // From date filter
-                .Where(c => (to == null || to.Value.Date >= DateTime.UtcNow.Date) || c.RequestedPublishTime < to)       // To date filter                              
                 .IncludeByStatuses(includeActive, includeArchived, status) // Filter by statuses
                 .ExcludePurged() // Exclude purged correspondences
                 .Where(c => string.IsNullOrEmpty(searchString) || (c.Content != null && c.Content.MessageTitle.Contains(searchString))) // Filter by messageTitle containing searchstring
@@ -172,6 +170,14 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Include(c => c.Statuses)
                 .Include(c => c.Content)
                 .OrderByDescending(c => c.RequestedPublishTime);             // Sort by RequestedPublishTime
+            if (from == null || from < DateTime.Now.AddYears(-19))
+            {
+                correspondences = correspondences.Where(c => c.RequestedPublishTime > from);
+            }
+            if (to == null || to.Value.Date >= DateTime.UtcNow.Date)
+            {
+                correspondences = correspondences.Where(c => c.RequestedPublishTime < to);
+            }
 
             var result = await correspondences.Take(limit).ToListAsync(cancellationToken);
             return result;
