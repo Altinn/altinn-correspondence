@@ -30,9 +30,8 @@ namespace Altinn.Correspondence.Application.Helpers
             }
         }
 
-        public async Task SchedulePublishAfterTransmissionCreated(Guid correspondenceId, CancellationToken cancellationToken)
+        public async Task SchedulePublishAfterTransmissionCreated(Guid correspondenceId, string transmissionJobId, CancellationToken cancellationToken)
         {
-            var transmissionJobId = await hybridCacheWrapper.GetAsync<string?>($"transmissionJobId_{correspondenceId}", cancellationToken: cancellationToken);
             if (transmissionJobId is null)
             {
                 logger.LogError("Could not find transmissionJobId for correspondence {correspondenceId} in cache. More than 24 hours delayed?", correspondenceId);
