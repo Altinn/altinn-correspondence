@@ -11,9 +11,13 @@ namespace Altinn.Correspondence.Persistence.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql(@"
-                CREATE INDEX CONCURRENTLY IX_Correspondences_Recipient_RequestedPublishTime_A3Only 
-                ON correspondence.""Correspondences"" (""Recipient"", ""RequestedPublishTime"" DESC, ""Id"")
-                WHERE ""Altinn2CorrespondenceId"" IS NULL;
+                DO $do$
+                BEGIN
+                    CREATE INDEX CONCURRENTLY IX_Correspondences_Recipient_RequestedPublishTime_A3Only 
+                    ON correspondence.""Correspondences"" (""Recipient"", ""RequestedPublishTime"" DESC, ""Id"")
+                    WHERE ""Altinn2CorrespondenceId"" IS NULL;
+                END
+                $do$;
             ");
         }
 
@@ -22,7 +26,11 @@ namespace Altinn.Correspondence.Persistence.Migrations
         {
 
             migrationBuilder.Sql(@"
-                DROP INDEX CONCURRENTLY IX_Correspondences_Recipient_RequestedPublishTime_A3Only;
+                DO $do$
+                BEGIN
+                    DROP INDEX CONCURRENTLY IX_Correspondences_Recipient_RequestedPublishTime_A3Only;
+                END
+                $do$;
             ");
         }
     }
