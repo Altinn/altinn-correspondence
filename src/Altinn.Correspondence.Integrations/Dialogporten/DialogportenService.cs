@@ -553,6 +553,12 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return true;
     }
 
+    public async Task<bool> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
+    {
+        var dialog = await GetDialog(dialogId);
+        return dialog.Party == expectedRecipient;
+    }
+
 
     #region MigrationRelated    
     /// <summary>
