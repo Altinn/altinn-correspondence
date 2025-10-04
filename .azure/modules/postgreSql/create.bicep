@@ -277,4 +277,151 @@ resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
   }
 }
 
+@description('Name of the backup vault')
+param vaultName string
 
+//@description('Resource group where the vault is located')
+//param vaultResourceGroup string = '${namePrefix}-rg'
+/*
+resource vaultResource 'Microsoft.DataProtection/backupVaults@2023-05-01' = {
+  name: vaultName
+  location: location
+  properties: {
+    storageSettings: [
+      {
+        datastoreType: 'VaultStore'
+        type: 'LocallyRedundant'
+      }
+    ]
+  }
+}
+*/
+
+resource vaultResource 'Microsoft.DataProtection/backupVaults@2025-07-01' = {
+  eTag: 'string'
+  identity: {
+    type: 'string'
+    userAssignedIdentities: {
+      {customized property}: {}
+    }
+  }
+  location: 'string'
+  name: 'string'
+  properties: {
+    featureSettings: {
+      crossRegionRestoreSettings: {
+        state: 'string'
+      }
+      crossSubscriptionRestoreSettings: {
+        state: 'string'
+      }
+    }
+    monitoringSettings: {
+      azureMonitorAlertSettings: {
+        alertsForAllJobFailures: 'string'
+      }
+    }
+    replicatedRegions: [
+      'string'
+    ]
+    resourceGuardOperationRequests: [
+      'string'
+    ]
+    securitySettings: {
+      encryptionSettings: {
+        infrastructureEncryption: 'string'
+        kekIdentity: {
+          identityId: 'string'
+          identityType: 'string'
+        }
+        keyVaultProperties: {
+          keyUri: 'string'
+        }
+        state: 'string'
+      }
+      immutabilitySettings: {
+        state: 'string'
+      }
+      softDeleteSettings: {
+        retentionDurationInDays: int
+        state: 'string'
+      }
+    }
+    storageSettings: [
+      {
+        datastoreType: 'string'
+        type: 'string'
+      }
+    ]
+  }
+  tags: {
+    {customized property}: 'string'
+  }
+}
+
+resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2025-07-01' = {
+  parent: vaultResource
+  name: 'weekly-sunday-backup-policy-12m'
+  properties: {
+    datasourceTypes: [
+      'Microsoft.DBforPostgreSQL/flexibleServers'
+    ]
+    objectType: 'BackupPolicy'
+    // For remaining properties, see BaseBackupPolicy objects
+  }
+}
+
+/*
+resource backupPolicy 'Microsoft.DataProtection/backupVaults/backupPolicies@2023-05-01' = {
+  name: 'weekly-sunday-backup-policy-12m'
+  parent: vaultResource
+  properties: {
+    objectType: 'BackupPolicy'
+    datasourceTypes: [
+      'Microsoft.DBforPostgreSQL/flexibleServers'
+    ]
+    policyRules: [
+      {
+        name: 'Default'
+        objectType: 'AzureBackupRule'
+        backupParameters: {
+          objectType: 'AzureBackupParams'
+          backupType: 'Full'
+        }
+        trigger: {
+          objectType: 'ScheduleBasedTriggerContext'
+          schedule: {
+            repeatingTimeIntervals: [
+              'R/2024-01-07T01:00:00+00:00/P1W'
+            ]
+            timeZone: 'W. Europe Standard Time'
+          }
+          taggingCriteria: []
+        }
+        dataStore: {
+          dataStoreType: 'VaultStore'
+          objectType: 'DataStoreInfoBase'
+        }
+      }
+      {
+        name: 'DefaultRetention'
+        objectType: 'AzureRetentionRule'
+        isDefault: true
+        lifecycles: [
+          {
+            deleteAfter: {
+              duration: 'P12M'
+              objectType: 'AbsoluteDeleteOption'
+            }
+            sourceDataStore: {
+              dataStoreType: 'VaultStore'
+              objectType: 'DataStoreInfoBase'
+            }
+            targetDataStoreCopySettings: []
+          }
+        ]
+      }
+    ]
+  }
+}
+*/
