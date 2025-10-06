@@ -163,6 +163,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 list = AddSearchTagIfValid(list, reference.ReferenceType.ToString(), correspondence, logger);
                 list = AddSearchTagIfValid(list, reference.ReferenceValue.ToString(), correspondence, logger);
             }
+            foreach (var property in correspondence.PropertyList)
+            {
+                list = AddSearchTagIfValid(list, property.Value, correspondence, logger);    
+            }
             list = list.DistinctBy(tag => tag.Value).ToList(); // Remove duplicates
             return list;
         }
