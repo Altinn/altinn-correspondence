@@ -560,7 +560,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockNotificationService = new Mock<IAltinnNotificationService>();
-                mockNotificationService.Setup(x => x.CreateNotificationV2(It.IsAny<NotificationOrderRequestV2>(), It.IsAny<CancellationToken>())).ReturnsAsync((NotificationOrderRequestResponseV2)null);
+                mockNotificationService
+                    .Setup(x => x.CreateNotificationV2(It.IsAny<NotificationOrderRequestV2>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync((NotificationOrderRequestResponseV2?)null);
                 services.AddSingleton(mockNotificationService.Object);
             });
             var senderClient = testFactory.CreateSenderClient();
@@ -575,7 +577,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task Correspondence_CustomRecipient_WithMultipleRecipients_GivesOk()
+        public async Task Correspondence_CustomRecipient_WithMultipleRecipients_GiveBadRequestBadRequest()
         {
             var recipient1 = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
             var recipient2 = $"{UrnConstants.OrganizationNumberAttribute}:991825828";
