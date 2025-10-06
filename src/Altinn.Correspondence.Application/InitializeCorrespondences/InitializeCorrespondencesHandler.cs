@@ -270,6 +270,11 @@ public class InitializeCorrespondencesHandler(
 
         if (request.IdempotentKey.HasValue)
         {
+            if (request.Recipients != null && request.Recipients.Count > 1)
+            {
+                logger.LogWarning("IdempotencyKey cannot be used with multiple recipients");
+                return CorrespondenceErrors.IdempotencyNotAllowedWithMultipleRecipients;
+            }
             logger.LogInformation("Checking idempotency key {Key}", request.IdempotentKey.Value);
             var result = await TransactionWithRetriesPolicy.Execute<OneOf<InitializeCorrespondencesResponse, Error>>(async (cancellationToken) =>
             {

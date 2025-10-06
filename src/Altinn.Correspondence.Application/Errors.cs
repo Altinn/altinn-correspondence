@@ -51,6 +51,7 @@ public static class CorrespondenceErrors
     public static Error RecipientLacksRequiredRolesForCorrespondence(List<string> recipients) { return new Error(1044, $"The following recipients lack required roles to read the correspondence: {string.Join(", ", recipients)}", HttpStatusCode.BadRequest); }
     public static Error TransmissionOnlyAllowsOneRecipient = new Error(1045, "Transmission correspondences only support one recipient", HttpStatusCode.BadRequest);
     public static Error RecipientMismatch = new Error(1046, "The recipient of the correspondence must be equal to the recipient of the transmission", HttpStatusCode.BadRequest);
+    public static Error IdempotencyNotAllowedWithMultipleRecipients = new Error(1047, "IdempotencyKey cannot be used when sending to multiple recipients", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
