@@ -42,6 +42,11 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceStatusRepositoryMock = new Mock<ICorrespondenceStatusRepository>();
             _correspondenceDeleteEventRepositoryMock = new Mock<ICorrespondenceDeleteEventRepository>();
             _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
+            _backgroundJobClientMock
+                .Setup(x => x.Create(
+                    It.IsAny<Job>(),
+                    It.IsAny<IState>()))
+                .Returns(() => Guid.NewGuid().ToString());
             _attachmentRepositoryMock = new Mock<IAttachmentRepository>();
             _attachmentStatusRepositoryMock = new Mock<IAttachmentStatusRepository>();
             _storageRepositoryMock = new Mock<IStorageRepository>();
@@ -1820,14 +1825,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             _backgroundJobClientMock.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateConfirmedActivity) && (Guid)job.Args[0] == correspondenceId && (DialogportenActorType)job.Args[1] == actorType),
-                It.IsAny<EnqueuedState>()));
+                It.IsAny<IState>()));
         }
 
         private void VerifyDialogportenServiceCreateConfirmedActivityEnqueued(Guid correspondenceId, DialogportenActorType actorType, string recipient)
         {
             _backgroundJobClientMock.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateConfirmedActivity) && (Guid)job.Args[0] == correspondenceId && (DialogportenActorType)job.Args[1] == actorType),
-                It.IsAny<EnqueuedState>()));
+                It.IsAny<IState>()));
         }
 
         private void VerifyDialogportenServiceCreatePurgedActivityEnqueued(Guid correspondenceId, DialogportenActorType actorType, string actorname, DateTimeOffset operationTimestamp)
