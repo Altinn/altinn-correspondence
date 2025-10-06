@@ -105,7 +105,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 Id = correspondenceId,
                 ResourceId = "resource1",
                 SendersReference = "ref1",
-                Recipient = "0192:991825827", // Valid Norwegian organization number with prefix
+                Recipient = "urn:altinn:person:identifier-no:08900499559", // Valid Norwegian SSN with prefix
                 RequestedPublishTime = requestedPublishTime,
                 Sender = "sender",
                 Statuses = new List<CorrespondenceStatusEntity>(),
@@ -253,5 +253,69 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 req.Reminders[0].SendersReference == correspondence.SendersReference),
                 CancellationToken.None), Times.Once);
         }
+
+        [Fact]
+        public async Task Process_ShouldPassIgnoreReservationToRecipientPerson_WhenCorrespondenceHasIgnoreReservationSet()
+        {
+            // Arrange
+            var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
+            var (notificationRequest, correspondence, template, expectedResponse) = SetupTestData(requestedPublishTime);
+            
+            // Set IgnoreReservation to true on the correspondence
+            correspondence.IgnoreReservation = true;
+
+            // Act
+            await _handler.Process(notificationRequest, CancellationToken.None);
+
+            // Assert
+            // Verify that CreateNotificationV2 was called with IgnoreReservation set to true on RecipientPerson
+            _mockAltinnNotificationService.Verify(x => x.CreateNotificationV2(It.Is<NotificationOrderRequestV2>(req => 
+                req.Recipient.RecipientPerson != null && 
+                req.Recipient.RecipientPerson.IgnoreReservation == true),
+                CancellationToken.None), Times.Once);
+        }
+
+        [Fact]
+        public async Task Process_ShouldPassIgnoreReservationToRecipientPerson_WhenCorrespondenceHasIgnoreReservationSetToFalse()
+        {
+            // Arrange
+            var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
+            var (notificationRequest, correspondence, template, expectedResponse) = SetupTestData(requestedPublishTime);
+            
+            // Set IgnoreReservation to false on the correspondence
+            correspondence.IgnoreReservation = false;
+
+            // Act
+            await _handler.Process(notificationRequest, CancellationToken.None);
+
+            // Assert
+            // Verify that CreateNotificationV2 was called with IgnoreReservation set to false on RecipientPerson
+            _mockAltinnNotificationService.Verify(x => x.CreateNotificationV2(It.Is<NotificationOrderRequestV2>(req => 
+                req.Recipient.RecipientPerson != null && 
+                req.Recipient.RecipientPerson.IgnoreReservation == false),
+                CancellationToken.None), Times.Once);
+        }
+
+        [Fact]
+        public async Task Process_ShouldPassIgnoreReservationToRecipientPerson_WhenCorrespondenceHasIgnoreReservationSetToNull()
+        {
+            // Arrange
+            var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
+            var (notificationRequest, correspondence, template, expectedResponse) = SetupTestData(requestedPublishTime);
+            
+            // Set IgnoreReservation to null on the correspondence (default value)
+            correspondence.IgnoreReservation = null;
+
+            // Act
+            await _handler.Process(notificationRequest, CancellationToken.None);
+
+            // Assert
+            // Verify that CreateNotificationV2 was called with IgnoreReservation set to null on RecipientPerson
+            _mockAltinnNotificationService.Verify(x => x.CreateNotificationV2(It.Is<NotificationOrderRequestV2>(req => 
+                req.Recipient.RecipientPerson != null && 
+                req.Recipient.RecipientPerson.IgnoreReservation == null),
+                CancellationToken.None), Times.Once);
+        }
+
     }
 } 

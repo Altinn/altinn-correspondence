@@ -79,12 +79,15 @@ public class CheckNotificationDeliveryHandler(
                 await correspondenceNotificationRepository.UpdateNotificationSent(notificationId, sentTime, deliveryDestination, cancellationToken);
                 
                 // Create activity in Dialogporten for each recipient
+                // Choose the appropriate text type based on whether this is a reminder notification
+                var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
+                
                 foreach (var recipient in sentRecipients)
                 {
                     await dialogportenService.CreateInformationActivity(
                         correspondence.Id, 
                         DialogportenActorType.ServiceOwner, 
-                        DialogportenTextType.NotificationSent,
+                        textType,
                         operationTimestamp, 
                         recipient.Destination,
                         recipient.Type.ToString());

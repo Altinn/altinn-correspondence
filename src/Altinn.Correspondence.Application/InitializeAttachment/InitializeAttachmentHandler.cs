@@ -31,9 +31,8 @@ public class InitializeAttachmentHandler(
         if (string.IsNullOrEmpty(serviceOwnerOrgNumber))
         {
             logger.LogError("Service owner/sender's organization number (9 digits) not found for resource {ResourceId}", sanitizedResourceId);
-            return CorrespondenceErrors.ServiceOwnerOrgNumberNotFound;
+            return CorrespondenceErrors.InvalidResource;
         }
-        
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
             user,
             request.Attachment.ResourceId,

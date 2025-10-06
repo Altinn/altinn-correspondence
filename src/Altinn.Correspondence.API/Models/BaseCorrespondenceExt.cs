@@ -94,7 +94,9 @@ namespace Altinn.Correspondence.API.Models
         public InitializeCorrespondenceNotificationExt? Notification { get; set; }
 
         /// <summary>
-        /// Specifies whether the correspondence can override reservation against digital communication in KRR
+        /// Specifies whether the correspondence can override reservation against digital communication in KRR.
+        /// This field only applies to recipients who are persons with person numbers (both default and custom recipients).
+        /// It has no effect for organization recipients or email/sms recipients through custom recipients.
         /// </summary>
         [JsonPropertyName("ignoreReservation")]
         public bool? IgnoreReservation { get; set; }

@@ -245,6 +245,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             activity.CreatedAt = notification.NotificationSent ?? notification.RequestedSendTime;
             activity.Type = "Information";
 
+            // Choose the appropriate text type based on whether this is a reminder notification
+            var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
 
             string[] tokens = [];
             if (notification.NotificationAddress != null)
@@ -257,17 +259,17 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 new ()
                 {
                     LanguageCode = "nb",
-                    Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, Enums.DialogportenLanguageCode.NB, tokens)
+                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.NB, tokens)
                 },
                 new ()
                 {
                     LanguageCode = "nn",
-                    Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, Enums.DialogportenLanguageCode.NN, tokens)
+                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.NN, tokens)
                 },
                 new ()
                 {
                     LanguageCode = "en",
-                    Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, Enums.DialogportenLanguageCode.EN, tokens)
+                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.EN, tokens)
                 },
             ];
 
