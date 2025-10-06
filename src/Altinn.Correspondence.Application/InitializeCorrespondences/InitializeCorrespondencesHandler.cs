@@ -65,7 +65,7 @@ public class InitializeCorrespondencesHandler(
         if (serviceOwnerOrgNumber is null || serviceOwnerOrgNumber == string.Empty)
         {
             logger.LogError("Service owner/sender's organization number (9 digits) not found for resource {ResourceId}", request.Correspondence.ResourceId);
-            return CorrespondenceErrors.ServiceOwnerOrgNumberNotFound;
+            return CorrespondenceErrors.InvalidResource;
         }
         validatedData.ServiceOwnerOrgNumber = serviceOwnerOrgNumber;
 
@@ -335,10 +335,10 @@ public class InitializeCorrespondencesHandler(
         ValidatedData validatedData,
         CancellationToken cancellationToken)
     {
-        logger.LogInformation("Initializing {correspondenceCount} correspondences for {resourceId}", 
-            request.Recipients.Count, 
+        logger.LogInformation("Initializing {correspondenceCount} correspondences for {resourceId}",
+            request.Recipients.Count,
             request.Correspondence.ResourceId.SanitizeForLogging());
-        
+
         var correspondences = new List<CorrespondenceEntity>();
         var serviceOwnerOrgNumber = validatedData.ServiceOwnerOrgNumber;
         foreach (var recipient in request.Recipients)
@@ -349,7 +349,7 @@ public class InitializeCorrespondencesHandler(
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
-        
+
         var initializedCorrespondences = new List<InitializedCorrespondences>();
         foreach (var correspondence in correspondences)
         {
@@ -380,7 +380,11 @@ public class InitializeCorrespondencesHandler(
                     throw;
                 }
             }
-            await CreateDialogOrTransmissionJob(correspondence, request, cancellationToken);
+            var createJobResult = await CreateDialogOrTransmissionJob(correspondence, request, cancellationToken);
+            if (createJobResult.IsT1)
+            {
+                return createJobResult.AsT1;
+            }
 
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
             if (!isReserved)
@@ -432,20 +436,46 @@ public class InitializeCorrespondencesHandler(
         await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenTransmissionId, transmissionId);
         logger.LogInformation("Successfully created Dialogporten transmission for correspondence {CorrespondenceId}", correspondenceId);
     }
-    private async Task CreateDialogOrTransmissionJob(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
+    private async Task<OneOf<Task, Error>> ValidateTransmissionRequest(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
     {
+        if (request.Recipients.Count > 1)
+        {
+            return CorrespondenceErrors.TransmissionOnlyAllowsOneRecipient;
+        }
+
+        var dialogId = correspondence.ExternalReferences
+            .FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        
+        if (string.IsNullOrEmpty(dialogId))
+        {
+            throw new InvalidOperationException("Dialog ID not found on correspondence");
+        }
+
+        var recipientMatches = await dialogportenService.ValidateDialogRecipientMatch(dialogId, correspondence.Recipient, cancellationToken);
+        if (!recipientMatches)
+        {
+            return CorrespondenceErrors.RecipientMismatch;
+        }
+        return Task.CompletedTask;
+    }
+
+    private async Task<OneOf<Task, Error>> CreateDialogOrTransmissionJob(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
+    {
+        
         bool hasDialogId = correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId);
         if (hasDialogId)
         {
-            logger.LogInformation("Correspondence {correspondenceId} already has a Dialogporten dialog, creating a transmission", correspondence.Id);
-            var transmissionJob = backgroundJobClient.Enqueue(() => CreateDialogportenTransmission(correspondence.Id));
-            await hybridCacheWrapper.SetAsync($"transmissionJobId_{correspondence.Id}", transmissionJob, new HybridCacheEntryOptions
+            var validationResult = await ValidateTransmissionRequest(correspondence, request, cancellationToken);
+            if (validationResult.IsT1)
             {
-                Expiration = TimeSpan.FromHours(24)
-            });
+                return validationResult.AsT1;
+            }
+
+            logger.LogInformation("Correspondence {correspondenceId} already has a Dialogporten dialog, creating a transmission", correspondence.Id);
+            var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondence.Id), correspondence.RequestedPublishTime);
             if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
             {
-                await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondence.Id, cancellationToken);
+                await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondence.Id, transmissionJob, cancellationToken);
             }
         }
         else
@@ -461,6 +491,8 @@ public class InitializeCorrespondencesHandler(
                 await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
             }
         }
+
+        return Task.CompletedTask;
     }
 
     private async Task<OneOf<bool, Error>> ValidateRecipientParty(InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
