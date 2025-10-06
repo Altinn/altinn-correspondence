@@ -472,14 +472,10 @@ public class InitializeCorrespondencesHandler(
             }
 
             logger.LogInformation("Correspondence {correspondenceId} already has a Dialogporten dialog, creating a transmission", correspondence.Id);
-            var transmissionJob = backgroundJobClient.Enqueue(() => CreateDialogportenTransmission(correspondence.Id));
-            await hybridCacheWrapper.SetAsync($"transmissionJobId_{correspondence.Id}", transmissionJob, new HybridCacheEntryOptions
-            {
-                Expiration = TimeSpan.FromHours(24)
-            });
+            var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondence.Id), correspondence.RequestedPublishTime);
             if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
             {
-                await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondence.Id, cancellationToken);
+                await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondence.Id, transmissionJob, cancellationToken);
             }
         }
         else
