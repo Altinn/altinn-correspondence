@@ -11,7 +11,7 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Slack
     public class SlackExceptionNotificationHandlerTests
     {
         [Fact]
-        public async Task TryHandleAsync_OnMigrationPath_DoesNotSendSlackMesssage()
+        public async Task TryHandleAsync_OnMigrationPath_DoesNotSendSlackMessage()
         {
             // Arrange
             var logger = new Mock<ILogger<SlackExceptionNotificationHandler>>();
