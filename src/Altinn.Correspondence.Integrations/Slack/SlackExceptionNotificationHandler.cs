@@ -23,12 +23,6 @@ public class SlackExceptionNotificationHandler(
         Exception exception,
         CancellationToken cancellationToken)
     {
-        var requestPath = httpContext.Request.Path.ToString();
-        if (requestPath.StartsWith("/correspondence/api/v1/migration", StringComparison.OrdinalIgnoreCase))
-        {
-            logger.LogError(exception, "Unhandled exception on migration endpoint {Path}. Skipping Slack notification.", requestPath);
-            return true;
-        }
         var exceptionMessage = FormatExceptionMessage(exception, httpContext);
         var sanitizedPath = httpContext.Request.Path.ToString().Replace("\n", "").Replace("\r", "");
         logger.LogError(
@@ -44,7 +38,14 @@ public class SlackExceptionNotificationHandler(
         );
         try
         {
-            await SendSlackNotificationWithMessage(exceptionMessage);
+            if (!sanitizedPath.StartsWith("/correspondence/api/v1/migration", StringComparison.OrdinalIgnoreCase))
+            {
+                await SendSlackNotificationWithMessage(exceptionMessage);
+            }
+            else
+            {
+                logger.LogWarning("Skipping Slack notification for migration endpoint");
+            }
             var statusCode = HttpStatusCode.InternalServerError;
             var problemDetails = new ProblemDetails
             {
