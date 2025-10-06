@@ -16,6 +16,9 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Slack
             // Arrange
             var logger = new Mock<ILogger<SlackExceptionNotificationHandler>>();
             var slackClient = new Mock<ISlackClient>(MockBehavior.Strict);
+            slackClient
+                .Setup(x => x.PostAsync(It.IsAny<SlackMessage>()))
+                .Returns(Task.FromResult(true));
             var problemDetailsService = new Mock<IProblemDetailsService>();
             var hostEnvironment = new Mock<IHostEnvironment>();
             var slackSettings = new SlackSettings(hostEnvironment.Object);
@@ -46,6 +49,9 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Slack
             // Arrange
             var logger = new Mock<ILogger<SlackExceptionNotificationHandler>>();
             var slackClient = new Mock<ISlackClient>(MockBehavior.Strict);
+            slackClient
+                .Setup(x => x.PostAsync(It.IsAny<SlackMessage>()))
+                .Returns(Task.FromResult(true));
             var problemDetailsService = new Mock<IProblemDetailsService>();
             var hostEnvironment = new Mock<IHostEnvironment>();
             var slackSettings = new SlackSettings(hostEnvironment.Object);
