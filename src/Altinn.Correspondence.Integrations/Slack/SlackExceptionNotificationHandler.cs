@@ -44,7 +44,7 @@ public class SlackExceptionNotificationHandler(
             }
             else
             {
-                logger.LogWarning("Skipping Slack notification for migration endpoint");
+                logger.LogWarning("Skipping Slack notification for exception on migration endpoint");
             }
             var statusCode = HttpStatusCode.InternalServerError;
             var problemDetails = new ProblemDetails
