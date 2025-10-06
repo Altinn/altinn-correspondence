@@ -577,7 +577,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task Correspondence_CustomRecipient_WithMultipleRecipients_GiveBadRequestBadRequest()
+        public async Task Correspondence_CustomRecipient_WithMultipleRecipients_GiveBadRequest()
         {
             var recipient1 = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
             var recipient2 = $"{UrnConstants.OrganizationNumberAttribute}:991825828";
