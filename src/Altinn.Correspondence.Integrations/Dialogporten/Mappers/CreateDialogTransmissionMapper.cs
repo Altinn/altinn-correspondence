@@ -44,7 +44,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     new TransmissionValue
                     {
                         Value = correspondence.Content!.MessageTitle ?? "", // A required field, DP will throw validation error if empty, but should not be possible to reach this point with empty title
-                        LanguageCode = "nb",
+                        LanguageCode = correspondence.Content.Language,
                     }
                 }
             },

@@ -579,6 +579,30 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.False(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
     }
 
+    [Fact]
+    public async Task InitializeMigrateCorrespondence_NullTitle_FailsValidation()
+    {
+        var migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithMessageTitle(null)
+            .Build();
+
+        var response = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
+        Assert.False(response.IsSuccessStatusCode);
+    }
+
+    [Fact]
+    public async Task InitializeMigrateCorrespondence_WhitespaceTitle_FailsValidation()
+    {
+        var migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithMessageTitle("   ")
+            .Build();
+
+        var response = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
+        Assert.False(response.IsSuccessStatusCode);
+    }
+
     private static void SetNotificationHistory(MigrateCorrespondenceExt migrateCorrespondenceExt)
     {
         migrateCorrespondenceExt.NotificationHistory =
