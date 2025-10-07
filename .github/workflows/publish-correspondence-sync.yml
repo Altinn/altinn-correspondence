@@ -53,7 +53,7 @@ jobs:
         with:
           image_name: ${{ env.ARTIFACT_NAME }}
           tag: ${{ steps.get_sha.outputs.short_sha }}
-          acr_name: altinncr.azurecr.io
+          acr_name: altinncr
           workdir: ./flux/correspondence
           azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
