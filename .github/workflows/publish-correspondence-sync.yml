@@ -52,7 +52,7 @@ jobs:
         uses: Altinn/altinn-platform/actions/flux/build-push-image@8d4e42eae11efbc3a159aa62fe15ed49954d9df9 # main
         with:
           image_name: ${{ env.ARTIFACT_NAME }}
-          tag: ${{ steps.get_sha.outputs.short_sha }}
+          tag: main
           acr_name: altinncr
           workdir: ./flux/correspondence
           azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
