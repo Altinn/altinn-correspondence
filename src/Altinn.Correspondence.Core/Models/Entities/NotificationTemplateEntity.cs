@@ -8,7 +8,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         [Key]
         public int Id { get; set; }
 
-        public NotificationTemplate? Template { get; set; }
+        public required NotificationTemplate Template { get; set; }
         public RecipientType? RecipientType { get; set; }
         public required string EmailSubject { get; set; }
         public required string EmailBody { get; set; }
