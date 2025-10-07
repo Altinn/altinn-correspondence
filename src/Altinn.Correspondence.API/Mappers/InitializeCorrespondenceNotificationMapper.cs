@@ -67,7 +67,9 @@ internal static class InitializeCorrespondenceNotificationMapper
 
         var notification = new NotificationRequest
         {
-            NotificationTemplate = (NotificationTemplate)correspondenceNotificationExt.NotificationTemplate,
+            NotificationTemplate = Enum.IsDefined(typeof(NotificationTemplate), correspondenceNotificationExt.NotificationTemplate) 
+                ? (NotificationTemplate)correspondenceNotificationExt.NotificationTemplate 
+                : NotificationTemplate.GenericAltinnMessage,
             NotificationChannel = (NotificationChannel)correspondenceNotificationExt.NotificationChannel,
             RequestedSendTime = correspondenceNotificationExt.RequestedSendTime,
             EmailBody = correspondenceNotificationExt.EmailBody,
