@@ -24,7 +24,7 @@ spec:
               value: "2525"
           readinessProbe:
             httpGet:
-              path: /health
+              path: /healthz
               port: 2525
               scheme: HTTP
             initialDelaySeconds: 5
