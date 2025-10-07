@@ -4,7 +4,7 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
 {
     public class NotificationRequest
     {
-        public required NotificationTemplate NotificationTemplate { get; set; }
+        public NotificationTemplate? NotificationTemplate { get; set; }
 
         public string? EmailSubject { get; set; }
 

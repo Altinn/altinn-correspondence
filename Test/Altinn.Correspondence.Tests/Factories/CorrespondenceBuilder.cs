@@ -179,11 +179,11 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.IsConfirmationNeeded = confirmationNeeded;
             return this;
         }
-        public CorrespondenceBuilder WithNotificationTemplate(NotificationTemplateExt notificationTemplate)
+        public CorrespondenceBuilder WithNotificationTemplate(NotificationTemplateExt? notificationTemplate)
         {
             _correspondence.Correspondence.Notification ??= new InitializeCorrespondenceNotificationExt()
             {
-                NotificationTemplate = notificationTemplate,
+                NotificationTemplate = notificationTemplate ?? NotificationTemplateExt.CustomMessage,
                 SendReminder = true
             };
             return this;

@@ -16,7 +16,7 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("notificationTemplate")]
         [DefaultValue(NotificationTemplateExt.CustomMessage)]
-        public NotificationTemplateExt NotificationTemplate { get; set; }
+        public NotificationTemplateExt? NotificationTemplate { get; set; }
 
         /// <summary>
         /// The emails subject for the main notification
