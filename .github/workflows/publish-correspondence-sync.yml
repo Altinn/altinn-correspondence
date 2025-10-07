@@ -2,6 +2,7 @@ name: Build correspondence sync image
 
 env:
   ARTIFACT_NAME: corr/correspondence-sync
+  DOCKER_IMAGE_BASE_NAME: altinncr.azurecr.io/corr/correspondence-sync
 
 on:
   workflow_dispatch:
@@ -29,6 +30,12 @@ jobs:
       - name: Get short sha
         id: get_sha
         run: echo "short_sha=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+      - name: Push image to registry
+        shell: bash
+        run: |
+          IMAGE="${{ env.DOCKER_IMAGE_BASE_NAME }}:${{ steps.get_sha.outputs.short_sha }}"
+          docker build . --tag $IMAGE
+          docker push $IMAGE
       - name: Build and push latest artifact
         uses: Altinn/altinn-platform/actions/flux/build-push-image@8d4e42eae11efbc3a159aa62fe15ed49954d9df9 # main
         with:
