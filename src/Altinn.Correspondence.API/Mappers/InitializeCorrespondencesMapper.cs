@@ -33,7 +33,7 @@ internal static class InitializeCorrespondencesMapper
             Created = DateTimeOffset.UtcNow,
             Content = request.Correspondence.Content != null ? new CorrespondenceContentEntity
             {
-                Language = request.Correspondence.Content.Language,
+                Language = string.IsNullOrWhiteSpace(request.Correspondence.Content.Language) ? "nb" : request.Correspondence.Content.Language,
                 MessageTitle = request.Correspondence.Content.MessageTitle,
                 MessageSummary = request.Correspondence.Content.MessageSummary ?? string.Empty,
                 MessageBody = request.Correspondence.Content.MessageBody,
