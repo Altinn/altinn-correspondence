@@ -12,7 +12,9 @@ internal static class InitializeCorrespondenceNotificationMapper
     {
         var notification = new CorrespondenceNotificationEntity
         {
-            NotificationTemplate = (NotificationTemplate)correspondenceNotificationExt.NotificationTemplate,
+            NotificationTemplate = Enum.IsDefined(typeof(NotificationTemplate),(NotificationTemplate)correspondenceNotificationExt.NotificationTemplate)
+            ? (NotificationTemplate)correspondenceNotificationExt.NotificationTemplate
+            : NotificationTemplate.CustomMessage,
             NotificationChannel = (NotificationChannel)correspondenceNotificationExt.NotificationChannel,
             RequestedSendTime = correspondenceNotificationExt.RequestedSendTime ?? DateTimeOffset.UtcNow,
             Created = DateTimeOffset.UtcNow
@@ -67,7 +69,7 @@ internal static class InitializeCorrespondenceNotificationMapper
 
         var notification = new NotificationRequest
         {
-            NotificationTemplate = Enum.IsDefined(typeof(NotificationTemplate), correspondenceNotificationExt.NotificationTemplate) 
+            NotificationTemplate = Enum.IsDefined(typeof(NotificationTemplate), (NotificationTemplate)correspondenceNotificationExt.NotificationTemplate) 
                 ? (NotificationTemplate)correspondenceNotificationExt.NotificationTemplate 
                 : NotificationTemplate.CustomMessage,
             NotificationChannel = (NotificationChannel)correspondenceNotificationExt.NotificationChannel,
