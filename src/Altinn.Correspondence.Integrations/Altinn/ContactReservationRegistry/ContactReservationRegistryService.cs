@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Common.Helpers;
+﻿using System.Net;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
@@ -27,8 +28,19 @@ public class ContactReservationRegistryService(HttpClient httpClient, ILogger<Co
             return new List<string>();
         }
         var request = new ContactReservationPersonRequest { Personidentifikatorer = recipients.Select(r => r.WithoutPrefix()).ToList() };
-        httpClient.Timeout = TimeSpan.FromSeconds(1);
-        var response = await httpClient.PostAsJsonAsync("rest/v2/personer", request);
+        httpClient.Timeout = TimeSpan.FromSeconds(2);
+        
+        HttpResponseMessage response;
+        try
+        {
+            response = await httpClient.PostAsJsonAsync("rest/v2/personer", request);
+        }
+        catch (TaskCanceledException)
+        {
+            logger.LogError("Timeout while calling the KRR API after {timeout} seconds", httpClient.Timeout.TotalSeconds);
+            throw new HttpRequestException("Timeout while calling the KRR API", null, HttpStatusCode.GatewayTimeout);
+        }
+        
         if (!response.IsSuccessStatusCode)
         {
             logger.LogError("Error while calling the KRR API. Status code was: {statusCode}, error was: {error}", response.StatusCode, await response.Content.ReadAsStringAsync());
