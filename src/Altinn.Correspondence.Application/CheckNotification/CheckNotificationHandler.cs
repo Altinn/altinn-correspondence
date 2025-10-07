@@ -38,7 +38,12 @@ public class CheckNotificationHandler(
             logger.LogInformation("Notification not needed for correspondence {CorrespondenceId} - has been purged", correspondenceId);
             response.SendNotification = false;
         }
-        if (!correspondence.StatusHasBeen(CorrespondenceStatus.Published))
+        if (correspondence.StatusHasBeen(CorrespondenceStatus.Failed))
+        {
+            logger.LogWarning("Notification not needed for correspondence {CorrespondenceId} - has failed", correspondenceId);
+            response.SendNotification = false;
+        }
+        else if (!correspondence.StatusHasBeen(CorrespondenceStatus.Published))
         {
             logger.LogInformation("Correspondence {CorrespondenceId} not yet published, scheduling notification check in 1 hour", correspondenceId);
             backgroundJobClient.Schedule<EnsureNotificationHandler>(handler => handler.Process(correspondenceId, null, CancellationToken.None), DateTimeOffset.Now.AddHours(1));

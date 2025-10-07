@@ -12,6 +12,8 @@ namespace Altinn.Correspondence.Core.Models.Notifications
 
         public DialogportenAssociation? DialogportenAssociation { get; set; }
 
+        public string? ConditionEndpoint { get; set; }
+
         public Guid IdempotencyId { get; set; }
 
         [OnlyOneRecipientType]
