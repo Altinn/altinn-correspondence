@@ -18,10 +18,10 @@ spec:
           imagePullPolicy: IfNotPresent
           name: correspondence-app
           ports:
-            - containerPort: 80
+            - containerPort: 2525
           env:
             - name: PORT
-              value: "80"
+              value: "2525"
 ---
 apiVersion: v1
 kind: Service
@@ -35,7 +35,7 @@ spec:
     - IPv4
   ports:
     - port: 80
-      targetPort: 80
+      targetPort: 2525
       protocol: TCP
   type: ClusterIP
   selector:
