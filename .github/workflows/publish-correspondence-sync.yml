@@ -27,6 +27,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Login to ACR
+        shell: bash
+        run: |
+          registry_host="${DOCKER_IMAGE_BASE_NAME%%/*}"
+          acr_name="${registry_host%%.azurecr.io}"
+          az acr login --name "$acr_name"
       - name: Get short sha
         id: get_sha
         run: echo "short_sha=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
