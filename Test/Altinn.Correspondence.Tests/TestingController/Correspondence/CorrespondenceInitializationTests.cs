@@ -1941,6 +1941,24 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Clean up
             customFactory.Dispose();
         }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithIdempotentKeyAndMultipleRecipients_ReturnsBadRequest()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("First Title")
+                .WithIdempotentKey(Guid.NewGuid())
+                .WithRecipients(["26818099001", "07827199405"])
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+        }
     }
 }
 

@@ -54,11 +54,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _dialogPortenServiceMock = new Mock<IDialogportenService>();
             _purgeHelper = new PurgeCorrespondenceHelper(
                 _attachmentRepositoryMock.Object,
-                _storageRepositoryMock.Object,
                 _attachmentStatusRepositoryMock.Object,
-                _correspondenceRepositoryMock.Object,
                 _correspondenceStatusRepositoryMock.Object,
-                _dialogPortenServiceMock.Object,
                 _backgroundJobClientMock.Object);
             _loggerMock = new Mock<ILogger<SyncCorrespondenceStatusEventHandler>>();
 

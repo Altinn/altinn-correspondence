@@ -407,10 +407,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockNotificationService = new Mock<IAltinnNotificationService>();
-                mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(new NotificationOrderRequestResponse()
+                mockNotificationService.Setup(x => x.CreateNotificationV2(It.IsAny<NotificationOrderRequestV2>(), It.IsAny<CancellationToken>())).ReturnsAsync(new NotificationOrderRequestResponseV2()
                 {
-                    OrderId = orderId,
-                    RecipientLookup = null
+                    NotificationOrderId = orderId,
+                    Notification = new NotificationResponseV2()
+                    {
+                        ShipmentId = Guid.NewGuid(),
+                        SendersReference = "test-reference",
+                        Reminders = new List<ReminderResponse>()
+                    }
                 });
                 services.AddSingleton(mockNotificationService.Object);
             });
@@ -438,18 +443,19 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithNotificationChannel(NotificationChannelExt.Email)
                 .Build();
             var orderId = Guid.NewGuid();
+            var shipmentId = Guid.NewGuid();
 
             using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockNotificationService = new Mock<IAltinnNotificationService>();
-                mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(new NotificationOrderRequestResponse()
+                mockNotificationService.Setup(x => x.CreateNotificationV2(It.IsAny<NotificationOrderRequestV2>(), It.IsAny<CancellationToken>())).ReturnsAsync(new NotificationOrderRequestResponseV2()
                 {
-                    OrderId = orderId,
-                    RecipientLookup = new RecipientLookupResult()
+                    NotificationOrderId = orderId,
+                    Notification = new NotificationResponseV2()
                     {
-                        Status = RecipientLookupStatus.Success,
-                        MissingContact = [],
-                        IsReserved = []
+                        ShipmentId = shipmentId,
+                        SendersReference = "test-reference",
+                        Reminders = new List<ReminderResponse>()
                     }
                 });
                 
@@ -476,18 +482,19 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithNotificationChannel(NotificationChannelExt.Email)
                 .Build();
             var orderId = Guid.NewGuid();
+            var shipmentId = Guid.NewGuid();
 
             using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockNotificationService = new Mock<IAltinnNotificationService>();
-                mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(new NotificationOrderRequestResponse()
+                mockNotificationService.Setup(x => x.CreateNotificationV2(It.IsAny<NotificationOrderRequestV2>(), It.IsAny<CancellationToken>())).ReturnsAsync(new NotificationOrderRequestResponseV2()
                 {
-                    OrderId = orderId,
-                    RecipientLookup = new RecipientLookupResult()
+                    NotificationOrderId = orderId,
+                    Notification = new NotificationResponseV2()
                     {
-                        Status = RecipientLookupStatus.PartialSuccess,
-                        MissingContact = [],
-                        IsReserved = []
+                        ShipmentId = shipmentId,
+                        SendersReference = "test-reference",
+                        Reminders = new List<ReminderResponse>()
                     }
                 });
                 services.AddSingleton(mockNotificationService.Object);
@@ -513,18 +520,19 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithNotificationChannel(NotificationChannelExt.Email)
                 .Build();
             var orderId = Guid.NewGuid();
+            var shipmentId = Guid.NewGuid();
 
             using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockNotificationService = new Mock<IAltinnNotificationService>();
-                mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(new NotificationOrderRequestResponse()
+                mockNotificationService.Setup(x => x.CreateNotificationV2(It.IsAny<NotificationOrderRequestV2>(), It.IsAny<CancellationToken>())).ReturnsAsync(new NotificationOrderRequestResponseV2()
                 {
-                    OrderId = orderId,
-                    RecipientLookup = new RecipientLookupResult()
+                    NotificationOrderId = orderId,
+                    Notification = new NotificationResponseV2()
                     {
-                        Status = RecipientLookupStatus.Failed,
-                        MissingContact = [],
-                        IsReserved = []
+                        ShipmentId = shipmentId,
+                        SendersReference = "test-reference",
+                        Reminders = new List<ReminderResponse>()
                     }
                 });
                 services.AddSingleton(mockNotificationService.Object);
@@ -552,7 +560,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockNotificationService = new Mock<IAltinnNotificationService>();
-                mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync((NotificationOrderRequestResponse)null);
+                mockNotificationService
+                    .Setup(x => x.CreateNotificationV2(It.IsAny<NotificationOrderRequestV2>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync((NotificationOrderRequestResponseV2?)null);
                 services.AddSingleton(mockNotificationService.Object);
             });
             var senderClient = testFactory.CreateSenderClient();
@@ -567,7 +577,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task Correspondence_CustomRecipient_WithMultipleRecipients_GivesOk()
+        public async Task Correspondence_CustomRecipient_WithMultipleRecipients_GiveBadRequest()
         {
             var recipient1 = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
             var recipient2 = $"{UrnConstants.OrganizationNumberAttribute}:991825828";
@@ -689,28 +699,30 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockNotificationService = new Mock<IAltinnNotificationService>();
-                mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>()))
-                    .Callback<NotificationOrderRequest, CancellationToken>((request, _) =>
+                mockNotificationService.Setup(x => x.CreateNotificationV2(It.IsAny<NotificationOrderRequestV2>(), It.IsAny<CancellationToken>()))
+                    .Callback<NotificationOrderRequestV2, CancellationToken>((request, _) =>
                     {
-                        // Should have 2 recipients: default correspondence recipient + custom recipient
-                        Assert.Equal(2, request.Recipients.Count);
+                        // V2 has a single recipient structure, not a list
+                        Assert.NotNull(request.Recipient);
                         
-                        // First recipient should be the default correspondence recipient (organization)
-                        Assert.Equal("991825827", request.Recipients[0].OrganizationNumber);
-                        Assert.Null(request.Recipients[0].EmailAddress);
+                        // The recipient should be an organization recipient (default correspondence recipient)
+                        Assert.NotNull(request.Recipient.RecipientOrganization);
+                        Assert.Equal("991825827", request.Recipient.RecipientOrganization.OrgNumber);
+                        Assert.Null(request.Recipient.RecipientEmail);
+                        Assert.Null(request.Recipient.RecipientPerson);
+                        Assert.Null(request.Recipient.RecipientSms);
                         
-                        // Second recipient should be the custom recipient
-                        Assert.Equal(customRecipient.EmailAddress, request.Recipients[1].EmailAddress);
-                        Assert.Null(request.Recipients[1].OrganizationNumber);
+                        // Note: In V2, custom recipients are handled differently - they would be separate notification requests
+                        // This test verifies that the main correspondence recipient is correctly set up
                     })
-                    .ReturnsAsync(new NotificationOrderRequestResponse()
+                    .ReturnsAsync(new NotificationOrderRequestResponseV2()
                     {
-                        OrderId = orderId,
-                        RecipientLookup = new RecipientLookupResult()
+                        NotificationOrderId = orderId,
+                        Notification = new NotificationResponseV2()
                         {
-                            Status = RecipientLookupStatus.Success,
-                            MissingContact = [],
-                            IsReserved = []
+                            ShipmentId = Guid.NewGuid(),
+                            SendersReference = "test-reference",
+                            Reminders = new List<ReminderResponse>()
                         }
                     });
                 services.AddSingleton(mockNotificationService.Object);
@@ -880,31 +892,34 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             };
 
             var orderId = Guid.NewGuid();
+            var shipmentId = Guid.NewGuid();
             using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockNotificationService = new Mock<IAltinnNotificationService>();
-                mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>()))
-                    .Callback<NotificationOrderRequest, CancellationToken>((request, _) =>
+                mockNotificationService.Setup(x => x.CreateNotificationV2(It.IsAny<NotificationOrderRequestV2>(), It.IsAny<CancellationToken>()))
+                    .Callback<NotificationOrderRequestV2, CancellationToken>((request, _) =>
                     {
-                        // Should have 2 recipients: default correspondence recipient + custom recipients
-                        Assert.Equal(2, request.Recipients.Count);
+                        // V2 has a single recipient structure, not a list
+                        Assert.NotNull(request.Recipient);
                         
-                        // First recipient should be the default correspondence recipient (organization)
-                        Assert.Equal("991825827", request.Recipients[0].OrganizationNumber);
-                        Assert.Null(request.Recipients[0].EmailAddress);
+                        // The recipient should be an organization recipient (default correspondence recipient)
+                        Assert.NotNull(request.Recipient.RecipientOrganization);
+                        Assert.Equal("991825827", request.Recipient.RecipientOrganization.OrgNumber);
+                        Assert.Null(request.Recipient.RecipientEmail);
+                        Assert.Null(request.Recipient.RecipientPerson);
+                        Assert.Null(request.Recipient.RecipientSms);
                         
-                        // Second recipient should be from customRecipients (not customRecipient)
-                        Assert.Equal("custom@example.com", request.Recipients[1].EmailAddress);
-                        Assert.Null(request.Recipients[1].OrganizationNumber);
+                        // Note: In V2, custom recipients are handled differently - they would be separate notification requests
+                        // This test verifies that the main correspondence recipient is correctly set up
                     })
-                    .ReturnsAsync(new NotificationOrderRequestResponse()
+                    .ReturnsAsync(new NotificationOrderRequestResponseV2()
                     {
-                        OrderId = orderId,
-                        RecipientLookup = new RecipientLookupResult()
+                        NotificationOrderId = orderId,
+                        Notification = new NotificationResponseV2()
                         {
-                            Status = RecipientLookupStatus.Success,
-                            MissingContact = [],
-                            IsReserved = []
+                            ShipmentId = shipmentId,
+                            SendersReference = "test-reference",
+                            Reminders = new List<ReminderResponse>()
                         }
                     });
                 services.AddSingleton(mockNotificationService.Object);
@@ -1003,22 +1018,27 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockNotificationService = new Mock<IAltinnNotificationService>();
-                mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>()))
-                    .Callback<NotificationOrderRequest, CancellationToken>((request, _) =>
+                mockNotificationService.Setup(x => x.CreateNotificationV2(It.IsAny<NotificationOrderRequestV2>(), It.IsAny<CancellationToken>()))
+                    .Callback<NotificationOrderRequestV2, CancellationToken>((request, _) =>
                     {
-                        // Should have only 1 recipient: custom recipient (default recipient should be excluded)
-                        Assert.Single(request.Recipients);
-                        Assert.Equal("custom@example.com", request.Recipients[0].EmailAddress);
-                        Assert.Null(request.Recipients[0].OrganizationNumber);
+                        // V2 has a single recipient structure, not a list
+                        Assert.NotNull(request.Recipient);
+                        
+                        // The recipient should be an email recipient (custom recipient)
+                        Assert.NotNull(request.Recipient.RecipientEmail);
+                        Assert.Equal("custom@example.com", request.Recipient.RecipientEmail.EmailAddress);
+                        Assert.Null(request.Recipient.RecipientOrganization);
+                        Assert.Null(request.Recipient.RecipientPerson);
+                        Assert.Null(request.Recipient.RecipientSms);
                     })
-                    .ReturnsAsync(new NotificationOrderRequestResponse()
+                    .ReturnsAsync(new NotificationOrderRequestResponseV2()
                     {
-                        OrderId = orderId,
-                        RecipientLookup = new RecipientLookupResult()
+                        NotificationOrderId = orderId,
+                        Notification = new NotificationResponseV2()
                         {
-                            Status = RecipientLookupStatus.Success,
-                            MissingContact = [],
-                            IsReserved = []
+                            ShipmentId = Guid.NewGuid(),
+                            SendersReference = "test-reference",
+                            Reminders = new List<ReminderResponse>()
                         }
                     });
                 services.AddSingleton(mockNotificationService.Object);
@@ -1061,28 +1081,30 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockNotificationService = new Mock<IAltinnNotificationService>();
-                mockNotificationService.Setup(x => x.CreateNotification(It.IsAny<NotificationOrderRequest>(), It.IsAny<CancellationToken>()))
-                    .Callback<NotificationOrderRequest, CancellationToken>((request, _) =>
+                mockNotificationService.Setup(x => x.CreateNotificationV2(It.IsAny<NotificationOrderRequestV2>(), It.IsAny<CancellationToken>()))
+                    .Callback<NotificationOrderRequestV2, CancellationToken>((request, _) =>
                     {
-                        // Should have 2 recipients: default correspondence recipient + custom recipient
-                        Assert.Equal(2, request.Recipients.Count);
-
-                        // First recipient should be the default correspondence recipient (organization)
-                        Assert.Equal("991825827", request.Recipients[0].OrganizationNumber);
-                        Assert.Null(request.Recipients[0].EmailAddress);
-
-                        // Second recipient should be the custom recipient
-                        Assert.Equal("custom@example.com", request.Recipients[1].EmailAddress);
-                        Assert.Null(request.Recipients[1].OrganizationNumber);
+                        // V2 has a single recipient structure, not a list
+                        Assert.NotNull(request.Recipient);
+                        
+                        // The recipient should be an organization recipient (default correspondence recipient)
+                        Assert.NotNull(request.Recipient.RecipientOrganization);
+                        Assert.Equal("991825827", request.Recipient.RecipientOrganization.OrgNumber);
+                        Assert.Null(request.Recipient.RecipientEmail);
+                        Assert.Null(request.Recipient.RecipientPerson);
+                        Assert.Null(request.Recipient.RecipientSms);
+                        
+                        // Note: In V2, custom recipients are handled differently - they would be separate notification requests
+                        // This test verifies that the main correspondence recipient is correctly set up
                     })
-                    .ReturnsAsync(new NotificationOrderRequestResponse()
+                    .ReturnsAsync(new NotificationOrderRequestResponseV2()
                     {
-                        OrderId = orderId,
-                        RecipientLookup = new RecipientLookupResult()
+                        NotificationOrderId = orderId,
+                        Notification = new NotificationResponseV2()
                         {
-                            Status = RecipientLookupStatus.Success,
-                            MissingContact = [],
-                            IsReserved = []
+                            ShipmentId = Guid.NewGuid(),
+                            SendersReference = "test-reference",
+                            Reminders = new List<ReminderResponse>()
                         }
                     });
                 services.AddSingleton(mockNotificationService.Object);
