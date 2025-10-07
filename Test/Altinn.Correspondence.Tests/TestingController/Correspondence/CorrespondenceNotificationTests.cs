@@ -1129,5 +1129,22 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.NotNull(initializedCorrespondence);
             Assert.Equal(CorrespondenceStatusExt.Published, correspondence.Status);
         }
+
+    [Fact]
+    public async Task Correspondence_WithInvalidTemplateNull_Succeeds()
+    {
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithNotificationTemplate(null)
+                .WithNotificationChannel(NotificationChannelExt.Email)
+                .WithEmailContent()
+                .WithEmailReminder()
+                .Build();
+
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            initializeCorrespondenceResponse.EnsureSuccessStatusCode();
+            Assert.NotNull(response);
+        }
     }
 }
