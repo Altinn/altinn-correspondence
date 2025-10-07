@@ -71,6 +71,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1039: Message sender must be plain text</li>
         /// <li>1042: Message summary, if not null, must be between 0 and 255 characters long</li>
         /// <li>1044: The following recipients lack required roles to read the correspondence: {recipients}</li>
+        /// <li>1045: Transmission correspondences only support one recipient</li>
+        /// <li>1046: The recipient of the correspondence must be equal to the recipient of the transmission</li>
+        /// <li>1047: Idempotency key is not supported for requests with multiple recipients</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// <li>3002: Email body and subject must be provided when sending email notifications</li>
         /// <li>3003: Reminder email body and subject must be provided when sending reminder email notifications</li>
@@ -168,6 +171,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1039: Message sender must be plain text</li>
         /// <li>1042: Message summary, if not null, must be between 0 and 255 characters long</li>
         /// <li>1044: The following recipients lack required roles to read the correspondence: {recipients}</li>
+        /// <li>1045: Transmission correspondences only support one recipient</li>
+        /// <li>1046: The recipient of the correspondence must be equal to the recipient of the transmission</li>
+        /// <li>1047: Idempotency key is not supported for requests with multiple recipients</li>
         /// <li>2001: The requested attachment was not found</li>
         /// <li>2004: File must have content and has a max file size of 2GB</li>
         /// <li>2008: Checksum mismatch</li>
@@ -500,6 +506,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1014: Correspondence has already been purged</li>
         /// <li>1015: Could not retrieve highest status for correspondence</li>
         /// <li>1026: Cannot archive or delete a correspondence which has not been confirmed when confirmation is required</li>
+        /// <li>1043: Cannot purge correspondence linked to a Dialogporten Transmission</li>
         /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li> 
         /// </ul></response>
         /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>

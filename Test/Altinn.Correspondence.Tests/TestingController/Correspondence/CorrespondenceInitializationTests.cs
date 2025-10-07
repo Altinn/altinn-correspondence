@@ -1729,6 +1729,29 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
+        public async Task InitializeCorrespondence_WithPropertyListTooLong_ReturnsBadRequest()
+        {
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithPropertyList(new Dictionary<string, string> { { "key", "value" },
+                { "key2", "value2" },
+                { "key3", "value3" },
+                { "key4", "value4" },
+                { "key5", "value5" },
+                { "key6", "value6" },
+                { "key7", "value7" },
+                { "key8", "value8" },
+                { "key9", "value9" },
+                { "key10", "value10" },
+                { "key11", "value11" } })
+                .Build();
+
+            var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            var correspondenceContent = await initializeResponse.Content.ReadAsStringAsync();
+            Assert.Equal(HttpStatusCode.BadRequest, initializeResponse.StatusCode);
+        }
+
+        [Fact]
         public async Task InitializeCorrespondence_TransmissionScheduledAtRequestedPublishTime_NotPublishedBefore()
         {
             // Arrange
@@ -1917,6 +1940,24 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             
             // Clean up
             customFactory.Dispose();
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithIdempotentKeyAndMultipleRecipients_ReturnsBadRequest()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("First Title")
+                .WithIdempotentKey(Guid.NewGuid())
+                .WithRecipients(["26818099001", "07827199405"])
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
         }
     }
 }
