@@ -2,6 +2,7 @@
 using Altinn.Correspondence.Core.Models.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using System.ComponentModel;
 
 namespace Altinn.Correspondence.API.Models
 {
@@ -14,7 +15,8 @@ namespace Altinn.Correspondence.API.Models
         /// Which of the notification templates to use for this notification
         /// </summary>
         [JsonPropertyName("notificationTemplate")]
-        public required NotificationTemplateExt NotificationTemplate { get; set; }
+        [DefaultValue(NotificationTemplateExt.CustomMessage)]
+        public NotificationTemplateExt NotificationTemplate { get; set; }
 
         /// <summary>
         /// The emails subject for the main notification
