@@ -43,8 +43,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 {
                     new TransmissionValue
                     {
-                        Value = TruncateTitleForDialogporten(correspondence.Content!.MessageTitle ?? "Ingen tittel"),
-                        LanguageCode = "nb",
+                        Value = correspondence.Content!.MessageTitle ?? "", // A required field, DP will throw validation error if empty, but should not be possible to reach this point with empty title
+                        LanguageCode = correspondence.Content.Language,
                     }
                 }
             },
@@ -72,25 +72,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             }
             }
         };
-
-
-        /// <summary>
-        /// Truncates titles longer than 255 characters to 252 characters and adds "..." to fit within Dialogporten's 255 character limit.
-        /// Titles 255 characters or shorter are sent as-is to Dialogporten.
-        /// This serves as a safety net for existing correspondence with long titles that failed Dialog Porten creation,
-        /// allowing them to retry successfully.
-        /// </summary>
-        /// <param name="title">The original title</param>
-        /// <returns>The title truncated to fit Dialogporten's requirements</returns>
-        private static string TruncateTitleForDialogporten(string title)
-        {
-            if (string.IsNullOrEmpty(title))
-                return title;
-
-            // Dialogporten has a 255 character limit, so we truncate to 252 and add "..." only for titles > 255 chars
-            return title.Length <= 255 ? title : title.Substring(0, 252) + "...";
-        }
-
 
         private static List<TransmissionAttachment> GetAttachmentsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
         {
