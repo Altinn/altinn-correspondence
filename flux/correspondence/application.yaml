@@ -14,7 +14,7 @@ spec:
         app: correspondence
     spec:
       containers:
-        - image: altinncr.azurecr.io/corr/correspondence-sync
+        - image: altinncr.azurecr.io/corr/correspondence-app
           imagePullPolicy: IfNotPresent
           name: correspondence-app
           ports:

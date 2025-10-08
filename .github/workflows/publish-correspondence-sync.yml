@@ -2,7 +2,7 @@ name: Build correspondence sync image
 
 env:
   ARTIFACT_NAME: corr/correspondence-sync
-  DOCKER_IMAGE_BASE_NAME: altinncr.azurecr.io/corr/correspondence-sync
+  DOCKER_IMAGE_BASE_NAME: altinncr.azurecr.io/corr/correspondence-app
 
 on:
   workflow_dispatch:
