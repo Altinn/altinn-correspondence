@@ -8,7 +8,10 @@ spec:
   interval: 5m0s
   path: ./
   prune: false
-  retryInterval: 5m0s
+  retryInterval: 5m0s  
+  postBuild:
+    substitute:
+      ENVIRONMENT_NAME: at22 # This will be replaced in overlays
   sourceRef:
     kind: OCIRepository
     name: correspondence-app-sync

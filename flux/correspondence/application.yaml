@@ -12,16 +12,95 @@ spec:
     metadata:
       labels:
         app: correspondence
+        azure.workload.identity/use: "true"
+      annotations:
+        "linkerd.io/inject": "enabled"  
     spec:
       containers:
-        - image: altinncr.azurecr.io/corr/correspondence-sync
+        - image: altinncr.azurecr.io/ghcr.io/altinn/altinn-correspondence:SHORT_SHA
           imagePullPolicy: IfNotPresent
           name: correspondence-app
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1024Mi"
           ports:
             - containerPort: 80
           env:
             - name: PORT
               value: "80"
+      serviceAccountName: correspondence-api
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: 2525
+          scheme: HTTP
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 5
+        successThreshold: 1
+      readinessProbe:
+        httpGet: 
+          path: /health
+          port: 2525
+          scheme: HTTP
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+        successThreshold: 1
+      startupProbe:
+        httpGet:
+          path: /health
+          port: 2525
+          scheme: HTTP
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        timeoutSeconds: 5
+        failureThreshold: 300
+        successThreshold: 1
+---
+apiVersion: autoscaling.k8s.io/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: correspondence
+  namespace: correspondence
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: correspondence
+  minReplicas: 2
+  maxReplicas: 30
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 15
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
 ---
 apiVersion: v1
 kind: Service
@@ -51,8 +130,8 @@ spec:
     - http
     - https
   routes:
-    - kind: Rule
-      match: PathPrefix(`/correspondence/api/v1/`) || Path(`/correspondence/api/v1`)
+    - kind: Rule 
+      match: Host(`corr.${ENVIRONMENT_NAME}.altinn.cloud`) && (PathPrefix(`/correspondence/api/v1/`) || Path(`/correspondence/api/v1`))
       services:
         - name: correspondence
           namespace: correspondence
