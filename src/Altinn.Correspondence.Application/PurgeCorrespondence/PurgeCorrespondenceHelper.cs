@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Persistence.Repositories;
 using Hangfire;
 
 namespace Altinn.Correspondence.Application.PurgeCorrespondence;
@@ -11,7 +12,8 @@ public class PurgeCorrespondenceHelper(
     IAttachmentRepository attachmentRepository,
     IAttachmentStatusRepository attachmentStatusRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
-    IBackgroundJobClient backgroundJobClient)
+    IBackgroundJobClient backgroundJobClient,
+    ICorrespondenceRepository correspondenceRepository)
 {
     public Error? ValidatePurgeRequestSender(CorrespondenceEntity correspondence)
     {
@@ -100,7 +102,7 @@ public class PurgeCorrespondenceHelper(
         
         await CheckAndPurgeAttachments(correspondence.Id, partyUuid, cancellationToken);
         var reportToDialogportenJob = ReportActivityToDialogporten(isSender: isSender, correspondence.Id, operationTimestamp);
-        var reportNotificationCancelledJob = backgroundJobClient.ContinueJobWith(reportToDialogportenJob, () => ReportNotificationCancelledToDialogporten(correspondence, operationTimestamp));
+        var reportNotificationCancelledJob = backgroundJobClient.ContinueJobWith(reportToDialogportenJob, () => ReportNotificationCancelledToDialogporten(correspondence.Id, operationTimestamp, cancellationToken));
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
         if (dialogId is not null)
         {
@@ -116,9 +118,10 @@ public class PurgeCorrespondenceHelper(
         return backgroundJobClient.Enqueue<IDialogportenService>(service => service.CreateCorrespondencePurgedActivity(correspondenceId, actorType, actorName, operationTimestamp));
     }
 
-    public void ReportNotificationCancelledToDialogporten(CorrespondenceEntity correspondence, DateTimeOffset operationTimestamp)
+    public async Task ReportNotificationCancelledToDialogporten(Guid correspondenceId, DateTimeOffset operationTimestamp, CancellationToken cancellationToken)
     {
-        var notificationEntities = correspondence.Notifications ?? [];
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, cancellationToken);
+        var notificationEntities = correspondence?.Notifications ?? [];
         foreach (var notification in notificationEntities)
         {
             if (notification.RequestedSendTime <= DateTimeOffset.UtcNow) continue; // Notification has already been sent
