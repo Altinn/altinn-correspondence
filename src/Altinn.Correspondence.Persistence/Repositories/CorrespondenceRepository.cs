@@ -90,11 +90,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool includeForwardingEvents,
             CancellationToken cancellationToken)
         {
-            logger.LogDebug("Retrieving correspondence {CorrespondenceId} for sync including: status={IncludeStatus} notifications={includeNotificationEvents} forwardingEvents={includeForwardingEvents}", guid, includeStatus, includeNotificationEvents, includeForwardingEvents);
+            logger.LogDebug("Retrieving correspondence {CorrespondenceId} for sync including: status={IncludeStatus} notifications={IncludeNotificationEvents} forwardingEvents={IncludeForwardingEvents}", guid, includeStatus, includeNotificationEvents, includeForwardingEvents);
             var correspondences = _context.Correspondences
                 .Include(c => c.ExternalReferences) // Needed for Dialogporten updates
-                .AsNoTracking(); // Read-only optimization                
-            
+                .AsNoTracking(); // Read-only optimization
+
             if (includeStatus)
             {
                 correspondences = correspondences.Include(c => c.Statuses);
