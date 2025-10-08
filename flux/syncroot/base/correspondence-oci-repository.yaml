@@ -9,4 +9,4 @@ spec:
   ref:
     tag: main
   timeout: 5m0s
-  url: oci://altinncr.azurecr.io/corr/correspondence-sync
+  url: oci://altinncr.azurecr.io/corr/correspondence-app-sync

@@ -14,9 +14,9 @@ spec:
         app: correspondence
     spec:
       containers:
-        - image: altinncr.azurecr.io/corr/correspondence-app
+        - image: altinncr.azurecr.io/corr/correspondence-app-sync
           imagePullPolicy: IfNotPresent
-          name: correspondence-app
+          name: correspondence-app-sync
           ports:
             - containerPort: 2525
           env:
@@ -33,7 +33,7 @@ spec:
             failureThreshold: 6
           livenessProbe:
             httpGet:
-              path: /health
+              path: /healthz
               port: 2525
               scheme: HTTP
             initialDelaySeconds: 15
