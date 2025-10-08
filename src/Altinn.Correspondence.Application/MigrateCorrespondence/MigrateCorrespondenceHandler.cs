@@ -222,6 +222,11 @@ public class MigrateCorrespondenceHandler(
             return CorrespondenceErrors.MissingContent;
         }
 
+        if (string.IsNullOrWhiteSpace(content.MessageTitle))
+        {
+            return CorrespondenceErrors.MessageTitleEmpty;
+        }
+
         if (!IsLanguageValid(content.Language))
         {
             return CorrespondenceErrors.InvalidLanguage;
