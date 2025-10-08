@@ -85,7 +85,7 @@ public class PublishCorrespondenceHandler(
         bool hasDialogportenDialog = correspondence!.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
         logger.LogInformation("Correspondence {CorrespondenceId} has Dialogporten dialog: {HasDialog}", correspondenceId, hasDialogportenDialog);
 
-        var errorMessage = "";
+        var errorMessage = "testing";
         if (correspondence == null)
         {
             errorMessage = "Correspondence " + correspondenceId + " not found when publishing";
