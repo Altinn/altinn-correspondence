@@ -83,6 +83,32 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
         }
 
+        public async Task<CorrespondenceEntity?> GetCorrespondenceByIdForSync(
+            Guid guid,
+            bool includeStatus,
+            bool includeNotificationEvents,
+            bool includeForwardingEvents,
+            CancellationToken cancellationToken)
+        {
+            logger.LogDebug("Retrieving correspondence {CorrespondenceId} for sync including: status={IncludeStatus} notifications={includeNotificationEvents} forwardingEvents={includeForwardingEvents}", guid, includeStatus, includeNotificationEvents, includeForwardingEvents);
+            var correspondences = _context.Correspondences.AsNoTracking(); // Read-only optimization                
+            
+            if (includeStatus)
+            {
+                correspondences = correspondences.Include(c => c.Statuses);
+            }
+            if (includeNotificationEvents)
+            {
+                correspondences = correspondences.Include(c => c.Notifications);
+            }
+            if (includeForwardingEvents)
+            {
+                correspondences = correspondences.Include(c => c.ForwardingEvents);
+            }
+
+            return await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
+        }
+
         public async Task<CorrespondenceEntity> GetCorrespondenceByAltinn2Id(int altinn2Id, CancellationToken cancellationToken)
         {
             return await _context.Correspondences.SingleAsync(c => c.Altinn2CorrespondenceId == altinn2Id, cancellationToken);

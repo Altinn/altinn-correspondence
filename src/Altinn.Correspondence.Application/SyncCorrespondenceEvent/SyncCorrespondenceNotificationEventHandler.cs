@@ -13,15 +13,14 @@ public class SyncCorrespondenceNotificationEventHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceNotificationEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(
+        var correspondence = await correspondenceRepository.GetCorrespondenceByIdForSync(
             request.CorrespondenceId,
             includeStatus: false,
-            includeContent: false,
-            includeForwardingEvents: false, 
-            cancellationToken, 
-            includeIsMigrating: true);
-        
-        if(correspondence == null)
+            includeNotificationEvents: true,
+            includeForwardingEvents: false,
+            cancellationToken);
+
+        if (correspondence == null)
         {
             logger.LogError("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;
