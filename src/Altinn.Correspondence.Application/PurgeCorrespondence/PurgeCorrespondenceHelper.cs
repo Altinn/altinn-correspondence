@@ -4,7 +4,6 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Persistence.Repositories;
 using Hangfire;
 
 namespace Altinn.Correspondence.Application.PurgeCorrespondence;
