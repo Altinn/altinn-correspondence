@@ -164,6 +164,8 @@ spec:
       name: $configmapname
       file: archive.tar
   runner:
+    nodeSelector:
+      node-type: spot
     env:
       - name: K6_PROMETHEUS_RW_SERVER_URL
         value: "http://kube-prometheus-stack-prometheus.monitoring:9090/api/v1/write"
