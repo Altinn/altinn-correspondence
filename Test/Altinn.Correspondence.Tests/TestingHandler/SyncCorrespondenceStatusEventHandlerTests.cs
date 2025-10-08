@@ -102,7 +102,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId,true,false,false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId,true,false,false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
@@ -116,7 +116,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that the statuses were added to Repository with SyncedFromAltinn2 set
@@ -174,7 +174,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
 
             // Act
@@ -185,7 +185,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Should not trigger any Dialogporten changes or background jobs
@@ -223,7 +223,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -233,7 +233,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Should not trigger any Dialogporten changes or background jobs
@@ -316,7 +316,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _attachmentRepositoryMock
                 .Setup(x => x.GetAttachmentsByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
@@ -333,7 +333,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             _correspondenceStatusRepositoryMock.Verify(
@@ -388,7 +388,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
 
             _correspondenceStatusRepositoryMock
@@ -403,7 +403,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that the status were added to Repository with SyncedFromAltinn2 set
@@ -454,7 +454,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
@@ -469,7 +469,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that the statuses were added to Repository with SyncedFromAltinn2 set
@@ -523,7 +523,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
@@ -540,7 +540,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that the statuses were added to Repository with SyncedFromAltinn2 set
@@ -592,7 +592,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
@@ -609,7 +609,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that the statuses were added to Repository with SyncedFromAltinn2 set
@@ -661,7 +661,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
@@ -686,7 +686,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that the statuses were added to Repository with SyncedFromAltinn2 set
@@ -750,7 +750,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
@@ -776,7 +776,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that no statuses were added to Repository with SyncedFromAltinn2 set
@@ -829,7 +829,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
@@ -855,7 +855,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that no statuses were added to Repository with SyncedFromAltinn2 set
@@ -908,7 +908,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
@@ -934,7 +934,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that no statuses were added to Repository with SyncedFromAltinn2 set
@@ -988,7 +988,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
@@ -1022,7 +1022,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that no statuses were added to Repository with SyncedFromAltinn2 set
@@ -1081,7 +1081,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
@@ -1109,7 +1109,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that Purge status was added to Repository with SyncedFromAltinn2 set
@@ -1183,7 +1183,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
@@ -1209,7 +1209,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that no statuses were added to Repository with SyncedFromAltinn2 set
@@ -1262,7 +1262,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
@@ -1288,7 +1288,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that no statuses were added to Repository with SyncedFromAltinn2 set
@@ -1342,7 +1342,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
@@ -1391,7 +1391,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that the statuses were added to Repository with SyncedFromAltinn2 set
@@ -1457,7 +1457,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
@@ -1480,7 +1480,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that the purged status was added to Repository with SyncedFromAltinn2 set
@@ -1539,7 +1539,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceDeleteEventRepositoryMock
                 .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
@@ -1553,7 +1553,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that no statuses were added to Repository
@@ -1593,7 +1593,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
@@ -1616,7 +1616,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that the no status was added to Repository with SyncedFromAltinn2 set
@@ -1672,7 +1672,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
@@ -1695,7 +1695,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that the no status was added to Repository with SyncedFromAltinn2 set
@@ -1761,7 +1761,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
@@ -1787,7 +1787,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that the no status was added to Repository with SyncedFromAltinn2 set

@@ -13,13 +13,12 @@ public class SyncCorrespondenceForwardingEventHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceForwardingEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(
+        var correspondence = await correspondenceRepository.GetCorrespondenceByIdForSync(
             request.CorrespondenceId,
             includeStatus: false,
-            includeContent: false,
+            includeNotificationEvents: false,
             includeForwardingEvents: true,
-            cancellationToken,
-            includeIsMigrating: true);
+            cancellationToken);
 
         if (correspondence == null)
         {

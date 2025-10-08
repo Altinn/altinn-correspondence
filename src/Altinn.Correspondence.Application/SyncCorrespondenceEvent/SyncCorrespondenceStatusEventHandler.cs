@@ -32,13 +32,12 @@ public class SyncCorrespondenceStatusEventHandler(
 
         logger.LogInformation("Processing status Sync request for correspondence {CorrespondenceId} with {numSyncedEvents} # status events and {numSyncedDeletes} # delete events", request.CorrespondenceId, numSyncedEvents, numSyncedDeletes);
 
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(
+        var correspondence = await correspondenceRepository.GetCorrespondenceByIdForSync(
             request.CorrespondenceId,
             includeStatus: true,
-            includeContent: false,
+            includeNotificationEvents: false,
             includeForwardingEvents: false,
-            cancellationToken,
-            includeIsMigrating: true);
+            cancellationToken);
 
         if (correspondence == null)
         {
