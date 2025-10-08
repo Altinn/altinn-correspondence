@@ -17,14 +17,9 @@ namespace Altinn.Correspondence.Application.CancelNotification
     public class CancelNotificationHandler(
         ILogger<CancelNotificationHandler> logger,
         ICorrespondenceRepository correspondenceRepository,
-        IAltinnNotificationService altinnNotificationService,
-        ISlackClient slackClient,
         IBackgroundJobClient backgroundJobClient,
-        IHostEnvironment hostEnvironment,
-        IDialogportenService dialogportenService,
-        SlackSettings slackSettings)
+        IHostEnvironment hostEnvironment)
     {
-        private string Channel => slackSettings.NotificationChannel;
         private const string RetryCountKey = "RetryCount";
         private const int MaxRetries = 10;
 
@@ -43,7 +38,7 @@ namespace Altinn.Correspondence.Application.CancelNotification
         {
             var env = hostEnvironment.EnvironmentName;
             var error = $"Error while attempting to cancel notifications for correspondenceId: {correspondenceId} in environment: {env}.";
-            foreach (var notification in notificationEntities)
+            foreach (var notification in notificationEntities) //ok
             {
                 if (notification.RequestedSendTime <= DateTimeOffset.UtcNow) continue; // Notification has already been sent
 
@@ -51,20 +46,10 @@ namespace Altinn.Correspondence.Application.CancelNotification
                 if (string.IsNullOrWhiteSpace(notificationOrderId))
                 {
                     error += $"NotificationOrderId is null for notificationId: {notification.Id}";
-                    if (retryAttempts == MaxRetries) SendSlackNotificationWithMessage(error);
                     throw new Exception(error);
                 }
                 backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled, operationTimestamp));
             }
-        }
-        private void SendSlackNotificationWithMessage(string message)
-        {
-            var slackMessage = new SlackMessage
-            {
-                Text = message,
-                Channel = Channel,
-            };
-            slackClient.Post(slackMessage);
         }
     }
 }
