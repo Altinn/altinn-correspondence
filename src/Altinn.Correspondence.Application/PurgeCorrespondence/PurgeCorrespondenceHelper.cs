@@ -1,4 +1,3 @@
-using Altinn.Correspondence.Application.CancelNotification;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -101,19 +100,29 @@ public class PurgeCorrespondenceHelper(
         
         await CheckAndPurgeAttachments(correspondence.Id, partyUuid, cancellationToken);
         var reportToDialogportenJob = ReportActivityToDialogporten(isSender: isSender, correspondence.Id, operationTimestamp);
-        var cancelNotificationJob = backgroundJobClient.ContinueJobWith<CancelNotificationHandler>(reportToDialogportenJob, 
-            handler => handler.Process(null!, correspondence.Id, null, cancellationToken));
+        var reportNotificationCancelledJob = backgroundJobClient.ContinueJobWith(reportToDialogportenJob, () => ReportNotificationCancelledToDialogporten(correspondence, operationTimestamp));
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
         if (dialogId is not null)
         {
-            backgroundJobClient.ContinueJobWith<IDialogportenService>(cancelNotificationJob, service => service.SoftDeleteDialog(dialogId.ReferenceValue));
+            backgroundJobClient.ContinueJobWith<IDialogportenService>(reportNotificationCancelledJob, service => service.SoftDeleteDialog(dialogId.ReferenceValue));
         }
         return correspondence.Id;
     }
+
     public string ReportActivityToDialogporten(bool isSender, Guid correspondenceId, DateTimeOffset operationTimestamp)
     {
         var actorType = isSender ? DialogportenActorType.Sender : DialogportenActorType.Recipient;
         var actorName = isSender ? "avsender" : "mottaker";
         return backgroundJobClient.Enqueue<IDialogportenService>(service => service.CreateCorrespondencePurgedActivity(correspondenceId, actorType, actorName, operationTimestamp));
+    }
+
+    public void ReportNotificationCancelledToDialogporten(CorrespondenceEntity correspondence, DateTimeOffset operationTimestamp)
+    {
+        var notificationEntities = correspondence.Notifications ?? [];
+        foreach (var notification in notificationEntities)
+        {
+            if (notification.RequestedSendTime <= DateTimeOffset.UtcNow) continue; // Notification has already been sent
+            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled, operationTimestamp));
+        }
     }
 }
