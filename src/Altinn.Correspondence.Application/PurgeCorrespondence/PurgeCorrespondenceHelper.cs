@@ -101,7 +101,7 @@ public class PurgeCorrespondenceHelper(
         
         await CheckAndPurgeAttachments(correspondence.Id, partyUuid, cancellationToken);
         var reportToDialogportenJob = ReportActivityToDialogporten(isSender: isSender, correspondence.Id, operationTimestamp);
-        var reportNotificationCancelledJob = backgroundJobClient.ContinueJobWith(reportToDialogportenJob, () => ReportNotificationCancelledToDialogporten(correspondence.Id, operationTimestamp, cancellationToken));
+        var reportNotificationCancelledJob = backgroundJobClient.ContinueJobWith(reportToDialogportenJob, () => ReportNotificationCancelledToDialogporten(correspondence.Id, operationTimestamp));
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
         if (dialogId is not null)
         {
@@ -117,9 +117,9 @@ public class PurgeCorrespondenceHelper(
         return backgroundJobClient.Enqueue<IDialogportenService>(service => service.CreateCorrespondencePurgedActivity(correspondenceId, actorType, actorName, operationTimestamp));
     }
 
-    public async Task ReportNotificationCancelledToDialogporten(Guid correspondenceId, DateTimeOffset operationTimestamp, CancellationToken cancellationToken)
+    public async Task ReportNotificationCancelledToDialogporten(Guid correspondenceId, DateTimeOffset operationTimestamp)
     {
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, CancellationToken.None);
         var notificationEntities = correspondence?.Notifications ?? [];
         foreach (var notification in notificationEntities)
         {
