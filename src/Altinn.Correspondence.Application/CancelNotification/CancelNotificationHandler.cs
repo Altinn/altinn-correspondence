@@ -28,26 +28,16 @@ namespace Altinn.Correspondence.Application.CancelNotification
         {
             var operationTimestamp = DateTimeOffset.UtcNow;
 
-            var retryAttempts = context.GetJobParameter<int>(RetryCountKey);
-            logger.LogInformation("Cancelling notifications for correspondence {correspondenceId}. Retry attempt: {retryAttempts}", correspondenceId, retryAttempts);
+            logger.LogInformation("Cancelling notifications for correspondence {correspondenceId}", correspondenceId);
             var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, cancellationToken);
             var notificationEntities = correspondence?.Notifications ?? [];
-            await CancelNotification(correspondenceId, notificationEntities, retryAttempts, operationTimestamp, cancellationToken);
+            await CancelNotification(correspondenceId, notificationEntities, operationTimestamp, cancellationToken);
         }
-        public async Task CancelNotification(Guid correspondenceId, List<CorrespondenceNotificationEntity> notificationEntities, int retryAttempts, DateTimeOffset operationTimestamp, CancellationToken cancellationToken)
+        public async Task CancelNotification(Guid correspondenceId, List<CorrespondenceNotificationEntity> notificationEntities, DateTimeOffset operationTimestamp, CancellationToken cancellationToken)
         {
-            var env = hostEnvironment.EnvironmentName;
-            var error = $"Error while attempting to cancel notifications for correspondenceId: {correspondenceId} in environment: {env}.";
-            foreach (var notification in notificationEntities) //ok
+            foreach (var notification in notificationEntities)
             {
                 if (notification.RequestedSendTime <= DateTimeOffset.UtcNow) continue; // Notification has already been sent
-
-                string? notificationOrderId = notification.NotificationOrderId?.ToString();
-                if (string.IsNullOrWhiteSpace(notificationOrderId))
-                {
-                    error += $"NotificationOrderId is null for notificationId: {notification.Id}";
-                    throw new Exception(error);
-                }
                 backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled, operationTimestamp));
             }
         }
