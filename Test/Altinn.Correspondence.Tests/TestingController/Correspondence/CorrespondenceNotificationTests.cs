@@ -1131,7 +1131,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
     [Fact]
-    public async Task Correspondence_WithInvalidTemplateNull_Succeeds()
+    public async Task Correspondence_WithNotificationTemplateNull_Succeeds()
     {
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
