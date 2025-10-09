@@ -241,7 +241,7 @@ namespace Altinn.Correspondence.API.Controllers
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
             _logger.LogInformation("Insert correspondences with attachment data");
             
-            var result = InitializeCorrespondencesMapper.MapToRequest(request);
+            var result = InitializeCorrespondencesMapper.MapToRequest(request, attachments);
             if (result.IsT1)
                 return BadRequest(result.AsT1.Message); 
             var mappedRequest = result.AsT0;
