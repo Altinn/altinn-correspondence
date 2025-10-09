@@ -455,13 +455,24 @@ public class InitializeCorrespondencesHandler(
         {
             throw new InvalidOperationException("Dialog ID not found on correspondence");
         }
+        if (!Guid.TryParse(dialogId, out _))
+        {
+            return CorrespondenceErrors.InvalidCorrespondenceDialogId;
+        }
 
-        var recipientMatches = await dialogportenService.ValidateDialogRecipientMatch(dialogId, correspondence.Recipient, cancellationToken);
-        if (!recipientMatches)
+        var recipientMatchReturnCode = await dialogportenService.ValidateDialogRecipientMatch(dialogId, correspondence.Recipient, cancellationToken);
+        if (recipientMatchReturnCode == 0)
         {
             return CorrespondenceErrors.RecipientMismatch;
         }
-        return Task.CompletedTask;
+        else if (recipientMatchReturnCode == 2)
+        {
+            return CorrespondenceErrors.DialogNotFoundWithDialogId;
+        }
+        else
+        {
+            return Task.CompletedTask;
+        }
     }
 
     private async Task<OneOf<Task, Error>> CreateDialogOrTransmissionJob(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)

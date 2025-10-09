@@ -1874,10 +1874,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 });
                 
             mockDialogportenService.Setup(x => x.ValidateDialogRecipientMatch(It.IsAny<string>(), "26818099001", It.IsAny<CancellationToken>()))
-                .ReturnsAsync(true); // Original recipient should validate successfully
+                .ReturnsAsync(1); // Original recipient should validate successfully
                 
             mockDialogportenService.Setup(x => x.ValidateDialogRecipientMatch(It.IsAny<string>(), "07827199405", It.IsAny<CancellationToken>()))
-                .ReturnsAsync(false); // Different recipient should fail validation
+                .ReturnsAsync(0); // Different recipient should fail validation
 
             // Setup other required methods
             mockDialogportenService.Setup(x => x.PatchCorrespondenceDialogToConfirmed(It.IsAny<Guid>()))

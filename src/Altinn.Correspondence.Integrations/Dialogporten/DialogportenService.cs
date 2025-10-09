@@ -553,10 +553,20 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return true;
     }
 
-    public async Task<bool> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
+    public async Task<int> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
     {
-        var dialog = await GetDialog(dialogId);
-        return dialog.Party == expectedRecipient;
+        
+        CreateDialogRequest? dialog = null;
+        try
+        {
+            dialog = await GetDialog(dialogId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error fetching dialog {dialogId} from Dialogporten", dialogId);
+            return 2;
+        }
+        return dialog.Party == expectedRecipient ? 1 : 0;
     }
 
 
