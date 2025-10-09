@@ -52,6 +52,8 @@ public static class CorrespondenceErrors
     public static Error TransmissionOnlyAllowsOneRecipient = new Error(1045, "Transmission correspondences only support one recipient", HttpStatusCode.BadRequest);
     public static Error RecipientMismatch = new Error(1046, "The recipient of the correspondence must be equal to the recipient of the transmission", HttpStatusCode.BadRequest);
     public static Error IdempotencyKeyNotAllowedWithMultipleRecipients = new Error(1047, "Idempotency key is not supported for requests with multiple recipients", HttpStatusCode.BadRequest);
+    public static Error InvalidCorrespondenceDialogId = new Error(1048, "DialogId must be a valid non-empty GUID", HttpStatusCode.BadRequest);
+    public static Error DialogNotFoundWithDialogId = new Error(1049, "Could not find dialog in Dialogporten with the given DialogId", HttpStatusCode.NotFound);
 }
 
 public static class AttachmentErrors
