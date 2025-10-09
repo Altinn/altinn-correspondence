@@ -1,16 +1,18 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
+using OneOf;
 using System.Text.Json;
 
 namespace Altinn.Correspondence.Mappers;
 
 internal static class InitializeCorrespondencesMapper
 {
-    internal static InitializeCorrespondencesRequest MapToRequest(InitializeCorrespondencesExt request, List<IFormFile>? attachments = null)
+    internal static OneOf<InitializeCorrespondencesRequest, Error> MapToRequest(InitializeCorrespondencesExt request, List<IFormFile>? attachments = null)
     {
         var rawRequest = JsonSerializer.Serialize(request);
 
@@ -45,13 +47,23 @@ internal static class InitializeCorrespondencesMapper
             IsConfidential = request.Correspondence.IsConfidential,
             OriginalRequest = rawRequest
         };
+        NotificationRequest? correspondenceNotification = null;
+        if (request.Correspondence.Notification != null)
+        {
+            var notificationResult = InitializeCorrespondenceNotificationMapper.MapToRequest(request.Correspondence.Notification);
+            if (notificationResult.IsT1)
+            {
+                return notificationResult.AsT1;
+            }
+            correspondenceNotification = notificationResult.AsT0;
+        }
         return new InitializeCorrespondencesRequest()
         {
             Correspondence = correspondence,
             Attachments = attachments ?? new List<IFormFile>(),
             ExistingAttachments = request.ExistingAttachments ?? new List<Guid>(),
             Recipients = request.Recipients,
-            Notification = request.Correspondence.Notification != null ? InitializeCorrespondenceNotificationMapper.MapToRequest(request.Correspondence.Notification) : null,
+            Notification = correspondenceNotification,
             IdempotentKey = request.IdempotentKey
         };
     }
