@@ -188,6 +188,17 @@ namespace Altinn.Correspondence.Tests.Factories
             };
             return this;
         }
+
+        public CorrespondenceBuilder WithNotificationTemplateInt(int templateId)
+        {
+            _correspondence.Correspondence.Notification ??= new InitializeCorrespondenceNotificationExt()
+            {
+                NotificationTemplate = (NotificationTemplateExt)templateId,
+                SendReminder = true
+            };
+            return this;
+        }
+
         public CorrespondenceBuilder WithNotificationChannel(NotificationChannelExt notificationChannel)
         {
             _correspondence.Correspondence.Notification!.NotificationChannel = notificationChannel;

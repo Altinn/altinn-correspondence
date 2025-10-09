@@ -458,7 +458,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                         Reminders = new List<ReminderResponse>()
                     }
                 });
-                
+
                 services.AddSingleton(mockNotificationService.Object);
             });
             var senderClient = testFactory.CreateSenderClient();
@@ -704,14 +704,14 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     {
                         // V2 has a single recipient structure, not a list
                         Assert.NotNull(request.Recipient);
-                        
+
                         // The recipient should be an organization recipient (default correspondence recipient)
                         Assert.NotNull(request.Recipient.RecipientOrganization);
                         Assert.Equal("991825827", request.Recipient.RecipientOrganization.OrgNumber);
                         Assert.Null(request.Recipient.RecipientEmail);
                         Assert.Null(request.Recipient.RecipientPerson);
                         Assert.Null(request.Recipient.RecipientSms);
-                        
+
                         // Note: In V2, custom recipients are handled differently - they would be separate notification requests
                         // This test verifies that the main correspondence recipient is correctly set up
                     })
@@ -901,7 +901,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     {
                         // V2 has a single recipient structure, not a list
                         Assert.NotNull(request.Recipient);
-                        
+
                         // The recipient should be an organization recipient (default correspondence recipient)
                         Assert.NotNull(request.Recipient.RecipientOrganization);
                         Assert.Equal("991825827", request.Recipient.RecipientOrganization.OrgNumber);
@@ -1023,7 +1023,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     {
                         // V2 has a single recipient structure, not a list
                         Assert.NotNull(request.Recipient);
-                        
+
                         // The recipient should be an email recipient (custom recipient)
                         Assert.NotNull(request.Recipient.RecipientEmail);
                         Assert.Equal("custom@example.com", request.Recipient.RecipientEmail.EmailAddress);
@@ -1086,14 +1086,14 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     {
                         // V2 has a single recipient structure, not a list
                         Assert.NotNull(request.Recipient);
-                        
+
                         // The recipient should be an organization recipient (default correspondence recipient)
                         Assert.NotNull(request.Recipient.RecipientOrganization);
                         Assert.Equal("991825827", request.Recipient.RecipientOrganization.OrgNumber);
                         Assert.Null(request.Recipient.RecipientEmail);
                         Assert.Null(request.Recipient.RecipientPerson);
                         Assert.Null(request.Recipient.RecipientSms);
-                        
+
                         // Note: In V2, custom recipients are handled differently - they would be separate notification requests
                         // This test verifies that the main correspondence recipient is correctly set up
                     })
@@ -1130,9 +1130,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(CorrespondenceStatusExt.Published, correspondence.Status);
         }
 
-    [Fact]
-    public async Task Correspondence_WithNotificationTemplateNull_Succeeds()
-    {
+        [Fact]
+        public async Task Correspondence_WithNotificationTemplateNull_Succeeds()
+        {
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithNotificationTemplate(null)
@@ -1146,5 +1146,21 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             initializeCorrespondenceResponse.EnsureSuccessStatusCode();
             Assert.NotNull(response);
         }
+
+        [Fact]
+        public async Task Correspondence_WithInvalidNotificationTemplate_ReturnsBadRequest()
+        {
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithNotificationTemplate((NotificationTemplateExt)5)
+                .WithNotificationChannel(NotificationChannelExt.Email)
+                .WithEmailContent()
+                .WithEmailReminder()
+                .Build();
+
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+            Assert.Contains(NotificationErrors.InvalidNotificationTemplate.Message, initializeCorrespondenceResponse.Content.ReadAsStringAsync().Result);
+        }
     }
-}
+}  
