@@ -198,7 +198,6 @@ public class MigrateCorrespondenceHandler(
         var updateResult = await TransactionWithRetriesPolicy.Execute<string>(async (cancellationToken) =>
         {
             await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
-            correspondence.ExternalReferences.Add(new ExternalReferenceEntity() { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = dialogId });
             await SetIsMigrating(correspondenceId, false, cancellationToken);
             return dialogId;
         }, logger, cancellationToken);
