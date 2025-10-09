@@ -567,7 +567,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             {
                 return 2;
             }
-            logger.LogError(ex.Message);
+            logger.LogError(ex, "Error retrieving dialog {dialogId} for recipient validation", dialogId);
             throw;
         }
         return dialog.Party == expectedRecipient ? 1 : 0;
