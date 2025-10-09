@@ -563,8 +563,12 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error fetching dialog {dialogId} from Dialogporten", dialogId);
-            return 2;
+            if (ex.Message.Contains("not found"))
+            {
+                return 2;
+            }
+            logger.LogError(ex.Message);
+            throw;
         }
         return dialog.Party == expectedRecipient ? 1 : 0;
     }
