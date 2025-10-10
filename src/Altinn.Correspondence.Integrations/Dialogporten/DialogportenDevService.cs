@@ -84,9 +84,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.FromResult(true);
         }
 
-        public Task<int> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
+        public Task<Nullable<bool>> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(1);
+            return Task.FromResult(true as bool?);
         }
     }
 }

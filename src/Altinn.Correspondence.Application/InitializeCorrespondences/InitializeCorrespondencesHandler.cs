@@ -461,11 +461,11 @@ public class InitializeCorrespondencesHandler(
         }
 
         var recipientMatchReturnCode = await dialogportenService.ValidateDialogRecipientMatch(dialogId, correspondence.Recipient, cancellationToken);
-        if (recipientMatchReturnCode == 0)
+        if (recipientMatchReturnCode == false)
         {
             return CorrespondenceErrors.RecipientMismatch;
         }
-        else if (recipientMatchReturnCode == 2)
+        else if (recipientMatchReturnCode == null)
         {
             return CorrespondenceErrors.DialogNotFoundWithDialogId;
         }

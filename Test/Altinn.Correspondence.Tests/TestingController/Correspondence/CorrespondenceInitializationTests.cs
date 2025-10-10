@@ -1864,7 +1864,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Create a custom factory with mock validation that returns false for mismatched recipients
             var mockDialogportenService = new Mock<IDialogportenService>();
             mockDialogportenService.Setup(x => x.ValidateDialogRecipientMatch(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(0); // Different recipient should fail validation
+                .ReturnsAsync(false); // Different recipient should fail validation
 
             using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
@@ -1957,7 +1957,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             
             var mockDialogPortenService = new Mock<IDialogportenService>();
             mockDialogPortenService.Setup(x => x.ValidateDialogRecipientMatch(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(2); // Dialog not found
+                .ReturnsAsync((bool?)null); // Dialog not found
             using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
                 {
                     var serviceDescriptor = services.FirstOrDefault(descriptor => descriptor.ServiceType == typeof(IDialogportenService));
@@ -1969,7 +1969,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 });
 
                 var client = customFactory.CreateSenderClient();
-                
+
                 var transmissionPayload = new CorrespondenceBuilder()
                     .CreateCorrespondence()
                     .WithExternalReferencesDialogId("00000000-0000-0000-0000-000000000000") // Valid GUID but not found

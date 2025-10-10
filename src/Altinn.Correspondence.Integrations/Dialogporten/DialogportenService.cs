@@ -553,7 +553,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return true;
     }
 
-    public async Task<int> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
+    public async Task<Nullable<bool>> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
     {
         
         CreateDialogRequest? dialog = null;
@@ -565,12 +565,12 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         {
             if (ex.Message.Contains("not found"))
             {
-                return 2;
+                return null;
             }
             logger.LogError(ex, "Error retrieving dialog {dialogId} for recipient validation", dialogId);
             throw;
         }
-        return dialog.Party == expectedRecipient ? 1 : 0;
+        return dialog.Party == expectedRecipient ? true : false;
     }
 
 
