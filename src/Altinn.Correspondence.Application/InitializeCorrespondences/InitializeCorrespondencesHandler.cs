@@ -155,6 +155,11 @@ public class InitializeCorrespondencesHandler(
         var dialogId = request.Correspondence.ExternalReferences?.FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (!string.IsNullOrWhiteSpace(dialogId))
         {
+            if (!Guid.TryParse(dialogId, out _))
+            {
+                logger.LogWarning("Provided DialogId {DialogId} is not a valid GUID", dialogId);
+                return CorrespondenceErrors.InvalidCorrespondenceDialogId;
+            }
             bool exists = await dialogportenService.DoesDialogExist(dialogId, cancellationToken);
             if (!exists)
             {
