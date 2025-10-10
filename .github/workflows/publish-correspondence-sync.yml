@@ -2,6 +2,8 @@ name: Build correspondence sync image
 
 env:
   ARTIFACT_NAME: corr/correspondence-sync
+  APP_ARTIFACT_NAME: corr/correspondence-app-sync
+  DOCKER_IMAGE_BASE_NAME: altinncr.azurecr.io/corr/correspondence-app-sync
 
 on:
   workflow_dispatch:
@@ -26,18 +28,37 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
-      - name: Get short sha
-        id: get_sha
-        run: echo "short_sha=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       - name: Build and push latest artifact
         uses: Altinn/altinn-platform/actions/flux/build-push-image@8d4e42eae11efbc3a159aa62fe15ed49954d9df9 # main
         with:
           image_name: ${{ env.ARTIFACT_NAME }}
-          tag: ${{ steps.get_sha.outputs.short_sha }}
+          tag: main
+          acr_name: altinncr
           workdir: ./flux/correspondence
           azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_app_id: ${{ secrets.AZURE_CLIENT_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+      - name: Login to ACR
+        shell: bash
+        run: |
+          registry_host="${DOCKER_IMAGE_BASE_NAME%%/*}"
+          acr_name="${registry_host%%.azurecr.io}"
+          az acr login --name "$acr_name"
+      - name: Get short sha
+        id: get_sha
+        run: echo "short_sha=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+      - name: Push image to registry
+        shell: bash
+        run: |
+          IMAGE="${{ env.DOCKER_IMAGE_BASE_NAME }}:${{ steps.get_sha.outputs.short_sha }}"
+          docker build . --tag $IMAGE
+          docker push $IMAGE
   deploy_test:
     name: Deploy to test
     runs-on: ubuntu-latest
@@ -53,7 +74,7 @@ jobs:
       - name: Re-tag existing image with test
         uses: Altinn/altinn-platform/actions/flux/retag-image@8d4e42eae11efbc3a159aa62fe15ed49954d9df9 # main
         with:
-          image_name: ${{ env.ARTIFACT_NAME }}
+          image_name: ${{ env.APP_ARTIFACT_NAME }}
           from_tag: ${{ steps.get_tags.outputs.short_sha }}
           tag: "test"
           workdir: ./flux/correspondence
@@ -76,7 +97,7 @@ jobs:
       - name: Re-tag existing image with staging
         uses: Altinn/altinn-platform/actions/flux/retag-image@8d4e42eae11efbc3a159aa62fe15ed49954d9df9 # main
         with:
-          image_name: ${{ env.ARTIFACT_NAME }}
+          image_name: ${{ env.APP_ARTIFACT_NAME }}
           from_tag: ${{ steps.get_tags.outputs.short_sha }}
           tag: "staging"
           workdir: ./flux/correspondence
@@ -99,7 +120,7 @@ jobs:
       - name: Re-tag existing image with prod
         uses: Altinn/altinn-platform/actions/flux/retag-image@8d4e42eae11efbc3a159aa62fe15ed49954d9df9 # main
         with:
-          image_name: ${{ env.ARTIFACT_NAME }}
+          image_name: ${{ env.APP_ARTIFACT_NAME }}
           from_tag: ${{ steps.get_tags.outputs.short_sha }}
           tag: "prod"
           workdir: ./flux/correspondence
@@ -126,7 +147,7 @@ jobs:
       - name: Re-tag existing image with environment tag
         uses: Altinn/altinn-platform/actions/flux/retag-image@8d4e42eae11efbc3a159aa62fe15ed49954d9df9 # main
         with:
-          image_name: ${{ env.ARTIFACT_NAME }}
+          image_name: ${{ env.APP_ARTIFACT_NAME }}
           from_tag: ${{ steps.get_tags.outputs.short_sha }}
           tag: ${{ matrix.environment }}
           workdir: ./flux/correspondence

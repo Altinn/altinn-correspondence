@@ -23,6 +23,6 @@ COPY --from=build /app/out .
 RUN addgroup -g 3000 dotnet && adduser -u 1000 -G dotnet -D -s /bin/false dotnet
 
 RUN mkdir -p /mnt/storage
-run chown -R dotnet:dotnet /mnt/storage
+RUN chown -R dotnet:dotnet /mnt/storage
 USER dotnet
 ENTRYPOINT [ "dotnet", "Altinn.Correspondence.API.dll" ]
