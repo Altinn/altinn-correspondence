@@ -17,17 +17,20 @@ namespace Altinn.Correspondence.API.Models
         public required NotificationTemplateExt NotificationTemplate { get; set; }
 
         /// <summary>
-        /// The emails subject for the main notification
+        /// The emails subject for the main notification.
+        /// Maximum length is 128 characters, this is recommended by the Altinn Notifications service,
+        /// to make sure the email subject is displayed correctly in the email client.
         /// </summary>
         [JsonPropertyName("emailSubject")]
         [StringLength(128, MinimumLength = 0)]
         public string? EmailSubject { get; set; }
 
         /// <summary>
-        /// The email body for the main notification
+        /// The email body for the main notification. 
+        /// Maximum length is 10,000 characters.
         /// </summary>
         [JsonPropertyName("emailBody")]
-        [StringLength(1024, MinimumLength = 0)]
+        [StringLength(10000, MinimumLength = 0)]
         public string? EmailBody { get; set; }
 
         /// <summary>
@@ -37,10 +40,12 @@ namespace Altinn.Correspondence.API.Models
         public EmailContentType EmailContentType { get; set; } = EmailContentType.Plain;
 
         /// <summary>
-        /// The sms body for the main notification
+        /// The sms body for the main notification. 
+        /// Maximum length is 2,144 characters (16 SMS segments × 134 characters per segment).
+        /// This aligns with the Altinn Notifications service SMS processing limits.
         /// </summary>
         [JsonPropertyName("smsBody")]
-        [StringLength(160, MinimumLength = 0)]
+        [StringLength(2144, MinimumLength = 0)]
         public string? SmsBody { get; set; }
 
         /// <summary>
@@ -51,16 +56,19 @@ namespace Altinn.Correspondence.API.Models
 
         /// <summary>
         /// The email subject to use for the reminder notification
+        /// Maximum length is 128 characters, this is recommended by the Altinn Notifications service,
+        /// to make sure the email subject is displayed correctly in the email client.
         /// </summary>
         [JsonPropertyName("reminderEmailSubject")]
         [StringLength(128, MinimumLength = 0)]
         public string? ReminderEmailSubject { get; set; }
 
         /// <summary>
-        /// The email body to use for the reminder notification
+        /// The email body to use for the reminder notification. 
+        /// Maximum length is 10,000 characters.
         /// </summary>
         [JsonPropertyName("reminderEmailBody")]
-        [StringLength(1024, MinimumLength = 0)]
+        [StringLength(10000, MinimumLength = 0)]
         public string? ReminderEmailBody { get; set; }
 
         /// <summary>
@@ -70,10 +78,12 @@ namespace Altinn.Correspondence.API.Models
         public EmailContentType? ReminderEmailContentType { get; set; }
 
         /// <summary>
-        /// The sms body to use for the reminder notification
+        /// The sms body to use for the reminder notification. 
+        /// Maximum length is 2,144 characters (16 SMS segments × 134 characters per segment).
+        /// This aligns with the Altinn Notifications service SMS processing limits.
         /// </summary>
         [JsonPropertyName("reminderSmsBody")]
-        [StringLength(160, MinimumLength = 0)]
+        [StringLength(2144, MinimumLength = 0)]
         public string? ReminderSmsBody { get; set; }
 
         /// <summary>
