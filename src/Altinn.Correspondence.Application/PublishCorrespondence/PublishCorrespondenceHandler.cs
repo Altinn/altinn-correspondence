@@ -1,5 +1,4 @@
-﻿using Altinn.Correspondence.Application.CancelNotification;
-using Altinn.Correspondence.Application.Helpers;
+﻿using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -136,12 +135,10 @@ public class PublishCorrespondenceHandler(
                     logger.LogError("Failed to send Slack notification for failed correspondence {CorrespondenceId}: {ErrorMessage}", correspondenceId, errorMessage);
                 }
                 eventType = AltinnEventType.CorrespondencePublishFailed;
-                logger.LogInformation("Cancelling notifications for failed correspondence {CorrespondenceId}", correspondenceId);
-                var cancelNotificationJob = backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
                 if (hasDialogportenDialog)
                 {
                     logger.LogInformation("Purging Dialogporten dialog for failed correspondence {CorrespondenceId}", correspondenceId);
-                    backgroundJobClient.ContinueJobWith<IDialogportenService>(cancelNotificationJob, dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
+                    backgroundJobClient.Enqueue<IDialogportenService>(dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
                 }
             }
             else
