@@ -1969,20 +1969,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 });
 
                 var client = customFactory.CreateSenderClient();
-
-                var correspondence1 = new CorrespondenceBuilder()
-                    .CreateCorrespondence()
-                    .WithMessageTitle("First Title")
-                    .WithRecipients(["26818099001"])
-                    .Build();
-
-                // Act
-                var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(client, _responseSerializerOptions, correspondence1);
-                var correspondenceContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(client, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
-
-                using var scope = customFactory.Services.CreateScope();
-                var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
-
+                
                 var transmissionPayload = new CorrespondenceBuilder()
                     .CreateCorrespondence()
                     .WithExternalReferencesDialogId("00000000-0000-0000-0000-000000000000") // Valid GUID but not found
