@@ -151,6 +151,17 @@ public class InitializeCorrespondencesHandler(
             logger.LogWarning("Sender validation failed: {Error}", senderError);
             return senderError;
         }
+        logger.LogDebug("Validating dialog");
+        var dialogId = request.Correspondence.ExternalReferences?.FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        if (!string.IsNullOrWhiteSpace(dialogId))
+        {
+            bool exists = await dialogportenService.DoesDialogExist(dialogId, cancellationToken);
+            if (!exists)
+            {
+                logger.LogWarning("A dialog with DialogId {DialogId} was not found", dialogId);
+                return CorrespondenceErrors.DialogNotFoundWithDialogId;
+            }
+        }
 
         var existingAttachmentIds = request.ExistingAttachments;
         var uploadAttachments = request.Attachments;

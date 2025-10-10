@@ -88,5 +88,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         {
             return Task.FromResult(true as bool?);
         }
+
+        public Task<bool> DoesDialogExist(string dialogId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(true);
+        }
     }
 }

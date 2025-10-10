@@ -573,6 +573,24 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return dialog.Party == expectedRecipient ? true : false;
     }
 
+    public async Task<bool> DoesDialogExist(string dialogId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var dialog = await GetDialog(dialogId);
+        }
+        catch (Exception ex)
+        {
+            if (ex.Message.Contains("not found"))
+            {
+                return false;
+            }
+            logger.LogError(ex, "Error retrieving dialog {dialogId} for existence check", dialogId);
+            throw;
+        }
+        return true;
+    }
+
 
     #region MigrationRelated    
     /// <summary>

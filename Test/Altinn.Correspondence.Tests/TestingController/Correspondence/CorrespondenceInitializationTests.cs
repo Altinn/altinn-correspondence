@@ -1956,8 +1956,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             
             var mockDialogPortenService = new Mock<IDialogportenService>();
-            mockDialogPortenService.Setup(x => x.ValidateDialogRecipientMatch(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((bool?)null); // Dialog not found
+            mockDialogPortenService.Setup(x => x.DoesDialogExist(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false); // Dialog not found
             using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
                 {
                     var serviceDescriptor = services.FirstOrDefault(descriptor => descriptor.ServiceType == typeof(IDialogportenService));
@@ -1980,7 +1980,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 var transmissionContent = await transmissionResponse.Content.ReadAsStringAsync();
 
                 // Assert
-                Assert.Equal(HttpStatusCode.NotFound, transmissionResponse.StatusCode);
+                Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
                 Assert.Contains(CorrespondenceErrors.DialogNotFoundWithDialogId.Message, transmissionContent);
 
                 // Clean up
