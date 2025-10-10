@@ -179,15 +179,26 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.IsConfirmationNeeded = confirmationNeeded;
             return this;
         }
-        public CorrespondenceBuilder WithNotificationTemplate(NotificationTemplateExt notificationTemplate)
+        public CorrespondenceBuilder WithNotificationTemplate(NotificationTemplateExt? notificationTemplate)
         {
             _correspondence.Correspondence.Notification ??= new InitializeCorrespondenceNotificationExt()
             {
-                NotificationTemplate = notificationTemplate,
+                NotificationTemplate = notificationTemplate ?? NotificationTemplateExt.CustomMessage,
                 SendReminder = true
             };
             return this;
         }
+
+        public CorrespondenceBuilder WithNotificationTemplateInt(int templateId)
+        {
+            _correspondence.Correspondence.Notification ??= new InitializeCorrespondenceNotificationExt()
+            {
+                NotificationTemplate = (NotificationTemplateExt)templateId,
+                SendReminder = true
+            };
+            return this;
+        }
+
         public CorrespondenceBuilder WithNotificationChannel(NotificationChannelExt notificationChannel)
         {
             _correspondence.Correspondence.Notification!.NotificationChannel = notificationChannel;
