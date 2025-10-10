@@ -161,7 +161,6 @@ public class CreateNotificationHandler(
                 RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow
                     ? DateTime.UtcNow.AddMinutes(5)
                     : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
-                ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString())?.ToString(),
                 IdempotencyId = Guid.CreateVersion7(),
                 Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), correspondence, isReminder: false)
             };
