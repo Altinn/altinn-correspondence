@@ -1952,7 +1952,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task InitializeCorrespondence_CreateTransmission_WithDialogIdNotFoundInDialogporten_ReturnsNotFound()
+        public async Task InitializeCorrespondence_CreateTransmission_WithDialogIdNotFoundInDialogporten_ReturnsBadRequest()
         {
             
             var mockDialogPortenService = new Mock<IDialogportenService>();
