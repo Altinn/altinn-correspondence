@@ -199,7 +199,7 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
     private async Task<CorrespondenceDetailsExt> GetCorrespondenceDetailsAsync(Guid correspondenceId)
     {
         var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
-        Assert.True(getCorrespondenceDetailsResponse.IsSuccessStatusCode);
+        Assert.True(getCorrespondenceDetailsResponse.IsSuccessStatusCode, "Response was not successful with code (" + getCorrespondenceDetailsResponse.StatusCode + "): " + await getCorrespondenceDetailsResponse.Content.ReadAsStringAsync());
         return await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
     }
 }
