@@ -282,7 +282,7 @@ public class HangfireStorageCompatibilityTests
         var serverOptions = (BackgroundJobServerOptions)optionsField.GetValue(hangfireServer);
 
         Assert.NotNull(serverOptions);
-        Assert.Equal(new[] { HangfireQueues.Default, HangfireQueues.LiveMigration }, serverOptions.Queues);
+        Assert.Equal(new[] { HangfireQueues.Default }, serverOptions.Queues);
     }
 
     internal class DisabledMigrationWebApplicationFactory : WebApplicationFactory<Program>

@@ -15,4 +15,5 @@ public class GeneralSettings
     public bool DisableTelemetryForMigration { get; set; } = true;
     public bool DisableTelemetryForSync { get; set; } = false;
     public bool EnableMigrationQueue { get; set; } = true;
+    public int MigrationWorkerCount { get; set; } = 1;
 }
