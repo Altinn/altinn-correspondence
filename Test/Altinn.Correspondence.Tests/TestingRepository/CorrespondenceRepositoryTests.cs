@@ -214,5 +214,62 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             Assert.Single(result);
             Assert.Equal(entity.Id, result[0].Id);
         }
+
+        [Fact]
+        public async Task GetCorrespondencesByIdsWithReferenceAndCurrentStatus_ReturnsWhenLatestIsAttachmentsDownloaded()
+        {
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+
+            var t = new DateTime(2007, 1, 1, 0, 0, 0);
+            var toffset = new DateTimeOffset(t);
+            var entity = new CorrespondenceEntityBuilder()
+                .WithCreated(t)
+                .WithRequestedPublishTime(toffset)
+                .WithExternalReference(ReferenceType.DialogportenDialogId, "dlg-1")
+                .WithStatus(CorrespondenceStatus.Published, toffset.AddMinutes(1))
+                .WithStatus(CorrespondenceStatus.AttachmentsDownloaded, toffset.AddMinutes(2))
+                .Build();
+
+            context.Correspondences.Add(entity);
+            await context.SaveChangesAsync();
+
+            var result = await repo.GetCorrespondencesByIdsWithExternalReferenceAndCurrentStatus(
+                [entity.Id],
+                ReferenceType.DialogportenDialogId,
+                [CorrespondenceStatus.AttachmentsDownloaded],
+                CancellationToken.None);
+
+            Assert.Single(result);
+            Assert.Equal(entity.Id, result[0].Id);
+        }
+
+        [Fact]
+        public async Task GetCorrespondencesByIdsWithReferenceAndCurrentStatus_DoesNotReturnWhenLatestIsPurgedEvenIfAttachmentsDownloadedExists()
+        {
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+
+            var t = new DateTime(2008, 1, 1, 0, 0, 0);
+            var toffset = new DateTimeOffset(t);
+            var entity = new CorrespondenceEntityBuilder()
+                .WithCreated(t)
+                .WithRequestedPublishTime(toffset)
+                .WithExternalReference(ReferenceType.DialogportenDialogId, "dlg-2")
+                .WithStatus(CorrespondenceStatus.AttachmentsDownloaded, toffset.AddMinutes(1))
+                .WithStatus(CorrespondenceStatus.PurgedByRecipient, toffset.AddMinutes(2))
+                .Build();
+
+            context.Correspondences.Add(entity);
+            await context.SaveChangesAsync();
+
+            var result = await repo.GetCorrespondencesByIdsWithExternalReferenceAndCurrentStatus(
+                [entity.Id],
+                ReferenceType.DialogportenDialogId,
+                [CorrespondenceStatus.AttachmentsDownloaded],
+                CancellationToken.None);
+
+            Assert.Empty(result);
+        }
     }
 }
