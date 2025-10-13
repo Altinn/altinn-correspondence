@@ -125,7 +125,7 @@ var containerAppEnvVarsDefault = [
   { name: 'IdportenSettings__ClientSecret', secretRef: 'idporten-client-secret' }
   { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretRef: 'application-insights-connection-string' }
   { name: 'StatisticsApiKey', secretRef: 'statistics-api-key' }
-  { name: 'GeneralSettings__MigrationWorkerCount', value: migrationWorkerCount }
+  { name: 'GeneralSettings__MigrationWorkerCountPerReplica', value: int(migrationWorkerCount) }
 ]
 
 var containerAppEnvVars = concat(

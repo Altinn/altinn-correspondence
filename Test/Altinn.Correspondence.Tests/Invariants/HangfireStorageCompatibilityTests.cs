@@ -292,7 +292,7 @@ public class HangfireStorageCompatibilityTests
         {
             var customConfigValues = new Dictionary<string, string>
             {
-                ["GeneralSettings:EnableMigrationQueue"] = "false"
+                ["GeneralSettings:MigrationWorkerCountPerReplica"] = "0"
             };
 
             builder.UseConfiguration(new ConfigurationBuilder()
