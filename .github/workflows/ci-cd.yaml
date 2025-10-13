@@ -140,7 +140,7 @@ jobs:
           MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
           MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
           STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
-          MIGRATION_WORKER_COUNT: ${{ secrets.MIGRATION_WORKER_COUNT || 1 }}
+          MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ secrets.MIGRATION_WORKER_COUNT_PER_REPLICA }}
   deploy-staging:
     name: Internal staging
     runs-on: ubuntu-latest
@@ -193,7 +193,7 @@ jobs:
           MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
           MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
           STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
-          MIGRATION_WORKER_COUNT: ${{ secrets.MIGRATION_WORKER_COUNT }}
+          MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ secrets.MIGRATION_WORKER_COUNT_PER_REPLICA }}
   deploy-production:
     name: Production
     runs-on: ubuntu-latest
@@ -246,7 +246,7 @@ jobs:
           MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
           MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
           STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
-          MIGRATION_WORKER_COUNT: ${{ secrets.MIGRATION_WORKER_COUNT }}
+          MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ secrets.MIGRATION_WORKER_COUNT_PER_REPLICA }}
   check-version-bump:
     name: Check if version was bumped
     runs-on: ubuntu-latest

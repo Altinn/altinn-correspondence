@@ -103,7 +103,7 @@ inputs:
     description: "API Key for authentication to Statistics endpoints"
     required: true
   MIGRATION_WORKER_COUNT_PER_REPLICA:
-    description: "Number of workers for to use for Dialogporten migration"
+    description: "Number of workers to use for Dialogporten migration"
     required: false
 
 runs:
