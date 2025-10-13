@@ -94,7 +94,6 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.Configure<AzureResourceManagerOptions>(config.GetSection(key: nameof(AzureResourceManagerOptions)));
     services.Configure<DialogportenSettings>(config.GetSection(key: nameof(DialogportenSettings)));
     services.Configure<IdportenSettings>(config.GetSection(key: nameof(IdportenSettings)));
-    services.Configure<HangfireServerOptions>(config.GetSection(key: nameof(HangfireServerOptions)));
     services.Configure<GeneralSettings>(config.GetSection(key: nameof(GeneralSettings)));
 
     services.AddControllers().AddJsonOptions(options =>
