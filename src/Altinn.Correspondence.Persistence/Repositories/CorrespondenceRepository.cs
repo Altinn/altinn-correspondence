@@ -4,7 +4,6 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using ReverseMarkdown.Converters;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
@@ -123,7 +122,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 CorrespondenceSyncType.StatusEvents => _getForSyncWithStatuses(_context, guid),
                 CorrespondenceSyncType.NotificationEvents => _getForSyncWithNotifications(_context, guid),
                 CorrespondenceSyncType.ForwardingEvents => _getForSyncWithForwardingEvents(_context, guid),
-                _ => throw new NotImplementedException()
+                _ => throw new NotImplementedException($"Unsupported sync type: {syncType}")
             };
 
             return await correspondence;

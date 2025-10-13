@@ -229,7 +229,6 @@ public class SyncCorrespondenceStatusEventHandler(
                .Select(e => e.PartyUuid)
                .Distinct()
            )
-           .Distinct()
            .Where(uuid => !enduserIdByPartyUuid.ContainsKey(uuid));
 
         foreach (var uuid in partyUuidsToLookup)
