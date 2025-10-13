@@ -16,6 +16,7 @@ param idportenIssuer string
 param dialogportenIssuer string
 param maskinporten_token_exchange_environment string
 param eventGridIps array
+param migrationWorkerCount string
 
 @secure()
 param sblBridgeBaseUrl string
@@ -124,6 +125,7 @@ var containerAppEnvVarsDefault = [
   { name: 'IdportenSettings__ClientSecret', secretRef: 'idporten-client-secret' }
   { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretRef: 'application-insights-connection-string' }
   { name: 'StatisticsApiKey', secretRef: 'statistics-api-key' }
+  { name: 'GeneralSettings__MigrationWorkerCount', value: migrationWorkerCount }
 ]
 
 var containerAppEnvVars = concat(

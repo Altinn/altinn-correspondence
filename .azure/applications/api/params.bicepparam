@@ -16,6 +16,7 @@ param dialogportenIssuer = readEnvironmentVariable('DIALOGPORTEN_ISSUER')
 param idportenIssuer = readEnvironmentVariable('IDPORTEN_ISSUER')
 param maskinporten_token_exchange_environment = readEnvironmentVariable('MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT')
 param apimIp = readEnvironmentVariable('APIM_IP')
+param migrationWorkerCount = readEnvironmentVariable('MIGRATION_WORKER_COUNT')
 // secrets
 param sourceKeyVaultName = readEnvironmentVariable('KEY_VAULT_NAME')
 param keyVaultUrl = readEnvironmentVariable('KEY_VAULT_URL')
