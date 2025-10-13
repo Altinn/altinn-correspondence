@@ -34,7 +34,7 @@ param maskinporten_token_exchange_environment string
 @secure()
 @minLength(3)
 param apimIp string
-param migrationWorkerCount string
+param migrationWorkerCountPerReplica string
 
 var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'
@@ -134,7 +134,7 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     dialogportenIssuer: dialogportenIssuer
     sblBridgeBaseUrl: sblBridgeBaseUrl
     maskinporten_token_exchange_environment: maskinporten_token_exchange_environment
-    migrationWorkerCount: migrationWorkerCount
+    migrationWorkerCountPerReplica: migrationWorkerCountPerReplica
   }
 }
 

@@ -102,7 +102,7 @@ inputs:
   STATISTICS_API_KEY:
     description: "API Key for authentication to Statistics endpoints"
     required: true
-  MIGRATION_WORKER_COUNT:
+  MIGRATION_WORKER_COUNT_PER_REPLICA:
     description: "Number of workers for to use for Dialogporten migration"
     required: false
 
@@ -174,4 +174,4 @@ runs:
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
         MASKINPORTEN_ENVIRONMENT: ${{ inputs.MASKINPORTEN_ENVIRONMENT }}
         APIM_IP: ${{ inputs.APIM_IP }}
-        MIGRATION_WORKER_COUNT: ${{ inputs.MIGRATION_WORKER_COUNT }}
+        MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ inputs.MIGRATION_WORKER_COUNT_PER_REPLICA }}
