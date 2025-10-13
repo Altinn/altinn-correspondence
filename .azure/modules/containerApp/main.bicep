@@ -48,8 +48,8 @@ param containerAppResources object = prodLikeEnvironment ? {
   memory: '1.0Gi'
 }
 param containerAppScale ContainerAppScale = prodLikeEnvironment ? {
-  minReplicas: 3
-  maxReplicas:10
+  minReplicas: 5
+  maxReplicas: 5
 } : {
   minReplicas: 1
   maxReplicas: 1
