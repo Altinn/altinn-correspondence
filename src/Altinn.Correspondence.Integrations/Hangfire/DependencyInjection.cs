@@ -43,7 +43,7 @@ public static class DependencyInjection
             {
                 options.SchedulePollingInterval = TimeSpan.FromSeconds(2);
                 options.WorkerCount = generalSettings.MigrationWorkerCountPerReplica;
-                options.Queues = generalSettings.EnableHistoricMigrationQueue ? [HangfireQueues.LiveMigration] : [HangfireQueues.LiveMigration, HangfireQueues.Migration];
+                options.Queues = generalSettings.EnableHistoricMigrationQueue ? [HangfireQueues.LiveMigration, HangfireQueues.Migration] : [HangfireQueues.LiveMigration];
             });
         };
     }
