@@ -4,12 +4,40 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ReverseMarkdown.Converters;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
     public class CorrespondenceRepository(ApplicationDbContext context, ILogger<ICorrespondenceRepository> logger) : ICorrespondenceRepository
     {
         private readonly ApplicationDbContext _context = context;
+
+        private static readonly Func<ApplicationDbContext, Guid, Task<CorrespondenceEntity?>> _getForSyncWithStatuses =
+            EF.CompileAsyncQuery((ApplicationDbContext ctx, Guid id) =>
+                ctx.Correspondences
+                   .AsNoTracking()
+                   .Include(c => c.ExternalReferences)
+                   .Include(c => c.Statuses)
+                   .Where(c => c.Id == id)
+                   .FirstOrDefault());
+
+        private static readonly Func<ApplicationDbContext, Guid, Task<CorrespondenceEntity?>> _getForSyncWithNotifications =
+            EF.CompileAsyncQuery((ApplicationDbContext ctx, Guid id) =>
+                ctx.Correspondences
+                   .AsNoTracking()
+                   .Include(c => c.ExternalReferences)
+                   .Include(c => c.Notifications)
+                   .Where(c => c.Id == id)
+                   .FirstOrDefault());
+
+        private static readonly Func<ApplicationDbContext, Guid, Task<CorrespondenceEntity?>> _getForSyncWithForwardingEvents =
+            EF.CompileAsyncQuery((ApplicationDbContext ctx, Guid id) =>
+                ctx.Correspondences
+                   .AsNoTracking()
+                   .Include(c => c.ExternalReferences)
+                   .Include(c => c.ForwardingEvents)
+                   .Where(c => c.Id == id)
+                   .FirstOrDefault());
 
         public async Task<CorrespondenceEntity> CreateCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
         {
@@ -85,30 +113,20 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<CorrespondenceEntity?> GetCorrespondenceByIdForSync(
             Guid guid,
-            bool includeStatus,
-            bool includeNotificationEvents,
-            bool includeForwardingEvents,
+            CorrespondenceSyncType syncType,
             CancellationToken cancellationToken)
         {
-            logger.LogDebug("Retrieving correspondence {CorrespondenceId} for sync including: status={IncludeStatus} notifications={IncludeNotificationEvents} forwardingEvents={IncludeForwardingEvents}", guid, includeStatus, includeNotificationEvents, includeForwardingEvents);
-            var correspondences = _context.Correspondences
-                .Include(c => c.ExternalReferences) // Needed for Dialogporten updates
-                .AsNoTracking(); // Read-only optimization
+            logger.LogDebug("GetCorrespondenceByIdForSync {Id} syncType={syncType}", guid, syncType);
 
-            if (includeStatus)
+            Task<CorrespondenceEntity?> correspondence = syncType switch
             {
-                correspondences = correspondences.Include(c => c.Statuses);
-            }
-            if (includeNotificationEvents)
-            {
-                correspondences = correspondences.Include(c => c.Notifications);
-            }
-            if (includeForwardingEvents)
-            {
-                correspondences = correspondences.Include(c => c.ForwardingEvents);
-            }
+                CorrespondenceSyncType.StatusEvents => _getForSyncWithStatuses(_context, guid),
+                CorrespondenceSyncType.NotificationEvents => _getForSyncWithNotifications(_context, guid),
+                CorrespondenceSyncType.ForwardingEvents => _getForSyncWithForwardingEvents(_context, guid),
+                _ => throw new NotImplementedException()
+            };
 
-            return await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
+            return await correspondence;
         }
 
         public async Task<CorrespondenceEntity> GetCorrespondenceByAltinn2Id(int altinn2Id, CancellationToken cancellationToken)

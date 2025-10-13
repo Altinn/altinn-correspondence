@@ -34,9 +34,7 @@ public class SyncCorrespondenceStatusEventHandler(
 
         var correspondence = await correspondenceRepository.GetCorrespondenceByIdForSync(
             request.CorrespondenceId,
-            includeStatus: true,
-            includeNotificationEvents: false,
-            includeForwardingEvents: false,
+            CorrespondenceSyncType.StatusEvents,
             cancellationToken);
 
         if (correspondence == null)

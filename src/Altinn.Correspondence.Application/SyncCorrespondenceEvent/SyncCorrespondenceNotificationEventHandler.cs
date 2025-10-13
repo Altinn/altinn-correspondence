@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -15,9 +16,7 @@ public class SyncCorrespondenceNotificationEventHandler(
     {
         var correspondence = await correspondenceRepository.GetCorrespondenceByIdForSync(
             request.CorrespondenceId,
-            includeStatus: false,
-            includeNotificationEvents: true,
-            includeForwardingEvents: false,
+            CorrespondenceSyncType.NotificationEvents,
             cancellationToken);
 
         if (correspondence == null)
