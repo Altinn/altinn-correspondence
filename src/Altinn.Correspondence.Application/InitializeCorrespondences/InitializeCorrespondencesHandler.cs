@@ -151,6 +151,22 @@ public class InitializeCorrespondencesHandler(
             logger.LogWarning("Sender validation failed: {Error}", senderError);
             return senderError;
         }
+        logger.LogDebug("Validating dialog");
+        var dialogId = request.Correspondence.ExternalReferences?.FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        if (!string.IsNullOrWhiteSpace(dialogId))
+        {
+            if (!Guid.TryParse(dialogId, out _))
+            {
+                logger.LogWarning("Provided DialogId {DialogId} is not a valid GUID", dialogId);
+                return CorrespondenceErrors.InvalidCorrespondenceDialogId;
+            }
+            bool exists = await dialogportenService.DoesDialogExist(dialogId, cancellationToken);
+            if (!exists)
+            {
+                logger.LogWarning("A dialog with DialogId {DialogId} was not found", dialogId);
+                return CorrespondenceErrors.DialogNotFoundWithDialogId;
+            }
+        }
 
         var existingAttachmentIds = request.ExistingAttachments;
         var uploadAttachments = request.Attachments;
@@ -455,13 +471,24 @@ public class InitializeCorrespondencesHandler(
         {
             throw new InvalidOperationException("Dialog ID not found on correspondence");
         }
+        if (!Guid.TryParse(dialogId, out _))
+        {
+            return CorrespondenceErrors.InvalidCorrespondenceDialogId;
+        }
 
-        var recipientMatches = await dialogportenService.ValidateDialogRecipientMatch(dialogId, correspondence.Recipient, cancellationToken);
-        if (!recipientMatches)
+        var recipientMatchReturnCode = await dialogportenService.ValidateDialogRecipientMatch(dialogId, correspondence.Recipient, cancellationToken);
+        if (recipientMatchReturnCode == false)
         {
             return CorrespondenceErrors.RecipientMismatch;
         }
-        return Task.CompletedTask;
+        else if (recipientMatchReturnCode == null)
+        {
+            return CorrespondenceErrors.DialogNotFoundWithDialogId;
+        }
+        else
+        {
+            return Task.CompletedTask;
+        }
     }
 
     private async Task<OneOf<Task, Error>> CreateDialogOrTransmissionJob(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
