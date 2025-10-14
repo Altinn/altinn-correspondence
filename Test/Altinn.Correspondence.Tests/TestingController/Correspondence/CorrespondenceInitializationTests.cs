@@ -1713,6 +1713,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithRecipients([recipientUrn])
+                .WithIsConfidential(true)
                 .Build();
 
             // Act
