@@ -1,44 +1,24 @@
-using System.Text;
-using System.Text.Json;
+using Altinn.Correspondence.Core.Options;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Slack.Webhooks;
 
-public class SlackNotificationService
+public class SlackNotificationService(IConfiguration configuration,
+    ISlackClient slackClient,
+    IHostEnvironment hostEnvironment,
+    SlackSettings slackSettings,
+    ILogger<SlackNotificationService> logger)
 {
-    private readonly HttpClient _httpClient;
-    private readonly string _slackWebhookUrl;
-    private readonly ILogger<SlackNotificationService> _logger;
-
-    public SlackNotificationService(IConfiguration configuration, ILogger<SlackNotificationService> logger)
+    public async Task SendSlackMessage(string message)
     {
-        _httpClient = new HttpClient();
-        _slackWebhookUrl = configuration["Slack:WebhookUrl"]; // Read from appsettings.json
-        _logger = logger;
-    }
-
-    public async Task SendSlackMessageAsync(string message)
-    {
-        if (string.IsNullOrEmpty(_slackWebhookUrl))
+        logger.LogInformation($"Posting to Slack: {message}");
+        var slackMessage = new SlackMessage
         {
-            _logger.LogError("Slack Webhook URL is missing.");
-            return;
-        }
-
-        var payload = new { text = message };
-        var json = JsonSerializer.Serialize(payload);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-        try
-        {
-            var response = await _httpClient.PostAsync(_slackWebhookUrl, content);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError($"Slack API error: {response.StatusCode}");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"Failed to send Slack message: {ex.Message}");
-        }
+            Text = $"Slack alert from {hostEnvironment.EnvironmentName}: {message}",
+            Channel = slackSettings.NotificationChannel,
+        };
+        await slackClient.PostAsync(slackMessage);
     }
 }

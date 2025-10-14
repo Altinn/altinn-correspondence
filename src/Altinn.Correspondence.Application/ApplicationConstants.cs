@@ -31,7 +31,9 @@ public static class ApplicationConstants
         "innehaver",
         "styreleder",
         "komplementar",
-        "bostyrer"
+        "bostyrer",
+        "kontaktperson-ados",
+        "norsk-representant",
     ];
 
     public static readonly List<string> RequiredOrganizationRolesForConfidentialCorrespondenceRecipient = 
