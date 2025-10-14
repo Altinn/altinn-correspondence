@@ -528,7 +528,19 @@ public class InitializeCorrespondencesHandler(
         }
         if (recipientsWithoutRequiredRoles.Count > 0)
         {
-            return CorrespondenceErrors.RecipientLacksRequiredRolesForCorrespondence(recipientsWithoutRequiredRoles);
+            if (request.Correspondence.IsConfidential)
+            {
+                return CorrespondenceErrors.RecipientLacksRequiredRolesForCorrespondence(recipientsWithoutRequiredRoles);
+            }
+            else
+            {
+                var recipients = string.Join(',', recipientsWithoutRequiredRoles);
+                logger.LogWarning($"Role check failed for {recipients}");
+                backgroundJobClient.Enqueue<SlackNotificationService>(slackNotificationService =>
+                    slackNotificationService.SendSlackMessage(
+                        $"Correspondence recipients {recipients} did not have required roles, " +
+                        $"but check was bypassed pending Altinn Register change. See #1444 for details."));
+            }
         }
 
         return true;
