@@ -82,10 +82,6 @@ inputs:
     description: "Maskinporten Token Exchange Environment"
     required: false
     default: ""
-  RESOURCE_WHITELIST:
-    description: "Whitelist for approved resources"
-    required: false
-    default: ""
   MASKINPORTEN_ENVIRONMENT:
     description: "Maskinporten environment"
     required: true
@@ -132,7 +128,6 @@ runs:
         PLATFORM_SUBSCRIPTION_KEY: ${{ inputs.PLATFORM_SUBSCRIPTION_KEY }}
         SLACK_URL: ${{ inputs.SLACK_URL }}
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
-        RESOURCE_WHITELIST: ${{ inputs.RESOURCE_WHITELIST }}
         MAINTENANCE_AD_GROUP_ID: ${{ inputs.MAINTENANCE_AD_GROUP_ID }}
         MAINTENANCE_AD_GROUP_NAME: ${{ inputs.MAINTENANCE_AD_GROUP_NAME }}
         STATISTICS_API_KEY: ${{ inputs.STATISTICS_API_KEY }}
