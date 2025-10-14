@@ -75,10 +75,10 @@ public static class DependencyInjection
                 var httpClient = httpClientFactory.CreateClient(nameof(SlackClient));
                 return new SlackClient(generalSettings.SlackUrl, httpClient: httpClient);
             });
-            services.AddSingleton<SlackNotificationService>();
         }
 
         services.AddSingleton<SlackSettings>();
+        services.AddSingleton<SlackNotificationService>();
         services.AddSingleton<IDistributedLockHelper, DistributedLockHelper>();
     }
 

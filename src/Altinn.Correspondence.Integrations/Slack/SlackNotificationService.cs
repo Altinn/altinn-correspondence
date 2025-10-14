@@ -1,5 +1,4 @@
 using Altinn.Correspondence.Core.Options;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
