@@ -1,4 +1,3 @@
-using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.CheckNotificationDelivery;
 using Altinn.Correspondence.Common.Helpers;
