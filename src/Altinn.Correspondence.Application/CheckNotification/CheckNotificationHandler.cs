@@ -37,12 +37,12 @@ public class CheckNotificationHandler(
         }
         if (correspondence.StatusHasBeen(CorrespondenceStatus.Failed))
         {
-            logger.LogWarning("Notification not needed for correspondence {CorrespondenceId} - has failed", correspondenceId);
+            logger.LogError("Notification not needed for correspondence {CorrespondenceId} - correspondence has failed", correspondenceId);
             response.SendNotification = false;
         }
         else if (!correspondence.StatusHasBeen(CorrespondenceStatus.Published))
         {
-            logger.LogInformation("Correspondence {CorrespondenceId} not yet published", correspondenceId);
+            logger.LogError("Notification not needed for correspondence {CorrespondenceId} - correspondence has not been published", correspondenceId);
             response.SendNotification = false;
         }
         logger.LogInformation("Notification check completed for correspondence {CorrespondenceId} - SendNotification: {SendNotification}", correspondenceId, response.SendNotification);
