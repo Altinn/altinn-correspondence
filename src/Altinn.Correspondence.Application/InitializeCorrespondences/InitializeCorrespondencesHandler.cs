@@ -399,17 +399,6 @@ public class InitializeCorrespondencesHandler(
                     backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
                 }
                 backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-
-                if (request.Notification != null)
-                {
-                    // Schedule notification creation as a background job
-                    backgroundJobClient.Enqueue<CreateNotificationHandler>((handler) => handler.Process(new CreateNotificationRequest
-                    {
-                        NotificationRequest = request.Notification,
-                        CorrespondenceId = correspondence.Id,
-                        Language = correspondence.Content != null ? correspondence.Content.Language : null,
-                    }, cancellationToken));
-                }
             }
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {
