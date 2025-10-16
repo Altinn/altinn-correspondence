@@ -93,9 +93,6 @@ namespace Altinn.Correspondence.API.Controllers
         /// <response code="401"><ul>
         /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</li>
         /// </ul></response>
-        /// <response code="403"><ul>
-        /// <li>4008: Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no</li>
-        /// </ul></response>
         /// <response code="404"><ul>
         /// <li>1029: Could not find partyId for the following recipients: {recipients}</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
@@ -200,9 +197,6 @@ namespace Altinn.Correspondence.API.Controllers
         /// </ul></response>
         /// <response code="401"><ul>
         /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</li>
-        /// </ul></response>
-        /// <response code="403"><ul>
-        /// <li>4008: Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no</li>
         /// </ul></response>
         /// <response code="404"><ul>
         /// <li>1029: Could not find partyId for the following recipients: {recipients}</li>

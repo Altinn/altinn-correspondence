@@ -52,15 +52,6 @@ public class InitializeCorrespondencesHandler(
     {
         var validatedData = new ValidatedData();
 
-        if (!string.IsNullOrWhiteSpace(generalSettings.Value.ResourceWhitelist))
-        {
-            if (!generalSettings.Value.ResourceWhitelist.Split(',').Contains(request.Correspondence.ResourceId))
-            {
-                logger.LogError("Resource {ResourceId} is not whitelisted", request.Correspondence.ResourceId);
-                return AuthorizationErrors.ResourceNotWhitelisted;
-            }
-        }
-
         var serviceOwnerOrgNumber = await resourceRegistryService.GetServiceOwnerOrganizationNumber(request.Correspondence.ResourceId, cancellationToken) ?? string.Empty;
         if (serviceOwnerOrgNumber is null || serviceOwnerOrgNumber == string.Empty)
         {
