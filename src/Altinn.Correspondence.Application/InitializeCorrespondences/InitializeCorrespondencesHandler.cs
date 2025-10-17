@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Application.CreateNotification;
+using Altinn.Correspondence.Application.CreateNotificationOrder;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Common.Caching;
@@ -390,17 +391,6 @@ public class InitializeCorrespondencesHandler(
                     backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
                 }
                 backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-
-                if (request.Notification != null)
-                {
-                    // Schedule notification creation as a background job
-                    backgroundJobClient.Enqueue<CreateNotificationHandler>((handler) => handler.Process(new CreateNotificationRequest
-                    {
-                        NotificationRequest = request.Notification,
-                        CorrespondenceId = correspondence.Id,
-                        Language = correspondence.Content != null ? correspondence.Content.Language : null,
-                    }, cancellationToken));
-                }
             }
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {
@@ -408,6 +398,16 @@ public class InitializeCorrespondencesHandler(
                 Status = correspondence.GetHighestStatus().Status,
                 Recipient = correspondence.Recipient
             });
+
+            if (request.Notification != null)
+            {
+                backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderRequest()
+                {
+                    CorrespondenceId = correspondence.Id,
+                    NotificationRequest = request.Notification,
+                    Language = correspondence.Content != null ? correspondence.Content.Language : null,
+                }, cancellationToken));
+            }
         }
 
         return new InitializeCorrespondencesResponse()
@@ -471,7 +471,7 @@ public class InitializeCorrespondencesHandler(
             var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondence.Id), correspondence.RequestedPublishTime);
             if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
             {
-                await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondence.Id, transmissionJob, cancellationToken);
+                await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondence.Id, request.Notification, transmissionJob, cancellationToken);
             }
         }
         else
@@ -484,7 +484,7 @@ public class InitializeCorrespondencesHandler(
             });
             if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
             {
-                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
+                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, request.Notification, cancellationToken);
             }
         }
 

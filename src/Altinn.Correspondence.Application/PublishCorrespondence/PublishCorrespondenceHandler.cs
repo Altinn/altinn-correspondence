@@ -1,5 +1,4 @@
-﻿using Altinn.Correspondence.Application.CancelNotification;
-using Altinn.Correspondence.Application.Helpers;
+﻿using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -17,6 +16,7 @@ using OneOf;
 using Slack.Webhooks;
 using System.Security.Claims;
 using Altinn.Correspondence.Integrations.Redlock;
+using Altinn.Correspondence.Application.CreateNotification;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
 
@@ -30,11 +30,11 @@ public class PublishCorrespondenceHandler(
     ISlackClient slackClient,
     SlackSettings slackSettings,
     IBackgroundJobClient backgroundJobClient,
-    IDistributedLockHelper distributedLockHelper) : IHandler<Guid, Task>
+    IDistributedLockHelper distributedLockHelper) : IHandler<PublishCorrespondenceRequest, Task>
 {
-
-    public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    public async Task<OneOf<Task, Error>> Process(PublishCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        var correspondenceId = request.CorrespondenceId;
         logger.LogInformation("Starting publish process for correspondence {CorrespondenceId}", correspondenceId);
         var lockKey = $"publish-correspondence-{correspondenceId}";
 
@@ -42,7 +42,7 @@ public class PublishCorrespondenceHandler(
         var (wasSkipped, lockAcquired) = await distributedLockHelper.ExecuteWithConditionalLockAsync(
             lockKey, 
             async (cancellationToken) => await ShouldSkipCheck(correspondenceId, cancellationToken),
-            async (cancellationToken) => innerResult = await ProcessWithLock(correspondenceId, user, cancellationToken),
+            async (cancellationToken) => innerResult = await ProcessWithLock(request, user, cancellationToken),
             DistributedLockHelper.DefaultRetryCount,
             DistributedLockHelper.DefaultRetryDelayMs,
             DistributedLockHelper.DefaultLockExpirySeconds,
@@ -73,8 +73,9 @@ public class PublishCorrespondenceHandler(
         return shouldSkip;
     }
 
-    public async Task<OneOf<Task, Error>> ProcessWithLock(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    public async Task<OneOf<Task, Error>> ProcessWithLock(PublishCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        var correspondenceId = request.CorrespondenceId;
         logger.LogInformation("Starting publish process with lock for correspondence {CorrespondenceId}", correspondenceId);
         var operationTimestamp = DateTimeOffset.UtcNow;        
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
@@ -140,12 +141,10 @@ public class PublishCorrespondenceHandler(
                     logger.LogError("Failed to send Slack notification for failed correspondence {CorrespondenceId}: {ErrorMessage}", correspondenceId, errorMessage);
                 }
                 eventType = AltinnEventType.CorrespondencePublishFailed;
-                logger.LogInformation("Cancelling notifications for failed correspondence {CorrespondenceId}", correspondenceId);
-                var cancelNotificationJob = backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
                 if (hasDialogportenDialog)
                 {
                     logger.LogInformation("Purging Dialogporten dialog for failed correspondence {CorrespondenceId}", correspondenceId);
-                    backgroundJobClient.ContinueJobWith<IDialogportenService>(cancelNotificationJob, dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
+                    backgroundJobClient.Enqueue<IDialogportenService>(dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
                 }
             }
             else
@@ -162,6 +161,16 @@ public class PublishCorrespondenceHandler(
                 await correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
                 backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence!.Recipient, null, cancellationToken));
                 backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.CorrespondencePublished, operationTimestamp));
+                
+                if (request.NotificationRequest != null)
+                {
+                    backgroundJobClient.Enqueue<CreateNotificationHandler>((handler) => handler.Process(new CreateNotificationRequest
+                    {
+                        NotificationRequest = request.NotificationRequest,
+                        CorrespondenceId = correspondence!.Id,
+                        Language = correspondence.Content != null ? correspondence.Content.Language : null,
+                    }, cancellationToken));
+                }
             }
 
             await correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);

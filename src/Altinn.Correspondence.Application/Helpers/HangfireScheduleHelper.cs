@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Application.PublishCorrespondence;
+﻿using Altinn.Correspondence.Application.InitializeCorrespondences;
+using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Notifications;
@@ -16,34 +17,34 @@ namespace Altinn.Correspondence.Application.Helpers
                                         ILogger<HangfireScheduleHelper> logger)
     {
 
-        public async Task SchedulePublishAfterDialogCreated(Guid correspondenceId, CancellationToken cancellationToken)
+        public async Task SchedulePublishAfterDialogCreated(Guid correspondenceId, NotificationRequest? notification, CancellationToken cancellationToken)
         {
             var dialogJobId = await hybridCacheWrapper.GetAsync<string?>($"dialogJobId_{correspondenceId}", cancellationToken: cancellationToken);
             if (dialogJobId is null)
             {
                 logger.LogError("Could not find dialogJobId for correspondence {correspondenceId} in cache. More than 24 hours delayed?", correspondenceId);
-                await SchedulePublishAtPublishTime(correspondenceId, cancellationToken);
+                await SchedulePublishAtPublishTime(correspondenceId, notification, cancellationToken);
             }
             else
             {
-                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(dialogJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken));
+                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(dialogJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, notification, cancellationToken));
             }
         }
 
-        public async Task SchedulePublishAfterTransmissionCreated(Guid correspondenceId, string transmissionJobId, CancellationToken cancellationToken)
+        public async Task SchedulePublishAfterTransmissionCreated(Guid correspondenceId, NotificationRequest? notification, string transmissionJobId, CancellationToken cancellationToken)
         {
             if (transmissionJobId is null)
             {
                 logger.LogError("Could not find transmissionJobId for correspondence {correspondenceId} in cache. More than 24 hours delayed?", correspondenceId);
-                await SchedulePublishAtPublishTime(correspondenceId, cancellationToken);
+                await SchedulePublishAtPublishTime(correspondenceId, notification, cancellationToken);
             }
             else
             {
-                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(transmissionJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken));
+                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(transmissionJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, notification, cancellationToken));
             }
         }
 
-        public async Task SchedulePublishAtPublishTime(Guid correspondenceId, CancellationToken cancellationToken)
+        public async Task SchedulePublishAtPublishTime(Guid correspondenceId, NotificationRequest? notification, CancellationToken cancellationToken)
         {
             var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, false, cancellationToken);
             if (correspondence is null)
@@ -51,12 +52,17 @@ namespace Altinn.Correspondence.Application.Helpers
                 throw new Exception($"Correspondence with id {correspondenceId} not found when scheduling publish");
             }
 
-            SchedulePublishAtPublishTime(correspondence, cancellationToken);
+            SchedulePublishAtPublishTime(correspondence, notification, cancellationToken);
         }
 
-        public void SchedulePublishAtPublishTime(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
+        public void SchedulePublishAtPublishTime(CorrespondenceEntity correspondence, NotificationRequest? notification, CancellationToken cancellationToken)
         {
-            backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), GetActualPublishTime(correspondence.RequestedPublishTime));
+            var request = new PublishCorrespondenceRequest
+            {
+                CorrespondenceId = correspondence.Id,
+                NotificationRequest = notification
+            };
+            backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(request, null, cancellationToken), GetActualPublishTime(correspondence.RequestedPublishTime));
         }
 
         private static DateTimeOffset GetActualPublishTime(DateTimeOffset publishTime) => publishTime < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow : publishTime; // If in past, do now
