@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Application.CreateNotification;
+using Altinn.Correspondence.Application.CreateNotificationOrder;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Common.Caching;
@@ -406,6 +407,16 @@ public class InitializeCorrespondencesHandler(
                 Status = correspondence.GetHighestStatus().Status,
                 Recipient = correspondence.Recipient
             });
+
+            if (request.Notification != null)
+            {
+                backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderRequest()
+                {
+                    CorrespondenceId = correspondence.Id,
+                    NotificationRequest = request.Notification,
+                    Language = correspondence.Content != null ? correspondence.Content.Language : null,
+                }, cancellationToken));
+            }
         }
 
         return new InitializeCorrespondencesResponse()
