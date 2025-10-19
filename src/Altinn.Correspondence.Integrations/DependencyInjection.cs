@@ -78,6 +78,7 @@ public static class DependencyInjection
         }
 
         services.AddSingleton<SlackSettings>();
+        services.AddSingleton<SlackNotificationService>();
         services.AddSingleton<IDistributedLockHelper, DistributedLockHelper>();
     }
 

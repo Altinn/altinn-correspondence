@@ -29,8 +29,6 @@ param idportenClientSecret string
 param storageAccountName string
 param maskinporten_token_exchange_environment string
 @secure()
-param resourceWhiteList string
-@secure()
 param statisticsApiKey string
 
 @secure()
@@ -98,10 +96,6 @@ var secrets = [
   {
     name: 'idporten-client-secret'
     value: idportenClientSecret
-  }
-  {
-    name: 'resource-whitelist'
-    value: resourceWhiteList
   }
   {
     name: 'statistics-api-key'

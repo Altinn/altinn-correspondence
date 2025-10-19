@@ -34,9 +34,7 @@ public class SyncCorrespondenceStatusEventHandler(
 
         var correspondence = await correspondenceRepository.GetCorrespondenceByIdForSync(
             request.CorrespondenceId,
-            includeStatus: true,
-            includeNotificationEvents: false,
-            includeForwardingEvents: false,
+            CorrespondenceSyncType.StatusEvents,
             cancellationToken);
 
         if (correspondence == null)
@@ -231,7 +229,6 @@ public class SyncCorrespondenceStatusEventHandler(
                .Select(e => e.PartyUuid)
                .Distinct()
            )
-           .Distinct()
            .Where(uuid => !enduserIdByPartyUuid.ContainsKey(uuid));
 
         foreach (var uuid in partyUuidsToLookup)

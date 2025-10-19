@@ -118,7 +118,6 @@ var containerAppEnvVarsDefault = [
   { name: 'GeneralSettings__BrregBaseUrl', value: brregBaseUrl }
   { name: 'GeneralSettings__SlackUrl', secretRef: 'slack-url' }
   { name: 'GeneralSettings__AltinnSblBridgeBaseUrl', value: sblBridgeBaseUrl }
-  { name: 'GeneralSettings__ResourceWhitelist', secretRef: 'resource-whitelist' }
   { name: 'DialogportenSettings__Issuer', value: dialogportenIssuer }
   { name: 'IdportenSettings__Issuer', value: idportenIssuer }
   { name: 'IdportenSettings__ClientId', secretRef: 'idporten-client-id' }
@@ -226,11 +225,6 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           identity: principal_id
           keyVaultUrl: '${keyVaultUrl}/secrets/redis-connection-string'
           name: 'redis-connection-string'
-        }
-        {
-          identity: principal_id
-          keyVaultUrl: '${keyVaultUrl}/secrets/resource-whitelist'
-          name: 'resource-whitelist'
         }
         {
           identity: principal_id
