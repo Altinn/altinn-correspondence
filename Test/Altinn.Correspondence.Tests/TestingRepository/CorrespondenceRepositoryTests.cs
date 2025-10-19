@@ -214,5 +214,76 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             Assert.Single(result);
             Assert.Equal(entity.Id, result[0].Id);
         }
+
+        [Fact]
+        public async Task GetCorrespondencesForParties_ReturnsWhenLatestIsAttachmentsDownloaded()
+        {
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+
+            var recipient = "0192:111111111";
+            var from = new DateTimeOffset(new DateTime(2007, 1, 1, 0, 0, 0), TimeSpan.Zero);
+            var to = from.AddDays(1);
+            var baseTime = from.AddHours(1);
+
+            var c = new CorrespondenceEntityBuilder()
+                .WithRecipient(recipient)
+                .WithRequestedPublishTime(baseTime)
+                .WithStatus(CorrespondenceStatus.Published, baseTime.AddMinutes(1))
+                .WithStatus(CorrespondenceStatus.AttachmentsDownloaded, baseTime.AddMinutes(2))
+                .Build();
+
+            context.Correspondences.Add(c);
+            await context.SaveChangesAsync();
+
+            var result = await repo.GetCorrespondencesForParties(
+                limit: 10,
+                from: from,
+                to: to,
+                status: null,
+                recipientIds: [recipient],
+                includeActive: true,
+                includeArchived: true,
+                searchString: string.Empty,
+                cancellationToken: CancellationToken.None);
+
+            Assert.Single(result);
+            Assert.Equal(c.Id, result[0].Id);
+        }
+
+        [Fact]
+        public async Task GetCorrespondencesForParties_AttachmentsDownloadedExistsButSincePurged_ReturnsNothingOnIncludeOnlyActive()
+        {
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+
+            var recipient = "0192:222222222";
+            var from = new DateTimeOffset(new DateTime(2008, 1, 1, 0, 0, 0), TimeSpan.Zero);
+            var to = from.AddDays(1);
+            var baseTime = from.AddHours(1);
+
+            var c = new CorrespondenceEntityBuilder()
+                .WithRecipient(recipient)
+                .WithRequestedPublishTime(baseTime)
+                .WithStatus(CorrespondenceStatus.AttachmentsDownloaded, baseTime.AddMinutes(1))
+                .WithStatus(CorrespondenceStatus.PurgedByRecipient, baseTime.AddMinutes(2))
+                .Build();
+
+            context.Correspondences.Add(c);
+            await context.SaveChangesAsync();
+
+            var result = await repo.GetCorrespondencesForParties(
+                limit: 10,
+                from: from,
+                to: to,
+                status: null,
+                recipientIds: [recipient],
+                includeActive: true,
+                includeArchived: false,
+                searchString: string.Empty,
+                cancellationToken: CancellationToken.None);
+
+            Assert.Empty(result);
+        }
     }
 }
