@@ -151,7 +151,6 @@ public class InitializeCorrespondencesHandler(
             logger.LogWarning("Sender validation failed: {Error}", senderError);
             return senderError;
         }
-        logger.LogDebug("Validating dialog");
         var dialogId = request.Correspondence.ExternalReferences?.FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (!string.IsNullOrWhiteSpace(dialogId))
         {
@@ -476,12 +475,12 @@ public class InitializeCorrespondencesHandler(
             return CorrespondenceErrors.InvalidCorrespondenceDialogId;
         }
 
-        var recipientMatchReturnCode = await dialogportenService.ValidateDialogRecipientMatch(dialogId, correspondence.Recipient, cancellationToken);
-        if (recipientMatchReturnCode == false)
+        var recipientMatches = await dialogportenService.ValidateDialogRecipientMatch(dialogId, correspondence.Recipient, cancellationToken);
+        if (recipientMatches == false)
         {
             return CorrespondenceErrors.RecipientMismatch;
         }
-        else if (recipientMatchReturnCode == null)
+        else if (recipientMatches == null)
         {
             return CorrespondenceErrors.DialogNotFoundWithDialogId;
         }
