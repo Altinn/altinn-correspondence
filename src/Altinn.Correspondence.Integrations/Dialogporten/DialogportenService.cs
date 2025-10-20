@@ -553,7 +553,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return true;
     }
 
-    public async Task<Nullable<bool>> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
+    public async Task<bool?> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
     {
         
         CreateDialogRequest? dialog = null;
