@@ -50,7 +50,7 @@ public static class CorrespondenceErrors
     public static Error CannotPurgeCorrespondenceLinkedToDialogportenTransmission = new Error(1043, "Cannot purge correspondence linked to a Dialogporten Transmission", HttpStatusCode.BadRequest);
     public static Error RecipientLacksRequiredRolesForCorrespondence(List<string> recipients) { return new Error(1044, $"The following recipients lack required roles to read the correspondence: {string.Join(", ", recipients)}", HttpStatusCode.BadRequest); }
     public static Error TransmissionOnlyAllowsOneRecipient = new Error(1045, "Transmission correspondences only support one recipient", HttpStatusCode.BadRequest);
-    public static Error RecipientMismatch = new Error(1046, "The recipient of the correspondence must be equal to the recipient of the transmission", HttpStatusCode.BadRequest);
+    public static Error RecipientMismatch = new Error(1046, "The recipient of the correspondence must be equal to the party of the dialog of the transmission", HttpStatusCode.BadRequest);
     public static Error IdempotencyKeyNotAllowedWithMultipleRecipients = new Error(1047, "Idempotency key is not supported for requests with multiple recipients", HttpStatusCode.BadRequest);
 }
 
@@ -103,7 +103,6 @@ public static class AuthorizationErrors
     public static Error LegacyNotAccessToOwner(int partyId) { return new Error(4005, $"User does not have access to party with partyId {partyId}", HttpStatusCode.Unauthorized); }
     public static Error CouldNotDetermineCaller = new Error(4006, "Could not determine caller", HttpStatusCode.Unauthorized);
     public static Error CouldNotFindOrgNo = new Error(4007, "Could not identify orgnumber from user", HttpStatusCode.Unauthorized);
-    public static Error ResourceNotWhitelisted = new Error(4008, "Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no.", HttpStatusCode.Forbidden);
     public static Error IncorrectResourceType = new Error(4009, "Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService.", HttpStatusCode.BadRequest);
 }
 

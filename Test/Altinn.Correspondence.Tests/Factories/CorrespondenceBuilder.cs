@@ -278,6 +278,18 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public CorrespondenceBuilder WithPropertyList(Dictionary<string, string> propertyList)
+        {
+            _correspondence.Correspondence.PropertyList = propertyList;
+            return this;
+        }
+
+        public CorrespondenceBuilder WithIsConfidential(bool isConfidential)
+        {
+            _correspondence.Correspondence.IsConfidential = isConfidential;
+            return this;
+        }
+
 
         public static CorrespondenceEntity CorrespondenceEntityWithNotifications()
         {

@@ -61,7 +61,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceNotificationRepositoryMock
                 .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
@@ -75,7 +75,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, false, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n => 
@@ -119,7 +119,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceNotificationRepositoryMock
                 .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
@@ -133,7 +133,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, false, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n =>
@@ -186,7 +186,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceNotificationRepositoryMock
                 .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
@@ -200,7 +200,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, false, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n =>
@@ -245,7 +245,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceNotificationRepositoryMock
                 .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
@@ -259,7 +259,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, false, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
             // Verify that no new notification was added
             _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
@@ -300,7 +300,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceNotificationRepositoryMock
                 .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
@@ -314,7 +314,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, false, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
             // Verify that no new notification was added
             _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
@@ -345,7 +345,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((CorrespondenceEntity?)null);
 
             // Act
@@ -356,7 +356,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(System.Net.HttpStatusCode.NotFound, result.AsT1.StatusCode);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceById(correspondenceId, false, false, false, It.IsAny<CancellationToken>(), true), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
             // Verify that no new notification was added
             _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();

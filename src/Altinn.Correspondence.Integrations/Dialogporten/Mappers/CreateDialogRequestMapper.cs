@@ -110,7 +110,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Value = new List<DialogValue> {
                     new DialogValue()
                     {
-                        Value = TruncateTitleForDialogporten(correspondence.Content!.MessageTitle ?? ""),
+                        Value = correspondence.Content!.MessageTitle ?? "", // A required field, DP will throw validation error if empty, but should not be possible to reach this point with empty title
                         LanguageCode = correspondence.Content.Language
                     }
                 }
@@ -162,6 +162,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 list = AddSearchTagIfValid(list, reference.ReferenceType.ToString(), correspondence, logger);
                 list = AddSearchTagIfValid(list, reference.ReferenceValue.ToString(), correspondence, logger);
+            }
+            foreach (var property in correspondence.PropertyList)
+            {
+                list = AddSearchTagIfValid(list, property.Value, correspondence, logger);    
             }
             list = list.DistinctBy(tag => tag.Value).ToList(); // Remove duplicates
             return list;
@@ -470,22 +474,5 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 }
             }).ToList() ?? new List<Attachment>();
         }
-
-        /// <summary>
-        /// Truncates titles longer than 255 characters to 252 characters and adds "..." to fit within Dialogporten's 255 character limit.
-        /// Titles 255 characters or shorter are sent as-is to Dialogporten.
-        /// This serves as a safety net for existing correspondence with long titles that failed Dialog Porten creation,
-        /// allowing them to retry successfully. New correspondence requests are validated to prevent titles > 255 chars.
-        /// </summary>
-        /// <param name="title">The original title</param>
-        /// <returns>The title truncated to fit Dialogporten's requirements</returns>
-        private static string TruncateTitleForDialogporten(string title)
-        {
-            if (string.IsNullOrEmpty(title))
-                return title;
-
-            // Dialogporten has a 255 character limit, so we truncate to 252 and add "..." only for titles > 255 chars
-            return title.Length <= 255 ? title : title.Substring(0, 252) + "...";
-        }       
     }
 }

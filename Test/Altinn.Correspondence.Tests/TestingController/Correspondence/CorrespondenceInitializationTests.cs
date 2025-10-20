@@ -1730,6 +1730,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithRecipients([recipientUrn])
+                .WithIsConfidential(true)
                 .Build();
 
             // Act
@@ -1743,6 +1744,29 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 var errorContent = await response.Content.ReadAsStringAsync();
                 Assert.Contains("lack required roles", errorContent);
             }
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithPropertyListTooLong_ReturnsBadRequest()
+        {
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithPropertyList(new Dictionary<string, string> { { "key", "value" },
+                { "key2", "value2" },
+                { "key3", "value3" },
+                { "key4", "value4" },
+                { "key5", "value5" },
+                { "key6", "value6" },
+                { "key7", "value7" },
+                { "key8", "value8" },
+                { "key9", "value9" },
+                { "key10", "value10" },
+                { "key11", "value11" } })
+                .Build();
+
+            var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            var correspondenceContent = await initializeResponse.Content.ReadAsStringAsync();
+            Assert.Equal(HttpStatusCode.BadRequest, initializeResponse.StatusCode);
         }
 
         [Fact]

@@ -72,7 +72,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1042: Message summary, if not null, must be between 0 and 255 characters long</li>
         /// <li>1044: The following recipients lack required roles to read the correspondence: {recipients}</li>
         /// <li>1045: Transmission correspondences only support one recipient</li>
-        /// <li>1046: The recipient of the correspondence must be equal to the recipient of the transmission</li>
+        /// <li>1046: The recipient of the correspondence must be equal to the party of the dialog of the transmission</li>
         /// <li>1047: Idempotency key is not supported for requests with multiple recipients</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// <li>3002: Email body and subject must be provided when sending email notifications</li>
@@ -92,9 +92,6 @@ namespace Altinn.Correspondence.API.Controllers
         /// </ul></response>
         /// <response code="401"><ul>
         /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</li>
-        /// </ul></response>
-        /// <response code="403"><ul>
-        /// <li>4008: Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no</li>
         /// </ul></response>
         /// <response code="404"><ul>
         /// <li>1029: Could not find partyId for the following recipients: {recipients}</li>
@@ -175,7 +172,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1042: Message summary, if not null, must be between 0 and 255 characters long</li>
         /// <li>1044: The following recipients lack required roles to read the correspondence: {recipients}</li>
         /// <li>1045: Transmission correspondences only support one recipient</li>
-        /// <li>1046: The recipient of the correspondence must be equal to the recipient of the transmission</li>
+        /// <li>1046: The recipient of the correspondence must be equal to the party of the dialog of the transmission</li>
         /// <li>1047: Idempotency key is not supported for requests with multiple recipients</li>
         /// <li>2001: The requested attachment was not found</li>
         /// <li>2004: File must have content and has a max file size of 2GB</li>
@@ -203,9 +200,6 @@ namespace Altinn.Correspondence.API.Controllers
         /// </ul></response>
         /// <response code="401"><ul>
         /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</li>
-        /// </ul></response>
-        /// <response code="403"><ul>
-        /// <li>4008: Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no</li>
         /// </ul></response>
         /// <response code="404"><ul>
         /// <li>1029: Could not find partyId for the following recipients: {recipients}</li>

@@ -110,8 +110,12 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Recipient of {correspondenceId} has been set to reserved in kontakt- og reserverasjonsregisteret ('KRR')";
         }
-        else if (!string.IsNullOrEmpty(recipientParty!.OrgNumber) && !await altinnRegisterService.HasPartyRequiredRoles(correspondence.Recipient, recipientPartyUuid.Value, correspondence.IsConfidential, cancellationToken))
+        else if (
+            !string.IsNullOrEmpty(recipientParty!.OrgNumber) && 
+            !await altinnRegisterService.HasPartyRequiredRoles(correspondence.Recipient, recipientPartyUuid.Value, correspondence.IsConfidential, cancellationToken) && 
+            correspondence.IsConfidential) 
         {
+            // Only check for confidential pending #1444. Remove IsConfidential condition after Register has been updated.
             errorMessage = $"Recipient of {correspondenceId} lacks roles required to read correspondence. Consider sending physical mail to this recipient instead.";
         }
         CorrespondenceStatusEntity status;

@@ -32,13 +32,10 @@ public class SyncCorrespondenceStatusEventHandler(
 
         logger.LogInformation("Processing status Sync request for correspondence {CorrespondenceId} with {numSyncedEvents} # status events and {numSyncedDeletes} # delete events", request.CorrespondenceId, numSyncedEvents, numSyncedDeletes);
 
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(
+        var correspondence = await correspondenceRepository.GetCorrespondenceByIdForSync(
             request.CorrespondenceId,
-            includeStatus: true,
-            includeContent: false,
-            includeForwardingEvents: false,
-            cancellationToken,
-            includeIsMigrating: true);
+            CorrespondenceSyncType.StatusEvents,
+            cancellationToken);
 
         if (correspondence == null)
         {
@@ -232,7 +229,6 @@ public class SyncCorrespondenceStatusEventHandler(
                .Select(e => e.PartyUuid)
                .Distinct()
            )
-           .Distinct()
            .Where(uuid => !enduserIdByPartyUuid.ContainsKey(uuid));
 
         foreach (var uuid in partyUuidsToLookup)
