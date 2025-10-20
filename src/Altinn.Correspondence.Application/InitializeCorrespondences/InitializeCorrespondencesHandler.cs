@@ -480,7 +480,7 @@ public class InitializeCorrespondencesHandler(
             var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondence.Id), correspondence.RequestedPublishTime);
             if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
             {
-                await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondence.Id, request.Notification, transmissionJob, cancellationToken);
+                await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondence.Id, transmissionJob, cancellationToken);
             }
         }
         else
@@ -493,7 +493,7 @@ public class InitializeCorrespondencesHandler(
             });
             if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
             {
-                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, request.Notification, cancellationToken);
+                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
             }
         }
 
