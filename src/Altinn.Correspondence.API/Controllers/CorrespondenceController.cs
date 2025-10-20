@@ -121,8 +121,11 @@ namespace Altinn.Correspondence.API.Controllers
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
             _logger.LogInformation("Initialize correspondences");
             
-            var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request);
-            var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
+            var result = InitializeCorrespondencesMapper.MapToRequest(request);
+            if (result.IsT1)
+                return BadRequest(result.AsT1.Message); 
+            var mappedRequest = result.AsT0;
+            var commandResult = await handler.Process(mappedRequest, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(InitializeCorrespondencesMapper.MapToExternal(data)),
@@ -232,8 +235,11 @@ namespace Altinn.Correspondence.API.Controllers
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
             _logger.LogInformation("Insert correspondences with attachment data");
             
-            var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request, attachments);
-            var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
+            var result = InitializeCorrespondencesMapper.MapToRequest(request, attachments);
+            if (result.IsT1)
+                return BadRequest(result.AsT1.Message); 
+            var mappedRequest = result.AsT0;
+            var commandResult = await handler.Process(mappedRequest, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(InitializeCorrespondencesMapper.MapToExternal(data)),

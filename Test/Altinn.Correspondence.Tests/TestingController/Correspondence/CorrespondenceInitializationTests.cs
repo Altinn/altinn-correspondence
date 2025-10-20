@@ -67,9 +67,26 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Theory]
-        [InlineData("nu")]
         [InlineData(null)]
         [InlineData("")]
+        [InlineData(" ")]
+        public async Task InitializeCorrespondence_WithNullOrEmptyLanguageCode_DefaultsToNb_ReturnsOK(string? languageCode)
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithLanguageCode(languageCode)
+            .Build();
+
+            // Act
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        [Theory]
+        [InlineData("nu")]
         public async Task InitializeCorrespondence_WithInvalidLanguageCode_ReturnsBadRequest(string? languageCode)
         {
             // Arrange
