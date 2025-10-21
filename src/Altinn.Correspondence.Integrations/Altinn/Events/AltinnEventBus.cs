@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
@@ -25,16 +26,11 @@ public class AltinnEventBus : IEventBus
         _logger = logger;
     }
 
-    public async Task Publish(AltinnEventType type, string resourceId, string itemId, string eventSource, string? recipientId, CancellationToken cancellationToken = default)
+    public async Task Publish(AltinnEventType type, string resourceId, string itemId, string eventSource, string? party, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Publishing cloud event {type} for resource {resourceId} with event source {eventSource} and item ID {itemId}. Recipient is {recipient}.", type, resourceId, eventSource, itemId, recipientId);
-        string? partyId = null;
-        if (recipientId != null)
-        {
-            partyId = (await _altinnRegisterService.LookUpPartyId(recipientId, cancellationToken))?.ToString();
-        }
 
-        var cloudEvent = CreateCloudEvent(type, resourceId, itemId, partyId, recipientId, eventSource);
+        var cloudEvent = CreateCloudEvent(type, resourceId, itemId, party, eventSource);
         var serializerOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = new LowerCaseNamingPolicy()
@@ -47,13 +43,13 @@ public class AltinnEventBus : IEventBus
         }
     }
 
-    private CloudEvent CreateCloudEvent(AltinnEventType type, string resourceId, string itemId, string? partyId, string? alternativeSubject, string eventSource)
+    private CloudEvent CreateCloudEvent(AltinnEventType type, string resourceId, string itemId, string? party, string eventSource)
     {
-        if (partyId == null && alternativeSubject == null)
+        if (party == null)
         {
             throw new ArgumentException("Either partyId or alternativeSubject must be set");
         }
-        var alternativeSubjectFormated = handleAlternativeSubject(alternativeSubject);
+        var alternativeSubjectFormated = handleAlternativeSubject(party);
         CloudEvent cloudEvent = new CloudEvent()
         {
             Id = Guid.NewGuid(),
@@ -63,7 +59,7 @@ public class AltinnEventBus : IEventBus
             ResourceInstance = itemId,
             Type = "no.altinn.correspondence." + type.ToString().ToLowerInvariant(),
             Source = _generalSettings.CorrespondenceBaseUrl.TrimEnd('/') + "/correspondence/api/v1/" + eventSource,
-            Subject = !string.IsNullOrWhiteSpace(partyId) ? "/party/" + partyId : null,
+            Subject = party.WithUrnPrefix(),
             AlternativeSubject = alternativeSubjectFormated
         };
 
