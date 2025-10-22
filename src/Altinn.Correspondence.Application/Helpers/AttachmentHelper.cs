@@ -37,13 +37,14 @@ namespace Altinn.Correspondence.Application.Helpers
 
             var currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.UploadProcessing, partyUuid, cancellationToken);
             logger.LogInformation("Set attachment status of {attachmentId} to UploadProcessing", attachmentId);
-            var uploadResult = await UploadBlob(attachment, file, forMigration, partyUuid, cancellationToken);
+            var storageProvider = await GetStorageProvider(attachment, forMigration, cancellationToken);
+            var uploadResult = await UploadBlob(attachment, file, storageProvider, partyUuid, cancellationToken);
             if (uploadResult.TryPickT1(out var uploadError, out var successResult))
             {
                 return uploadError;
             }
             var (dataLocationUrl, checksum, size) = successResult;
-            return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
+            return await TransactionWithRetriesPolicy.Execute<UploadAttachmentResponse>(async (cancellationToken) =>
             {
                 var isValidUpdate = await attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, storageProvider, cancellationToken);
                 logger.LogInformation("Set dataLocationUrl of {attachmentId}", attachmentId);
@@ -104,11 +105,10 @@ namespace Altinn.Correspondence.Application.Helpers
             return serviceOwnerEntity?.GetStorageProvider(forMigration ? false : true);
         }
 
-        private async Task<OneOf<(string? locationUrl, string? hash, long size),Error>> UploadBlob(AttachmentEntity attachment, Stream stream, bool forMigration, Guid partyUuid, CancellationToken cancellationToken)
+        private async Task<OneOf<(string? locationUrl, string? hash, long size),Error>> UploadBlob(AttachmentEntity attachment, Stream stream, StorageProviderEntity? storageProvider, Guid partyUuid, CancellationToken cancellationToken)
         {
             try
             {
-                var storageProvider = await GetStorageProvider(attachment, forMigration, cancellationToken);
                 var (dataLocationUrl, checksum, size) = await storageRepository.UploadAttachment(attachment, stream, storageProvider, cancellationToken);
                 logger.LogInformation("Uploaded {attachmentId} to Azure Storage", attachment.Id);
                 return (dataLocationUrl, checksum, size);
