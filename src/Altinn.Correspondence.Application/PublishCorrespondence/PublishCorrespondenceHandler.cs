@@ -26,7 +26,6 @@ public class PublishCorrespondenceHandler(
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IContactReservationRegistryService contactReservationRegistryService,
-    ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     IHostEnvironment hostEnvironment,
     ISlackClient slackClient,
     SlackSettings slackSettings,
@@ -78,7 +77,6 @@ public class PublishCorrespondenceHandler(
         logger.LogInformation("Starting publish process with lock for correspondence {CorrespondenceId}", correspondenceId);
         var operationTimestamp = DateTimeOffset.UtcNow;        
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
-        var notifications = await correspondenceNotificationRepository.GetPrimaryNotificationsByCorrespondenceId(correspondenceId, cancellationToken);
         var senderParty = await altinnRegisterService.LookUpPartyById(correspondence!.Sender, cancellationToken);
         var recipientParty = await altinnRegisterService.LookUpPartyById(correspondence!.Recipient, cancellationToken);
         var senderPartyUuid = senderParty?.PartyUuid;
