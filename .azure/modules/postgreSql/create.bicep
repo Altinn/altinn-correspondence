@@ -217,16 +217,6 @@ resource logLinePrefix 'Microsoft.DBforPostgreSQL/flexibleServers/configurations
   }
 }
 
-// Configure log retention for download (capture logs for download)
-resource logRetentionDays 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
-  name: 'log_retention_days'
-  parent: postgres
-  dependsOn: [database, logLinePrefix]
-  properties: {
-    value: '7'
-    source: 'user-override'
-  }
-}
 resource pgStatStatementsTrack 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
   name: 'pg_stat_statements.track'
   parent: postgres
