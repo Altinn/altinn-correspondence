@@ -1,5 +1,4 @@
-﻿using Altinn.Correspondence.Application.InitializeCorrespondences;
-using Altinn.Correspondence.Application.PublishCorrespondence;
+﻿using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Notifications;
