@@ -137,7 +137,7 @@ public class SendNotificationOrderHandler(
         CorrespondenceNotificationEntity mainNotificationOrder,
         NotificationOrderRequestV2 orderRequest,
         Guid notificationOrderId,
-        ReminderResponse? reminderResponse,
+        ReminderResponse reminderResponse,
         CancellationToken cancellationToken)
     {
         var reminderNotification = new CorrespondenceNotificationEntity
@@ -148,18 +148,11 @@ public class SendNotificationOrderHandler(
             CorrespondenceId = mainNotificationOrder.CorrespondenceId,
             RequestedSendTime = mainNotificationOrder.RequestedSendTime.AddDays(orderRequest.Reminders?.FirstOrDefault()?.DelayDays ?? 0),
             IsReminder = true,
+            ShipmentId = reminderResponse.ShipmentId,
+            NotificationOrderId = notificationOrderId,
             OrderRequest = JsonSerializer.Serialize(orderRequest)
         };
-
-        var reminderId = await correspondenceNotificationRepository.AddNotification(reminderNotification, cancellationToken);
-        reminderNotification.Id = reminderId;
-
-        if (reminderResponse != null)
-        {
-            reminderNotification.NotificationOrderId = notificationOrderId;
-            reminderNotification.ShipmentId = reminderResponse.ShipmentId;
-            await correspondenceNotificationRepository.UpdateOrderResponseData(reminderNotification.Id, notificationOrderId, reminderResponse.ShipmentId, cancellationToken);
-        }
+        await correspondenceNotificationRepository.AddNotification(reminderNotification, cancellationToken);
 
         return reminderNotification;
     }
