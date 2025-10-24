@@ -24,6 +24,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<ICorrespondenceRepository> _correspondenceRepositoryMock;
         private readonly Mock<ICorrespondenceStatusRepository> _correspondenceStatusRepositoryMock;
         private readonly Mock<IContactReservationRegistryService> _contactReservationRegistryServiceMock;
+        private readonly Mock<ICorrespondenceNotificationRepository> _correspondenceNotificationRepositoryMock;
         private readonly Mock<IHostEnvironment> _hostEnvironmentMock;
         private readonly Mock<ISlackClient> _slackClientMock;
         private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock;
@@ -33,6 +34,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
         public PublishCorrespondenceHandlerTests()
         {
+            _correspondenceNotificationRepositoryMock = new Mock<ICorrespondenceNotificationRepository>();
             _altinnRegisterServiceMock = new Mock<IAltinnRegisterService>();
             _loggerMock = new Mock<ILogger<PublishCorrespondenceHandler>>();
             _correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
@@ -53,6 +55,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _correspondenceRepositoryMock.Object,
                 _correspondenceStatusRepositoryMock.Object,
                 _contactReservationRegistryServiceMock.Object,
+                _correspondenceNotificationRepositoryMock.Object,
                 _hostEnvironmentMock.Object,
                 _slackClientMock.Object,
                 _slackSettings,
