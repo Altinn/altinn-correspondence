@@ -119,7 +119,7 @@ public class SendNotificationOrderHandler(
     private void ScheduleNotificationDeliveryCheck(CorrespondenceNotificationEntity notificationOrder, CancellationToken cancellationToken)
     {
         backgroundJobClient.Schedule<CheckNotificationDeliveryHandler>(
-            handler => handler.Process(notificationOrder.Id, cancellationToken),
+            handler => handler.Process(notificationOrder.Id, CancellationToken.None),
             notificationOrder.RequestedSendTime.AddMinutes(NotificationDeliveryCheckDelayMinutes));
     }
 
