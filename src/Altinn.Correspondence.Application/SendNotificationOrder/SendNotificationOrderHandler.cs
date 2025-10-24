@@ -48,13 +48,13 @@ public class SendNotificationOrderHandler(
             if (notificationOrder.OrderRequest == null)
             {
                 logger.LogError("No order request found for notification order {NotificationOrderId}, when attempting to send notification order for correspondence {CorrespondenceId}", notificationOrder.Id, correspondenceId);
-                throw new Exception($"The correspondence notification {notificationOrder.Id} is missing an order request - unable to send notification order");
+                throw new InvalidOperationException($"The correspondence notification {notificationOrder.Id} is missing an order request - unable to send notification order");
             }
             var orderRequest = JsonSerializer.Deserialize<NotificationOrderRequestV2>(notificationOrder.OrderRequest);
             if (orderRequest == null)
             {
-                logger.LogWarning("No order request found for notification order {NotificationOrderId}", notificationOrder.Id);
-                continue;
+                logger.LogError("Failed to deserialize order request for notification order {NotificationOrderId}", notificationOrder.Id);
+                throw new InvalidOperationException($"The correspondence notification {notificationOrder.Id} has an invalid order request - unable to send notification order");
             }
 
             var successful = await SendNotificationOrder(notificationOrder, orderRequest, correspondence, cancellationToken);
