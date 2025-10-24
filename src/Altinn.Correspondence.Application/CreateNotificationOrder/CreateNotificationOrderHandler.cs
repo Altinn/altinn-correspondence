@@ -261,11 +261,11 @@ public class CreateNotificationOrderHandler(
     private async Task PersistNotificationOrderRequests(NotificationRequest notificationRequest, CorrespondenceEntity correspondence, List<NotificationContent> notificationContents, CancellationToken cancellationToken)
     {
         // Create notification order requests
-            var notificationOrderRequests = CreateNotificationOrderRequestsV2(
-                notificationRequest,
-                correspondence,
-                notificationContents,
-                cancellationToken);
+        var notificationOrderRequests = CreateNotificationOrderRequestsV2(
+            notificationRequest,
+            correspondence,
+            notificationContents,
+            cancellationToken);
         
         logger.LogInformation("Persisting {Count} notification order requests for correspondence {CorrespondenceId}", notificationOrderRequests.Count, correspondence.Id);
         foreach (var notificationOrderRequest in notificationOrderRequests)
