@@ -553,10 +553,42 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return true;
     }
 
-    public async Task<bool> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
+    public async Task<bool?> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
     {
-        var dialog = await GetDialog(dialogId);
-        return dialog.Party == expectedRecipient;
+        
+        CreateDialogRequest? dialog = null;
+        try
+        {
+            dialog = await GetDialog(dialogId);
+        }
+        catch (Exception ex)
+        {
+            if (ex.Message.Contains("not found"))
+            {
+                return null;
+            }
+            logger.LogError(ex, "Error retrieving dialog {dialogId} for recipient validation", dialogId);
+            throw;
+        }
+        return dialog.Party == expectedRecipient ? true : false;
+    }
+
+    public async Task<bool> DoesDialogExist(string dialogId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var dialog = await GetDialog(dialogId);
+        }
+        catch (Exception ex)
+        {
+            if (ex.Message.Contains("not found"))
+            {
+                return false;
+            }
+            logger.LogError(ex, "Error retrieving dialog {dialogId} for existence check", dialogId);
+            throw;
+        }
+        return true;
     }
 
 
