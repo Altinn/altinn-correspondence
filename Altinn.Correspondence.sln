@@ -23,8 +23,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Correspondence.LoadT
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{C20EA94C-2635-4683-8EF4-E98C6EBF811F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Correspondence.Dashboard", "tools\Altinn.Correspondence.Dashboard\Altinn.Correspondence.Dashboard.csproj", "{11558171-1B06-40A8-A230-3E136B9F187A}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
