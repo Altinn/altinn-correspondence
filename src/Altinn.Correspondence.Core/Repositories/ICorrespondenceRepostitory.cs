@@ -44,9 +44,7 @@ namespace Altinn.Correspondence.Core.Repositories
 
         Task<CorrespondenceEntity?> GetCorrespondenceByIdForSync(
             Guid guid,
-            bool includeStatus,
-            bool includeNotificationEvents,
-            bool includeForwardingEvents,
+            CorrespondenceSyncType syncType,
             CancellationToken cancellationToken);
 
         Task<CorrespondenceEntity> GetCorrespondenceByAltinn2Id(

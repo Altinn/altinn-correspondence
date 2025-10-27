@@ -246,19 +246,14 @@ public class HangfireStorageCompatibilityTests
 
         // Get the Hangfire server hosted service to inspect its configuration
         var hostedServices = testFactory.Services.GetServices<IHostedService>();
-        var hangfireServer = hostedServices.FirstOrDefault(s => s.GetType().Name.Contains("BackgroundJobServer"));
-
-        Assert.NotNull(hangfireServer);
-
+        var hangfireServers = hostedServices.Where(s => s.GetType().Name.Contains("BackgroundJobServer")).ToList();
+        Assert.NotNull(hangfireServers);
         // Use reflection to get the server options from the Hangfire server
-        var serverType = hangfireServer.GetType();
-        var optionsField = serverType.GetField("_options", BindingFlags.NonPublic | BindingFlags.Instance);
-
-        var serverOptions = (BackgroundJobServerOptions)optionsField.GetValue(hangfireServer);
-
-        Assert.NotNull(serverOptions);
-        Assert.Equal(new[] { HangfireQueues.Default, HangfireQueues.LiveMigration, HangfireQueues.Migration }, serverOptions.Queues);
-        Assert.Equal(HangfireQueues.Default, serverOptions.Queues[0]); // Should be highest priority
+        var hangfireServerOptions = hangfireServers.Select((server) => (BackgroundJobServerOptions)server.GetType().GetField("_options", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(server)).ToList();
+        Assert.NotNull(hangfireServerOptions);
+        var allConfiguredQueues = hangfireServerOptions.SelectMany(server => server.Queues).ToList();
+        Assert.Equal(new[] { HangfireQueues.Default, HangfireQueues.LiveMigration, HangfireQueues.Migration }, allConfiguredQueues);
+        Assert.Equal(HangfireQueues.Default, allConfiguredQueues[0]); // Should be highest priority
     }
 
     [Fact]
@@ -282,7 +277,7 @@ public class HangfireStorageCompatibilityTests
         var serverOptions = (BackgroundJobServerOptions)optionsField.GetValue(hangfireServer);
 
         Assert.NotNull(serverOptions);
-        Assert.Equal(new[] { HangfireQueues.Default, HangfireQueues.LiveMigration }, serverOptions.Queues);
+        Assert.Equal(new[] { HangfireQueues.Default }, serverOptions.Queues);
     }
 
     internal class DisabledMigrationWebApplicationFactory : WebApplicationFactory<Program>
@@ -292,7 +287,7 @@ public class HangfireStorageCompatibilityTests
         {
             var customConfigValues = new Dictionary<string, string>
             {
-                ["GeneralSettings:EnableMigrationQueue"] = "false"
+                ["GeneralSettings:MigrationWorkerCountPerReplica"] = "0"
             };
 
             builder.UseConfiguration(new ConfigurationBuilder()

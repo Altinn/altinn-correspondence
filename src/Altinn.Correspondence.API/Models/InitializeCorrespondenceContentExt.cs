@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Text.Json.Serialization;
+using System.ComponentModel;
 
 namespace Altinn.Correspondence.API.Models
 {
@@ -14,8 +15,9 @@ namespace Altinn.Correspondence.API.Models
         /// Gets or sets the language of the correspondence, specified according to ISO 639-1 
         /// </summary>
         [JsonPropertyName("language")]
+        [DefaultValue("nb")]
         [ISO6391]
-        public required string Language { get; set; }
+        public string? Language { get; set; }
 
         /// <summary>
         /// Gets or sets the correspondence message title. Subject.

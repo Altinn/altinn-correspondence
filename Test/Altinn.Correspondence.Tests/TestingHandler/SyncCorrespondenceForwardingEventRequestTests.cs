@@ -81,7 +81,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, It.IsAny<CorrespondenceSyncType>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             // Mock forwarding event repository
             _forwardingEventRepositoryMock
@@ -96,7 +96,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, false, false, true, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.ForwardingEvents, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
            _forwardingEventRepositoryMock.Verify(
@@ -194,7 +194,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, It.IsAny<CorrespondenceSyncType>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
 
             // Act
@@ -205,7 +205,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, false, false, true, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.ForwardingEvents, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
             _forwardingEventRepositoryMock.VerifyNoOtherCalls();
         }
@@ -297,7 +297,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, It.IsAny<CorrespondenceSyncType>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
 
             // Act
@@ -308,7 +308,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(correspondenceId, result.AsT0);
 
             // Verify correct calls to Correspondence repository
-            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, false, false, true, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.ForwardingEvents, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
             _forwardingEventRepositoryMock.VerifyNoOtherCalls();
         }

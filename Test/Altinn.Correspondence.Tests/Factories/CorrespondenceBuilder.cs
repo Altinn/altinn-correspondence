@@ -179,15 +179,26 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.IsConfirmationNeeded = confirmationNeeded;
             return this;
         }
-        public CorrespondenceBuilder WithNotificationTemplate(NotificationTemplateExt notificationTemplate)
+        public CorrespondenceBuilder WithNotificationTemplate(NotificationTemplateExt? notificationTemplate)
         {
             _correspondence.Correspondence.Notification ??= new InitializeCorrespondenceNotificationExt()
             {
-                NotificationTemplate = notificationTemplate,
+                NotificationTemplate = notificationTemplate ?? NotificationTemplateExt.CustomMessage,
                 SendReminder = true
             };
             return this;
         }
+
+        public CorrespondenceBuilder WithNotificationTemplateInt(int templateId)
+        {
+            _correspondence.Correspondence.Notification ??= new InitializeCorrespondenceNotificationExt()
+            {
+                NotificationTemplate = (NotificationTemplateExt)templateId,
+                SendReminder = true
+            };
+            return this;
+        }
+
         public CorrespondenceBuilder WithNotificationChannel(NotificationChannelExt notificationChannel)
         {
             _correspondence.Correspondence.Notification!.NotificationChannel = notificationChannel;
@@ -270,6 +281,12 @@ namespace Altinn.Correspondence.Tests.Factories
         public CorrespondenceBuilder WithPropertyList(Dictionary<string, string> propertyList)
         {
             _correspondence.Correspondence.PropertyList = propertyList;
+            return this;
+        }
+
+        public CorrespondenceBuilder WithIsConfidential(bool isConfidential)
+        {
+            _correspondence.Correspondence.IsConfidential = isConfidential;
             return this;
         }
 
