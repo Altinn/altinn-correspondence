@@ -1,8 +1,6 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
-using Altinn.Correspondence.Application.CreateNotification;
 using Altinn.Correspondence.Application.CreateNotificationOrder;
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -400,23 +398,24 @@ public class InitializeCorrespondencesHandler(
                     backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
                 }
                 backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+            
+                if (request.Notification != null)
+                {
+                    backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderRequest()
+                    {
+                        CorrespondenceId = correspondence.Id,
+                        NotificationRequest = request.Notification,
+                        Language = correspondence.Content != null ? correspondence.Content.Language : null,
+                    }, cancellationToken));
+                }
             }
+
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {
                 CorrespondenceId = correspondence.Id,
                 Status = correspondence.GetHighestStatus().Status,
                 Recipient = correspondence.Recipient
             });
-
-            if (request.Notification != null)
-            {
-                backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderRequest()
-                {
-                    CorrespondenceId = correspondence.Id,
-                    NotificationRequest = request.Notification,
-                    Language = correspondence.Content != null ? correspondence.Content.Language : null,
-                }, cancellationToken));
-            }
         }
 
         return new InitializeCorrespondencesResponse()
