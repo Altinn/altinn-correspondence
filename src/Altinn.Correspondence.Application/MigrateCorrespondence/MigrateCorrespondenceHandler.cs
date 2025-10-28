@@ -168,7 +168,7 @@ public class MigrateCorrespondenceHandler(
                         CreatedFrom = request.CreatedFrom,
                         CreatedTo = request.CreatedTo
                     };
-                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>((handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
+                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
                 }
             }
         }
