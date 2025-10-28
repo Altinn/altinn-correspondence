@@ -50,8 +50,10 @@ public static class CorrespondenceErrors
     public static Error CannotPurgeCorrespondenceLinkedToDialogportenTransmission = new Error(1043, "Cannot purge correspondence linked to a Dialogporten Transmission", HttpStatusCode.BadRequest);
     public static Error RecipientLacksRequiredRolesForCorrespondence(List<string> recipients) { return new Error(1044, $"The following recipients lack required roles to read the correspondence: {string.Join(", ", recipients)}", HttpStatusCode.BadRequest); }
     public static Error TransmissionOnlyAllowsOneRecipient = new Error(1045, "Transmission correspondences only support one recipient", HttpStatusCode.BadRequest);
-    public static Error RecipientMismatch = new Error(1046, "The recipient of the correspondence must be equal to the recipient of the transmission", HttpStatusCode.BadRequest);
+    public static Error RecipientMismatch = new Error(1046, "The recipient of the correspondence must be equal to the party of the dialog of the transmission", HttpStatusCode.BadRequest);
     public static Error IdempotencyKeyNotAllowedWithMultipleRecipients = new Error(1047, "Idempotency key is not supported for requests with multiple recipients", HttpStatusCode.BadRequest);
+    public static Error InvalidCorrespondenceDialogId = new Error(1048, "DialogId must be a valid non-empty GUID", HttpStatusCode.BadRequest);
+    public static Error DialogNotFoundWithDialogId = new Error(1049, "Could not find dialog in Dialogporten with the given DialogId", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
@@ -92,6 +94,7 @@ public static class NotificationErrors
     public static Error NotificationNotFound = new Error(3020, "Notification not found in the database", HttpStatusCode.NotFound);
     public static Error NotificationDetailsNotFound = new Error(3021, "Cannot retrieve notification details from Altinn Notification API", HttpStatusCode.NotFound);
     public static Error OverrideRegisteredContactInformationRequiresCustomRecipients = new Error(3022, "OverrideRegisteredContactInformation flag can only be used when CustomRecipients is provided", HttpStatusCode.BadRequest);
+    public static Error InvalidNotificationTemplate = new Error(3023, "Invalid notification template", HttpStatusCode.BadRequest);
 }
 public static class AuthorizationErrors
 {

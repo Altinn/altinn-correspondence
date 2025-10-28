@@ -72,7 +72,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1042: Message summary, if not null, must be between 0 and 255 characters long</li>
         /// <li>1044: The following recipients lack required roles to read the correspondence: {recipients}</li>
         /// <li>1045: Transmission correspondences only support one recipient</li>
-        /// <li>1046: The recipient of the correspondence must be equal to the recipient of the transmission</li>
+        /// <li>1046: The recipient of the correspondence must be equal to the party of the dialog of the transmission</li>
         /// <li>1047: Idempotency key is not supported for requests with multiple recipients</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// <li>3002: Email body and subject must be provided when sending email notifications</li>
@@ -121,8 +121,11 @@ namespace Altinn.Correspondence.API.Controllers
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
             _logger.LogInformation("Initialize correspondences");
             
-            var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request);
-            var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
+            var result = InitializeCorrespondencesMapper.MapToRequest(request);
+            if (result.IsT1)
+                return BadRequest(result.AsT1.Message); 
+            var mappedRequest = result.AsT0;
+            var commandResult = await handler.Process(mappedRequest, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(InitializeCorrespondencesMapper.MapToExternal(data)),
@@ -169,7 +172,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1042: Message summary, if not null, must be between 0 and 255 characters long</li>
         /// <li>1044: The following recipients lack required roles to read the correspondence: {recipients}</li>
         /// <li>1045: Transmission correspondences only support one recipient</li>
-        /// <li>1046: The recipient of the correspondence must be equal to the recipient of the transmission</li>
+        /// <li>1046: The recipient of the correspondence must be equal to the party of the dialog of the transmission</li>
         /// <li>1047: Idempotency key is not supported for requests with multiple recipients</li>
         /// <li>2001: The requested attachment was not found</li>
         /// <li>2004: File must have content and has a max file size of 2GB</li>
@@ -232,8 +235,11 @@ namespace Altinn.Correspondence.API.Controllers
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
             _logger.LogInformation("Insert correspondences with attachment data");
             
-            var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request, attachments);
-            var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
+            var result = InitializeCorrespondencesMapper.MapToRequest(request, attachments);
+            if (result.IsT1)
+                return BadRequest(result.AsT1.Message); 
+            var mappedRequest = result.AsT0;
+            var commandResult = await handler.Process(mappedRequest, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(InitializeCorrespondencesMapper.MapToExternal(data)),

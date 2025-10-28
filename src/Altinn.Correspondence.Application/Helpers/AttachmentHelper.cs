@@ -37,12 +37,15 @@ namespace Altinn.Correspondence.Application.Helpers
 
             var currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.UploadProcessing, partyUuid, cancellationToken);
             logger.LogInformation("Set attachment status of {attachmentId} to UploadProcessing", attachmentId);
-            try
+            var storageProvider = await GetStorageProvider(attachment, forMigration, cancellationToken);
+            var uploadResult = await UploadBlob(attachment, file, storageProvider, partyUuid, cancellationToken);
+            if (uploadResult.TryPickT1(out var uploadError, out var successResult))
             {
-                var storageProvider = await GetStorageProvider(attachment, forMigration, cancellationToken);
-                var (dataLocationUrl, checksum, size) = await storageRepository.UploadAttachment(attachment, file, storageProvider, cancellationToken);
-                logger.LogInformation("Uploaded {attachmentId} to Azure Storage", attachmentId);
-
+                return uploadError;
+            }
+            var (dataLocationUrl, checksum, size) = successResult;
+            return await TransactionWithRetriesPolicy.Execute<UploadAttachmentResponse>(async (cancellationToken) =>
+            {
                 var isValidUpdate = await attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, storageProvider, cancellationToken);
                 logger.LogInformation("Set dataLocationUrl of {attachmentId}", attachmentId);
 
@@ -63,32 +66,17 @@ namespace Altinn.Correspondence.Application.Helpers
                     logger.LogInformation("Development mode detected. Enqueing simulated malware scan result for attachment {attachmentId}", attachmentId);
                     backgroundJobClient.Enqueue<AttachmentHelper>(helper => helper.SimulateMalwareScanResult(attachmentId));
                 }
-            }
-            catch (DataLocationUrlException)
-            {
-                await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.InvalidLocationUrl);
-                return AttachmentErrors.DataLocationNotFound;
-            }
-            catch (HashMismatchException)
-            {
-                await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.ChecksumMismatch);
-                return AttachmentErrors.HashMismatch;
-            }
-            catch (RequestFailedException)
-            {
-                await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.UploadFailed);
-                return AttachmentErrors.UploadFailed;
-            }
 
-            logger.LogInformation("Finished upload of attachment {attachmentId} for party {partyUuid}", attachmentId, partyUuid);
+                logger.LogInformation("Finished upload of attachment {attachmentId} for party {partyUuid}", attachmentId, partyUuid);
 
-            return new UploadAttachmentResponse()
-            {
-                AttachmentId = attachment.Id,
-                Status = currentStatus.Status,
-                StatusChanged = currentStatus.StatusChanged,
-                StatusText = currentStatus.StatusText
-            };
+                return new UploadAttachmentResponse()
+                {
+                    AttachmentId = attachment.Id,
+                    Status = currentStatus.Status,
+                    StatusChanged = currentStatus.StatusChanged,
+                    StatusText = currentStatus.StatusText
+                };
+            }, logger, cancellationToken);
         }
 
         public async Task<StorageProviderEntity> GetStorageProvider(AttachmentEntity attachment, bool forMigration, CancellationToken cancellationToken)
@@ -116,6 +104,32 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             return serviceOwnerEntity?.GetStorageProvider(forMigration ? false : true);
         }
+
+        private async Task<OneOf<(string? locationUrl, string? hash, long size),Error>> UploadBlob(AttachmentEntity attachment, Stream stream, StorageProviderEntity? storageProvider, Guid partyUuid, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var (dataLocationUrl, checksum, size) = await storageRepository.UploadAttachment(attachment, stream, storageProvider, cancellationToken);
+                logger.LogInformation("Uploaded {attachmentId} to Azure Storage", attachment.Id);
+                return (dataLocationUrl, checksum, size);
+            }
+            catch (DataLocationUrlException)
+            {
+                await SetAttachmentStatus(attachment.Id, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.InvalidLocationUrl);
+                return AttachmentErrors.DataLocationNotFound;
+            }
+            catch (HashMismatchException)
+            {
+                await SetAttachmentStatus(attachment.Id, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.ChecksumMismatch);
+                return AttachmentErrors.HashMismatch;
+            }
+            catch (RequestFailedException)
+            {
+                await SetAttachmentStatus(attachment.Id, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.UploadFailed);
+                return AttachmentErrors.UploadFailed;
+            }
+        }
+
         public async Task<AttachmentStatusEntity> SetAttachmentStatus(Guid attachmentId, AttachmentStatus status, Guid partyUuid, CancellationToken cancellationToken, string statusText = null)
         {
             logger.LogInformation("Setting attachment status for {attachmentId} to {status}. Performed by {partyUuid}", attachmentId, status, partyUuid);
