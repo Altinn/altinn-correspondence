@@ -150,10 +150,6 @@ public class MigrateCorrespondenceHandler(
             else
             {
                 var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.CursorCreated, request.CursorId, request.CreatedFrom, request.CreatedTo, cancellationToken);
-                foreach(var correspondence in correspondences)
-                {
-                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, request.CreateEvents));
-                }
                 // If we filled the window, continue with next cursor
                 if (correspondences.Count == (request.BatchSize ?? 0) && correspondences.Count > 0)
                 {
@@ -168,7 +164,11 @@ public class MigrateCorrespondenceHandler(
                         CreatedFrom = request.CreatedFrom,
                         CreatedTo = request.CreatedTo
                     };
-                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
+                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>((handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
+                }
+                foreach(var correspondence in correspondences)
+                {
+                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, request.CreateEvents));
                 }
             }
         }
