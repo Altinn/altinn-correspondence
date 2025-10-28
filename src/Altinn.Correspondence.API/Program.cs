@@ -75,7 +75,6 @@ static void BuildAndRun(string[] args)
         {
             _Db.MigrateWithLock();
         }
-        app.UseHangfireDashboard();
     }
 
     app.Services.GetRequiredService<IRecurringJobManager>().AddOrUpdate<IpSecurityRestrictionUpdater>("Update IP restrictions to apimIp and current EventGrid IPs", handler => handler.UpdateIpRestrictions(), Cron.Daily());
