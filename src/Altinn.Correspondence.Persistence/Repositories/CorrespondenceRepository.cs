@@ -262,7 +262,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
 
             return query
-                .OrderBy(c => c.Created)
+                .OrderByDescending(c => c.Created)
                 .ThenBy(c => c.Id)
                 .Take(batchSize)
                 .ToListAsync(cancellationToken);
