@@ -54,6 +54,7 @@ public static class CorrespondenceErrors
     public static Error IdempotencyKeyNotAllowedWithMultipleRecipients = new Error(1047, "Idempotency key is not supported for requests with multiple recipients", HttpStatusCode.BadRequest);
     public static Error InvalidCorrespondenceDialogId = new Error(1048, "DialogId must be a valid non-empty GUID", HttpStatusCode.BadRequest);
     public static Error DialogNotFoundWithDialogId = new Error(1049, "Could not find dialog in Dialogporten with the given DialogId", HttpStatusCode.BadRequest);
+    public static Error AttachmentExpirationTooSoonAfterRequestedPublishTime = new Error(1050, "The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
@@ -75,6 +76,7 @@ public static class AttachmentErrors
     public static Error ServiceOwnerNotFound = new Error(2014, "Service owner not setup in this environment. You need a service owner agreement to use Correspondence. Please contact us at Slack.", HttpStatusCode.UnavailableForLegalReasons);
     public static Error AttachmentAlreadyMigrated = new Error(2015, "Attachment has already been migrated", HttpStatusCode.Conflict);
     public static Error AttachedToAPublishedCorrespondence = new Error(2016, "This attachment is associated with a published correspondence and can no longer be accessed by service owner", HttpStatusCode.BadRequest);
+    public static Error AttachmentExpirationPriorTwoWeeksFromNow = new Error(2017, "Attachment expirationTime must be at least 14 days from now", HttpStatusCode.BadRequest);
 }
 public static class NotificationErrors
 {
