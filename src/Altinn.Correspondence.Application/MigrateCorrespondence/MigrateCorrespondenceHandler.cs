@@ -189,7 +189,13 @@ public class MigrateCorrespondenceHandler(
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
 
-        if(correspondence.HasBeenPurged())
+        if (correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId))
+        {
+            logger.LogError($"Correspondence with id {correspondenceId} is already available in Dialogporten and API");
+            return correspondence.ExternalReferences.First(er => er.ReferenceType == ReferenceType.DialogportenDialogId).ReferenceValue;
+        }
+
+        if (correspondence.HasBeenPurged())
         {
             throw new InvalidOperationException($"Correspondence with id {correspondenceId} is purged and cannot be made available in Dialogporten or API");
         }
@@ -205,8 +211,11 @@ public class MigrateCorrespondenceHandler(
 
         var updateResult = await TransactionWithRetriesPolicy.Execute<string>(async (cancellationToken) =>
         {
-            await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
-            await SetIsMigrating(correspondenceId, false, cancellationToken);
+            if (correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId))
+            {
+                logger.LogError($"Correspondence with id {correspondenceId} is already available in Dialogporten and API");
+                return correspondence.ExternalReferences.First(er => er.ReferenceType == ReferenceType.DialogportenDialogId).ReferenceValue;
+            }
             return dialogId;
         }, logger, cancellationToken);
 
