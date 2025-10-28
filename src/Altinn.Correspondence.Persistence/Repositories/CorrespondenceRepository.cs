@@ -248,7 +248,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 query = query.Where(c => c.Created < createdTo.Value);
             } else
             {
-                query = query.Where(c => c.Created <= DateTimeOffset.UtcNow.AddHours(-1));
+                query = query.Where(c => c.Created <= DateTimeOffset.UtcNow.AddMonths(-1));
             }
 
             if (cursorCreated.HasValue)
