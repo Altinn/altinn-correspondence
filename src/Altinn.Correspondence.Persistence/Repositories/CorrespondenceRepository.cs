@@ -253,15 +253,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
             if (cursorCreated.HasValue)
             {
-                if (cursorId.HasValue)
-                {
-                    // We read ascending and then process, but we want newest first overall. We'll order ascending for stable keyset and take next window.
-                    query = query.Where(c => c.Created > cursorCreated.Value || (c.Created == cursorCreated.Value && c.Id > cursorId.Value));
-                }
-                else
-                {
-                    query = query.Where(c => c.Created > cursorCreated.Value);
-                }
+                query = query.Where(c => c.Created < cursorCreated.Value);
             }
 
             return query
