@@ -216,6 +216,8 @@ public class MigrateCorrespondenceHandler(
                 logger.LogError($"Correspondence with id {correspondenceId} is already available in Dialogporten and API");
                 return correspondence.ExternalReferences.First(er => er.ReferenceType == ReferenceType.DialogportenDialogId).ReferenceValue;
             }
+            await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
+            await SetIsMigrating(correspondenceId, false, cancellationToken);
             return dialogId;
         }, logger, cancellationToken);
 
