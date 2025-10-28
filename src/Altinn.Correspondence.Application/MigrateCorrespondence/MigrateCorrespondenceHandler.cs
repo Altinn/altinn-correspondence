@@ -116,12 +116,12 @@ public class MigrateCorrespondenceHandler(
         {
             if (!request.AsyncProcessing)
             {
-                var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.BatchOffset ?? 0, cancellationToken);
+                var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.CursorCreated, request.CursorId, request.CreatedFrom, request.CreatedTo, cancellationToken);
                 foreach (var correspondence in correspondences)
                 {
                     try
                     {
-                        dialogId = await MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, cancellationToken);
+                        dialogId = await MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, cancellationToken, null, request.CreateEvents);
                         response.Statuses.Add(new(correspondence.Id, null, dialogId, true));
                     }
                     catch (Exception ex)
@@ -134,33 +134,41 @@ public class MigrateCorrespondenceHandler(
             var batchLimit = 10000;
             if (request.BatchSize > batchLimit)
             {
-                var remainingCount = request.BatchSize;
-                var alreadyAdded = 0;
-                while(remainingCount > 0)
+                var currentBatch = batchLimit;
+                var migrateRequest = new MakeCorrespondenceAvailableRequest()
                 {
-                    int currentBatch = batchLimit;
-                    remainingCount -= batchLimit;
-                    if (remainingCount < 0)
-                    {
-                        currentBatch = (int)(remainingCount + batchLimit);
-                    }
-                    var migrateRequest = new MakeCorrespondenceAvailableRequest()
-                    {
-                        AsyncProcessing = true,
-                        BatchOffset = alreadyAdded,
-                        BatchSize = currentBatch,
-                        CreateEvents = request.CreateEvents
-                    };
-                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
-                    alreadyAdded += currentBatch;
-                }
+                    AsyncProcessing = true,
+                    BatchSize = currentBatch,
+                    CreateEvents = request.CreateEvents,
+                    CursorCreated = request.CursorCreated,
+                    CursorId = request.CursorId,
+                    CreatedFrom = request.CreatedFrom,
+                    CreatedTo = request.CreatedTo
+                };
+                backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
             } 
             else
             {
-                var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.BatchOffset ?? 0, cancellationToken);
+                var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.CursorCreated, request.CursorId, request.CreatedFrom, request.CreatedTo, cancellationToken);
                 foreach(var correspondence in correspondences)
                 {
-                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id));
+                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, request.CreateEvents));
+                }
+                // If we filled the window, continue with next cursor
+                if (correspondences.Count == (request.BatchSize ?? 0) && correspondences.Count > 0)
+                {
+                    var last = correspondences.Last();
+                    var migrateRequest = new MakeCorrespondenceAvailableRequest()
+                    {
+                        AsyncProcessing = true,
+                        BatchSize = request.BatchSize,
+                        CreateEvents = request.CreateEvents,
+                        CursorCreated = last.Created,
+                        CursorId = last.Id,
+                        CreatedFrom = request.CreatedFrom,
+                        CreatedTo = request.CreatedTo
+                    };
+                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
                 }
             }
         }
