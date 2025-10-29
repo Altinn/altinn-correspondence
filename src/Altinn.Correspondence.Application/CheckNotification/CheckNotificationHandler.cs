@@ -47,7 +47,7 @@ public class CheckNotificationHandler(
             logger.LogError("Notification not needed for correspondence {CorrespondenceId} - correspondence has failed", correspondenceId);
             var errorMessage = $"Notification should not be sendt for correspondence {correspondenceId} - correspondence has failed";
             var slackSent = await SlackHelper.SendSlackNotificationWithMessage(
-                "A notification order was sent for a correspondence that has failed",
+                "A notification order was sendt for a correspondence that has failed",
                 errorMessage,
                 slackClient,
                 slackSettings.NotificationChannel,
@@ -63,7 +63,7 @@ public class CheckNotificationHandler(
             logger.LogError("Notification not needed for correspondence {CorrespondenceId} - correspondence has not been published", correspondenceId);
             var errorMessage = $"Notification should not be sendt for correspondence {correspondenceId} - correspondence has not been published";
             var slackSent = await SlackHelper.SendSlackNotificationWithMessage(
-                "A notification order was sent for a correspondence that has not been published",
+                "A notification order was sendt for a correspondence that has not been published",
                 errorMessage,
                 slackClient,
                 slackSettings.NotificationChannel,
