@@ -29,6 +29,7 @@ using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 using Altinn.Correspondence.Application.LegacyUpdateCorrespondenceStatus;
 using Altinn.Correspondence.Application.GenerateReport;
 using Altinn.Correspondence.Application.RestoreSoftDeletedDialogs;
+using Altinn.Correspondence.Application.ExpireAttachment;
 
 namespace Altinn.Correspondence.Application;
 
@@ -43,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<GetAttachmentOverviewHandler>();
         services.AddScoped<DownloadAttachmentHandler>();
         services.AddScoped<PurgeAttachmentHandler>();
+        services.AddScoped<ExpireAttachmentHandler>();
 
         // Correspondence
         services.AddScoped<InitializeCorrespondencesHandler>();
