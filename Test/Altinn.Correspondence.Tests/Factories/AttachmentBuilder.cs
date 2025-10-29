@@ -51,5 +51,11 @@ namespace Altinn.Correspondence.Tests.Factories
             _attachment.Checksum = checksum;
             return this;
         }
+
+        public AttachmentBuilder WithExpirationTime(DateTimeOffset expirationTime)
+        {
+            _attachment.ExpirationTime = expirationTime;
+            return this;
+        }
     }
 }

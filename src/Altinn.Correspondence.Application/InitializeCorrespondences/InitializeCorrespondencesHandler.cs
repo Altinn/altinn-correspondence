@@ -159,7 +159,7 @@ public class InitializeCorrespondencesHandler(
         }
 
         var existingAttachmentIds = request.ExistingAttachments;
-        var uploadAttachments = request.Attachments;
+        var uploadAttachmentFiles = request.Attachments;
         var uploadAttachmentMetadata = request.Correspondence.Content.Attachments;
 
         logger.LogDebug("Validating {ExistingCount} existing attachments", existingAttachmentIds.Count);
@@ -187,12 +187,28 @@ public class InitializeCorrespondencesHandler(
             return CorrespondenceErrors.AttachmentsNotPublished;
         }
 
-        logger.LogDebug("Validating {UploadCount} new attachments", uploadAttachments.Count);
-        var attachmentMetaDataError = initializeCorrespondenceHelper.ValidateAttachmentFiles(uploadAttachments, uploadAttachmentMetadata);
+        logger.LogDebug("Validating {UploadCount} new attachments", uploadAttachmentFiles.Count);
+        var attachmentMetaDataError = initializeCorrespondenceHelper.ValidateAttachmentFiles(uploadAttachmentFiles, uploadAttachmentMetadata);
         if (attachmentMetaDataError != null)
         {
             logger.LogWarning("Attachment validation failed: {Error}", attachmentMetaDataError);
             return attachmentMetaDataError;
+        }
+
+        logger.LogDebug("Validating expiration times for attachments");
+        var uploadAttachments = uploadAttachmentMetadata.Select(a => a.Attachment).Where(a => a != null).Select(a => a!).ToList();
+        var uploadAttachmentsExpirationError = initializeCorrespondenceHelper.ValidateAttachmentsExpiration(uploadAttachments, request.Correspondence.RequestedPublishTime);
+        if (uploadAttachmentsExpirationError != null)
+        {
+            logger.LogWarning("Expiration time validation failed for uploaded attachments: {Error}", uploadAttachmentsExpirationError);
+            return uploadAttachmentsExpirationError;
+        }
+
+        var existingAttachmentsExpirationError = initializeCorrespondenceHelper.ValidateAttachmentsExpiration(existingAttachments, request.Correspondence.RequestedPublishTime);
+        if (existingAttachmentsExpirationError != null)
+        {
+            logger.LogWarning("Expiration time validation failed for existing attachments: {Error}", existingAttachmentsExpirationError);
+            return existingAttachmentsExpirationError;
         }
 
         logger.LogDebug("Validating reply options");
@@ -237,7 +253,7 @@ public class InitializeCorrespondencesHandler(
         }
 
         logger.LogDebug("Uploading {Count} attachments", validatedData.AttachmentsToBeUploaded.Count);
-        var uploadError = await initializeCorrespondenceHelper.UploadAttachments(validatedData.AttachmentsToBeUploaded, uploadAttachments, partyUuid, cancellationToken);
+        var uploadError = await initializeCorrespondenceHelper.UploadAttachments(validatedData.AttachmentsToBeUploaded, uploadAttachmentFiles, partyUuid, cancellationToken);
         if (uploadError != null)
         {
             logger.LogError("Attachment upload failed: {Error}", uploadError);

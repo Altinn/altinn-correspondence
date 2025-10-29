@@ -39,12 +39,6 @@ namespace Altinn.Correspondence.API.Models
         public DateTimeOffset StatusChanged { get; set; }
 
         /// <summary>
-        /// When the attachment expires
-        /// </summary>
-        [JsonPropertyName("expirationTime")]
-        public DateTimeOffset ExpirationTime { get; set; }
-
-        /// <summary>
         /// The attachment data type in MIME format
         /// </summary>
         [JsonPropertyName("dataType")]
