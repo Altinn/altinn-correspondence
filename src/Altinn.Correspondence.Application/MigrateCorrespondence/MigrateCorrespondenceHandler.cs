@@ -208,7 +208,11 @@ public class MigrateCorrespondenceHandler(
         // If the correspondence was soft deleted in Altinn 2, we need to pass this forward in order to set the system label correctly on the Dialog
         bool isSoftDeleted = await IsCorrespondenceSoftDeleted(correspondence, cancellationToken);
         var dialogId = await dialogportenService.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId: correspondenceId, correspondence: correspondence, enableEvents: createEvents, isSoftDeleted: isSoftDeleted);
-
+        if (string.IsNullOrEmpty(dialogId))
+        {
+            logger.LogError($"Dialogporten service failed to create a dialog for correspondence with id {correspondenceId}");
+            return string.Empty;
+        }
         var updateResult = await TransactionWithRetriesPolicy.Execute<string>(async (cancellationToken) =>
         {
             if (correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId))
