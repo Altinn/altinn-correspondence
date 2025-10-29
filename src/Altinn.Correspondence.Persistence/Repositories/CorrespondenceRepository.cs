@@ -64,6 +64,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             CancellationToken cancellationToken)
         {
             var correspondences = _context.Correspondences
+                .AsNoTracking()
                 .Where(c => c.ResourceId == resourceId)             // Correct id
                 .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
                 .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter
@@ -136,6 +137,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesByAttachmentId(Guid attachmentId, bool includeStatus, CancellationToken cancellationToken = default)
         {
             var correspondence = _context.Correspondences
+                .AsNoTracking()
                 .Where(c => c.Content != null && c.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId))
                 .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
                 .AsQueryable();
@@ -147,6 +149,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<List<CorrespondenceEntity>> GetNonPublishedCorrespondencesByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default)
         {
             var correspondences = await _context.Correspondences
+                .AsNoTracking()
                 .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
                 .Where(correspondence =>
                         correspondence.Content!.Attachments.Any(attachment => attachment.AttachmentId == attachmentId) // Correspondence has the given attachment
@@ -178,6 +181,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<List<Guid>> GetCorrespondenceIdsByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default)
         {
             var correspondenceIds = await _context.Correspondences
+            .AsNoTracking()
             .Where(c => c.Content != null && c.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId))
             .Select(c => c.Id).ToListAsync(cancellationToken);
             return correspondenceIds;
@@ -208,6 +212,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 : _context.Correspondences.Where(c => recipientIds.Contains(c.Recipient)); // Filter multiple recipients
 
             correspondences = correspondences
+                .AsNoTracking()
                 .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
                 .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter                              
                 .IncludeByStatuses(includeActive, includeArchived, status) // Filter by statuses
@@ -224,6 +229,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<bool> AreAllAttachmentsPublished(Guid correspondenceId, CancellationToken cancellationToken = default)
         {
             return await _context.CorrespondenceContents
+                .AsNoTracking()
                 .Where(content => content.CorrespondenceId == correspondenceId)
                 .Select(content => content.Attachments
                     .All(correspondenceAttachment => correspondenceAttachment.Attachment!.Statuses.Any(status => status.Status == AttachmentStatus.Published)))
@@ -233,6 +239,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, int offset, CancellationToken cancellationToken = default)
         {
             return _context.Correspondences
+                .AsNoTracking()
                 .Where(c => c.Altinn2CorrespondenceId != null && c.IsMigrating) // Only include correspondences that are not already migrated 
                 .ExcludePurged() // Exclude purged correspondences
                 .ExcludeSelfIdentifiedRecipients() // Exclude correspondences belonging to self identified users
@@ -358,7 +365,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesForReport(bool includeAltinn2, CancellationToken cancellationToken)
         {
-            var query = _context.Correspondences.AsQueryable();
+            var query = _context.Correspondences.AsNoTracking().AsQueryable();
 
             // Filter by Altinn version if needed
             if (!includeAltinn2)

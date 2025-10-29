@@ -15,6 +15,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             if (attachment.StorageProvider?.Id is not null)
             {
                 attachment.StorageProvider = await _context.StorageProviders
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(sp => sp.Id == attachment.StorageProvider.Id, cancellationToken);
             }
             else
@@ -49,13 +50,15 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<AttachmentEntity> GetAttachmentByAltinn2Id(string altinn2Id, CancellationToken cancellationToken)
         {
-            return await _context.Attachments.SingleAsync(a => a.Altinn2AttachmentId == altinn2Id, cancellationToken);
+            return await _context.Attachments
+                .AsNoTracking()
+                .SingleAsync(a => a.Altinn2AttachmentId == altinn2Id, cancellationToken);
         }
 
         public async Task<AttachmentEntity?> GetAttachmentById(Guid guid, bool includeStatus, CancellationToken cancellationToken)
         {
             logger.LogDebug("Retrieving attachment {AttachmentId} with status included: {IncludeStatus}", guid, includeStatus);
-            var attachments = _context.Attachments.AsQueryable();
+            var attachments = _context.Attachments.AsNoTracking().AsQueryable();
             if (includeStatus)
             {
                 attachments = attachments.Include(a => a.Statuses);
@@ -97,6 +100,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<List<AttachmentEntity?>> GetAttachmentsByCorrespondence(Guid correspondenceId, CancellationToken cancellationToken)
         {
             return await _context.Correspondences
+                .AsNoTracking()
                 .Where(c => c.Id == correspondenceId && c.Content != null)
                 .SelectMany(c => c.Content!.Attachments)
                 .Include(ca => ca.Attachment)
@@ -108,6 +112,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<AttachmentEntity?> GetAttachmentByCorrespondenceIdAndAttachmentId(Guid correspondenceId, Guid attachmentId, CancellationToken cancellationToken)
         {
             return await _context.Correspondences
+                .AsNoTracking()
                 .Where(c => c.Id == correspondenceId && c.Content!.Attachments.Any(ca => ca.AttachmentId == attachmentId))
                 .SelectMany(c => c.Content!.Attachments)
                 .Include(ca => ca.Attachment)
@@ -120,6 +125,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<List<AttachmentEntity>> GetAttachmentsByResourceIdWithoutStorageProvider(string resourceId, CancellationToken cancellationToken)
         {
             return await _context.Attachments
+                .AsNoTracking()
                 .Where(a => a.ResourceId == resourceId && a.StorageProvider == null)
                 .Include(a => a.StorageProvider)
                 .ToListAsync(cancellationToken);

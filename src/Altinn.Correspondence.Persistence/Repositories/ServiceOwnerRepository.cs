@@ -11,6 +11,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<ServiceOwnerEntity?> GetServiceOwnerByOrgNo(string orgNo, CancellationToken cancellationToken)
         {
             return await context.ServiceOwners
+                .AsNoTracking()
                 .Include(so => so.StorageProviders)
                 .SingleOrDefaultAsync(so => so.Id == orgNo, cancellationToken);
         }
@@ -18,6 +19,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<ServiceOwnerEntity?> GetServiceOwnerByOrgCode(string orgCode, CancellationToken cancellationToken)
         {
             return await context.ServiceOwners
+                .AsNoTracking()
                 .Include(so => so.StorageProviders)
                 .SingleOrDefaultAsync(so => so.Name == orgCode, cancellationToken);
         }
@@ -25,6 +27,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<bool> InitializeNewServiceOwner(string orgNo, string name, CancellationToken cancellationToken)
         {
             var existingServiceOwner = await context.ServiceOwners
+                .AsNoTracking()
                 .SingleOrDefaultAsync(so => so.Id == orgNo, cancellationToken);
             if (existingServiceOwner != null)
             {

@@ -16,7 +16,9 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<bool> PartyAlreadyExists(int partyId, CancellationToken cancellationToken)
         {
-            return await _context.LegacyParties.AnyAsync(p => p.PartyId == partyId, cancellationToken);
+            return await _context.LegacyParties
+                .AsNoTracking()
+                .AnyAsync(p => p.PartyId == partyId, cancellationToken);
         }
     }
 }
