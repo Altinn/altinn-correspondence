@@ -6,6 +6,7 @@ using Altinn.Correspondence.Common.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Altinn.Correspondence.Application.RestoreSoftDeletedDialogs;
+using Altinn.Correspondence.Application.InitializeServiceOwner;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -121,6 +122,31 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
         );
     }
 
+    /// <summary>
+    /// Enqueue cleanup to remove markdown and html from summary in Dialogporten for correspondences
+    /// </summary>
+    /// <response code="200">Returns the enqueued job id</response>
+    /// <response code="401">Unauthorized</response>
+    /// <response code="403">Forbidden</response>
+    [HttpPost]
+    [Route("initialize-service-owner")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(CleanupMarkdownAndHTMLInSummaryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> InitializeServiceOwner(
+        [FromServices] InitializeServiceOwnerHandler handler,
+        [FromBody] InitializeServiceOwnerRequest request,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Request to initialize service owner for {serviceOwner} received", request.ServiceOwnerName);
+        var result = await handler.Process(request, HttpContext.User, cancellationToken);
+        return result.Match(
+            (result) => Ok(result),
+            Problem
+        );
+    }
 
     private ActionResult Problem(Error error) => Problem(
         detail: error.Message,
