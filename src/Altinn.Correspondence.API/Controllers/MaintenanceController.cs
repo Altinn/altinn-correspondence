@@ -123,16 +123,16 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     }
 
     /// <summary>
-    /// Enqueue cleanup to remove markdown and html from summary in Dialogporten for correspondences
+    /// Initialize a new service owner in the system and deploy storage accounts
     /// </summary>
-    /// <response code="200">Returns the enqueued job id</response>
+    /// <response code="200">boolean</response>
     /// <response code="401">Unauthorized</response>
     /// <response code="403">Forbidden</response>
     [HttpPost]
     [Route("initialize-service-owner")]
     [Authorize(Policy = AuthorizationConstants.Maintenance)]
     [Produces("application/json")]
-    [ProducesResponseType(typeof(CleanupMarkdownAndHTMLInSummaryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> InitializeServiceOwner(
