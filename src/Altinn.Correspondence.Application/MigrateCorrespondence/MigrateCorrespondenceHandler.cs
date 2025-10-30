@@ -147,11 +147,13 @@ public class MigrateCorrespondenceHandler(
                     CreatedTo = request.CreatedTo
                 };
                 logger.LogInformation("Delaying scheduling of migration jobs as there are currently {EnqueuedJobs} jobs in the queue", enqueuedJobs);
-                backgroundJobClient.Schedule<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None), TimeSpan.FromMinutes(1));
+                backgroundJobClient.Schedule<MigrateCorrespondenceHandler>((handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None), TimeSpan.FromMinutes(1));
             } 
             else
             {
+                logger.LogInformation("Querying db");
                 var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.CursorCreated, request.CursorId, request.CreatedFrom, request.CreatedTo, cancellationToken);
+                logger.LogInformation("Found {count} correspondences", correspondences.Count);
                 var last = correspondences.Last();
                 var migrateRequest = new MakeCorrespondenceAvailableRequest()
                 {
@@ -163,11 +165,13 @@ public class MigrateCorrespondenceHandler(
                     CreatedFrom = request.CreatedFrom,
                     CreatedTo = request.CreatedTo
                 };
-                backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
+                logger.LogInformation("Enqueuing next batch for {id}", last.Id);
+                backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>((handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
                 foreach (var correspondence in correspondences)
                 {
                     backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, request.CreateEvents));
                 }
+                logger.LogInformation("Finished queuing {count} correspondences", correspondences.Count);
             }
         }
 
