@@ -1,0 +1,15 @@
+meta {
+  name: Details
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{correspondence_base_url}}/correspondence/api/v1/correspondence/{{correspondenceId}}/details
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviceowner_altinn_token}}
+}

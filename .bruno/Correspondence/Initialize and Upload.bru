@@ -1,0 +1,81 @@
+meta {
+  name: Initialize and Upload
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/correspondence/api/v1/correspondence
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviceowner_altinn_token}}
+}
+
+body:multipart-form {
+  Correspondence: {
+    value: {
+      "Correspondence": {
+        "resourceId": "{{resource_id}}",
+        "sendersReference": "1",
+        "content": {
+          "language": "nb",
+          "messageTitle": "Meldingstittel med vedlegg",
+          "messageSummary": "Ett sammendrag for meldingen med vedlegg",
+          "messageBody": "# meldingsteksten med vedlegg. Som kan være plain text eller markdown",
+          "attachments": []
+        },
+        "RequestedPublishTime": "2024-09-28T12:44:28.290518+00:00",
+        "allowSystemDeleteAfter": "2025-08-29T13:31:28.290518+00:00",
+        "dueDateTime": "2025-05-29T13:31:28.290518+00:00",
+        "externalReferences": [
+          {
+            "referenceValue": "1",
+            "referenceType": "AltinnBrokerFileTransfer"
+          }
+        ],
+        "propertyList": {
+          "deserunt_12": "1",
+          "culpa_852": "2",
+          "anim5": "3"
+        },
+        "replyOptions": [
+          {
+            "linkURL": "https://www.test.no",
+            "linkText": "test"
+          }
+        ],
+        "notification": {
+          "notificationTemplate": 0,
+          "notificationChannel": 3,
+          "SendReminder": true,
+          "EmailBody": "Test av varsel",
+          "EmailSubject": "Dette er innholdet i ett varsel",
+          "SmsBody": "Dette er innholdet i ett testvarsel",
+          "ReminderEmailBody": "Dette er test av revarsling",
+          "ReminderEmailSubject": "Test av revarsel",
+          "ReminderSmsBody": "Dette er en test av revarsling"
+        },
+        "IgnoreReservation": true,
+        "IsConfirmationNeeded": false
+      },
+      "Recipients": [
+        "urn:altinn:organization:identifier-no:{{recipient_orgnumber}}",
+        "urn:altinn:person:identifier-no:{{recipient_ssn}}"
+      ],
+      "existingAttachments": []
+    },
+    type: text
+  }
+  Attachments: {
+    value: @file(./test-file.txt),
+    type: file
+  }
+}
+
+script:post-response {
+  const responseData = res.body;
+  bru.setVar("correspondenceId", responseData.correspondenceId);
+}

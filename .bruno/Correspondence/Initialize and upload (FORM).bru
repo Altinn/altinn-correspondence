@@ -1,0 +1,49 @@
+meta {
+  name: Initialize and upload (FORM)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{correspondence_base_url}}/correspondence/api/v1/correspondence/upload
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviceowner_altinn_token}}
+}
+
+body:multipart-form {
+  correspondence.resourceid: {{resource_id}}
+  correspondence.sendersreference: 1
+  correspondence.content.language: nb
+  correspondence.content.messagetitle: Testmelding tittel
+  correspondence.content.messagesummary: Ett sammendrag for meldingen
+  correspondence.content.messagebody: Som kan være plain text eller **markdown**
+  correspondence.requestedpublishtime: 2024-09-28T12:44:28.290518+00:00
+  correspondence.allowsystemdeleteafter: 2026-08-29T13:31:28.290518+00:00
+  correspondence.duedatetime: 2026-05-29T13:31:28.290518+00:00
+  correspondence.propertylist.casenumber: 123
+  correspondence.propertylist.etc: can-use-for-anything
+  correspondence.replyoptions[0].linkurl: https://digdir-samarbeid.slack.com/
+  correspondence.replyoptions[0].linktext: Slack
+  correspondence.notification.notificationtemplate: CustomMessage
+  correspondence.notification.notificationchannel: EmailAndSms
+  correspondence.notification.sendreminder: true
+  correspondence.notification.emailsubject: Test av Correspondence: E-post varsel
+  correspondence.notification.reminderemailsubject: Test av Correspondence: E-post påminnelse
+  correspondence.notification.smsbody: Dette er SMS-en som sendes ut ved varsling
+  correspondence.notification.remindersmsbody: Dette er SMS-en som sendes ut ved påminnelse
+  correspondence.notification.emailbody: Dette er mailteksten som sendes ut
+  correspondence.notification.reminderemailbody: Dette er eposten som sendes ut ved påminnelse
+  correspondence.ignorereservation: false
+  correspondence.isconfirmationneeded: true
+  recipients[0]: urn:altinn:organization:identifier-no:{{recipient_orgnumber}}
+  recipients[1]: urn:altinn:person:identifier-no:{{recipient_ssn}}
+}
+
+script:post-response {
+  const responseData = res.body;
+  bru.setVar("correspondenceId", responseData.correspondences[0].correspondenceId);
+}

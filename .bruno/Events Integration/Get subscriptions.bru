@@ -1,0 +1,32 @@
+meta {
+  name: Get subscriptions
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{platform_base_url}}/events/api/v1/subscriptions/
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviceowner_altinn_token}}
+}
+
+body:json {
+  {
+      "endpoint": "https://webhook.site/9705e1ee-8682-4f18-a6e8-ce35a682db08",
+      "resourceFilter": "urn:altinn:resource:{{resource_id}}"
+  }
+}
+
+script:post-response {
+  const responseData = res.body;
+  bru.setVar("event_subscription_id", responseData.id);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
