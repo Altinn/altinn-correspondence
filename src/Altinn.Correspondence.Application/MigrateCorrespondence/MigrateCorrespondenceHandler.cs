@@ -131,7 +131,7 @@ public class MigrateCorrespondenceHandler(
                 }
                 return response;
             }
-            var batchLimit = 10000;
+            var batchLimit = 1000;
             if (request.BatchSize > batchLimit)
             {
                 var currentBatch = batchLimit;
