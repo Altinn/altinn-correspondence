@@ -312,14 +312,12 @@ namespace Altinn.Correspondence.Application.Helpers
                 MessageSender = request.Correspondence.MessageSender,
                 Content = new CorrespondenceContentEntity
                 {
-                    Attachments = attachmentsToBeUploaded
-                        .Select((a, index) => new CorrespondenceAttachmentEntity
-                        {
-                            Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index)),
-                            Attachment = a,
-                            Created = DateTimeOffset.UtcNow,
-                        })
-                        .ToList(),
+                    Attachments = attachmentsToBeUploaded.Select((a, index) => new CorrespondenceAttachmentEntity
+                    {
+                        Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index)),
+                        Attachment = a,
+                        Created = DateTimeOffset.UtcNow,
+                    }).ToList(),
                     Language = request.Correspondence.Content.Language,
                     MessageBody = AddRecipientToMessage(request.Correspondence.Content.MessageBody, partyDetails?.Name),
                     MessageSummary = AddRecipientToMessage(request.Correspondence.Content.MessageSummary, partyDetails?.Name),
