@@ -4,6 +4,7 @@
     {
         ServiceOwner,
         Sender,
-        Recipient
+        Recipient,
+        PartyRepresentative,
     }
 }
