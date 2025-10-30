@@ -150,11 +150,11 @@ public class MigrateCorrespondenceHandler(
             else
             {
                 var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.CursorCreated, request.CursorId, request.CreatedFrom, request.CreatedTo, cancellationToken);
-                // If we filled the window, continue with next cursor
                 foreach (var correspondence in correspondences)
                 {
                     backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, request.CreateEvents));
                 }
+                // If we filled the window, continue with next cursor
                 if (correspondences.Count == (request.BatchSize ?? 0) && correspondences.Count > 0)
                 {
                     var last = correspondences.Last();
