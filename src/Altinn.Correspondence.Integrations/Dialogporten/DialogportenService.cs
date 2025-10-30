@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Models.Entities;
+﻿using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
@@ -555,7 +556,6 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
     public async Task<bool?> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
     {
-        
         CreateDialogRequest? dialog = null;
         try
         {
@@ -571,6 +571,17 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw;
         }
         return dialog.Party == expectedRecipient ? true : false;
+    }
+    
+    public async Task<bool> ValidateDialogResourceMatch(string dialogId, string expectedResource, CancellationToken cancellationToken = default)
+    {
+        var dialog = await GetDialog(dialogId);
+        if (dialog is null)
+        {
+            throw new Exception($"Dialog {dialogId} not found when attempting to validate resource");
+        }
+        var dialogResource = dialog.ServiceResource.WithoutPrefix();
+        return dialogResource == expectedResource;
     }
 
     public async Task<bool> DoesDialogExist(string dialogId, CancellationToken cancellationToken = default)
