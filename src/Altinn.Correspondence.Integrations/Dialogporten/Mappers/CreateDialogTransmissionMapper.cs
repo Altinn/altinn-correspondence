@@ -75,9 +75,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static List<TransmissionAttachment> GetAttachmentsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
         {
+            var baseTimestamp = DateTimeOffset.UtcNow;
             return correspondence.Content?.Attachments.Select((attachment, index) => new TransmissionAttachment
             {
-                Id = Guid.CreateVersion7().ToString(),
+                Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index)).ToString(),
                 DisplayName = new List<TransmissionDisplayName>
                 {
                     new TransmissionDisplayName
