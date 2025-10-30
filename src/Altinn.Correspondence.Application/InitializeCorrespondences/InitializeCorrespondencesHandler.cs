@@ -483,6 +483,11 @@ public class InitializeCorrespondencesHandler(
             return CorrespondenceErrors.InvalidCorrespondenceDialogId;
         }
 
+        var validateResource = await dialogportenService.ValidateDialogResourceMatch(dialogId, correspondence.ResourceId, cancellationToken);
+        if (validateResource == false)
+        {
+            return CorrespondenceErrors.ResourceMismatch;
+        }
         var recipientMatches = await dialogportenService.ValidateDialogRecipientMatch(dialogId, correspondence.Recipient, cancellationToken);
         if (recipientMatches == false)
         {
