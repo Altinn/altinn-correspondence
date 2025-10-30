@@ -5,6 +5,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Hangfire;
+using Altinn.Correspondence.Persistence;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -19,6 +20,7 @@ public class MigrateCorrespondenceHandler(
     IDialogportenService dialogportenService,
     HangfireScheduleHelper hangfireScheduleHelper,
     IBackgroundJobClient backgroundJobClient,
+    ApplicationDbContext dbContext,
     ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRequest, MigrateCorrespondenceResponse>
 {
     public async Task<OneOf<MigrateCorrespondenceResponse, Error>> Process(MigrateCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -147,7 +149,7 @@ public class MigrateCorrespondenceHandler(
                     CreatedTo = request.CreatedTo
                 };
                 logger.LogInformation("Delaying scheduling of migration jobs as there are currently {EnqueuedJobs} jobs in the queue", enqueuedJobs);
-                backgroundJobClient.Schedule<MigrateCorrespondenceHandler>((handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None), TimeSpan.FromMinutes(1));
+                backgroundJobClient.Schedule<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None), TimeSpan.FromMinutes(1));
             } 
             else
             {
@@ -166,7 +168,7 @@ public class MigrateCorrespondenceHandler(
                     CreatedTo = request.CreatedTo
                 };
                 logger.LogInformation("Enqueuing next batch for {id}", last.Id);
-                backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>((handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
+                backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
                 foreach (var correspondence in correspondences)
                 {
                     backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, request.CreateEvents));
