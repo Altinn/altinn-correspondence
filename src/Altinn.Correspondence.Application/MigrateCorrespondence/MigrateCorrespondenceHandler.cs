@@ -131,21 +131,47 @@ public class MigrateCorrespondenceHandler(
                 }
                 return response;
             }
-            var batchLimit = 1000;
+            var batchLimit = 999;
             if (request.BatchSize > batchLimit)
             {
                 var currentBatch = batchLimit;
-                var migrateRequest = new MakeCorrespondenceAvailableRequest()
+
+                var enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.Migration);
+                if (enqueuedJobs > batchLimit * 20)
                 {
-                    AsyncProcessing = true,
-                    BatchSize = currentBatch,
-                    CreateEvents = request.CreateEvents,
-                    CursorCreated = request.CursorCreated,
-                    CursorId = request.CursorId,
-                    CreatedFrom = request.CreatedFrom,
-                    CreatedTo = request.CreatedTo
-                };
-                backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
+                    var migrateRequest = new MakeCorrespondenceAvailableRequest()
+                    {
+                        AsyncProcessing = true,
+                        BatchSize = currentBatch,
+                        CreateEvents = request.CreateEvents,
+                        CursorCreated = request.CursorCreated,
+                        CursorId = request.CursorId,
+                        CreatedFrom = request.CreatedFrom,
+                        CreatedTo = request.CreatedTo
+                    };
+                    logger.LogInformation("Delaying scheduling of migration jobs as there are currently {EnqueuedJobs} jobs in the queue", enqueuedJobs);
+                    backgroundJobClient.Schedule<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None), TimeSpan.FromMinutes(1));
+                } 
+                else
+                {
+                    var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.CursorCreated, request.CursorId, request.CreatedFrom, request.CreatedTo, cancellationToken);
+                    var last = correspondences.Last();
+                    var migrateRequest = new MakeCorrespondenceAvailableRequest()
+                    {
+                        AsyncProcessing = true,
+                        BatchSize = request.BatchSize,
+                        CreateEvents = request.CreateEvents,
+                        CursorCreated = last.Created,
+                        CursorId = last.Id,
+                        CreatedFrom = request.CreatedFrom,
+                        CreatedTo = request.CreatedTo
+                    };
+                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
+                    foreach (var correspondence in correspondences)
+                    {
+                        backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, request.CreateEvents));
+                    }
+                }
             } 
             else
             {
