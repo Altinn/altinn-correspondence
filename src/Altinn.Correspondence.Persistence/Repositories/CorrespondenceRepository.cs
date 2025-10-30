@@ -107,7 +107,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 correspondences = correspondences.Include(c => c.ForwardingEvents);
             }
 
-            return await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
+            return await correspondences.AsSplitQuery().AsNoTracking().SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
         }
 
         public async Task<CorrespondenceEntity?> GetCorrespondenceByIdForSync(
