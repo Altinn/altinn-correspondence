@@ -1,0 +1,22 @@
+meta {
+  name: Upload
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/correspondence/api/v1/attachment/{{attachmentId}}/upload
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviceowner_altinn_token}}
+}
+
+body:multipart-form {
+  file: {
+    value: @file(./test-file.txt),
+    type: file
+  }
+}

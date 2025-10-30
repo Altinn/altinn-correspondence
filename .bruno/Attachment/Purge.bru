@@ -1,0 +1,19 @@
+meta {
+  name: Purge
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{base_url}}/correspondence/api/v1/attachment/{{attachmentId}}/actions/purge
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviceowner_altinn_token}}
+}
+
+body:json {
+  {}
+}

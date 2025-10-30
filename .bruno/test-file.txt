@@ -1,0 +1,8 @@
+This is a test file for Altinn Correspondence API testing.
+It can be used to test file upload functionality in the Bruno collection.
+
+Content: Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+
+Test data for correspondence attachments.
